@@ -1042,9 +1042,10 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(Store.editor, 'hasChanges').get(() => false);
         });
 
-        it('shows and cancels delete dialog', () => {
+        it('shows and cancels delete dialog', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            el.deleteFragment();
+            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths: sandbox.stub().resolves([]) }));
+            await el.deleteFragment();
             expect(el.showDeleteDialog).to.be.true;
             el.cancelDelete();
             expect(el.showDeleteDialog).to.be.false;

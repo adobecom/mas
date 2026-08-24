@@ -3,7 +3,14 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import {
+    ROOT_PATH,
+    SURFACES,
+    PAGE_NAMES,
+    EDITABLE_FRAGMENT_MODEL_IDS,
+    COLLECTION_MODEL_PATH,
+    PROMOTION_MODEL_ID,
+} from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
@@ -4076,6 +4083,8 @@ describe('MasRepository dictionary helpers', () => {
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
+            sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
 
             const result = await repository.deleteFragmentWithVariations(fragment);
@@ -4105,6 +4114,8 @@ describe('MasRepository dictionary helpers', () => {
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
+            sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
 
@@ -4135,6 +4146,8 @@ describe('MasRepository dictionary helpers', () => {
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
+            sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
             const errorSpy = sandbox.stub(console, 'error');
@@ -4143,6 +4156,84 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(result.success).to.be.false;
             expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
+        });
+
+        it('discovers and force-deletes promo variations even though they are absent from the variations field', async () => {
+            const repository = createRepository();
+            const fragment = new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                fields: [],
+            });
+            const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/nbbdsa/mili-compare';
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves({ id: 'parent-id', fields: [] }),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([promoVariationPath]);
+            const cleanupStub = sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: promoVariationPath })).to.be.true;
+            expect(cleanupStub.calledWith(promoVariationPath)).to.be.true;
+        });
+
+        it('removes a force-deleted variation path from any promotion project that still lists it', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/pzn/grouped-one';
+            const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
+            const projectPath = '/content/dam/mas/sandbox/promotions/nbbdsa';
+            const latestStaleProject = {
+                id: 'promo-1',
+                fields: [{ name: 'fragments', values: [variationPath, otherPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
+                    getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { id: PROMOTION_MODEL_ID } }),
+                    getWithEtag: sandbox.stub().resolves(latestStaleProject),
+                    save: sandbox.stub().resolves(),
+                },
+            });
+
+            await repository.removeVariationFromPromotionProjects(variationPath);
+
+            expect(repository.aem.sites.cf.fragments.getByPath.calledWith(projectPath)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getWithEtag.calledWith('promo-1')).to.be.true;
+            const savedProject = repository.aem.sites.cf.fragments.save.firstCall.args[0];
+            const fragmentsField = savedProject.fields.find((f) => f.name === 'fragments');
+            expect(fragmentsField.values).to.deep.equal([otherPath]);
+        });
+
+        it('skips references that are not promotion projects', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/pzn/grouped-one';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/some-collection';
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: collectionPath }] }),
+                    getByPath: sandbox.stub().resolves({ id: 'coll-1', model: { id: 'some-other-model-id' } }),
+                    getWithEtag: sandbox.stub(),
+                    save: sandbox.stub(),
+                },
+            });
+
+            await repository.removeVariationFromPromotionProjects(variationPath);
+
+            expect(repository.aem.sites.cf.fragments.getWithEtag.called).to.be.false;
+            expect(repository.aem.sites.cf.fragments.save.called).to.be.false;
         });
     });
 

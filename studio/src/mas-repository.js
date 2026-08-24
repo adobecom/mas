@@ -29,6 +29,7 @@ import {
     EDITABLE_FRAGMENT_MODEL_IDS,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    PROMOTION_MODEL_ID,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
@@ -1680,12 +1681,62 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Deletes a fragment and all its locale variations
+     * Finds the fragment's promo variation paths.
+     * @param {Fragment} fragment
+     * @returns {Promise<string[]>} Paths of the fragment's promo variations
+     */
+    async getPromoVariationPaths(fragment) {
+        try {
+            const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragment, () =>
+                this.loadPromotions(),
+            );
+            return new Fragment(enrichedData).listPromoVariations().map((ref) => ref.path);
+        } catch (error) {
+            console.error('Failed to probe promo variations:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Removes a stale path from any Promo Project's `fragments` field after a force delete.
+     * @param {string} variationPath
+     */
+    async removeVariationFromPromotionProjects(variationPath) {
+        let referencedBy;
+        try {
+            referencedBy = await this.aem.sites.cf.fragments.getReferencedBy(variationPath);
+        } catch (error) {
+            console.error(`Failed to look up references for ${variationPath}:`, error);
+            return;
+        }
+
+        const candidatePaths = (referencedBy?.parentReferences || []).map((ref) => ref.path).filter(Boolean);
+
+        for (const projectPath of candidatePaths) {
+            try {
+                const project = await this.aem.sites.cf.fragments.getByPath(projectPath);
+                if (project?.model?.id !== PROMOTION_MODEL_ID) continue;
+
+                const latestProject = await this.aem.sites.cf.fragments.getWithEtag(project.id);
+                const fragmentsField = latestProject?.fields?.find((f) => f.name === 'fragments');
+                if (fragmentsField?.values?.includes(variationPath)) {
+                    fragmentsField.values = fragmentsField.values.filter((path) => path !== variationPath);
+                    await this.aem.sites.cf.fragments.save(latestProject);
+                }
+            } catch (error) {
+                console.error(`Failed to remove ${variationPath} from promotion project ${projectPath}:`, error);
+            }
+        }
+    }
+
+    /**
+     * Deletes a fragment and all its variations (locale, grouped, and promo)
      * @param {Fragment} fragment - The parent fragment to delete
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        const variations = fragment.getVariations();
+        const promoVariationPaths = await this.getPromoVariationPaths(fragment);
+        const variations = [...new Set([...fragment.getVariations(), ...promoVariationPaths])];
         const failedVariations = [];
 
         if (variations.length > 0) {
@@ -1707,6 +1758,7 @@ export class MasRepository extends LitElement {
             for (const variationPath of variations) {
                 try {
                     await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
+                    await this.removeVariationFromPromotionProjects(variationPath);
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);

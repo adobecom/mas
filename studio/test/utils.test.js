@@ -13,6 +13,7 @@ import {
     resolveContentTypeFilters,
     createKeyedAsyncLoader,
     getCreateProjectErrorMessage,
+    describeVariationsToDelete,
 } from '../src/utils.js';
 import {
     CARD_MODEL_PATH,
@@ -672,5 +673,40 @@ describe('getCreateProjectErrorMessage', () => {
 
     it('returns the generic message when error is undefined', () => {
         expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
+    });
+});
+
+describe('describeVariationsToDelete', () => {
+    const mockFragment = (localeCount, groupedCount) => ({
+        listLocaleVariations: () => new Array(localeCount).fill({}),
+        listGroupedVariations: () => new Array(groupedCount).fill({}),
+    });
+
+    it('lists only locale variations when that is the only category present', () => {
+        expect(describeVariationsToDelete(mockFragment(2, 0), 0)).to.equal('2 locale variation(s)');
+    });
+
+    it('lists only promo variations when that is the only category present', () => {
+        expect(describeVariationsToDelete(mockFragment(0, 0), 1)).to.equal('1 promo variation(s)');
+    });
+
+    it('combines locale and promo counts, separated by a comma', () => {
+        expect(describeVariationsToDelete(mockFragment(2, 0), 1)).to.equal('2 locale, 1 promo variation(s)');
+    });
+
+    it('combines all three categories when present', () => {
+        expect(describeVariationsToDelete(mockFragment(1, 3), 2)).to.equal('1 locale, 3 grouped, 2 promo variation(s)');
+    });
+
+    it('omits zero-count categories', () => {
+        expect(describeVariationsToDelete(mockFragment(0, 4), 0)).to.equal('4 grouped variation(s)');
+    });
+
+    it('defaults promoVariationCount to 0 when omitted', () => {
+        expect(describeVariationsToDelete(mockFragment(1, 0))).to.equal('1 locale variation(s)');
+    });
+
+    it('handles a fragment without variation-listing methods', () => {
+        expect(describeVariationsToDelete(null, 1)).to.equal('1 promo variation(s)');
     });
 });

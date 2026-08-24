@@ -563,3 +563,19 @@ export function createKeyedAsyncLoader() {
         apply(await load());
     };
 }
+
+/**
+ * Generates the delete confirmation summary, omitting categories with a zero count.
+ * @param {import('./aem/fragment.js').Fragment} fragment
+ * @param {number} promoVariationCount
+ * @returns {string}
+ */
+export function describeVariationsToDelete(fragment, promoVariationCount = 0) {
+    const localeCount = fragment?.listLocaleVariations?.().length || 0;
+    const groupedCount = fragment?.listGroupedVariations?.().length || 0;
+    const parts = [];
+    if (localeCount) parts.push(`${localeCount} locale`);
+    if (groupedCount) parts.push(`${groupedCount} grouped`);
+    if (promoVariationCount) parts.push(`${promoVariationCount} promo`);
+    return `${parts.join(', ')} variation(s)`;
+}

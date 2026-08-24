@@ -21,6 +21,7 @@ import {
     previewFragmentOnPage,
     getFragmentPartsToUse,
     MODEL_WEB_COMPONENT_MAPPING,
+    describeVariationsToDelete,
 } from './utils.js';
 import { getCountryName } from './locales.js';
 import './rte/osi-field.js';
@@ -51,6 +52,7 @@ export default class EditorPanel extends LitElement {
         localeDefaultFragment: { type: Object, state: true },
         localeDefaultFragmentLoading: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
+        promoVariationCount: { type: Number, state: true },
     };
 
     static styles = css`
@@ -134,6 +136,7 @@ export default class EditorPanel extends LitElement {
         this.localeDefaultFragment = null;
         this.localeDefaultFragmentLoading = false;
         this.variationsToDelete = [];
+        this.promoVariationCount = 0;
 
         // MWPW-182720: Drag properties
         this.dragX = window.innerWidth - 520;
@@ -560,7 +563,10 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        this.variationsToDelete = this.fragment?.getVariations() || [];
+        const fieldVariations = this.fragment?.getVariations() || [];
+        const promoVariationPaths = this.fragment ? await this.repository.getPromoVariationPaths(this.fragment) : [];
+        this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
+        this.promoVariationCount = promoVariationPaths.length;
         this.showDeleteDialog = true;
     }
 
@@ -578,7 +584,7 @@ export default class EditorPanel extends LitElement {
                 await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
                 showToast('Fragment successfully deleted.', 'positive');
             } else {
-                await this.repository.deleteFragment(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment);
             }
             this.#closeEditorAfterDelete();
         } catch (error) {
@@ -872,8 +878,8 @@ export default class EditorPanel extends LitElement {
         const message = hasVariations
             ? html`<p>Are you sure you want to delete this fragment?</p>
                   <p>
-                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
-                      This action cannot be undone.
+                      <strong>Warning:</strong> This will also delete
+                      ${describeVariationsToDelete(this.fragment, this.promoVariationCount)}. This action cannot be undone.
                   </p>`
             : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`

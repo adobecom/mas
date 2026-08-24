@@ -26,6 +26,7 @@ import {
     showToast,
     createKeyedAsyncLoader,
     MODEL_WEB_COMPONENT_MAPPING,
+    describeVariationsToDelete,
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import {
@@ -572,6 +573,7 @@ export default class MasFragmentEditor extends LitElement {
         previewResolved: { type: Boolean, state: true },
         previewError: { type: String, state: true },
         variationsToDelete: { type: Array, state: true },
+        promoVariationCount: { type: Number, state: true },
         initState: { type: String, state: true },
         groupedVariationOrphanMessage: { type: String, state: true },
         promotionGeoOptions: { type: Array, state: true },
@@ -629,6 +631,7 @@ export default class MasFragmentEditor extends LitElement {
         this.previewError = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
+        this.promoVariationCount = 0;
         this.initState = MasFragmentEditor.INIT_STATE.IDLE;
         this.groupedVariationOrphanMessage = null;
         this.promotionGeoOptions = [];
@@ -1468,9 +1471,13 @@ export default class MasFragmentEditor extends LitElement {
 
     async deleteFragment() {
         if (!this.editorContextStore.isVariation(this.fragment.id)) {
-            this.variationsToDelete = this.fragment.getVariations();
+            const fieldVariations = this.fragment.getVariations();
+            const promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
+            this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
+            this.promoVariationCount = promoVariationPaths.length;
         } else {
             this.variationsToDelete = [];
+            this.promoVariationCount = 0;
         }
         this.showDeleteDialog = true;
     }
@@ -1644,8 +1651,8 @@ export default class MasFragmentEditor extends LitElement {
         const message = hasVariations
             ? html`<p>Are you sure you want to delete this fragment?</p>
                   <p>
-                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
-                      This action cannot be undone.
+                      <strong>Warning:</strong> This will also delete
+                      ${describeVariationsToDelete(this.fragment, this.promoVariationCount)}. This action cannot be undone.
                   </p>`
             : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`

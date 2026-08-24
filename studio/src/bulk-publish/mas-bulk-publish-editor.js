@@ -245,7 +245,7 @@ class MasBulkPublishEditor extends LitElement {
 
     checkStaged(items) {
         const newItems = [...items];
-        const refs = Store.bulkPublishProjects.inEdit.get().value.references;
+        const refs = Store.bulkPublishProjects.inEdit.get().value?.references || [];
         newItems.forEach((item) => {
             refs.forEach((ref) => {
                 if (item.path === ref.path) {

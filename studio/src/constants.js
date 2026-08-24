@@ -342,3 +342,10 @@ export const BASELINE_VARIATION = {
     TOOLTIP_TEXT:
         'This variation is the baseline for the project and inherits all geos tagged in the project. Any additional variations tagged with specific geos will override the baseline.',
 };
+
+export const STAGED = {
+    NAME: 'staged',
+    TAG: 'mas:custom/test',
+    DIALOG_CONFIRM_TEXT: 'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_TITLE: 'Staged content warning',
+};

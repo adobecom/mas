@@ -3,6 +3,7 @@ import { styles } from './mas-bulk-publish-items.css.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
+    'staged': 'Staged',
 };
 
 function emit(target, type, detail) {
@@ -42,7 +43,9 @@ class MasBulkPublishItems extends LitElement {
     }
 
     get rows() {
-        if (this.items.length > 0) return this.items;
+        if (this.items.length > 0) {
+            return this.items;
+        }
         return this.urlLines.map((url) => ({ url }));
     }
 

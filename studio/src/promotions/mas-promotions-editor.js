@@ -16,6 +16,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    STAGED,
 } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
@@ -283,6 +284,18 @@ class MasPromotionsEditor extends LitElement {
         return toAttribute(getPromotionTagFromFragment(this.fragment) ?? '');
     }
 
+    #handleStagedToggle = ({ target }) => {
+        const tags = this.fragment?.getFieldValues('tags') || [];
+        const newTags = [...tags];
+        const index = newTags.indexOf(STAGED.TAG);
+        if (!target.checked && index !== -1) {
+            newTags.splice(index, 1);
+        } else {
+            newTags.push(STAGED.TAG);
+        }
+        this.fragmentStore.updateField('tags', newTags);        
+    };    
+
     #mapPromotionOfferSelectorToRow(selectorId) {
         const cached = Store.promotions.offerRecordsCache.get(selectorId);
         if (cached) return cached;
@@ -533,7 +546,18 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handlePublishPromotion = async () => {
-        await this.#publishOrSchedulePromotion();
+        const confirmed = !this.fragment?.isStaged || await this.#showDialog(
+            STAGED.DIALOG_TITLE,
+            STAGED.DIALOG_CONFIRM_TEXT,
+            {
+                confirmText: 'Publish',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+            },
+        );
+        if (confirmed) {
+            await this.#publishOrSchedulePromotion();
+        }
     };
 
     #handleUnpublishPromotion = async () => {
@@ -1475,6 +1499,12 @@ class MasPromotionsEditor extends LitElement {
                                     >Evergreen promo</sp-switch
                                 >
                             </div>
+                            <sp-switch
+                                ?checked=${this.fragment?.isStaged}
+                                ?disabled=${readOnly}
+                                @change=${this.#handleStagedToggle}
+                                >Staged</sp-switch
+                            >                            
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"

@@ -12,6 +12,7 @@ import {
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
     TAG_PROMOTION_PREFIX,
+    STAGED,
 } from './constants.js';
 import router from './router.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
@@ -566,6 +567,7 @@ export default class MasFragmentEditor extends LitElement {
         deleteInProgress: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
         showCloneDialog: { type: Boolean, state: true },
+        showPublishStagedDialog: { type: Boolean, state: true },
         showCreateVariationDialog: { type: Boolean, state: true },
         cloneInProgress: { type: Boolean, state: true },
         localeDefaultFragment: { type: Object, state: true },
@@ -623,6 +625,7 @@ export default class MasFragmentEditor extends LitElement {
         this.showDeleteDialog = false;
         this.showDiscardDialog = false;
         this.showCloneDialog = false;
+        this.showPublishStagedDialog = false;
         this.showCreateVariationDialog = false;
         this.cloneInProgress = false;
         this.previewResolved = false;
@@ -1549,6 +1552,10 @@ export default class MasFragmentEditor extends LitElement {
         this.osiClone = null;
     }
 
+    cancelPublishStaged() {
+        this.showPublishStagedDialog = false;
+    }
+
     handleTagsChangeOnClone(e) {
         const value = e.target.getAttribute('value');
         this.tagsClone = value ? value.split(',') : [];
@@ -1596,6 +1603,15 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async publishFragment() {
+        if (this.fragment?.isStaged) {
+            this.showPublishStagedDialog = true;
+        } else {
+            await this.publishFragmentWithRefs();
+        }
+    }
+
+    async publishFragmentWithRefs() {
+        this.showPublishStagedDialog = false;
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
             if (refs.variations.length || refs.cards.length) {
@@ -1685,6 +1701,25 @@ export default class MasFragmentEditor extends LitElement {
                     Discard
                 </sp-button>
             </sp-dialog>
+        `;
+    }
+
+    get publishStagedDialog() {
+        if (!this.showPublishStagedDialog) return nothing;
+        return html`
+            <sp-underlay open @click="${this.cancelPublishStaged}"></sp-underlay>
+            <sp-dialog
+                open
+                variant="confirmation"
+                class="publish-staged-dialog"
+                @sp-dialog-confirm="${this.publishFragmentWithRefs}"
+                @sp-dialog-dismiss="${this.cancelPublishStaged}"
+            >
+                <h1 slot="heading">${STAGED.DIALOG_TITLE}</h1>
+                <p>${STAGED.DIALOG_CONFIRM_TEXT}</p>    
+                <sp-button slot="button" variant="secondary" @click="${this.cancelPublishStaged}"> Cancel </sp-button>
+                <sp-button slot="button" variant="accent" @click="${this.publishFragmentWithRefs}"> Publish </sp-button>
+            </sp-dialog>                        
         `;
     }
 
@@ -2300,7 +2335,7 @@ export default class MasFragmentEditor extends LitElement {
                     </div>
                     ${this.previewColumn}
                 </div>
-                ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
+                ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog} ${this.publishStagedDialog}
                 ${this.copyVariationDialog}
             </div>
         `;

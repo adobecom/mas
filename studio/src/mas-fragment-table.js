@@ -268,6 +268,7 @@ class MasFragmentTable extends LitElement {
                               ${getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
+                <sp-table-cell class="wf-status">${data.isStaged ? html`<span class="staged-badge">Staged</span>` : ''}</sp-table-cell>
                 <sp-table-cell class="offer-id">
                     <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
                     ${this.offerData?.offerId

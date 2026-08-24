@@ -10,6 +10,7 @@ import {
     BULK_PUBLISH_PROJECT_MODEL_ID,
     PAGE_NAMES,
     STATUS_PUBLISHED,
+    STAGED,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -22,6 +23,7 @@ import './mas-bulk-publish-locales.js';
 import './mas-bulk-publish-success-banner.js';
 import './mas-bulk-publish-confirm-dialog.js';
 import './mas-bulk-publish-duplicate-dialog.js';
+import '../publish/mas-publish-staged-dialog.js';
 import {
     SAVE_SVG,
     CLONE_SVG,
@@ -87,6 +89,7 @@ class MasBulkPublishEditor extends LitElement {
     static properties = {
         confirmOpen: { state: true },
         duplicateOpen: { state: true },
+        stagedOpen: { state: true },
         itemsSelectorOpen: { state: true },
         localesPickerOpen: { state: true },
         pendingActions: { state: true },
@@ -109,6 +112,7 @@ class MasBulkPublishEditor extends LitElement {
         super();
         this.confirmOpen = false;
         this.duplicateOpen = false;
+        this.stagedOpen = false;
         this.itemsSelectorOpen = false;
         this.localesPickerOpen = false;
         this.pendingActions = new Set();
@@ -239,20 +243,39 @@ class MasBulkPublishEditor extends LitElement {
         return this.inEdit.value;
     }
 
+    checkStaged(items) {
+        const newItems = [...items];
+        const refs = Store.bulkPublishProjects.inEdit.get().value.references;
+        newItems.forEach((item) => {
+            refs.forEach((ref) => {
+                if (item.path === ref.path) {
+                    ref.fields.forEach((field) => {
+                        if (field.name === 'tags' && field.values.includes(STAGED.TAG)) {
+                            item.status = 'error';
+                            item.reason = STAGED.NAME;
+                        }
+                    });
+                }
+            });
+        });
+        return newItems;
+    }
+
     get items() {
-        if (this.localItems !== null) return this.localItems;
+        if (this.localItems !== null) return this.checkStaged(this.localItems);
         const savedItems = this.#parsedItemsMetadata();
         const paths = this.getFields('fragments');
         if (paths.length) {
             const typeByPath = new Map(savedItems.map((item) => [item.path, item.type]));
-            return paths.map((path) => ({
+            const pathItems = paths.map((path) => ({
                 path,
                 url: path,
                 status: 'valid',
                 type: typeByPath.get(path) ?? itemTypeFromPath(path),
             }));
+            return this.checkStaged(pathItems);
         }
-        return savedItems;
+        return this.checkStaged(savedItems);
     }
 
     #parsedItemsMetadata() {
@@ -448,8 +471,22 @@ class MasBulkPublishEditor extends LitElement {
         });
     }
 
-    handlePublish() {
+    handleStagedConfirmed() {
+        this.stagedOpen = false;
         this.confirmOpen = true;
+    }
+
+    handleStagedCancel() {
+        this.stagedOpen = false;
+    }
+
+    handlePublish() {
+        const staged = this.items.some((item) => item.status !== 'valid');
+        if (staged) {
+            this.stagedOpen = true;
+        } else {
+            this.confirmOpen = true;
+        }
     }
 
     handleConfirmCancel() {
@@ -597,9 +634,9 @@ class MasBulkPublishEditor extends LitElement {
             this.ensureSurface();
             const surface = Store.search.get()?.path;
             try {
+                const validPaths = this.items.filter((i) => (i.status === 'valid' || i.reason === STAGED.NAME) && i.path).map((i) => i.path);
                 if (this.isNewProject) {
                     const title = this.title || 'Untitled bulk publish project';
-                    const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                     const payload = buildProjectPayload({
                         parentPath: this.repository.getBulkPublishParentPath(surface),
                         title,
@@ -624,7 +661,6 @@ class MasBulkPublishEditor extends LitElement {
                     for (const [name, value] of Object.entries(fields)) {
                         this.project.updateField(name, [value]);
                     }
-                    const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                     this.project.updateField('items', [buildItemsMetadata(this.items)]);
                     this.project.updateField('fragments', validPaths);
                     this.project.updateField('locales', this.locales);
@@ -769,9 +805,12 @@ class MasBulkPublishEditor extends LitElement {
                                 authorPath: authorPath || null,
                                 locale: fragment.locale || null,
                                 href: href || null,
-                                status: 'valid',
+                                status: fragment.isStaged ? 'error' : 'valid',
                                 alreadyPublished: fragment.status === STATUS_PUBLISHED,
                             };
+                            if (fragment.isStaged) {
+                                results[i].reason = STAGED.NAME;
+                            }
                         }
                     } catch (err) {
                         results[i] = {
@@ -987,6 +1026,11 @@ class MasBulkPublishEditor extends LitElement {
                 @duplicate-confirmed=${this.handleDuplicateConfirmed}
                 @duplicate-cancelled=${this.handleDuplicateCancel}
             ></mas-bulk-publish-duplicate-dialog>
+            <mas-publish-staged-dialog
+                .open=${this.stagedOpen}
+                @staged-confirmed=${this.handleStagedConfirmed}
+                @staged-cancelled=${this.handleStagedCancel}
+            ></mas-publish-staged-dialog>
             ${this.itemsSelectorOpen
                 ? html`<mas-add-items-dialog
                       open

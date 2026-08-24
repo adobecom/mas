@@ -1,10 +1,11 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES, STAGED } from './constants.js';
+import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
-import { generateCodeToUse } from './utils.js';
+import { generateCodeToUse, showToast } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -152,11 +153,47 @@ class MasSelectionPanel extends LitElement {
             }
         }
 
+        const anyStaged = [...hydratedFragments, ...allCards, ...allVariations].some((fragment) => {
+            let staged = false;
+            if (!staged && fragmentIds.includes(fragment.id)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name === 'tags' && field.values.includes(STAGED.TAG)) {
+                        staged = true;
+                    }
+                });
+            }
+            return staged;
+        });        
+        if (anyStaged) {
+            const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+            const result = await MasPublishStagedDialog.show();
+            if (!result.confirmed) return;
+        }
+
         const success = await this.repository.bulkPublishFragments(fragmentIds);
         if (success) {
             this.selectionStore.set([]);
         }
     }
+
+    async handleMarkStaged(event) {
+        if (!this.repository) {
+            console.error('Repository not found');
+            return;
+        }
+
+        await Promise.all(this.selection.map(async (id) => {
+            const data = await this.repository.aem.sites.cf.fragments.getById(id);
+            const fragment = new Fragment(data);
+            const oldTags = fragment.getFieldValues('tags') || [];
+            const tags = [...oldTags];
+            tags.push(STAGED.TAG);
+            fragment.updateField('tags', tags);
+            this.repository.aem.sites.cf.fragments.save(fragment);
+        }));
+        this.selectionStore.set([]);
+        showToast('Fragments marked as Staged.', 'positive');
+    }    
 
     handleUnpublish(event) {
         this.onUnpublish(this.selection, event);
@@ -223,6 +260,12 @@ class MasSelectionPanel extends LitElement {
                           <sp-icon-folder-add slot="icon"></sp-icon-folder-add>
                           <sp-tooltip self-managed placement="top">Copy to folder</sp-tooltip>
                       </sp-action-button>`
+                : nothing}
+            ${count > 0
+                ? html`<sp-action-button slot="buttons" label="Mark as Staged" @click=${this.handleMarkStaged}>
+                      <sp-icon-pause slot="icon"></sp-icon-pause>
+                      <sp-tooltip self-managed placement="top">Mark as Staged</sp-tooltip>
+                  </sp-action-button>`
                 : nothing}
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>

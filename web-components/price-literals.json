@@ -378,7 +378,8 @@
             "taxExclusiveLabel": "{taxTerm, select, GST {不含 GST} VAT {不含稅} TAX {不含稅} IVA {不含 IVA} SST {不含 SST} KDV {不含 KDV} other {}}",
             "taxInclusiveLabel": "{taxTerm, select, GST {含 GST} VAT {含稅} TAX {含稅} IVA {含 IVA} SST {含 SST} KDV {含 KDV} other {}}",
             "alternativePriceAriaLabel": "或者在 {alternativePrice}",
-            "strikethroughAriaLabel": "標準價格為 {strikethroughPrice}"
+            "strikethroughAriaLabel": "標準價格為 {strikethroughPrice}",
+            "discountLabel": "{remainingPercent, number, ::scale/0.1 .#}折"
         },
         {
             "lang": "es",

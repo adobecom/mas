@@ -29,6 +29,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { EXPLICIT_EMPTY_SENTINEL, parentValuesHaveContent } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { normalizePznTagToLocaleCode } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
@@ -39,6 +40,8 @@ const htmlToText = (html) => new DOMParser().parseFromString(html || '', 'text/h
 const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
 const EVENT_COMMERCE_READY = 'wcms:commerce:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"][data-wcs-osi]';
+const ADDON_TAG = 'merch-addon';
+const ADDON = 'addon';
 
 function isEditorPriceElement(element) {
     if (element.closest('#preview-wrapper')) return true;
@@ -368,8 +371,7 @@ class MerchCardEditor extends LitElement {
 
     async resetMnemonicsToParent() {
         for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
-            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            this.fragmentStore.resetFieldToParent(fieldName);
         }
         showToast('Visuals restored to parent value', 'positive');
     }
@@ -381,8 +383,7 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetFieldToParent(fieldName) {
-        const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-        const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        const success = this.fragmentStore.resetFieldToParent(fieldName);
         if (success) {
             showToast('Field restored to parent value', 'positive');
         }
@@ -393,6 +394,43 @@ class MerchCardEditor extends LitElement {
         if (!this.effectiveIsVariation) return nothing;
         if (this.getFieldState(fieldName) !== 'overridden') return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
+    }
+
+    isAddonBgOverridden() {
+        if (this.effectiveIsVariation) {
+            const settingsValue = this.globalSettingsDefaults[ADDON];
+            const currentValue = this.fragment.getField(ADDON)?.values[0];
+            const parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
+            let parentBg;
+            if (this.isAddonWebComponent(parentValue)) {
+                parentBg = this.getAddonElement(parentValue).getAttribute('background');
+            }
+            if (this.isAddonWebComponent(currentValue)) {
+                const currentBg = this.getAddonElement(currentValue).getAttribute('background');
+                return !!currentBg && currentBg !== parentBg;
+            }
+        }
+
+        return false;
+    }
+
+    renderAddonBgFieldStatusIndicator() {
+        if (this.effectiveIsVariation) {
+            const settingsValue = this.globalSettingsDefaults[ADDON];
+            const currentValue = this.fragment.getField(ADDON)?.values[0];
+            const parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
+
+            let currentBg;
+            let parentBg;
+            if (this.isAddonWebComponent(currentValue)) {
+                currentBg = this.getAddonElement(currentValue).getAttribute('background');
+            }
+            if (this.isAddonWebComponent(parentValue)) {
+                parentBg = this.getAddonElement(parentValue).getAttribute('background');
+            }
+            if (currentBg === parentBg) return nothing;
+        }
+        return this.renderFieldStatusIndicator(ADDON);
     }
 
     renderValidationBanner() {
@@ -542,15 +580,67 @@ class MerchCardEditor extends LitElement {
         return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => this.isSettingVisuallyOverridden(fieldName));
     }
 
+    isAddonWebComponent(html) {
+        return !!html?.startsWith(`<${ADDON_TAG} `);
+    }
+
+    getAddonElement(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return doc.querySelector(ADDON_TAG);
+    }
+
+    #handleAddonChange = (event) => {
+        const newValue = event.detail?.value;
+        const currentValue = this.getEffectiveFieldValue(ADDON, 0);
+        const settingsValue = this.globalSettingsDefaults[ADDON];
+        let parentValue;
+        if (this.effectiveIsVariation) {
+            parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
+        } else {
+            parentValue = settingsValue;
+        }
+        let value;
+        if (this.isAddonWebComponent(currentValue)) {
+            const addonEl = this.getAddonElement(currentValue);
+            addonEl.textContent = newValue;
+            value = addonEl.outerHTML;
+        } else if (newValue === parentValue) {
+            value = '';
+        } else {
+            value = newValue;
+        }
+        this.fragmentStore.updateField(ADDON, [value]);
+    };
+
+    resetAddonSettingToDefault() {
+        let restored = false;
+        if (this.effectiveIsVariation) {
+            const parentValues = this.localeDefaultFragment?.getField(ADDON)?.values || [];
+            restored = this.fragmentStore.resetFieldToParent(ADDON, parentValues);
+        } else {
+            const addonFragment = this.fragment?.getFieldValue(ADDON, 0);
+            if (this.isAddonWebComponent(addonFragment)) {
+                const addonSettings = this.globalSettingsDefaults[ADDON];
+                const addonEl = this.getAddonElement(addonFragment);
+                addonEl.textContent = addonSettings;
+                restored = this.fragmentStore.updateField(ADDON, [addonEl.outerHTML]) !== false;
+            } else {
+                restored = this.fragmentStore.updateField(ADDON, ['']) !== false;
+            }
+        }
+        return restored;
+    }
+
     /**
      * For variations: resets the field to the parent's value (inherit).
      * For top-level fragments: clears the field so the global setting applies.
      */
     resetSettingToDefault(fieldName, silent = false) {
         let restored = false;
-        if (this.effectiveIsVariation) {
-            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            restored = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        if (fieldName === ADDON) {
+            restored = this.resetAddonSettingToDefault();
+        } else if (this.effectiveIsVariation) {
+            restored = this.fragmentStore.resetFieldToParent(fieldName);
         } else {
             restored = this.fragmentStore.updateField(fieldName, ['']) !== false;
         }
@@ -628,7 +718,30 @@ class MerchCardEditor extends LitElement {
         return this.restoreSettingsToDefault(this.resetQuantitySettingToDefault, field);
     }
 
+    isAddonSettingVisuallyOverridden() {
+        const addonFragment = this.fragment?.getFieldValue(ADDON, 0);
+        if (!addonFragment) return false;
+
+        if (this.isAddonWebComponent(addonFragment)) {
+            const addonEl = this.getAddonElement(addonFragment);
+            const addonSettings = this.globalSettingsDefaults[ADDON];
+            let addonParent;
+            if (this.effectiveIsVariation) {
+                addonParent = this.localeDefaultFragment?.getField(ADDON)?.values[0] || addonSettings;
+            } else {
+                addonParent = addonSettings;
+            }
+            if (this.isAddonWebComponent(addonParent)) {
+                addonParent = this.getAddonElement(addonParent).textContent;
+            }
+            return addonEl.textContent !== addonParent;
+        }
+
+        return true;
+    }
+
     renderSettingOverrideIndicator(fieldName) {
+        if (fieldName === ADDON && !this.isAddonSettingVisuallyOverridden()) return nothing;
         if (!this.isSettingVisuallyOverridden(fieldName)) return nothing;
         return this.restoreSettingsToDefault(this.resetSettingToDefault, fieldName);
     }
@@ -1724,10 +1837,10 @@ class MerchCardEditor extends LitElement {
                             id="addon-field"
                             label="Show Addon"
                             data-field="addon"
-                            data-field-state="${this.isSettingVisuallyOverridden('addon') ? 'overridden' : 'default'}"
-                            .indicatorTemplate=${this.renderSettingOverrideIndicator('addon')}
-                            .value="${this.getEffectiveSettingValue('addon')}"
-                            @input="${this.updateFragment}"
+                            data-field-state="${this.isAddonSettingVisuallyOverridden() ? 'overridden' : 'default'}"
+                            .indicatorTemplate=${this.renderSettingOverrideIndicator(ADDON)}
+                            .value="${this.getEffectiveSettingValue(ADDON)}"
+                            @input="${this.#handleAddonChange}"
                         ></mas-addon-field>
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
@@ -2271,10 +2384,6 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('badge', 0) || '';
     }
 
-    get isPlans() {
-        return this.fragment.variant?.startsWith('plans');
-    }
-
     get trialBadgeText() {
         return this.getEffectiveFieldValue('trialBadge', 0) || '';
     }
@@ -2337,7 +2446,10 @@ class MerchCardEditor extends LitElement {
         const parentParsed = parseBadgeHtml(this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '');
         const ownParsed = parseBadgeHtml(this.getEffectiveFieldValue(fieldName, 0) || '');
         const merged = { ...ownParsed, [component]: parentParsed[component] };
-        const value = serializeBadgeHtml({ ...merged, variant: this.getEffectiveFieldValue('variant') });
+        const value = serializeBadgeHtml({
+            ...merged,
+            variant: this.supportsBadgeColors ? this.getEffectiveFieldValue('variant') : undefined,
+        });
         this.fragmentStore.updateField(fieldName, [value]);
         showToast('Field restored to parent value', 'positive');
     }
@@ -2461,6 +2573,7 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentUpdate(syntheticEvent);
     };
 
+    static #ADDON_DEFAULT = 'transparent';
     static #ADDON_GRADIENT =
         'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
     static #ADDON_GREY = '#dadada';
@@ -2470,15 +2583,18 @@ class MerchCardEditor extends LitElement {
         const temp = document.createElement('div');
         temp.innerHTML = addonHtml;
         const first = temp.firstElementChild;
-        return first?.tagName?.toLowerCase() === 'merch-addon' ? first.getAttribute('background') || undefined : undefined;
+        return first?.tagName?.toLowerCase() === ADDON_TAG ? first.getAttribute('background') || undefined : undefined;
     }
 
     #renderAddonBackgroundPicker(form) {
-        const addonHtml = form.addon?.values[0] || '';
+        const addonHtml = this.getEffectiveSettingValue(ADDON);
+        const addonHtmlSettings = this.globalSettingsDefaults[ADDON];
         const currentBg = this.#getAddonBackground(addonHtml);
+        const defaultBg = MerchCardEditor.#ADDON_DEFAULT;
         const gradient = MerchCardEditor.#ADDON_GRADIENT;
         const grey = MerchCardEditor.#ADDON_GREY;
         const options = { Gradient: gradient, Grey: grey };
+        if (this.effectiveIsVariation) options.Default = defaultBg;
         const selectedKey = Object.entries(options).find(([, v]) => v === currentBg)?.[0] ?? 'Default';
 
         const handleChange = (e) => {
@@ -2486,10 +2602,14 @@ class MerchCardEditor extends LitElement {
             const temp = document.createElement('div');
             temp.innerHTML = addonHtml;
             const first = temp.firstElementChild;
-            const innerContent = first?.tagName?.toLowerCase() === 'merch-addon' ? first.innerHTML : addonHtml;
+            const innerContent = first?.tagName?.toLowerCase() === ADDON_TAG ? first.innerHTML : addonHtml;
             const newAddonHtml = bgValue ? `<merch-addon background="${bgValue}">${innerContent}</merch-addon>` : innerContent;
             const fragment = this.fragmentStore.get();
-            fragment.updateField('addon', [newAddonHtml]);
+            if (newAddonHtml === addonHtmlSettings) {
+                fragment.updateField(ADDON, ['']);
+            } else {
+                fragment.updateField(ADDON, [newAddonHtml]);
+            }
             this.fragmentStore.set(fragment);
         };
 
@@ -2498,12 +2618,15 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="addonBackground">Addon Background</sp-field-label>
                 <sp-picker
                     id="addonBackground"
-                    data-field-state="${this.getFieldState('addon')}"
+                    data-field-state="${this.isAddonBgOverridden() ? 'overridden' : 'default'}"
                     value="${selectedKey}"
                     @change="${handleChange}"
                 >
                     <sp-menu-item value="Default">
-                        <div class="menu-item-container"><span>Default</span></div>
+                        <div class="menu-item-container">
+                            <div class="color-swatch" style="--swatch-bg: transparent"></div>
+                            <span class="color-name-text">Default</span>
+                        </div>
                     </sp-menu-item>
                     <sp-menu-item value="Gradient">
                         <div class="menu-item-container">
@@ -2518,7 +2641,7 @@ class MerchCardEditor extends LitElement {
                         </div>
                     </sp-menu-item>
                 </sp-picker>
-                ${this.renderFieldStatusIndicator('addon')}
+                ${this.renderAddonBgFieldStatusIndicator()}
             </sp-field-group>
         `;
     }

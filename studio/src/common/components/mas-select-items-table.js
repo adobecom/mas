@@ -88,7 +88,9 @@ class MasSelectItemsTable extends LitElement {
                     this.dispatchEvent(new CustomEvent('view-only-load-more', { bubbles: true, composed: true }));
                 }
             },
-            { root: this.closest('.main-container'), rootMargin: '200px' },
+            // `closest` can't cross the shadow boundary this table lives behind, so fall back
+            // to the single app-level scroll container (as mas-fragment-render does).
+            { root: this.closest('.main-container') ?? document.querySelector('.main-container'), rootMargin: '200px' },
         );
         this.dataState.abortController = new AbortController();
         this.dataState.isProcessingCards = false;

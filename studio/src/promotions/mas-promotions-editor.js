@@ -16,7 +16,6 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
-    COLLECTION_MODEL_PATH,
 } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
@@ -59,7 +58,6 @@ import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
-import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 import {
     canPublishPromotionNow,
@@ -411,13 +409,9 @@ class MasPromotionsEditor extends LitElement {
             const legacyCollections = new Set(fromCollections);
             Store.promotions.selectedCards.set(allPaths.filter((path) => !legacyCollections.has(path)));
             Store.promotions.selectedCollections.set([...legacyCollections]);
-            // MWPW-204645: classification issues one GET per attached fragment to split
-            // cards vs collections. Append `skipClassification=1` to the studio hash to
-            // skip it and measure load without those requests (correct only for projects
-            // with no collections merged into `fragments`).
-            if (!this.#isPromotionItemClassificationSkipped()) {
-                void this.#refinePromotionItemClassification(allPaths);
-            }
+            // MWPW-204645: correct the optimistic split in the background with a single
+            // bounded collection search per surface (not one GET per attached path).
+            void this.#refinePromotionItemClassification(fromCollections);
         }
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
@@ -435,41 +429,27 @@ class MasPromotionsEditor extends LitElement {
     }
 
     /**
-     * Corrects the optimistic card/collection split in the background. Looks up each
-     * attached path's model with bounded concurrency (avoids a per-path request burst that
-     * the server rate-limits) and re-buckets, so the editor never blocks first paint on
-     * classification. Bounded by the project's attached count, not the surface catalog.
-     * @param {string[]} allPaths
+     * Corrects the optimistic card/collection split in the background. Issues one bounded
+     * collection-model search per surface (not one GET per attached path) and re-buckets the
+     * live selection, so the editor never blocks first paint on classification and a refine
+     * that is still in flight when the user edits the selection cannot clobber those edits.
+     * @param {string[]} legacyCollectionPaths paths listed in the legacy `collections` field
      */
-    /**
-     * MWPW-204645: temporary experiment toggle. Returns true when `skipClassification=1`
-     * is present in the studio hash, disabling the per-path card/collection classification.
-     * @returns {boolean}
-     */
-    #isPromotionItemClassificationSkipped() {
-        try {
-            return new URLSearchParams(window.location.hash.slice(1)).get('skipClassification') === '1';
-        } catch {
-            return false;
-        }
-    }
-
-    async #refinePromotionItemClassification(allPaths) {
-        const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
-        if (!getFragmentByPath) return;
+    async #refinePromotionItemClassification(legacyCollectionPaths = []) {
+        if (!this.repository?.getCollectionPathsForSurfaces) return;
         const token = ++this.#itemClassificationToken;
-        const classified = await processConcurrently(
-            allPaths,
-            async (path) => {
-                const fragment = await getFragmentByPath(path).catch(() => null);
-                return { path, isCollection: fragment?.model?.path === COLLECTION_MODEL_PATH };
-            },
-            OFFER_DATA_CONCURRENCY_LIMIT,
-        );
+        const collectionPaths = await this.repository.getCollectionPathsForSurfaces(this.promotionPickerSurfaces);
         if (token !== this.#itemClassificationToken) return;
+        const legacy = new Set(legacyCollectionPaths);
+        const isCollection = (path) => collectionPaths.has(path) || legacy.has(path);
+        // Re-bucket the live selection rather than the hydration snapshot, so paths the user
+        // added or removed while the search was in flight are preserved.
+        const livePaths = [
+            ...new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value]),
+        ];
         const cards = [];
         const cols = [];
-        for (const { path, isCollection } of classified) (isCollection ? cols : cards).push(path);
+        for (const path of livePaths) (isCollection(path) ? cols : cards).push(path);
         Store.promotions.selectedCards.set(cards);
         Store.promotions.selectedCollections.set(cols);
     }

@@ -54,7 +54,7 @@ class MasPromotions extends LitElement {
 
         this.filter = Store.promotions?.list?.filter?.get() || 'active';
         this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
-        this.environmentFilter = [];
+        this.environmentFilter = ['production'];
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
@@ -302,7 +302,7 @@ class MasPromotions extends LitElement {
                     <div class="promotions-filters-row">
                         <div class="filters-container">
                             <sp-icon-filter></sp-icon-filter><span>Filters:</span>
-                            ${this.renderEnvironmentFilterPicker()}
+                            ${this.renderEnvironmentFilterPicker}
                         </div>
                         <div class="result-count-container">${(this.promotionsData || []).length} results</div>
                     </div>
@@ -314,7 +314,7 @@ class MasPromotions extends LitElement {
         `;
     }
 
-    renderEnvironmentFilterPicker() {
+    get renderEnvironmentFilterPicker() {
         const selectedCount = this.environmentFilter.length;
         const displayLabel = selectedCount > 0 ? `Environment (${selectedCount})` : 'Environment';
 

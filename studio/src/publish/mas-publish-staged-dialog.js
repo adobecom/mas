@@ -50,20 +50,12 @@ class MasPublishStagedDialog extends LitElement {
                 resolve(result);
             };
 
-            dialog.addEventListener(
-                'staged-confirmed',
-                (e) => cleanup({ confirmed: true }),
-                { once: true },
-            );
-            dialog.addEventListener(
-                'staged-cancelled',
-                () => cleanup({ confirmed: false }),
-                { once: true },
-            );
+            dialog.addEventListener('staged-confirmed', (e) => cleanup({ confirmed: true }), { once: true });
+            dialog.addEventListener('staged-cancelled', () => cleanup({ confirmed: false }), { once: true });
 
             dialog.open = true;
         });
-    }    
+    }
 }
 
 customElements.define('mas-publish-staged-dialog', MasPublishStagedDialog);

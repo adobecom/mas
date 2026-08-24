@@ -1716,10 +1716,10 @@ export default class MasFragmentEditor extends LitElement {
                 @sp-dialog-dismiss="${this.cancelPublishStaged}"
             >
                 <h1 slot="heading">${STAGED.DIALOG_TITLE}</h1>
-                <p>${STAGED.DIALOG_CONFIRM_TEXT}</p>    
+                <p>${STAGED.DIALOG_CONFIRM_TEXT}</p>
                 <sp-button slot="button" variant="secondary" @click="${this.cancelPublishStaged}"> Cancel </sp-button>
                 <sp-button slot="button" variant="accent" @click="${this.publishFragmentWithRefs}"> Publish </sp-button>
-            </sp-dialog>                        
+            </sp-dialog>
         `;
     }
 
@@ -2335,8 +2335,8 @@ export default class MasFragmentEditor extends LitElement {
                     </div>
                     ${this.previewColumn}
                 </div>
-                ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog} ${this.publishStagedDialog}
-                ${this.copyVariationDialog}
+                ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
+                ${this.publishStagedDialog} ${this.copyVariationDialog}
             </div>
         `;
     }

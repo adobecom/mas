@@ -293,8 +293,8 @@ class MasPromotionsEditor extends LitElement {
         } else {
             newTags.push(STAGED.TAG);
         }
-        this.fragmentStore.updateField('tags', newTags);        
-    };    
+        this.fragmentStore.updateField('tags', newTags);
+    };
 
     #mapPromotionOfferSelectorToRow(selectorId) {
         const cached = Store.promotions.offerRecordsCache.get(selectorId);
@@ -546,15 +546,13 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handlePublishPromotion = async () => {
-        const confirmed = !this.fragment?.isStaged || await this.#showDialog(
-            STAGED.DIALOG_TITLE,
-            STAGED.DIALOG_CONFIRM_TEXT,
-            {
+        const confirmed =
+            !this.fragment?.isStaged ||
+            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
                 confirmText: 'Publish',
                 cancelText: 'Cancel',
                 variant: 'confirmation',
-            },
-        );
+            }));
         if (confirmed) {
             await this.#publishOrSchedulePromotion();
         }
@@ -1504,7 +1502,7 @@ class MasPromotionsEditor extends LitElement {
                                 ?disabled=${readOnly}
                                 @change=${this.#handleStagedToggle}
                                 >Staged</sp-switch
-                            >                            
+                            >
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"

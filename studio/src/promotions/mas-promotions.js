@@ -516,15 +516,13 @@ class MasPromotions extends LitElement {
 
     async #handlePublishPromotionFromList(promotion) {
         const fragment = promotion.get();
-        const stagedConfirmed = !fragment.isStaged || await this.#showDialog(
-            STAGED.DIALOG_TITLE,
-            STAGED.DIALOG_CONFIRM_TEXT,
-            {
+        const stagedConfirmed =
+            !fragment.isStaged ||
+            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
                 confirmText: 'Publish',
                 cancelText: 'Cancel',
                 variant: 'confirmation',
-            },
-        );
+            }));
         if (!stagedConfirmed) return;
 
         if (!canPublishPromotionNow(fragment) && !canSchedulePromotion(fragment)) {

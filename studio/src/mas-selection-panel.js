@@ -163,7 +163,7 @@ class MasSelectionPanel extends LitElement {
                 });
             }
             return staged;
-        });        
+        });
         if (anyStaged) {
             const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
             const result = await MasPublishStagedDialog.show();
@@ -182,18 +182,20 @@ class MasSelectionPanel extends LitElement {
             return;
         }
 
-        await Promise.all(this.selection.map(async (id) => {
-            const data = await this.repository.aem.sites.cf.fragments.getById(id);
-            const fragment = new Fragment(data);
-            const oldTags = fragment.getFieldValues('tags') || [];
-            const tags = [...oldTags];
-            tags.push(STAGED.TAG);
-            fragment.updateField('tags', tags);
-            this.repository.aem.sites.cf.fragments.save(fragment);
-        }));
+        await Promise.all(
+            this.selection.map(async (id) => {
+                const data = await this.repository.aem.sites.cf.fragments.getById(id);
+                const fragment = new Fragment(data);
+                const oldTags = fragment.getFieldValues('tags') || [];
+                const tags = [...oldTags];
+                tags.push(STAGED.TAG);
+                fragment.updateField('tags', tags);
+                this.repository.aem.sites.cf.fragments.save(fragment);
+            }),
+        );
         this.selectionStore.set([]);
         showToast('Fragments marked as Staged.', 'positive');
-    }    
+    }
 
     handleUnpublish(event) {
         this.onUnpublish(this.selection, event);

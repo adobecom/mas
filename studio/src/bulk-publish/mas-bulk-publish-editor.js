@@ -634,7 +634,9 @@ class MasBulkPublishEditor extends LitElement {
             this.ensureSurface();
             const surface = Store.search.get()?.path;
             try {
-                const validPaths = this.items.filter((i) => (i.status === 'valid' || i.reason === STAGED.NAME) && i.path).map((i) => i.path);
+                const validPaths = this.items
+                    .filter((i) => (i.status === 'valid' || i.reason === STAGED.NAME) && i.path)
+                    .map((i) => i.path);
                 if (this.isNewProject) {
                     const title = this.title || 'Untitled bulk publish project';
                     const payload = buildProjectPayload({

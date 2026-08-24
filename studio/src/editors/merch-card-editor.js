@@ -1476,7 +1476,7 @@ class MerchCardEditor extends LitElement {
                             ?checked="${this.fragment.isStaged}"
                             @click="${this.#handleStaged}"
                         ></sp-switch>
-                    </sp-field-group>                    
+                    </sp-field-group>
                 </div>
                 <sp-field-group class="toggle" id="title">
                     <sp-field-label for="card-title">Title</sp-field-label>

@@ -1076,3 +1076,87 @@ describe('mas-field – tooltip icon-button rendering', () => {
             .true;
     });
 });
+
+describe('mas-field – hideTrialCTAs setting', () => {
+    const TRIAL_CTAS =
+        '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="buy-now">Buy now</a>' +
+        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>' +
+        '<a is="checkout-link" class="secondary-link" href="" data-wcs-osi="osi3" data-analytics-id="start-free-trial">Start free trial</a>' +
+        '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi4" data-analytics-id="save-today">Save today</a>';
+
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    function makeField(field, ctasHtml, settings) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: ctasHtml }, settings },
+            }),
+        );
+        return el;
+    }
+
+    function anchorsOf(el) {
+        return [
+            ...el.querySelectorAll('[data-role="mas-field-content"] a'),
+        ].map((a) => a.textContent);
+    }
+
+    it('strips trial CTAs from a plain ctas field when hideTrialCTAs is true', () => {
+        const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Buy now', 'Save today']);
+    });
+
+    it('keeps every CTA when hideTrialCTAs is false', () => {
+        const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: false });
+        expect(anchorsOf(el)).to.have.lengthOf(4);
+    });
+
+    it('keeps every CTA when the setting is absent', () => {
+        const el = makeField('ctas', TRIAL_CTAS, undefined);
+        expect(anchorsOf(el)).to.have.lengthOf(4);
+    });
+
+    it('renders nothing when an indexed ref points at a trial CTA', () => {
+        const el = makeField('ctas[2]', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.be.empty;
+    });
+
+    it('does not shift indices when a trial CTA is suppressed', () => {
+        const el = makeField('ctas[4]', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Save today']);
+    });
+
+    it('renders a non-trial indexed CTA unchanged', () => {
+        const el = makeField('ctas[1]', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Buy now']);
+    });
+
+    const ALL_TRIAL_CTAS =
+        '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="free-trial">Free trial</a>' +
+        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-analytics-id="start-free-trial">Start free trial</a>';
+
+    it('keeps every CTA on a plain ctas field when all of them are trials', () => {
+        const el = makeField('ctas', ALL_TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal([
+            'Free trial',
+            'Start free trial',
+        ]);
+    });
+
+    it('renders nothing for an indexed ref into an all-trial field', () => {
+        const el = makeField('ctas[1]', ALL_TRIAL_CTAS, {
+            hideTrialCTAs: true,
+        });
+        expect(anchorsOf(el)).to.be.empty;
+    });
+});

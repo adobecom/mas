@@ -1,52 +1,44 @@
 import { Log } from './log.js';
+import { SUPPORTED_COUNTRIES } from './constants.js';
 
-export function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
-    const log = Log.module('ims');
-    return new Promise((resolve) => {
-        log.debug('Waing for IMS to be ready');
-        let count = 0;
-        /* c8 ignore next 10 */
-        function poll() {
-            if (window.adobeIMS?.initialized) {
-                resolve();
-            } else if (++count > maxAttempts) {
-                log.debug('Timeout');
-                resolve();
-            } else {
-                setTimeout(poll, interval);
-            }
-        }
-        poll();
-    });
-}
+const IMS_COUNTRY_COOKIE = 'ims_country_code';
 
-export function imsSignedIn(imsReadyPromise) {
-    return imsReadyPromise.then(
-        () => window.adobeIMS?.isSignedInUser() ?? false,
+export function getImsCountryCookie() {
+    /* c8 ignore next */
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)${IMS_COUNTRY_COOKIE}=([^;]*)`),
     );
+    const country = match
+        ? decodeURIComponent(match[1]).trim().toUpperCase()
+        : '';
+    return country || null;
 }
 
-export function imsCountry(imsSignedInPromise) {
+export function imsReady() {
+    return Promise.resolve();
+}
+
+export function imsSignedIn() {
+    return Promise.resolve(getImsCountryCookie() != null);
+}
+
+export function imsCountry() {
     const log = Log.module('ims');
-    return imsSignedInPromise.then((signedIn) => {
-        if (!signedIn) return null;
-        return window.adobeIMS.getProfile().then(
-            ({ countryCode }) => {
-                log.debug('Got user country:', countryCode);
-                return countryCode;
-            },
-            (error) => {
-                /* c8 ignore next 2 */
-                log.error('Unable to get user country:', error);
-                return undefined;
-            },
-        );
-    });
+    const country = getImsCountryCookie();
+    if (!country) return Promise.resolve(null);
+    if (!SUPPORTED_COUNTRIES.includes(country)) {
+        log.debug('Ignoring unsupported ims_country_code cookie:', country);
+        return Promise.resolve(null);
+    }
+    log.debug('Got user country from cookie:', country);
+    return Promise.resolve(country);
 }
 
-export function Ims({}) {
-    const imsReadyPromise = imsReady();
-    const imsSignedInPromise = imsSignedIn(imsReadyPromise);
-    const imsCountryPromise = imsCountry(imsSignedInPromise);
-    return { imsReadyPromise, imsSignedInPromise, imsCountryPromise };
+export function Ims() {
+    return {
+        imsReadyPromise: imsReady(),
+        imsSignedInPromise: imsSignedIn(),
+        imsCountryPromise: imsCountry(),
+    };
 }

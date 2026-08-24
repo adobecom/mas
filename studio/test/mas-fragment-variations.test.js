@@ -608,5 +608,25 @@ describe('MasFragmentVariations', () => {
             expect(el.hasPromoVariations).to.be.true;
             expect(el.textContent).to.not.include('No promotion variations found');
         });
+
+        it('does not show the "No Variations found" title while the orphan probe is in flight', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.true;
+            expect(el.textContent).to.not.include('No Variations found');
+
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.false;
+        });
     });
 });

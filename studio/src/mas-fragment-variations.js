@@ -505,7 +505,7 @@ class MasFragmentVariations extends LitElement {
 
         return html`
             <div class="expanded-content">
-                ${this.loading
+                ${this.loading || this.orphanPromoVariationsLoading
                     ? html`<h3 class="expanded-title">Loading Variations...</h3>`
                     : this.hasAnyVariations
                       ? html`<h3 class="expanded-title">Variations</h3>`

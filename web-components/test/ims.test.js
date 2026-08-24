@@ -37,6 +37,11 @@ describe('IMS module', () => {
         expect(await imsCountry()).to.be.null;
     });
 
+    it('resolves to null for a malformed cookie value', async () => {
+        stubCookie('ims_country_code=%E0%A4%A');
+        expect(await imsCountry()).to.be.null;
+    });
+
     it('reports signed-in only when the cookie is present', async () => {
         stubCookie('other=1');
         expect(await imsSignedIn()).to.be.false;

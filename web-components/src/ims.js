@@ -9,10 +9,14 @@ export function getImsCountryCookie() {
     const match = document.cookie.match(
         new RegExp(`(?:^|;\\s*)${IMS_COUNTRY_COOKIE}=([^;]*)`),
     );
-    const country = match
-        ? decodeURIComponent(match[1]).trim().toUpperCase()
-        : '';
-    return country || null;
+    if (!match) return null;
+    let country;
+    try {
+        country = decodeURIComponent(match[1]);
+    } catch {
+        return null;
+    }
+    return country.trim().toUpperCase() || null;
 }
 
 export function imsReady() {

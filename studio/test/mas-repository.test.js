@@ -3,14 +3,7 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import {
-    ROOT_PATH,
-    SURFACES,
-    PAGE_NAMES,
-    EDITABLE_FRAGMENT_MODEL_IDS,
-    COLLECTION_MODEL_PATH,
-    PROMOTION_MODEL_PATH,
-} from '../src/constants.js';
+import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
@@ -4084,7 +4077,6 @@ describe('MasRepository dictionary helpers', () => {
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
-            sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
 
             const result = await repository.deleteFragmentWithVariations(fragment);
@@ -4115,7 +4107,6 @@ describe('MasRepository dictionary helpers', () => {
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
-            sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
 
@@ -4147,7 +4138,6 @@ describe('MasRepository dictionary helpers', () => {
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
-            sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
             const errorSpy = sandbox.stub(console, 'error');
@@ -4178,62 +4168,12 @@ describe('MasRepository dictionary helpers', () => {
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(repository, 'getPromoVariationPaths').resolves([promoVariationPath]);
-            const cleanupStub = sandbox.stub(repository, 'removeVariationFromPromotionProjects').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
 
             const result = await repository.deleteFragmentWithVariations(fragment);
 
             expect(result.success).to.be.true;
             expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: promoVariationPath })).to.be.true;
-            expect(cleanupStub.calledWith(promoVariationPath)).to.be.true;
-        });
-
-        it('removes a force-deleted variation path from any promotion project that still lists it', async () => {
-            const repository = createRepository();
-            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/pzn/grouped-one';
-            const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
-            const projectPath = '/content/dam/mas/sandbox/promotions/nbbdsa';
-            const latestStaleProject = {
-                id: 'promo-1',
-                fields: [{ name: 'fragments', values: [variationPath, otherPath] }],
-            };
-
-            repository.aem = createAemMock({
-                fragments: {
-                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
-                    getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
-                    getWithEtag: sandbox.stub().resolves(latestStaleProject),
-                    save: sandbox.stub().resolves(),
-                },
-            });
-
-            await repository.removeVariationFromPromotionProjects(variationPath);
-
-            expect(repository.aem.sites.cf.fragments.getByPath.calledWith(projectPath)).to.be.true;
-            expect(repository.aem.sites.cf.fragments.getWithEtag.calledWith('promo-1')).to.be.true;
-            const savedProject = repository.aem.sites.cf.fragments.save.firstCall.args[0];
-            const fragmentsField = savedProject.fields.find((f) => f.name === 'fragments');
-            expect(fragmentsField.values).to.deep.equal([otherPath]);
-        });
-
-        it('skips references that are not promotion projects', async () => {
-            const repository = createRepository();
-            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/pzn/grouped-one';
-            const collectionPath = '/content/dam/mas/sandbox/en_US/some-collection';
-
-            repository.aem = createAemMock({
-                fragments: {
-                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: collectionPath }] }),
-                    getByPath: sandbox.stub().resolves({ id: 'coll-1', model: { path: COLLECTION_MODEL_PATH } }),
-                    getWithEtag: sandbox.stub(),
-                    save: sandbox.stub(),
-                },
-            });
-
-            await repository.removeVariationFromPromotionProjects(variationPath);
-
-            expect(repository.aem.sites.cf.fragments.getWithEtag.called).to.be.false;
-            expect(repository.aem.sites.cf.fragments.save.called).to.be.false;
         });
 
         it('returns an empty array and logs when probing promo variations throws', async () => {
@@ -4252,68 +4192,6 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(result).to.deep.equal([]);
             expect(errorSpy.calledWith('Failed to probe promo variations:', sinon.match.instanceOf(Error))).to.be.true;
-        });
-
-        it('returns early and logs when looking up promotion-project references throws', async () => {
-            const repository = createRepository();
-            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/pzn/grouped-one';
-
-            repository.aem = createAemMock({
-                fragments: {
-                    getReferencedBy: sandbox.stub().rejects(new Error('lookup failed')),
-                    getByPath: sandbox.stub(),
-                    getWithEtag: sandbox.stub(),
-                    save: sandbox.stub(),
-                },
-            });
-            const errorSpy = sandbox.stub(console, 'error');
-
-            await repository.removeVariationFromPromotionProjects(variationPath);
-
-            expect(errorSpy.calledWith(`Failed to look up references for ${variationPath}:`, sinon.match.instanceOf(Error))).to
-                .be.true;
-            expect(repository.aem.sites.cf.fragments.getByPath.called).to.be.false;
-        });
-
-        it('logs and continues with remaining candidates when updating one promotion project fails', async () => {
-            const repository = createRepository();
-            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/pzn/grouped-one';
-            const failingProjectPath = '/content/dam/mas/sandbox/promotions/broken';
-            const workingProjectPath = '/content/dam/mas/sandbox/promotions/nbbdsa';
-            const workingProject = {
-                id: 'promo-2',
-                fields: [{ name: 'fragments', values: [variationPath] }],
-            };
-
-            repository.aem = createAemMock({
-                fragments: {
-                    getReferencedBy: sandbox
-                        .stub()
-                        .resolves({ parentReferences: [{ path: failingProjectPath }, { path: workingProjectPath }] }),
-                    getByPath: sandbox.stub().resolves({ id: 'promo-2', model: { path: PROMOTION_MODEL_PATH } }),
-                    getWithEtag: sandbox.stub().callsFake((id) => {
-                        if (id === 'promo-2') return Promise.resolve(workingProject);
-                        return Promise.reject(new Error('stale project'));
-                    }),
-                    save: sandbox.stub().resolves(),
-                },
-            });
-            repository.aem.sites.cf.fragments.getByPath
-                .withArgs(failingProjectPath)
-                .rejects(new Error('project lookup failed'));
-            const errorSpy = sandbox.stub(console, 'error');
-
-            await repository.removeVariationFromPromotionProjects(variationPath);
-
-            expect(
-                errorSpy.calledWith(
-                    `Failed to remove ${variationPath} from promotion project ${failingProjectPath}:`,
-                    sinon.match.instanceOf(Error),
-                ),
-            ).to.be.true;
-            const savedProject = repository.aem.sites.cf.fragments.save.firstCall.args[0];
-            const fragmentsField = savedProject.fields.find((f) => f.name === 'fragments');
-            expect(fragmentsField.values).to.deep.equal([]);
         });
     });
 

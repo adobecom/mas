@@ -29,7 +29,6 @@ import {
     EDITABLE_FRAGMENT_MODEL_IDS,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
-    PROMOTION_MODEL_PATH,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
@@ -1698,38 +1697,6 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Removes a stale path from any Promo Project's `fragments` field after a force delete.
-     * @param {string} variationPath
-     */
-    async removeVariationFromPromotionProjects(variationPath) {
-        let referencedBy;
-        try {
-            referencedBy = await this.aem.sites.cf.fragments.getReferencedBy(variationPath);
-        } catch (error) {
-            console.error(`Failed to look up references for ${variationPath}:`, error);
-            return;
-        }
-
-        const candidatePaths = (referencedBy?.parentReferences || []).map((ref) => ref.path).filter(Boolean);
-
-        for (const projectPath of candidatePaths) {
-            try {
-                const project = await this.aem.sites.cf.fragments.getByPath(projectPath);
-                if (project?.model?.path !== PROMOTION_MODEL_PATH) continue;
-
-                const latestProject = await this.aem.sites.cf.fragments.getWithEtag(project.id);
-                const fragmentsField = latestProject?.fields?.find((f) => f.name === 'fragments');
-                if (fragmentsField?.values?.includes(variationPath)) {
-                    fragmentsField.values = fragmentsField.values.filter((path) => path !== variationPath);
-                    await this.aem.sites.cf.fragments.save(latestProject);
-                }
-            } catch (error) {
-                console.error(`Failed to remove ${variationPath} from promotion project ${projectPath}:`, error);
-            }
-        }
-    }
-
-    /**
      * Deletes a fragment and all its variations (locale, grouped, and promo)
      * @param {Fragment} fragment - The parent fragment to delete
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
@@ -1757,7 +1724,6 @@ export class MasRepository extends LitElement {
 
             for (const variationPath of variations) {
                 try {
-                    await this.removeVariationFromPromotionProjects(variationPath);
                     await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
@@ -1781,7 +1747,6 @@ export class MasRepository extends LitElement {
         }
 
         if (success) {
-            await this.removeVariationFromPromotionProjects(fragment.path);
             if (failedVariations.length > 0) {
                 showToast(`Fragment deleted but ${failedVariations.length} variation(s) failed to delete`, 'warning');
             } else if (variations.length > 0) {

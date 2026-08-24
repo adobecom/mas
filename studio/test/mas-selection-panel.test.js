@@ -132,8 +132,7 @@ describe('MasSelectionPanel', () => {
             expect(urls).to.have.length(2);
             expect(urls[0]).to.include('query=uuid-1');
             expect(urls[1]).to.include('query=uuid-2');
-            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 code snippets') }))).to.be
-                .true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 links') }))).to.be.true;
         });
 
         it('joins multiple html entries with <br>', async () => {

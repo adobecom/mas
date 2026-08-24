@@ -55,6 +55,14 @@ describe('ost-product-list', () => {
         expect(store.selectedProduct?.name).to.equal('Photoshop');
     });
 
+    it('clears the deep-link-seeded search when the user picks a product manually', async () => {
+        store.setSearch('stale-deep-osi', 'osi');
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        el.handleProductClick({ arrangement_code: 'phsp-arr', name: 'Photoshop' });
+        expect(store.searchQuery).to.equal('');
+        expect(store.searchType).to.equal('');
+    });
+
     it('renders product cards from store', async () => {
         const el = await fixture(html`<ost-product-list></ost-product-list>`);
         const cards = el.shadowRoot.querySelectorAll('.product-card');

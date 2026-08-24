@@ -1,5 +1,4 @@
 import { Log } from './log.js';
-import { SUPPORTED_COUNTRIES } from './constants.js';
 
 const IMS_COUNTRY_COOKIE = 'ims_country_code';
 
@@ -28,14 +27,9 @@ export function imsSignedIn() {
 }
 
 export function imsCountry() {
-    const log = Log.module('ims');
     const country = getImsCountryCookie();
-    if (!country) return Promise.resolve(null);
-    if (!SUPPORTED_COUNTRIES.includes(country)) {
-        log.debug('Ignoring unsupported ims_country_code cookie:', country);
-        return Promise.resolve(null);
-    }
-    log.debug('Got user country from cookie:', country);
+    if (country)
+        Log.module('ims').debug('Got user country from cookie:', country);
     return Promise.resolve(country);
 }
 

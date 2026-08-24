@@ -32,11 +32,6 @@ describe('IMS module', () => {
         expect(await imsCountry()).to.equal('CH');
     });
 
-    it('resolves to null for an unsupported cookie country', async () => {
-        stubCookie('ims_country_code=ZZ');
-        expect(await imsCountry()).to.be.null;
-    });
-
     it('resolves to null for a malformed cookie value', async () => {
         stubCookie('ims_country_code=%E0%A4%A');
         expect(await imsCountry()).to.be.null;

@@ -1147,10 +1147,7 @@ describe('mas-field – hideTrialCTAs setting', () => {
 
     it('keeps every CTA on a plain ctas field when all of them are trials', () => {
         const el = makeField('ctas', ALL_TRIAL_CTAS, { hideTrialCTAs: true });
-        expect(anchorsOf(el)).to.deep.equal([
-            'Free trial',
-            'Start free trial',
-        ]);
+        expect(anchorsOf(el)).to.deep.equal(['Free trial', 'Start free trial']);
     });
 
     it('renders nothing for an indexed ref into an all-trial field', () => {

@@ -3,6 +3,9 @@ import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from 
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
+import { Fragment } from '../aem/fragment.js';
+import { PROMOTION_MODEL_PATH } from '../constants.js';
+import { upsertPromotionFragmentsField } from './promotion-editor-utils.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
 
@@ -125,6 +128,42 @@ export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refre
         const enriched = mergePromoVariationReferences(parent, [createdFragment]);
         parentStore.refreshFrom(enriched);
     };
+}
+
+/**
+ * Removes a deleted fragment path from any promotion project's `fragments` field that still
+ * references it, so a deleted default fragment (and its grouped variations) doesn't leave
+ * behind a stale reference that fails promo validation.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} deletedFragmentPath
+ * @returns {Promise<void>}
+ */
+export async function removeDeletedFragmentFromPromotionProjects(aem, deletedFragmentPath) {
+    let referencedBy;
+    try {
+        referencedBy = await aem.sites.cf.fragments.getReferencedBy(deletedFragmentPath);
+    } catch (error) {
+        console.error(`Failed to look up references for ${deletedFragmentPath}:`, error);
+        return;
+    }
+
+    const candidatePaths = (referencedBy?.parentReferences || []).map((ref) => ref.path).filter(Boolean);
+
+    for (const projectPath of candidatePaths) {
+        try {
+            const project = await aem.sites.cf.fragments.getByPath(projectPath);
+            if (project?.model?.path !== PROMOTION_MODEL_PATH) continue;
+
+            const latestProject = await aem.sites.cf.fragments.getWithEtag(project.id);
+            const promotionFragment = new Fragment(latestProject);
+            const remainingPaths = promotionFragment.getFieldValues('fragments').filter((path) => path !== deletedFragmentPath);
+            if (upsertPromotionFragmentsField(promotionFragment, remainingPaths)) {
+                await aem.sites.cf.fragments.save(promotionFragment);
+            }
+        } catch (error) {
+            console.error(`Failed to remove ${deletedFragmentPath} from promotion project ${projectPath}:`, error);
+        }
+    }
 }
 
 /**

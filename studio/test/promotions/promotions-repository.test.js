@@ -9,8 +9,10 @@ import {
     getUnpublishedAttachedPromoVariations,
     mergePromoReferencesIntoFragmentData,
     probePromoVariationsForFragment,
+    removeDeletedFragmentFromPromotionProjects,
     resolveDefaultFragmentForPromoVariation,
 } from '../../src/promotions/promotions-repository.js';
+import { PROMOTION_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('promotions-repository', () => {
@@ -348,6 +350,145 @@ describe('promotions-repository', () => {
             expect(result.promoVariationProbeNotNeeded).to.be.true;
             expect(result.references).to.deep.equal(fragmentData.references);
             expect(result.path).to.equal(fragmentData.path);
+        });
+    });
+
+    describe('removeDeletedFragmentFromPromotionProjects', () => {
+        it('removes a deleted fragment path from any promotion project that still lists it', async () => {
+            const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
+            const projectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const latestProject = {
+                id: 'promo-1',
+                fields: [{ name: 'fragments', type: 'content-fragment', multiple: true, values: [deletedPath, otherPath] }],
+            };
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
+                            getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
+                            getWithEtag: sandbox.stub().resolves(latestProject),
+                            save: sandbox.stub().resolves(),
+                        },
+                    },
+                },
+            };
+
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+
+            expect(aem.sites.cf.fragments.getByPath.calledWith(projectPath)).to.be.true;
+            expect(aem.sites.cf.fragments.getWithEtag.calledWith('promo-1')).to.be.true;
+            const savedProject = aem.sites.cf.fragments.save.firstCall.args[0];
+            expect(savedProject.getFieldValues('fragments')).to.deep.equal([otherPath]);
+        });
+
+        it('skips references that are not promotion projects', async () => {
+            const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/some-collection';
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: collectionPath }] }),
+                            getByPath: sandbox.stub().resolves({ id: 'coll-1', model: { path: COLLECTION_MODEL_PATH } }),
+                            getWithEtag: sandbox.stub(),
+                            save: sandbox.stub(),
+                        },
+                    },
+                },
+            };
+
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+
+            expect(aem.sites.cf.fragments.getWithEtag.called).to.be.false;
+            expect(aem.sites.cf.fragments.save.called).to.be.false;
+        });
+
+        it('does not save when the promotion project no longer references the deleted path', async () => {
+            const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
+            const projectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const latestProject = {
+                id: 'promo-1',
+                fields: [{ name: 'fragments', type: 'content-fragment', multiple: true, values: [otherPath] }],
+            };
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
+                            getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
+                            getWithEtag: sandbox.stub().resolves(latestProject),
+                            save: sandbox.stub(),
+                        },
+                    },
+                },
+            };
+
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+
+            expect(aem.sites.cf.fragments.save.called).to.be.false;
+        });
+
+        it('returns early and logs when looking up references throws', async () => {
+            const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox.stub().rejects(new Error('lookup failed')),
+                            getByPath: sandbox.stub(),
+                        },
+                    },
+                },
+            };
+            const errorSpy = sandbox.stub(console, 'error');
+
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+
+            expect(errorSpy.calledWith(`Failed to look up references for ${deletedPath}:`, sinon.match.instanceOf(Error))).to.be
+                .true;
+            expect(aem.sites.cf.fragments.getByPath.called).to.be.false;
+        });
+
+        it('logs and continues with remaining candidates when updating one promotion project fails', async () => {
+            const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const failingProjectPath = '/content/dam/mas/sandbox/promotions/broken';
+            const workingProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const workingProject = {
+                id: 'promo-2',
+                fields: [{ name: 'fragments', type: 'content-fragment', multiple: true, values: [deletedPath] }],
+            };
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(failingProjectPath).rejects(new Error('project lookup failed'));
+            getByPath.withArgs(workingProjectPath).resolves({ id: 'promo-2', model: { path: PROMOTION_MODEL_PATH } });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox
+                                .stub()
+                                .resolves({ parentReferences: [{ path: failingProjectPath }, { path: workingProjectPath }] }),
+                            getByPath,
+                            getWithEtag: sandbox.stub().resolves(workingProject),
+                            save: sandbox.stub().resolves(),
+                        },
+                    },
+                },
+            };
+            const errorSpy = sandbox.stub(console, 'error');
+
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+
+            expect(
+                errorSpy.calledWith(
+                    `Failed to remove ${deletedPath} from promotion project ${failingProjectPath}:`,
+                    sinon.match.instanceOf(Error),
+                ),
+            ).to.be.true;
+            const savedProject = aem.sites.cf.fragments.save.firstCall.args[0];
+            expect(savedProject.getFieldValues('fragments')).to.deep.equal([]);
         });
     });
 

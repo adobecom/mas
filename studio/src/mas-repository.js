@@ -1707,12 +1707,15 @@ export class MasRepository extends LitElement {
             for (const variationPath of variations) {
                 try {
                     await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
+                    await promotionsRepository.removeDeletedFragmentFromPromotionProjects(this.aem, variationPath);
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);
                 }
             }
         }
+
+        await promotionsRepository.removeDeletedFragmentFromPromotionProjects(this.aem, fragment.path);
 
         let success = await this.deleteFragment(fragment, {
             startToast: variations.length === 0,

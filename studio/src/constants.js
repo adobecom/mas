@@ -155,6 +155,7 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
+export const PROMOTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/promotion';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
 export const COMPARE_CHART_FIELD = 'compareChart';
 

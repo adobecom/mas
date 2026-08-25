@@ -47,10 +47,11 @@
                 COLLECTION_MODEL_PATH,
                 COMPARE_CHART_FIELD,
                 ODIN_PREVIEW_ORIGIN,
+                STAGED,
             } from '../src/constants.js';
             import router from '../src/router.js';
             import { extractLocaleFromPath } from '../src/utils.js';
-            import { nothing } from 'lit';
+            import { nothing, render } from 'lit';
             runTests(async () => {
                 describe('MasFragmentEditor', () => {
                     let sandbox;
@@ -190,6 +191,46 @@
                             expect(markup).to.include('orphan-grouped-variation-panel');
                             expect(markup).to.include('Parent reference missing for this grouped variation.');
                         });
+                    });
+
+                    it('try to publish staged card', async () => {
+                        const fragment = new Fragment({
+                            id: 'test-id',
+                            fields: [
+                                { name: 'variant', values: ['plans'] },
+                                { name: 'size', values: ['wide'] },
+                                { name: 'cardName', values: ['Test Card'] },
+                                { name: 'tags', values: [STAGED.TAG] },
+                            ],
+                        });
+                        const el = document.createElement('mas-fragment-editor');
+                        el.inEdit.value = { get: () => fragment };
+
+                        await el.publishFragment();
+                        expect(el.showPublishStagedDialog).to.be.true;
+
+                        const container = document.createElement('div');
+                        render(el.publishStagedDialog, container);
+                        expect(container.textContent).to.include('Staged content warning');
+                    });
+
+                    it('try to publish non-staged card', async () => {
+                        const fragment = new Fragment({
+                            id: 'test-id',
+                            fields: [
+                                { name: 'variant', values: ['plans'] },
+                                { name: 'size', values: ['wide'] },
+                                { name: 'cardName', values: ['Test Card'] },
+                            ],
+                        });
+                        const el = document.createElement('mas-fragment-editor');
+                        el.inEdit.value = { get: () => fragment };
+
+                        await el.publishFragment();
+                        expect(el.showPublishStagedDialog).to.be.false;
+
+                        const dialog = el.publishStagedDialog;
+                        expect(dialog).to.equal(nothing);
                     });
 
                     it('renders loading state when no fragment', async () => {

@@ -393,7 +393,7 @@ describe('MasSelectionPanel', () => {
             el.handlePublish();
             await delay(100);
             const dialog = document.body.querySelector('mas-publish-staged-dialog');
-            dialog.dispatchEvent(new CustomEvent('staged-confirmed'));
+            dialog.confirm();
             await delay(50);
             expect(repository.bulkPublishFragments.calledOnce).to.be.true;
             expect(repository.bulkPublishFragments.firstCall.args[0]).to.deep.equal(['frag-1']);
@@ -412,7 +412,7 @@ describe('MasSelectionPanel', () => {
             el.handlePublish();
             await delay(100);
             const dialog = document.body.querySelector('mas-publish-staged-dialog');
-            dialog.dispatchEvent(new CustomEvent('staged-cancelled'));
+            dialog.cancel();
             await delay(50);
             expect(repository.bulkPublishFragments.called).to.be.false;
         });

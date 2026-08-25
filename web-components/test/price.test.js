@@ -21,6 +21,11 @@ import {
 import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
+import {
+    splitFormattedPrice,
+    formatRegularPrice,
+} from '../src/price/utilities.js';
+import { sumOffers } from '../src/utilities.js';
 
 /**
  * @param {string} wcsOsi
@@ -1323,5 +1328,339 @@ describe('commerce service', () => {
             expect(inlinePrice.classList.contains('placeholder-failed')).to.be
                 .true;
         });
+    });
+});
+
+describe('priceInfo (pre-formatted WCS price)', () => {
+    const usFormat = "'US$'#,##0.00";
+    const usRegular = {
+        offerSelectorIds: ['pi-regular'],
+        priceDetails: {
+            price: 69.99,
+            formatString: usFormat,
+            usePrecision: true,
+        },
+        commitment: 'YEAR',
+        term: 'MONTHLY',
+        planType: 'ABM',
+    };
+    const opts = { country: 'US', language: 'en', template: 'price' };
+    const withInfo = (offer, priceInfo) => ({ ...offer, priceInfo });
+
+    describe('splitFormattedPrice', () => {
+        it('splits a real WCS string into the same parts as numeric formatting', () => {
+            const split = splitFormattedPrice('US$69.99', usFormat, true);
+            const { accessiblePrice, recurrenceTerm, ...numeric } =
+                formatRegularPrice({
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                    formatString: usFormat,
+                    price: 69.99,
+                    usePrecision: true,
+                });
+            expect(split).to.deep.equal(numeric);
+        });
+
+        // Delimiter-collision locales (real repo formatStrings): the splitter must
+        // key off formatString, not guess. Each asserts split === numeric decomposition.
+        [
+            {
+                name: 'de-DE space grouping + comma decimal',
+                formatString: "# ##0,00 '&euro;'",
+                price: 1199,
+                usePrecision: true,
+                formatted: '1 199,00 &euro;',
+            },
+            {
+                name: 'JPY currency-last, no precision',
+                formatString: "#,##0 '&#20870;'",
+                price: 1199,
+                usePrecision: false,
+                formatted: '1,199 &#20870;',
+            },
+            {
+                name: 'BR dot grouping + comma decimal',
+                formatString: "'R$' #.##0,00",
+                price: 3840,
+                usePrecision: true,
+                formatted: 'R$ 3.840,00',
+            },
+            {
+                name: 'AR dot grouping + comma decimal',
+                formatString: "'Ar$' #.##0,00",
+                price: 79700,
+                usePrecision: true,
+                formatted: 'Ar$ 79.700,00',
+            },
+            {
+                name: 'AUD symbol-first, comma grouping',
+                formatString: "'A$'#,##0.00",
+                price: 1151.88,
+                usePrecision: true,
+                formatted: 'A$1,151.88',
+            },
+            {
+                name: 'KRW symbol-first, no precision',
+                formatString: "'&#8361;'#,##0",
+                price: 129000,
+                usePrecision: false,
+                formatted: '&#8361;129,000',
+            },
+        ].forEach(({ name, formatString, price, usePrecision, formatted }) => {
+            it(`splits ${name} identically to numeric formatting`, () => {
+                const { accessiblePrice, recurrenceTerm, ...numeric } =
+                    formatRegularPrice({
+                        commitment: 'YEAR',
+                        term: 'MONTHLY',
+                        formatString,
+                        price,
+                        usePrecision,
+                    });
+                expect(
+                    splitFormattedPrice(formatted, formatString, usePrecision),
+                ).to.deep.equal(numeric);
+            });
+        });
+
+        it('splits a no-precision string (no decimals)', () => {
+            expect(
+                splitFormattedPrice('¥1,199', "'¥'#,##0", false),
+            ).to.deep.equal({
+                currencySymbol: '¥',
+                integer: '1,199',
+                decimalsDelimiter: '',
+                decimals: '',
+                isCurrencyFirst: true,
+                hasCurrencySpace: false,
+            });
+        });
+
+        it('returns null when the currency symbol is absent from the string', () => {
+            // formatString symbol is the "&euro;" entity; a raw "€" will not match
+            expect(
+                splitFormattedPrice('1.234,56 €', "# ##0,00 '&euro;'", true),
+            ).to.equal(null);
+        });
+
+        it('returns null on parse mismatch (missing decimal delimiter)', () => {
+            expect(splitFormattedPrice('US$6999', usFormat, true)).to.equal(
+                null,
+            );
+        });
+
+        it('returns null for a non-string input', () => {
+            expect(splitFormattedPrice(undefined, usFormat, true)).to.equal(
+                null,
+            );
+        });
+    });
+
+    describe('buildPriceHTML parity (split path === numeric path)', () => {
+        let buildPriceHTML;
+        beforeEach(async () => {
+            ({ buildPriceHTML } = await initMasCommerceService());
+        });
+
+        it('regular price from priceInfo renders identically to numeric', () => {
+            const numeric = buildPriceHTML([usRegular], opts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(usRegular, {
+                        price: 'US$69.99',
+                        usePrecision: true,
+                    }),
+                ],
+                opts,
+            );
+            expect(info).to.equal(numeric);
+            expect(info).to.contain('69');
+        });
+
+        // Closes the "no client-side formatting on top of priceInfo" AC: the
+        // visible price value must be WCS's string verbatim. The split only
+        // arranges it into spans; it must not re-group, re-symbol, or reorder.
+        it('renders the priceInfo value verbatim (no reformatting on top)', () => {
+            const html = buildPriceHTML(
+                [
+                    withInfo(usRegular, {
+                        price: 'US$69.99',
+                        usePrecision: true,
+                    }),
+                ],
+                opts,
+            );
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            const value = [
+                'currency-symbol',
+                'integer',
+                'decimals-delimiter',
+                'decimals',
+            ]
+                .map((c) => el.querySelector(`.price-${c}`)?.textContent ?? '')
+                .join('');
+            expect(value).to.equal('US$69.99');
+        });
+
+        it('non-promo annualized from priceInfo renders identically to numeric', () => {
+            const annualOffer = {
+                ...usRegular,
+                priceDetails: {
+                    price: 69.99,
+                    formatString: usFormat,
+                    usePrecision: true,
+                    annualized: { annualizedPrice: 839.88 },
+                },
+            };
+            const annualOpts = { ...opts, template: 'annual' };
+            const numeric = buildPriceHTML([annualOffer], annualOpts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(annualOffer, {
+                        annualized: { annualizedPrice: 'US$839.88' },
+                    }),
+                ],
+                annualOpts,
+            );
+            expect(info).to.equal(numeric);
+        });
+
+        it('tax-exclusive uses priceInfo.priceWithoutTax, not priceInfo.price', () => {
+            const exclusiveOffer = {
+                ...usRegular,
+                priceDetails: {
+                    price: 69.99,
+                    formatString: usFormat,
+                    usePrecision: true,
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+            };
+            const numeric = buildPriceHTML([exclusiveOffer], opts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(exclusiveOffer, {
+                        price: 'US$0.00', // wrong value; must be ignored when tax-exclusive
+                        priceWithoutTax: 'US$69.99',
+                        usePrecision: true,
+                    }),
+                ],
+                opts,
+            );
+            expect(info).to.equal(numeric);
+        });
+
+        // Fallback-only in prod today (WCS does not emit priceInfo.priceWithoutDiscount),
+        // but the wired branch must be correct for when WCS ships the field.
+        it('strikethrough uses priceInfo.priceWithoutDiscount when WCS supplies it', () => {
+            const discounted = {
+                ...usRegular,
+                priceDetails: {
+                    price: 43.99,
+                    priceWithoutDiscount: 54.99,
+                    formatString: usFormat,
+                    usePrecision: true,
+                },
+            };
+            const stOpts = { ...opts, template: 'strikethrough' };
+            const numeric = buildPriceHTML([discounted], stOpts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(discounted, {
+                        price: 'US$43.99',
+                        priceWithoutDiscount: 'US$54.99',
+                        usePrecision: true,
+                    }),
+                ],
+                stOpts,
+            );
+            expect(info).to.equal(numeric);
+            expect(info).to.contain('54'); // the struck without-discount value
+        });
+
+        it('falls back to numeric on parse mismatch', () => {
+            const numeric = buildPriceHTML([usRegular], opts);
+            const info = buildPriceHTML(
+                [withInfo(usRegular, { price: 'US$6999', usePrecision: true })],
+                opts,
+            );
+            expect(info).to.equal(numeric);
+        });
+
+        it('ignores priceInfo when displayFormatted is false', () => {
+            const dfOpts = { ...opts, displayFormatted: false };
+            const numeric = buildPriceHTML([usRegular], dfOpts);
+            const info = buildPriceHTML(
+                [withInfo(usRegular, { price: 'US$0.00', usePrecision: true })],
+                dfOpts,
+            );
+            expect(info).to.equal(numeric);
+        });
+
+        it('ignores priceInfo for India (numeric hi-IN guard)', () => {
+            const inOffer = {
+                ...usRegular,
+                priceDetails: {
+                    price: 69.99,
+                    formatString: "'₹'#,##,##0.00",
+                    usePrecision: true,
+                },
+            };
+            const inOpts = { country: 'IN', language: 'hi', template: 'price' };
+            const numeric = buildPriceHTML([inOffer], inOpts);
+            const info = buildPriceHTML(
+                [withInfo(inOffer, { price: '₹0.00', usePrecision: true })],
+                inOpts,
+            );
+            expect(info).to.equal(numeric);
+        });
+    });
+});
+
+describe('priceDetails-only paths (priceInfo dropped)', () => {
+    it('sumOffers (soft bundle) drops priceInfo so the sum renders numerically', () => {
+        const base = {
+            offerSelectorIds: ['sb-1'],
+            priceDetails: { price: 19.99, usePrecision: true },
+            // A stale WCS string that must not survive summation.
+            priceInfo: { price: 'US$19.99', usePrecision: true },
+        };
+        const summed = sumOffers([
+            base,
+            {
+                ...base,
+                offerSelectorIds: ['sb-2'],
+                priceDetails: { price: 24.99, usePrecision: true },
+                priceInfo: { price: 'US$24.99', usePrecision: true },
+            },
+        ]);
+        expect(summed.priceInfo).to.equal(undefined);
+        expect(summed.priceDetails.price).to.equal(44.98);
+    });
+
+    it('dual-OSI discount computes from priceDetails and ignores priceInfo', async () => {
+        // Inject a bogus priceInfo on every resolved offer; the cross-offer
+        // discount must still compute 20% from priceDetails (43.99 vs 54.99).
+        const withBogusPriceInfo = async (originalFetch) => {
+            const inner = await withWcs(originalFetch);
+            return async (req) => {
+                const res = await inner(req);
+                if (res === false || !res.ok) return res;
+                const body = await res.json();
+                body.resolvedOffers = body.resolvedOffers.map((o) => ({
+                    ...o,
+                    priceInfo: { price: 'US$0.00', usePrecision: true },
+                }));
+                return { ...res, json: async () => body };
+            };
+        };
+        await mockFetch(withBogusPriceInfo);
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('crossDiscount', 'abm-promo,abm');
+        inlinePrice.dataset.template = 'discount';
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.querySelector('.discount').textContent).to.equal(
+            '20%',
+        );
     });
 });

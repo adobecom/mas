@@ -13,6 +13,7 @@ import {
     formatAnnualPrice,
     makeSpacesAroundNonBreaking,
     isPromotionActive,
+    selectPreformattedPrice,
 } from './utilities.js';
 
 export const defaultLiterals = {
@@ -244,6 +245,7 @@ const createPriceTemplate =
             term,
             usePrecision,
             promotion,
+            priceInfo,
         } = {},
         attributes = {},
     ) => {
@@ -280,16 +282,39 @@ const createPriceTemplate =
         } else {
             displayPrice = price;
         }
+        // Which priceInfo string to pick mirrors the number chosen above.
+        const showWithoutDiscount = displayPrice === priceWithoutDiscount;
 
         let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
         if (displayAnnual) {
             method = formatAnnualPrice;
         }
+
+        // India regroups digits client-side (lakh/crore) → numeric path.
+        const isIndianPrice = country === 'IN';
+        const taxExclusive = taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE;
+
+        // Use WCS's pre-formatted price, except optical (client-divided) and India.
+        let formatted;
+        if (
+            priceInfo &&
+            !displayOptical &&
+            !isIndianPrice &&
+            toBoolean(displayFormatted)
+        ) {
+            formatted = selectPreformattedPrice({
+                priceInfo,
+                showWithoutDiscount,
+                taxExclusive,
+                displayAnnual,
+                promotion,
+            });
+        }
         const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
             commitment,
             formatString,
             instant,
-            isIndianPrice: country === 'IN',
+            isIndianPrice,
             originalPrice: price,
             priceWithoutDiscount,
             price: displayOptical ? price : displayPrice,
@@ -297,6 +322,7 @@ const createPriceTemplate =
             quantity,
             term,
             usePrecision,
+            formatted,
         });
 
         let accessibleLabel = '',

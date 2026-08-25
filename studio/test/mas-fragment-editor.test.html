@@ -1177,14 +1177,12 @@
 
                             expect(getPromoVariationPaths.called).to.be.false;
                             expect(el.variationsToDelete).to.deep.equal([]);
-                            expect(el.promoVariationCount).to.equal(0);
                             expect(el.showDeleteDialog).to.be.true;
                         });
 
                         it('renders the promo-variation warning in the delete confirmation dialog', () => {
                             el.showDeleteDialog = true;
-                            el.variationsToDelete = ['/content/dam/mas/sandbox/promotions/nbbdsa/f'];
-                            el.promoVariationCount = 1;
+                            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/nbbdsa/f'];
 
                             const dialog = el.deleteConfirmationDialog;
                             const message = dialog.values.find((value) => value?.strings);

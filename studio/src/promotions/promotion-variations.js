@@ -339,8 +339,8 @@ export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) 
 }
 
 /**
- * Probes every promo variation path for known promotion projects (tag + path; not parent variations field).
- * A single project can have more than one geo-specific variation, so each project is probed for all indices.
+ * Only probes projects with defaultPath in their 'fragments' field.
+ * Unattached projects can't have a variation, so they're skipped without a network call.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {Array<Object>} promotionProjects
@@ -349,10 +349,13 @@ export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) 
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
     if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
 
-    if (!promotionProjects.length) return [];
+    const attachedProjects = promotionProjects.filter((project) =>
+        (project.getFieldValues?.('fragments') || []).includes(defaultPath),
+    );
+    if (!attachedProjects.length) return [];
 
     const refsPerProject = await processConcurrently(
-        promotionProjects,
+        attachedProjects,
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
             if (!tagId) return [];

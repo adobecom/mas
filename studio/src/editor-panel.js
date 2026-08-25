@@ -52,7 +52,6 @@ export default class EditorPanel extends LitElement {
         localeDefaultFragment: { type: Object, state: true },
         localeDefaultFragmentLoading: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
-        promoVariationCount: { type: Number, state: true },
     };
 
     static styles = css`
@@ -136,7 +135,6 @@ export default class EditorPanel extends LitElement {
         this.localeDefaultFragment = null;
         this.localeDefaultFragmentLoading = false;
         this.variationsToDelete = [];
-        this.promoVariationCount = 0;
 
         // MWPW-182720: Drag properties
         this.dragX = window.innerWidth - 520;
@@ -564,9 +562,17 @@ export default class EditorPanel extends LitElement {
 
     async deleteFragment() {
         const fieldVariations = this.fragment?.getVariations() || [];
-        const promoVariationPaths = this.fragment ? await this.repository.getPromoVariationPaths(this.fragment) : [];
+        let promoVariationPaths = [];
+        if (this.fragment) {
+            try {
+                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
+            } catch (error) {
+                console.error('Failed to probe promo variations:', error);
+                showToast('Failed to check for promo variations. Please try again.', 'negative');
+                return;
+            }
+        }
         this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
-        this.promoVariationCount = promoVariationPaths.length;
         this.showDeleteDialog = true;
     }
 
@@ -879,7 +885,7 @@ export default class EditorPanel extends LitElement {
             ? html`<p>Are you sure you want to delete this fragment?</p>
                   <p>
                       <strong>Warning:</strong> This will also delete
-                      ${describeVariationsToDelete(this.fragment, this.promoVariationCount)}. This action cannot be undone.
+                      ${describeVariationsToDelete(this.fragment, this.variationsToDelete)}. This action cannot be undone.
                   </p>`
             : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`

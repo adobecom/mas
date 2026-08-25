@@ -10,10 +10,13 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
+    PZN_FOLDER,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
+import { isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
+import { isPromoVariationPath } from './promotions/promotion-model.js';
 
 /**
  * @param {string} input
@@ -566,16 +569,41 @@ export function createKeyedAsyncLoader() {
 
 /**
  * Generates the delete confirmation summary, omitting categories with a zero count.
+ * Classifies `variationsToDelete` directly by path, so the count always matches what's actually deleted.
  * @param {import('./aem/fragment.js').Fragment} fragment
- * @param {number} promoVariationCount
+ * @param {string[]} [variationsToDelete]
  * @returns {string}
  */
-export function describeVariationsToDelete(fragment, promoVariationCount = 0) {
-    const localeCount = fragment?.listLocaleVariations?.().length || 0;
-    const groupedCount = fragment?.listGroupedVariations?.().length || 0;
+export function describeVariationsToDelete(fragment, variationsToDelete = []) {
+    const { surface, parsedLocale: currentLocale, fragmentPath } = fragment?.path?.match(PATH_TOKENS)?.groups || {};
+
+    let localeCount = 0;
+    let groupedCount = 0;
+    let promoCount = 0;
+
+    for (const path of variationsToDelete) {
+        if (path.includes(`/${PZN_FOLDER}/`)) {
+            if (isVariationPathInParentLocaleFamily(surface, currentLocale, path)) groupedCount += 1;
+            continue;
+        }
+        if (isPromoVariationPath(path)) {
+            promoCount += 1;
+            continue;
+        }
+        const pathGroups = surface && currentLocale && fragmentPath ? path.match(PATH_TOKENS)?.groups : null;
+        if (
+            pathGroups?.surface === surface &&
+            pathGroups?.fragmentPath === fragmentPath &&
+            pathGroups?.parsedLocale !== currentLocale &&
+            isVariationPathInParentLocaleFamily(surface, currentLocale, path)
+        ) {
+            localeCount += 1;
+        }
+    }
+
     const parts = [];
     if (localeCount) parts.push(`${localeCount} locale`);
     if (groupedCount) parts.push(`${groupedCount} grouped`);
-    if (promoVariationCount) parts.push(`${promoVariationCount} promo`);
+    if (promoCount) parts.push(`${promoCount} promo`);
     return `${parts.join(', ')} variation(s)`;
 }

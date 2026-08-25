@@ -381,7 +381,7 @@
                     });
 
                     it('deleteFragment merges promo variation paths into variationsToDelete and opens the dialog', async () => {
-                        const promoPath = '/content/dam/mas/sandbox/promotions/nbbdsa/card-with-promo';
+                        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/nbbdsa/card-with-promo';
                         const fragment = new Fragment({
                             id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
                             path: '/content/dam/mas/sandbox/en_US/card-with-promo',
@@ -396,7 +396,6 @@
                         await editorPanel.deleteFragment();
 
                         expect(editorPanel.showDeleteDialog).to.be.true;
-                        expect(editorPanel.promoVariationCount).to.equal(1);
                         expect(editorPanel.variationsToDelete).to.include(promoPath);
                         expect(editorPanel.variationsToDelete).to.include('/content/dam/mas/sandbox/en_US/card-with-promo/ar');
                     });
@@ -411,8 +410,7 @@
                             tags: [],
                         });
                         editorPanel.inEdit.set(new FragmentStore(fragment));
-                        editorPanel.variationsToDelete = ['/content/dam/mas/sandbox/promotions/nbbdsa/card-with-promo'];
-                        editorPanel.promoVariationCount = 1;
+                        editorPanel.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/nbbdsa/card-with-promo'];
                         editorPanel.showDeleteDialog = true;
 
                         const dialog = editorPanel.deleteConfirmationDialog;

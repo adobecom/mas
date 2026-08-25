@@ -1685,15 +1685,10 @@ export class MasRepository extends LitElement {
      * @returns {Promise<string[]>} Paths of the fragment's promo variations
      */
     async getPromoVariationPaths(fragment) {
-        try {
-            const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragment, () =>
-                this.loadPromotions(),
-            );
-            return new Fragment(enrichedData).listPromoVariations().map((ref) => ref.path);
-        } catch (error) {
-            console.error('Failed to probe promo variations:', error);
-            return [];
-        }
+        const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragment, () =>
+            this.loadPromotions(),
+        );
+        return new Fragment(enrichedData).listPromoVariations().map((ref) => ref.path);
     }
 
     /**

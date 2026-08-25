@@ -1539,6 +1539,7 @@ describe('MasRepository dictionary helpers', () => {
 
                 const mockPromoProject = {
                     tags: [{ id: 'mas:promotion/summer-sale' }],
+                    getFieldValues: (name) => (name === 'fragments' ? [fragmentPath] : undefined),
                 };
                 const { default: Store } = await import('../src/store.js');
                 Store.promotions.list.data.set([{ get: () => mockPromoProject }]);
@@ -4176,7 +4177,7 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: promoVariationPath })).to.be.true;
         });
 
-        it('returns an empty array and logs when probing promo variations throws', async () => {
+        it('propagates the error when probing promo variations throws, instead of silently returning no paths', async () => {
             const repository = createRepository();
             const fragment = new Fragment({
                 id: 'parent-id',
@@ -4186,12 +4187,13 @@ describe('MasRepository dictionary helpers', () => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');
             sandbox.stub(repository, 'loadPromotions').rejects(new Error('network error'));
-            const errorSpy = sandbox.stub(console, 'error');
 
-            const result = await repository.getPromoVariationPaths(fragment);
-
-            expect(result).to.deep.equal([]);
-            expect(errorSpy.calledWith('Failed to probe promo variations:', sinon.match.instanceOf(Error))).to.be.true;
+            try {
+                await repository.getPromoVariationPaths(fragment);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('network error');
+            }
         });
     });
 

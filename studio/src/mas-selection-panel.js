@@ -176,7 +176,7 @@ class MasSelectionPanel extends LitElement {
         }
     }
 
-    async handleMarkStaged(event) {
+    async handleMarkStaged() {
         if (!this.repository) {
             console.error('Repository not found');
             return;

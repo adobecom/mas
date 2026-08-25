@@ -234,6 +234,7 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.createSnapshot.resolves({
             entries: ['{"fragmentId":"f-coll"}'],
             expandedPaths: [collPath, cardPath],
+            failures: [],
         });
         deps.publishResolved.resolves([
             { path: collPath, status: 'published' },
@@ -258,6 +259,7 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.createSnapshot.resolves({
             entries: ['{"fragmentId":"f-coll"}'],
             expandedPaths: [collPath, cardPath],
+            failures: [],
         });
         deps.publishResolved.resolves([{ path: collPath, status: 'published' }]);
 

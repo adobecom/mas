@@ -22,15 +22,6 @@ function relabelNotLocalized(details) {
     }
 }
 
-function hasPendingSnapshot(entries) {
-    if (!entries.length) return false;
-    try {
-        return entries.some((e) => JSON.parse(e).publishComplete === false);
-    } catch {
-        return false;
-    }
-}
-
 function hasValidPreRecordedSnapshot(entries) {
     if (!entries.length) return false;
     try {
@@ -42,18 +33,6 @@ function hasValidPreRecordedSnapshot(entries) {
         return false;
     }
 }
-
-function addPendingMarker(entries) {
-    return entries.map((e) => JSON.stringify({ ...JSON.parse(e), publishComplete: false }));
-}
-
-function removePendingMarker(entries) {
-    return entries.map((e) => {
-        const { publishComplete, ...rest } = JSON.parse(e);
-        return JSON.stringify(rest);
-    });
-}
-
 
 function terminalStatus(result) {
     if (result.total === 0) return PROJECT_STATUS.PUBLISHED;

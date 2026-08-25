@@ -181,7 +181,9 @@ async function createSnapshot({
         fragments: Object.fromEntries(allEntries),
     };
 
-    logger.info(JSON.stringify({ event: 'snapshot-complete', projectId, count: allEntries.length, failures: allFailures.length }));
+    logger.info(
+        JSON.stringify({ event: 'snapshot-complete', projectId, count: allEntries.length, failures: allFailures.length }),
+    );
     return { entries: serializeEntries(snapshot), expandedPaths: Array.from(visited), failures: allFailures };
 }
 

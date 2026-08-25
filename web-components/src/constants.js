@@ -58,6 +58,15 @@ export const SELECTOR_MAS_SP_BUTTON = 'sp-button[data-wcs-osi]';
 export const SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
 export const SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
 
+/** Analytics ids marking a CTA as a trial offer, suppressed by the hideTrialCTAs setting. */
+export const TRIAL_ANALYTICS_IDS = new Set([
+    'free-trial',
+    'start-free-trial',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+]);
+
 /** Event to dispatch when a merch-offer is ready */
 export const EVENT_MERCH_OFFER_READY = 'merch-offer:ready';
 

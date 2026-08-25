@@ -178,9 +178,7 @@ class MasPromotionsEditor extends LitElement {
             this.loadingPromotion = true;
             try {
                 this.#resetPromotionItemStores();
-                if (!this.fragmentStore) {
-                    await this.#loadPromotionById(promotionId);
-                }
+                await this.#loadPromotionById(promotionId);
                 await this.#hydratePromotionItemSelectionFromFragment();
             } finally {
                 this.loadingPromotion = false;
@@ -598,12 +596,13 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handlePromoCodesSave = (event) => {
-        const { exceptions, offerSubstitutions = new Map() } = event.detail;
+        const { exceptions, offerSubstitutions = new Map(), ignoredVariations = new Map() } = event.detail;
         this.fragmentStore.updateField(
             'offers',
             buildPromotionOffersFieldValues(this.fragment, Store.promotions.selectedOffers.value, {
                 promoExceptions: exceptions,
                 offerSubstitutions,
+                ignoredVariations,
             }),
         );
         this.promoCodesManagerOpen = false;
@@ -1374,6 +1373,26 @@ class MasPromotionsEditor extends LitElement {
         this.canEdit = canEditPromotions();
     }
 
+    renderValidationBanner() {
+        const errors = this.fragment?.getValidationErrors() ?? [];
+        if (!errors.length) return nothing;
+        return html`
+            <div class="fragment-validation-banner" role="alert">
+                <sp-icon-alert class="fragment-validation-banner-icon"></sp-icon-alert>
+                <div class="fragment-validation-banner-body">
+                    <span class="fragment-validation-banner-title">This promotion has validation errors.</span>
+                    ${errors.map(
+                        (error) =>
+                            html`<span class="fragment-validation-banner-message"
+                                ><span class="fragment-validation-banner-property">${error.property}</span>:
+                                ${error.message}</span
+                            >`,
+                    )}
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         let form = nothing;
         if (this.fragment) {
@@ -1397,6 +1416,7 @@ class MasPromotionsEditor extends LitElement {
                 }}
             ></mas-promotion-duplicate-dialog>
             <div class="promotions-form-container">
+                ${this.renderValidationBanner()}
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
                 </div>
@@ -1615,6 +1635,7 @@ class MasPromotionsEditor extends LitElement {
                         .defaultPromoCode=${form.promoCode?.values[0] ?? ''}
                         .exceptions=${parsePromotionOffersField(form.offers?.values).promoExceptions}
                         .offerSubstitutions=${parsePromotionOffersField(form.offers?.values).offerSubstitutions}
+                        .ignoredVariations=${parsePromotionOffersField(form.offers?.values).ignoredVariations}
                         @promo-codes-save=${this.#handlePromoCodesSave}
                         @promo-codes-cancel=${() => {
                             this.promoCodesManagerOpen = false;

@@ -300,6 +300,50 @@ describe('promotions', () => {
             expect(result.activeProjects).to.have.length(0);
         });
 
+        it('does not apply a US-scoped promo project to an es_PR (country=PR) request (MWPW-204652)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/country/us'] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    locale: 'es_PR',
+                    country: 'PR',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'es_ES',
+                            regionLocale: 'es_PR',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
+            );
+            expect(result.activeProjects).to.have.length(0);
+        });
+
+        it('applies a PR-scoped promo project to an es_PR (country=PR) request (MWPW-204652)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/country/pr'] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    locale: 'es_PR',
+                    country: 'PR',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'es_ES',
+                            regionLocale: 'es_PR',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
+            );
+            expect(result.activeProjects).to.have.length(1);
+        });
+
         it('returns all matching projects in folder order', async () => {
             const p1 = makeProject({
                 id: 'proj-1',
@@ -1323,6 +1367,64 @@ describe('promotions', () => {
                 }),
             );
             expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+        });
+
+        it('parses ignore-variations lines and builds geo-scoped ignoreVariationOsis', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: [
+                    'ignore-variations|OSI-1|mas:country/de',
+                    'ignore-variations|OSI-2|mas:country/us',
+                    'ignore-variations|',
+                    'OSI-3|BLACKFRIDAY|mas:country/de',
+                ],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const initResult = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(initResult.activeProjects[0].ignoreVariations).to.deep.equal([
+                { osi: 'OSI-1', geos: ['mas:country/de'] },
+                { osi: 'OSI-2', geos: ['mas:country/us'] },
+            ]);
+            // ignore-variations lines must not leak into offer overrides
+            expect(initResult.activeProjects[0].offerOverrides).to.deep.equal([
+                { osis: ['OSI-3'], promoCode: 'BLACKFRIDAY', geos: ['mas:country/de'] },
+            ]);
+
+            const processResult = await promotionsTransformer.process(
+                createContext({
+                    country: 'DE',
+                    promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+                }),
+            );
+            expect([...processResult.promoProjects[0].ignoreVariationOsis]).to.deep.equal(['OSI-1']);
+        });
+
+        it('produces empty ignoreVariationOsis when geo does not match', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    country: 'FR',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    fragmentPaths: [],
+                                    offerOverrides: [],
+                                    ignoreVariations: [{ osi: 'OSI-1', geos: ['mas:country/de'] }],
+                                    promoCode: null,
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            expect([...result.promoProjects[0].ignoreVariationOsis]).to.deep.equal([]);
         });
 
         it('skips offerLines with missing promoCode', async () => {

@@ -305,6 +305,24 @@ export default [
             text-decoration: underline;
         }
 
+        /* Render the RTE tooltip node (serialized as a bare .icon-button span) as a
+           visible info glyph in the read-only value cell. The hover tooltip popover
+           itself is rendered by merch-card on the consuming page. */
+        .rich-text-cell .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            min-height: 18px;
+            vertical-align: middle;
+            text-decoration: none;
+            border-bottom: none;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 18px;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+        }
+
         .bulk-action-container {
             position: fixed;
             bottom: 24px;

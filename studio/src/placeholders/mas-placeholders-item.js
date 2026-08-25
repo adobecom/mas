@@ -91,8 +91,8 @@ class MasPlaceholdersItem extends LitElement {
         event.stopPropagation();
         this.updatePending(true);
         this.placeholderStore.updateField('tags', [TAG_STATUS_DRAFT]);
-        await this.repository.saveFragment(this.placeholderStore);
-        this.toggleEditing(this.placeholder.key);
+        const saved = await this.repository.saveFragment(this.placeholderStore, { refetchEtag: false });
+        if (saved) this.toggleEditing(this.placeholder.key);
         this.updatePending(false);
     }
 
@@ -202,6 +202,7 @@ class MasPlaceholdersItem extends LitElement {
                                   <div class="rte-container">
                                       <rte-field
                                           link
+                                          icon
                                           .maxLength=${500}
                                           @change=${this.handleRteValueChange}
                                           @click=${this.preventSelection}

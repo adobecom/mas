@@ -18,6 +18,7 @@ import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 import { clearOfferMappingCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
 import { mark } from '../../io/www/src/fragment/utils/common.js';
+import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
@@ -83,6 +84,10 @@ async function previewFragment(id, options) {
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
     let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'mas-studio' };
+    // MWPW-204652: mirror the production pipeline ingress split so preview matches prod.
+    const territory = resolveTerritoryCountries(context.locale, context.country);
+    context.country = territory.country;
+    context.wcsCountry = territory.wcsCountry;
     const initPromises = {};
     const now = mark(context, 'config-check');
     context = await loadConfiguration(context, now);

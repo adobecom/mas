@@ -6,6 +6,7 @@ import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/com
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import { updateOffers } from '../../src/fragment/transformers/wcs.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../src/fragment/utils/explicit-empty.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -1173,6 +1174,40 @@ describe('customize collections', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('default badge');
     });
+
+    it('should normalize explicit_empty sentinel to empty string after regional variation merge', async function () {
+        const regionVariationId = 'badge-clear-en-kw';
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/badge-sentinel-test',
+            id: 'badge-sentinel-test',
+            fields: {
+                badge: 'Sale',
+                variations: [regionVariationId],
+            },
+            references: {
+                [regionVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_KW/badge-sentinel-test',
+                        id: regionVariationId,
+                        fields: { badge: EXPLICIT_EMPTY_SENTINEL },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'badge-sentinel-test',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('');
+    });
 });
 
 async function process(context) {
@@ -2088,6 +2123,97 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
         expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+});
+
+describe('customize ignore promo variations per offer & geo', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const PROMO_VARIATION = {
+        id: 'promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'PROMO badge' },
+    };
+
+    function buildBody() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-IGNORE',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: { pznTags: ['mas:audiences/pzn/EDU'], badge: 'EDU badge' },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildEntry(ignoreVariationOsis) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
+            regionVariations: {},
+        };
+        return [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set(project.fragmentPaths),
+                ignoreVariationOsis,
+            },
+        ];
+    }
+
+    it('skips the promo variation for a flagged offer while pzn variation and promo code still apply', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBody(),
+            },
+            buildEntry(new Set(['OSI-IGNORE'])),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('applies the promo variation when the offer is not flagged', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBody(),
+            },
+            buildEntry(new Set(['OTHER-OSI'])),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
         expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 });

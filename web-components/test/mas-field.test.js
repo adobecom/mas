@@ -915,3 +915,245 @@ describe('mas-field – mas:ready event', () => {
         expect(onReady.firstCall.args[0].target).to.equal(el);
     });
 });
+
+describe('mas-field – tooltip icon-button rendering', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders a serialized .icon-button as a visible info glyph with a hover tooltip', () => {
+        const el = makeField(
+            'shortDescription',
+            '<p>terms <span class="icon-button" data-tooltip="cancel policy"></span></p>',
+        );
+        const btn = el.querySelector('.icon-button');
+        expect(btn, 'icon-button rendered in mas-field content').to.exist;
+        const svg = btn.querySelector('svg');
+        expect(svg, 'info glyph SVG injected').to.exist;
+        expect(
+            svg.getAttribute('class') || '',
+            'milo info icon class',
+        ).to.contain('icon-milo-info');
+        expect(
+            btn.getBoundingClientRect().width,
+            'glyph occupies space',
+        ).to.be.greaterThan(0);
+        // Tooltip popover text is driven from data-tooltip and shown on hover/focus.
+        const styles = document.querySelector(
+            'style[data-mas-field]',
+        ).textContent;
+        expect(styles).to.contain('content: attr(data-tooltip)');
+        expect(styles).to.contain(':hover::before');
+    });
+
+    it('decorates the tooltip with a11y attributes and an initial placement class', () => {
+        const el = makeField(
+            'shortDescription',
+            '<p>terms <span class="icon-button" data-tooltip="cancel policy"></span></p>',
+        );
+        const btn = el.querySelector('.icon-button');
+        expect(btn.getAttribute('role'), 'role').to.equal('button');
+        expect(btn.getAttribute('tabindex'), 'tabindex').to.equal('0');
+        expect(
+            btn.getAttribute('aria-label'),
+            'aria-label from tooltip',
+        ).to.equal('cancel policy');
+        expect(
+            ['top', 'bottom', 'left', 'right'].some((c) =>
+                btn.classList.contains(c),
+            ),
+            'has a placement class',
+        ).to.be.true;
+        expect(
+            btn.dataset.originalPosition,
+            'records original position',
+        ).to.be.a('string');
+    });
+
+    it('flips placement toward the viewport on hover (edge-flip)', () => {
+        const el = makeField(
+            'shortDescription',
+            '<p><span class="icon-button" data-tooltip="a fairly long tooltip that would overflow near an edge"></span></p>',
+        );
+        const btn = el.querySelector('.icon-button');
+        // Force the icon hard against the right edge, then trigger the show handler.
+        el.style.position = 'fixed';
+        el.style.left = `${window.innerWidth - 4}px`;
+        el.style.top = '200px';
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(
+            btn.classList.contains('right'),
+            'not stuck on right at right edge',
+        ).to.be.false;
+        expect(
+            ['top', 'bottom', 'left'].some((c) => btn.classList.contains(c)),
+            'flipped to a fitting side',
+        ).to.be.true;
+    });
+
+    // Edge-flip cases. #positionTooltip reads the icon's getBoundingClientRect
+    // plus the computed ::before size; the ::before is display:none until hover so
+    // its width/height resolve to non-px keywords (max-content/auto) that the code's
+    // parseFloat treats as 0, leaving only its 10px+10px padding. Pinning the icon
+    // with fixed positioning (margin zeroed) gives an exact 16px-wide rect, so each
+    // branch is reachable at a known left/top: `vw-30` overflows right without
+    // hitting the popover's own right edge, isolating the "overflow-only" and
+    // "overflow+top-cutoff" branches from the corner branch.
+    const TIP = 'cancellation applies within the stated policy window';
+    function tooltipAt(left, top, klass = '') {
+        const el = makeField(
+            'shortDescription',
+            `<p><span class="icon-button ${klass}" data-tooltip="${TIP}"></span></p>`,
+        );
+        const btn = el.querySelector('.icon-button');
+        btn.style.position = 'fixed';
+        btn.style.margin = '0';
+        btn.style.left = `${left}px`;
+        btn.style.top = `${top}px`;
+        return btn;
+    }
+    const vw = () => window.innerWidth;
+    const vh = () => window.innerHeight;
+    it('flips to the right at the left edge', () => {
+        const btn = tooltipAt(10, 200);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('right'), 'left edge -> right').to.be
+            .true;
+    });
+
+    it('flips down when overflowing right near the top', () => {
+        const btn = tooltipAt(vw() - 30, 2);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('bottom'), 'right+top -> bottom').to.be
+            .true;
+    });
+
+    it('flips to the left when overflowing right in mid-viewport', () => {
+        const btn = tooltipAt(vw() - 30, Math.round(vh() / 2));
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('left'), 'right overflow -> left').to.be
+            .true;
+    });
+
+    it('flips a top tooltip to the bottom when cut off at the top', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), 2);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('bottom'), 'top cutoff -> bottom').to.be
+            .true;
+    });
+
+    it('flips an authored bottom tooltip to the top when cut off at the bottom', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), vh() - 20, 'bottom');
+        expect(btn.dataset.originalPosition, 'authored bottom').to.equal(
+            'bottom',
+        );
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('top'), 'bottom cutoff -> top').to.be
+            .true;
+    });
+
+    it('restores the original placement when a flipped tooltip fits again', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), Math.round(vh() / 2));
+        // Pretend a previous hover flipped it away from its 'top' original.
+        btn.classList.remove('top');
+        btn.classList.add('left');
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('top'), 'restored to original').to.be
+            .true;
+        expect(btn.classList.contains('left'), 'stale side dropped').to.be
+            .false;
+    });
+
+    it('hides the tooltip on Escape', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), 200);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('hide-tooltip'), 'shown on hover').to.be
+            .false;
+        btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        expect(btn.classList.contains('hide-tooltip'), 'hidden on Escape').to.be
+            .true;
+    });
+});
+
+describe('mas-field – hideTrialCTAs setting', () => {
+    const TRIAL_CTAS =
+        '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="buy-now">Buy now</a>' +
+        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>' +
+        '<a is="checkout-link" class="secondary-link" href="" data-wcs-osi="osi3" data-analytics-id="start-free-trial">Start free trial</a>' +
+        '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi4" data-analytics-id="save-today">Save today</a>';
+
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    function makeField(field, ctasHtml, settings) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: ctasHtml }, settings },
+            }),
+        );
+        return el;
+    }
+
+    function anchorsOf(el) {
+        return [
+            ...el.querySelectorAll('[data-role="mas-field-content"] a'),
+        ].map((a) => a.textContent);
+    }
+
+    it('strips trial CTAs from a plain ctas field when hideTrialCTAs is true', () => {
+        const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Buy now', 'Save today']);
+    });
+
+    it('keeps every CTA when hideTrialCTAs is false', () => {
+        const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: false });
+        expect(anchorsOf(el)).to.have.lengthOf(4);
+    });
+
+    it('keeps every CTA when the setting is absent', () => {
+        const el = makeField('ctas', TRIAL_CTAS, undefined);
+        expect(anchorsOf(el)).to.have.lengthOf(4);
+    });
+
+    it('renders nothing when an indexed ref points at a trial CTA', () => {
+        const el = makeField('ctas[2]', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.be.empty;
+    });
+
+    it('does not shift indices when a trial CTA is suppressed', () => {
+        const el = makeField('ctas[4]', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Save today']);
+    });
+
+    it('renders a non-trial indexed CTA unchanged', () => {
+        const el = makeField('ctas[1]', TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Buy now']);
+    });
+
+    const ALL_TRIAL_CTAS =
+        '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="free-trial">Free trial</a>' +
+        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-analytics-id="start-free-trial">Start free trial</a>';
+
+    it('keeps every CTA on a plain ctas field when all of them are trials', () => {
+        const el = makeField('ctas', ALL_TRIAL_CTAS, { hideTrialCTAs: true });
+        expect(anchorsOf(el)).to.deep.equal(['Free trial', 'Start free trial']);
+    });
+
+    it('renders nothing for an indexed ref into an all-trial field', () => {
+        const el = makeField('ctas[1]', ALL_TRIAL_CTAS, {
+            hideTrialCTAs: true,
+        });
+        expect(anchorsOf(el)).to.be.empty;
+    });
+});

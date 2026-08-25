@@ -234,6 +234,12 @@ describe('bulk-edit: handlePost', () => {
         await mod.handlePost({ ...findParams, limit: 3000 });
         expect(writeJob.firstCall.args[1].params.limit).to.equal(3000);
     });
+    it('normalizes invalid match limits to the default while leaving omitted limits unbounded', () => {
+        const { mod } = load();
+        expect(mod.normalizeLimitKey(-1)).to.equal(1000);
+        expect(mod.normalizeLimitKey('invalid')).to.equal(1000);
+        expect(mod.normalizeLimitKey(undefined)).to.equal(null);
+    });
     it('400s an unsupported type', async () => {
         const { mod } = load();
         const res = await mod.handlePost({ type: 'bogus', find: 'x', surface: 'sandbox' });

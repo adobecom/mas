@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { buildSearchQuery, buildSearchPaths, searchPages, findMatches, extractLocale } = require('./search.js');
 const { readJob, patchJob, writeReport, readUserCsv, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
 const { filterResultsByUserCsv } = require('./csv.js');
-const { writeJobExports, writeFindFullExport, buildFindReport } = require('./bulk-edit.js');
+const { writeJobExports, writeFindFullExport, buildFindReport, normalizeLimitKey } = require('./bulk-edit.js');
 
 const logger = Core.Logger('bulk-edit-find-worker', { level: 'info' });
 
@@ -50,11 +50,6 @@ async function finalizeFindExport(jobId, results, status, jobParams = {}) {
     return report;
 }
 
-function parseMatchLimit(value) {
-    const limit = Number.parseInt(value, 10);
-    return Number.isFinite(limit) && limit > 0 ? limit : null;
-}
-
 async function finalizeStop(jobId, stop, results, jobParams) {
     if (stop === 'CANCELLED') {
         await finalizeFindExport(jobId, results, 'CANCELLED', jobParams);
@@ -70,7 +65,7 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
     const { params = {} } = job;
     const tags = Array.isArray(params.tags) ? params.tags : [];
     const paths = buildSearchPaths(params.surface, params.locale);
-    const matchLimit = parseMatchLimit(params.limit);
+    const matchLimit = normalizeLimitKey(params.limit);
 
     const results = [];
     const byLocale = {};

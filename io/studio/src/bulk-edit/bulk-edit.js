@@ -186,9 +186,12 @@ function normalizeLocalesKey(locale) {
     return locales.length === 1 ? locales[0] : locales;
 }
 
+const DEFAULT_MATCH_LIMIT = 1000;
+
 function normalizeLimitKey(limit) {
     const value = Number.parseInt(limit, 10);
-    return Number.isFinite(value) && value > 0 ? value : null;
+    if (limit === undefined) return null;
+    return Number.isFinite(value) && value > 0 ? value : DEFAULT_MATCH_LIMIT;
 }
 
 function buildSearchKey(params) {
@@ -756,6 +759,7 @@ module.exports = {
     actionableReplaceRows,
     normalizeSearchInKey,
     normalizeLocalesKey,
+    normalizeLimitKey,
     isForceRefresh,
     WORKER_ACTIONS,
     EXPORT_ROOT,

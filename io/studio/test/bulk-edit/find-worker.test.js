@@ -59,6 +59,11 @@ function load(overrides = {}) {
                 }
                 return { total: results.length, byLocale };
             },
+            normalizeLimitKey: (value) => {
+                const limit = Number.parseInt(value, 10);
+                if (value === undefined) return null;
+                return Number.isFinite(limit) && limit > 0 ? limit : 1000;
+            },
             '@noCallThru': true,
         },
         '../common.js': { fetchOdin: async () => ({}), '@noCallThru': true },

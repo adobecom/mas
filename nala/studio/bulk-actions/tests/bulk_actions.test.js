@@ -6,7 +6,7 @@ const { features } = BulkActionsSpec;
 
 test.describe('M@S Studio Bulk Actions Test Suite', () => {
     // @studio-bulk-copy-urls - Verify that selecting fragments in table view and clicking
-    // "Copy Content Link(s)" in the selection panel copies code to clipboard and shows a success toast.
+    // "Copy Content Link(s)" in the selection panel copies the link to clipboard and shows a success toast.
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;
         setTestPage(testPage);
@@ -43,12 +43,12 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
             await copyLinkButton.click();
 
             await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
-            await expect(studio.toastPositive).toContainText('code snippet');
+            await expect(studio.toastPositive).toContainText('Copied 1 link to clipboard');
         });
     });
 
-    // @studio-action-menu-copy-code - Verify that clicking "Copy Link" in the fragment
-    // table row action menu ("...") copies code to clipboard and shows a success toast.
+    // @studio-action-menu-copy-link - Verify that clicking "Copy Link" in the fragment
+    // table row action menu ("...") copies the link to clipboard and shows a success toast.
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}`;
         setTestPage(testPage);

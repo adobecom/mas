@@ -18,12 +18,30 @@ export function getImsCountryCookie() {
     return country.trim().toUpperCase() || null;
 }
 
-export function imsReady() {
-    return Promise.resolve();
+export function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
+    const log = Log.module('ims');
+    return new Promise((resolve) => {
+        log.debug('Waiting for IMS to be ready');
+        let count = 0;
+        /* c8 ignore next 10 */
+        function poll() {
+            if (window.adobeIMS?.initialized) {
+                resolve();
+            } else if (++count > maxAttempts) {
+                log.debug('Timeout');
+                resolve();
+            } else {
+                setTimeout(poll, interval);
+            }
+        }
+        poll();
+    });
 }
 
-export function imsSignedIn() {
-    return Promise.resolve(getImsCountryCookie() != null);
+export function imsSignedIn(imsReadyPromise) {
+    return imsReadyPromise.then(
+        () => window.adobeIMS?.isSignedInUser() ?? false,
+    );
 }
 
 export function imsCountry() {
@@ -34,9 +52,10 @@ export function imsCountry() {
 }
 
 export function Ims() {
+    const imsReadyPromise = imsReady();
     return {
-        imsReadyPromise: imsReady(),
-        imsSignedInPromise: imsSignedIn(),
+        imsReadyPromise,
+        imsSignedInPromise: imsSignedIn(imsReadyPromise),
         imsCountryPromise: imsCountry(),
     };
 }

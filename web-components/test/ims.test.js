@@ -1,5 +1,7 @@
 import { imsCountry, imsReady, imsSignedIn } from '../src/ims.js';
-import { expect } from './utilities.js';
+
+import { mockIms, unmockIms } from './mocks/ims.js';
+import { expect, sinon } from './utilities.js';
 
 function stubCookie(value) {
     Object.defineProperty(document, 'cookie', {
@@ -14,37 +16,60 @@ function restoreCookie() {
 
 describe('IMS module', () => {
     afterEach(() => {
+        unmockIms();
         restoreCookie();
     });
 
-    it('resolves country to null when the cookie is absent', async () => {
-        stubCookie('other=1');
-        expect(await imsCountry()).to.be.null;
+    describe('imsCountry (from cookie)', () => {
+        it('resolves to null when the cookie is absent', async () => {
+            stubCookie('other=1');
+            expect(await imsCountry()).to.be.null;
+        });
+
+        it('resolves the country from the ims_country_code cookie', async () => {
+            stubCookie('ims_country_code=CH');
+            expect(await imsCountry()).to.equal('CH');
+        });
+
+        it('uppercases a lowercase cookie value', async () => {
+            stubCookie('ims_country_code=ch');
+            expect(await imsCountry()).to.equal('CH');
+        });
+
+        it('resolves to null for a malformed cookie value', async () => {
+            stubCookie('ims_country_code=%E0%A4%A');
+            expect(await imsCountry()).to.be.null;
+        });
     });
 
-    it('resolves country from a supported ims_country_code cookie', async () => {
-        stubCookie('ims_country_code=CH');
-        expect(await imsCountry()).to.equal('CH');
+    describe('imsSignedIn (from adobeIMS)', () => {
+        it('resolves true for a signed-in user', async () => {
+            await mockIms('CH');
+            expect(await imsSignedIn(imsReady())).to.be.true;
+        });
+
+        it('resolves false for an anonymous user', async () => {
+            await mockIms();
+            expect(await imsSignedIn(imsReady())).to.be.false;
+        });
     });
 
-    it('uppercases a lowercase cookie value', async () => {
-        stubCookie('ims_country_code=ch');
-        expect(await imsCountry()).to.equal('CH');
-    });
+    describe('imsReady', () => {
+        it('resolves to undefined by timeout if IMS was not detected', async () => {
+            const interval = 1;
+            const maxAttempts = 3;
+            const promise = imsReady({ interval, maxAttempts });
 
-    it('resolves to null for a malformed cookie value', async () => {
-        stubCookie('ims_country_code=%E0%A4%A');
-        expect(await imsCountry()).to.be.null;
-    });
+            const clock = sinon.useFakeTimers();
+            let attempt = -1;
 
-    it('reports signed-in only when the cookie is present', async () => {
-        stubCookie('other=1');
-        expect(await imsSignedIn()).to.be.false;
-        stubCookie('ims_country_code=CH');
-        expect(await imsSignedIn()).to.be.true;
-    });
+            while (++attempt < maxAttempts) {
+                clock.tick(interval);
+                clock.runAll();
+            }
+            clock.restore();
 
-    it('imsReady resolves immediately', async () => {
-        expect(await imsReady()).to.be.undefined;
+            expect(await promise).to.be.undefined;
+        });
     });
 });

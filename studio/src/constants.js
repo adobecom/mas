@@ -345,7 +345,7 @@ export const BASELINE_VARIATION = {
 
 export const STAGED = {
     NAME: 'staged',
-    TAG: 'mas:custom/test',
+    TAG: 'mas:studio/internal/staged',
     DIALOG_CONFIRM_TEXT:
         'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
     DIALOG_TITLE: 'Staged content warning',

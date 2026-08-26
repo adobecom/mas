@@ -80,11 +80,11 @@ describe('ost-promo-tag', () => {
         expect(badge.textContent).to.contain('OLD');
     });
 
-    it('renders empty textfield value when override is the cancel sentinel', async () => {
+    it('shows the cancel sentinel in the textfield so the cancelled state is visible', async () => {
         store.storedPromoOverride = PROMO_CONTEXT_CANCEL_VALUE;
         const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
         const textfield = el.shadowRoot.querySelector('sp-textfield');
-        expect(textfield.getAttribute('value')).to.equal('');
+        expect(textfield.getAttribute('value')).to.equal(PROMO_CONTEXT_CANCEL_VALUE);
     });
 
     it('renders the override value in the textfield when set', async () => {

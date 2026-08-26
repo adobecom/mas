@@ -83,7 +83,7 @@ export class OstPromoTag extends LitElement {
                     data-testid="ost-promo-override-input"
                     label="Override"
                     size="s"
-                    value=${isCancelled ? '' : store.storedPromoOverride || ''}
+                    value=${store.storedPromoOverride || ''}
                     @input=${(e) => store.setPromoCode(e.target.value)}
                 ></sp-textfield>
                 <sp-action-button

@@ -1524,7 +1524,7 @@ var _p=Object.defineProperty;var zi=N=>{throw TypeError(N)};var Lp=(N,U,G)=>U in
                     data-testid="ost-promo-override-input"
                     label="Override"
                     size="s"
-                    value=${t?"":n.storedPromoOverride||""}
+                    value=${n.storedPromoOverride||""}
                     @input=${r=>n.setPromoCode(r.target.value)}
                 ></sp-textfield>
                 <sp-action-button

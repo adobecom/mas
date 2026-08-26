@@ -29,12 +29,20 @@ function findProjectByTag(projects, promoTagId) {
 }
 
 /**
+ * @param {Object|undefined} project
+ * @returns {string[]}
+ */
+function getAttachedFragmentPaths(project) {
+    return project?.getFieldValues?.('fragments') ?? [];
+}
+
+/**
  * @param {Array<Object>} projects
  * @param {string} promoTagId
  * @returns {string[]}
  */
 function getAttachedFragmentPathsForTag(projects, promoTagId) {
-    return findProjectByTag(projects, promoTagId)?.getFieldValues?.('fragments') ?? [];
+    return getAttachedFragmentPaths(findProjectByTag(projects, promoTagId));
 }
 
 /**
@@ -194,7 +202,7 @@ export async function assertPromoVariationGeoTagsValid(aem, fragment, geoTags, l
 
     const projects = await getPromotionProjectsForProbe(loadPromotions);
     const project = findProjectByTag(projects, promoTagId);
-    const attachedFragmentPaths = project?.getFieldValues?.('fragments') ?? [];
+    const attachedFragmentPaths = getAttachedFragmentPaths(project);
     const defaultFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(
         aem,
         fragment.path,

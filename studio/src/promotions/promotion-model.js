@@ -232,7 +232,7 @@ export function getPromotionInfo(variationFragment) {
 export function fragmentIsPromoVariation(fragment) {
     if (!fragment) return false;
     if (isPromoVariationPath(fragment.path)) return true;
-    return Boolean(findPromotionTagId(fragment.getFieldValues?.('tags')) ?? findPromotionTagId(fragment.tags));
+    return Boolean(getPromotionTagFromFragment(fragment));
 }
 
 /**

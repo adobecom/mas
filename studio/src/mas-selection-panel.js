@@ -6,6 +6,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
 import { generateCodeToUse, showToast } from './utils.js';
+import { fileSendIcon } from './icons.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -14,6 +15,11 @@ class MasSelectionPanel extends LitElement {
             left: 50%;
             transform: translateX(-50%);
             z-index: 9999;
+        }
+
+        .button-staged svg {
+            position: relative;
+            top: 5px;
         }
     `;
 
@@ -264,8 +270,13 @@ class MasSelectionPanel extends LitElement {
                       </sp-action-button>`
                 : nothing}
             ${count > 0
-                ? html`<sp-action-button slot="buttons" label="Mark as Staged" @click=${this.handleMarkStaged}>
-                      <sp-icon-pause slot="icon"></sp-icon-pause>
+                ? html`<sp-action-button
+                      slot="buttons"
+                      class="button-staged"
+                      label="Mark as Staged"
+                      @click=${this.handleMarkStaged}
+                  >
+                      ${fileSendIcon}
                       <sp-tooltip self-managed placement="top">Mark as Staged</sp-tooltip>
                   </sp-action-button>`
                 : nothing}

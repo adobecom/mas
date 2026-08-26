@@ -2,6 +2,7 @@ import { getParameter } from '@dexter/tacocat-core';
 import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
+    EVENT_TYPE_READY,
     MARK_START_SUFFIX,
     MARK_DURATION_SUFFIX,
 } from './constants.js';
@@ -237,7 +238,15 @@ export class AemFragment extends HTMLElement {
 
     connectedCallback() {
         if (this.#fetchPromise) return;
-        this.#service ??= getService(this);
+        this.#service = getService(this);
+        if (!this.#service?.settings) {
+            document.addEventListener(
+                EVENT_TYPE_READY,
+                () => this.isConnected && this.connectedCallback(),
+                { once: true },
+            );
+            return;
+        }
         this.#preview = this.#service.settings?.preview;
         this.#log ??= this.#service.log.module(
             `${AEM_FRAGMENT_TAG_NAME}[${this.#fragmentId}]`,

@@ -489,7 +489,10 @@ class MasSelectItemsTable extends LitElement {
         // show the full skeleton on the initial (empty) load.
         const showSkeleton = (this.isLoading || loadingFirstPage) && (!this.viewOnly || this.itemsToDisplay.length === 0);
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
-        const showTable = !showEmpty && (showSkeleton || !this.isLoading);
+        // Keep the table mounted whenever there are rows to show — during a viewOnly
+        // load-more `isLoading` is true while existing rows remain, and gating on it here
+        // would unmount the whole section until the next window resolves.
+        const showTable = !showEmpty && (showSkeleton || this.itemsToDisplay.length > 0);
 
         return html`
             ${showEmpty ? html`<p>No items found.</p>` : nothing}

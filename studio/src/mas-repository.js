@@ -40,6 +40,7 @@ import {
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
+import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
 import {
     clearDictionaryCache,
     fetchDictionary,
@@ -1375,6 +1376,14 @@ export class MasRepository extends LitElement {
         ensureCompatVersionOnMerchCardFieldList(fragmentToSave.model?.path, fragmentToSave.fields);
 
         try {
+            if (fragmentIsPromoVariation(fragment)) {
+                await promotionsRepository.assertPromoVariationGeoTagsValid(
+                    this.aem,
+                    fragment,
+                    fragment.getFieldValues('pznTags'),
+                    () => this.loadPromotions(),
+                );
+            }
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
             if (!savedFragment) throw new Error('Invalid fragment.');
 

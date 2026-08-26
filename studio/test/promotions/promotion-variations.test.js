@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import {
+    assertPromoVariationGeoTagsValid,
     createPromoVariation,
     findOverlappingGeoTags,
     getUsedGeoTags,
@@ -573,6 +574,43 @@ describe('promotion-variations', () => {
 
         it('returns an empty array when there are no variations', () => {
             expect(getUsedGeoTags([])).to.deep.equal([]);
+        });
+    });
+
+    describe('assertPromoVariationGeoTagsValid', () => {
+        it('throws when geoTags is empty and a sibling variation already has no geos', () => {
+            const existing = [{ id: 'var-1', pznTags: [] }];
+            expect(() => assertPromoVariationGeoTagsValid(existing, [])).to.throw(
+                'A variation with no geos already exists for this project.',
+            );
+        });
+
+        it('throws when a requested geo tag overlaps a sibling variation', () => {
+            const existing = [{ id: 'var-1', pznTags: ['mas:pzn/country/ar'] }];
+            expect(() => assertPromoVariationGeoTagsValid(existing, ['mas:pzn/country/ar'])).to.throw('mas:pzn/country/ar');
+        });
+
+        it('throws when a requested geo tag is not part of the promotion project', () => {
+            const existing = [];
+            expect(() => assertPromoVariationGeoTagsValid(existing, ['mas:pzn/country/de'], ['mas:pzn/country/fr'])).to.throw(
+                'mas:pzn/country/de',
+            );
+        });
+
+        it('does not check project containment when projectGeos is not provided', () => {
+            const existing = [];
+            expect(() => assertPromoVariationGeoTagsValid(existing, ['mas:pzn/country/de'])).to.not.throw();
+        });
+
+        it('does not throw for a valid geo tag change with no conflicts', () => {
+            const existing = [{ id: 'var-1', pznTags: ['mas:pzn/country/ar'] }];
+            expect(() =>
+                assertPromoVariationGeoTagsValid(
+                    existing,
+                    ['mas:pzn/country/fr'],
+                    ['mas:pzn/country/ar', 'mas:pzn/country/fr'],
+                ),
+            ).to.not.throw();
         });
     });
 

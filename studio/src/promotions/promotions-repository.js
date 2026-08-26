@@ -1,5 +1,5 @@
 import Store from '../store.js';
-import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from './promotion-model.js';
+import { canProbePromoVariationsForFragment, getPromotionTagFromFragment, isPromoVariationPath } from './promotion-model.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
@@ -21,12 +21,20 @@ function readPromotionProjectsFromStore() {
 /**
  * @param {Array<Object>} projects
  * @param {string} promoTagId
+ * @returns {Object|undefined}
+ */
+function findProjectByTag(projects, promoTagId) {
+    const normalized = normalizeTagId(promoTagId);
+    return projects.find((candidate) => getPromotionTagFromFragment(candidate) === normalized);
+}
+
+/**
+ * @param {Array<Object>} projects
+ * @param {string} promoTagId
  * @returns {string[]}
  */
 function getAttachedFragmentPathsForTag(projects, promoTagId) {
-    const normalized = normalizeTagId(promoTagId);
-    const project = projects.find((candidate) => getPromotionTagFromFragment(candidate) === normalized);
-    return project?.getFieldValues?.('fragments') ?? [];
+    return findProjectByTag(projects, promoTagId)?.getFieldValues?.('fragments') ?? [];
 }
 
 /**
@@ -159,4 +167,43 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
  */
 export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
     return promotionVariations.probePromoVariationsForFragment(aem, defaultPath, promoTagId);
+}
+
+/**
+ * @param {Object|undefined} project
+ * @returns {string[]|undefined} the project's configured geos, or undefined when the project
+ * has none configured (skips project-containment validation rather than blocking every geo)
+ */
+function getProjectGeos(project) {
+    const geos = project?.getFieldValues?.('geos') ?? [];
+    return geos.length ? geos : undefined;
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} fragment - the promo variation fragment being saved
+ * @param {string[]} geoTags - the pznTags currently set on the fragment
+ * @param {() => Promise<void>} [loadPromotions]
+ * @returns {Promise<void>}
+ */
+export async function assertPromoVariationGeoTagsValid(aem, fragment, geoTags, loadPromotions) {
+    if (!isPromoVariationPath(fragment.path)) return;
+
+    const promoTagId = getPromotionTagFromFragment(fragment);
+    if (!promoTagId) return;
+
+    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    const project = findProjectByTag(projects, promoTagId);
+    const attachedFragmentPaths = project?.getFieldValues?.('fragments') ?? [];
+    const defaultFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+        aem,
+        fragment.path,
+        fragment.id,
+        attachedFragmentPaths,
+    );
+    if (!defaultFragment) return;
+
+    const siblings = await promotionVariations.probePromoVariationsForFragment(aem, defaultFragment.path, promoTagId);
+    const existingVariations = siblings.filter((variation) => variation.id !== fragment.id);
+    promotionVariations.assertPromoVariationGeoTagsValid(existingVariations, geoTags, getProjectGeos(project));
 }

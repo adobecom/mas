@@ -168,6 +168,31 @@ export function findOverlappingGeoTags(existingVariations, newGeoTags) {
 }
 
 /**
+ * Validates a promo variation's geo tags against its siblings and (optionally) its
+ * promotion project's geos. Throws a UserFriendlyError on the first conflict found.
+ * @param {Array<{ id?: string, pznTags: string[] }>} existingVariations
+ * @param {string[]} geoTags
+ * @param {string[]} [projectGeos] - when provided, geoTags must all be contained in this list
+ */
+export function assertPromoVariationGeoTagsValid(existingVariations, geoTags, projectGeos) {
+    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
+        throw new UserFriendlyError('A variation with no geos already exists for this project.');
+    }
+    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
+    if (overlapping.length) {
+        throw new UserFriendlyError(
+            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
+        );
+    }
+    if (projectGeos) {
+        const notInProject = geoTags.filter((tag) => !projectGeos.includes(tag));
+        if (notInProject.length) {
+            throw new UserFriendlyError(`These geos are not part of the promotion project: ${notInProject.join(', ')}`);
+        }
+    }
+}
+
+/**
  * Finds the next available index: skips indices already used by sibling variations (gaps
  * allowed) and any that would collide with another fragment in the same project.
  * @param {number[]} usedIndices
@@ -217,15 +242,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     }
 
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
-    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
-        throw new UserFriendlyError('A variation with no geos already exists for this project.');
-    }
-    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
-    if (overlapping.length) {
-        throw new UserFriendlyError(
-            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
-        );
-    }
+    assertPromoVariationGeoTagsValid(existingVariations, geoTags);
 
     const nextIndex = getNextAvailablePromoVariationIndex(
         existingVariations.map((variation) => variation.index),

@@ -1628,7 +1628,7 @@
                             expect(container.textContent).to.contain('CTA references need fixing');
                             expect(container.textContent).to.contain('1 without a reference key');
                             expect(container.textContent).to.contain('1 duplicated');
-                            expect(container.querySelector('a.field-status-restore-link')).to.exist;
+                            expect(container.querySelector('sp-link.field-status-restore-link')).to.exist;
                         });
 
                         it('field-level Fix link invokes fixCtaKeys on the ctas RTE field', () => {
@@ -1641,7 +1641,7 @@
 
                             const container = document.createElement('div');
                             render(editor.renderCtaKeyWarning(), container);
-                            container.querySelector('a.field-status-restore-link').click();
+                            container.querySelector('sp-link.field-status-restore-link').click();
                             expect(called).to.equal(1);
                         });
 

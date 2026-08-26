@@ -423,6 +423,22 @@
                         expect(new Set(keys).size).to.equal(3); // all unique
                     });
 
+                    it('does not emit change when a keyless CTA is only selected', async function () {
+                        // Selecting a CTA must not silently heal its key or clear the key-issue
+                        // warning: a selection-only transaction leaves the doc unchanged, so no
+                        // change is dispatched and the fragment is never updated. (MWPW-204765)
+                        rte = await createFromTemplate('rte-ctas', this.test.title);
+                        rte.value = '<a class="accent" data-wcs-osi="a">A</a>';
+                        await delay(100);
+                        let changeCount = 0;
+                        rte.addEventListener('change', () => {
+                            changeCount += 1;
+                        });
+                        rte.selectLink(1);
+                        await delay(100);
+                        expect(changeCount).to.equal(0);
+                    });
+
                     it('should open the link editor on selection and support update', async function () {
                         rte = await createFromTemplate('rte', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'only');

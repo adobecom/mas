@@ -421,7 +421,9 @@ class MerchCardEditor extends LitElement {
             <div class="field-status-indicator field-status-indicator--error" role="alert">
                 <sp-icon-alert class="field-status-icon"></sp-icon-alert>
                 <span class="field-status-label">CTA references need fixing (${summarizeCtaKeyIssues(issues)}).</span>
-                <a href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}>Fix references</a>
+                <sp-link href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}
+                    >Fix references</sp-link
+                >
             </div>
         `;
     }

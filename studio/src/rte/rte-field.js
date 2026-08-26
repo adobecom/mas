@@ -1349,7 +1349,12 @@ class RteField extends LitElement {
             this.#updateSelection(newState);
             this.editorView.updateState(newState);
 
-            if (newState.doc) {
+            // Selection-only transactions (docChanged === false) must not persist: serializing a
+            // ctas field mints missing data-keys (see #createLinkElement), so re-serializing on a
+            // mere CTA selection would silently heal and clear the key-issue warning. Only persist
+            // on real content edits — explicit fixes (fixCtaKeys) and link-editor saves change the
+            // doc and still heal.
+            if (newState.doc && transaction.docChanged) {
                 this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization

@@ -1210,6 +1210,107 @@ describe('customize collections', function () {
     });
 });
 
+describe('customize grouped variations with country tags: replaces `mas:locale/<xx_YY>` with `mas:pzn/country/<cc>`', function () {
+    let logStub;
+
+    beforeEach(function () {
+        logStub = sinon.stub(console, 'log');
+    });
+
+    afterEach(function () {
+        logStub.restore();
+    });
+
+    function scoreOf(variationId) {
+        const line = logStub.args
+            .map(([message]) => String(message))
+            .find((message) => message.includes(`variation ${variationId} scored `));
+        return line ? Number(line.split('scored ')[1]) : null;
+    }
+
+    function bodyWithVariations(defaultLocale, variations) {
+        return {
+            path: `/content/dam/mas/sandbox/${defaultLocale}/pzn-test-fragment`,
+            id: 'root-fragment',
+            title: 'Root',
+            fields: { badge: 'default badge', variations: variations.map(({ id }) => id) },
+            references: Object.fromEntries(
+                variations.map(({ id, name, pznTags, badge }) => [
+                    id,
+                    {
+                        type: 'content-fragment',
+                        value: {
+                            path: `/content/dam/mas/sandbox/${defaultLocale}/PA-123/pzn/${name}`,
+                            id,
+                            title: name,
+                            fields: { pznTags, badge },
+                        },
+                    },
+                ]),
+            ),
+            referencesTree: [],
+        };
+    }
+
+    it('scores a pzn/country/ec variation 10 for an es_EC request', async function () {
+        const body = bodyWithVariations('es_ES', [
+            { id: 'ec-country', name: 'ec', pznTags: ['mas:pzn/country/ec'], badge: 'Ecuador country PZN' },
+        ]);
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'es_EC',
+            parsedLocale: 'es_ES',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Ecuador country PZN');
+        expect(scoreOf('ec-country')).to.equal(10);
+    });
+
+    it('scores the same pzn/country/ec variation 10 for an en_EC + country=EC request', async function () {
+        const body = bodyWithVariations('en_US', [
+            { id: 'ec-country', name: 'ec', pznTags: ['mas:pzn/country/ec'], badge: 'Ecuador country PZN' },
+        ]);
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_EC',
+            country: 'EC',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Ecuador country PZN');
+        expect(scoreOf('ec-country')).to.equal(10);
+    });
+
+    it('lets a locale-tagged sibling outrank a country-tagged one under the same parent', async function () {
+        const body = bodyWithVariations('es_ES', [
+            { id: 'ec-country', name: 'ec-country', pznTags: ['mas:pzn/country/ec'], badge: 'Country badge' },
+            { id: 'ec-locale', name: 'ec-locale', pznTags: ['mas:locale/es_EC'], badge: 'Locale badge' },
+        ]);
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'es_EC',
+            parsedLocale: 'es_ES',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(scoreOf('ec-country')).to.equal(10);
+        expect(scoreOf('ec-locale')).to.equal(20);
+        expect(result.body.variationId).to.equal('ec-locale');
+        expect(result.body.fields.badge).to.equal('Locale badge');
+    });
+});
+
 async function process(context) {
     const phase1 = {
         status: 200,

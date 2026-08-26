@@ -59,6 +59,21 @@ describe('common utils', () => {
                 const result = matchesGeo(['mas:promotion/en_US'], { regionLocale: 'en_US' });
                 expect(result).to.be.null;
             });
+
+            it('does not match country TM against a tag whose value merely ends in "tm"', () => {
+                const result = matchesGeo(['mas:pzn/country/atm'], { regionLocale: 'en_US', country: 'TM' });
+                expect(result).to.be.null;
+            });
+
+            it('does not match country TM against a non-geo pzn segment named tm', () => {
+                const result = matchesGeo(['mas:pzn/tm'], { regionLocale: 'en_US', country: 'TM' });
+                expect(result).to.be.null;
+            });
+
+            it('matches country TM only on the country dimension', () => {
+                const result = matchesGeo(['mas:pzn/country/tm'], { regionLocale: 'en_US', country: 'TM' });
+                expect(result).to.deep.equal({ region: false, country: true });
+            });
         });
 
         describe('country fallback from regionLocale', () => {

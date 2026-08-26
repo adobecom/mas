@@ -1103,7 +1103,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async loadPromotions() {
+    async loadPromotions({ rethrow = false } = {}) {
         try {
             const promotionsPath = this.getPromotionsPath();
 
@@ -1136,6 +1136,7 @@ export class MasRepository extends LitElement {
             if (error.name === 'AbortError') return;
             Store.promotions.list.data.setMeta('listFetched', true);
             this.processError(error, 'Could not load promotions.');
+            if (rethrow) throw error;
         } finally {
             Store.promotions.list.loading.set(false);
         }
@@ -1686,7 +1687,7 @@ export class MasRepository extends LitElement {
      */
     async getPromoVariationPaths(fragment) {
         const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragment, () =>
-            this.loadPromotions(),
+            this.loadPromotions({ rethrow: true }),
         );
         return new Fragment(enrichedData).listPromoVariations().map((ref) => ref.path);
     }

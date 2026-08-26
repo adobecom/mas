@@ -240,7 +240,7 @@
                         expect(resetSpy.callCount).to.equal(1);
                     });
 
-                    it('confirmDelete calls deleteFragment with fragment only for non-variation', async () => {
+                    it('confirmDelete calls deleteFragmentWithVariations for non-variation', async () => {
                         const collection = new Fragment({
                             id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
                             path: '/content/dam/mas/sandbox/en_US/pac/root-collection',
@@ -252,13 +252,15 @@
                         editorPanel.inEdit.set(new FragmentStore(collection));
                         sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(false);
                         const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
-                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        const deleteWithVariationsSpy = sandbox
+                            .stub(editorPanel.repository, 'deleteFragmentWithVariations')
+                            .resolves(true);
                         sandbox.stub(editorPanel, 'unmaskOtherFragments');
                         sandbox.stub(editorPanel.reactiveController, 'updateStores');
 
                         await editorPanel.confirmDelete();
 
-                        expect(deleteSpy.calledOnceWith(collection)).to.be.true;
+                        expect(deleteWithVariationsSpy.calledOnceWith(collection)).to.be.true;
                         expect(resetSpy.callCount).to.equal(1);
                     });
 

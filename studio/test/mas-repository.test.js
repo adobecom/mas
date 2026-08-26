@@ -436,6 +436,30 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
+        it('loadPromotions rethrows the network failure when called with { rethrow: true }', async () => {
+            const repository = createFullRepository();
+            repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
+            sandbox.stub(repository, 'processError');
+
+            try {
+                await repository.loadPromotions({ rethrow: true });
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('network');
+            }
+        });
+
+        it('loadPromotions with { rethrow: true } still swallows AbortError', async () => {
+            const repository = createFullRepository();
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            repository.searchFragmentList = sandbox.stub().rejects(abortError);
+            sandbox.stub(repository, 'processError');
+
+            await repository.loadPromotions({ rethrow: true });
+            expect(repository.processError.called).to.be.false;
+        });
+
         it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');

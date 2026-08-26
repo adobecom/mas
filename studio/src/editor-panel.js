@@ -595,6 +595,7 @@ export default class EditorPanel extends LitElement {
             this.#closeEditorAfterDelete();
         } catch (error) {
             console.error('Error deleting fragment:', error);
+            showToast('Failed to delete fragment', 'negative');
         }
     }
 

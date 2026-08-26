@@ -5,7 +5,14 @@ import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
-import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    EVENT_OST_OFFER_SELECT,
+    PAGE_NAMES,
+    TABLE_TYPE,
+    TAG_PROMOTION_PREFIX,
+    STAGED,
+} from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
 import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
@@ -758,6 +765,19 @@ describe('MasPromotionsEditor', () => {
             dateField.dispatchEvent(new Event('change', { bubbles: true }));
             await el.updateComplete;
             expect(el.fragment.getFieldValue('endDate')).to.equal('');
+        });
+
+        it('mark promotion as staged', async () => {
+            const el = await mountEditor();
+            const switchEl = el.renderRoot.querySelector('.end-date-row + sp-switch');
+            switchEl.checked = true;
+            switchEl.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValue('tags')).to.equal(STAGED.TAG);
+            switchEl.checked = false;
+            switchEl.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValue('tags')).to.be.undefined;
         });
 
         it('scopes promotion tags picker to promotion taxonomy', async () => {

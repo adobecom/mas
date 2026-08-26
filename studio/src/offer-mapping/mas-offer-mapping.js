@@ -5,7 +5,7 @@ import Store from '../store.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import './mas-offer-mapping-item.js';
-import { geoTagToCountry } from './mas-offer-mapping-item.js';
+import { geoTagToCountry, parseOffer } from './mas-offer-mapping-item.js';
 
 const emptyRecord = () => ({ id: null, sourceOffer: '', targetOffer: '', geos: [], status: undefined, fragment: null });
 
@@ -20,6 +20,7 @@ class MasOfferMapping extends LitElement {
         draft: { type: Object, state: true },
         sortField: { type: String, state: true },
         sortAsc: { type: Boolean, state: true },
+        query: { type: String, state: true },
     };
 
     constructor() {
@@ -31,6 +32,7 @@ class MasOfferMapping extends LitElement {
         this.draft = null;
         this.sortField = null;
         this.sortAsc = true;
+        this.query = '';
         this.loadedSurface = '';
 
         this.toggleEditing = this.toggleEditing.bind(this);
@@ -78,10 +80,25 @@ class MasOfferMapping extends LitElement {
     }
 
     get rows() {
-        const rows = Store.offerMapping.rows.get();
+        const rows = this.#filterRows(Store.offerMapping.rows.get());
         if (!this.sortField) return rows;
         const dir = this.sortAsc ? 1 : -1;
         return [...rows].sort((a, b) => this.#sortValue(a).localeCompare(this.#sortValue(b)) * dir);
+    }
+
+    // Matches the query (case-insensitive) against the osi and promo code of both sides. Each side is
+    // slash-joined (`<osi>/<promoCode>`), so parseOffer splits it out to search every part.
+    #filterRows(rows) {
+        const query = this.query.trim().toLowerCase();
+        if (!query) return rows;
+        return rows.filter((rowStore) => {
+            const record = rowStore.get();
+            const source = parseOffer(record.sourceOffer);
+            const target = parseOffer(record.targetOffer);
+            return [source.osi, source.promotionCode, target.osi, target.promotionCode].some((value) =>
+                value?.toLowerCase().includes(query),
+            );
+        });
     }
 
     #sortValue(rowStore) {
@@ -139,6 +156,10 @@ class MasOfferMapping extends LitElement {
         ) {
             this.activeDropdown = null;
         }
+    }
+
+    #handleSearch(event) {
+        this.query = event.target.value || '';
     }
 
     // #endregion
@@ -211,6 +232,14 @@ class MasOfferMapping extends LitElement {
             </div>
             ${this.errorMessage}
             <div class="toolbar">
+                <sp-search
+                    class="offer-mapping-search"
+                    placeholder="Search OSI or promo code"
+                    value=${this.query}
+                    @input=${this.#handleSearch}
+                    @change=${this.#handleSearch}
+                    size="m"
+                ></sp-search>
                 <span class="total">${this.loading ? '' : `${this.rows.length} mapping(s)`}</span>
             </div>
             ${this.renderTable()}

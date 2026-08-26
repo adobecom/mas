@@ -60,24 +60,52 @@ async function buildOfferMapping(context) {
     return mappings ?? [];
 }
 
-// Resolves the surface's mappings to `{ [sourceOffer]: { osi, promotionCode } }` for this request's
-// geo. Only entries whose geos match the request country/region apply — an entry with empty geos never
-// matches (matchesGeo returns null), so it is inert by design. A target may carry a promotion code
-// comma-joined after the osi (`<osi>,<promoCode>`, authored via OST): the osi drives substitution, the
-// promo code is applied to the substituted placeholder as `data-promotion-code` (MWPW-203764). The
-// promo is tied to the source entry — not the resulting osi — so the same targetOsi reused by another
-// mapping without a promo stays promo-free.
+// Resolves the surface's mappings to a substitute map keyed by SOURCE osi for this request's geo. Only
+// entries whose geos match the request country/region apply — an entry with empty geos never matches
+// (matchesGeo returns null), so it is inert by design.
+//
+// Either side may be slash-joined `<osi>/<promoCode>` (authored via OST); slash (not comma) so a
+// multi-OSI value — comma is the discount-badge OSI-pair separator (MWPW-201714) — is never mistaken
+// for a promo code.
+//   - TARGET promo: applied to the substituted placeholder as `data-promotion-code`.
+//   - SOURCE promo: a MATCH CONDITION — the rule fires only on a direct placeholder whose osi AND
+//     inline `data-promotion-code` both equal the source (MWPW-203764, see resolveTarget). It is stored
+//     under `conditions`; a bare source (no promo) is the unconditional `default` target for that osi.
+// The map value per source osi is `{ osi?, promotionCode?, conditions: [{ promotionCode, target }] }`.
 function resolveOfferSubstituteMap(mappings, context) {
     const country = getCountry(context);
     const regionLocale = getRegionalLocale(context);
     const substituteMap = {};
     for (const { sourceOffer, targetOffer, geos } of mappings) {
         if (!matchesGeo(geos, { country, regionLocale })) continue;
-        const [osi, promotionCode] = targetOffer.split(',').map((part) => part.trim());
-        substituteMap[sourceOffer] = { osi, promotionCode };
+        const [sourceOsi, sourcePromotionCode] = sourceOffer.split('/').map((part) => part.trim());
+        const [osi, promotionCode] = targetOffer.split('/').map((part) => part.trim());
+        const entry = (substituteMap[sourceOsi] ??= { conditions: [] });
+        if (sourcePromotionCode) {
+            entry.conditions.push({ promotionCode: sourcePromotionCode, target: { osi, promotionCode } });
+        } else {
+            entry.osi = osi;
+            entry.promotionCode = promotionCode;
+        }
         logDebug(() => `[offer-mapping] ${sourceOffer} -> ${targetOffer} for ${country}`, context);
     }
     return substituteMap;
+}
+
+// Picks the target for a source-osi entry given the placeholder's inline promo code (undefined for a
+// fragment's own osi — those carry no inline promo, so only the unconditional `default` applies). A
+// source-promo condition wins over the bare default when the placeholder's promo matches it
+// (precedence: most-specific first). `viaCondition` tells the caller the match keyed off the promo, so
+// its target promo may override an existing one — whereas a bare rule's target promo must not, since an
+// authored promo always wins. Project-scope overlays carry no `conditions`, hence the optional chain.
+function resolveTarget(entry, elementPromo) {
+    if (!entry) return undefined;
+    if (elementPromo) {
+        const condition = entry.conditions?.find((candidate) => candidate.promotionCode === elementPromo);
+        if (condition) return { ...condition.target, viaCondition: true };
+    }
+    if (entry.osi != null) return { osi: entry.osi, promotionCode: entry.promotionCode, viaCondition: false };
+    return undefined;
 }
 
 // A M@S element in rich text (inline price, checkout link, …): <... data-wcs-osi="<osi>" ...>.
@@ -90,13 +118,14 @@ const PROMOCODE_REGEXP = /data-promotion-code="(?<promotionCode>[^"]+)"/;
  * Substitutes each comma-separated part of an OSI string independently, then rejoins.
  * Discount badges author a comma-joined OSI pair in a single data-wcs-osi attribute;
  * substituting the whole string as one key would always miss (MWPW-201714).
- * `substituteMap` values are `{ osi, promotionCode? }` — only the `osi` drives substitution here.
+ * `elementPromo` is the placeholder's inline promo code (if any); it selects a source-promo
+ * conditioned rule over the bare default (see resolveTarget). Omitted for a fragment's own osi.
  */
-function substituteOsi(osiString, substituteMap) {
+function substituteOsi(osiString, substituteMap, elementPromo) {
     if (!substituteMap) return osiString;
     return osiString
         .split(',')
-        .map((part) => substituteMap[part]?.osi ?? part)
+        .map((part) => resolveTarget(substituteMap[part], elementPromo)?.osi ?? part)
         .join(',');
 }
 
@@ -132,25 +161,34 @@ function scanMasElements(fields, substituteMap, context) {
         const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
             const isLocked = element.includes('data-locked-osi="true"');
             const existingPromo = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
-            const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
-            // A mapping whose target carries a promo code (`<osi>,<promoCode>`) applies it to this
-            // substituted placeholder as data-promotion-code, but only when the element has no promo of
-            // its own — an authored promo code always wins and is left untouched (MWPW-203764). rawOsi
-            // may be a comma-joined pair (discount badges, MWPW-201714), so match each half like
-            // substituteOsi/resolvePromoCode and take the first mapped promo.
-            const injectedPromo =
-                isLocked || existingPromo
-                    ? undefined
-                    : rawOsi
-                          .split(',')
-                          .map((part) => substituteMap?.[part]?.promotionCode)
-                          .find(Boolean);
+            const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap, existingPromo) : rawOsi;
+            // A mapping whose target carries a promo code (`<osi>/<promoCode>`) applies it to this
+            // substituted placeholder as data-promotion-code (MWPW-203764). rawOsi may be a comma-joined
+            // pair (discount badges, MWPW-201714), so match each half. A source-promo conditioned rule
+            // (viaCondition — it only matched because the element already carries that promo) may
+            // override the existing promo; a bare rule's target promo applies only when the element has
+            // none of its own, since an authored promo always wins.
+            let injectedPromo;
+            if (substituteMap && !isLocked) {
+                for (const part of rawOsi.split(',')) {
+                    const target = resolveTarget(substituteMap[part], existingPromo);
+                    if (!target?.promotionCode) continue;
+                    if (target.viaCondition || !existingPromo) {
+                        injectedPromo = target.promotionCode;
+                        break;
+                    }
+                }
+            }
             const promotionCode = injectedPromo ?? existingPromo;
             elements.push({ osi, rawOsi, promotionCode });
             let updated = element;
             if (osi !== rawOsi) updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
-            if (injectedPromo) {
-                updated = updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${injectedPromo}"`);
+            if (injectedPromo && injectedPromo !== existingPromo) {
+                // Overriding an element's own promo (conditioned match) replaces its attribute in place;
+                // adding one to a promo-free element inserts it right after data-wcs-osi.
+                updated = existingPromo
+                    ? updated.replace(/data-promotion-code="[^"]*"/, `data-promotion-code="${injectedPromo}"`)
+                    : updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${injectedPromo}"`);
             }
             if (updated === element) return element;
             logDebug(
@@ -404,4 +442,12 @@ export const transformer = {
     process: wcs,
     init,
 };
-export { MAS_ELEMENT_REGEXP, substituteOsi, scanMasElements, updateOffers, buildOfferMapping, resolveOfferSubstituteMap };
+export {
+    MAS_ELEMENT_REGEXP,
+    substituteOsi,
+    resolveTarget,
+    scanMasElements,
+    updateOffers,
+    buildOfferMapping,
+    resolveOfferSubstituteMap,
+};

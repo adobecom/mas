@@ -1019,14 +1019,37 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
     it('resolveOfferSubstituteMap keeps only geo-matching entries and splits an optional promo code', function () {
         const mappings = [
             { sourceOffer: 'SRC', targetOffer: 'TGT', geos: ['mas:country/US'] },
-            { sourceOffer: 'PROMO-SRC', targetOffer: 'PTGT, BTS26', geos: ['mas:country/US'] },
+            { sourceOffer: 'PROMO-SRC', targetOffer: 'PTGT / BTS26', geos: ['mas:country/US'] },
             { sourceOffer: 'OTHER', targetOffer: 'OTHER-T', geos: ['mas:country/FR'] },
             { sourceOffer: 'NOGEO', targetOffer: 'NOGEO-T', geos: [] },
         ];
         // debugLogs exercises the "[offer-mapping] ..." debug log path.
         expect(resolveOfferSubstituteMap(mappings, { locale: 'en_US', debugLogs: true })).to.deep.equal({
-            SRC: { osi: 'TGT', promotionCode: undefined },
-            'PROMO-SRC': { osi: 'PTGT', promotionCode: 'BTS26' },
+            SRC: { conditions: [], osi: 'TGT', promotionCode: undefined },
+            'PROMO-SRC': { conditions: [], osi: 'PTGT', promotionCode: 'BTS26' },
+        });
+    });
+
+    it('resolveOfferSubstituteMap keeps a comma-joined multi-OSI target intact (no promo mis-parse)', function () {
+        // Comma is the discount-badge OSI-pair separator (MWPW-201714); only a slash marks a promo, so a
+        // multi-OSI target must resolve to the whole pair as the osi, with no promotion code.
+        const mappings = [{ sourceOffer: 'PAIR-SRC', targetOffer: 'OSI-A,OSI-B', geos: ['mas:country/US'] }];
+        expect(resolveOfferSubstituteMap(mappings, { locale: 'en_US' })).to.deep.equal({
+            'PAIR-SRC': { conditions: [], osi: 'OSI-A,OSI-B', promotionCode: undefined },
+        });
+    });
+
+    it('resolveOfferSubstituteMap stores a source promo code as a match condition on the source osi', function () {
+        const mappings = [
+            { sourceOffer: 'BASE', targetOffer: 'BARE-T', geos: ['mas:country/US'] },
+            { sourceOffer: 'BASE/OLDP', targetOffer: 'COND-T/NEWP', geos: ['mas:country/US'] },
+        ];
+        expect(resolveOfferSubstituteMap(mappings, { locale: 'en_US' })).to.deep.equal({
+            BASE: {
+                osi: 'BARE-T',
+                promotionCode: undefined,
+                conditions: [{ promotionCode: 'OLDP', target: { osi: 'COND-T', promotionCode: 'NEWP' } }],
+            },
         });
     });
 
@@ -1046,8 +1069,8 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
         expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult');
     });
 
-    it('injects a comma-joined target promo code as data-promotion-code and prices the placeholder with it', async function () {
-        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED,BTS26', geos: ['mas:country/US'] }]));
+    it('injects a slash-joined target promo code as data-promotion-code and prices the placeholder with it', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED/BTS26', geos: ['mas:country/US'] }]));
         fetchStub
             .withArgs(sinon.match((url) => url.includes('offer_selector_ids=MAPPED') && url.includes('promotion_code=BTS26')))
             .returns(createResponse(200, stubbedOffer('promo')));
@@ -1062,6 +1085,79 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
         expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
         expect(result.body.fields.prices).to.include('data-promotion-code="BTS26"');
         expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult-bts26');
+    });
+
+    it('fires a source-promo conditioned mapping only on a direct placeholder carrying that osi and promo', async function () {
+        stubIndex(
+            'ccd',
+            'idx',
+            indexFixture([{ sourceoffer: 'BASE/OLDP', targetoffer: 'MAPPED/NEWP', geos: ['mas:country/US'] }]),
+        );
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=MAPPED') && url.includes('promotion_code=NEWP')))
+            .returns(createResponse(200, stubbedOffer('cond')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                body: { id: 'frag', fields: { prices: '<span data-wcs-osi="BASE" data-promotion-code="OLDP"></span>' } },
+            }),
+        );
+        // The placeholder matches osi AND promo: osi substituted and its promo overridden by the target's.
+        expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
+        expect(result.body.fields.prices).to.include('data-promotion-code="NEWP"');
+        expect(result.body.fields.prices).to.not.include('OLDP');
+        expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult-newp');
+    });
+
+    it('does not fire a source-promo mapping on a placeholder whose promo differs', async function () {
+        stubIndex(
+            'ccd',
+            'idx',
+            indexFixture([{ sourceoffer: 'BASE/OLDP', targetoffer: 'MAPPED/NEWP', geos: ['mas:country/US'] }]),
+        );
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE')))
+            .returns(createResponse(200, stubbedOffer('base')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                body: { id: 'frag', fields: { prices: '<span data-wcs-osi="BASE" data-promotion-code="OTHER"></span>' } },
+            }),
+        );
+        expect(result.body.fields.prices).to.include('data-wcs-osi="BASE"');
+        expect(result.body.fields.prices).to.include('data-promotion-code="OTHER"');
+        expect(result.body.wcs.prod).to.have.property('BASE-us-mult-other');
+    });
+
+    it('prefers a source-promo condition over the bare default for the same source osi', async function () {
+        stubIndex(
+            'ccd',
+            'idx',
+            indexFixture([
+                { sourceoffer: 'BASE', targetoffer: 'BARE', geos: ['mas:country/US'] },
+                { sourceoffer: 'BASE/P', targetoffer: 'COND', geos: ['mas:country/US'] },
+            ]),
+        );
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=COND')))
+            .returns(createResponse(200, stubbedOffer('c')));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BARE')))
+            .returns(createResponse(200, stubbedOffer('b')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                body: {
+                    id: 'frag',
+                    fields: {
+                        prices: '<p><span data-wcs-osi="BASE" data-promotion-code="P"></span><span data-wcs-osi="BASE"></span></p>',
+                    },
+                },
+            }),
+        );
+        // promo P selects the condition (COND); the promo-free placeholder falls back to the bare default (BARE).
+        expect(result.body.fields.prices).to.include('data-wcs-osi="COND"');
+        expect(result.body.fields.prices).to.include('data-wcs-osi="BARE"');
     });
 
     it('does not substitute when the request country is outside the entry geos', async function () {

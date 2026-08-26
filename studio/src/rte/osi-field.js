@@ -9,8 +9,9 @@ class OsiField extends LitElement {
         id: { type: String, attribute: true },
         value: { type: String },
         showOfferSelector: { type: String },
-        // Opt-in: also capture a promo code from OST and store it comma-joined as `<osi>,<promoCode>`.
-        // Off by default so bare-osi and discount-badge (`A,B`) fields are unaffected.
+        // Opt-in: also capture a promo code from OST and store it slash-joined as `<osi>/<promoCode>`.
+        // Slash (not comma) so the value can never collide with a discount-badge multi-OSI pair (`A,B`);
+        // off by default so bare-osi and discount-badge fields are unaffected.
         allowPromotionCode: { type: Boolean, attribute: 'allow-promotion-code' },
     };
 
@@ -51,7 +52,7 @@ class OsiField extends LitElement {
     #handleOstEvent({ detail: { offerSelectorId, promotionCode } }) {
         if (osiFieldSource !== this) return;
         const osi = offerSelectorId || '';
-        this.value = this.allowPromotionCode && promotionCode ? `${osi},${promotionCode}` : osi;
+        this.value = this.allowPromotionCode && promotionCode ? `${osi}/${promotionCode}` : osi;
         this.showOfferSelector = false;
         this.dispatchEvent(
             new CustomEvent('change', {
@@ -88,8 +89,8 @@ class OsiField extends LitElement {
             element = document.createElement('span');
             if (this.allowPromotionCode) {
                 // Reopen with the osi and promo split so OST prefills the promo field instead of
-                // reading `<osi>,<promoCode>` as a bundle.
-                const [osi, promotionCode] = this.value.split(',');
+                // reading `<osi>/<promoCode>` as a bundle.
+                const [osi, promotionCode] = this.value.split('/');
                 element.setAttribute('data-wcs-osi', osi);
                 if (promotionCode) element.setAttribute('data-promotion-code', promotionCode);
             } else {

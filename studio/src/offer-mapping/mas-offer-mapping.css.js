@@ -42,6 +42,11 @@ export const styles = css`
         margin-bottom: 16px;
     }
 
+    .offer-mapping-search {
+        width: 320px;
+        max-width: 100%;
+    }
+
     .total {
         margin-left: auto;
         font-size: 14px;

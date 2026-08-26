@@ -88,16 +88,23 @@ describe('class "CheckoutButton"', () => {
         );
     });
 
-    it('renders button with ims country', async () => {
-        mockIms('CH');
-        const service = initMasCommerceService();
-        const checkoutButton = mockCheckoutButton('abm');
-        await service.imsCountryPromise;
-        await delay(1);
-        await checkoutButton.onceSettled();
-        expect(checkoutButton.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=CH&lang=en',
-        );
+    it('renders button with ims country from cookie', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            get: () => 'ims_country_code=CH',
+        });
+        try {
+            const service = initMasCommerceService();
+            const checkoutButton = mockCheckoutButton('abm');
+            await service.imsCountryPromise;
+            await delay(1);
+            await checkoutButton.onceSettled();
+            expect(checkoutButton.href).to.equal(
+                'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=CH&lang=en',
+            );
+        } finally {
+            delete document.cookie;
+        }
     });
 
     it('renders button with promo from dataset', async () => {

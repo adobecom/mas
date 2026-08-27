@@ -36,6 +36,11 @@ surfaces' artifacts coexist in `tmp/` without a manual `--out`. The diff-report 
 surface from the inventory file it is given, so its output is namespaced automatically — no
 `--surface` flag on the diff-report step.
 
+The diff-report step also writes a `.xlsx` alongside the `.json` (same name, e.g.
+`mas-pzn-tag-diff-report-acom.xlsx`) — one sheet named `rows`, same columns and row order as
+the JSON's `rows` array, for reviewing in Excel/Sheets. Run once per surface (as below) to get
+both the ACOM and ACOM-DC workbooks.
+
 //@TODO: replace author-p22655-e59471.adobeaemcloud.com with <host> when development is finished!
 
 ```sh
@@ -45,7 +50,7 @@ export MAS_API_KEY="mas-studio"
 # fetches and saves grouped variation data in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-inventory-acom.json
 node scripts/pzn-tags-locale-to-country/pzn-tag-inventory.mjs --author-host author-p22655-e59471.adobeaemcloud.com
 
-# saves proposed changes in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json
+# saves proposed changes in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json , and generates respective .xlsx file
 node scripts/pzn-tags-locale-to-country/pzn-tag-diff-report.mjs \
     --inventory scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-inventory-acom.json
 
@@ -82,7 +87,7 @@ export MAS_API_KEY="mas-studio"
 node scripts/pzn-tags-locale-to-country/pzn-tag-inventory.mjs --author-host author-p22655-e59471.adobeaemcloud.com \
     --surface acom-dc
 
-# saves proposed changes in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json
+# saves proposed changes in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json , and generates respective .xlsx file
 node scripts/pzn-tags-locale-to-country/pzn-tag-diff-report.mjs \
     --inventory scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-inventory-acom-dc.json
 

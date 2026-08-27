@@ -27,6 +27,26 @@ import {
     applyBoth,
     parseCountryTag,
 } from './pzn-tag-mapping.mjs';
+import { writeRowsAsXlsx } from './xlsx-writer.mjs';
+
+const ROW_HEADERS = [
+    'surface',
+    'locale',
+    'parentFragmentPath',
+    'parentFragmentId',
+    'variationPath',
+    'variationId',
+    'currentTags',
+    'targetTags',
+    'added',
+    'removed',
+    'rule',
+    'flags',
+    'etag',
+    'markets',
+    'batchMarkets',
+    'demotedLocales',
+];
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '../..');
@@ -218,6 +238,10 @@ async function main() {
     await mkdir(dirname(outFile), { recursive: true });
     await writeFile(outFile, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 
+    const xlsxFile = outFile.replace(/\.json$/i, '.xlsx');
+    const xlsxRows = rows.map((row) => ROW_HEADERS.map((header) => row[header]));
+    await writeFile(xlsxFile, writeRowsAsXlsx(ROW_HEADERS, xlsxRows));
+
     console.log(`Inventory: ${report.inventoryFile}`);
     console.log(
         `Variations: ${rows.length}  changing: ${changing.length}  noop: ${report.totals.noop}  blocked: ${blocked.length}`,
@@ -231,6 +255,7 @@ async function main() {
     );
     printMarketReconciliation(byMarket);
     console.log(`\nWrote ${outFile}`);
+    console.log(`Wrote ${xlsxFile}`);
     console.log(
         'Review it, then hand it to pzn-tag-applier.mjs --i-have-reviewed <this file>. Keep it: it is the rollback plan.',
     );

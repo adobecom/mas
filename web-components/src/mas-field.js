@@ -86,7 +86,7 @@ export function priceOptionsProvider(element, options) {
     const owned = masField || element.hasAttribute('fragment-id');
     if (!owned) return options;
     options[FF_DEFAULTS] = true;
-    options.space = true; // let long localized prices wrap between clauses, not mid-word
+    options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
 
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;

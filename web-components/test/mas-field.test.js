@@ -728,7 +728,7 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options[FF_DEFAULTS]).to.equal(true);
     });
 
-    it('spaces price literals for inline-prices inside mas-field', () => {
+    it('opts inline-prices inside mas-field into clause wrapping', () => {
         const masField = document.createElement('mas-field');
         const inline = document.createElement('span');
         inline.setAttribute('is', 'inline-price');
@@ -737,7 +737,7 @@ describe('mas-field – price options provider (locale defaults)', () => {
 
         const options = {};
         priceOptionsProvider(inline, options);
-        expect(options.space).to.equal(true);
+        expect(options.wrapClauses).to.equal(true);
     });
 
     it('does not opt into FF_DEFAULTS for inline-prices outside mas-field', () => {

@@ -461,7 +461,7 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
                   },
                   value,
                   attributes,
-              )}${context.space ? ' ' : '&nbsp;'}`
+              )}${context.wrapClauses ? ' ' : '&nbsp;'}`
             : ''
     }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}`;
 };
@@ -529,7 +529,7 @@ const createPromoPriceWithAnnualTemplate =
                       ctxStAnnual,
                       value,
                       attributes,
-                  )}${context.space ? ' ' : '&nbsp;'}`
+                  )}${context.wrapClauses ? ' ' : '&nbsp;'}`
                 : ''
         }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
             {

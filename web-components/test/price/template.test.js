@@ -211,6 +211,19 @@ describe('function "createPromoPriceTemplate"', () => {
             }),
         );
     });
+    it('separates old/new price with a collapsible space when space is set', () => {
+        const template = createPromoPriceTemplate();
+        expect(template(context, valueDiscount, {})).to.include(
+            '&nbsp;<span class="price price-alternative"',
+        );
+        const spaced = template({ ...context, space: true }, valueDiscount, {});
+        expect(spaced).to.not.include(
+            '&nbsp;<span class="price price-alternative"',
+        );
+        expect(spaced).to.include(
+            '</span> <span class="price price-alternative"',
+        );
+    });
 });
 
 describe('function "createPriceWithAnnualTemplate"', function () {

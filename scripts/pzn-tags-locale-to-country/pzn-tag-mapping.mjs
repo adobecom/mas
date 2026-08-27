@@ -66,11 +66,6 @@ export const LOCALE_TO_COUNTRY_MARKETS = [
     'PE',
     'LT',
     'HU',
-    // Added post-plan: en_AU-tree APAC English markets found in the live corpus, not on the original wiki list.
-    'NZ',
-    'SG',
-    'TH',
-    'MY',
 ];
 
 /** umbrellaExpansion parents and the countries each expands into (plan §4.2). */

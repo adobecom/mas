@@ -1705,9 +1705,17 @@ export class MasRepository extends LitElement {
             }
 
             for (const variationPath of variations) {
+                const variationPromoProjectPaths = await promotionsRepository.getPromotionProjectPathsReferencing(
+                    this.aem,
+                    variationPath,
+                );
                 try {
                     await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
-                    await promotionsRepository.removeDeletedFragmentFromPromotionProjects(this.aem, variationPath);
+                    await promotionsRepository.removeDeletedFragmentFromPromotionProjects(
+                        this.aem,
+                        variationPath,
+                        variationPromoProjectPaths,
+                    );
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);
@@ -1715,7 +1723,7 @@ export class MasRepository extends LitElement {
             }
         }
 
-        await promotionsRepository.removeDeletedFragmentFromPromotionProjects(this.aem, fragment.path);
+        const parentPromoProjectPaths = await promotionsRepository.getPromotionProjectPathsReferencing(this.aem, fragment.path);
 
         let success = await this.deleteFragment(fragment, {
             startToast: variations.length === 0,
@@ -1732,6 +1740,11 @@ export class MasRepository extends LitElement {
         }
 
         if (success) {
+            await promotionsRepository.removeDeletedFragmentFromPromotionProjects(
+                this.aem,
+                fragment.path,
+                parentPromoProjectPaths,
+            );
             if (failedVariations.length > 0) {
                 showToast(`Fragment deleted but ${failedVariations.length} variation(s) failed to delete`, 'warning');
             } else if (variations.length > 0) {

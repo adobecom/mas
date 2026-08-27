@@ -3,7 +3,14 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import {
+    ROOT_PATH,
+    SURFACES,
+    PAGE_NAMES,
+    EDITABLE_FRAGMENT_MODEL_IDS,
+    COLLECTION_MODEL_PATH,
+    PROMOTION_MODEL_PATH,
+} from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
@@ -4065,15 +4072,25 @@ describe('MasRepository dictionary helpers', () => {
                 path: fragment.path,
                 fields: [{ name: 'variations', values: [variationPath] }],
             };
+            const promoProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const promoProject = {
+                id: 'promo-1',
+                fields: [
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [fragment.path, variationPath] },
+                ],
+            };
 
             repository.aem = createAemMock({
                 fragments: {
                     getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] }),
+                    getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
                     save: sandbox.stub().resolves(),
                     delete: sandbox.stub().resolves(),
                     forceDelete: sandbox.stub().resolves(),
                 },
             });
+            repository.aem.sites.cf.fragments.getWithEtag.withArgs('promo-1').resolves(promoProject);
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
@@ -4083,6 +4100,12 @@ describe('MasRepository dictionary helpers', () => {
             expect(result.success).to.be.true;
             expect(repository.aem.sites.cf.fragments.delete.calledOnceWith(parentWithEtag)).to.be.true;
             expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.false;
+            const savedProjects = repository.aem.sites.cf.fragments.save.args
+                .map(([project]) => project)
+                .filter((project) => typeof project?.getFieldValues === 'function');
+            expect(savedProjects).to.have.lengthOf(2);
+            expect(savedProjects[0].getFieldValues('fragments')).to.deep.equal([fragment.path]);
+            expect(savedProjects[1].getFieldValues('fragments')).to.deep.equal([variationPath]);
         });
 
         it('falls back to forceDelete for the parent when the reference-unlinking delete fails', async () => {
@@ -4098,6 +4121,7 @@ describe('MasRepository dictionary helpers', () => {
             repository.aem = createAemMock({
                 fragments: {
                     getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }),
                     save: sandbox.stub().resolves(),
                     delete: sandbox.stub().rejects(new Error('409 conflict')),
                     forceDelete: sandbox.stub().resolves(),
@@ -4115,7 +4139,7 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
         });
 
-        it('keeps success false when both the reference-unlinking delete and the forceDelete fallback fail', async () => {
+        it('keeps success false when both the reference-unlinking delete and the forceDelete fallback fail, and never mutates the promo project', async () => {
             const repository = createRepository();
             const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
             const fragment = buildFragmentWithVariation(variationPath);
@@ -4124,10 +4148,13 @@ describe('MasRepository dictionary helpers', () => {
                 path: fragment.path,
                 fields: [{ name: 'variations', values: [variationPath] }],
             };
+            const promoProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
 
             repository.aem = createAemMock({
                 fragments: {
                     getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] }),
+                    getByPath: sandbox.stub(),
                     save: sandbox.stub().resolves(),
                     delete: sandbox.stub().rejects(new Error('409 conflict')),
                     forceDelete: sandbox.stub().rejects(new Error('force delete also failed')),
@@ -4143,6 +4170,8 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(result.success).to.be.false;
             expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
+            // The parent still exists (delete failed both ways), so its promo-project reference must not be dropped.
+            expect(repository.aem.sites.cf.fragments.getByPath.called).to.be.false;
         });
     });
 

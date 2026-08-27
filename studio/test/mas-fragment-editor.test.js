@@ -11,6 +11,7 @@ import {
     COLLECTION_MODEL_PATH,
     ODIN_PREVIEW_ORIGIN,
     COMPARE_CHART_FIELD,
+    PROMOTION_MODEL_PATH,
 } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
@@ -956,7 +957,8 @@ describe('MasFragmentEditor', () => {
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragment: sandbox.stub().resolves(),
+                aem: { sites: { cf: { fragments: { getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }) } } } },
+                deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                 removeFromParentVariations: sandbox.stub().resolves(),
             };
@@ -982,6 +984,44 @@ describe('MasFragmentEditor', () => {
             await el.confirmDelete();
             expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
             expect(mockRepo.deleteFragment.calledOnce).to.be.true;
+        });
+
+        it('captures promo-project references before deleting a variation directly, then cleans them up once the delete succeeds', async () => {
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            const promoProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const promoProject = {
+                id: 'promo-1',
+                fields: [{ name: 'fragments', type: 'content-fragment', multiple: true, values: ['/path'] }],
+            };
+            const getReferencedBy = sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] });
+            const getByPath = sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } });
+            const getWithEtag = sandbox.stub().resolves(promoProject);
+            const save = sandbox.stub().resolves();
+            mockRepo.aem = { sites: { cf: { fragments: { getReferencedBy, getByPath, getWithEtag, save } } } };
+
+            await el.confirmDelete();
+
+            expect(getReferencedBy.calledWith('/path')).to.be.true;
+            expect(getReferencedBy.calledBefore(mockRepo.deleteFragment)).to.be.true;
+            expect(getByPath.calledWith(promoProjectPath)).to.be.true;
+            const [savedProject, saveOptions] = save.firstCall.args;
+            expect(savedProject.getFieldValues('fragments')).to.deep.equal([]);
+            expect(saveOptions).to.deep.equal({ refetchEtag: false });
+        });
+
+        it('does not clean up promo-project references when the direct variation delete fails', async () => {
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            mockRepo.deleteFragment.resolves(false);
+            const getByPath = sandbox.stub();
+            mockRepo.aem = {
+                sites: { cf: { fragments: { getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }), getByPath } } },
+            };
+
+            await el.confirmDelete();
+
+            expect(getByPath.called).to.be.false;
         });
     });
 

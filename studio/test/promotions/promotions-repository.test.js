@@ -4,6 +4,7 @@ import Store from '../../src/store.js';
 import {
     buildPromoVariationParentRefreshCallback,
     createPromoVariation,
+    getPromotionProjectPathsReferencing,
     getPromotionProjectsForProbe,
     getPublishedAttachedPromoVariations,
     getUnpublishedAttachedPromoVariations,
@@ -353,8 +354,42 @@ describe('promotions-repository', () => {
         });
     });
 
+    describe('getPromotionProjectPathsReferencing', () => {
+        it('returns candidate project paths referencing the fragment', async () => {
+            const fragmentPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const projectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
+                        },
+                    },
+                },
+            };
+
+            const paths = await getPromotionProjectPathsReferencing(aem, fragmentPath);
+
+            expect(paths).to.deep.equal([projectPath]);
+        });
+
+        it('returns an empty array and logs when the lookup throws', async () => {
+            const fragmentPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
+            const aem = {
+                sites: { cf: { fragments: { getReferencedBy: sandbox.stub().rejects(new Error('lookup failed')) } } },
+            };
+            const errorSpy = sandbox.stub(console, 'error');
+
+            const paths = await getPromotionProjectPathsReferencing(aem, fragmentPath);
+
+            expect(paths).to.deep.equal([]);
+            expect(errorSpy.calledWith(`Failed to look up references for ${fragmentPath}:`, sinon.match.instanceOf(Error))).to
+                .be.true;
+        });
+    });
+
     describe('removeDeletedFragmentFromPromotionProjects', () => {
-        it('removes a deleted fragment path from any promotion project that still lists it', async () => {
+        it('removes a deleted fragment path from any promotion project that still lists it, without refetching the etag', async () => {
             const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
             const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
             const projectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
@@ -366,7 +401,6 @@ describe('promotions-repository', () => {
                 sites: {
                     cf: {
                         fragments: {
-                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
                             getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
                             getWithEtag: sandbox.stub().resolves(latestProject),
                             save: sandbox.stub().resolves(),
@@ -375,12 +409,13 @@ describe('promotions-repository', () => {
                 },
             };
 
-            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath, [projectPath]);
 
             expect(aem.sites.cf.fragments.getByPath.calledWith(projectPath)).to.be.true;
             expect(aem.sites.cf.fragments.getWithEtag.calledWith('promo-1')).to.be.true;
-            const savedProject = aem.sites.cf.fragments.save.firstCall.args[0];
+            const [savedProject, saveOptions] = aem.sites.cf.fragments.save.firstCall.args;
             expect(savedProject.getFieldValues('fragments')).to.deep.equal([otherPath]);
+            expect(saveOptions).to.deep.equal({ refetchEtag: false });
         });
 
         it('skips references that are not promotion projects', async () => {
@@ -390,7 +425,6 @@ describe('promotions-repository', () => {
                 sites: {
                     cf: {
                         fragments: {
-                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: collectionPath }] }),
                             getByPath: sandbox.stub().resolves({ id: 'coll-1', model: { path: COLLECTION_MODEL_PATH } }),
                             getWithEtag: sandbox.stub(),
                             save: sandbox.stub(),
@@ -399,7 +433,7 @@ describe('promotions-repository', () => {
                 },
             };
 
-            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath, [collectionPath]);
 
             expect(aem.sites.cf.fragments.getWithEtag.called).to.be.false;
             expect(aem.sites.cf.fragments.save.called).to.be.false;
@@ -417,7 +451,6 @@ describe('promotions-repository', () => {
                 sites: {
                     cf: {
                         fragments: {
-                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: projectPath }] }),
                             getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
                             getWithEtag: sandbox.stub().resolves(latestProject),
                             save: sandbox.stub(),
@@ -426,29 +459,16 @@ describe('promotions-repository', () => {
                 },
             };
 
-            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath, [projectPath]);
 
             expect(aem.sites.cf.fragments.save.called).to.be.false;
         });
 
-        it('returns early and logs when looking up references throws', async () => {
-            const deletedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-grouped-variation';
-            const aem = {
-                sites: {
-                    cf: {
-                        fragments: {
-                            getReferencedBy: sandbox.stub().rejects(new Error('lookup failed')),
-                            getByPath: sandbox.stub(),
-                        },
-                    },
-                },
-            };
-            const errorSpy = sandbox.stub(console, 'error');
+        it('does nothing when there are no candidate paths', async () => {
+            const aem = { sites: { cf: { fragments: { getByPath: sandbox.stub() } } } };
 
-            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+            await removeDeletedFragmentFromPromotionProjects(aem, '/content/dam/mas/sandbox/en_US/my-card', []);
 
-            expect(errorSpy.calledWith(`Failed to look up references for ${deletedPath}:`, sinon.match.instanceOf(Error))).to.be
-                .true;
             expect(aem.sites.cf.fragments.getByPath.called).to.be.false;
         });
 
@@ -467,9 +487,6 @@ describe('promotions-repository', () => {
                 sites: {
                     cf: {
                         fragments: {
-                            getReferencedBy: sandbox
-                                .stub()
-                                .resolves({ parentReferences: [{ path: failingProjectPath }, { path: workingProjectPath }] }),
                             getByPath,
                             getWithEtag: sandbox.stub().resolves(workingProject),
                             save: sandbox.stub().resolves(),
@@ -479,7 +496,7 @@ describe('promotions-repository', () => {
             };
             const errorSpy = sandbox.stub(console, 'error');
 
-            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath);
+            await removeDeletedFragmentFromPromotionProjects(aem, deletedPath, [failingProjectPath, workingProjectPath]);
 
             expect(
                 errorSpy.calledWith(

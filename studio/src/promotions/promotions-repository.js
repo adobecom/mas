@@ -131,24 +131,34 @@ export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refre
 }
 
 /**
+ * Looks up promotion projects referencing a fragment path.
+ * Must be called before deletion—otherwise, references can no longer be resolved and will fail to unlink.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} fragmentPath
+ * @returns {Promise<string[]>}
+ */
+export async function getPromotionProjectPathsReferencing(aem, fragmentPath) {
+    try {
+        const referencedBy = await aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+        return (referencedBy?.parentReferences || []).map((ref) => ref.path).filter(Boolean);
+    } catch (error) {
+        console.error(`Failed to look up references for ${fragmentPath}:`, error);
+        return [];
+    }
+}
+
+/**
  * Removes a deleted fragment path from any promotion project's `fragments` field that still
  * references it, so a deleted default fragment (and its grouped variations) doesn't leave
  * behind a stale reference that fails promo validation.
+ * Call only after successful delete (prevents orphaned fragments).
+ * candidatePaths must be pre-fetched before deletion.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} deletedFragmentPath
+ * @param {string[]} candidatePaths
  * @returns {Promise<void>}
  */
-export async function removeDeletedFragmentFromPromotionProjects(aem, deletedFragmentPath) {
-    let referencedBy;
-    try {
-        referencedBy = await aem.sites.cf.fragments.getReferencedBy(deletedFragmentPath);
-    } catch (error) {
-        console.error(`Failed to look up references for ${deletedFragmentPath}:`, error);
-        return;
-    }
-
-    const candidatePaths = (referencedBy?.parentReferences || []).map((ref) => ref.path).filter(Boolean);
-
+export async function removeDeletedFragmentFromPromotionProjects(aem, deletedFragmentPath, candidatePaths) {
     for (const projectPath of candidatePaths) {
         try {
             const project = await aem.sites.cf.fragments.getByPath(projectPath);
@@ -158,7 +168,7 @@ export async function removeDeletedFragmentFromPromotionProjects(aem, deletedFra
             const promotionFragment = new Fragment(latestProject);
             const remainingPaths = promotionFragment.getFieldValues('fragments').filter((path) => path !== deletedFragmentPath);
             if (upsertPromotionFragmentsField(promotionFragment, remainingPaths)) {
-                await aem.sites.cf.fragments.save(promotionFragment);
+                await aem.sites.cf.fragments.save(promotionFragment, { refetchEtag: false });
             }
         } catch (error) {
             console.error(`Failed to remove ${deletedFragmentPath} from promotion project ${projectPath}:`, error);

@@ -1014,14 +1014,25 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
             mockRepo.deleteFragment.resolves(false);
+            const promoProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
             const getByPath = sandbox.stub();
+            const save = sandbox.stub();
             mockRepo.aem = {
-                sites: { cf: { fragments: { getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }), getByPath } } },
+                sites: {
+                    cf: {
+                        fragments: {
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] }),
+                            getByPath,
+                            save,
+                        },
+                    },
+                },
             };
 
             await el.confirmDelete();
 
             expect(getByPath.called).to.be.false;
+            expect(save.called).to.be.false;
         });
     });
 

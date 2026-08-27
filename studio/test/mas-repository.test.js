@@ -4166,6 +4166,48 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.getByPath.called).to.be.false;
             expect(repository.aem.sites.cf.fragments.save.called).to.be.false;
         });
+
+        it('still cleans up the parent promo-project references when a variation fails to delete', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+            const promoProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
+            const promoProject = {
+                id: 'promo-1',
+                fields: [{ name: 'fragments', type: 'content-fragment', multiple: true, values: [fragment.path] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] }),
+                    getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
+                    save: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().callsFake(async ({ path }) => {
+                        if (path === variationPath) throw new Error('variation force delete failed');
+                    }),
+                },
+            });
+            repository.aem.sites.cf.fragments.getWithEtag.withArgs('promo-1').resolves(promoProject);
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.true;
+            expect(result.failedVariations).to.deep.equal([variationPath]);
+            const savedProjects = repository.aem.sites.cf.fragments.save.args
+                .map(([project]) => project)
+                .filter((project) => typeof project?.getFieldValues === 'function');
+            expect(savedProjects).to.have.lengthOf(1);
+            expect(savedProjects[0].getFieldValues('fragments')).to.deep.equal([]);
+        });
     });
 
     describe('Store subscription lifecycle', () => {

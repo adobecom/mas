@@ -1725,19 +1725,15 @@ export class MasRepository extends LitElement {
 
         const parentPromoProjectPaths = await promotionsRepository.getPromotionProjectPathsReferencing(this.aem, fragment.path);
 
-        let success = await this.deleteFragment(fragment, {
+        if (fragment.status === STATUS_PUBLISHED) {
+            await this.unpublishFragment(fragment, false);
+        }
+
+        const success = await this.deleteFragment(fragment, {
             startToast: variations.length === 0,
             endToast: false,
+            force: true,
         });
-        if (!success) {
-            console.warn('Regular delete failed, trying force delete');
-            try {
-                await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
-                success = true;
-            } catch (forceError) {
-                console.error('Force delete also failed:', forceError);
-            }
-        }
 
         if (success) {
             await promotionsRepository.removeDeletedFragmentFromPromotionProjects(

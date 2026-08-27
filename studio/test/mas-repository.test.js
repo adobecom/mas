@@ -4063,7 +4063,7 @@ describe('MasRepository dictionary helpers', () => {
                 fields: [{ name: 'variations', values: [variationPath] }],
             });
 
-        it('deletes the parent via the reference-unlinking delete path instead of forceDelete, so promo-project references get cleaned up', async () => {
+        it('force-deletes fragment and variation, then removes both from promo-project references', async () => {
             const repository = createRepository();
             const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
             const fragment = buildFragmentWithVariation(variationPath);
@@ -4086,7 +4086,7 @@ describe('MasRepository dictionary helpers', () => {
                     getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] }),
                     getByPath: sandbox.stub().resolves({ id: 'promo-1', model: { path: PROMOTION_MODEL_PATH } }),
                     save: sandbox.stub().resolves(),
-                    delete: sandbox.stub().resolves(),
+                    unpublish: sandbox.stub().resolves(),
                     forceDelete: sandbox.stub().resolves(),
                 },
             });
@@ -4098,8 +4098,9 @@ describe('MasRepository dictionary helpers', () => {
             const result = await repository.deleteFragmentWithVariations(fragment);
 
             expect(result.success).to.be.true;
-            expect(repository.aem.sites.cf.fragments.delete.calledOnceWith(parentWithEtag)).to.be.true;
-            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.false;
+            expect(repository.aem.sites.cf.fragments.unpublish.called).to.be.false;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: variationPath })).to.be.true;
             const savedProjects = repository.aem.sites.cf.fragments.save.args
                 .map(([project]) => project)
                 .filter((project) => typeof project?.getFieldValues === 'function');
@@ -4108,70 +4109,62 @@ describe('MasRepository dictionary helpers', () => {
             expect(savedProjects[1].getFieldValues('fragments')).to.deep.equal([variationPath]);
         });
 
-        it('falls back to forceDelete for the parent when the reference-unlinking delete fails', async () => {
+        it('unpublishes the parent before force-deleting it when the fragment is published', async () => {
             const repository = createRepository();
-            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
-            const fragment = buildFragmentWithVariation(variationPath);
-            const parentWithEtag = {
+            const fragment = new Fragment({
                 id: 'parent-id',
-                path: fragment.path,
-                fields: [{ name: 'variations', values: [variationPath] }],
-            };
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                status: 'PUBLISHED',
+                fields: [],
+            });
 
             repository.aem = createAemMock({
                 fragments: {
-                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
                     getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }),
-                    save: sandbox.stub().resolves(),
-                    delete: sandbox.stub().rejects(new Error('409 conflict')),
+                    unpublish: sandbox.stub().resolves(),
                     forceDelete: sandbox.stub().resolves(),
                 },
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
-            sandbox.stub(repository, 'processError');
 
             const result = await repository.deleteFragmentWithVariations(fragment);
 
-            expect(repository.aem.sites.cf.fragments.delete.called).to.be.true;
             expect(result.success).to.be.true;
-            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
+            expect(repository.aem.sites.cf.fragments.unpublish.calledWith(fragment)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.unpublish.calledBefore(repository.aem.sites.cf.fragments.forceDelete)).to
+                .be.true;
         });
 
-        it('keeps success false when both the reference-unlinking delete and the forceDelete fallback fail, and never mutates the promo project', async () => {
+        it('does not touch promo-project references when the parent force-delete fails', async () => {
             const repository = createRepository();
-            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
-            const fragment = buildFragmentWithVariation(variationPath);
-            const parentWithEtag = {
+            const fragment = new Fragment({
                 id: 'parent-id',
-                path: fragment.path,
-                fields: [{ name: 'variations', values: [variationPath] }],
-            };
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                fields: [],
+            });
             const promoProjectPath = '/content/dam/mas/sandbox/promotions/summer-sale';
 
             repository.aem = createAemMock({
                 fragments: {
-                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
                     getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: promoProjectPath }] }),
                     getByPath: sandbox.stub(),
-                    save: sandbox.stub().resolves(),
-                    delete: sandbox.stub().rejects(new Error('409 conflict')),
-                    forceDelete: sandbox.stub().rejects(new Error('force delete also failed')),
+                    save: sandbox.stub(),
+                    forceDelete: sandbox.stub().rejects(new Error('force delete failed')),
                 },
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
-            const errorSpy = sandbox.stub(console, 'error');
 
             const result = await repository.deleteFragmentWithVariations(fragment);
 
             expect(result.success).to.be.false;
-            expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
-            // The parent still exists (delete failed both ways), so its promo-project reference must not be dropped.
+            // The parent still exists (force delete failed), so its promo-project reference must not be touched.
             expect(repository.aem.sites.cf.fragments.getByPath.called).to.be.false;
+            expect(repository.aem.sites.cf.fragments.save.called).to.be.false;
         });
     });
 

@@ -71,7 +71,6 @@ function buildRow(record, driftedGroups, knownCountries) {
         parentFragmentId: record.parentFragmentId,
         variationPath: record.path,
         variationId: record.id,
-        variant: record.variant,
         currentTags: current,
         targetTags: target,
         added,

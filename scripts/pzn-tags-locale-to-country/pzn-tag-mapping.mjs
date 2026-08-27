@@ -21,16 +21,6 @@ import {
 
 export const SURFACE = 'acom';
 
-/** Variants this work order touches, keyed by surface. Everything else is out of scope. */
-export const IN_SCOPE_VARIANTS_BY_SURFACE = {
-    acom: ['plans', 'plans-v2', 'plans-students', 'plans-education'],
-    'acom-dc': ['product', 'segment', 'mini-compare-chart', 'image', 'headless', 'compare-chart-column', 'pro'],
-};
-
-export function inScopeVariantsFor(surface) {
-    return IN_SCOPE_VARIANTS_BY_SURFACE[surface] ?? [];
-}
-
 /** Surfaces where only umbrellaExpansion (TYPE 2 geo expansion) applies — no localeToCountry (TYPE 1) rewrite. */
 export const UMBRELLA_ONLY_SURFACES = ['acom-dc'];
 

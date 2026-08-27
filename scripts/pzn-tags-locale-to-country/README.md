@@ -5,13 +5,14 @@ Three scripts, run in order, migrate grouped-variation `pznTags` from per-locale
 umbrella markets into their constituent countries (type 2). A fourth file, `pzn-tag-mapping.mjs`, is a
 shared library the other three import.
 
-Two surfaces are in scope, selected with `--surface` (default `acom`). Each has its own
-variant set and its own set of transformation rules:
+Two surfaces are in scope, selected with `--surface` (default `acom`). Every `/pzn/` card
+fragment under the selected surface is processed — no filtering. Each surface has its own
+set of transformation rules:
 
-| Surface | In-scope variants | Rules applied |
-| --- | --- | --- |
-| `acom` (default) | plans, plans-v2, plans-students, plans-education | **TYPE 1 + TYPE 2** |
-| `acom-dc` | product, segment, mini-compare-chart, image, headless, compare-chart-column, pro | **TYPE 2 only** |
+| Surface | Rules applied |
+| --- | --- |
+| `acom` (default) | **TYPE 1 + TYPE 2** |
+| `acom-dc` | **TYPE 2 only** |
 
 - **TYPE 1** — `applyLocaleToCountry`: the 40-market locale→country rewrite.
 - **TYPE 2** — `applyUmbrellaExpansion`: geo expansion of the umbrella markets (MU→KE/TZ/GH,

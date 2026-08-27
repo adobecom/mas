@@ -1,6 +1,6 @@
 /**
- * Enumerates every ACOM locale folder, finds the card fragments living under a `/pzn/` folder,
- * restricts them to this work order's variants, and records their current `pznTags` plus the
+ * Enumerates every ACOM locale folder, finds every card fragment living under a `/pzn/` folder,
+ * and records their current `pznTags` plus the
  * metadata the later phases need (etag, status, last editor). Grouped variations exist per-locale
  * and the runtime serves the *localized* copy, so every locale is walked — not just `en_US` — and
  * the report says whether a parent's locale copies currently agree (`TAG_DRIFT`).
@@ -36,7 +36,7 @@ import {
     parseArgs,
     wait,
 } from '../content/common.js';
-import { inScopeVariantsFor, LOCALE_TAG_ROOT, COUNTRY_TAG_ROOT, SURFACE, requiredCountryTags } from './pzn-tag-mapping.mjs';
+import { LOCALE_TAG_ROOT, COUNTRY_TAG_ROOT, SURFACE, requiredCountryTags } from './pzn-tag-mapping.mjs';
 import { SUPPORTED_COUNTRIES } from '../../web-components/src/constants.js';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -50,7 +50,6 @@ const { getFlag, hasFlag } = parseArgs(process.argv);
 
 const authorHost = getFlag('--author-host');
 const surface = getFlag('--surface') || SURFACE;
-const inScopeVariantList = inScopeVariantsFor(surface);
 const outFile = resolve(getFlag('--out') || `${OUTPUT_DIR}/mas-pzn-tag-inventory-${surface}.json`);
 const localeFilter = getFlag('--locales')
     ? new Set(
@@ -71,11 +70,6 @@ if (!authorHost || !token) {
     process.exit(1);
 }
 
-if (!inScopeVariantList.length) {
-    console.error(`No in-scope variants configured for surface "${surface}". Known surfaces: acom, acom-dc.`);
-    process.exit(1);
-}
-
 const insideRepo = outFile === REPO_ROOT || outFile.startsWith(REPO_ROOT + sep);
 const insideOutputDir = outFile === OUTPUT_DIR || outFile.startsWith(OUTPUT_DIR + sep);
 if (insideRepo && !insideOutputDir) {
@@ -88,7 +82,6 @@ if (insideRepo && !insideOutputDir) {
 
 const baseUrl = `https://${authorHost}`;
 const headers = createHeaders(token, apiKey);
-const inScopeVariants = new Set(inScopeVariantList);
 
 const fieldValues = (fragment, name) => fragment?.fields?.find((field) => field.name === name)?.values ?? [];
 
@@ -141,8 +134,6 @@ async function collectLocale(locale) {
         for (const item of batch) {
             const match = PZN_PATH.exec(item?.path ?? '');
             if (!match) continue;
-            const variant = fieldValues(item, 'variant')[0] ?? null;
-            if (!inScopeVariants.has(variant)) continue;
             // Search hits carry no Etag header; the applier needs one per fragment, so refetch.
             const { body, etag } = await getJson(`${baseUrl}/adobe/sites/cf/fragments/${item.id}`);
             await wait(THROTTLE_MS);
@@ -163,7 +154,6 @@ async function collectLocale(locale) {
                 etag,
                 status: body.status ?? null,
                 modifiedBy: body.modified?.by ?? null,
-                variant: fieldValues(body, 'variant')[0] ?? null,
                 pznTags: fieldValues(body, 'pznTags'),
             });
         }
@@ -244,7 +234,6 @@ async function checkTaxonomy() {
 async function main() {
     console.log(`Author:   ${baseUrl}`);
     console.log(`Surface:  ${surface}`);
-    console.log(`Variants: ${inScopeVariantList.join(', ')}`);
     console.log(`Output:   ${outFile}\n`);
 
     const validLocales = getValidLocaleCodes(surface);
@@ -273,7 +262,6 @@ async function main() {
         generatedAt: new Date().toISOString(),
         authorHost,
         surface,
-        variants: inScopeVariantList,
         locales,
         records,
         parents,

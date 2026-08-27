@@ -191,6 +191,12 @@ async function main() {
     console.log(`Report:  ${resolve(reviewedFile)} (generated ${report.generatedAt ?? 'unknown'})`);
     console.log(`Mode:    ${reverting ? 'REVERT' : 'APPLY'} — ${live ? 'LIVE (writes enabled)' : 'dry-run (no writes)'}`);
     console.log(`Markets: ${[...markets].join(', ')}`);
+    if (report.authorHost && report.authorHost !== authorHost && !hasFlag('--allow-host-mismatch')) {
+        console.error(
+            `Report was generated against ${report.authorHost}, you are writing to ${authorHost}. Pass --allow-host-mismatch to override.`,
+        );
+        process.exit(1);
+    }
     if (report.authorHost && report.authorHost !== authorHost) {
         console.log(`WARNING: report was generated against ${report.authorHost}, you are writing to ${authorHost}.`);
     }

@@ -19,17 +19,17 @@ test('applyLocaleToCountry: plain locale collapses to its market country tag', (
     assert.equal(result.flags.includes(FLAGS.AMBIGUOUS_CH), false);
 });
 
-test('applyLocaleToCountry: five APAC en_AU-tree markets on one variation all convert independently', () => {
+test('applyLocaleToCountry: AU converts while out-of-market en_AU-tree APAC locales pass through untouched', () => {
     const tags = ['mas:locale/en_AU', 'mas:locale/en_NZ', 'mas:locale/en_SG', 'mas:locale/TH/en_TH', 'mas:locale/MY/en_MY'];
     const result = applyLocaleToCountry(tags, 'en_AU');
-    assert.deepEqual(result.tags.sort(), [
+    assert.deepEqual(result.tags, [
         'mas:pzn/country/au',
-        'mas:pzn/country/my',
-        'mas:pzn/country/nz',
-        'mas:pzn/country/sg',
-        'mas:pzn/country/th',
+        'mas:locale/en_NZ',
+        'mas:locale/en_SG',
+        'mas:locale/TH/en_TH',
+        'mas:locale/MY/en_MY',
     ]);
-    assert.deepEqual(result.markets.sort(), ['AU', 'MY', 'NZ', 'SG', 'TH']);
+    assert.deepEqual(result.markets, ['AU']);
 });
 
 test('applyLocaleToCountry: CH collapses 4 locale forms to one country tag and flags AMBIGUOUS_CH + MERGED', () => {
@@ -95,9 +95,9 @@ test('applyBoth: idempotent — re-applying to the output is a no-op', () => {
     assert.equal(second.rule, RULES.NOOP);
 });
 
-test('requiredCountryTags: union of all 44 localeToCountry markets and 17 umbrella children, deduped', () => {
+test('requiredCountryTags: union of all 40 localeToCountry markets and 17 umbrella children, deduped', () => {
     const required = requiredCountryTags();
-    assert.equal(required.length, 44 + 17);
+    assert.equal(required.length, 40 + 17);
     assert.ok(required.includes('mas:pzn/country/ec'));
     assert.ok(required.includes('mas:pzn/country/ke'));
     assert.equal(new Set(required).size, required.length);

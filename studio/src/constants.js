@@ -302,7 +302,7 @@ export const TABLE_TYPE = {
 export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
-export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+export const ODIN_PREVIEW_ORIGIN = 'https://preview.mas.corp.adobe.com';
 
 export const BULK_PUBLISH_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstcHVibGlzaC1wcm9qZWN0';
 

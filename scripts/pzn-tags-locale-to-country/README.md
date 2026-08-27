@@ -9,10 +9,10 @@ Two surfaces are in scope, selected with `--surface` (default `acom`). Every `/p
 fragment under the selected surface is processed — no filtering. Each surface has its own
 set of transformation rules:
 
-| Surface | Rules applied |
-| --- | --- |
+| Surface          | Rules applied       |
+| ---------------- | ------------------- |
 | `acom` (default) | **TYPE 1 + TYPE 2** |
-| `acom-dc` | **TYPE 2 only** |
+| `acom-dc`        | **TYPE 2 only**     |
 
 - **TYPE 1** — `applyLocaleToCountry`: the 40-market locale→country rewrite.
 - **TYPE 2** — `applyUmbrellaExpansion`: geo expansion of the umbrella markets (MU→KE/TZ/GH,
@@ -20,12 +20,12 @@ set of transformation rules:
 
 TYPE 1 never runs on `acom-dc` — that surface only gets the umbrella expansion.
 
-| File | Writes? | What it does |
-| --- | --- | --- |
-| 1. `pzn-tag-inventory.mjs` | no | Walks every locale folder for the selected surface, records current `pznTags` per grouped variation, flags cross-locale `TAG_DRIFT`, and checks which country tags already exist in the taxonomy. |
-| 2. `pzn-tag-diff-report.mjs` | no | Pure computation over the inventory: current → target tags per variation, with collision / demotion / ambiguity flags, grouped by parent fragment and by market. |
-| 3. `pzn-tag-applier.mjs` | **yes** | The only writer. Dry-run by default. Versions each fragment before every `If-Match` PUT, batches one market at a time, and supports `--revert`. |
-| — `pzn-tag-mapping.mjs` | no (library, not run directly) | Market and umbrella tables plus `applyLocaleToCountry` / `applyUmbrellaExpansion`, imported by all three scripts above. Pure, no I/O. The localeToCountry table is derived from `getSurfaceLocales('acom')` — do not hand-maintain it. |
+| File                         | Writes?                        | What it does                                                                                                                                                                                                                           |
+| ---------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. `pzn-tag-inventory.mjs`   | no                             | Walks every locale folder for the selected surface, records current `pznTags` per grouped variation, flags cross-locale `TAG_DRIFT`, and checks which country tags already exist in the taxonomy.                                      |
+| 2. `pzn-tag-diff-report.mjs` | no                             | Pure computation over the inventory: current → target tags per variation, with collision / demotion / ambiguity flags, grouped by parent fragment and by market.                                                                       |
+| 3. `pzn-tag-applier.mjs`     | **yes**                        | The only writer. Dry-run by default. Versions each fragment before every `If-Match` PUT, batches one market at a time, and supports `--revert`.                                                                                        |
+| — `pzn-tag-mapping.mjs`      | no (library, not run directly) | Market and umbrella tables plus `applyLocaleToCountry` / `applyUmbrellaExpansion`, imported by all three scripts above. Pure, no I/O. The localeToCountry table is derived from `getSurfaceLocales('acom')` — do not hand-maintain it. |
 
 **Reports go to this folder's own `tmp/` directory, which is gitignored — never into the repo.**
 They carry live content paths, fragment ids and etags. Both read-only scripts refuse an `--out` that resolves anywhere else inside the repository.

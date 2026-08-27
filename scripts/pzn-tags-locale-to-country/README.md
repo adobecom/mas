@@ -1,9 +1,9 @@
-# Grouped variation tag migration from locale to country, and umbrella expansion (MU/TM/DZ) for ACOM; only umbrella expansion (MU/TM/DZ) for ACOM-DC
+# Grouped variation tag migration from locale to country, and umbrella expansion (MU/TM/DZ)
 
 Three scripts, run in order, migrate grouped-variation `pznTags` from per-locale
 (`mas:locale/<xx_YY>`) to per-country (`mas:pzn/country/<cc>`) tags (type 1), and expand the MU/TM/DZ
 umbrella markets into their constituent countries (type 2). A fourth file, `pzn-tag-mapping.mjs`, is a
-shared library the other three import.
+shared library the other three import. The xlsx-writer.mjs is a helper that transforms json > xlsx for better readability.
 
 Two surfaces are in scope, selected with `--surface` (default `acom`). Every `/pzn/` card
 fragment under the selected surface is processed — no filtering. Each surface has its own

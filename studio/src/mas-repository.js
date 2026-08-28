@@ -1134,7 +1134,6 @@ export class MasRepository extends LitElement {
             }
         } catch (error) {
             if (error.name === 'AbortError') return;
-            Store.promotions.list.data.setMeta('listFetched', true);
             this.processError(error, 'Could not load promotions.');
             if (rethrow) throw error;
         } finally {

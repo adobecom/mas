@@ -419,8 +419,8 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
             expect(
                 Store.promotions.list.data.hasMeta('listFetched'),
-                'non-abort failure should still mark listFetched to avoid retry loops',
-            ).to.be.true;
+                'a failed load must not be stamped as fetched, so a later probe retries instead of silently reading an empty store',
+            ).to.be.false;
         });
 
         it('loadPromotions ignores AbortError: no processError call, no listFetched stamp, so a superseded caller retries instead of reading a stale empty store', async () => {

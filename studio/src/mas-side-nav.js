@@ -3,7 +3,14 @@ import router from './router.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
+import {
+    generateFieldLink,
+    generateJsonLdLink,
+    camelToTitle,
+    previewValue,
+    previewFragmentOnPage,
+    getFragmentMapping,
+} from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -313,6 +320,10 @@ class MasSideNav extends LitElement {
         whatsIncluded: "What's Included",
         originalId: 'Original ID',
         jsonLdSchema: 'JSON-LD Schema',
+        cardTitle: 'Title',
+        description: 'Product description',
+        callout: 'Callout text',
+        prices: 'Product price',
     };
     static SHOW_FIELDS = new Set([
         'prices',
@@ -571,10 +582,11 @@ class MasSideNav extends LitElement {
         const resolveSource = displayHasInlinePrices || !sourceHasInlinePrices ? displayValues : field.values;
         const resolvedValues = this.#resolveInlinePricesInValues(resolveSource, resolvedInlinePrices);
         const preview = previewValue(resolvedValues);
+        const variantEditorLabel = getFragmentMapping(sourceFragment?.getFieldValue?.('variant'))?.[field.name]?.editorLabel;
 
         return {
             name: field.name,
-            displayName: MasSideNav.FIELD_DISPLAY_NAMES[field.name] ?? camelToTitle(field.name),
+            displayName: variantEditorLabel ?? MasSideNav.FIELD_DISPLAY_NAMES[field.name] ?? camelToTitle(field.name),
             preview,
             source,
             sourceFragment,

@@ -26,6 +26,9 @@ export const VARIANT_NAMES = {
     HEADLESS: 'headless',
     MEDIA: 'media',
     COMPARE_CHART_COLUMN: 'compare-chart-column',
+    MARQUEE_HEADLESS: 'marquee-headless',
+    FAQ_HEADLESS: 'faq-headless',
+    PROMOS_HEADLESS: 'promos-headless',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -125,6 +128,21 @@ export const VARIANTS = [
         label: 'Compare Chart Column',
         value: VARIANT_NAMES.COMPARE_CHART_COLUMN,
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
+    },
+    {
+        label: 'Marquee Headless',
+        value: VARIANT_NAMES.MARQUEE_HEADLESS,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'FAQ Headless',
+        value: VARIANT_NAMES.FAQ_HEADLESS,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Promos Headless',
+        value: VARIANT_NAMES.PROMOS_HEADLESS,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
     },
 ];
 

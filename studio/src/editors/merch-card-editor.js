@@ -87,6 +87,9 @@ const VARIANT_RTE_MARKS = {
     },
 };
 
+/** Basic format buttons allowed on FAQ Headless's 3 answer fields (bold, italic, underline only). */
+const FAQ_ANSWER_FORMAT_MARKS = ['strong', 'em', 'underline'];
+
 class MerchCardEditor extends LitElement {
     static properties = {
         currentVariantMapping: { type: Object, attribute: false },
@@ -1192,11 +1195,53 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    #renderTitleField(form) {
+        return html`
+            <sp-field-group class="toggle" id="title">
+                <sp-field-label for="card-title">Title</sp-field-label>
+                <rte-field
+                    id="card-title"
+                    inline
+                    link
+                    mnemonic
+                    data-field="cardTitle"
+                    data-field-state="${this.getFieldState('cardTitle')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.cardTitle.values[0] || ''}
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('cardTitle')}
+            </sp-field-group>
+        `;
+    }
+
+    #renderPromoTextField(form) {
+        return html`
+            <sp-field-group class="toggle" id="promoText">
+                <sp-field-label for="promo-text">Promo Text</sp-field-label>
+                <rte-field
+                    id="promo-text"
+                    link
+                    upt-link
+                    multiline
+                    data-field="promoText"
+                    data-field-state="${this.getFieldState('promoText')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.promoText?.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('promoText')}
+            </sp-field-group>
+        `;
+    }
+
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         const form = this.getFormWithInheritance();
+        const variantValue = this.getEffectiveFieldValue('variant');
         const skeletonDisplay = this.fieldsReady ? 'none' : 'block';
         const formDisplay = this.fieldsReady ? 'block' : 'none';
         return html`
@@ -1458,21 +1503,7 @@ class MerchCardEditor extends LitElement {
                         ></sp-switch>
                     </sp-field-group>
                 </div>
-                <sp-field-group class="toggle" id="title">
-                    <sp-field-label for="card-title">Title</sp-field-label>
-                    <rte-field
-                        id="card-title"
-                        inline
-                        link
-                        mnemonic
-                        data-field="cardTitle"
-                        data-field-state="${this.getFieldState('cardTitle')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.cardTitle.values[0] || ''}
-                        @change="${this.#handleFragmentUpdate}"
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('cardTitle')}
-                </sp-field-group>
+                ${this.#renderTitleField(form)}
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="subtitle">
                         <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
@@ -1694,22 +1725,7 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('addonConfirmation')}
                     </sp-field-group>
                 </div>
-                <sp-field-group class="toggle" id="promoText">
-                    <sp-field-label for="promo-text">Promo Text</sp-field-label>
-                    <rte-field
-                        id="promo-text"
-                        link
-                        upt-link
-                        multiline
-                        data-field="promoText"
-                        data-field-state="${this.getFieldState('promoText')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.promoText?.values[0] || ''}
-                        default-link-style="secondary-link"
-                        @change="${this.#handleFragmentUpdate}"
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('promoText')}
-                </sp-field-group>
+                ${this.#renderPromoTextField(form)}
                 <sp-field-group>
                     <sp-field-label for="osi">OSI Search</sp-field-label>
                     <osi-field
@@ -1736,17 +1752,20 @@ class MerchCardEditor extends LitElement {
                     ></sp-textfield>
                     ${this.renderFieldStatusIndicator('perUnitLabel')}
                 </sp-field-group>
-                <div class="section-title">Product details</div>
+                <div class="section-title">${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? 'Answers' : 'Product details'}</div>
                 <sp-field-group class="toggle" id="description">
-                    <sp-field-label for="description">Product description</sp-field-label>
+                    <sp-field-label for="description">
+                        ${this.currentVariantMapping?.description?.editorLabel ?? 'Product description'}
+                    </sp-field-label>
                     <rte-field
                         id="description"
-                        styling
+                        ?styling=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
                         link
                         upt-link
                         list
-                        mnemonic
-                        divider
+                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        ?divider=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? FAQ_ANSWER_FORMAT_MARKS : undefined}
                         .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                         data-field="description"
                         data-field-state="${this.getFieldState('description')}"
@@ -1758,15 +1777,18 @@ class MerchCardEditor extends LitElement {
                     ${this.renderFieldStatusIndicator('description')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="shortDescription">
-                    <sp-field-label for="shortDescription">Short Description</sp-field-label>
+                    <sp-field-label for="shortDescription">
+                        ${this.currentVariantMapping?.shortDescription?.editorLabel ?? 'Short Description'}
+                    </sp-field-label>
                     <rte-field
                         id="shortDescription"
-                        styling
+                        ?styling=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
                         link
                         upt-link
                         list
-                        mnemonic
-                        icon
+                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        ?icon=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? FAQ_ANSWER_FORMAT_MARKS : undefined}
                         data-field="shortDescription"
                         data-field-state="${this.getFieldState('shortDescription')}"
                         .osi=${form.osi.values[0]}
@@ -1783,7 +1805,10 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="callout"
                         link
-                        icon
+                        ?icon=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        ?list=${variantValue === VARIANT_NAMES.FAQ_HEADLESS}
+                        ?upt-link=${variantValue === VARIANT_NAMES.FAQ_HEADLESS}
+                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? FAQ_ANSWER_FORMAT_MARKS : undefined}
                         data-field="callout"
                         data-field-state="${this.getFieldState('callout')}"
                         .osi=${form.osi.values[0]}

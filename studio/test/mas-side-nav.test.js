@@ -117,15 +117,36 @@ describe('MasSideNav – Copy Field', () => {
             expect(map.osi).to.be.undefined;
         });
 
-        it('should fall back to camelToTitle for unmapped fields', () => {
+        it('should use the explicit display name for cardTitle', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'borderColor', values: ['#fff'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
-            expect(map.cardTitle).to.equal('Card Title');
+            expect(map.cardTitle).to.equal('Title');
             expect(map.borderColor).to.be.undefined;
+        });
+
+        it('should fall back to camelToTitle for unmapped fields', () => {
+            const fragment = mockFragment([{ name: 'subtitle', values: ['Save big'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
+            expect(map.subtitle).to.equal('Subtitle');
+        });
+
+        it("should use the variant's editorLabel override when present", () => {
+            sandbox.stub(customElements, 'get').callThrough().withArgs('merch-card').returns({
+                getFragmentMapping: (variant) =>
+                    variant === 'faq-headless' ? { description: { editorLabel: 'FAQ answer 1' } } : null,
+            });
+            const fragment = mockFragment([
+                { name: 'variant', values: ['faq-headless'] },
+                { name: 'description', values: ['Answer text'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.displayName).to.equal('FAQ answer 1');
         });
 
         it('should use previewValue pipeline for prices like other fields', () => {

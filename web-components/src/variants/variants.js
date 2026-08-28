@@ -48,9 +48,9 @@ import {
     FAQ_HEADLESS_AEM_FRAGMENT_MAPPING,
 } from './faq-headless.js';
 import {
-    PromosHeadless,
-    PROMOS_HEADLESS_AEM_FRAGMENT_MAPPING,
-} from './promos-headless.js';
+    StickyBannerBladeHeadless,
+    STICKY_BANNER_BLADE_HEADLESS_AEM_FRAGMENT_MAPPING,
+} from './sticky-banner-blade-headless.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -198,10 +198,10 @@ registerVariant(
     FaqHeadless.variantStyle,
 );
 registerVariant(
-    'promos-headless',
-    PromosHeadless,
-    PROMOS_HEADLESS_AEM_FRAGMENT_MAPPING,
-    PromosHeadless.variantStyle,
+    'sticky-banner-blade-headless',
+    StickyBannerBladeHeadless,
+    STICKY_BANNER_BLADE_HEADLESS_AEM_FRAGMENT_MAPPING,
+    StickyBannerBladeHeadless.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

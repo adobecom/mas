@@ -3,26 +3,26 @@ import { VariantLayout } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 
 /**
- * AEM fragment field → slot mapping so hydrate() can populate all Promos Headless slots.
- * Covers both the Promo Bar and Blade blocks, which share the same content shape
- * (description + CTAs) and are authored once under this single variant.
+ * AEM fragment field → slot mapping so hydrate() can populate all Sticky Banner/Blade
+ * Headless slots. Covers both the Sticky Banner and Blade blocks, which share the same
+ * content shape (description + CTAs) and are authored once under this single variant.
  */
-export const PROMOS_HEADLESS_AEM_FRAGMENT_MAPPING = {
+export const STICKY_BANNER_BLADE_HEADLESS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },
 };
 
 /**
- * Slot name to display label for Promos Headless variant (label + value only, no card).
- * Labels match the editor (merch-card-editor.js). Order defines render order.
+ * Slot name to display label for Sticky Banner/Blade Headless variant (label + value
+ * only, no card). Labels match the editor (merch-card-editor.js). Order defines render order.
  */
-const PROMOS_HEADLESS_FIELDS = [
+const STICKY_BANNER_BLADE_HEADLESS_FIELDS = [
     { slot: 'body-xs', label: 'Description' },
     { slot: 'footer', label: 'CTAs' },
 ];
 
-export class PromosHeadless extends VariantLayout {
+export class StickyBannerBladeHeadless extends VariantLayout {
     constructor(card) {
         super(card);
     }
@@ -34,7 +34,7 @@ export class PromosHeadless extends VariantLayout {
     renderLayout() {
         return html`
             <div class="headless">
-                ${PROMOS_HEADLESS_FIELDS.map(
+                ${STICKY_BANNER_BLADE_HEADLESS_FIELDS.map(
                     ({ slot, label }) => html`
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
@@ -48,5 +48,5 @@ export class PromosHeadless extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('promos-headless');
+    static variantStyle = headlessRowStyle('sticky-banner-blade-headless');
 }

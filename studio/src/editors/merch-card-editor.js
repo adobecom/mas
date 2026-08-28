@@ -90,6 +90,13 @@ const VARIANT_RTE_MARKS = {
 /** Basic format buttons allowed on FAQ Headless's 3 answer fields (bold, italic, underline only). */
 const FAQ_ANSWER_FORMAT_MARKS = ['strong', 'em', 'underline'];
 
+/** Marquee/FAQ/Sticky Banner-Blade Headless templates don't offer a "Send to translation?" toggle. */
+const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
+    VARIANT_NAMES.MARQUEE_HEADLESS,
+    VARIANT_NAMES.FAQ_HEADLESS,
+    VARIANT_NAMES.STICKY_BANNER_BLADE_HEADLESS,
+]);
+
 class MerchCardEditor extends LitElement {
     static properties = {
         currentVariantMapping: { type: Object, attribute: false },
@@ -1494,14 +1501,18 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentDescriptionUpdate}"
                         ></sp-textfield>
                     </sp-field-group>
-                    <sp-field-group id="fragment-locready-group">
-                        <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
-                        <sp-switch
-                            id="fragment-locready"
-                            ?checked="${form.locReady?.values[0]}"
-                            @click="${this.#handleLocReady}"
-                        ></sp-switch>
-                    </sp-field-group>
+                    ${HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY.has(variantValue)
+                        ? nothing
+                        : html`
+                              <sp-field-group id="fragment-locready-group">
+                                  <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
+                                  <sp-switch
+                                      id="fragment-locready"
+                                      ?checked="${form.locReady?.values[0]}"
+                                      @click="${this.#handleLocReady}"
+                                  ></sp-switch>
+                              </sp-field-group>
+                          `}
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">

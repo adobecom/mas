@@ -47,7 +47,7 @@ merch-card[variant$='-headless'] [slot='callout-content'] > div > div {
 /**
  * Shared scoped preview styling for every "headless" family variant (label + value
  * rows, no card chrome). Centralized so all headless-style templates (Headless,
- * Marquee Headless, FAQ Headless, Promos Headless, ...) render with identical
+ * Marquee Headless, FAQ Headless, Sticky Banner/Blade Headless, ...) render with identical
  * styling by construction instead of relying on copy-pasted CSS staying in sync.
  */
 export function headlessRowStyle(variantName) {

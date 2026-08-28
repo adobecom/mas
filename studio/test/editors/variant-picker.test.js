@@ -150,7 +150,7 @@ describe('VariantPicker', () => {
             expect(names).to.include('pro');
             expect(names).to.include('marquee-headless');
             expect(names).to.include('faq-headless');
-            expect(names).to.include('promos-headless');
+            expect(names).to.include('sticky-banner-blade-headless');
             expect(names).to.not.include('bizpro');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('catalog');
@@ -170,7 +170,7 @@ describe('VariantPicker', () => {
             expect(names).to.include('pro');
             expect(names).to.include('marquee-headless');
             expect(names).to.include('faq-headless');
-            expect(names).to.include('promos-headless');
+            expect(names).to.include('sticky-banner-blade-headless');
             expect(names).to.not.include('special-offers');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('mini-compare-chart-mweb');
@@ -191,7 +191,7 @@ describe('VariantPicker', () => {
             expect(names).to.include('compare-chart-column');
             expect(names).to.include('marquee-headless');
             expect(names).to.include('faq-headless');
-            expect(names).to.include('promos-headless');
+            expect(names).to.include('sticky-banner-blade-headless');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');

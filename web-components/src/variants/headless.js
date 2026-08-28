@@ -1,6 +1,6 @@
-import { html, css, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS } from './headless.css.js';
+import { CSS, headlessRowStyle } from './headless.css.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Headless slots. */
 export const HEADLESS_AEM_FRAGMENT_MAPPING = {
@@ -116,39 +116,5 @@ export class Headless extends VariantLayout {
         `;
     }
 
-    static variantStyle = css`
-        :host([variant='headless']) {
-            border: none;
-            background: transparent;
-            box-shadow: none;
-        }
-        :host([variant='headless']) .headless {
-            display: flex;
-            flex-direction: column;
-            padding: var(--consonant-merch-spacing-xs, 8px);
-        }
-        :host([variant='headless']) .headless-row {
-            display: flex;
-            gap: var(--consonant-merch-spacing-xs, 8px);
-            padding: var(--consonant-merch-spacing-xxs, 4px) 0;
-        }
-        :host([variant='headless']) .headless-label {
-            flex-shrink: 0;
-            font-weight: 600;
-            min-width: 8em;
-        }
-        :host([variant='headless']) .headless-value {
-            flex: 1;
-        }
-        :host([variant='headless']) .headless-value::slotted(*) {
-            display: inline;
-        }
-        :host([variant='headless']) .headless-section {
-            font-size: 0.75em;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--spectrum-gray-600);
-            padding-top: 4px;
-        }
-    `;
+    static variantStyle = headlessRowStyle('headless');
 }

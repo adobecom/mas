@@ -39,6 +39,18 @@ import {
     COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
 } from './compare-chart-column.js';
 import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
+import {
+    MarqueeHeadless,
+    MARQUEE_HEADLESS_AEM_FRAGMENT_MAPPING,
+} from './marquee-headless.js';
+import {
+    FaqHeadless,
+    FAQ_HEADLESS_AEM_FRAGMENT_MAPPING,
+} from './faq-headless.js';
+import {
+    PromosHeadless,
+    PROMOS_HEADLESS_AEM_FRAGMENT_MAPPING,
+} from './promos-headless.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -172,6 +184,24 @@ registerVariant(
     FriesCard,
     FRIES_AEM_FRAGMENT_MAPPING,
     FriesCard.variantStyle,
+);
+registerVariant(
+    'marquee-headless',
+    MarqueeHeadless,
+    MARQUEE_HEADLESS_AEM_FRAGMENT_MAPPING,
+    MarqueeHeadless.variantStyle,
+);
+registerVariant(
+    'faq-headless',
+    FaqHeadless,
+    FAQ_HEADLESS_AEM_FRAGMENT_MAPPING,
+    FaqHeadless.variantStyle,
+);
+registerVariant(
+    'promos-headless',
+    PromosHeadless,
+    PROMOS_HEADLESS_AEM_FRAGMENT_MAPPING,
+    PromosHeadless.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

@@ -79,10 +79,11 @@ function stripTrialCtas(html, indexed) {
  * locale-driven labels like the FR_fr "TTC" tax indicator.
  */
 export function priceOptionsProvider(element, options) {
+    if (!element) return options;
     // Milo's unwrap strips the <mas-field> ancestor; #stampContext leaves a
     // fragment-id on the survivor, so trust that as the ownership marker.
-    const masField = element?.closest?.(MAS_FIELD_TAG);
-    const owned = masField || element?.hasAttribute?.('fragment-id');
+    const masField = element.closest(MAS_FIELD_TAG);
+    const owned = masField || element.hasAttribute('fragment-id');
     if (!owned) return options;
     options[FF_DEFAULTS] = true;
 
@@ -102,7 +103,7 @@ export function priceOptionsProvider(element, options) {
 
     if (!options.promotionCode) {
         const promotionCode =
-            element?.dataset?.promotionCode ??
+            element.dataset.promotionCode ??
             (masField ? contextPromotionCode(masField) : null);
         if (promotionCode) options.promotionCode = promotionCode;
     }
@@ -114,10 +115,10 @@ export function priceOptionsProvider(element, options) {
  * its <mas-field> still resolves; falls back to the wrapper when still nested.
  */
 export function checkoutOptionsProvider(element, options) {
-    if (options.promotionCode) return;
-    const masField = element?.closest?.(MAS_FIELD_TAG);
+    if (options.promotionCode || !element) return;
+    const masField = element.closest(MAS_FIELD_TAG);
     const promotionCode =
-        element?.dataset?.promotionCode ??
+        element.dataset.promotionCode ??
         (masField ? contextPromotionCode(masField) : null);
     if (promotionCode) options.promotionCode = promotionCode;
 }

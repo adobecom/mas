@@ -136,10 +136,14 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it("should use the variant's editorLabel override when present", () => {
-            sandbox.stub(customElements, 'get').callThrough().withArgs('merch-card').returns({
-                getFragmentMapping: (variant) =>
-                    variant === 'faq-headless' ? { description: { editorLabel: 'FAQ answer 1' } } : null,
-            });
+            sandbox
+                .stub(customElements, 'get')
+                .callThrough()
+                .withArgs('merch-card')
+                .returns({
+                    getFragmentMapping: (variant) =>
+                        variant === 'faq-headless' ? { description: { editorLabel: 'FAQ answer 1' } } : null,
+                });
             const fragment = mockFragment([
                 { name: 'variant', values: ['faq-headless'] },
                 { name: 'description', values: ['Answer text'] },
@@ -147,6 +151,35 @@ describe('MasSideNav – Copy Field', () => {
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const descriptionField = el.copyableFields.find((f) => f.name === 'description');
             expect(descriptionField.displayName).to.equal('FAQ answer 1');
+        });
+
+        it("should reorder fields to match the variant mapping's key order regardless of raw fragment field order", () => {
+            sandbox
+                .stub(customElements, 'get')
+                .callThrough()
+                .withArgs('merch-card')
+                .returns({
+                    getFragmentMapping: (variant) =>
+                        variant === 'faq-headless'
+                            ? {
+                                  prices: {},
+                                  description: { editorLabel: 'FAQ answer 1' },
+                                  shortDescription: { editorLabel: 'FAQ answer 2' },
+                                  callout: { editorLabel: 'FAQ answer 3' },
+                              }
+                            : null,
+                });
+            // Fragment fields arrive out of the mapping's intended order (e.g. alphabetical).
+            const fragment = mockFragment([
+                { name: 'variant', values: ['faq-headless'] },
+                { name: 'callout', values: ['Answer 3 text'] },
+                { name: 'description', values: ['Answer 1 text'] },
+                { name: 'prices', values: ['$10/mo'] },
+                { name: 'shortDescription', values: ['Answer 2 text'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const names = el.copyableFields.map((f) => f.name);
+            expect(names).to.deep.equal(['prices', 'description', 'shortDescription', 'callout']);
         });
 
         it('should use previewValue pipeline for prices like other fields', () => {
@@ -804,6 +837,29 @@ describe('MasSideNav – Copy Field', () => {
             expect(clipboardStub.write.calledOnce).to.be.true;
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+        });
+
+        it("should use the variant's editorLabel in the copied text and toast for FAQ Headless", async () => {
+            sandbox
+                .stub(customElements, 'get')
+                .callThrough()
+                .withArgs('merch-card')
+                .returns({
+                    getFragmentMapping: (variant) =>
+                        variant === 'faq-headless' ? { callout: { editorLabel: 'FAQ answer 3' } } : null,
+                });
+            const fragment = mockFragment([
+                { name: 'callout', values: ['Some answer'] },
+                { name: 'name', values: ['card-name'] },
+                { name: 'variant', values: ['faq-headless'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyField('callout');
+            const [clipboardItem] = clipboardStub.write.firstCall.args[0];
+            const text = await (await clipboardItem.getType('text/plain')).text();
+            expect(text).to.include('FAQ answer 3');
+            expect(text).to.not.include('callout');
+            expect(toastStub.firstCall.args[0].content).to.include('FAQ answer 3');
         });
 
         it('should show negative toast on clipboard failure', async () => {

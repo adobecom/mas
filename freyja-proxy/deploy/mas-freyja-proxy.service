@@ -1,0 +1,18 @@
+[Unit]
+Description=MAS Studio Freyja Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__DIR__
+EnvironmentFile=__DIR__/.env
+ExecStart=__NODE__ __DIR__/server.mjs
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mas-freyja-proxy
+
+[Install]
+WantedBy=multi-user.target

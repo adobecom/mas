@@ -1,0 +1,9 @@
+{
+  "name": "mas-freyja-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

@@ -4137,6 +4137,36 @@ describe('MasRepository dictionary helpers', () => {
                 .be.true;
         });
 
+        it('still force-deletes and surfaces a distinct warning when unpublishing the published parent fails', async () => {
+            const repository = createRepository();
+            const fragment = new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                status: 'PUBLISHED',
+                fields: [],
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }),
+                    unpublish: sandbox.stub().rejects(new Error('unpublish failed')),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+            sandbox.stub(repository, 'processError');
+            const toastSpy = sandbox.stub(Events.toast, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
+            expect(toastSpy.calledWith(sinon.match({ variant: 'warning', content: sinon.match(/failed to unpublish/) }))).to.be
+                .true;
+        });
+
         it('does not touch promo-project references when the parent force-delete fails', async () => {
             const repository = createRepository();
             const fragment = new Fragment({

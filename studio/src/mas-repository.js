@@ -1725,8 +1725,9 @@ export class MasRepository extends LitElement {
 
         const parentPromoProjectPaths = await promotionsRepository.getPromotionProjectPathsReferencing(this.aem, fragment.path);
 
+        let unpublishFailed = false;
         if (fragment.status === STATUS_PUBLISHED) {
-            await this.unpublishFragment(fragment, false);
+            unpublishFailed = !(await this.unpublishFragment(fragment, false));
         }
 
         const success = await this.deleteFragment(fragment, {
@@ -1741,7 +1742,9 @@ export class MasRepository extends LitElement {
                 fragment.path,
                 parentPromoProjectPaths,
             );
-            if (failedVariations.length > 0) {
+            if (unpublishFailed) {
+                showToast('Fragment successfully deleted, but failed to unpublish.', 'warning');
+            } else if (failedVariations.length > 0) {
                 showToast(`Fragment deleted but ${failedVariations.length} variation(s) failed to delete`, 'warning');
             } else if (variations.length > 0) {
                 showToast('Fragment and all variations successfully deleted.', 'positive');

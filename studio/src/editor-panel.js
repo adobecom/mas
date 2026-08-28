@@ -14,6 +14,7 @@ import {
 } from './constants.js';
 import Events from './events.js';
 import { migrateLegacyVariant } from './editors/variant-picker.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
 import {
     generateCodeToUse,
     showToast,
@@ -575,7 +576,22 @@ export default class EditorPanel extends LitElement {
                 if (parent) {
                     await this.repository.removeFromParentVariations(parent, this.fragment.path);
                 }
-                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
+                const promoProjectPaths = await promotionsRepository.getPromotionProjectPathsReferencing(
+                    this.repository.aem,
+                    this.fragment.path,
+                );
+                const deleted = await this.repository.deleteFragment(this.fragment, {
+                    force: true,
+                    startToast: false,
+                    endToast: false,
+                });
+                if (deleted) {
+                    await promotionsRepository.removeDeletedFragmentFromPromotionProjects(
+                        this.repository.aem,
+                        this.fragment.path,
+                        promoProjectPaths,
+                    );
+                }
                 showToast('Fragment successfully deleted.', 'positive');
             } else {
                 await this.repository.deleteFragment(this.fragment);

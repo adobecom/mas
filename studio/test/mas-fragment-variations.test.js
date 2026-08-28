@@ -540,19 +540,44 @@ describe('MasFragmentVariations', () => {
             expect(el.promoVariations.map((variation) => variation.path)).to.deep.equal([orphanPath]);
         });
 
-        it('does not probe the promotions tree for tabs other than Promotions', async () => {
+        it('probes the promotions tree even when the active tab is not Promotions, so the header is never wrong before the user switches tabs', async () => {
             const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
             const el = await fixture(
                 html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
             );
             sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
 
-            el.handleTabChange({ target: { selected: 'locale' } });
+            el.handleTabChange({ target: { selected: 'grouped' } });
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 10));
             await el.updateComplete;
 
-            expect(search.called, 'should not scan the promotions tree').to.be.false;
+            expect(search.called, 'should scan the promotions tree regardless of the active tab').to.be.true;
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.querySelector('.expanded-title').textContent).to.equal('Variations');
+        });
+
+        it('does not re-probe when switching back to the Promotions tab for the same fragment', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.callCount).to.equal(1);
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+            await el.updateComplete;
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await el.updateComplete;
+
+            expect(search.callCount, 'should not re-scan for the same fragment path').to.equal(1);
         });
 
         it('waits for the orphan probe before showing known variations, so both appear together instead of the orphan popping in later', async () => {

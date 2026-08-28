@@ -105,7 +105,7 @@ class MasFragmentVariations extends LitElement {
     async #loadOrphanPromoVariationsFallback() {
         const aem = this.repository?.aem;
         await this.#orphanPromoVariationsLoader({
-            guard: () => Boolean(this.fragment?.path && aem && this.selectedTab === 'promotion'),
+            guard: () => Boolean(this.fragment?.path && aem),
             computeKey: () => this.fragment.path,
             load: () => {
                 this.orphanPromoVariationsLoading = true;
@@ -181,6 +181,10 @@ class MasFragmentVariations extends LitElement {
 
     get hasAnyVariations() {
         return this.hasLocaleVariations || this.hasPromoVariations || this.hasGroupedVariations;
+    }
+
+    get isLoading() {
+        return this.loading || this.orphanPromoVariationsLoading;
     }
 
     get repository() {
@@ -431,7 +435,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     get promotionVariationsTemplate() {
-        if (this.loading || this.orphanPromoVariationsLoading) {
+        if (this.isLoading) {
             return html`
                 <div class="loading-container">
                     <sp-progress-circle indeterminate size="l"></sp-progress-circle>
@@ -505,7 +509,7 @@ class MasFragmentVariations extends LitElement {
 
         return html`
             <div class="expanded-content">
-                ${this.loading || this.orphanPromoVariationsLoading
+                ${this.isLoading
                     ? html`<h3 class="expanded-title">Loading Variations...</h3>`
                     : this.hasAnyVariations
                       ? html`<h3 class="expanded-title">Variations</h3>`

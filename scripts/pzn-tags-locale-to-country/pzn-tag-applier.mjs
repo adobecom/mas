@@ -36,115 +36,20 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHeaders, parseArgs, wait } from '../content/common.js';
-import { BLOCKING_FLAGS, RULES } from './pzn-tag-mapping.mjs';
+import { ALLOWED_AUTHOR_HOSTS, BLOCKING_FLAGS, RULES } from './pzn-tag-mapping.mjs';
 
 const THROTTLE_MS = 1000;
-
-const { getFlag, hasFlag } = parseArgs(process.argv);
-
-const authorHost = getFlag('--author-host');
-const revertFile = getFlag('--revert');
-const reviewedFile = getFlag('--i-have-reviewed');
-const marketsArg = getFlag('--markets');
-const live = hasFlag('--live');
-const allowedFlags = new Set(
-    (getFlag('--allow-flags') ?? '')
-        .split(',')
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean),
-);
-const token = process.env.MAS_IMS_TOKEN;
-const apiKey = process.env.MAS_API_KEY || 'mas-studio';
 
 const usage = () =>
     console.error(
         'Usage: MAS_IMS_TOKEN=<token> node pzn-tag-applier.mjs --author-host <host> --i-have-reviewed <report.json> --markets <CC,...> [--live] [--revert <same report.json>] [--allow-flags FLAG,FLAG]',
     );
 
-if (!authorHost) {
-    console.error('--author-host is required and has no default. Name the environment you intend to write to.');
-    usage();
-    process.exit(1);
-}
-if (!reviewedFile) {
-    console.error('--i-have-reviewed <report-file> is required: apply only a diff report you have actually read.');
-    usage();
-    process.exit(1);
-}
-if (!existsSync(resolve(reviewedFile))) {
-    console.error(`Report file not found: ${resolve(reviewedFile)}`);
-    process.exit(1);
-}
-if (revertFile && resolve(revertFile) !== resolve(reviewedFile)) {
-    console.error('--revert and --i-have-reviewed name different files. Revert the report you reviewed.');
-    process.exit(1);
-}
-if (!marketsArg) {
-    console.error('--markets <CC,...> is required: batch one market at a time, verify, then move on (plan §8).');
-    usage();
-    process.exit(1);
-}
-if (!token) {
-    console.error('MAS_IMS_TOKEN is required.');
-    process.exit(1);
-}
+export const sameTags = (a, b) => a.length === b.length && a.every((tag, index) => tag === b[index]);
 
-const markets = new Set(
-    marketsArg
-        .split(',')
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean),
-);
-const baseUrl = `https://${authorHost}`;
-const headers = createHeaders(token, apiKey);
-const cfUrl = `${baseUrl}/adobe/sites/cf/fragments`;
-const reverting = Boolean(revertFile);
-
-const sameTags = (a, b) => a.length === b.length && a.every((tag, index) => tag === b[index]);
-
-async function fetchFragment(id) {
-    const response = await fetch(`${cfUrl}/${id}`, { headers });
-    if (!response.ok) {
-        throw new Error(`GET ${id} failed: ${response.status} ${response.statusText}`);
-    }
-    const fragment = await response.json();
-    fragment.etag = response.headers.get('Etag');
-    return fragment;
-}
-
-async function createVersion(id, label) {
-    const response = await fetch(`${cfUrl}/${id}/versions`, {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label, comment: 'MWPW-203042 pznTags migration — pre-change snapshot' }),
-    });
-    if (!response.ok) {
-        throw new Error(`Version snapshot failed: ${response.status} ${response.statusText}`);
-    }
-    return (response.headers.get('Location') ?? '').split('/').pop();
-}
-
-async function putTags(fragment, tags) {
-    const fields = fragment.fields.map((field) =>
-        field.name === 'pznTags'
-            ? { ...field, type: field.type || 'text', values: tags }
-            : { ...field, type: field.type || 'text' },
-    );
-    const response = await fetch(`${cfUrl}/${fragment.id}`, {
-        method: 'PUT',
-        headers: { ...headers, 'Content-Type': 'application/json', 'If-Match': fragment.etag },
-        body: JSON.stringify({ title: fragment.title, description: fragment.description, fields }),
-    });
-    if (response.status === 412) {
-        throw new Error('etag conflict (412) — fragment was modified by someone else');
-    }
-    if (!response.ok) {
-        throw new Error(`PUT failed: ${response.status} ${response.statusText}`);
-    }
-}
-
-function selectRows(report) {
+export function selectRows(report, { markets, allowedFlags }) {
     const rows = (report.rows ?? []).filter((row) => row.rule !== RULES.NOOP);
     const inBatch = rows.filter((row) => (row.batchMarkets ?? row.markets ?? []).some((market) => markets.has(market)));
     const skipped = [];
@@ -157,41 +62,117 @@ function selectRows(report) {
     return { rows, inBatch, selected, skipped };
 }
 
-async function applyRow(row) {
-    const expected = reverting ? row.targetTags : row.currentTags;
-    const next = reverting ? row.currentTags : row.targetTags;
-    const fragment = await fetchFragment(row.variationId);
-    const liveTags = fragment.fields?.find((field) => field.name === 'pznTags')?.values ?? [];
+/**
+ * Runs the applier against a live author environment. All I/O and mutable state live in this
+ * function's own scope — nothing is shared at module level — so importing this module for its
+ * pure helpers (`sameTags`, `selectRows`) above never triggers a network call or `process.exit`.
+ */
+export async function run({
+    authorHost,
+    revertFile,
+    reviewedFile,
+    marketsArg,
+    live,
+    allowedFlagsArg,
+    token,
+    apiKey,
+    allowHostMismatch = false,
+}) {
+    const markets = new Set(
+        marketsArg
+            .split(',')
+            .map((s) => s.trim().toUpperCase())
+            .filter(Boolean),
+    );
+    const allowedFlags = new Set(
+        (allowedFlagsArg ?? '')
+            .split(',')
+            .map((s) => s.trim().toUpperCase())
+            .filter(Boolean),
+    );
+    const baseUrl = `https://${authorHost}`;
+    const headers = createHeaders(token, apiKey);
+    const cfUrl = `${baseUrl}/adobe/sites/cf/fragments`;
+    const reverting = Boolean(revertFile);
 
-    if (!sameTags(liveTags, expected)) {
-        return { status: 'drifted', detail: `live tags [${liveTags.join(', ')}] != expected [${expected.join(', ')}]` };
-    }
-    // Forward passes additionally pin the etag recorded at inventory time; a revert cannot, because
-    // the forward pass itself changed it — the tag equality check above is the revert's guard.
-    if (!reverting && row.etag && fragment.etag !== row.etag) {
-        return { status: 'drifted', detail: `etag moved since the report was generated (${row.etag} → ${fragment.etag})` };
-    }
-    if (sameTags(liveTags, next)) {
-        return { status: 'already-applied', detail: 'live tags already match the target' };
-    }
-    if (!live) {
-        return { status: 'dry-run', detail: `[${liveTags.join(', ')}] → [${next.join(', ')}]` };
+    async function fetchFragment(id) {
+        const response = await fetch(`${cfUrl}/${id}`, { headers });
+        if (!response.ok) {
+            throw new Error(`GET ${id} failed: ${response.status} ${response.statusText}`);
+        }
+        const fragment = await response.json();
+        fragment.etag = response.headers.get('Etag');
+        return fragment;
     }
 
-    const versionId = await createVersion(fragment.id, `MWPW-203042-${reverting ? 'revert' : 'apply'}`);
-    await putTags(fragment, next);
-    return { status: 'written', detail: `version ${versionId} → [${next.join(', ')}]` };
-}
+    async function createVersion(id, label) {
+        const response = await fetch(`${cfUrl}/${id}/versions`, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ label, comment: 'MWPW-203042 pznTags migration — pre-change snapshot' }),
+        });
+        if (!response.ok) {
+            throw new Error(`Version snapshot failed: ${response.status} ${response.statusText}`);
+        }
+        return (response.headers.get('Location') ?? '').split('/').pop();
+    }
 
-async function main() {
+    async function putTags(fragment, tags) {
+        const fields = fragment.fields.map((field) =>
+            field.name === 'pznTags'
+                ? { ...field, type: field.type || 'text', values: tags }
+                : { ...field, type: field.type || 'text' },
+        );
+        const response = await fetch(`${cfUrl}/${fragment.id}`, {
+            method: 'PUT',
+            headers: { ...headers, 'Content-Type': 'application/json', 'If-Match': fragment.etag },
+            body: JSON.stringify({ title: fragment.title, description: fragment.description, fields }),
+        });
+        if (response.status === 412) {
+            throw new Error('etag conflict (412) — fragment was modified by someone else');
+        }
+        if (!response.ok) {
+            throw new Error(`PUT failed: ${response.status} ${response.statusText}`);
+        }
+    }
+
+    async function applyRow(row) {
+        const expected = reverting ? row.targetTags : row.currentTags;
+        const next = reverting ? row.currentTags : row.targetTags;
+        const fragment = await fetchFragment(row.variationId);
+        const liveTags = fragment.fields?.find((field) => field.name === 'pznTags')?.values ?? [];
+
+        if (sameTags(liveTags, next)) {
+            return { status: 'already-applied', detail: 'live tags already match the target' };
+        }
+        if (!sameTags(liveTags, expected)) {
+            return { status: 'drifted', detail: `live tags [${liveTags.join(', ')}] != expected [${expected.join(', ')}]` };
+        }
+        // Forward passes additionally pin the etag recorded at inventory time; a revert cannot, because
+        // the forward pass itself changed it — the tag equality check above is the revert's guard.
+        if (!reverting && row.etag && fragment.etag !== row.etag) {
+            return {
+                status: 'drifted',
+                detail: `etag moved since the report was generated (${row.etag} → ${fragment.etag})`,
+            };
+        }
+        if (!live) {
+            return { status: 'dry-run', detail: `[${liveTags.join(', ')}] → [${next.join(', ')}]` };
+        }
+
+        const versionId = await createVersion(fragment.id, `MWPW-203042-${reverting ? 'revert' : 'apply'}`);
+        await putTags(fragment, next);
+        return { status: 'written', detail: `version ${versionId} → [${next.join(', ')}]` };
+    }
+
     const report = JSON.parse(await readFile(resolve(reviewedFile), 'utf8'));
-    const { rows, inBatch, selected, skipped } = selectRows(report);
+    const { rows, inBatch, selected, skipped } = selectRows(report, { markets, allowedFlags });
 
     console.log(`Author:  ${baseUrl}`);
     console.log(`Report:  ${resolve(reviewedFile)} (generated ${report.generatedAt ?? 'unknown'})`);
     console.log(`Mode:    ${reverting ? 'REVERT' : 'APPLY'} — ${live ? 'LIVE (writes enabled)' : 'dry-run (no writes)'}`);
     console.log(`Markets: ${[...markets].join(', ')}`);
-    if (report.authorHost && report.authorHost !== authorHost && !hasFlag('--allow-host-mismatch')) {
+    if (report.authorHost && report.authorHost !== authorHost && !allowHostMismatch) {
         console.error(
             `Report was generated against ${report.authorHost}, you are writing to ${authorHost}. Pass --allow-host-mismatch to override.`,
         );
@@ -228,14 +209,67 @@ async function main() {
         console.log(
             'Publish the parent fragments with the /pzn/ variation reference CHECKED, or the change never reaches runtime.',
         );
+        const allowFlagsArg = allowedFlags.size ? ` --allow-flags ${[...allowedFlags].join(',')}` : '';
         console.log(
-            `Rollback: node pzn-tag-applier.mjs --author-host ${authorHost} --i-have-reviewed ${resolve(reviewedFile)} --revert ${resolve(reviewedFile)} --markets ${[...markets].join(',')} --live`,
+            `Rollback: node pzn-tag-applier.mjs --author-host ${authorHost} --i-have-reviewed ${resolve(reviewedFile)} --revert ${resolve(reviewedFile)} --markets ${[...markets].join(',')}${allowFlagsArg} --live`,
         );
     }
     if (counts.failed || counts.drifted) process.exit(2);
 }
 
-main().catch((error) => {
-    console.error(`\nApplier failed: ${error.message}`);
-    process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const { getFlag, hasFlag } = parseArgs(process.argv);
+
+    const authorHost = getFlag('--author-host');
+    const revertFile = getFlag('--revert');
+    const reviewedFile = getFlag('--i-have-reviewed');
+    const marketsArg = getFlag('--markets');
+    const token = process.env.MAS_IMS_TOKEN;
+
+    if (!authorHost) {
+        console.error('--author-host is required and has no default. Name the environment you intend to write to.');
+        usage();
+        process.exit(1);
+    }
+    if (!ALLOWED_AUTHOR_HOSTS.includes(authorHost)) {
+        console.error(`--author-host ${authorHost} is not in the allowlist: ${ALLOWED_AUTHOR_HOSTS.join(', ')}`);
+        process.exit(1);
+    }
+    if (!reviewedFile) {
+        console.error('--i-have-reviewed <report-file> is required: apply only a diff report you have actually read.');
+        usage();
+        process.exit(1);
+    }
+    if (!existsSync(resolve(reviewedFile))) {
+        console.error(`Report file not found: ${resolve(reviewedFile)}`);
+        process.exit(1);
+    }
+    if (revertFile && resolve(revertFile) !== resolve(reviewedFile)) {
+        console.error('--revert and --i-have-reviewed name different files. Revert the report you reviewed.');
+        process.exit(1);
+    }
+    if (!marketsArg) {
+        console.error('--markets <CC,...> is required: batch one market at a time, verify, then move on (plan §8).');
+        usage();
+        process.exit(1);
+    }
+    if (!token) {
+        console.error('MAS_IMS_TOKEN is required.');
+        process.exit(1);
+    }
+
+    run({
+        authorHost,
+        revertFile,
+        reviewedFile,
+        marketsArg,
+        live: hasFlag('--live'),
+        allowedFlagsArg: getFlag('--allow-flags'),
+        token,
+        apiKey: process.env.MAS_API_KEY || 'mas-studio',
+        allowHostMismatch: hasFlag('--allow-host-mismatch'),
+    }).catch((error) => {
+        console.error(`\nApplier failed: ${error.message}`);
+        process.exit(1);
+    });
+}

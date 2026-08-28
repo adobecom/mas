@@ -36,7 +36,7 @@ import {
     parseArgs,
     wait,
 } from '../content/common.js';
-import { LOCALE_TAG_ROOT, COUNTRY_TAG_ROOT, SURFACE, requiredCountryTags } from './pzn-tag-mapping.mjs';
+import { ALLOWED_AUTHOR_HOSTS, LOCALE_TAG_ROOT, COUNTRY_TAG_ROOT, SURFACE, requiredCountryTags } from './pzn-tag-mapping.mjs';
 import { SUPPORTED_COUNTRIES } from '../../web-components/src/constants.js';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -46,125 +46,12 @@ const PZN_PATH =
     /^\/content\/dam\/mas\/(?<surface>[^/]+)\/(?<locale>[^/]+)\/(?<productArrangementCode>[^/]+)\/pzn\/(?<name>.+)$/;
 const THROTTLE_MS = 250;
 
-const { getFlag, hasFlag } = parseArgs(process.argv);
-
-const authorHost = getFlag('--author-host');
-const surface = getFlag('--surface') || SURFACE;
-const outFile = resolve(getFlag('--out') || `${OUTPUT_DIR}/mas-pzn-tag-inventory-${surface}.json`);
-const localeFilter = getFlag('--locales')
-    ? new Set(
-          getFlag('--locales')
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean),
-      )
-    : null;
-const skipTaxonomy = hasFlag('--skip-taxonomy');
-const token = process.env.MAS_IMS_TOKEN;
-const apiKey = process.env.MAS_API_KEY || 'mas-studio';
-
-if (!authorHost || !token) {
-    console.error(
-        'Usage: MAS_IMS_TOKEN=<token> MAS_API_KEY=<key> node pzn-tag-inventory.mjs --author-host <host> [--out <file>] [--surface acom] [--locales a,b] [--skip-taxonomy]',
-    );
-    process.exit(1);
-}
-
-const insideRepo = outFile === REPO_ROOT || outFile.startsWith(REPO_ROOT + sep);
-const insideOutputDir = outFile === OUTPUT_DIR || outFile.startsWith(OUTPUT_DIR + sep);
-if (insideRepo && !insideOutputDir) {
-    console.error(`Refusing to write the inventory inside the repository: ${outFile}`);
-    console.error(
-        `Point --out at ${OUTPUT_DIR} or an external scratch directory — this report carries live content paths and etags.`,
-    );
-    process.exit(1);
-}
-
-const baseUrl = `https://${authorHost}`;
-const headers = createHeaders(token, apiKey);
-
 const fieldValues = (fragment, name) => fragment?.fields?.find((field) => field.name === name)?.values ?? [];
-
-async function getJson(url) {
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-        throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
-    }
-    return { body: await response.json(), etag: response.headers.get('Etag') };
-}
-
-async function* searchPznCards(folderPath) {
-    const query = JSON.stringify({
-        filter: { path: folderPath, modelIds: [CARD_MODEL_ID] },
-        sort: [{ on: 'created', order: 'ASC' }],
-    });
-    let cursor = null;
-    do {
-        const params = new URLSearchParams({ query });
-        if (cursor) params.set('cursor', cursor);
-        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/search?${params}`, { headers });
-        if (response.status === 404) return;
-        if (!response.ok) {
-            throw new Error(`Search failed at ${folderPath}: ${response.status} ${response.statusText}`);
-        }
-        const { items = [], cursor: nextCursor } = await response.json();
-        yield items;
-        cursor = nextCursor ?? null;
-        if (cursor) await wait(1000);
-    } while (cursor);
-}
-
-// Parent card fragment path — one per (surface, locale, productArrangementCode); id is fetched once
-// and cached, since every /pzn/ variation under it shares the same parent.
-const parentFragmentIds = new Map();
-
-async function getParentFragmentId(surface, locale, productArrangementCode) {
-    const parentPath = `${ROOT_PATH}/${surface}/${locale}/${productArrangementCode}`;
-    if (parentFragmentIds.has(parentPath)) return parentFragmentIds.get(parentPath);
-    const parent = await fetchIndexFragment(baseUrl, headers, parentPath);
-    await wait(THROTTLE_MS);
-    const parentId = parent?.id ?? null;
-    parentFragmentIds.set(parentPath, parentId);
-    return parentId;
-}
-
-async function collectLocale(locale) {
-    const records = [];
-    for await (const batch of searchPznCards(`${ROOT_PATH}/${surface}/${locale}`)) {
-        for (const item of batch) {
-            const match = PZN_PATH.exec(item?.path ?? '');
-            if (!match) continue;
-            // Search hits carry no Etag header; the applier needs one per fragment, so refetch.
-            const { body, etag } = await getJson(`${baseUrl}/adobe/sites/cf/fragments/${item.id}`);
-            await wait(THROTTLE_MS);
-            const parentFragmentId = await getParentFragmentId(
-                match.groups.surface,
-                match.groups.locale,
-                match.groups.productArrangementCode,
-            );
-            records.push({
-                surface: match.groups.surface,
-                locale: match.groups.locale,
-                productArrangementCode: match.groups.productArrangementCode,
-                name: match.groups.name,
-                path: body.path,
-                id: body.id,
-                parentFragmentId,
-                title: body.title ?? null,
-                etag,
-                status: body.status ?? null,
-                modifiedBy: body.modified?.by ?? null,
-                pznTags: fieldValues(body, 'pznTags'),
-            });
-        }
-    }
-    return records;
-}
 
 const groupKey = (record) => `${record.surface}|${record.productArrangementCode}|${record.name}`;
 const tagsKey = (tags) => [...tags].sort().join(' + ') || '(none)';
 
-function groupByParent(records) {
+export function groupByParent(records) {
     const groups = new Map();
     for (const record of records) {
         const key = groupKey(record);
@@ -193,7 +80,7 @@ function groupByParent(records) {
     return [...groups.values()];
 }
 
-function tagFrequency(records) {
+export function tagFrequency(records) {
     const counts = new Map();
     for (const record of records) {
         const key = tagsKey(record.pznTags);
@@ -204,34 +91,129 @@ function tagFrequency(records) {
         .sort((a, b) => b.count - a.count || a.tags.localeCompare(b.tags));
 }
 
-async function listTagPaths(root) {
-    const { body } = await getJson(
-        `${baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1&p.hits=selective&p.properties=jcr:path`,
-    );
-    return (body.hits ?? []).map((hit) => hit['jcr:path'] ?? hit.path).filter(Boolean);
-}
+/**
+ * Runs the inventory walk against a live author environment. All I/O and mutable state live in
+ * this function's own scope — nothing is shared at module level — so importing this module for
+ * its pure helpers (`groupByParent`, `tagFrequency`) above never triggers a network call or
+ * `process.exit`.
+ */
+export async function run({ authorHost, surface, outFile, localesArg, skipTaxonomy, token, apiKey }) {
+    const baseUrl = `https://${authorHost}`;
+    const headers = createHeaders(token, apiKey);
+    const localeFilter = localesArg
+        ? new Set(
+              localesArg
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+          )
+        : null;
 
-async function checkTaxonomy() {
-    const existingCountryPaths = await listTagPaths(COUNTRY_TAG_ROOT);
-    const existingLocalePaths = await listTagPaths(LOCALE_TAG_ROOT);
-    const existingCountries = new Set(existingCountryPaths.map((path) => path.split('/').pop().toUpperCase()));
-    const required = requiredCountryTags();
-    const supported = new Set(SUPPORTED_COUNTRIES);
-    const missing = required.filter((tag) => !existingCountries.has(tag.split('/').pop().toUpperCase()));
-    const unpriceable = required.map((tag) => tag.split('/').pop().toUpperCase()).filter((country) => !supported.has(country));
-    return {
-        countryTagRoot: COUNTRY_TAG_ROOT,
-        localeTagRoot: LOCALE_TAG_ROOT,
-        existingCountryTagCount: existingCountryPaths.length,
-        existingLocaleTagCount: existingLocalePaths.length,
-        existingCountries: [...existingCountries].sort(),
-        requiredCountryTags: required,
-        missingCountryTags: missing,
-        notInSupportedCountries: unpriceable,
-    };
-}
+    async function getJson(url) {
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
+        }
+        return { body: await response.json(), etag: response.headers.get('Etag') };
+    }
 
-async function main() {
+    async function* searchPznCards(folderPath) {
+        const query = JSON.stringify({
+            filter: { path: folderPath, modelIds: [CARD_MODEL_ID] },
+            sort: [{ on: 'created', order: 'ASC' }],
+        });
+        let cursor = null;
+        do {
+            const params = new URLSearchParams({ query });
+            if (cursor) params.set('cursor', cursor);
+            const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/search?${params}`, { headers });
+            if (response.status === 404) return;
+            if (!response.ok) {
+                throw new Error(`Search failed at ${folderPath}: ${response.status} ${response.statusText}`);
+            }
+            const { items = [], cursor: nextCursor } = await response.json();
+            yield items;
+            cursor = nextCursor ?? null;
+            if (cursor) await wait(1000);
+        } while (cursor);
+    }
+
+    // Parent card fragment path — one per (surface, locale, productArrangementCode); id is fetched once
+    // and cached, since every /pzn/ variation under it shares the same parent.
+    const parentFragmentIds = new Map();
+
+    async function getParentFragmentId(recordSurface, locale, productArrangementCode) {
+        const parentPath = `${ROOT_PATH}/${recordSurface}/${locale}/${productArrangementCode}`;
+        if (parentFragmentIds.has(parentPath)) return parentFragmentIds.get(parentPath);
+        const parent = await fetchIndexFragment(baseUrl, headers, parentPath);
+        await wait(THROTTLE_MS);
+        const parentId = parent?.id ?? null;
+        parentFragmentIds.set(parentPath, parentId);
+        return parentId;
+    }
+
+    async function collectLocale(locale) {
+        const records = [];
+        for await (const batch of searchPznCards(`${ROOT_PATH}/${surface}/${locale}`)) {
+            for (const item of batch) {
+                const match = PZN_PATH.exec(item?.path ?? '');
+                if (!match) continue;
+                // Search hits carry no Etag header; the applier needs one per fragment, so refetch.
+                const { body, etag } = await getJson(`${baseUrl}/adobe/sites/cf/fragments/${item.id}`);
+                await wait(THROTTLE_MS);
+                const parentFragmentId = await getParentFragmentId(
+                    match.groups.surface,
+                    match.groups.locale,
+                    match.groups.productArrangementCode,
+                );
+                records.push({
+                    surface: match.groups.surface,
+                    locale: match.groups.locale,
+                    productArrangementCode: match.groups.productArrangementCode,
+                    name: match.groups.name,
+                    path: body.path,
+                    id: body.id,
+                    parentFragmentId,
+                    title: body.title ?? null,
+                    etag,
+                    status: body.status ?? null,
+                    modifiedBy: body.modified?.by ?? null,
+                    pznTags: fieldValues(body, 'pznTags'),
+                });
+            }
+        }
+        return records;
+    }
+
+    async function listTagPaths(root) {
+        const { body } = await getJson(
+            `${baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1&p.hits=selective&p.properties=jcr:path`,
+        );
+        return (body.hits ?? []).map((hit) => hit['jcr:path'] ?? hit.path).filter(Boolean);
+    }
+
+    async function checkTaxonomy() {
+        const existingCountryPaths = await listTagPaths(COUNTRY_TAG_ROOT);
+        const existingLocalePaths = await listTagPaths(LOCALE_TAG_ROOT);
+        const existingCountries = new Set(existingCountryPaths.map((path) => path.split('/').pop().toUpperCase()));
+        const required = requiredCountryTags();
+        const supported = new Set(SUPPORTED_COUNTRIES);
+        const missing = required.filter((tag) => !existingCountries.has(tag.split('/').pop().toUpperCase()));
+        const unpriceable = required
+            .map((tag) => tag.split('/').pop().toUpperCase())
+            .filter((country) => !supported.has(country));
+        return {
+            countryTagRoot: COUNTRY_TAG_ROOT,
+            localeTagRoot: LOCALE_TAG_ROOT,
+            existingCountryTagCount: existingCountryPaths.length,
+            existingLocaleTagCount: existingLocalePaths.length,
+            existingCountries: [...existingCountries].sort(),
+            requiredCountryTags: required,
+            missingCountryTags: missing,
+            notInSupportedCountries: unpriceable,
+        };
+    }
+
     console.log(`Author:   ${baseUrl}`);
     console.log(`Surface:  ${surface}`);
     console.log(`Output:   ${outFile}\n`);
@@ -291,7 +273,45 @@ async function main() {
     console.log(`\nWrote ${outFile}`);
 }
 
-main().catch((error) => {
-    console.error(`\nInventory failed: ${error.message}`);
-    process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const { getFlag, hasFlag } = parseArgs(process.argv);
+
+    const authorHost = getFlag('--author-host');
+    const surface = getFlag('--surface') || SURFACE;
+    const outFile = resolve(getFlag('--out') || `${OUTPUT_DIR}/mas-pzn-tag-inventory-${surface}.json`);
+    const token = process.env.MAS_IMS_TOKEN;
+
+    if (!authorHost || !token) {
+        console.error(
+            'Usage: MAS_IMS_TOKEN=<token> MAS_API_KEY=<key> node pzn-tag-inventory.mjs --author-host <host> [--out <file>] [--surface acom] [--locales a,b] [--skip-taxonomy]',
+        );
+        process.exit(1);
+    }
+    if (!ALLOWED_AUTHOR_HOSTS.includes(authorHost)) {
+        console.error(`--author-host ${authorHost} is not in the allowlist: ${ALLOWED_AUTHOR_HOSTS.join(', ')}`);
+        process.exit(1);
+    }
+
+    const insideRepo = outFile === REPO_ROOT || outFile.startsWith(REPO_ROOT + sep);
+    const insideOutputDir = outFile === OUTPUT_DIR || outFile.startsWith(OUTPUT_DIR + sep);
+    if (insideRepo && !insideOutputDir) {
+        console.error(`Refusing to write the inventory inside the repository: ${outFile}`);
+        console.error(
+            `Point --out at ${OUTPUT_DIR} or an external scratch directory — this report carries live content paths and etags.`,
+        );
+        process.exit(1);
+    }
+
+    run({
+        authorHost,
+        surface,
+        outFile,
+        localesArg: getFlag('--locales'),
+        skipTaxonomy: hasFlag('--skip-taxonomy'),
+        token,
+        apiKey: process.env.MAS_API_KEY || 'mas-studio',
+    }).catch((error) => {
+        console.error(`\nInventory failed: ${error.message}`);
+        process.exit(1);
+    });
+}

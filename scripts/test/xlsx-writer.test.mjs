@@ -86,3 +86,25 @@ test('writeRowsAsXlsx: default sheet name is "rows"', () => {
     const [, , workbook] = parseStoredZip(buffer);
     assert.match(workbook.data.toString('utf8'), /name="rows"/);
 });
+
+test('writeRowsAsXlsx: cell values starting with =, +, -, @, tab, or CR are prefixed with an apostrophe', () => {
+    const dangerous = ['=SUM(A1)', '+1', '-1', '@cmd', '\tfoo', '\rfoo'];
+    const buffer = writeRowsAsXlsx(
+        ['col'],
+        dangerous.map((value) => [value]),
+    );
+    const [, , , , sheet] = parseStoredZip(buffer);
+    const xml = sheet.data.toString('utf8');
+    for (const value of dangerous) {
+        assert.match(xml, new RegExp(`<t xml:space="preserve">&apos;${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    }
+});
+
+test('writeRowsAsXlsx: cell values not starting with a formula-trigger character are left untouched', () => {
+    const buffer = writeRowsAsXlsx(['col'], [['normal value'], ['5 - 2'], ['a@b.com']]);
+    const [, , , , sheet] = parseStoredZip(buffer);
+    const xml = sheet.data.toString('utf8');
+    assert.match(xml, /<t xml:space="preserve">normal value<\/t>/);
+    assert.match(xml, /<t xml:space="preserve">5 - 2<\/t>/);
+    assert.match(xml, /<t xml:space="preserve">a@b\.com<\/t>/);
+});

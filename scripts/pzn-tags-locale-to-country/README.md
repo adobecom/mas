@@ -41,28 +41,31 @@ The diff-report step also writes a `.xlsx` alongside the `.json` (same name, e.g
 the JSON's `rows` array, for reviewing in Excel/Sheets. Run once per surface (as below) to get
 both the ACOM and ACOM-DC workbooks.
 
-//@TODO: replace author-p22655-e59471.adobeaemcloud.com with <host> when development is finished!
+Replace <host> with one of the endpoints:
+Prod: 'author-p22655-e59433.adobeaemcloud.com'
+Stage: 'author-p22655-e59471.adobeaemcloud.com'
+QA: 'author-p22655-e155390.adobeaemcloud.com'
 
 ```sh
 export MAS_IMS_TOKEN="your-ims-token"
 export MAS_API_KEY="mas-studio"
 
 # fetches and saves grouped variation data in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-inventory-acom.json
-node scripts/pzn-tags-locale-to-country/pzn-tag-inventory.mjs --author-host author-p22655-e59471.adobeaemcloud.com
+node scripts/pzn-tags-locale-to-country/pzn-tag-inventory.mjs --author-host <host>
 
 # saves proposed changes in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json , and generates respective .xlsx file
 node scripts/pzn-tags-locale-to-country/pzn-tag-diff-report.mjs \
     --inventory scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-inventory-acom.json
 
 # human-review tmp/mas-pzn-tag-diff-report-acom.json, then apply changes, one market at a time:
-node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json --markets EC
 
-node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json --markets EC --live
 
 # rollback if needed
-node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json \
     --revert scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json --markets EC --live
 ```
@@ -84,7 +87,7 @@ export MAS_IMS_TOKEN="your-ims-token"
 export MAS_API_KEY="mas-studio"
 
 # fetches and saves grouped variation data in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-inventory-acom-dc.json
-node scripts/pzn-tags-locale-to-country/pzn-tag-inventory.mjs --author-host author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-inventory.mjs --author-host <host> \
     --surface acom-dc
 
 # saves proposed changes in scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json , and generates respective .xlsx file
@@ -93,14 +96,14 @@ node scripts/pzn-tags-locale-to-country/pzn-tag-diff-report.mjs \
 
 # human-review tmp/mas-pzn-tag-diff-report-acom-dc.json, then apply changes, one market at a time
 # (batch key is an added child country code, e.g. KE for the MU umbrella — not MU itself):
-node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json --markets KE
 
-node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json --markets KE --live
 
 # rollback if needed
-node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host  author-p22655-e59471.adobeaemcloud.com \
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json \
     --revert scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom-dc.json --markets KE --live
 ```

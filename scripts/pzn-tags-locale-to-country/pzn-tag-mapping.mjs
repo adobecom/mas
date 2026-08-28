@@ -107,6 +107,13 @@ export const BLOCKING_FLAGS = [
     FLAGS.EN_GB_TREE,
 ];
 
+/** The only author hosts this migration is allowed to point at (prod, stage, QA). */
+export const ALLOWED_AUTHOR_HOSTS = [
+    'author-p22655-e59433.adobeaemcloud.com',
+    'author-p22655-e59471.adobeaemcloud.com',
+    'author-p22655-e155390.adobeaemcloud.com',
+];
+
 export const RULES = {
     LOCALE_TO_COUNTRY: 'LOCALE_TO_COUNTRY',
     UMBRELLA_EXPANSION: 'UMBRELLA_EXPANSION',

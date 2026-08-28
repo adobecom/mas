@@ -53,19 +53,10 @@ const REPO_ROOT = resolve(SCRIPT_DIR, '../..');
 const OUTPUT_DIR = resolve(SCRIPT_DIR, 'tmp');
 const EN_US_TREE = 'en_US';
 
-const { getFlag } = parseArgs(process.argv);
-
-const inventoryFile = getFlag('--inventory');
-
-if (!inventoryFile) {
-    console.error('Usage: node pzn-tag-diff-report.mjs --inventory <inventory.json> [--out <file>]');
-    process.exit(1);
-}
-
 const parentPath = (record) => `/content/dam/mas/${record.surface}/${record.locale}/${record.productArrangementCode}`;
 const driftKey = (record) => `${record.surface}|${record.productArrangementCode}|${record.name}`;
 
-function buildRow(record, driftedGroups, knownCountries) {
+export function buildRow(record, driftedGroups, knownCountries) {
     // Umbrella children are registered only as en_US regions, so expansion is en_US-tree-only.
     const result = applyBoth(record.pznTags, {
         locale: record.locale,
@@ -113,7 +104,7 @@ function buildRow(record, driftedGroups, knownCountries) {
  *  - SCORE_DEMOTION_RISK: this row drops a locale tag from 20 to 10 while a sibling keeps a tag that
  *    still region-matches the same locale, so the sibling now outranks it.
  */
-function addCrossVariationFlags(rows) {
+export function addCrossVariationFlags(rows) {
     const byParent = new Map();
     for (const row of rows) {
         if (!byParent.has(row.parentFragmentPath)) byParent.set(row.parentFragmentPath, []);
@@ -142,7 +133,7 @@ function addCrossVariationFlags(rows) {
     }
 }
 
-function groupByParentFragment(rows) {
+export function groupByParentFragment(rows) {
     const groups = new Map();
     for (const row of rows) {
         if (!groups.has(row.parentFragmentPath)) {
@@ -157,7 +148,7 @@ function groupByParentFragment(rows) {
     return [...groups.values()].sort((a, b) => a.parentFragmentPath.localeCompare(b.parentFragmentPath));
 }
 
-function groupByMarket(rows) {
+export function groupByMarket(rows) {
     const groups = new Map();
     for (const row of rows) {
         for (const market of row.batchMarkets) {
@@ -185,21 +176,11 @@ function printMarketReconciliation(byMarket) {
         console.log(`  Countries touched outside the plan list (umbrellaExpansion children): ${extra.join(', ')}`);
 }
 
-async function main() {
-    const inventory = JSON.parse(await readFile(resolve(inventoryFile), 'utf8'));
-
-    const surfaceSuffix = inventory.surface ? `-${inventory.surface}` : '';
-    const outFile = resolve(getFlag('--out') || `${OUTPUT_DIR}/mas-pzn-tag-diff-report${surfaceSuffix}.json`);
-    const insideRepo = outFile === REPO_ROOT || outFile.startsWith(REPO_ROOT + sep);
-    const insideOutputDir = outFile === OUTPUT_DIR || outFile.startsWith(OUTPUT_DIR + sep);
-    if (insideRepo && !insideOutputDir) {
-        console.error(`Refusing to write the report inside the repository: ${outFile}`);
-        console.error(
-            `Point --out at ${OUTPUT_DIR} or an external scratch directory — this report carries live content paths and etags.`,
-        );
-        process.exit(1);
-    }
-
+/**
+ * Pure computation over an inventory object — every field but `generatedAt` and `inventoryFile`,
+ * which the caller (`main`) fills in since they depend on wall-clock time and the input path.
+ */
+export function buildReport(inventory) {
     const records = inventory.records ?? [];
     const driftedGroups = new Set((inventory.parents ?? []).filter((p) => p.tagDrift === 'drifted').map((p) => p.key));
     const knownCountries = inventory.taxonomy ? new Set(inventory.taxonomy.existingCountries) : null;
@@ -212,9 +193,7 @@ async function main() {
     const byParent = groupByParentFragment(rows);
     const byMarket = groupByMarket(changing);
 
-    const report = {
-        generatedAt: new Date().toISOString(),
-        inventoryFile: resolve(inventoryFile),
+    return {
         inventoryGeneratedAt: inventory.generatedAt ?? null,
         authorHost: inventory.authorHost ?? null,
         surface: inventory.surface ?? null,
@@ -234,6 +213,35 @@ async function main() {
         byParentFragment: byParent,
         byMarket,
     };
+}
+
+/**
+ * Runs the diff-report step: reads the inventory file, computes the report via `buildReport`,
+ * and writes both the `.json` and `.xlsx` outputs. All mutable state lives in this function's own
+ * scope — nothing is shared at module level — so importing this module for its pure helpers above
+ * never triggers `process.exit`.
+ */
+export async function run({ inventoryFile, outFile: outFileArg }) {
+    const inventory = JSON.parse(await readFile(resolve(inventoryFile), 'utf8'));
+
+    const surfaceSuffix = inventory.surface ? `-${inventory.surface}` : '';
+    const outFile = resolve(outFileArg || `${OUTPUT_DIR}/mas-pzn-tag-diff-report${surfaceSuffix}.json`);
+    const insideRepo = outFile === REPO_ROOT || outFile.startsWith(REPO_ROOT + sep);
+    const insideOutputDir = outFile === OUTPUT_DIR || outFile.startsWith(OUTPUT_DIR + sep);
+    if (insideRepo && !insideOutputDir) {
+        console.error(`Refusing to write the report inside the repository: ${outFile}`);
+        console.error(
+            `Point --out at ${OUTPUT_DIR} or an external scratch directory — this report carries live content paths and etags.`,
+        );
+        process.exit(1);
+    }
+
+    const report = {
+        generatedAt: new Date().toISOString(),
+        inventoryFile: resolve(inventoryFile),
+        ...buildReport(inventory),
+    };
+    const { rows, byParentFragment: byParent, byMarket } = report;
 
     await mkdir(dirname(outFile), { recursive: true });
     await writeFile(outFile, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
@@ -244,7 +252,7 @@ async function main() {
 
     console.log(`Inventory: ${report.inventoryFile}`);
     console.log(
-        `Variations: ${rows.length}  changing: ${changing.length}  noop: ${report.totals.noop}  blocked: ${blocked.length}`,
+        `Variations: ${report.totals.variations}  changing: ${report.totals.changing}  noop: ${report.totals.noop}  blocked: ${report.totals.blocked}`,
     );
     console.log('\nBy rule:');
     Object.entries(report.totals.byRule).forEach(([rule, count]) => console.log(`  ${rule.padEnd(12)} ${count}`));
@@ -261,7 +269,17 @@ async function main() {
     );
 }
 
-main().catch((error) => {
-    console.error(`\nReport failed: ${error.message}`);
-    process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const { getFlag } = parseArgs(process.argv);
+    const inventoryFile = getFlag('--inventory');
+
+    if (!inventoryFile) {
+        console.error('Usage: node pzn-tag-diff-report.mjs --inventory <inventory.json> [--out <file>]');
+        process.exit(1);
+    }
+
+    run({ inventoryFile, outFile: getFlag('--out') }).catch((error) => {
+        console.error(`\nReport failed: ${error.message}`);
+        process.exit(1);
+    });
+}

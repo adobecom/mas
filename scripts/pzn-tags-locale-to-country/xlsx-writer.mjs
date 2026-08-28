@@ -31,6 +31,12 @@ function cellText(value) {
     return String(value);
 }
 
+// Excel/Sheets treat cells starting with =, +, -, @, tab, or CR as formulas — prefix with
+// an apostrophe so downstream spreadsheet tools render the value as literal text.
+function escapeFormulaInjection(text) {
+    return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
 function columnLetter(index) {
     let n = index + 1;
     let letters = '';
@@ -45,7 +51,7 @@ function columnLetter(index) {
 function buildRowXml(rowIndex, values) {
     const cells = values
         .map((value, colIndex) => {
-            const text = cellText(value);
+            const text = escapeFormulaInjection(cellText(value));
             const ref = `${columnLetter(colIndex)}${rowIndex}`;
             if (!text) return `<c r="${ref}" t="inlineStr" />`;
             return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(text)}</t></is></c>`;

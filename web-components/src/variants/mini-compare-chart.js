@@ -618,7 +618,7 @@ export class MiniCompareChart extends VariantLayout {
                 legal.dataset.displayPerUnit = 'false';
             } else if (headingPrice.options.displayPerUnit) {
                 headingPrice.dataset.displayPerUnit = 'false';
-            }            
+            }
 
             legal.setAttribute('data-template', 'legal');
 

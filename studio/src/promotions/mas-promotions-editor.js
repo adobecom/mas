@@ -38,7 +38,6 @@ import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
     buildPromotionTagPath,
-    classifyPromotionPathsForSelection,
     hydratePromotionOfferRecords,
     isPromotionItemSelectionDirty,
     isPromotionOffersSelectionDirty,
@@ -140,6 +139,7 @@ class MasPromotionsEditor extends LitElement {
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
+    #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #boundHandleOstOfferSelect = null;
@@ -196,15 +196,6 @@ class MasPromotionsEditor extends LitElement {
             await this.#hydratePromotionItemSelectionFromFragment();
         }
 
-        if (this.promotionPickerSurfaces.length) {
-            if (this.repository?.searchFragments) {
-                this.repository.searchFragments();
-            }
-            if (this.repository?.loadAllCollections) {
-                this.repository.loadAllCollections();
-            }
-        }
-
         if (this.fragmentStore) {
             this.storeController = new StoreController(this, this.fragmentStore);
             this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
@@ -213,6 +204,7 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
+            Store.promotions.offerRecordsHydrated,
             Store.users,
         ]);
     }
@@ -403,33 +395,63 @@ class MasPromotionsEditor extends LitElement {
                 allPaths.push(p);
             }
         }
-        const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
         if (!allPaths.length) {
             if (!hasStoredItemSelection) {
                 Store.promotions.selectedCards.set([]);
                 Store.promotions.selectedCollections.set([]);
             }
-        } else if (!getFragmentByPath) {
-            if (!hasStoredItemSelection) {
-                Store.promotions.selectedCards.set(fromFragments.filter(Boolean));
-                Store.promotions.selectedCollections.set(fromCollections.filter(Boolean));
-            }
         } else if (!hasStoredItemSelection) {
-            const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) =>
-                this.repository.aem.getFragmentByPath(path),
-            );
-            Store.promotions.selectedCards.set(cards);
-            Store.promotions.selectedCollections.set(cols);
+            // Optimistic split for instant paint: trust the legacy `collections` field and
+            // treat the rest as cards. Writes now merge everything into `fragments`, so this
+            // can be wrong for collections saved into `fragments` — the background refine
+            // below corrects it without blocking first paint (a surface's full collection
+            // catalog must never gate the editor).
+            const legacyCollections = new Set(fromCollections);
+            Store.promotions.selectedCards.set(allPaths.filter((path) => !legacyCollections.has(path)));
+            Store.promotions.selectedCollections.set([...legacyCollections]);
+            // MWPW-204645: correct the optimistic split in the background with a single
+            // bounded collection search per surface (not one GET per attached path).
+            void this.#refinePromotionItemClassification(fromCollections);
         }
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
-            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache);
+            // Don't block first paint on the offer-record lookups (one WCS call each). Render
+            // the offers from selection immediately and refresh once the records land.
+            void hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache).then(() => {
+                Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+            });
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }
+    }
+
+    /**
+     * Corrects the optimistic card/collection split in the background. Issues one bounded
+     * collection-model search per surface (not one GET per attached path) and re-buckets the
+     * live selection, so the editor never blocks first paint on classification and a refine
+     * that is still in flight when the user edits the selection cannot clobber those edits.
+     * @param {string[]} legacyCollectionPaths paths listed in the legacy `collections` field
+     */
+    async #refinePromotionItemClassification(legacyCollectionPaths = []) {
+        if (!this.repository?.getCollectionPathsForSurfaces) return;
+        const token = ++this.#itemClassificationToken;
+        const collectionPaths = await this.repository.getCollectionPathsForSurfaces(this.promotionPickerSurfaces);
+        if (token !== this.#itemClassificationToken) return;
+        const legacy = new Set(legacyCollectionPaths);
+        const isCollection = (path) => collectionPaths.has(path) || legacy.has(path);
+        // Re-bucket the live selection rather than the hydration snapshot, so paths the user
+        // added or removed while the search was in flight are preserved.
+        const livePaths = [
+            ...new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value]),
+        ];
+        const cards = [];
+        const cols = [];
+        for (const path of livePaths) (isCollection(path) ? cols : cards).push(path);
+        Store.promotions.selectedCards.set(cards);
+        Store.promotions.selectedCollections.set(cols);
     }
 
     #ensurePromotionModelFields(promotion) {
@@ -448,14 +470,17 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #fetchPromotionModelById(id) {
-        let fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+        // references=none drops the hydrated reference payload (~945KB / ~9s on large
+        // projects). The promotions editor derives cards/offers/variations from the
+        // fragment fields + search probes, never from fragment.references.
+        let fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
         if (!fragment) return null;
         let promotion = new Promotion(fragment);
         this.#ensurePromotionModelFields(promotion);
         if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
             const ok = await this.repository.unpublishFragment(promotion, false);
             if (ok) {
-                fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+                fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
                 if (!fragment) return null;
                 promotion = new Promotion(fragment);
                 this.#ensurePromotionModelFields(promotion);

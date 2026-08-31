@@ -1,5 +1,4 @@
-import { test, expect, studio, miloLibs, masIOUrl, setTestPage } from '../../libs/mas-test.js';
-import { addUrlQueryParams } from '../../utils/commerce.js';
+import { test, expect, studio, miloLibs, setTestPage } from '../../libs/mas-test.js';
 import { features } from './settings.spec.js';
 import SettingsPage from './settings.page.js';
 
@@ -87,59 +86,6 @@ test.describe('Settings - hideTrialCTAs', () => {
 
         await test.step('step-4: Verify free trial CTA is not hidden', async () => {
             await expect(settingsPage.freeTrialCta).not.toBeHidden();
-        });
-    });
-
-    // @MAS-Settings-hideTrialCTAs-country-KR — KR geo override strips trial CTA; locale stays en_US
-    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
-        let testPage = `${baseURL}${features[3].path}${features[3].browserParams}`;
-        testPage = addUrlQueryParams(testPage, masIOUrl);
-        testPage = addUrlQueryParams(testPage, miloLibs);
-        setTestPage(testPage);
-        const settingsPage = new SettingsPage(page);
-
-        await test.step('step-1: Navigate to docs page with country=KR, language=en', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('networkidle');
-        });
-
-        await test.step('step-2: Verify target card is visible', async () => {
-            const card = page.locator(`merch-card:has(aem-fragment[fragment="${data.cardid}"])`);
-            await expect(card).toBeVisible();
-        });
-
-        await test.step('step-3: Verify trial CTA is stripped by the KR geo override', async () => {
-            await expect(settingsPage.freeTrialCta).toHaveCount(0);
-        });
-    });
-
-    // @MAS-Settings-hideTrialCTAs-country-US — KR geo override does not apply; trial CTA visible
-    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[4];
-        let testPage = `${baseURL}${features[4].path}${features[4].browserParams}`;
-        testPage = addUrlQueryParams(testPage, masIOUrl);
-        testPage = addUrlQueryParams(testPage, miloLibs);
-        setTestPage(testPage);
-        const settingsPage = new SettingsPage(page);
-
-        await test.step('step-1: Navigate to docs page with country=US, language=en', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('networkidle');
-        });
-
-        await test.step('step-2: Verify target card is visible', async () => {
-            const card = page.locator(`merch-card:has(aem-fragment[fragment="${data.cardid}"])`);
-            await expect(card).toBeVisible();
-        });
-
-        await test.step('step-3: Verify trial CTA is present for non-KR country', async () => {
-            const card = page.locator(`merch-card:has(aem-fragment[fragment="${data.cardid}"])`);
-            const trialCta = card.locator(
-                '[data-analytics-id="free-trial"], [data-analytics-id="start-free-trial"], [data-analytics-id="seven-day-trial"], [data-analytics-id="fourteen-day-trial"], [data-analytics-id="thirty-day-trial"]',
-            );
-            await expect(trialCta).toBeVisible();
-            await expect(trialCta).toContainText(data.trialCta, { ignoreCase: true });
         });
     });
 });

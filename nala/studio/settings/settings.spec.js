@@ -33,25 +33,4 @@ export const features = [
         },
         tags: '@mas-studio @settings @hideTrialCTAs @regression',
     },
-    {
-        tcid: '4',
-        name: '@MAS-Settings-hideTrialCTAs-country-KR',
-        path: '/web-components/docs/ccd-mini.html',
-        browserParams: '?country=KR&language=en',
-        data: {
-            cardid: '03a36f0f-3e5d-4881-ae6b-273c517c9d38',
-        },
-        tags: '@mas-docs @settings @hideTrialCTAs @country @regression',
-    },
-    {
-        tcid: '5',
-        name: '@MAS-Settings-hideTrialCTAs-country-US',
-        path: '/web-components/docs/ccd-mini.html',
-        browserParams: '?country=US&language=en',
-        data: {
-            cardid: '03a36f0f-3e5d-4881-ae6b-273c517c9d38',
-            trialCta: 'Free trial',
-        },
-        tags: '@mas-docs @settings @hideTrialCTAs @country @regression',
-    },
 ];

@@ -37,6 +37,7 @@ import {
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
+import ConcurrentEditController from './reactivity/concurrent-edit-controller.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
@@ -436,6 +437,25 @@ export default class MasFragmentEditor extends LitElement {
             color: var(--spectrum-global-color-yellow-700);
         }
 
+        .presence-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fef3cd;
+            border: 1px solid #e68000;
+            border-radius: 4px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a3500;
+        }
+
+        .presence-banner sp-icon-alert {
+            color: #e68000;
+            flex-shrink: 0;
+        }
+
         #orphan-grouped-variation-panel {
             align-self: anchor-center;
             background: var(--spectrum-global-color-red-100);
@@ -592,6 +612,7 @@ export default class MasFragmentEditor extends LitElement {
         Store.filters,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
+    presenceController = new ConcurrentEditController(this);
 
     get localeDefaultFragment() {
         return this.editorContextStore?.localeDefaultFragment ?? null;
@@ -963,6 +984,23 @@ export default class MasFragmentEditor extends LitElement {
         this.inEdit.set(fragmentStore);
         if (resetChanges) {
             Store.editor.resetChanges();
+        }
+        const fragmentId = fragmentStore.value?.id;
+        if (fragmentId) {
+            const connectWithProfile = (profile) => {
+                if (profile?.name && profile?.email) {
+                    this.presenceController.connect(fragmentId, {
+                        name: profile.name,
+                        email: profile.email,
+                    });
+                }
+            };
+            const profile = Store.profile.get();
+            if (profile?.name) {
+                connectWithProfile(profile);
+            } else {
+                window.adobeIMS?.getProfile().then(connectWithProfile);
+            }
         }
         this.reactiveController.updateStores([
             Store.fragmentEditor.loading,
@@ -2252,6 +2290,26 @@ export default class MasFragmentEditor extends LitElement {
         });
     }
 
+    get #presenceBanner() {
+        const editors = this.presenceController.editors;
+        if (editors.length <= 1) return nothing;
+        const seen = new Set();
+        const unique = editors.filter(({ email }) => {
+            if (seen.has(email)) return false;
+            seen.add(email);
+            return true;
+        });
+        const names = unique.map((u) => u.name).join(', ');
+        const label =
+            unique.length === 1
+                ? `${names} is currently editing this fragment.`
+                : `${names} are currently editing this fragment.`;
+        return html`<div class="presence-banner">
+            <sp-icon-alert size="s"></sp-icon-alert>
+            <span>${label}</span>
+        </div>`;
+    }
+
     render() {
         if (!this.fragment) {
             return html`
@@ -2294,6 +2352,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             ${this.styles}
             <div id="fragment-editor" class=${this.isCompareChart ? 'compare-chart-editor' : ''}>
+                ${this.#presenceBanner}
                 <div id="editor-content" class=${this.isCompareChart ? 'compare-chart-content' : ''}>
                     <div id="form-column" class=${this.isCompareChart ? 'compare-chart-column' : ''}>
                         ${this.fragmentEditor}

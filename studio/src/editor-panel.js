@@ -4,6 +4,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import ConcurrentEditController from './reactivity/concurrent-edit-controller.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -58,6 +59,24 @@ export default class EditorPanel extends LitElement {
             margin: 16px 0;
         }
 
+        .presence-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fef3cd;
+            border: 1px solid #e68000;
+            border-radius: 4px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a3500;
+        }
+
+        .presence-banner sp-icon-alert {
+            color: #e68000;
+            flex-shrink: 0;
+        }
+
         merch-card-editor {
             display: contents;
         }
@@ -109,6 +128,7 @@ export default class EditorPanel extends LitElement {
     page = Store.page;
 
     reactiveController = new ReactiveController(this);
+    presenceController = new ConcurrentEditController(this);
     editorContextStore = Store.fragmentEditor.editorContext;
 
     #discardPromiseResolver;
@@ -408,6 +428,10 @@ export default class EditorPanel extends LitElement {
             this.maskOtherFragments(id);
         }
         await this.loadLocaleDefaultFragmentContext(id);
+        const profile = Store.profile.get();
+        if (profile && id) {
+            this.presenceController.connect(id, { name: profile.name, email: profile.email });
+        }
     }
 
     async loadLocaleDefaultFragmentContext(fragmentId) {
@@ -735,6 +759,7 @@ export default class EditorPanel extends LitElement {
             }
         }
         this.unmaskOtherFragments();
+        this.presenceController.disconnect();
         this.inEdit.set();
         return true;
     }
@@ -1080,6 +1105,26 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get #presenceBanner() {
+        const editors = this.presenceController.editors;
+        if (editors.length <= 1) return nothing;
+        const seen = new Set();
+        const unique = editors.filter(({ email }) => {
+            if (seen.has(email)) return false;
+            seen.add(email);
+            return true;
+        });
+        const names = unique.map((u) => u.name).join(', ');
+        const label =
+            unique.length === 1
+                ? `${names} is currently editing this fragment.`
+                : `${names} are currently editing this fragment.`;
+        return html`<div class="presence-banner">
+            <sp-icon-alert size="s"></sp-icon-alert>
+            <span>${label}</span>
+        </div>`;
+    }
+
     render() {
         if (this.page.get() === PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
         if (!this.fragment) return nothing;
@@ -1123,6 +1168,7 @@ export default class EditorPanel extends LitElement {
         return html`
             <div id="editor" style="${editorStyles}">
                 <div class="editor-content">
+                    ${this.#presenceBanner}
                     <div class="editor-drag-section">
                         <div class="drag-handle" @mousedown="${this.startDrag}"></div>
                         ${this.fragmentEditorToolbar}

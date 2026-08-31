@@ -42,52 +42,48 @@ function escapeRegExp(value) {
 }
 
 /**
- * Computes the folder to search and the leaf-matching pattern for a fragment's promo variations.
- * @param {string} defaultPath
- * @param {string} promoName
- * @returns {{ parentFolder: string, leafName: string, leafPattern: RegExp }|null}
- */
-function computeProbeTarget(defaultPath, promoName) {
-    const basePath = buildPromoVariationPath(defaultPath, promoName);
-    if (!basePath) return null;
-    const parentFolder = basePath.split('/').slice(0, -1).join('/');
-    const leafName = basePath.split('/').pop();
-    const leafPattern = new RegExp(`^${escapeRegExp(leafName)}(?:-(\\d+))?$`);
-    return { parentFolder, leafName, leafPattern };
-}
-
-/**
- * Matches a search item to a fragment's leaf pattern, returning a normalized variation or null.
- * Rejects sibling leaf names (e.g., "card-2" as a separate fragment, not a variation of "card").
+ * Matches a variation search result to its owning default path by full-path identity.
+ * The exact variation base path is index 1; a trailing "-N" is a suffixed sibling variation.
+ * Exact-base match takes precedence, so a card literally named "…-N" claims its own path
+ * rather than being mis-attributed as a suffixed variation of "…".
  * @param {Object} variation
- * @param {RegExp} leafPattern
- * @param {string} ownLeafName
- * @param {Set<string>} siblingLeafNames
- * @returns {{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }|null}
+ * @param {Map<string, string>} baseToDefaultPath - variation base path -> owning default path
+ * @returns {{ defaultPath: string, variation: { path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array } }|null}
  */
-function matchProbedVariation(variation, leafPattern, ownLeafName, siblingLeafNames) {
-    const itemLeaf = variation?.path?.split('/').pop();
-    const match = itemLeaf && leafPattern.exec(itemLeaf);
-    if (!match || !variation?.id) return null;
-    if (itemLeaf !== ownLeafName && siblingLeafNames.has(itemLeaf)) return null;
-    const index = match[1] ? Number(match[1]) : 1;
+function matchVariationByBasePath(variation, baseToDefaultPath) {
+    const path = variation?.path;
+    if (!path || !variation?.id) return null;
+    let defaultPath = baseToDefaultPath.get(path);
+    let index = 1;
+    if (!defaultPath) {
+        const suffixMatch = /^(.*)-(\d+)$/.exec(path);
+        if (!suffixMatch) return null;
+        defaultPath = baseToDefaultPath.get(suffixMatch[1]);
+        if (!defaultPath) return null;
+        index = Number(suffixMatch[2]);
+    }
     if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) return null;
     return {
-        path: variation.path,
-        index,
-        id: variation.id,
-        pznTags: readPznTags(variation),
-        status: variation.status,
-        title: variation.title,
-        model: variation.model,
-        fields: variation.fields,
-        tags: variation.tags,
+        defaultPath,
+        variation: {
+            path,
+            index,
+            id: variation.id,
+            pznTags: readPznTags(variation),
+            status: variation.status,
+            title: variation.title,
+            model: variation.model,
+            fields: variation.fields,
+            tags: variation.tags,
+        },
     };
 }
 
 /**
  * Probes promo variations for fragments with the same promo tag.
- * Fragments sharing a parent folder are scanned in a single search (ordered by index ascending).
+ * Every variation for a project lives under one promotions/{promoName} subtree, so a single
+ * recursive folder search covers all fragments regardless of how deeply their paths nest —
+ * one request (plus pagination) per surface/locale root instead of one per parent folder.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string[]} defaultPaths
  * @param {string} promoTagId
@@ -99,37 +95,33 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
     const promoName = getPromoNameFromTag(promoTagId);
     if (!promoName) return resultsByPath;
 
-    const targetsByPath = new Map();
-    const pathsByFolder = new Map();
+    const baseToDefaultPath = new Map();
+    const pathsByRoot = new Map();
     for (const defaultPath of defaultPaths) {
-        const target = computeProbeTarget(defaultPath, promoName);
-        if (!target) continue;
-        targetsByPath.set(defaultPath, target);
-        const pathsInFolder = pathsByFolder.get(target.parentFolder) ?? [];
-        pathsInFolder.push(defaultPath);
-        pathsByFolder.set(target.parentFolder, pathsInFolder);
+        const basePath = buildPromoVariationPath(defaultPath, promoName);
+        const promotionsRoot = buildPromotionsRootPath(defaultPath);
+        if (!basePath || !promotionsRoot) continue;
+        baseToDefaultPath.set(basePath, defaultPath);
+        const promoRoot = `${promotionsRoot}/${promoName}`;
+        if (!pathsByRoot.has(promoRoot)) pathsByRoot.set(promoRoot, true);
     }
 
     await processConcurrently(
-        [...pathsByFolder.entries()],
-        async ([parentFolder, pathsInFolder]) => {
-            const rawResults = [];
-            for await (const batch of aem.sites.cf.fragments.search({ path: parentFolder }, VARIATION_SEARCH_PAGE_SIZE)) {
-                rawResults.push(...batch);
-            }
-            const siblingLeafNames = new Set(pathsInFolder.map((path) => targetsByPath.get(path).leafName));
-            for (const defaultPath of pathsInFolder) {
-                const { leafName, leafPattern } = targetsByPath.get(defaultPath);
-                const matched = rawResults
-                    .map((variation) => matchProbedVariation(variation, leafPattern, leafName, siblingLeafNames))
-                    .filter(Boolean)
-                    .sort((a, b) => a.index - b.index);
-                resultsByPath.set(defaultPath, matched);
+        [...pathsByRoot.keys()],
+        async (promoRoot) => {
+            for await (const batch of aem.sites.cf.fragments.search({ path: promoRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
+                for (const variation of batch) {
+                    const matched = matchVariationByBasePath(variation, baseToDefaultPath);
+                    if (matched) resultsByPath.get(matched.defaultPath).push(matched.variation);
+                }
             }
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 
+    for (const variations of resultsByPath.values()) {
+        variations.sort((a, b) => a.index - b.index);
+    }
     return resultsByPath;
 }
 

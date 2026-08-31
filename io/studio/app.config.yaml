@@ -34,8 +34,8 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
-                            GRAFANA_TRAFFICPEAK_TOKEN: $GRAFANA_TRAFFICPEAK_TOKEN
-                            GRAFANA_TRAFFICPEAK_URL: $GRAFANA_TRAFFICPEAK_URL
+                            GRAFANA_SERVICE_TOKEN: $GRAFANA_SERVICE_TOKEN
+                            GRAFANA_SERVICE_URL: $GRAFANA_SERVICE_URL
                         annotations:
                             require-adobe-auth: false
                             final: true

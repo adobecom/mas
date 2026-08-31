@@ -1,8 +1,8 @@
 /**
  * PROTOTYPE (epic 4A, MWPW-185891) — proxy TrafficPeak/Grafana fragment-usage queries.
  *
- * The Grafana `glsa_` service token is injected as the `GRAFANA_TRAFFICPEAK_TOKEN` action input
- * (sourced from `$GRAFANA_TRAFFICPEAK_TOKEN` in the deploy `.env`). It NEVER appears in source, in
+ * The Grafana `glsa_` service token is injected as the `GRAFANA_SERVICE_TOKEN` action input
+ * (sourced from `$GRAFANA_SERVICE_TOKEN` in the deploy `.env`). It NEVER appears in source, in
  * logs, or in the response body — the whole reason this proxy exists instead of a browser call:
  *   - a browser-exposed static service token is a permanent secret leak;
  *   - grafana is a third-party origin and would be CORS-blocked from mas.adobe.com anyway.
@@ -65,11 +65,11 @@ async function main(params) {
         if (!fragmentId || !/^[\w-]+$/.test(fragmentId)) {
             return { statusCode: 400, body: 'A valid fragmentId is required' };
         }
-        const token = params.GRAFANA_TRAFFICPEAK_TOKEN;
+        const token = params.GRAFANA_SERVICE_TOKEN;
         if (!token) {
-            return { statusCode: 503, body: 'Usage proxy not configured (missing GRAFANA_TRAFFICPEAK_TOKEN)' };
+            return { statusCode: 503, body: 'Usage proxy not configured (missing GRAFANA_SERVICE_TOKEN)' };
         }
-        const grafanaUrl = params.GRAFANA_TRAFFICPEAK_URL || DEFAULT_GRAFANA_URL;
+        const grafanaUrl = params.GRAFANA_SERVICE_URL || DEFAULT_GRAFANA_URL;
         const to = Date.now();
         const from = to - DEFAULT_WINDOW_MS;
 

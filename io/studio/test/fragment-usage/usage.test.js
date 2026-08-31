@@ -11,7 +11,7 @@ describe('fragment-usage/usage.js', () => {
     const baseParams = {
         __ow_headers: { authorization: 'Bearer ims-user-token' },
         fragmentId: '77fffd31-3a9d-4881-a5ed-455a28afc880',
-        GRAFANA_TRAFFICPEAK_TOKEN: TOKEN,
+        GRAFANA_SERVICE_TOKEN: TOKEN,
     };
 
     beforeEach(() => {
@@ -39,7 +39,7 @@ describe('fragment-usage/usage.js', () => {
     });
 
     it('returns 503 when the Grafana service token input is absent', async () => {
-        const result = await usageAction.main({ ...baseParams, GRAFANA_TRAFFICPEAK_TOKEN: undefined });
+        const result = await usageAction.main({ ...baseParams, GRAFANA_SERVICE_TOKEN: undefined });
         expect(result.statusCode).to.equal(503);
         expect(fetchStub.called).to.equal(false);
     });

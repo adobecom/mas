@@ -9,7 +9,7 @@
  *
  *   (default)    LIVE mode. Loads AI_FOUNDRY_API_KEY from the shell
  *                env (must be a fresh token) or from io/studio/.env if
- *                present, instantiates the Haiku classifier, and runs every
+ *                present, instantiates the classifier, and runs every
  *                message in CASES through it. Costs ~$0.01 per full run.
  *
  * Run from repo root:

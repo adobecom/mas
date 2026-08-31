@@ -1,5 +1,5 @@
 /**
- * Native Anthropic tool definitions for the guided release/card-creation flow.
+ * Native tool definitions for the guided release/card-creation flow.
  *
  * The guided flow historically asked the model to hand-write fenced JSON in
  * prose, which broke whenever catalog copy carried unescaped quotes (the

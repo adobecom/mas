@@ -15,12 +15,21 @@ describe('ai-chat/foundry-client', () => {
         sumUsage = mod.sumUsage;
     });
 
+    let savedThinking;
+
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        // Importing the action elsewhere in the suite pulls in
+        // aio-lib-core-config, which loads io/studio/.env into process.env.
+        // Clear the ambient value so each test controls it explicitly.
+        savedThinking = process.env.AI_FOUNDRY_THINKING;
+        delete process.env.AI_FOUNDRY_THINKING;
     });
 
     afterEach(() => {
         sandbox.restore();
+        if (savedThinking === undefined) delete process.env.AI_FOUNDRY_THINKING;
+        else process.env.AI_FOUNDRY_THINKING = savedThinking;
     });
 
     const chatResponse = (overrides = {}) => ({
@@ -169,20 +178,40 @@ describe('ai-chat/foundry-client', () => {
         it('disables thinking so small token budgets are not spent on reasoning', async () => {
             const client = makeClient();
             const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
-            // Explicit: importing the action pulls in aio-lib-core-config, which
-            // loads io/studio/.env into process.env, so the ambient value of
-            // AI_FOUNDRY_THINKING depends on which tests ran first.
-            const saved = process.env.AI_FOUNDRY_THINKING;
-            delete process.env.AI_FOUNDRY_THINKING;
-
-            try {
-                await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 10);
-            } finally {
-                if (saved !== undefined) process.env.AI_FOUNDRY_THINKING = saved;
-            }
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 10);
 
             const payload = JSON.parse(fetchStub.firstCall.args[1].body);
             expect(payload.chat_template_kwargs).to.deep.equal({ enable_thinking: false });
+        });
+
+        it('floors the token budget when thinking is on so reasoning does not truncate the answer', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 1024, { thinking: true });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.max_tokens).to.equal(4096);
+        });
+
+        it('leaves a budget already above the reasoning floor untouched', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 8000, { thinking: true });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.max_tokens).to.equal(8000);
+        });
+
+        it('does not floor the budget when thinking is off', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 10, { thinking: false });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.max_tokens).to.equal(10);
         });
 
         it('enables thinking when the caller opts in per call', async () => {
@@ -446,6 +475,23 @@ describe('ai-chat/foundry-client', () => {
 
             const payload = JSON.parse(fetchStub.firstCall.args[1].body);
             expect(payload.messages.map((m) => m.content)).to.deep.equal(['BASE', 'earlier', 'latest']);
+        });
+
+        it('does not retry a thinking turn whose floored budget already hit the ceiling', async () => {
+            const client = makeClient();
+            sandbox.stub(console, 'warn');
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(
+                chatResponse({
+                    choices: [{ message: { role: 'assistant', content: 'cut' }, finish_reason: 'length' }],
+                }),
+            );
+
+            // 2048 floors to the 4096 reasoning minimum, which is already the
+            // retry ceiling, so a second call would burn tokens for nothing.
+            await client.sendWithContext([], 'hello', 'BASE', null, 2048, { thinking: true });
+
+            expect(fetchStub.callCount).to.equal(1);
+            expect(JSON.parse(fetchStub.firstCall.args[1].body).max_tokens).to.equal(4096);
         });
 
         it('retries once at a larger budget when the response was truncated', async () => {

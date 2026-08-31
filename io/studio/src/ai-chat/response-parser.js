@@ -1,7 +1,7 @@
 /**
  * AI Response Parser
  *
- * Parses Claude's responses to extract structured card configurations
+ * Parses model responses to extract structured card configurations
  * and handles conversational responses.
  */
 
@@ -60,7 +60,7 @@ function closesString(raw, quoteIdx, isKey, inArray) {
 
 /**
  * JSON strings must not contain raw newlines, carriage returns, tabs, or
- * unescaped double-quotes. Claude occasionally emits JSON with literal
+ * unescaped double-quotes. Models occasionally emit JSON with literal
  * control chars or embedded quotes inside the "message" field, which makes
  * JSON.parse throw. Walk the candidate once, escape those characters when
  * they appear INSIDE double-quoted string literals, and leave whitespace
@@ -155,7 +155,7 @@ function tryParse(candidate) {
 
 /**
  * Extract JSON from AI response
- * Claude may wrap JSON in markdown code blocks or include explanatory text
+ * Models may wrap JSON in markdown code blocks or include explanatory text
  * @param {string} responseText - Raw AI response
  * @returns {Object|null} - Parsed JSON or null if not found
  */
@@ -237,7 +237,7 @@ function describeParseFailure(responseText) {
 
 /**
  * Parse AI response into structured format
- * @param {string} responseText - Raw AI response from Claude
+ * @param {string} responseText - Raw AI response from the model
  * @returns {Object} - {type, message, cardConfig, collectionConfig, fragmentIds}
  */
 export function parseAIResponse(responseText) {

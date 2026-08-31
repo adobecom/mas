@@ -1678,7 +1678,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
 }
 
 /**
- * Map an intent label from the Haiku classifier back to a system prompt
+ * Map an intent label from the LLM classifier back to a system prompt
  * + metadata triple, mirroring determineSystemPromptWithMeta's contract.
  *
  * Returns null when the label is `unknown` or unrecognized — the caller
@@ -1719,7 +1719,7 @@ function promptFromClassifierLabel(label, message, context) {
 
 /**
  * LLM-driven version of determineSystemPromptWithMeta — replaces the
- * keyword cascade with one cheap Haiku call grounded in the MAS glossary.
+ * keyword cascade with one cheap classifier call grounded in the MAS glossary.
  * Falls back to the keyword classifier on any failure so existing
  * card-search and card-creation flows keep working.
  *
@@ -1750,7 +1750,7 @@ async function determineSystemPromptWithMetaAsync({ intentHint, conversationHist
     try {
         classifierClient = createClassifierClient(params);
     } catch (err) {
-        console.warn('[classifier] could not create Haiku client; falling back to keyword classifier:', err.message);
+        console.warn('[classifier] could not create classifier client; falling back to keyword classifier:', err.message);
         return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
     }
 

@@ -1,5 +1,5 @@
 /**
- * Native Anthropic tool definitions for the ai-chat action.
+ * Native tool definitions for the ai-chat action.
  *
  * The intent registry is the single source of truth for the assistant's
  * surface: the envelope tool schema is generated from it, so adding an

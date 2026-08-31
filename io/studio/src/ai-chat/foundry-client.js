@@ -107,6 +107,17 @@ function truncateHistory(conversationHistory) {
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
 const MAX_TRUNCATION_RETRY_TOKENS = 4096;
 
+// Reasoning routinely costs ~2000 tokens before the model writes a single
+// character of answer, so the budgets sized for a non-reasoning model (1024
+// for routing, 2048 for guided turns) truncate every thinking turn and force
+// a retry. Give a thinking call enough room to finish in one call instead.
+const THINKING_MIN_TOKENS = 4096;
+
+/** The budget actually sent upstream, which reasoning turns floor. */
+function resolveMaxTokens(maxTokens, thinkingEnabled) {
+    return thinkingEnabled ? Math.max(maxTokens, THINKING_MIN_TOKENS) : maxTokens;
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function isRetryableFoundryError(error) {
@@ -177,21 +188,23 @@ export class FoundryClient {
      * @returns {Promise<Object>} - Normalised response
      */
     async sendMessage(messages, system, maxTokens = 4096, options = {}) {
+        // Per call, because the tiers differ: the main chat turn benefits from
+        // reasoning, while the 10 token classifier and 40 token title calls
+        // must never spend their budget on it. Falls back to the env var for
+        // local runs.
+        const thinkingEnabled = options.thinking ?? process.env.AI_FOUNDRY_THINKING === 'on';
+        const effectiveMaxTokens = resolveMaxTokens(maxTokens, thinkingEnabled);
+
         const payload = {
             model: this.modelId,
             messages: [{ role: 'system', content: system ?? '' }, ...messages],
-            max_tokens: maxTokens,
+            max_tokens: effectiveMaxTokens,
             temperature: 0,
         };
         // Qwen emits reasoning into `reasoning_content` before it writes any
         // `content`, so a small budget is spent entirely on thinking and the
         // reply comes back empty. Thinking also corrupts forced tool calls
         // into raw Hermes markup. Escape hatch: AI_FOUNDRY_THINKING=on.
-        // Per call, because the tiers differ: the main chat turn has a 4096
-        // token budget and benefits from reasoning, while the 10 token
-        // classifier and 40 token title calls must never spend their budget
-        // on it. Falls back to the env var for local runs.
-        const thinkingEnabled = options.thinking ?? process.env.AI_FOUNDRY_THINKING === 'on';
         if (!thinkingEnabled) {
             payload.chat_template_kwargs = { enable_thinking: false };
         }
@@ -407,9 +420,15 @@ export class FoundryClient {
             },
         ];
 
+        // Compare against the budget actually sent, not the caller's: a
+        // floored thinking turn has already spent the ceiling, so retrying
+        // would pay for a second full call and truncate again.
+        const thinkingEnabled = options.thinking ?? process.env.AI_FOUNDRY_THINKING === 'on';
+        const sentMaxTokens = resolveMaxTokens(maxTokens, thinkingEnabled);
+
         const response = await this.sendMessage(messages, systemPayload, maxTokens, options);
-        if (response.success && response.stopReason === 'max_tokens' && maxTokens < MAX_TRUNCATION_RETRY_TOKENS) {
-            const retryTokens = Math.min(maxTokens * 2, MAX_TRUNCATION_RETRY_TOKENS);
+        if (response.success && response.stopReason === 'max_tokens' && sentMaxTokens < MAX_TRUNCATION_RETRY_TOKENS) {
+            const retryTokens = Math.min(sentMaxTokens * 2, MAX_TRUNCATION_RETRY_TOKENS);
             console.warn(`Foundry response truncated at ${maxTokens} tokens; retrying once at ${retryTokens}`);
             const retry = await this.sendMessage(messages, systemPayload, retryTokens, options);
             if (retry.success) {

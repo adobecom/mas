@@ -148,6 +148,21 @@ describe('ost-product-detail', () => {
             expect(sectionLabel.textContent.trim()).to.equal('Offers (3)');
         });
 
+        it('lists only the deep-linked offer, not its product siblings', async () => {
+            store.selectedProduct = makeProduct();
+            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+            store.offers = [makeOffer({ offer_id: 'A' }), makeOffer({ offer_id: 'B' }), makeOffer({ offer_id: 'C' })];
+            store.initialOsi = 'deep-osi';
+            store.selectedOffer = store.offers[1];
+            store.loading = false;
+            await el.updateComplete;
+            const rendered = [...el.shadowRoot.querySelectorAll('ost-offer-card')].map((c) => c.offer.offer_id);
+            const sectionLabel = el.shadowRoot.querySelector('.section-label');
+            store.initialOsi = undefined;
+            expect(rendered).to.deep.equal(['B']);
+            expect(sectionLabel.textContent.trim()).to.equal('Offers (1)');
+        });
+
         it('shows the hint text when offers are loaded but none are selected', async () => {
             store.selectedProduct = makeProduct();
             const el = await fixture(html`<ost-product-detail></ost-product-detail>`);

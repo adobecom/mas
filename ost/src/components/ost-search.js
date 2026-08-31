@@ -213,13 +213,19 @@ export class OstSearch extends LitElement {
     }
 
     render() {
-        const label = this.query ? TYPE_LABELS[this.resultType] : '';
+        // Read through to the store so a deep-linked open (which seeds
+        // searchQuery before this element exists) shows its id in the field —
+        // local `query` only ever reflects what the user typed here.
+        const query = this.query || store.searchQuery || '';
+        const type = this.query ? this.resultType : store.searchType;
+        const label = query ? TYPE_LABELS[type] : '';
         return html`
             <div class="search-wrapper">
                 <sp-search
                     data-testid="ost-search-input"
                     placeholder="Search by name, code, offer ID, or OSI"
                     size="s"
+                    .value=${query}
                     @input=${this.handleInput}
                     @submit=${this.handleSubmit}
                 ></sp-search>

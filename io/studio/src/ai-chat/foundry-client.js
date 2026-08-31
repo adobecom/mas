@@ -135,12 +135,12 @@ function toFunctionTools(tools) {
 /**
  * Translate an Anthropic-style toolChoice into the OpenAI form.
  *
- * Forced choice is only safe with thinking disabled: with thinking on, the
- * upstream parser emits raw Hermes markup into `arguments` instead of JSON,
- * so a forced request is downgraded to auto in that mode.
+ * Note for anyone switching AI_FOUNDRY_MODEL_ID to aifoundry/Qwen/Qwen-latest:
+ * on that model a forced choice combined with thinking makes the upstream
+ * parser emit raw Hermes markup into `arguments` instead of JSON. The MoE
+ * model this client defaults to handles every combination correctly.
  */
-function toToolChoice(toolChoice, thinkingEnabled) {
-    if (thinkingEnabled) return 'auto';
+function toToolChoice(toolChoice) {
     if (toolChoice?.type === 'tool' && toolChoice.name) {
         return { type: 'function', function: { name: toolChoice.name } };
     }
@@ -187,13 +187,17 @@ export class FoundryClient {
         // `content`, so a small budget is spent entirely on thinking and the
         // reply comes back empty. Thinking also corrupts forced tool calls
         // into raw Hermes markup. Escape hatch: AI_FOUNDRY_THINKING=on.
-        const thinkingEnabled = process.env.AI_FOUNDRY_THINKING === 'on';
+        // Per call, because the tiers differ: the main chat turn has a 4096
+        // token budget and benefits from reasoning, while the 10 token
+        // classifier and 40 token title calls must never spend their budget
+        // on it. Falls back to the env var for local runs.
+        const thinkingEnabled = options.thinking ?? process.env.AI_FOUNDRY_THINKING === 'on';
         if (!thinkingEnabled) {
             payload.chat_template_kwargs = { enable_thinking: false };
         }
         if (options.tools?.length) {
             payload.tools = toFunctionTools(options.tools);
-            payload.tool_choice = toToolChoice(options.toolChoice, thinkingEnabled);
+            payload.tool_choice = toToolChoice(options.toolChoice);
         }
 
         const maxRetries = Number(process.env.AI_FOUNDRY_MAX_RETRIES ?? 2);

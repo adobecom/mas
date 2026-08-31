@@ -157,7 +157,11 @@ export async function classifyIntent({
     });
 
     try {
-        const sendPromise = client.sendMessage([{ role: 'user', content: userTurn }], CLASSIFIER_SYSTEM_PROMPT, maxTokens);
+        // thinking:false is load-bearing here — the 10 token budget would be
+        // consumed by reasoning and the reply would come back empty.
+        const sendPromise = client.sendMessage([{ role: 'user', content: userTurn }], CLASSIFIER_SYSTEM_PROMPT, maxTokens, {
+            thinking: false,
+        });
         const result = await Promise.race([sendPromise, timeoutPromise]);
         const latencyMs = Date.now() - start;
 

@@ -208,7 +208,9 @@ async function generateSessionTitle(params) {
             ? `First user message:\n${userMessage}\n\nAssistant reply:\n${assistantMessage}`
             : `First user message:\n${userMessage}`;
 
-        const result = await foundryClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40);
+        const result = await foundryClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40, {
+            thinking: false,
+        });
         logShadowValidation(result, params);
         logUsageMetric(result, params, foundryClient.modelId);
 
@@ -526,6 +528,11 @@ async function main(params) {
     try {
         const { AI_FOUNDRY_API_KEY, AI_FOUNDRY_BASE_URL, AI_FOUNDRY_MODEL_ID } = params;
 
+        // Reasoning is worth its latency on the main chat turn, which has a
+        // 4096 token budget. The classifier and title tiers opt out explicitly
+        // because their budgets are too small to spend on thinking.
+        const thinking = params.AI_FOUNDRY_THINKING === 'on';
+
         const foundryClient = new FoundryClient({
             apiKey: AI_FOUNDRY_API_KEY,
             baseUrl: AI_FOUNDRY_BASE_URL,
@@ -565,7 +572,9 @@ async function main(params) {
             !isCardCreation &&
             !params.context?.flow?.active &&
             !inferGuidedFlowFromHistory(conversationHistory);
-        let toolOptions = nativeEnvelopeEligible ? { tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE } : {};
+        let toolOptions = nativeEnvelopeEligible
+            ? { thinking, tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE }
+            : { thinking };
 
         // Deterministic identifier shortcut: when the user message is a bare
         // identifier, classify it by shape and emit the correct MCP operation
@@ -795,7 +804,7 @@ async function main(params) {
         let guidedToolMode = nativeGuidedEnabled && effectiveSystemPrompt === GUIDED_CARD_CREATION_PROMPT;
         if (guidedToolMode) {
             effectiveSystemPrompt = GUIDED_CARD_CREATION_TOOL_PROMPT;
-            toolOptions = { tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE };
+            toolOptions = { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE };
         }
 
         const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
@@ -895,7 +904,9 @@ async function main(params) {
                     nativeGuidedEnabled ? GUIDED_CARD_CREATION_TOOL_PROMPT : GUIDED_CARD_CREATION_PROMPT,
                     enrichedContext,
                     2048,
-                    nativeGuidedEnabled ? { tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE } : {},
+                    nativeGuidedEnabled
+                        ? { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE }
+                        : { thinking },
                 );
                 logUsageMetric(guidedResponse, params, foundryClient.modelId);
                 if (guidedResponse.success && (guidedResponse.message || guidedResponse.toolUse)) {
@@ -977,6 +988,7 @@ async function main(params) {
                     guidedToolMode ? GUIDED_CARD_CREATION_PROMPT : effectiveSystemPrompt,
                     enrichedContext,
                     maxTokens,
+                    { thinking },
                 );
                 logUsageMetric(retryResponse, params, foundryClient.modelId);
                 let recovered = false;
@@ -1070,6 +1082,7 @@ async function main(params) {
                     effectiveSystemPrompt,
                     enrichedContext,
                     2048,
+                    { thinking },
                 );
                 logShadowValidation(retryResponse, params);
                 logUsageMetric(retryResponse, params, foundryClient.modelId);

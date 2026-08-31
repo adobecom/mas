@@ -154,24 +154,6 @@ describe('ai-chat/foundry-client', () => {
             expect(payload.tool_choice).to.equal('required');
         });
 
-        it('downgrades a forced choice to auto when thinking is on, which corrupts forced calls', async () => {
-            const client = makeClient();
-            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
-            process.env.AI_FOUNDRY_THINKING = 'on';
-
-            try {
-                await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 800, {
-                    tools: [{ name: 'emit_envelope', input_schema: { type: 'object' } }],
-                    toolChoice: { type: 'tool', name: 'emit_envelope' },
-                });
-            } finally {
-                delete process.env.AI_FOUNDRY_THINKING;
-            }
-
-            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
-            expect(payload.tool_choice).to.equal('auto');
-        });
-
         it('uses auto when tools are offered without a specific choice', async () => {
             const client = makeClient();
             const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
@@ -187,11 +169,59 @@ describe('ai-chat/foundry-client', () => {
         it('disables thinking so small token budgets are not spent on reasoning', async () => {
             const client = makeClient();
             const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+            // Explicit: importing the action pulls in aio-lib-core-config, which
+            // loads io/studio/.env into process.env, so the ambient value of
+            // AI_FOUNDRY_THINKING depends on which tests ran first.
+            const saved = process.env.AI_FOUNDRY_THINKING;
+            delete process.env.AI_FOUNDRY_THINKING;
 
-            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 10);
+            try {
+                await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 10);
+            } finally {
+                if (saved !== undefined) process.env.AI_FOUNDRY_THINKING = saved;
+            }
 
             const payload = JSON.parse(fetchStub.firstCall.args[1].body);
             expect(payload.chat_template_kwargs).to.deep.equal({ enable_thinking: false });
+        });
+
+        it('enables thinking when the caller opts in per call', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 4096, { thinking: true });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload).to.not.have.property('chat_template_kwargs');
+        });
+
+        it('keeps thinking off for a small-budget call even when the env var is on', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+            process.env.AI_FOUNDRY_THINKING = 'on';
+
+            try {
+                await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 10, { thinking: false });
+            } finally {
+                delete process.env.AI_FOUNDRY_THINKING;
+            }
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.chat_template_kwargs).to.deep.equal({ enable_thinking: false });
+        });
+
+        it('still forces the named tool when thinking is on', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 4096, {
+                thinking: true,
+                tools: [{ name: 'emit_envelope', input_schema: { type: 'object' } }],
+                toolChoice: { type: 'tool', name: 'emit_envelope' },
+            });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.tool_choice).to.deep.equal({ type: 'function', function: { name: 'emit_envelope' } });
         });
 
         it('re-enables thinking when AI_FOUNDRY_THINKING is on', async () => {

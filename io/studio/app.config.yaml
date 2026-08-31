@@ -131,6 +131,7 @@ application:
                             AI_FOUNDRY_BASE_URL: $AI_FOUNDRY_BASE_URL
                             AI_FOUNDRY_MODEL_ID: $AI_FOUNDRY_MODEL_ID
                             AI_FOUNDRY_FAST_MODEL_ID: $AI_FOUNDRY_FAST_MODEL_ID
+                            AI_FOUNDRY_THINKING: $AI_FOUNDRY_THINKING
                             RAG_ENABLED: $RAG_ENABLED
                             USE_LLM_CLASSIFIER: $USE_LLM_CLASSIFIER
                             NATIVE_ENVELOPE: $NATIVE_ENVELOPE

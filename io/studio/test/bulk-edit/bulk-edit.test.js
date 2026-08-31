@@ -495,6 +495,249 @@ describe('bulk-edit: handleCsvDelete', () => {
     });
 });
 
+const findJobDone = {
+    type: 'find',
+    status: 'DONE',
+    runId: 'find-run-1',
+    params: { matchCase: false, find: 'school', replace: 'academy' },
+    results: doneJobResults,
+};
+const replaceCsv = {
+    uploadedAt: '2026-01-01T00:00:00.000Z',
+    rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school' }],
+};
+
+describe('bulk-edit: computeReplaceJobId', () => {
+    const actionableRows = [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy', etag: 'e1' }];
+    it('produces a structured replace.{find12}.{mode}.{csv8} id', () => {
+        const { mod } = load();
+        const id = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
+        expect(id).to.match(/^replace\.abcdef012345\.live\.[0-9a-f]{8}$/);
+    });
+    it('distinguishes dry from live runs', () => {
+        const { mod } = load();
+        const dry = mod.computeReplaceJobId('abcdef0123456789', { dryRun: true, actionableRows, findRunId: 'run-1' });
+        const live = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
+        expect(dry).to.not.equal(live);
+        expect(dry).to.include('.dry.');
+    });
+    it('changes when the CSV rows change', () => {
+        const { mod } = load();
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
+        const b = mod.computeReplaceJobId('abcdef0123456789', {
+            dryRun: false,
+            actionableRows: [{ ...actionableRows[0], fragment_id: 'frag-2' }],
+            findRunId: 'run-1',
+        });
+        expect(a).to.not.equal(b);
+    });
+    it('does not change when only replace values differ', () => {
+        const { mod } = load();
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
+        const b = mod.computeReplaceJobId('abcdef0123456789', {
+            dryRun: false,
+            actionableRows: [{ ...actionableRows[0], replace: 'campus' }],
+            findRunId: 'run-1',
+        });
+        expect(a).to.equal(b);
+    });
+    it('changes when the find job run changes', () => {
+        const { mod } = load();
+        const base = { dryRun: false, actionableRows };
+        const first = mod.computeReplaceJobId('abcdef0123456789', { ...base, findRunId: 'run-a' });
+        const renewed = mod.computeReplaceJobId('abcdef0123456789', { ...base, findRunId: 'run-b' });
+        expect(first).to.not.equal(renewed);
+    });
+});
+
+describe('bulk-edit: handleReplacePost', () => {
+    const replaceParams = { type: 'replace', findJobId: 'find-1', odinEndpoint: 'https://odin.example' };
+
+    function loadReplace(extra = {}) {
+        const ctx = load({ userCsv: replaceCsv, ...extra });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        return ctx;
+    }
+
+    it('creates a replace job and invokes the replace worker', async () => {
+        const ctx = loadReplace();
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.statusCode).to.equal(202);
+        expect(res.body.reused).to.equal(false);
+        expect(res.body.dryRun).to.equal(false);
+        expect(res.body.jobId).to.match(/^replace\./);
+        expect(ctx.writeJob.calledOnce).to.equal(true);
+        const written = ctx.writeJob.firstCall.args[1];
+        expect(written.type).to.equal('replace');
+        expect(written.findJobId).to.equal('find-1');
+        expect(written.total).to.equal(1);
+        expect(ctx.invokeAsyncAction.firstCall.args[0]).to.equal('MerchAtScaleStudio/bulk-edit-replace-worker');
+    });
+    it('passes dryRun through and marks the job', async () => {
+        const ctx = loadReplace();
+        const res = await ctx.mod.handlePost({ ...replaceParams, dryRun: true });
+        expect(res.body.dryRun).to.equal(true);
+        expect(ctx.writeJob.firstCall.args[1].dryRun).to.equal(true);
+    });
+    it('404s when the find job is missing', async () => {
+        const ctx = load({ userCsv: replaceCsv });
+        ctx.readJob.withArgs('find-1').resolves(null);
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(404);
+    });
+    it('400s when the find job is not DONE', async () => {
+        const ctx = load({ userCsv: replaceCsv });
+        ctx.readJob.withArgs('find-1').resolves({ status: 'RUNNING' });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('not ready');
+    });
+    it('uses generated CSV rows when no CSV was uploaded', async () => {
+        const ctx = load({ userCsv: null });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.statusCode).to.equal(202);
+        expect(ctx.writeJob.firstCall.args[1].total).to.equal(1);
+    });
+    it('400s when the find job has no results', async () => {
+        const ctx = load({ userCsv: null });
+        ctx.readJob.withArgs('find-1').resolves({ ...findJobDone, results: [] });
+        ctx.readResults.resolves([]);
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('no results');
+    });
+    it('400s when no rows would change fragments', async () => {
+        const ctx = load({ userCsv: null });
+        ctx.readJob.withArgs('find-1').resolves({
+            ...findJobDone,
+            params: { matchCase: false, find: 'school', replace: 'school' },
+        });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('no rows with replace values');
+    });
+    it('400s when findJobId is missing', async () => {
+        const { mod } = load();
+        const res = await mod.handlePost({ type: 'replace', odinEndpoint: 'https://odin.example' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('findJobId');
+    });
+    it('reuses an existing RUNNING replace job', async () => {
+        const ctx = load({ userCsv: replaceCsv });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        const replaceJobId = ctx.mod.computeReplaceJobId('find-1', {
+            dryRun: false,
+            actionableRows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy', etag: 'e1' }],
+            findRunId: findJobDone.runId,
+        });
+        ctx.readJob.withArgs(replaceJobId).resolves({ type: 'replace', status: 'RUNNING', findRunId: findJobDone.runId });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.body.reused).to.equal(true);
+        expect(ctx.writeJob.called).to.equal(false);
+        expect(ctx.invokeAsyncAction.called).to.equal(false);
+    });
+    it('starts a new replace job when the find job was refreshed', async () => {
+        const ctx = loadReplace();
+        const replaceJobId = ctx.mod.computeReplaceJobId('find-1', {
+            dryRun: false,
+            actionableRows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy', etag: 'e1' }],
+            findRunId: 'find-run-0',
+        });
+        ctx.readJob.withArgs(replaceJobId).resolves({ type: 'replace', status: 'DONE', findRunId: 'find-run-0' });
+        ctx.readJob.withArgs('find-1').resolves({ ...findJobDone, runId: 'find-run-2' });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.body.reused).to.equal(false);
+        expect(ctx.writeJob.calledOnce).to.equal(true);
+    });
+});
+
+describe('bulk-edit: handleReplaceGet', () => {
+    it('returns replace progress counters and report on DONE', async () => {
+        const job = {
+            type: 'replace',
+            dryRun: false,
+            status: 'DONE',
+            exportReady: true,
+            processed: 2,
+            succeeded: 1,
+            skipped: 1,
+            failed: 0,
+            conflicts: 0,
+            total: 2,
+            results: [],
+        };
+        const ctx = load({ existing: job });
+        ctx.readReport.resolves({ dryRun: false, totalFragments: 2 });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.live.y' });
+        expect(res.body.dryRun).to.equal(false);
+        expect(res.body.total).to.equal(2);
+        expect(res.body.succeeded).to.equal(1);
+        expect(res.body.report.totalFragments).to.equal(2);
+        expect(res.body.items).to.equal(undefined);
+    });
+    it('includes JSON export URL only on terminal replace jobs', async () => {
+        const jobId = 'replace.x.dry.y';
+        const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
+        const ctx = load({ existing: job, seedExports: false });
+        ctx.writes[`private/bulk-edit/${jobId}.json`] = JSON.stringify({ items: [] });
+        ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
+        const res = await ctx.mod.handleGet({ jobId });
+        expect(res.body.exports).to.deep.equal({ json: `https://files.example/${jobId}.json` });
+        expect(res.body.exports.csv).to.equal(undefined);
+    });
+    it('400s when jobId uses a .json or .csv suffix', async () => {
+        const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
+        const ctx = load({ existing: job });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y.csv' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('poll response');
+    });
+    it('regenerates missing replace export from state results on poll', async () => {
+        const jobId = 'replace.x.dry.y';
+        const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
+        const ctx = load({ existing: job, seedExports: false });
+        ctx.readResults.resolves([
+            { id: 'a', path: '/p/a', locale: 'en_US', status: 'WOULD_REPLACE', matches: [{ field: 'subtitle', value: 'x' }] },
+        ]);
+        ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
+        const res = await ctx.mod.handleGet({ jobId });
+        expect(res.statusCode).to.equal(200);
+        expect(ctx.files.write.callCount).to.be.greaterThan(0);
+        expect(res.body.exports.json).to.equal(`https://files.example/${jobId}.json`);
+    });
+    it('reports done:true, touches the cache, and includes the report for a CANCELLED replace job', async () => {
+        const job = {
+            type: 'replace',
+            dryRun: false,
+            status: 'CANCELLED',
+            exportReady: true,
+            processed: 1,
+            succeeded: 1,
+            skipped: 0,
+            failed: 0,
+            conflicts: 0,
+            total: 2,
+            results: [],
+        };
+        const ctx = load({ existing: job });
+        ctx.readReport.resolves({ dryRun: false, totalFragments: 1 });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.live.y' });
+        expect(res.body.done).to.equal(true);
+        expect(res.body.report.totalFragments).to.equal(1);
+        expect(ctx.touchJobCache.calledOnce).to.equal(true);
+    });
+    it('resolves the export URL for a CANCELLED replace job', async () => {
+        const jobId = 'replace.x.live.y';
+        const job = { type: 'replace', dryRun: false, status: 'CANCELLED', exportReady: true, results: [] };
+        const ctx = load({ existing: job, seedExports: false });
+        ctx.writes[`private/bulk-edit/${jobId}.json`] = JSON.stringify({ items: [] });
+        ctx.readReport.resolves({ dryRun: false, totalFragments: 0 });
+        const res = await ctx.mod.handleGet({ jobId });
+        expect(res.body.exports).to.deep.equal({ json: `https://files.example/${jobId}.json` });
+    });
+});
+
 describe('bulk-edit: resolveFindSourceItems', () => {
     it('prefers state results over file exports', async () => {
         const ctx = load({ existing: { ...doneJob, exportReady: true, results: [] } });
@@ -502,6 +745,32 @@ describe('bulk-edit: resolveFindSourceItems', () => {
         ctx.readResults.resolves(stateItems);
         const items = await ctx.mod.resolveFindSourceItems('job-1', { exportReady: true, results: [] });
         expect(items).to.deep.equal(stateItems);
+    });
+});
+
+const findActionParams = { __ow_action_name: '/14257-MerchAtScaleStudio/bulk-edit-find' };
+const replaceActionParams = { __ow_action_name: '/14257-MerchAtScaleStudio/bulk-edit-replace' };
+
+describe('bulk-edit: resolveBulkEditMode', () => {
+    it('derives find from bulkEditMode input', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode({ bulkEditMode: 'find' })).to.equal('find');
+    });
+    it('derives replace from bulkEditMode input', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode({ bulkEditMode: 'replace' })).to.equal('replace');
+    });
+    it('derives find from __ow_action_name', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode(findActionParams)).to.equal('find');
+    });
+    it('derives replace from __ow_action_name', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode(replaceActionParams)).to.equal('replace');
+    });
+    it('returns null when action name is missing', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode({})).to.equal(null);
     });
 });
 
@@ -532,6 +801,7 @@ describe('bulk-edit: main routing', () => {
         });
         await mod.main({
             __ow_method: 'post',
+            ...findActionParams,
             allowedClientId: 'mas-studio',
             odinEndpoint: 'https://odin.example',
             find: 'x',
@@ -541,13 +811,14 @@ describe('bulk-edit: main routing', () => {
     });
     it('routes POST to handlePost', async () => {
         const { mod } = load();
-        const res = await mod.main({ __ow_method: 'post', allowedClientId: 'mas-studio', ...findParams });
+        const res = await mod.main({ __ow_method: 'post', ...findActionParams, allowedClientId: 'mas-studio', ...findParams });
         expect(res.statusCode).to.equal(202);
     });
     it('routes text/csv POST to handleCsvUpload', async () => {
         const { mod, writeUserCsv } = load({ existing: doneJob });
         const res = await mod.main({
             __ow_method: 'post',
+            ...findActionParams,
             allowedClientId: 'mas-studio',
             jobId: 'job-1',
             __ow_body: sampleCsvRow,
@@ -567,6 +838,7 @@ describe('bulk-edit: main routing', () => {
             `------BulkEditFormBoundary--\r\n`;
         const res = await mod.main({
             __ow_method: 'post',
+            ...findActionParams,
             allowedClientId: 'mas-studio',
             jobId: 'job-1',
             __ow_body: body,
@@ -577,22 +849,85 @@ describe('bulk-edit: main routing', () => {
     });
     it('routes GET to handleGet', async () => {
         const { mod } = load({ existing: { status: 'RUNNING', total: 0, results: [] } });
-        const res = await mod.main({ __ow_method: 'get', jobId: 'j' });
+        const res = await mod.main({ __ow_method: 'get', ...findActionParams, jobId: 'j' });
         expect(res.statusCode).to.equal(200);
     });
-    it('routes DELETE to handleCsvDelete', async () => {
-        const uploaded = {
-            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }],
-        };
-        const { mod, deleteUserCsv } = load({ existing: { ...doneJob, exportReady: true }, userCsv: uploaded });
-        const res = await mod.main({ __ow_method: 'delete', allowedClientId: 'mas-studio', jobId: 'job-1' });
-        expect(res.statusCode).to.equal(200);
-        expect(deleteUserCsv.calledOnceWith('job-1')).to.equal(true);
-    });
-    it('405s an unsupported method', async () => {
+    it('400s when __ow_action_name is missing', async () => {
         const { mod } = load();
-        const res = await mod.main({ __ow_method: 'patch' });
+        const res = await mod.main({ __ow_method: 'delete' });
+        expect(res.error.statusCode).to.equal(400);
+    });
+});
+
+describe('bulk-edit: mode-specific endpoints', () => {
+    it('bulk-edit-find POST forces type find without type in body', async () => {
+        const { mod } = load();
+        const findMain = mod.createModeMain('find');
+        const { find, replace, surface, odinEndpoint } = findParams;
+        const res = await findMain({
+            __ow_method: 'post',
+            allowedClientId: 'mas-studio',
+            find,
+            replace,
+            surface,
+            odinEndpoint,
+        });
+        expect(res.statusCode).to.equal(202);
+    });
+
+    it('bulk-edit-find GET rejects replace jobIds', async () => {
+        const { mod } = load({
+            existing: { type: 'replace', status: 'DONE', total: 1, exportReady: true },
+        });
+        const findMain = mod.createModeMain('find');
+        const res = await findMain({ __ow_method: 'get', jobId: 'replace.abc.dry.12345678' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('bulk-edit-replace');
+    });
+
+    it('bulk-edit-replace GET rejects find jobIds', async () => {
+        const { mod } = load({ existing: { type: 'find', status: 'DONE', total: 1 } });
+        const replaceMain = mod.createModeMain('replace');
+        const res = await replaceMain({ __ow_method: 'get', jobId: 'abc123' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('bulk-edit-find');
+    });
+
+    it('bulk-edit-replace POST 401s a disallowed caller', async () => {
+        const { mod } = load({ allowed: false });
+        const replaceMain = mod.createModeMain('replace');
+        const res = await replaceMain({
+            __ow_method: 'post',
+            allowedClientId: 'mas-studio',
+            findJobId: 'find-1',
+            odinEndpoint: 'https://odin.example',
+        });
+        expect(res.error.statusCode).to.equal(401);
+    });
+
+    it('bulk-edit-replace rejects CSV upload', async () => {
+        const { mod } = load({ existing: doneJob });
+        const replaceMain = mod.createModeMain('replace');
+        const res = await replaceMain({
+            __ow_method: 'post',
+            allowedClientId: 'mas-studio',
+            jobId: 'job-1',
+            __ow_body: sampleCsvRow,
+            __ow_headers: { 'content-type': 'text/csv', authorization: 'Bearer token' },
+        });
         expect(res.error.statusCode).to.equal(405);
+    });
+
+    it('bulk-edit-find DELETE removes uploaded CSV', async () => {
+        const uploaded = { rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }] };
+        const { mod, deleteUserCsv, readUserCsv } = load({ existing: doneJob, userCsv: uploaded });
+        readUserCsv.onFirstCall().resolves(uploaded);
+        readUserCsv.onSecondCall().resolves(null);
+        const findMain = mod.createModeMain('find');
+        const res = await findMain({ __ow_method: 'delete', jobId: 'job-1' });
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.filteredByUpload).to.equal(false);
+        expect(deleteUserCsv.calledOnce).to.equal(true);
     });
 });
 

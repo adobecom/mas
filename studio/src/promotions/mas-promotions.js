@@ -4,20 +4,32 @@ import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
 import { PAGE_NAMES, PROMOTION_MODEL_ID } from '../constants.js';
+import { fromAttribute } from '../aem/tag-path-utils.js';
+import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { normalizeKey, showToast } from '../utils.js';
+import { normalizeKey, showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
+import { canEditPromotions } from '../groups.js';
 import {
     canPublishPromotionNow,
     canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
+    confirmUnpublishAlongsidePromoVariations,
     isPromotionExpiredForPublish,
     publishPromotionProject,
+    unpublishPromotionProject,
+    promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
+import { getAllAttachedPromoVariations } from './promotions-repository.js';
 import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
+
+const ENVIRONMENT_FILTER_OPTIONS = [
+    { value: 'production', label: 'Production' },
+    { value: 'test', label: 'Test' },
+];
 
 class MasPromotions extends LitElement {
     static styles = styles;
@@ -25,6 +37,7 @@ class MasPromotions extends LitElement {
     static properties = {
         filter: { type: String, state: true },
         filterOptions: { type: Array, state: true },
+        environmentFilter: { type: Array, state: true },
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
@@ -41,6 +54,7 @@ class MasPromotions extends LitElement {
 
         this.filter = Store.promotions?.list?.filter?.get() || 'active';
         this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
+        this.environmentFilter = ['production'];
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
@@ -55,6 +69,7 @@ class MasPromotions extends LitElement {
             Store.promotions?.list?.loading,
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
+            Store.users,
         ]);
     }
 
@@ -209,25 +224,34 @@ class MasPromotions extends LitElement {
             <sp-table emphasized scroller @change=${this.updateTableSelection} class="promotions-table">
                 ${this.renderTableHeader(columns)}
                 <sp-table-body>
-                    ${repeat(
-                        filteredPromotions,
-                        (promotion) => html`
+                    ${repeat(filteredPromotions, (promotion) => {
+                        const promo = promotion.get();
+                        return html`
                             <sp-table-row
-                                value=${promotion.get().path}
-                                data-id=${promotion.get().id}
+                                value=${promo.path}
+                                data-id=${promo.id}
                                 @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
                             >
-                                <sp-table-cell>${promotion.get().title}</sp-table-cell>
-                                <sp-table-cell>${promotion.get().timeline}</sp-table-cell>
-                                ${renderPromotionStatusCell(promotion.get().promotionStatus)}
-                                <sp-table-cell>${promotion.get().createdBy}</sp-table-cell>
+                                <sp-table-cell>${promo.title}</sp-table-cell>
+                                <sp-table-cell>
+                                    <span class="timeline-cell">
+                                        ${promo.timeline}
+                                        ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
+                                    </span>
+                                </sp-table-cell>
+                                ${renderPromotionStatusCell(promo.promotionStatus)}
+                                <sp-table-cell>${promo.createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>
-                        `,
-                    )}
+                        `;
+                    })}
                 </sp-table-body>
             </sp-table>
         `;
+    }
+
+    willUpdate() {
+        this.canEdit = canEditPromotions();
     }
 
     render() {
@@ -235,10 +259,12 @@ class MasPromotions extends LitElement {
             <div class="promotions-container">
                 <div class="promotions-header">
                     <sp-search size="m" placeholder="Search"></sp-search>
-                    <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create promotion project
-                    </sp-button>
+                    ${this.canEdit
+                        ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
+                              <sp-icon-add slot="icon"></sp-icon-add>
+                              Create promotion project
+                          </sp-button>`
+                        : nothing}
                 </div>
 
                 ${this.renderError()}
@@ -273,11 +299,69 @@ class MasPromotions extends LitElement {
                 ></mas-promotion-duplicate-dialog>
 
                 <div class="promotions-filters-container">
-                    <div class="filters-container"><sp-icon-filter></sp-icon-filter><span>Filters:</span></div>
-                    <div class="result-count-container">${(this.promotionsData || []).length} results</div>
+                    <div class="promotions-filters-row">
+                        <div class="filters-container">
+                            <sp-icon-filter></sp-icon-filter><span>Filters:</span>
+                            ${this.renderEnvironmentFilterPicker}
+                        </div>
+                        <div class="result-count-container">${(this.promotionsData || []).length} results</div>
+                    </div>
+                    ${this.renderAppliedEnvironmentFilters()}
                 </div>
 
                 <div class="promotions-content">${this.renderPromotionsContent()}</div>
+            </div>
+        `;
+    }
+
+    get renderEnvironmentFilterPicker() {
+        const selectedCount = this.environmentFilter.length;
+        const displayLabel = selectedCount > 0 ? `Environment (${selectedCount})` : 'Environment';
+
+        return html`
+            <div class="environment-filter-picker">
+                <overlay-trigger placement="bottom-start">
+                    <sp-action-button class="environment-filter" dir="ltr" slot="trigger">
+                        ${displayLabel}
+                        <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                    </sp-action-button>
+                    <sp-popover slot="click-content" class="filter-popover">
+                        <div class="checkbox-list">
+                            ${ENVIRONMENT_FILTER_OPTIONS.map(
+                                (option) => html`
+                                    <sp-checkbox
+                                        value=${option.value}
+                                        ?checked=${this.environmentFilter.includes(option.value)}
+                                        @change=${(e) => this.#handleEnvironmentCheckboxChange(option.value, e)}
+                                    >
+                                        ${option.label}
+                                    </sp-checkbox>
+                                `,
+                            )}
+                        </div>
+                    </sp-popover>
+                </overlay-trigger>
+            </div>
+        `;
+    }
+
+    renderAppliedEnvironmentFilters() {
+        if (!this.environmentFilter.length) return nothing;
+
+        return html`
+            <div class="applied-filters">
+                <sp-tags>
+                    ${repeat(
+                        this.environmentFilter,
+                        (value) => value,
+                        (value) => html`
+                            <sp-tag size="s" deletable .value=${value} @delete=${this.#handleEnvironmentTagDelete}>
+                                ${ENVIRONMENT_FILTER_OPTIONS.find((option) => option.value === value)?.label}
+                            </sp-tag>
+                        `,
+                    )}
+                </sp-tags>
+                <sp-action-button quiet @click=${this.#clearEnvironmentFilter}>Clear all</sp-action-button>
             </div>
         `;
     }
@@ -306,6 +390,18 @@ class MasPromotions extends LitElement {
     }
 
     renderActionCell(promotion) {
+        if (!this.canEdit) {
+            return html`
+                <sp-table-cell>
+                    <sp-action-menu size="m">
+                        <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">
+                            <sp-icon-preview slot="icon"></sp-icon-preview>
+                            View
+                        </sp-menu-item>
+                    </sp-action-menu>
+                </sp-table-cell>
+            `;
+        }
         return html`
             <sp-table-cell>
                 <sp-action-menu size="m">
@@ -440,9 +536,15 @@ class MasPromotions extends LitElement {
         if (!fragment.isPromotionPublished) {
             return;
         }
+        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+            this.repository.aem,
+            fragment,
+            (title, message, options) => this.#showDialog(title, message, options),
+        );
+        if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await this.repository.unpublishFragment(fragment, true);
+            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;
@@ -453,9 +555,11 @@ class MasPromotions extends LitElement {
         if (this.isDialogOpen) {
             return;
         }
+        const fragment = promotion.get();
+        const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, fragment);
         const confirmed = await this.#showDialog(
             'Confirm Delete',
-            `Are you sure you want to delete the promotion project "${promotion.get().title}"? This action cannot be undone.`,
+            promotionDeleteConfirmMessage(fragment.title, attachedVariations.length),
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
@@ -463,10 +567,13 @@ class MasPromotions extends LitElement {
             },
         );
         if (!confirmed) return;
+        const tagId = getPromotionTagFromFragment(promotion.get());
+        const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
             this.loading = true;
             showToast('Deleting promotion campaign...');
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
+            if (tagPath) await this.repository.aem.tags.delete(tagPath);
             const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
             this.promotionsData = updatedPromotions;
             Store.promotions.list.data.set(updatedPromotions);
@@ -530,7 +637,35 @@ class MasPromotions extends LitElement {
             );
             this.promotionsData = filteredPromotions;
         }
+
+        if (this.environmentFilter.length) {
+            this.promotionsData = this.promotionsData.filter((promotion) =>
+                this.environmentFilter.includes(promotion.value?.promotionEnvironment),
+            );
+        }
     }
+
+    #handleEnvironmentCheckboxChange(value, e) {
+        e.stopPropagation();
+        if (e.target.checked) {
+            if (!this.environmentFilter.includes(value)) {
+                this.environmentFilter = [...this.environmentFilter, value];
+            }
+        } else {
+            this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
+        }
+        this.#handleFilterPromotions(this.filter);
+    }
+
+    #handleEnvironmentTagDelete = ({ target: { value } }) => {
+        this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
+        this.#handleFilterPromotions(this.filter);
+    };
+
+    #clearEnvironmentFilter = () => {
+        this.environmentFilter = [];
+        this.#handleFilterPromotions(this.filter);
+    };
 }
 
 customElements.define('mas-promotions', MasPromotions);

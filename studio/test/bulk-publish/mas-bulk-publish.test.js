@@ -75,7 +75,7 @@ function makeProjectStore(data = {}) {
         id: 'proj-1',
         title: 'Test Project',
         status: BULK_PUBLISH_STATUS.DRAFT,
-        items: '[]',
+        fragments: [],
         locales: [],
         created: { fullName: 'Jane Doe' },
         publishedAt: null,
@@ -155,7 +155,7 @@ describe('mas-bulk-publish (methods)', () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
-        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: [] });
+        const ps = makeProjectStore({ title: 'Original', fragments: [], locales: [] });
         el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
 
         const rawFragment = { id: 'new-id', path: '/content/dam/mas/new', fields: [], status: 'Draft' };
@@ -177,7 +177,7 @@ describe('mas-bulk-publish (methods)', () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
-        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: ['en_US', 'fr_FR'] });
+        const ps = makeProjectStore({ title: 'Original', fragments: [], locales: ['en_US', 'fr_FR'] });
         el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
 
         const rawFragment = { id: 'new-id', path: '/content/dam/mas/new', fields: [], status: 'Draft' };
@@ -268,46 +268,6 @@ describe('mas-bulk-publish (pure methods)', () => {
     before(async () => {
         el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
-    });
-
-    describe('parseItems', () => {
-        it('returns [] for null', () => {
-            expect(el.parseItems(null)).to.deep.equal([]);
-        });
-
-        it('returns [] for invalid JSON', () => {
-            expect(el.parseItems('not-json')).to.deep.equal([]);
-        });
-
-        it('returns parsed array for valid JSON', () => {
-            const items = [{ url: 'a', status: 'valid', type: 'fragment' }];
-            expect(el.parseItems(JSON.stringify(items))).to.deep.equal(items);
-        });
-    });
-
-    describe('countByType', () => {
-        it('counts valid items by type', () => {
-            const items = [
-                { status: 'valid', type: 'fragment' },
-                { status: 'valid', type: 'collection' },
-                { status: 'valid', type: 'placeholder' },
-                { status: 'valid', type: 'fragment' },
-            ];
-            expect(el.countByType(items)).to.deep.equal({ fragment: 2, collection: 1, placeholder: 1 });
-        });
-
-        it('skips items that are not valid', () => {
-            const items = [
-                { status: 'error', type: 'fragment' },
-                { status: 'valid', type: 'fragment' },
-            ];
-            expect(el.countByType(items)).to.deep.equal({ fragment: 1, collection: 0, placeholder: 0 });
-        });
-
-        it('falls back to fragment for unknown type', () => {
-            const items = [{ status: 'valid', type: 'unknown' }];
-            expect(el.countByType(items)).to.deep.equal({ fragment: 1, collection: 0, placeholder: 0 });
-        });
     });
 
     describe('formatDate', () => {
@@ -433,5 +393,25 @@ describe('mas-bulk-publish (render)', () => {
         await el.updateComplete;
         const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
         expect(row.querySelector('sp-action-button')).to.exist;
+    });
+
+    async function resetItemFor(status) {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        return [...row.querySelectorAll('sp-menu-item')].find((i) => i.textContent.includes('Reset to Draft'));
+    }
+
+    it('offers Reset to Draft for a project stuck in Publishing', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.PUBLISHING)).to.exist;
+    });
+
+    it('offers Reset to Draft for a failed project', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.FAILED)).to.exist;
+    });
+
+    it('hides Reset to Draft for a published project', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.PUBLISHED)).to.not.exist;
     });
 });

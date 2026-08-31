@@ -8,12 +8,23 @@ import './mas-settings-table.js';
 import '../mas-quick-actions.js';
 import '../mas-locale-picker.js';
 import '../aem/aem-tag-picker-field.js';
+import '../promotions/mas-promo-variation-geos.js';
 import '../common/fields/tree-picker-field.js';
 import '../common/fields/quantity-select.js';
+import { ensureNamespaceTags } from '../aem/tag-cache.js';
+import { toAttribute } from '../aem/tag-path-utils.js';
 import { createQuantitySelectValue } from '../common/fields/quantity-select.js';
 import { getVariantTreeData } from '../editors/variant-picker.js';
 import { SETTING_NAME_DEFINITIONS } from '../../../io/www/src/fragment/transformers/settings.js';
-import { DELETE_BLOCKED_STATUSES, getSettingNameDefinition } from './settings-store.js';
+import {
+    DELETE_BLOCKED_STATUSES,
+    OVERRIDE_SCOPE_REQUIRED_MESSAGE,
+    getSettingNameDefinition,
+    hasOverrideSelection,
+} from './settings-store.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
+const isGeoTagPath = (path) => /\/pzn\/country\/[^/]+$/i.test(path) || /\/locale\/(?:[^/]+\/)?[^/]+_[^/]+$/i.test(path);
 
 const getSettingDefaultValue = (definition) => {
     if (definition.editor === 'boolean') return true;
@@ -190,6 +201,7 @@ class MasSettings extends LitElement {
         aem: { type: Object, attribute: false },
         dialog: { state: true },
         form: { state: true },
+        geoOptions: { state: true },
         showDiscardDialog: { state: true },
     };
 
@@ -216,6 +228,7 @@ class MasSettings extends LitElement {
         this.loadedSurface = '';
         this.dialog = null;
         this.form = this.#getDefaultForm();
+        this.geoOptions = [];
         this.formBaseline = this.#getDefaultForm();
         this.formRouteId = null;
         this.discardPromiseResolver = null;
@@ -291,12 +304,23 @@ class MasSettings extends LitElement {
         if (!Store.settings.aem) {
             Store.settings.initAem(this.bucket, this.baseUrl);
         }
+        void this.#loadGeoOptions();
         this.loadedSurface = surface;
         Store.settings.ensureSurfaceLoaded(surface).then(() => {
             if (this.surface !== surface) {
                 this.#loadSettings();
             }
         });
+    }
+
+    async #loadGeoOptions() {
+        const aem = Store.settings.aem;
+        if (!aem?.tags?.list) return;
+        const tags = await ensureNamespaceTags(MAS_TAG_NAMESPACE, (namespace) => aem.tags.list(namespace));
+        this.geoOptions = [...tags.keys()]
+            .filter(isGeoTagPath)
+            .map((path) => toAttribute(path))
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     }
 
     #getDefaultForm() {
@@ -310,6 +334,7 @@ class MasSettings extends LitElement {
             value: '',
             booleanValue: false,
             locales: [],
+            geos: [],
             addonEnabled: false,
         };
     }
@@ -354,6 +379,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(form.booleanValue),
             locales: [...(form.locales || [])].sort(),
+            geos: [...(form.geos || [])].sort(),
             addonEnabled: Boolean(form.addonEnabled),
         };
     }
@@ -417,6 +443,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(override.booleanValue),
             locales: [...(override.locales || [])],
+            geos: [...(override.geos || [])],
             addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(override.booleanValue) : false,
         };
         this.formBaseline = structuredClone(this.form);
@@ -532,6 +559,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(row.booleanValue),
             locales: [],
+            geos: [],
             addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(row.booleanValue) : false,
         };
     };
@@ -675,14 +703,23 @@ class MasSettings extends LitElement {
         return this.form.name === 'addon' && this.form.addonEnabled && !this.#toAddonPlaceholderKey(this.form.value);
     }
 
+    get isOverrideScopeMissing() {
+        return !hasOverrideSelection(this.form);
+    }
+
     get isOverrideSaveDisabled() {
         if (Store.settings.loading.get()) return true;
+        if (this.isOverrideScopeMissing) return true;
         if (Boolean(this.overrideConflict)) return true;
         if (this.isAddonPlaceholderMissing) return true;
         return false;
     }
 
     #submitOverride = async (publish = false) => {
+        if (this.isOverrideScopeMissing) {
+            showToast(OVERRIDE_SCOPE_REQUIRED_MESSAGE, 'negative');
+            return;
+        }
         if (this.overrideConflict) {
             showToast('Conflict detected. Choose a different locale or template.', 'negative');
             return;
@@ -701,6 +738,7 @@ class MasSettings extends LitElement {
 
         const payload = {
             locales: [...this.form.locales],
+            geos: [...(this.form.geos || [])],
             templateIds: [...this.form.templateIds],
             tags: [...this.form.tags],
             valueType,
@@ -969,6 +1007,10 @@ class MasSettings extends LitElement {
         this.#setFormField('locales', [...detail.locales]);
     };
 
+    #handleOverrideGeosChange = ({ detail }) => {
+        this.#setFormField('geos', [...detail.value]);
+    };
+
     #handleQuantitySelectChange = (event) => {
         const value = event.detail?.value ?? event.currentTarget?.value;
         if (typeof value !== 'string') return;
@@ -1125,7 +1167,20 @@ class MasSettings extends LitElement {
                             @locale-changed=${this.#handleOverrideLocaleChange}
                         ></mas-locale-picker>
                     </sp-field-group>
-                    ${this.tagsTemplate} ${this.overrideBooleanToggleTemplate}
+                    <sp-field-group>
+                        <sp-field-label>Geos</sp-field-label>
+                        <mas-promo-variation-geos
+                            compact
+                            .geos=${this.geoOptions}
+                            .value=${this.form.geos}
+                            @change=${this.#handleOverrideGeosChange}
+                        ></mas-promo-variation-geos>
+                    </sp-field-group>
+                    ${this.tagsTemplate}
+                    ${this.isOverrideScopeMissing
+                        ? html`<sp-help-text variant="negative">${OVERRIDE_SCOPE_REQUIRED_MESSAGE}</sp-help-text>`
+                        : nothing}
+                    ${this.overrideBooleanToggleTemplate}
                     <sp-field-group>
                         <sp-field-label>Value</sp-field-label>
                         ${this.valueInputTemplate}

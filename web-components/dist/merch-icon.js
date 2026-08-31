@@ -1,7 +1,7 @@
-var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):n[e]=t;var V=(n,e)=>()=>(n&&(e=n(n=0)),e);var _=(n,e)=>{for(var t in e)P(n,t,{get:e[t],enumerable:!0})};var d=(n,e,t)=>H(n,typeof e!="symbol"?e+"":e,t);var k={};_(k,{default:()=>y});import{LitElement as A,html as u,css as R,nothing as Y}from"./lit-all.min.js";import{unsafeHTML as C}from"./lit-all.min.js";import{ifDefined as I}from"./lit-all.min.js";function N(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o,y,z=V(()=>{o=class o extends A{constructor(){super(),this.content="",this.placement="top",this.variant="",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();o.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),a=window.innerWidth,p=window.innerHeight,i=14,r=200,l=60,f=this.shadowRoot?.querySelector(".css-tooltip-body"),c=f?f.offsetWidth:r,h=f?f.offsetHeight:l,s=this.effectivePlacement;s==="top"&&t.top-h-i<0?s="bottom":s==="bottom"&&t.bottom+h+i>p?s="top":s==="left"&&t.left-c-i<0?s="right":s==="right"&&t.right+c+i>a&&(s="left");let S=t.left+t.width/2,$=t.top+t.height/2,g=6,v=(E,L,q)=>Math.max(E,Math.min(L,q)),x,w,T;s==="top"||s==="bottom"?(x=s==="top"?t.top-h-i:t.bottom+i,w=v(0,a-c,S-c/2),T=v(g,c-g*2,S-w-g)):(w=s==="left"?t.left-c-i:t.right+i,x=v(0,p-h,$-h/2),T=v(g,h-g*2,$-x-g)),this._tooltipTop=x,this._tooltipLeft=w,this._arrowOffset=T,this._computedPlacement=s}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||this.textContent?.trim()||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?u`<merch-icon
+var N=Object.defineProperty;var I=(i,e,t)=>e in i?N(i,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):i[e]=t;var H=(i,e,t)=>()=>{if(t)throw t[0];try{return i&&(e=i(i=0)),e}catch(r){throw t=[r],r}};var D=(i,e)=>{for(var t in e)N(i,t,{get:e[t],enumerable:!0})};var E=(i,e,t)=>I(i,typeof e!="symbol"?e+"":e,t);var O={};D(O,{default:()=>_});import{LitElement as G,html as T,css as F,nothing as k}from"./lit-all.min.js";import{unsafeHTML as L}from"./lit-all.min.js";import{ifDefined as B}from"./lit-all.min.js";function z(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var n,_,P=H(()=>{n=class n extends G{constructor(){super(),this.content="",this.placement="top",this.variant="",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();n.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),r=window.innerWidth,l=window.innerHeight,o=14,a=200,c=60,d=this.shadowRoot?.querySelector(".css-tooltip-body"),p=d?d.offsetWidth:a,m=d?d.offsetHeight:c,s=this.effectivePlacement;s==="top"&&t.top-m-o<0?s="bottom":s==="bottom"&&t.bottom+m+o>l?s="top":s==="left"&&t.left-p-o<0?s="right":s==="right"&&t.right+p+o>r&&(s="left");let x=t.left+t.width/2,C=t.top+t.height/2,u=6,S=(w,v,M)=>Math.max(w,Math.min(v,M)),g,A,R;s==="top"||s==="bottom"?(g=s==="top"?t.top-m-o:t.bottom+o,A=S(0,r-p,x-p/2),R=S(u,p-u*2,x-A-u)):(A=s==="left"?t.left-p-o:t.right+o,g=S(0,l-m,C-m/2),R=S(u,m-u*2,C-g-u)),this._tooltipTop=g,this._tooltipLeft=A,this._arrowOffset=R,this._computedPlacement=s}showTooltip(){n.activeTooltip&&n.activeTooltip!==this&&(n.activeTooltip.closeOverlay(),n.activeTooltip.tooltipVisible=!1,n.activeTooltip.requestUpdate()),n.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){n.activeTooltip===this&&(n.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||this.textContent?.trim()||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?T`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:u`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return u`<span class="icon-only">${this.renderIcon()}</span>`;if(N())return u`
+        ></merch-icon>`:T`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return T`<span class="icon-only">${this.renderIcon()}</span>`;if(z())return T`
                 <overlay-trigger
                     placement="${t}"
                     @sp-opened=${()=>this.showTooltip()}
@@ -12,32 +12,32 @@ var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configura
                         placement="${t}"
                         variant="${this.variant}"
                     >
-                        ${C(e)}
+                        ${L(e)}
                     </sp-tooltip>
                 </overlay-trigger>
-            `;let p=e.replace(/<[^>]*>/g,""),i=this.tooltipVisible?"tooltip-visible":"",r={pointerdown:m=>{this.lastPointerType=m.pointerType},pointerenter:m=>m.pointerType!=="touch"&&this.showTooltip(),pointerleave:m=>m.pointerType!=="touch"&&this.hideTooltip(),click:m=>{this.lastPointerType==="touch"&&this.handleTap(m),this.lastPointerType=null}},l=this._computedPlacement,f=l==="top"||l==="bottom",c=this.smartPlacement?`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`:void 0,h=f?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return u`
+            `;let l=e.replace(/<[^>]*>/g,""),o=this.tooltipVisible?"tooltip-visible":"",a={pointerdown:h=>{this.lastPointerType=h.pointerType},pointerenter:h=>h.pointerType!=="touch"&&this.showTooltip(),pointerleave:h=>h.pointerType!=="touch"&&this.hideTooltip(),click:h=>{this.lastPointerType==="touch"&&this.handleTap(h),this.lastPointerType=null}},c=this._computedPlacement,d=c==="top"||c==="bottom",p=this.smartPlacement?`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`:void 0,m=d?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return T`
             <span
-                class="css-tooltip ${this.smartPlacement?"smart":t} ${i}"
+                class="css-tooltip ${this.smartPlacement?"smart":t} ${o}"
                 tabindex="0"
                 role="img"
-                aria-label="${p}"
-                @pointerdown=${r.pointerdown}
-                @pointerenter=${r.pointerenter}
-                @pointerleave=${r.pointerleave}
-                @click=${r.click}
+                aria-label="${l}"
+                @pointerdown=${a.pointerdown}
+                @pointerenter=${a.pointerenter}
+                @pointerleave=${a.pointerleave}
+                @click=${a.click}
             >
                 ${this.renderIcon()}
-                <span class="css-tooltip-body" style=${I(c)}>
-                    ${C(e)}
-                    ${this.smartPlacement?u`<span
+                <span class="css-tooltip-body" style=${B(p)}>
+                    ${L(e)}
+                    ${this.smartPlacement?T`<span
                               aria-hidden="true"
                               role="presentation"
-                              class="css-tooltip-tip ${l}"
-                              style="${h}"
-                          ></span>`:Y}
+                              class="css-tooltip-tip ${c}"
+                              style="${m}"
+                          ></span>`:k}
                 </span>
             </span>
-        `}};d(o,"activeTooltip",null),d(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},alt:{type:String},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),d(o,"styles",R`
+        `}};E(n,"activeTooltip",null),E(n,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},alt:{type:String},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),E(n,"styles",F`
         :host {
             display: contents;
             overflow: visible;
@@ -211,17 +211,17 @@ var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configura
         .icon-only {
             display: inline-block;
         }
-    `);y=o;customElements.define("mas-mnemonic",y)});import{LitElement as X,html as O,css as W}from"./lit-all.min.js";function B(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var b=class extends X{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(B())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(t=>{let a="",p="top";if(t.tagName==="SP-TOOLTIP")a=t.textContent,p=t.getAttribute("placement")||"top";else if(t.tagName==="OVERLAY-TRIGGER"){let i=t.querySelector("sp-tooltip");i&&(a=i.textContent,p=i.getAttribute("placement")||t.getAttribute("placement")||"top")}if(a){let i=document.createElement("mas-mnemonic");i.setAttribute("content",a),i.setAttribute("placement",p);let r=this.querySelector("img"),l=this.querySelector("a");l&&l.contains(r)?i.appendChild(l):r&&i.appendChild(r),this.innerHTML="",this.appendChild(i),Promise.resolve().then(()=>z())}t.remove()})}render(){let{href:e}=this;return e?O`<a href="${e}">
+    `);_=n;customElements.define("mas-mnemonic",_)});import{LitElement as W,html as y,css as K}from"./lit-all.min.js";var Q=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),Z=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var U='span[is="inline-price"][data-wcs-osi]',Y='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var $='a[is="upt-link"]',j=`${U},${Y},${$}`;var J=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var tt=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});var V=["www.adobe.com","www.stage.adobe.com"];function b(i,e=window.location.hostname){if(!i||!V.includes(e))return i;try{let t=new URL(i,`https://${e}`);return/\.aem\.(live|page)$/.test(t.hostname)?`${t.pathname}${t.search}${t.hash}`:i}catch{return i}}function q(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var f=class extends W{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(q())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(t=>{let r="",l="top";if(t.tagName==="SP-TOOLTIP")r=t.textContent,l=t.getAttribute("placement")||"top";else if(t.tagName==="OVERLAY-TRIGGER"){let o=t.querySelector("sp-tooltip");o&&(r=o.textContent,l=o.getAttribute("placement")||t.getAttribute("placement")||"top")}if(r){let o=document.createElement("mas-mnemonic");o.setAttribute("content",r),o.setAttribute("placement",l);let a=this.querySelector("img"),c=this.querySelector("a");c&&c.contains(a)?o.appendChild(c):a&&o.appendChild(a),this.innerHTML="",this.appendChild(o),Promise.resolve().then(()=>P())}t.remove()})}render(){let{href:e}=this,t=b(this.src);return e?y`<a href="${e}">
                   <img
-                      src="${this.src}"
+                      src="${t}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`:O` <img
-                  src="${this.src}"
+              </a>`:y` <img
+                  src="${t}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`}};d(b,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),d(b,"styles",W`
+              />`}};E(f,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),E(f,"styles",K`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -259,4 +259,4 @@ var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configura
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);customElements.define("merch-icon",b);export{b as default};
+    `);customElements.define("merch-icon",f);export{f as default};

@@ -33,9 +33,7 @@
                 height: 80vh;
             }
         </style>
-        <!-- OST: load the new Lit bundle (ost-new.js) — this test asserts the
-             new OST's <ost-app> element + data-testid="ost-close-button". The
-             legacy bundle at studio/ost/index.js does not define these. -->
+        <!-- OST -->
         <script src="../../ost/ost-new.js"></script>
         <link rel="stylesheet" href="../../ost/index.css" />
     </head>
@@ -47,11 +45,19 @@
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/rte/rte-link-editor.js';
+            import '../../src/rte/rte-icon-editor.js';
             import '../../../web-components/dist/mas.js';
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 
-            import { createFromTemplate, delay, applyChanges, selectNodeAtPos, selectWordsInTextNode } from '../utils.js';
+            import {
+                createFromTemplate,
+                delay,
+                applyChanges,
+                selectNodeAtPos,
+                selectWordsInTextNode,
+                triggerRteInput,
+            } from '../utils.js';
 
             runTests(async () => {
                 await mockFetch(withWcs);
@@ -95,9 +101,27 @@
                     await rte.linkEditorElement.updateComplete;
                 };
 
+                const openIconEditor = async function (rte) {
+                    rte.iconEditorButtonElement.click();
+                    rte.requestUpdate();
+                    await rte.updateComplete;
+                    rte.iconEditorElement.requestUpdate();
+                    await rte.iconEditorElement.updateComplete;
+                };
+
                 const clickSave = (rte) => {
                     const saveButton = rte.linkEditorElement.shadowRoot.getElementById('saveButton');
                     saveButton.click();
+                };
+
+                const clickIconSave = (rte) => {
+                    const saveButton = rte.iconEditorElement.shadowRoot.getElementById('saveButton');
+                    saveButton.click();
+                };
+
+                const clickIconCancel = (rte) => {
+                    const cancelButton = rte.iconEditorElement.shadowRoot.getElementById('cancelButton');
+                    cancelButton.click();
                 };
 
                 describe('RTE Field', () => {
@@ -113,13 +137,57 @@
                             changeCount += 1;
                         });
 
-                        rte.value = '<a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
+                        rte.value =
+                            '<a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
                         await delay(100);
 
                         expect(changeCount).to.equal(0);
                         expect(rte.value).to.equal(
-                            '<p><a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
+                            '<p><a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
                         );
+                    });
+
+                    it('preserves data-quantity on a checkout link', async function () {
+                        const rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.value = '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-quantity="3">Buy now</a>';
+                        await delay(100);
+                        expect(rte.value).to.equal(
+                            '<p><a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-quantity="3">Buy now</a></p>',
+                        );
+                    });
+                });
+
+                describe('RTE Field: character counter', () => {
+                    it('shows 0 for an empty field', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(0);
+                        const counter = rte.shadowRoot.getElementById('counter');
+                        expect(counter.textContent.replace(/\s/g, '')).to.equal('0/70');
+                    });
+
+                    it('shows 0 after all content is deleted', async function () {
+                        const rte = await createFromTemplate('rte', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(9); // 'Text only'
+                        const view = rte.editorView;
+                        view.dispatch(view.state.tr.delete(0, view.state.doc.content.size));
+                        await delay(150);
+                        expect(rte.length).to.equal(0);
+                    });
+
+                    it('does not count paragraph breaks as characters', async function () {
+                        const rte = await createFromTemplate('rte-multiline', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(6); // 'abc' + 'def'
+                    });
+
+                    it('counts author-typed spaces', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        await delay(100);
+                        triggerRteInput(rte, ' abc ');
+                        await delay(150);
+                        expect(rte.length).to.equal(5);
                     });
                 });
 
@@ -201,6 +269,53 @@
                     });
                 });
 
+                describe('RTE Field: icon features', () => {
+                    let rte;
+                    const firstIcon = () => rte.shadowRoot.querySelector('.ProseMirror .icon-button');
+
+                    it('should open the icon editor on icon click and support update', async function () {
+                        rte = await createFromTemplate('rte-icon', this.test.title);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openIconEditor(rte);
+                        const { tooltip } = rte.iconEditorElement;
+                        expect(tooltip).to.equal('Info tooltip');
+                        rte.iconEditorElement.tooltip = 'New info tooltip';
+                        rte.iconEditorElement.requestUpdate();
+                        await rte.iconEditorElement.updateComplete;
+                        clickIconSave(rte);
+                        await delay(100);
+                        const tt = firstIcon().getAttribute('data-tooltip');
+                        expect(tt).to.equal('New info tooltip');
+                    });
+
+                    it('should open the icon editor and support inserting icon', async function () {
+                        rte = await createFromTemplate('rte', this.test.title);
+                        await delay(100);
+                        await openIconEditor(rte);
+                        rte.iconEditorElement.tooltip = 'My info tooltip';
+                        rte.iconEditorElement.requestUpdate();
+                        await rte.iconEditorElement.updateComplete;
+                        clickIconSave(rte);
+                        await delay(100);
+                        const tt = firstIcon().getAttribute('data-tooltip');
+                        expect(tt).to.equal('My info tooltip');
+                        // rte.value is what mas-placeholders-item stores as richTextValue
+                        expect(rte.value).to.contain('class="icon-button"');
+                        expect(rte.value).to.contain('data-tooltip="My info tooltip"');
+                    });
+
+                    it('round-trips the icon tooltip title through parse of a saved richTextValue', async function () {
+                        rte = await createFromTemplate('rte-icon', this.test.title);
+                        rte.value =
+                            '<p><span class="icon-button" tabindex="0" role="button" data-tooltip="Saved disclaimer"></span></p>';
+                        await rte.updateComplete;
+                        await delay(100);
+                        expect(firstIcon().getAttribute('data-tooltip')).to.equal('Saved disclaimer');
+                        expect(rte.value).to.contain('data-tooltip="Saved disclaimer"');
+                    });
+                });
+
                 // Theses are not very stable in headless chrome. Enable them for localing.
                 describe('RTE Field: link features', () => {
                     let rte;
@@ -237,6 +352,91 @@
                         const a = firstLink();
                         expect(a.href).to.equal('https://www.adobe.com/max');
                         expect(a.innerText).to.equal('ebodA');
+                    });
+
+                    it('generates a read-only CTA reference when creating a CTA link', async function () {
+                        rte = await createFromTemplate('rte-ctas', this.test.title);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        // A brand-new ctas link gets a key minted up-front, shown read-only.
+                        expect(rte.linkEditorElement.showCtaReference).to.be.true;
+                        expect(rte.linkEditorElement.ctaRefElement.readonly).to.be.ok;
+                        const key = rte.linkEditorElement.ctaRef;
+                        expect(key).to.have.lengthOf(10);
+
+                        rte.linkEditorElement.href = 'https://www.adobe.com';
+                        rte.linkEditorElement.text = 'Buy now';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('data-key')).to.equal(key);
+                    });
+
+                    it('surfaces the existing key and lets a variation retarget it to a parent CTA', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.isVariation = true;
+                        rte.parentCtas = [{ text: 'Save today', key: 'save-today' }];
+                        rte.value = '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm">Buy now</a>';
+                        await delay(100);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        expect(rte.linkEditorElement.showCtaReference).to.be.true;
+                        expect(rte.linkEditorElement.isVariation).to.be.true;
+                        expect(rte.linkEditorElement.ctaRef).to.equal('abc1234xyz');
+
+                        // Picking a parent CTA sets the reference key.
+                        const picker = rte.linkEditorElement.shadowRoot.getElementById('ctaRefPicker');
+                        picker.value = 'save-today';
+                        picker.dispatchEvent(new Event('change'));
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('data-key')).to.equal('save-today');
+                    });
+
+                    it('detects and fixes missing/duplicate reference keys from the modal', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.value =
+                            '<a class="accent" data-key="dup" data-wcs-osi="a">A</a>' +
+                            '<a class="accent" data-key="dup" data-wcs-osi="b">B</a>' +
+                            '<a class="accent" data-wcs-osi="c">C</a>';
+                        await delay(100);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        // One anchor is missing a key and two share 'dup'.
+                        expect(rte.linkEditorElement.ctaKeyIssues.hasIssues).to.be.true;
+                        expect(rte.linkEditorElement.ctaKeyIssues.missingCount).to.equal(1);
+                        expect(rte.linkEditorElement.ctaKeyIssues.duplicateKeys).to.deep.equal(['dup']);
+
+                        const fixLink = rte.linkEditorElement.ctaKeyIssuesElement.querySelector('sp-link');
+                        fixLink.click();
+                        await delay(100);
+
+                        const keys = [...new DOMParser().parseFromString(rte.value, 'text/html').querySelectorAll('a')].map(
+                            (a) => a.getAttribute('data-key'),
+                        );
+                        expect(keys).to.have.lengthOf(3);
+                        expect(keys.every(Boolean)).to.be.true; // no missing keys
+                        expect(new Set(keys).size).to.equal(3); // all unique
+                    });
+
+                    it('does not emit change when a keyless CTA is only selected', async function () {
+                        // Selecting a CTA must not silently heal its key or clear the key-issue
+                        // warning: a selection-only transaction leaves the doc unchanged, so no
+                        // change is dispatched and the fragment is never updated. (MWPW-204765)
+                        rte = await createFromTemplate('rte-ctas', this.test.title);
+                        rte.value = '<a class="accent" data-wcs-osi="a">A</a>';
+                        await delay(100);
+                        let changeCount = 0;
+                        rte.addEventListener('change', () => {
+                            changeCount += 1;
+                        });
+                        rte.selectLink(1);
+                        await delay(100);
+                        expect(changeCount).to.equal(0);
                     });
 
                     it('should open the link editor on selection and support update', async function () {
@@ -435,6 +635,75 @@
                             expect(html).to.not.match(/<a[^>]*>\s*<\/a>/);
                         });
 
+                        it('inserts a soft-bundle inline-price with the comma-joined OSIs intact', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'inline-price',
+                                'data-wcs-osi': 'osi-a,osi-b',
+                            });
+                            await delay(50);
+
+                            const prices = rte.shadowRoot.querySelectorAll('.ProseMirror span[is="inline-price"]');
+                            expect(prices.length).to.equal(1);
+                            expect(prices[0].getAttribute('data-wcs-osi')).to.equal('osi-a,osi-b');
+                            expect(rte.value).to.include('data-wcs-osi="osi-a,osi-b"');
+                        });
+
+                        it('carries data-quantity from the OST onto the inline-price', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'inline-price',
+                                'data-wcs-osi': 'osi-q',
+                                'data-quantity': '2',
+                            });
+                            await delay(50);
+
+                            const price = rte.shadowRoot.querySelector('.ProseMirror span[is="inline-price"]');
+                            expect(price.getAttribute('data-quantity')).to.equal('2');
+                            expect(rte.value).to.include('data-quantity="2"');
+                        });
+
+                        it('keeps the checkout link class when editing after the selection collapsed', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            // Double-click on an accent CTA captured its label and class;
+                            // the multi-step flow then collapses the selection off the link.
+                            rte.ostTargetText = 'Buy now';
+                            rte.ostTargetClass = 'accent';
+                            view.dispatch(view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1)));
+                            await delay(20);
+
+                            dispatchOstSelect({
+                                is: 'checkout-link',
+                                href: '#',
+                                'data-wcs-osi': 'osi-edit',
+                            });
+                            await delay(50);
+
+                            expect(rte.value).to.include('class="accent"');
+                            expect(rte.value).to.include('data-wcs-osi="osi-edit"');
+                        });
+
                         it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {
                             const rteA = await createFromTemplate('rte', this.test.title + '-A');
                             const rteB = await createFromTemplate('rte', this.test.title + '-B');
@@ -503,7 +772,7 @@
             <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>
         </main>
         <template id="rte">
-            <rte-field link>
+            <rte-field link icon>
                 <p>Text only</p>
             </rte-field>
         </template>
@@ -513,7 +782,10 @@
             </rte-field>
         </template>
         <template id="rte-link">
-            <rte-field link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
+            <rte-field id="ctas" link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
+        </template>
+        <template id="rte-ctas">
+            <rte-field id="ctas" link><p>Text only</p></rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>
@@ -605,6 +877,15 @@
                 <rte-field>some text</rte-field>
             </div>
         </template>
+        <template id="rte-empty">
+            <rte-field><p></p></rte-field>
+        </template>
+        <template id="rte-multiline">
+            <rte-field
+                ><p>abc</p>
+                <p>def</p></rte-field
+            >
+        </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
         </template>
@@ -613,6 +894,11 @@
         </template>
         <template id="rte-small">
             <rte-field styling marks="small"> Small </rte-field>
+        </template>
+        <template id="rte-icon">
+            <rte-field icon>
+                <span class="icon-button" tabindex="0" role="button" data-tooltip="Info tooltip"></span>
+            </rte-field>
         </template>
     </body>
 </html>

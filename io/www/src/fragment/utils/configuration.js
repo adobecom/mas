@@ -2,7 +2,7 @@ import { createTimeoutPromise, getJsonFromState } from './common.js';
 import { logDebug } from './log.js';
 
 const HARDCODED_API_KEYS = [
-    'wcms-commerce-ims-ro-user-milo',
+    /wcms\-commerce\-ims\-ro\-user\-milo(-[a-z]+)?$/,
     /^CreativeCloud_v\d+_\d+$/,
     'AdobeExpressWeb',
     'unified_checkout_client_v3',

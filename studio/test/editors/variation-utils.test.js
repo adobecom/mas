@@ -10,6 +10,10 @@ import {
     getVariationTabItems,
     hasAnyVariationTabItems,
     listPromotionVariations,
+    countryTagLeafToLocaleCode,
+    normalizePznTagToLocaleCode,
+    getCtaKeyIssues,
+    summarizeCtaKeyIssues,
     VARIATION_TABS,
 } from '../../src/editors/variation-utils.js';
 
@@ -17,6 +21,77 @@ describe('variation-utils', () => {
     it('effectiveIsVariation requires a parent fragment', () => {
         expect(effectiveIsVariation({ path: '/foo' }, null, true)).to.equal(false);
         expect(effectiveIsVariation({ path: '/foo' }, { path: '/parent' }, true)).to.equal(true);
+    });
+
+    describe('getCtaKeyIssues', () => {
+        it('reports no issues for unique keys', () => {
+            const issues = getCtaKeyIssues([{ key: 'a' }, { key: 'b' }]);
+            expect(issues).to.deep.equal({ missingCount: 0, duplicateKeys: [], hasIssues: false });
+        });
+
+        it('counts anchors missing a key', () => {
+            const issues = getCtaKeyIssues([{ key: 'a' }, { key: null }, { key: '' }]);
+            expect(issues.missingCount).to.equal(2);
+            expect(issues.duplicateKeys).to.deep.equal([]);
+            expect(issues.hasIssues).to.equal(true);
+        });
+
+        it('lists keys shared by more than one anchor', () => {
+            const issues = getCtaKeyIssues([{ key: 'dup' }, { key: 'dup' }, { key: 'dup' }, { key: 'ok' }]);
+            expect(issues.duplicateKeys).to.deep.equal(['dup']);
+            expect(issues.hasIssues).to.equal(true);
+        });
+
+        it('tolerates an empty list', () => {
+            expect(getCtaKeyIssues().hasIssues).to.equal(false);
+        });
+    });
+
+    describe('summarizeCtaKeyIssues', () => {
+        it('joins missing and duplicate counts', () => {
+            expect(summarizeCtaKeyIssues({ missingCount: 2, duplicateKeys: ['a'] })).to.equal(
+                '2 without a reference key, 1 duplicated',
+            );
+        });
+
+        it('is empty when there is nothing to report', () => {
+            expect(summarizeCtaKeyIssues()).to.equal('');
+        });
+    });
+
+    describe('countryTagLeafToLocaleCode', () => {
+        it('maps a bare country to the surface region locale', () => {
+            expect(countryTagLeafToLocaleCode('au', 'acom', 'en')).to.equal('en_AU');
+            expect(countryTagLeafToLocaleCode('SG', 'acom', 'en')).to.equal('en_SG');
+        });
+
+        it('prefers the requested language for multi-language countries', () => {
+            expect(countryTagLeafToLocaleCode('CA', 'acom', 'fr')).to.equal('fr_CA');
+            expect(countryTagLeafToLocaleCode('CA', 'acom', 'en')).to.equal('en_CA');
+        });
+
+        it('returns null for a country the surface does not serve', () => {
+            expect(countryTagLeafToLocaleCode('ZZ', 'acom', 'en')).to.equal(null);
+        });
+
+        it('returns null without a surface', () => {
+            expect(countryTagLeafToLocaleCode('AU', undefined, 'en')).to.equal(null);
+        });
+    });
+
+    describe('normalizePznTagToLocaleCode', () => {
+        it('passes a locale tag through unchanged', () => {
+            expect(normalizePznTagToLocaleCode('mas:pzn/locale/en_US', 'acom', 'en')).to.equal('en_US');
+        });
+
+        it('maps a country tag to the surface locale', () => {
+            expect(normalizePznTagToLocaleCode('mas:pzn/country/tr', 'acom', 'en')).to.equal('en_TR');
+            expect(normalizePznTagToLocaleCode('mas:pzn/country/au', 'acom', 'en')).to.equal('en_AU');
+        });
+
+        it('returns null for a non-geo pzn tag', () => {
+            expect(normalizePznTagToLocaleCode('mas:pzn/segment/edu', 'acom', 'en')).to.equal(null);
+        });
     });
 
     it('isGroupedVariationFragment matches /pzn/ paths', () => {

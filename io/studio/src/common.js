@@ -399,12 +399,13 @@ async function putToOdin(odinEndpoint, fragmentId, authToken, { title, descripti
  * @param {string|null} [etag] - Optional etag for conditional update
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
-async function patchToOdin(odinEndpoint, fragmentId, authToken, patchBody, etag) {
+async function patchToOdin(odinEndpoint, fragmentId, authToken, patchBody, etag, userAgent) {
     const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
         method: 'PATCH',
         contentType: 'application/json-patch+json',
         etag,
         body: JSON.stringify(patchBody),
+        userAgent,
     });
 
     if (!response.ok) {
@@ -443,9 +444,10 @@ async function processBatchWithConcurrency(items, batchSize, processor, rpsLimit
     return allResults;
 }
 
-async function getFragmentWithEtag(odinEndpoint, fragmentId, authToken) {
+async function getFragmentWithEtag(odinEndpoint, fragmentId, authToken, userAgent) {
     const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
         method: 'GET',
+        userAgent,
     });
     const etag = response.headers.get('etag') || response.headers.get('Etag');
     const fragment = await response.json();
@@ -457,6 +459,19 @@ async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
         method: 'DELETE',
         etag,
     });
+}
+
+function parseOdinHttpStatus(error) {
+    const text = String(error?.message || error || '');
+    const statusMatch = text.match(/status (\d{3})/);
+    if (statusMatch) return Number(statusMatch[1]);
+    const colonMatch = text.match(/: (\d{3}): /);
+    if (colonMatch) return Number(colonMatch[1]);
+    return 0;
+}
+
+function isOdinRateLimitError(error) {
+    return parseOdinHttpStatus(error) === 429;
 }
 
 module.exports = {
@@ -481,4 +496,6 @@ module.exports = {
     putToOdin,
     getFragmentWithEtag,
     deleteFragmentById,
+    parseOdinHttpStatus,
+    isOdinRateLimitError,
 };

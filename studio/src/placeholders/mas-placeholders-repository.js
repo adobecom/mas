@@ -3,11 +3,10 @@ import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
-import { getDictionary } from '../../libs/fragment-client.js';
+import { DEFAULT_CONTEXT, getDictionary } from '../../libs/fragment-client.js';
 import {
     DICTIONARY_ENTRY_MODEL_ID,
     DICTIONARY_INDEX_MODEL_ID,
-    ODIN_PREVIEW_FRAGMENTS_URL,
     PAGE_NAMES,
     ROOT_PATH,
     SURFACES,
@@ -152,7 +151,7 @@ export async function createDictionaryIndexFragment({ parentPath, parentReferenc
         }
 
         if (publish) {
-            await repo.publishFragment(indexFragment, [], false);
+            await repo.publishFragment(indexFragment, {}, false);
         }
         return indexFragment;
     } catch (error) {
@@ -270,7 +269,7 @@ export async function addToIndexFragment(fragment) {
             console.info(`Fragment already added to index: ${fragment.path}`);
         }
 
-        await repo.publishFragment(updatedIndexFragment, [], false);
+        await repo.publishFragment(updatedIndexFragment, {}, false);
         return true;
     } catch (error) {
         repo.processError(error, 'Failed to add fragment to index.');
@@ -308,7 +307,7 @@ export async function removeFromIndexFragment(fragments) {
             console.info('Fragment(s) already added to index.');
         }
 
-        await repo.publishFragment(updatedIndexFragment, [], false);
+        await repo.publishFragment(updatedIndexFragment, {}, false);
         return true;
     } catch (error) {
         repo.processError(error, 'Failed to add fragment(s) to index.');
@@ -375,7 +374,7 @@ export async function publishPlaceholder(placeholder) {
         return false;
     }
 
-    return repo.publishFragment(indexFragment, [], false);
+    return repo.publishFragment(indexFragment, {}, false);
 }
 
 export function clearDictionaryCache() {
@@ -432,11 +431,15 @@ export function getDictionaryPath() {
 
 export async function fetchDictionary(abortController, locale = Store.localeOrRegion()) {
     const repo = getRepository();
+    const surface = repo.search.value.path;
     const context = {
-        preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
+        ...DEFAULT_CONTEXT,
         locale,
-        surface: repo.search.value.path,
-        networkConfig: { mainTimeout: 15000, fetchTimeout: 10000, retries: 3 },
+        surface,
+        // getDictionary's global/surface baseline layers key off defaultLocale (see replace.js); without
+        // it the baseline lookup 404s on a locale-less URL and any placeholder authored only on the
+        // shared acom baseline (e.g. edu-disclaimer) renders as its literal {{token}} in Studio preview.
+        defaultLocale: getDefaultLocaleCode(surface, locale) ?? locale,
     };
     if (abortController) context.signal = abortController.signal;
     return getDictionary(context);

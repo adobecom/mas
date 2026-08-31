@@ -86,6 +86,26 @@ class AEM {
     }
 
     /**
+     * POST a FormData body to a path with a fresh CSRF token attached.
+     * @param {string} path - Path appended to baseUrl
+     * @param {FormData} formData
+     * @returns {Promise<Response>}
+     */
+    async postFormWithCsrf(path, formData) {
+        const csrfToken = await this.getCsrfToken();
+        return fetch(`${this.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+    }
+
+    /**
      * Search for content fragments.
      * @param {Object} params - The search options
      * @param {string} [params.path] - The path to search in
@@ -179,8 +199,9 @@ class AEM {
      * @param {AbortController} abortController used for cancellation
      * @returns {Promise<Object>} the raw fragment item
      */
-    async getFragmentById(baseUrl, id, headers, abortController) {
-        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`, {
+    async getFragmentById(baseUrl, id, headers, abortController, { references = 'direct-hydrated' } = {}) {
+        const refParam = references ? `?references=${references}` : '';
+        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}${refParam}`, {
             headers,
             signal: abortController?.signal,
         });
@@ -221,14 +242,20 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<Object>} the updated fragment
      */
-    async saveFragment(fragment) {
+    async saveFragment(fragment, { refetchEtag = true } = {}) {
         if (!fragment?.id) {
             throw new Error('Invalid fragment data for save operation');
         }
 
-        const latestFragment = await this.getFragmentWithEtag(fragment.id);
-        if (!latestFragment) {
-            throw new Error('Failed to retrieve fragment for update');
+        let etag;
+        if (refetchEtag) {
+            const latestFragment = await this.getFragmentWithEtag(fragment.id);
+            if (!latestFragment) {
+                throw new Error('Failed to retrieve fragment for update');
+            }
+            etag = latestFragment.etag;
+        } else {
+            etag = fragment.etag;
         }
 
         const { title, description, fields } = fragment;
@@ -251,7 +278,7 @@ class AEM {
             headers: {
                 ...this.headers,
                 'Content-Type': 'application/json',
-                'If-Match': latestFragment.etag,
+                'If-Match': etag,
             },
             body: JSON.stringify({
                 title,
@@ -261,6 +288,10 @@ class AEM {
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+
+        if (response.status === 412) {
+            throw new UserFriendlyError('Fragment was modified by another user. Please reload and try again.');
+        }
 
         if (!response.ok) {
             throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
@@ -446,7 +477,7 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<void>}
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED']) {
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
@@ -531,15 +562,15 @@ class AEM {
     }
 
     /**
-     * Delete a fragment
+     * Delete and unpublish a fragment using the AEM deleteAndUnpublish API.
+     * Unpublishes before deleting and unlinks references from other fragments.
      * @param {Object} fragment
-     * @returns {Promise<void>}
+     * @returns {Promise<Response>} 202 Accepted (async workflow)
      */
     async deleteFragment(fragment) {
-        const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}/deleteAndUnpublish`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
                 ...this.headers,
             },
@@ -549,7 +580,7 @@ class AEM {
         if (!response.ok) {
             throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
         }
-        return response; //204 No Content
+        return response;
     }
 
     /**
@@ -1079,6 +1110,58 @@ class AEM {
     }
 
     /**
+     * Create a new AEM tag, failing if one already exists at the given path
+     * @param {string} tagPath - Path of the tag to create
+     * @param {string} title - Title of the tag
+     * @returns {Promise<Response>} - The create response
+     */
+    async createTag(tagPath, title) {
+        const response = await fetch(`${this.baseUrl}${tagPath}.json`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.ok) {
+            throw new UserFriendlyError('Tag already exists.');
+        }
+
+        if (response.status !== 404) {
+            throw new Error(`Failed to check tag: ${response.status} ${response.statusText}`);
+        }
+
+        const formData = new FormData();
+        formData.append('jcr:primaryType', 'cq:Tag');
+        formData.append('jcr:title', title);
+
+        const createResponse = await this.postFormWithCsrf(tagPath, formData);
+
+        if (!createResponse.ok) {
+            throw new Error(`Failed to create tag: ${createResponse.status} ${createResponse.statusText}`);
+        }
+
+        return createResponse;
+    }
+
+    /**
+     * Deletes the AEM tag
+     * @param {string} tagPath - Path of the tag to delete
+     * @returns {Promise<Response>} - The delete response
+     */
+    async deleteTag(tagPath) {
+        const formData = new FormData();
+        formData.append(':operation', 'delete');
+
+        const deleteResponse = await this.postFormWithCsrf(tagPath, formData);
+
+        if (!deleteResponse.ok) {
+            throw new Error(`Failed to delete tag: ${deleteResponse.status} ${deleteResponse.statusText}`);
+        }
+        return deleteResponse;
+    }
+
+    /**
      * Get fragment by ID with its ETag in a single operation
      * @param {string} id - Fragment ID
      * @returns {Promise<Object>} - Fragment with its etag
@@ -1322,7 +1405,8 @@ class AEM {
                 /**
                  * @see AEM#getFragmentById
                  */
-                getById: (id, abortController) => this.getFragmentById(this.baseUrl, id, this.headers, abortController),
+                getById: (id, abortController, options) =>
+                    this.getFragmentById(this.baseUrl, id, this.headers, abortController, options),
                 /**
                  * @see AEM#getFragmentWithEtag
                  */
@@ -1419,6 +1503,14 @@ class AEM {
          * @see AEM#listTags
          */
         list: this.listTags.bind(this),
+        /**
+         * @see AEM#createTag
+         */
+        create: this.createTag.bind(this),
+        /**
+         * @see AEM#deleteTag
+         */
+        delete: this.deleteTag.bind(this),
     };
     folders = {
         /**

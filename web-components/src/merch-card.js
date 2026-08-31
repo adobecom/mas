@@ -11,7 +11,6 @@ import {
 } from './variants/variants.js';
 
 import './global.css.js';
-import './aem-fragment.js';
 import './merch-badge.js';
 import './merch-mnemonic-list.js';
 import './merch-whats-included.js';
@@ -69,7 +68,8 @@ function priceOptionsProvider(element, options) {
 
     if (
         !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+            card.hasAttribute('data-promotion-project'))
     ) {
         options.promotionCode = card.contextPromotionCode;
     }
@@ -80,6 +80,12 @@ function priceOptionsProvider(element, options) {
     if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
     }
+    if (
+        options.displayAnnual === undefined &&
+        typeof card.settings?.displayAnnual === 'boolean'
+    ) {
+        options.displayAnnual = card.settings.displayAnnual;
+    }
 }
 
 function checkoutOptionsProvider(element, options) {
@@ -87,7 +93,8 @@ function checkoutOptionsProvider(element, options) {
     if (!card) return options;
     if (
         !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+            card.hasAttribute('data-promotion-project'))
     ) {
         options.promotionCode = card.contextPromotionCode;
     }

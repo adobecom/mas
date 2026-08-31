@@ -12,10 +12,12 @@ const {
     deleteUserCsv,
     readReport,
     readResults,
+    readDryRun,
     touchJobCache,
     JOB_CACHE_TTL,
 } = require('./state.js');
 const { normalizeLocales, invalidSearchScopes, VALID_SEARCH_SCOPES } = require('./search.js');
+const { buildWorkPlan, resolveReplaceRows } = require('./replace.js');
 const {
     parseJobIdParam,
     filterResultsByUserCsv,
@@ -30,8 +32,8 @@ const {
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
-const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
-const REQUIRED_INPUTS = { find: ['find', 'replace', 'surface'] };
+const WORKER_ACTIONS = { find: 'bulk-edit-find-worker', replace: 'bulk-edit-replace-worker' };
+const REQUIRED_INPUTS = { find: ['find', 'replace', 'surface'], replace: ['findJobId'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
 const EXPORT_ROOT = 'private/bulk-edit';
 const PRESIGN_TTL_SECONDS = 24 * 60 * 60;
@@ -210,6 +212,29 @@ function computeJobId(params) {
     return hashSearchKey(buildSearchKey(params));
 }
 
+function computeReplaceJobId(findJobId, { dryRun, actionableRows, findRunId }) {
+    const find12 = String(findJobId).slice(0, 12);
+    const mode = dryRun ? 'dry' : 'live';
+    const payload = {
+        rows: (actionableRows || []).map((row) => ({
+            fragment_id: row.fragment_id,
+            field: row.field,
+            find: row.find,
+            etag: row.etag,
+        })),
+        findRunId: findRunId ?? '',
+    };
+    const csv8 = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 8);
+    return `replace.${find12}.${mode}.${csv8}`;
+}
+
+function actionableReplaceRows(rows) {
+    return (rows || []).filter((row) => {
+        const replace = row.replace ?? '';
+        return replace && replace !== row.find;
+    });
+}
+
 async function cancelJob(jobId) {
     const job = await readJob(jobId);
     if (job && job.status === 'RUNNING') {
@@ -231,7 +256,9 @@ async function handlePost(params) {
     if (!required) return errorResponse(400, `unsupported type '${params.type}'`, logger);
 
     const missing = required.filter((key) => params[key] === undefined || params[key] === '');
-    if (missing.length) return errorResponse(400, `missing parameter(s) '${missing.join(', ')}'`, logger);
+    if (missing.length) return errorResponse(400, `missing parameter(s) '${missing}'`, logger);
+
+    if (params.type === 'replace') return handleReplacePost(params, authToken);
 
     const badScopes = invalidSearchScopes(params.searchIn);
     if (badScopes.length) {
@@ -265,6 +292,8 @@ async function handlePost(params) {
         await deleteJobExports(jobId);
     }
 
+    // runId supersedes any worker still running under this jobId: a forced refresh writes a fresh
+    // runId, and the previous worker stops (without clobbering state) when it sees the mismatch.
     const runId = crypto.randomUUID();
     await writeJob(jobId, {
         type: params.type,
@@ -282,19 +311,97 @@ async function handlePost(params) {
     return { statusCode: 202, body: { jobId, reused: false } };
 }
 
-function isTerminalJob(job) {
+async function handleReplacePost(params, authToken) {
+    if (!(await isAllowed(authToken, params.allowedClientId))) {
+        return errorResponse(401, 'Authorization failed', logger);
+    }
+    if (!params.odinEndpoint) return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
+
+    const required = REQUIRED_INPUTS.replace;
+    const missing = required.filter((key) => params[key] === undefined || params[key] === '');
+    if (missing.length) return errorResponse(400, `missing parameter(s) '${missing.join(', ')}'`, logger);
+
+    const findJob = await readJob(params.findJobId);
+    if (!findJob) return errorResponse(404, `bulk-edit job ${params.findJobId} not found`, logger);
+    if (findJob.status !== 'DONE') {
+        return errorResponse(400, `find job ${params.findJobId} is not ready (status: ${findJob.status})`, logger);
+    }
+
+    const userCsv = await readUserCsv(params.findJobId);
+    const findItems = await resolveFindSourceItems(params.findJobId, findJob);
+    if (!findItems.length) {
+        return errorResponse(400, `find job ${params.findJobId} has no results`, logger);
+    }
+
+    const findParams = findJob.params || {};
+    const replaceRows = resolveReplaceRows(findItems, userCsv?.rows, findParams);
+    const workPlan = buildWorkPlan(replaceRows);
+    if (!workPlan.length) {
+        return errorResponse(400, 'no rows with replace values would change fragments', logger);
+    }
+
+    const dryRun = isForceRefresh(params.dryRun);
+    const jobId = computeReplaceJobId(params.findJobId, {
+        dryRun,
+        actionableRows: actionableReplaceRows(replaceRows),
+        findRunId: findJob.runId,
+    });
+
+    const existing = await readJob(jobId);
+    if (existing && !existing.cancelled && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
+        return { statusCode: 202, body: { jobId, reused: true, dryRun } };
+    }
+
+    const now = new Date().toISOString();
+    const runId = crypto.randomUUID();
+    await writeJob(jobId, {
+        type: 'replace',
+        findJobId: params.findJobId,
+        findRunId: findJob.runId,
+        dryRun,
+        matchCase: !!findJob.params?.matchCase,
+        runId,
+        status: 'RUNNING',
+        results: [],
+        cursor: 0,
+        total: workPlan.length,
+        processed: 0,
+        succeeded: 0,
+        skipped: 0,
+        failed: 0,
+        conflicts: 0,
+        startedAt: now,
+        requestedAt: now,
+    });
+
+    const workerAction = buildSiblingActionName(params, WORKER_ACTIONS.replace);
+    await invokeAsyncAction(workerAction, { jobId, authToken, runId }, params);
+
+    return { statusCode: 202, body: { jobId, reused: false, dryRun } };
+}
+
+function isJobTerminalForDownload(job) {
     return TERMINAL_STATUSES.has(job.status);
 }
 
 async function buildProgressResponse(jobId, job, extras = {}) {
+    const done = TERMINAL_STATUSES.has(job.status);
     const body = {
         jobId,
-        type: 'find',
+        type: job.type || 'find',
         status: job.status,
-        done: isTerminalJob(job),
+        done,
         total: job.total ?? 0,
         ...extras,
     };
+    if (job.type === 'replace') {
+        body.dryRun = !!job.dryRun;
+        body.processed = job.processed;
+        body.succeeded = job.succeeded;
+        body.skipped = job.skipped;
+        body.failed = job.failed;
+        body.conflicts = job.conflicts;
+    }
     if (job.exportReady) {
         body.exportReady = true;
         const exports = await resolveExportUrls(jobId, job);
@@ -304,18 +411,40 @@ async function buildProgressResponse(jobId, job, extras = {}) {
     return { statusCode: 200, body };
 }
 
+function isTerminalJob(job) {
+    return TERMINAL_STATUSES.has(job.status);
+}
+
 async function resolveExportUrls(jobId, job) {
-    if (!job.exportReady || !isTerminalJob(job)) return null;
+    if (!job.exportReady || !isJobTerminalForDownload(job)) return null;
+    const refresh = job.type === 'replace' ? () => refreshReplaceExports(jobId, job) : () => refreshFindExports(jobId, job);
     if (!(await exportFileExists(jobId, 'json'))) {
-        if (!(await refreshFindExports(jobId, job))) return null;
+        if (!(await refresh())) return null;
     }
-    if (!(await exportFileExists(jobId, 'csv'))) {
-        if (!(await refreshFindExports(jobId, job))) return null;
+    if (job.type !== 'replace' && !(await exportFileExists(jobId, 'csv'))) {
+        if (!(await refresh())) return null;
     }
-    return {
-        json: await exportPresignUrl(jobId, 'json'),
-        csv: await exportPresignUrl(jobId, 'csv'),
-    };
+    const exports = { json: await exportPresignUrl(jobId, 'json') };
+    if (job.type !== 'replace') {
+        exports.csv = await exportPresignUrl(jobId, 'csv');
+    }
+    return exports;
+}
+
+async function resolveReplaceSourceItems(jobId, job) {
+    const stateResults = await readResults(jobId);
+    if (stateResults?.length) return stateResults;
+    const dryRun = await readDryRun(jobId);
+    if (dryRun?.length) return dryRun;
+    if (job?.results?.length) return job.results;
+    if (job?.exportReady) {
+        try {
+            return await readExportItems(jobId);
+        } catch {
+            return [];
+        }
+    }
+    return [];
 }
 
 async function refreshFindExports(jobId, job) {
@@ -336,6 +465,37 @@ async function refreshFindExports(jobId, job) {
     });
     await patchJob(jobId, { total: items.length, exportedAt, exportReady: true }, JOB_CACHE_TTL);
     return { report, filteredByUpload: !!userRows?.length };
+}
+
+async function refreshReplaceExports(jobId, job) {
+    const resolvedJob = job || (await readJob(jobId));
+    const items = await resolveReplaceSourceItems(jobId, resolvedJob || {});
+    if (!items.length) return null;
+    let report = await readReport(jobId);
+    if (!report) {
+        const { buildReport } = require('./replace-worker.js');
+        report = buildReport(items, {
+            dryRun: !!resolvedJob?.dryRun,
+            totalRows: items.length,
+            startedAt: resolvedJob?.startedAt || new Date().toISOString(),
+        });
+    }
+    const { exportedAt } = await writeJobExports(jobId, {
+        items,
+        report,
+        type: 'replace',
+        filteredByUpload: false,
+        dryRun: !!resolvedJob?.dryRun,
+        userRows: null,
+    });
+    if (resolvedJob?.dryRun) {
+        const modifiedFragments = items.filter((result) => result.status === 'WOULD_REPLACE');
+        if (modifiedFragments.length) {
+            await writeFullExport(jobId, 'replace', modifiedFragments);
+        }
+    }
+    await patchJob(jobId, { exportedAt, exportReady: true }, JOB_CACHE_TTL);
+    return { report };
 }
 
 async function handleCsvUpload(params) {
@@ -426,6 +586,11 @@ async function handleCsvDelete(params) {
     };
 }
 
+async function handleReplaceGet(job, jobId) {
+    const report = TERMINAL_STATUSES.has(job.status) ? await readReport(jobId) : null;
+    return buildProgressResponse(jobId, job, { report });
+}
+
 async function handleGet(params) {
     const authToken = getBearerToken(params);
     if (!(await isAllowed(authToken, params.allowedClientId))) {
@@ -452,6 +617,8 @@ async function handleGet(params) {
         await touchJobCache(jobId, job);
     }
 
+    if (job.type === 'replace') return handleReplaceGet(job, jobId);
+
     const userCsv = await readUserCsv(jobId);
     const report = await readReport(jobId);
     return buildProgressResponse(jobId, job, {
@@ -460,49 +627,127 @@ async function handleGet(params) {
     });
 }
 
-async function main(params) {
-    try {
-        const method = (params.__ow_method || '').toLowerCase();
-        if (method === 'post') {
-            if (isCsvUpload(params)) {
-                return handleCsvUpload({ ...params, allowedClientId: params.allowedClientId });
-            }
-            const request = parseOwBody(params);
-            request.allowedClientId = params.allowedClientId;
-            request.odinEndpoint = params.odinEndpoint;
-            request.__ow_headers = params.__ow_headers;
-            request.type = 'find';
-            return await handlePost(request);
-        }
-        if (method === 'get') return await handleGet(params);
-        if (method === 'delete') {
-            const authToken = getBearerToken(params);
-            if (!(await isAllowed(authToken, params.allowedClientId))) {
-                return errorResponse(401, 'Authorization failed', logger);
-            }
-            return await handleCsvDelete({ ...params, allowedClientId: params.allowedClientId });
-        }
-        return errorResponse(405, `method '${method}' not allowed`, logger);
-    } catch (error) {
-        logger.error(JSON.stringify({ event: 'bulk-edit-error', error: error.message }));
-        return errorResponse(500, error.message || 'Internal server error', logger);
+function jobModeMismatchError(job, mode, jobId) {
+    const jobType = job.type || 'find';
+    if (mode === 'find' && jobType === 'replace') {
+        return errorResponse(400, `job ${jobId} is a replace job — use bulk-edit-replace`, logger);
     }
+    if (mode === 'replace' && jobType !== 'replace') {
+        return errorResponse(400, `job ${jobId} is a find job — use bulk-edit-find`, logger);
+    }
+    return null;
+}
+
+async function handleGetForMode(params, mode) {
+    const rawJobId = params.jobId;
+    if (!rawJobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
+
+    const { jobId } = parseJobIdParam(rawJobId);
+    if (!jobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
+
+    const job = await readJob(jobId);
+    if (!job) return errorResponse(404, `bulk-edit job ${jobId} not found`, logger);
+
+    const mismatch = jobModeMismatchError(job, mode, jobId);
+    if (mismatch) return mismatch;
+
+    return handleGet(params);
+}
+
+function resolveActionSegment(params) {
+    const actionName = params.__ow_action_name || process.env.__OW_ACTION_NAME || '';
+    return String(actionName).split('/').filter(Boolean).pop() || String(actionName);
+}
+
+function resolveBulkEditMode(params) {
+    if (params.bulkEditMode === 'replace') return 'replace';
+    if (params.bulkEditMode === 'find') return 'find';
+    const segment = resolveActionSegment(params);
+    if (segment === 'bulk-edit-replace') return 'replace';
+    if (segment === 'bulk-edit-find') return 'find';
+    return null;
+}
+
+function createModeMain(mode) {
+    return async function modeMain(params) {
+        try {
+            const method = (params.__ow_method || '').toLowerCase();
+            if (method === 'post') {
+                if (isCsvUpload(params)) {
+                    if (mode === 'replace') {
+                        return errorResponse(405, 'CSV upload is not supported on bulk-edit-replace', logger);
+                    }
+                    return handleCsvUpload({ ...params, allowedClientId: params.allowedClientId });
+                }
+                const body = parseOwBody(params);
+                body.allowedClientId = params.allowedClientId;
+                body.odinEndpoint = params.odinEndpoint;
+                body.__ow_headers = params.__ow_headers;
+                if (mode === 'find') {
+                    body.type = 'find';
+                    return await handlePost(body);
+                }
+                body.type = 'replace';
+                return await handleReplacePost(body, getBearerToken(params));
+            }
+            if (method === 'get') {
+                const authToken = getBearerToken(params);
+                if (!(await isAllowed(authToken, params.allowedClientId))) {
+                    return errorResponse(401, 'Authorization failed', logger);
+                }
+                return await handleGetForMode(params, mode);
+            }
+            if (method === 'delete') {
+                if (mode !== 'find') {
+                    return errorResponse(405, 'CSV delete is not supported on bulk-edit-replace', logger);
+                }
+                const authToken = getBearerToken(params);
+                if (!(await isAllowed(authToken, params.allowedClientId))) {
+                    return errorResponse(401, 'Authorization failed', logger);
+                }
+                return await handleCsvDelete({ ...params, allowedClientId: params.allowedClientId });
+            }
+            return errorResponse(405, `method '${method}' not allowed`, logger);
+        } catch (error) {
+            logger.error(JSON.stringify({ event: 'bulk-edit-error', mode, error: error.message }));
+            return errorResponse(500, error.message || 'Internal server error', logger);
+        }
+    };
+}
+
+async function main(params) {
+    const mode = resolveBulkEditMode(params);
+    if (!mode) {
+        return errorResponse(400, 'bulk-edit action could not be determined from request', logger);
+    }
+    return createModeMain(mode)(params);
 }
 
 module.exports = {
     main,
+    resolveBulkEditMode,
+    createModeMain,
+    jobModeMismatchError,
+    handleGetForMode,
     handlePost,
+    handleReplacePost,
     handleGet,
+    handleReplaceGet,
     handleCsvUpload,
     handleCsvDelete,
     refreshFindExports,
+    refreshReplaceExports,
     resolveFindSourceItems,
     resolveExportUrls,
+    resolveReplaceSourceItems,
     isTerminalJob,
     buildProgressResponse,
+    isJobTerminalForDownload,
     buildFindReport,
     canonicalSearchKey,
     computeJobId,
+    computeReplaceJobId,
+    actionableReplaceRows,
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,

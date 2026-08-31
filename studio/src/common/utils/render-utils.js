@@ -1,5 +1,12 @@
 import { html, nothing } from 'lit';
-import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, DICTIONARY_MODEL_PATH } from '../../constants.js';
+import {
+    FRAGMENT_STATUS,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    PAGE_NAMES,
+    DICTIONARY_MODEL_PATH,
+    BASELINE_VARIATION,
+} from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
 import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
@@ -17,7 +24,7 @@ export function getStudioFragmentDisplayPath(fragment) {
     const path =
         page === PAGE_NAMES.PROMOTIONS_EDITOR
             ? Store.promotions.itemPickerSurface.get() || extractSurfaceFromPath(fragment?.path) || Store.search.get().path
-            : Store.search.get().path;
+            : extractSurfaceFromPath(fragment?.path) || Store.search.get().path;
     return generateCodeToUse(fragment, path, page)?.authorPath || '';
 }
 
@@ -105,9 +112,26 @@ export function shouldIgnoreRowClickForSelection(event) {
         if (!(node instanceof Element)) return false;
         if (node.tagName === 'SP-CHECKBOX') return true;
         if (node.classList?.contains('expand-button')) return true;
+        if (node.classList?.contains('copy-icon-button')) return true;
         if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        if (node.tagName === 'SP-ACTION-MENU') return true;
         return false;
     });
+}
+
+/**
+ * Renders the baseline-variation notice shown when a promotion
+ * variation has no tags of its own and inherits the project's tags.
+ * @returns {import('lit').TemplateResult}
+ */
+export function renderInheritedTagsNotice() {
+    return html`<div class="text-with-tooltip">
+        ${BASELINE_VARIATION.TEXT}
+        <overlay-trigger placement="top" triggered-by="hover">
+            <div slot="trigger"><sp-icon-info size="s"></sp-icon-info></div>
+            <sp-tooltip slot="hover-content" placement="top">${BASELINE_VARIATION.TOOLTIP_TEXT}</sp-tooltip>
+        </overlay-trigger>
+    </div>`;
 }
 
 /**

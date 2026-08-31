@@ -3,6 +3,8 @@ import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
 import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
+import { BASELINE_VARIATION } from '../src/constants.js';
 
 describe('MasFragmentVariations', () => {
     let sandbox;
@@ -439,8 +441,30 @@ describe('MasFragmentVariations', () => {
 
             expect(el.textContent).to.include('Promotion');
             expect(el.textContent).to.include('Back to School');
-            expect(el.textContent).to.include('Promotion project');
-            expect(el.textContent).to.include('back-to-school');
+            expect(el.textContent).to.include('Geos variation tags');
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.getAttribute('value')).to.equal(getGroupedVariationTagsValue(promoVariation));
+        });
+
+        it('renders a baseline-variation notice instead of the tag picker when the promo variation has no pznTags', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-baseline',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+                fields: [],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.togglePromoVariation('promo-var-baseline');
+            await el.updateComplete;
+
+            expect(el.querySelector('aem-tag-picker-field')).to.be.null;
+            expect(el.textContent).to.include(BASELINE_VARIATION.TEXT);
         });
 
         it('sets promotionId when opening a promo variation from the promotion tab', async () => {
@@ -477,6 +501,7 @@ describe('MasFragmentVariations', () => {
             const routerModule = await import('../src/router.js');
             const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor').resolves();
             Store.promotions.promotionId.set(null);
+            loadPromotions.resetHistory();
 
             await el.handleEdit(editStore);
 
@@ -484,6 +509,70 @@ describe('MasFragmentVariations', () => {
             expect(Store.promotions.promotionId.get()).to.equal('promo-project-1');
             expect(navigateSpy.calledOnce).to.be.true;
             Store.promotions.promotionId.set(null);
+        });
+    });
+
+    describe('orphaned promo variations fallback', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+        const orphanPath = `${promotionsRoot}/back-to-school/my-card`;
+
+        const createEmptyFragment = () => ({
+            path: parentPath,
+            listLocaleVariations: () => [],
+            listPromoVariations: () => [],
+            listGroupedVariations: () => [],
+        });
+
+        it('probes the promotions tree when the Promotions tab opens and no known variation exists', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.promoVariations.map((variation) => variation.path)).to.deep.equal([orphanPath]);
+        });
+
+        it('does not probe the promotions tree for tabs other than Promotions', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
+        });
+
+        it('does not probe the promotions tree when a known promo variation already exists', async () => {
+            const promoVariation = createVariationFragment({ id: 'known-1', path: `${promotionsRoot}/known/my-card` });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
         });
     });
 });

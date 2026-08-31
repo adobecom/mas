@@ -1,4 +1,8 @@
+import { textWithTooltipStyles } from './common/styles/table-styles.css.js';
+
 export const styles = `
+${textWithTooltipStyles}
+
 .expanded-content {
     background-color: var(--spectrum-white);
     padding: 16px 0px 24px 30px;
@@ -59,6 +63,29 @@ export const styles = `
     outline-offset: -2px;
 }
 
+#content .expanded-content .nested-fragment sp-table-row.selectable-row {
+    cursor: pointer;
+}
+
+#content .expanded-content .nested-fragment sp-table-cell.name sp-checkbox {
+    flex-shrink: 0;
+}
+
+#content mas-fragment-variations sp-table-checkbox-cell {
+    display: none !important;
+}
+
+#content .expanded-content .nested-fragment sp-table-cell.expand-cell:has(sp-checkbox) {
+    max-width: none;
+    min-width: 72px;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+#content .expanded-content .nested-fragment sp-table-cell.expand-cell sp-checkbox {
+    flex-shrink: 0;
+}
+
 /* Grouped variation expanded section */
 .grouped-variation-expanded {
     display: flex;
@@ -81,8 +108,6 @@ export const styles = `
 .tags-group {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-width: 0;
 }
 
 .field-label {
@@ -108,12 +133,6 @@ export const styles = `
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-}
-
-.no-tags {
-    font-size: 14px;
-    color: var(--spectrum-gray-500);
-    font-style: italic;
 }
 
 .duplicate-action {

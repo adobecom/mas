@@ -1,0 +1,100 @@
+{
+    "label": {
+        "fieldLabel": "Label",
+        "type": "string",
+        "maxLength": 255
+    },
+    "navigationLabel": {
+        "fieldLabel": "Navigation label",
+        "type": "string",
+        "maxLength": 255
+    },
+    "queryLabel": {
+        "fieldLabel": "Query label",
+        "type": "string",
+        "maxLength": 255
+    },
+    "icon": {
+        "fieldLabel": "Icon (dark)",
+        "type": "string",
+        "maxLength": 255
+    },
+    "iconLight": {
+        "fieldLabel": "Icon (light)",
+        "type": "string",
+        "maxLength": 255
+    },
+    "cards": {
+        "fieldLabel": "Cards",
+        "type": "content-fragment[]"
+    },
+    "collections": {
+        "fieldLabel": "Collections",
+        "type": "content-fragment[]"
+    },
+    "originalId": {
+        "fieldLabel": "Original ID",
+        "type": "string",
+        "maxLength": 255
+    },
+    "defaultchild": {
+        "fieldLabel": "DefaultChild",
+        "type": "string",
+        "maxLength": 255
+    },
+    "variations": {
+        "fieldLabel": "Variations",
+        "type": "content-fragment[]"
+    },
+    "searchText": {
+        "fieldLabel": "Search Text",
+        "type": "string",
+        "maxLength": 255
+    },
+    "tagFiltersTitle": {
+        "fieldLabel": "Tag filters title",
+        "type": "string",
+        "maxLength": 255
+    },
+    "tagFilters": {
+        "fieldLabel": "Tag filters",
+        "type": "tag[]"
+    },
+    "pznTags": {
+        "fieldLabel": "Personalization tags",
+        "type": "tag[]"
+    },
+    "linksTitle": {
+        "fieldLabel": "Links Title",
+        "type": "string",
+        "maxLength": 255
+    },
+    "link": {
+        "fieldLabel": "Link",
+        "type": "string",
+        "maxLength": 255
+    },
+    "linkText": {
+        "fieldLabel": "Link text",
+        "type": "string",
+        "maxLength": 255
+    },
+    "linkIcon": {
+        "fieldLabel": "Link icon",
+        "type": "string",
+        "maxLength": 255
+    },
+    "pageSize": {
+        "fieldLabel": "Page size",
+        "type": "string",
+        "maxLength": 255
+    },
+    "compareChart": {
+        "fieldLabel": "Compare Chart",
+        "type": "long-text"
+    },
+    "locReady": {
+        "fieldLabel": "Loc Ready",
+        "type": "boolean"
+    }
+}

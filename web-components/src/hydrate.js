@@ -1,4 +1,4 @@
-import { SELECTOR_MAS_INLINE_PRICE } from './constants.js';
+import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -12,26 +12,20 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-const TRIAL_ANALYTICS_IDS = new Set([
-    'free-trial',
-    'start-free-trial',
-    'seven-day-trial',
-    'fourteen-day-trial',
-    'thirty-day-trial',
-]);
 
 /**
  * Normalizes variant names for consistency.
  * Converts any variant starting with 'plans' to just 'plans'.
- * The 'bizpro' variant also normalizes to 'plans' so it shares the plans
- * merch-card-collection column classes and styling (it no longer carries the
- * 'plans' prefix after the rename, so it needs an explicit mapping).
+ * The 'pro' variant also normalizes to 'plans' so it shares the plans
+ * merch-card-collection column classes and styling (it does not carry the
+ * 'plans' prefix, so it needs an explicit mapping).
  * @param {string} variant - The variant name to normalize
  * @returns {string} The normalized variant name
  */
 export function normalizeVariant(variant) {
     if (!variant) return variant;
-    if (variant === 'bizpro') return 'plans';
+    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
+    if (variant === 'pro') return 'plans';
     if (variant.startsWith('plans')) return 'plans';
     return variant;
 }
@@ -98,9 +92,19 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     }
 }
 
-function processBadge(fields, merchCard, mapping) {
+function isMerchBadgeContentEmpty(badgeHtml) {
+    const el = new DOMParser()
+        .parseFromString(badgeHtml, 'text/html')
+        .querySelector('merch-badge');
+    if (!el) return true;
+    if (el.querySelector('span[is="inline-price"]')) return false;
+    return !el.textContent?.trim();
+}
+
+export function processBadge(fields, merchCard, mapping) {
     if (mapping.badge?.slot) {
-        if (fields.badge?.length && !fields.badge?.startsWith('<merch-badge')) {
+        const shouldRenderBadge = fields.badge?.length;
+        if (shouldRenderBadge && !fields.badge?.startsWith('<merch-badge')) {
             let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
             let setBorderColorForBadge = false;
 
@@ -120,6 +124,12 @@ function processBadge(fields, merchCard, mapping) {
             }
 
             fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
+        }
+        if (
+            fields.badge?.startsWith('<merch-badge') &&
+            isMerchBadgeContentEmpty(fields.badge)
+        ) {
+            fields.badge = '';
         }
         appendSlot('badge', fields, merchCard, mapping);
     } else {
@@ -279,6 +289,8 @@ export function processBorderColor(fields, merchCard, variantMapping) {
                 `var(--${fields.borderColor})`,
             );
         }
+    } else {
+        merchCard.style.removeProperty(customBorderColor);
     }
 }
 
@@ -604,7 +616,11 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
-        parent.setAttribute('data-plan-type', '');
+        // Preserve an author-authored plan type (e.g. to disambiguate
+        // multiple plan-type blocks); only seed the placeholder if unset.
+        if (!parent.hasAttribute('data-plan-type')) {
+            parent.setAttribute('data-plan-type', '');
+        }
     });
     merchCard.append(addon);
 }
@@ -613,6 +629,30 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     if (fields.addonConfirmation) {
         appendSlot('addonConfirmation', fields, merchCard, mapping);
     }
+}
+
+export function processCustomFields(fields, merchCard, mapping) {
+    const config = mapping?.customFields;
+    if (!config) return;
+    const values = Array.isArray(fields.customFields)
+        ? fields.customFields
+        : fields.customFields
+          ? [fields.customFields]
+          : [];
+    const labels = Array.isArray(fields.customFieldLabels)
+        ? fields.customFieldLabels
+        : fields.customFieldLabels
+          ? [fields.customFieldLabels]
+          : [];
+    values.filter(Boolean).forEach((html, i) => {
+        const label = labels[i];
+        const el = createTag(
+            config.tag,
+            { slot: `custom-field-${i}`, 'data-label': label || '' },
+            html,
+        );
+        merchCard.append(el);
+    });
 }
 
 function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
@@ -918,36 +958,15 @@ export function processAnalytics(fields, merchCard) {
     });
 }
 
-function replaceAnchorWithSpLink(link, className, variant) {
-    const attrs = {};
-    const classes = [...link.classList].filter((c) => c !== className);
-    for (const attr of link.attributes) {
-        if (attr.name === 'class') continue;
-        attrs[attr.name] = attr.value;
-    }
-    if (classes.length) attrs.class = classes.join(' ');
-    if (variant === 'secondary') attrs.variant = 'secondary';
-    link.replaceWith(createTag('sp-link', attrs, link.innerHTML));
-}
-
 export function updateLinksCSS(merchCard) {
-    if (merchCard.consonant) return;
-    const { spectrum } = merchCard;
-    if (spectrum !== 'css' && spectrum !== 'swc') return;
+    if (merchCard.spectrum !== 'css') return;
     [
         ['primary-link', 'primary'],
         ['secondary-link', 'secondary'],
     ].forEach(([className, variant]) => {
         merchCard.querySelectorAll(`a.${className}`).forEach((link) => {
-            if (spectrum === 'swc') {
-                replaceAnchorWithSpLink(link, className, variant);
-            } else {
-                link.classList.remove(className);
-                link.classList.add(
-                    'spectrum-Link',
-                    `spectrum-Link--${variant}`,
-                );
-            }
+            link.classList.remove(className);
+            link.classList.add('spectrum-Link', `spectrum-Link--${variant}`);
         });
     });
 }
@@ -1000,7 +1019,8 @@ export async function hydrate(fragment, merchCard) {
         );
     }
 
-    const { id, fields, settings = {}, priceLiterals } = fragment;
+    const { id, fields, settings = {}, priceLiterals, placeholders } = fragment;
+    if (fields.variant === 'bizpro') fields.variant = 'pro'; // TODO(MWPW-200587): remove after content migration
     const { variant } = fields;
     if (!variant)
         throw new Error(`hydrate: no template found in payload ${id}`);
@@ -1009,10 +1029,18 @@ export async function hydrate(fragment, merchCard) {
     merchCard.contextPromotionCode = fields.promoCode;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
+    if (placeholders) merchCard.placeholders = placeholders;
     merchCard.id ??= fragment.id;
     if (fragment.variationId)
         merchCard.setAttribute('variation-id', fragment.variationId);
     if (fragment.maskId) merchCard.setAttribute('mask-id', fragment.maskId);
+    if (fragment.promoProject)
+        merchCard.setAttribute('data-promotion-project', fragment.promoProject);
+    if (fragment.promoVariationProject)
+        merchCard.setAttribute(
+            'data-promotion-variation-project',
+            fragment.promoVariationProject,
+        );
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
@@ -1044,6 +1072,7 @@ export async function hydrate(fragment, merchCard) {
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
+    processCustomFields(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);
     try {
         processUptLinks(fields, merchCard);

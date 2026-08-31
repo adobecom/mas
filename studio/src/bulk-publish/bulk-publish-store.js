@@ -18,30 +18,34 @@ export async function startPublishing({
     project,
     token,
     ioBaseUrl,
+    aemOdinEndpoint,
     repository,
     publishFn,
     pollIntervalMs = 2000,
     maxPolls = 150,
     sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    includeVariations = false,
+    includeCards = false,
 }) {
-    const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
-    const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
-    const publishedBy = profile?.email ?? '';
-
+    if (Store.bulkPublishProjects.publishing.get()[project.id]) return { alreadyPublishing: true };
     Store.bulkPublishProjects.publishing.set({
         ...Store.bulkPublishProjects.publishing.get(),
         [project.id]: true,
     });
+
+    const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
+    const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
+    const publishedBy = profile?.email ?? '';
     const terminalStatuses = new Set([
         BULK_PUBLISH_STATUS.PUBLISHED,
         BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
         BULK_PUBLISH_STATUS.FAILED,
     ]);
     try {
-        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token, aemOdinEndpoint, includeVariations, includeCards });
         let interval = pollIntervalMs;
         for (let i = 0; i < maxPolls; i++) {
-            await repository.refreshFragment(project).catch(() => {});
+            await repository.refreshFragment(project, { skipPromoMerge: true, skipReferences: true }).catch(() => {});
             const statusField = project.get()?.fields?.find((f) => f.name === 'status');
             const status = statusField?.values?.[0];
             if (terminalStatuses.has(status)) return { status };
@@ -56,11 +60,21 @@ export async function startPublishing({
     }
 }
 
+export async function resetToDraft({ project, token, ioBaseUrl, repository }) {
+    const { resetAction } = await import('./bulk-publish-client.js');
+    const result = await resetAction({ ioBaseUrl, projectId: project.id, token });
+    patchProjectStore(project, { status: result.status });
+    repository.refreshFragment(project).catch(() => {});
+    const current = Store.bulkPublishProjects.list.data.get() ?? [];
+    Store.bulkPublishProjects.list.data.set([...current]);
+    return result;
+}
+
 export async function startReverting({ project, token, ioBaseUrl, repository }) {
     const { revertAction } = await import('./bulk-publish-client.js');
     const result = await revertAction({ ioBaseUrl, projectId: project.id, token });
     patchProjectStore(project, { status: result.status });
-    repository.refreshFragment(project).catch(() => {});
+    repository.refreshFragment(project, { skipPromoMerge: true }).catch(() => {});
     const current = Store.bulkPublishProjects.list.data.get() ?? [];
     Store.bulkPublishProjects.list.data.set([...current]);
     return result;

@@ -2,6 +2,7 @@ import { LitElement, html } from 'lit';
 import { createPlaceholder } from './mas-placeholders-repository.js';
 import { normalizeKey, showToast } from '../utils.js';
 import Store from '../store.js';
+import '../rte/rte-field.js';
 
 const initialPlaceholder = {
     key: '',
@@ -133,6 +134,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                                           <rte-field
                                               id="placeholder-rich-value"
                                               link
+                                              icon
                                               .maxLength=${500}
                                               @change=${this.handleValueChange}
                                               .disabled=${this.saving}

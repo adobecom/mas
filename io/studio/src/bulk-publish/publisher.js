@@ -12,9 +12,16 @@ const WORKFLOW_STATUS_MAP = {
     ERROR_INVALID: { status: 'failed', reason: 'error-invalid' },
 };
 
-async function publishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries = DEFAULT_MAX_RETRIES }) {
+async function publishChunk({
+    chunk,
+    odinEndpoint,
+    authToken,
+    logger,
+    maxRetries = DEFAULT_MAX_RETRIES,
+    filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
+}) {
     try {
-        return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries });
+        return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus });
     } catch (error) {
         const message = error.message || String(error);
         logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: chunk.length, error: message }));
@@ -22,7 +29,7 @@ async function publishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries
     }
 }
 
-async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries }) {
+async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus }) {
     logger.info(JSON.stringify({ event: 'publish-start', chunkSize: chunk.length }));
 
     let lastError = null;
@@ -33,7 +40,7 @@ async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetri
                 contentType: 'application/json',
                 body: JSON.stringify({
                     paths: chunk,
-                    filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
+                    filterReferencesByStatus,
                     workflowModelId: WORKFLOW_MODEL_ID,
                 }),
             });

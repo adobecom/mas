@@ -21,10 +21,6 @@ merch-card[variant="product"] [slot="callout-content"] > p:has(> .icon-button) {
   padding-inline-end: 36px;
 }
 
-merch-card[variant="product"] [slot="callout-content"] .icon-button {
-  margin: 1.5px 0 1.5px 8px;
-}
-
 merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
@@ -99,18 +95,34 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
+/* Sections inside tabs/fragments that don't receive the .product class.
+   Make .content wrapper transparent so the section grid applies directly to cards.
+   Only when every card in the section is a product card - otherwise a mixed
+   section (e.g. segment cards with one product card) would have its layout
+   hijacked by this fallback despite already having an explicit variant class. */
+.one-merch-card:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) .content,
+.two-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) .content,
+.three-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) .content,
+.four-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) .content {
+  display: contents;
+}
+
 .one-merch-card.section merch-card[variant="product"],
-.two-merch-cards.section merch-card[variant="product"],
-.three-merch-cards.section merch-card[variant="product"],
-.four-merch-cards.section merch-card[variant="product"] {
+.one-merch-card:has(merch-card[variant="product"]) merch-card[variant="product"] {
     width: auto;
+    max-width: var(--consonant-merch-card-product-width);
+    margin: 0 auto;
 }
 
 /* grid style for product */
 .one-merch-card.product,
 .two-merch-cards.product,
 .three-merch-cards.product,
-.four-merch-cards.product {
+.four-merch-cards.product,
+.one-merch-card:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))),
+.two-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))),
+.three-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))),
+.four-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) {
     grid-template-columns: var(--consonant-merch-card-product-width);
 }
 
@@ -118,7 +130,10 @@ merch-card-collection.product merch-card {
 @media screen and ${TABLET_UP} {
     .two-merch-cards.product,
     .three-merch-cards.product,
-    .four-merch-cards.product {
+    .four-merch-cards.product,
+    .two-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))),
+    .three-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))),
+    .four-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) {
         grid-template-columns: repeat(2, var(--consonant-merch-card-product-width));
     }
 }
@@ -127,15 +142,16 @@ merch-card-collection.product merch-card {
 @media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-product-width: 378px;
-    --consonant-merch-card-product-width-4clm: 276px;
   }
-    
-  .three-merch-cards.product {
+
+  .three-merch-cards.product,
+  .three-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) {
       grid-template-columns: repeat(3, var(--consonant-merch-card-product-width));
   }
 
-  .four-merch-cards.product {
-      grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
+  .four-merch-cards.product,
+  .four-merch-cards:has(merch-card[variant="product"]):not(:has(merch-card:not([variant="product"]))) {
+      grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-product-width));
   }
 }
 
@@ -147,9 +163,13 @@ merch-card[variant="product"] {
 }
 
 merch-card[variant="product"] .merch-short-description {
-    display: flex;
+    display: inline-block;
     align-items: center;
     gap: 4px;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
 }
 
 merch-card[variant="product"] .merch-short-description .icon-button {

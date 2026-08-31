@@ -3,10 +3,10 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
-    classifyPromotionPathsForSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
+    buildPromotionTagPath,
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
     hydratePromotionOfferRecords,
@@ -34,6 +34,10 @@ import {
     parseSelectedOfferIdsFromOffersField,
     parsePromotionSurfacesFieldValues,
     getEffectiveSubstituteOffer,
+    getEffectiveIgnoreVariations,
+    parseIgnoredVariations,
+    serializeIgnoredVariations,
+    isPromotionIgnoreVariationsEntry,
     groupOfferSubstitutionsForOffer,
     serializePromotionSurfacesForAem,
     serializePromoCodeExceptions,
@@ -42,7 +46,6 @@ import {
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
 } from '../../src/promotions/promotion-editor-utils.js';
-import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
@@ -157,6 +160,33 @@ describe('promotion-editor-utils', () => {
             const values = buildPromotionOffersFieldValues(p, ['osi-1']);
             expect(values).to.include('osi-1|CODE|US');
             expect(values).to.include('substitute|osi-1|osi-2|CA_en');
+        });
+
+        it('preserves ignore-variations lines while updating selected offer ids', () => {
+            const p = makePromotionFragment({
+                offers: ['osi-1', 'ignore-variations|osi-1|CA_en'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1', 'osi-3']);
+            expect(values).to.include('osi-3');
+            expect(values).to.include('ignore-variations|osi-1|CA_en');
+        });
+
+        it('removes ignore-variations lines for geos no longer in the geos field', () => {
+            const p = makePromotionFragment({
+                geos: ['mas:locale/en_AU'],
+                offers: ['ignore-variations|osi-1|en_AU', 'ignore-variations|osi-1|en_GB'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/en_AU');
+            expect(values).to.not.include('ignore-variations|osi-1|en_GB');
+        });
+
+        it('applies ignoredVariations override when provided', () => {
+            const p = makePromotionFragment({ geos: ['mas:locale/CA_en'], offers: ['osi-1'] });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1'], {
+                ignoredVariations: new Map([['osi-1|CA_en', true]]),
+            });
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/CA_en');
         });
     });
 
@@ -278,43 +308,6 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('classifyPromotionPathsForSelection', () => {
-        it('returns empty buckets for empty paths', async () => {
-            const out = await classifyPromotionPathsForSelection([], () => Promise.resolve({}));
-            expect(out).to.deep.equal({ cards: [], cols: [] });
-        });
-
-        it('classifies collection model as collections and others as cards', async () => {
-            const getFragmentByPath = (path) => {
-                if (path === '/col') return Promise.resolve({ model: { path: COLLECTION_MODEL_PATH } });
-                return Promise.resolve({ model: { path: '/other' } });
-            };
-            const out = await classifyPromotionPathsForSelection(['/card', '/col'], getFragmentByPath);
-            expect(out.cards).to.deep.equal(['/card']);
-            expect(out.cols).to.deep.equal(['/col']);
-        });
-
-        it('falls back to cards for rejected fetches', async () => {
-            const out = await classifyPromotionPathsForSelection([fetchFailed], () => Promise.reject(new Error('x')));
-            expect(out.cards).to.deep.equal([fetchFailed]);
-            expect(out.cols).to.deep.equal([]);
-        });
-
-        it('falls back to cards for fulfilled fragments without model path', async () => {
-            const out = await classifyPromotionPathsForSelection(['/no-model'], () => Promise.resolve(null));
-            expect(out.cards).to.deep.equal(['/no-model']);
-            expect(out.cols).to.deep.equal([]);
-        });
-
-        it('respects custom collection model path', async () => {
-            const custom = '/custom/collection';
-            const getFragmentByPath = () => Promise.resolve({ model: { path: custom } });
-            const out = await classifyPromotionPathsForSelection(['/p'], getFragmentByPath, custom);
-            expect(out.cols).to.deep.equal(['/p']);
-            expect(out.cards).to.deep.equal([]);
-        });
-    });
-
     describe('normalizePromotionSearchInput', () => {
         it('returns empty for non-string or blank', () => {
             expect(normalizePromotionSearchInput()).to.equal('');
@@ -330,6 +323,12 @@ describe('promotion-editor-utils', () => {
         it('extracts fragment id from a Studio merch-card deep link', () => {
             const id = '00000000-1111-2222-3333-444444444444';
             const line = `https://mas.adobe.com/studio.html#content-type=merch-card&query=${id}`;
+            expect(normalizePromotionSearchInput(line)).to.equal(id);
+        });
+
+        it('extracts fragment id from a merch-card-collection deep link', () => {
+            const id = '00000000-1111-2222-3333-444444444444';
+            const line = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=${id}`;
             expect(normalizePromotionSearchInput(line)).to.equal(id);
         });
 
@@ -358,6 +357,27 @@ describe('promotion-editor-utils', () => {
 
         it('promotion slice is empty when no mas:promotion tag', () => {
             expect(splitPromotionTagsFieldValues(['mas:status/published']).promotion).to.deep.equal([]);
+        });
+    });
+
+    describe('buildPromotionTagPath', () => {
+        it('derives slug and tagPath from a normal title', () => {
+            expect(buildPromotionTagPath('Summer Sale')).to.deep.equal({
+                slug: 'summer-sale',
+                tagPath: '/content/cq:tags/mas/promotion/summer-sale',
+            });
+        });
+
+        it('returns null for an empty string title', () => {
+            expect(buildPromotionTagPath('')).to.be.null;
+        });
+
+        it('returns null for a whitespace-only title', () => {
+            expect(buildPromotionTagPath('   ')).to.be.null;
+        });
+
+        it('returns null for an undefined title', () => {
+            expect(buildPromotionTagPath(undefined)).to.be.null;
         });
     });
 
@@ -394,7 +414,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Surface.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one surface.');
         });
 
         it('returns a fragments message when item count is zero', () => {
@@ -403,12 +423,12 @@ describe('promotion-editor-utils', () => {
             );
         });
 
-        it('returns a message when promo code is missing', () => {
+        it('is valid when promo code is missing (promo code is optional)', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'promoCode' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Promo Code.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
 
         it('returns a message when start date is missing', () => {
@@ -416,7 +436,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'startDate' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a Start Date.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a start date.');
         });
 
         it('returns a message when end date is missing', () => {
@@ -424,7 +444,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an End Date.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an end date.');
         });
 
         it('returns a message when title is missing', () => {
@@ -432,7 +452,23 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'title' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Title.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
+        });
+
+        it('returns a message when title is whitespace-only', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '   ' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
+        });
+
+        it('returns a message when title has no normalizable characters', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '!!!' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
         });
 
         it('returns a message when geos are missing', () => {
@@ -444,7 +480,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Geo.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one geo.');
         });
 
         it('returns a message when no promotion classification tag', () => {
@@ -457,7 +493,24 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one promotion tag.');
+        });
+
+        it('does not require end date when isEvergreen is passed explicitly as true', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1, true)).to.be.null;
+        });
+
+        it('does not require end date when fragment is evergreen', () => {
+            const f = {
+                ...baseFragment(),
+                isEvergreen: true,
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
     });
 
@@ -512,7 +565,7 @@ describe('promotion-editor-utils', () => {
         it('serializePromotionOffersField includes selected offer ids as bare lines', () => {
             const promo = new Map([['osi-1|CA_en', 'OVERRIDE']]);
             const subs = new Map();
-            const lines = serializePromotionOffersField(promo, subs, ['osi-1', 'osi-2']);
+            const lines = serializePromotionOffersField(promo, subs, new Map(), ['osi-1', 'osi-2']);
             expect(lines).to.include('osi-1');
             expect(lines).to.include('osi-2');
             expect(lines).to.include('osi-1|OVERRIDE|CA_en');
@@ -531,9 +584,56 @@ describe('promotion-editor-utils', () => {
         it('parseSelectedOfferIdsFromOffersField round-trips with serializePromotionOffersField', () => {
             const promo = new Map([['osi-1|CA_en', 'OVERRIDE']]);
             const selectedIds = ['osi-1', 'osi-2'];
-            const lines = serializePromotionOffersField(promo, new Map(), selectedIds);
+            const lines = serializePromotionOffersField(promo, new Map(), new Map(), selectedIds);
             const parsed = parseSelectedOfferIdsFromOffersField(lines);
             expect(parsed).to.deep.equal(['osi-1', 'osi-2']);
+        });
+
+        it('parsePromotionOffersField parses ignore-variations lines into a map', () => {
+            const { ignoredVariations, promoExceptions, offerSubstitutions } = parsePromotionOffersField([
+                'osi-1',
+                'ignore-variations|osi-1|CA_en',
+            ]);
+            expect(ignoredVariations.get('osi-1|CA_en')).to.be.true;
+            expect(promoExceptions.size).to.equal(0);
+            expect(offerSubstitutions.size).to.equal(0);
+        });
+
+        it('isPromotionIgnoreVariationsEntry detects ignore-variations lines only', () => {
+            expect(isPromotionIgnoreVariationsEntry('ignore-variations|osi-1|CA_en')).to.be.true;
+            expect(isPromotionIgnoreVariationsEntry('substitute|osi-1|osi-2|US')).to.be.false;
+            expect(isPromotionIgnoreVariationsEntry('osi-1|CODE|US')).to.be.false;
+        });
+
+        it('ignore-variations lines round-trip through serialize/parse', () => {
+            const ignored = new Map([['osi-1|CA_en', true]]);
+            const lines = serializeIgnoredVariations(ignored);
+            expect(lines).to.deep.equal(['ignore-variations|osi-1|CA_en']);
+            expect(parseIgnoredVariations(lines).get('osi-1|CA_en')).to.be.true;
+        });
+
+        it('serializeIgnoredVariations drops unchecked entries and maps geo labels to cq tags', () => {
+            const ignored = new Map([
+                ['osi-1|CA_en', true],
+                ['osi-2|US', false],
+            ]);
+            const displayToCq = new Map([['CA_en', 'mas:locale/CA_en']]);
+            expect(serializeIgnoredVariations(ignored, displayToCq)).to.deep.equal([
+                'ignore-variations|osi-1|mas:locale/CA_en',
+            ]);
+        });
+
+        it('getEffectiveIgnoreVariations returns the per-offer/country flag', () => {
+            const ignored = parseIgnoredVariations(['ignore-variations|osi-1|CA_en']);
+            expect(getEffectiveIgnoreVariations(ignored, 'osi-1', 'CA_en')).to.be.true;
+            expect(getEffectiveIgnoreVariations(ignored, 'osi-1', 'US')).to.be.false;
+        });
+
+        it('serializePromotionOffersField appends ignore-variations lines', () => {
+            const ignored = new Map([['osi-1|CA_en', true]]);
+            const lines = serializePromotionOffersField(new Map(), new Map(), ignored, ['osi-1']);
+            expect(lines).to.include('osi-1');
+            expect(lines).to.include('ignore-variations|osi-1|CA_en');
         });
 
         it('getEffectiveSubstituteOffer returns substitute selector id', () => {
@@ -1029,7 +1129,7 @@ describe('promotion-editor-utils', () => {
     describe('handlePromotionOstOfferSelect', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
-            Store.promotions.offerDataCache.clear();
+            Store.promotions.offerRecordsCache.clear();
             setItemsSelectionStore(Store.promotions);
         });
 
@@ -1046,7 +1146,7 @@ describe('promotion-editor-utils', () => {
             });
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
-            expect(Store.promotions.offerDataCache.has('phsp-osi')).to.be.true;
+            expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.true;
         });
 
         it('returns false and does not duplicate when offer is already selected', async () => {

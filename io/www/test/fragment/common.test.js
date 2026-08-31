@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { matchesGeo, getCountry } from '../../src/fragment/utils/common.js';
+import { geoMatchScore, matchesGeo, getCountry, isGroupedVariationFragmentPath } from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
     describe('matchesGeo', () => {
@@ -74,6 +74,15 @@ describe('common utils', () => {
         });
     });
 
+    describe('geoMatchScore', () => {
+        it('prefers region matches over country matches', () => {
+            expect(geoMatchScore(null)).to.equal(0);
+            expect(geoMatchScore({ region: false, country: true })).to.equal(1);
+            expect(geoMatchScore({ region: true, country: false })).to.equal(2);
+            expect(geoMatchScore({ region: true, country: true })).to.equal(3);
+        });
+    });
+
     describe('getCountry', () => {
         it('prefers explicit country', () => {
             expect(getCountry({ country: 'LU', locale: 'fr_FR' })).to.equal('LU');
@@ -86,6 +95,24 @@ describe('common utils', () => {
         it('returns empty string when both are missing or malformed', () => {
             expect(getCountry({})).to.equal('');
             expect(getCountry({ locale: 'fr' })).to.equal('');
+        });
+    });
+
+    describe('isGroupedVariationFragmentPath', () => {
+        it('matches a fragmentPath under a /pzn/ folder', () => {
+            expect(isGroupedVariationFragmentPath('PA-123/pzn/edu')).to.be.true;
+        });
+
+        it('does not match a plain fragmentPath', () => {
+            expect(isGroupedVariationFragmentPath('pzn-test-fragment')).to.be.false;
+        });
+
+        it('does not match a promotion variation path', () => {
+            expect(isGroupedVariationFragmentPath('promotions/black-friday/pzn-test-fragment')).to.be.false;
+        });
+
+        it('returns false for non-string input', () => {
+            expect(isGroupedVariationFragmentPath(undefined)).to.be.false;
         });
     });
 });

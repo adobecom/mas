@@ -64,7 +64,7 @@ describe('MasTranslationEditor', () => {
         },
         getTranslationsPath: sandbox.stub().returns('/content/dam/mas/translations'),
         createFragment: sandbox.stub().resolves(new Fragment(createMockFragment())),
-        saveFragment: sandbox.stub().resolves(),
+        saveFragment: sandbox.stub().resolves(new Fragment(createMockFragment())),
         deleteFragment: sandbox.stub().resolves(),
         refreshFragment: sandbox.stub().resolves(),
         searchFragments: sandbox.stub().resolves({ items: [] }),
@@ -141,6 +141,14 @@ describe('MasTranslationEditor', () => {
             expect(el.isNewTranslationProject).to.be.true;
             expect(el.showSelectedEmptyState).to.be.true;
             expect(el.showLangSelectedEmptyState).to.be.true;
+        });
+
+        it('restricts the items selector import to the active search surface', async () => {
+            Store.translationProjects.translationProjectId.set(null);
+            Store.search.set({ path: SURFACES.NALA.name });
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const itemsSelector = el.shadowRoot.querySelector('mas-items-selector');
+            expect(itemsSelector.restrictImportSurface).to.equal(SURFACES.NALA.name);
         });
 
         it('should initialize with prefill data if present', async () => {
@@ -1101,10 +1109,38 @@ describe('MasTranslationEditor', () => {
             expect(
                 toastEmitStub.calledWith({
                     variant: 'negative',
-                    content: 'Failed to create translation project.',
+                    content: 'Failed to create project.',
                 }),
             ).to.be.true;
             expect(consoleErrorStub.called).to.be.true;
+        });
+
+        it('should show a duplicate-name error when create fails with a 409 Conflict', async () => {
+            const mockRepository = createMockRepository();
+            mockRepository.createFragment.rejects(new Error('Failed to create fragment: 409 Conflict'));
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'Valid-Title';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            await el.updateComplete;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Project with this name already exists.',
+                }),
+            ).to.be.true;
         });
     });
 
@@ -1137,6 +1173,41 @@ describe('MasTranslationEditor', () => {
                     content: 'Translation project updated successfully.',
                 }),
             ).to.be.true;
+        });
+
+        it('does not show success toast or re-enable save/discard when saveFragment reports a conflict', async () => {
+            const mockRepository = createMockRepository({
+                saveFragment: sandbox.stub().resolves(false),
+            });
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'Existing-Title';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            el.isNewTranslationProject = false;
+            el.disabledActions = new Set([QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD]);
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            await el.updateComplete;
+            expect(mockRepository.saveFragment.calledOnce).to.be.true;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'positive',
+                    content: 'Translation project updated successfully.',
+                }),
+            ).to.be.false;
+            expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
+            expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.true;
         });
 
         it('should show validation error when title is missing on update', async () => {

@@ -337,15 +337,17 @@ export class MiniCompareChartMweb extends VariantLayout {
         return html`
             ${this.badge}
             <div class="body">
-                ${this.icons}
-                <slot name="badge"></slot>
-                <slot name="heading-xs"></slot>
-                <div class="price-wrapping">
-                    <slot name="subtitle"></slot>
-                    <slot name="heading-m-price"></slot>
+                <div class="body-main">
+                    ${this.icons}
+                    <slot name="badge"></slot>
+                    <slot name="heading-xs"></slot>
+                    <div class="price-wrapping">
+                        <slot name="subtitle"></slot>
+                        <slot name="heading-m-price"></slot>
+                    </div>
+                    <slot name="promo-text"></slot>
+                    <slot name="body-m"></slot>
                 </div>
-                <slot name="promo-text"></slot>
-                <slot name="body-m"></slot>
                 ${this.getMiniCompareFooter()}
             </div>
             ${this.getMiniCompareFooterRows()}
@@ -385,9 +387,32 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     static variantStyle = css`
-        :host([variant='mini-compare-chart-mweb']) .body > .price-wrapping {
+        :host([variant='mini-compare-chart-mweb'])
+            .body-main
+            > .price-wrapping {
             display: flex;
             flex-direction: column;
+        }
+
+        :host([variant='mini-compare-chart-mweb']) .body {
+            padding: 0;
+        }
+
+        :host([variant='mini-compare-chart-mweb']) .body-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100%;
+            gap: var(--consonant-merch-spacing-xxs);
+            padding: var(--consonant-merch-spacing-xs);
+            padding-bottom: 0;
+        }
+
+        :host([variant='mini-compare-chart-mweb']) footer {
+            margin: var(--consonant-merch-spacing-xs);
+            margin-top: 0;
+            width: auto;
         }
 
         :host([variant='mini-compare-chart-mweb'])
@@ -545,7 +570,7 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
         /* Shadow DOM slot min-heights — ensures empty slots reserve space for cross-card alignment */
         :host([variant='mini-compare-chart-mweb'])
-            .body
+            .body-main
             > slot[name='heading-xs'] {
             display: block;
             min-height: var(
@@ -553,14 +578,16 @@ export class MiniCompareChartMweb extends VariantLayout {
             );
         }
         :host([variant='mini-compare-chart-mweb'])
-            .body
+            .body-main
             > slot[name='promo-text'] {
             display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-promo-text-height
             );
         }
-        :host([variant='mini-compare-chart-mweb']) .body > slot[name='body-m'] {
+        :host([variant='mini-compare-chart-mweb'])
+            .body-main
+            > slot[name='body-m'] {
             display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-body-m-height

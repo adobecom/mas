@@ -35,3 +35,10 @@ await build({
     entryPoints: ['src/markdown.js'],
     outfile: 'libs/markdown.js',
 });
+
+await build({
+    ...defaults,
+    entryPoints: ['../ost/src/global.js'],
+    outfile: 'ost/ost-new.js',
+    sourcemap: false,
+});

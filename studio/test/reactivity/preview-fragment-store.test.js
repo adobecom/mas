@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { EXPLICIT_EMPTY_SENTINEL, normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import {
     mergeResolvedPreviewFields,
     PreviewFragmentStore,
@@ -66,6 +67,18 @@ describe('mergeResolvedPreviewFields', () => {
         expect(result.find((field) => field.name === 'addon')?.values).to.deep.equal(['<p>Resolved addon</p>']);
         expect(result.find((field) => field.name === 'showPlanType')?.values).to.deep.equal(['true']);
         expect(result.find((field) => field.name === 'showSecureLabel')?.values).to.deep.equal(['true']);
+    });
+
+    it('clears explicit_empty badge after merge when preview omits the field', () => {
+        const originalFields = [
+            { name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL], multiple: false },
+            { name: 'title', values: ['Parent title'], multiple: false },
+        ];
+        const merged = mergeResolvedPreviewFields(originalFields, { title: 'Parent title' }, {});
+        expect(merged.find((field) => field.name === 'badge').values).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+
+        const normalized = normalizeExplicitEmptyInFields(merged);
+        expect(normalized.find((field) => field.name === 'badge').values).to.deep.equal(['']);
     });
 
     it('preserves unresolved author fields instead of writing undefined', () => {
@@ -218,6 +231,33 @@ describe('PreviewFragmentStore', () => {
         placeholderSubscribers.forEach((fn) => fn());
 
         expect(getResolvedSpy.callCount).to.equal(2);
+        store.dispose();
+    });
+
+    it('previewLocale getter prefers the override over the global locale', () => {
+        const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+        expect(store.previewLocale).to.equal('en_US');
+        store.previewLocaleOverride = 'de_DE';
+        expect(store.previewLocale).to.equal('de_DE');
+        store.dispose();
+    });
+
+    it('keys dictionary readiness off previewLocaleOverride, not the global locale', () => {
+        const fragment = createFragment();
+        // Global locale (en_US) dictionary is ready, but the override locale's is not.
+        Store.placeholders.previewByLocale.value = { en_US: { key: 'value' }, de_DE: {} };
+
+        const store = new PreviewFragmentStore(fragment, null, { lazy: true });
+        store.previewLocaleOverride = 'de_DE';
+        const getResolvedSpy = sandbox.stub(store, 'getResolvedFragment').resolves(null);
+
+        store.resolveFragment(true);
+        expect(getResolvedSpy.called).to.be.false;
+
+        Store.placeholders.previewByLocale.value = { en_US: { key: 'value' }, de_DE: { key: 'wert' } };
+        placeholderSubscribers.forEach((fn) => fn());
+
+        expect(getResolvedSpy.calledOnce).to.be.true;
         store.dispose();
     });
 });

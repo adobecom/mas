@@ -48,10 +48,13 @@ import {
     loadPreviewPlaceholders,
 } from './placeholders/mas-placeholders-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
+import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';
+import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import {
     classifyVariationByPath,
@@ -59,6 +62,7 @@ import {
     resolvePromoVariationParentPath,
     VARIATION_SEARCH_TABS,
 } from './utils/variation-search.js';
+import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
@@ -317,7 +321,7 @@ export class MasRepository extends LitElement {
     #skipVariant(variants, item) {
         if (Fragment.isGroupedVariationPath(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
-        return variants.length && !variants.includes(variant);
+        return variants.length && !isVariantMatch(variants, variant);
     }
 
     /**
@@ -591,7 +595,7 @@ export class MasRepository extends LitElement {
         // exactly what AEM returned) and only narrows in the multi-word case.
         const userQuery = !isUUID(query) && query ? query : '';
         let clientQuery = '';
-        if (variants.length === 1) {
+        if (variants.length === 1 && !hasLegacyVariantAlias(variants[0])) {
             localSearch.query = variants[0];
             clientQuery = userQuery;
         } else if (userQuery) {
@@ -661,7 +665,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.highlightedVariationId.set(query);
                     Store.fragments.variationSearchTab.set(tab);
                 } else {
-                    Store.fragments.expandedId.set(null);
+                    Store.fragments.expandedId.set(fragmentData?.id ?? null);
                     Store.fragments.highlightedVariationId.set(null);
                     Store.fragments.variationSearchTab.set(null);
                 }
@@ -1100,6 +1104,33 @@ export class MasRepository extends LitElement {
         }
     }
 
+    /**
+     * Returns the set of collection paths across the given promotion surfaces, using one
+     * bounded collection-model search per surface (not one GET per attached path). Used by
+     * the promotions editor to classify attached paths as cards vs collections without a
+     * per-path request burst. Failures on a single surface are ignored so classification
+     * degrades gracefully rather than throwing.
+     * @param {string[]} surfaces
+     * @returns {Promise<Set<string>>}
+     */
+    async getCollectionPathsForSurfaces(surfaces) {
+        const paths = new Set();
+        if (!surfaces?.length) return paths;
+        await processConcurrently(
+            surfaces,
+            async (surface) => {
+                const fragments = await this.searchFragmentList({
+                    path: getDamPath(surface),
+                    modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]],
+                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                }).catch(() => []);
+                for (const fragment of fragments) paths.add(fragment.path);
+            },
+            OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+        return paths;
+    }
+
     async loadPromotions() {
         try {
             const promotionsPath = this.getPromotionsPath();
@@ -1124,14 +1155,16 @@ export class MasRepository extends LitElement {
             });
 
             Store.promotions.list.data.set(promotions);
+            Store.promotions.list.data.setMeta('listFetched', true);
 
             if (expiredPublished.length) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
             }
         } catch (error) {
+            if (error.name === 'AbortError') return;
+            Store.promotions.list.data.setMeta('listFetched', true);
             this.processError(error, 'Could not load promotions.');
         } finally {
-            Store.promotions.list.data.setMeta('listFetched', true);
             Store.promotions.list.loading.set(false);
         }
     }
@@ -1342,7 +1375,8 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment(fragmentStore, withToast = true) {
+    async saveFragment(fragmentStore, options = {}) {
+        const { withToast = true, refetchEtag = true, errorMessage = 'Failed to save fragment.' } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1369,7 +1403,7 @@ export class MasRepository extends LitElement {
         ensureCompatVersionOnMerchCardFieldList(fragmentToSave.model?.path, fragmentToSave.fields);
 
         try {
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
+            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
@@ -1383,7 +1417,7 @@ export class MasRepository extends LitElement {
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
-            this.processError(error, 'Failed to save fragment.');
+            this.processError(error, errorMessage);
             return false;
         } finally {
             this.operation.set(null);
@@ -1488,10 +1522,23 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true) {
+    async publishFragment(fragment, options = {}, withToast = true) {
+        const { selectedRefIds = null, allSelected = false } = options;
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
+
+            if (allSelected) {
+                await this.aem.sites.cf.fragments.publish(fragment, []);
+                const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
+                const allRefIds = [...variations, ...cards].map((r) => r.id);
+                if (allRefIds.length) await this.#publishRefIds(allRefIds);
+            } else {
+                await this.aem.sites.cf.fragments.publish(fragment, []);
+                if (selectedRefIds?.length) {
+                    await this.#publishRefIds(selectedRefIds);
+                }
+            }
+
             if (withToast) {
                 const message =
                     fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
@@ -1504,6 +1551,28 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+        }
+    }
+
+    async #publishRefIds(refIds) {
+        const CHUNK_SIZE = 10;
+        const valid = [];
+        let failedCount = 0;
+        for (let i = 0; i < refIds.length; i += CHUNK_SIZE) {
+            const chunk = refIds.slice(i, i + CHUNK_SIZE);
+            const fetched = await Promise.all(chunk.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)));
+            fetched.forEach((result) => {
+                if (result) valid.push(result);
+                else failedCount++;
+            });
+        }
+        if (failedCount > 0) {
+            throw new Error(`Failed to fetch ${failedCount} of ${refIds.length} refs for publishing`);
+        }
+        if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
+        for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
+            const chunk = valid.slice(i, i + CHUNK_SIZE);
+            await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
         }
     }
 
@@ -1546,25 +1615,29 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            // Get fragment objects from the store
-            const fragments = fragmentIds
-                .map((id) => {
-                    const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
-                    return store?.get();
-                })
-                .filter(Boolean);
+            const listStores = Store.fragments.list.data.get();
+            const fragments = [];
+            for (const id of fragmentIds) {
+                let fragment = findFragmentDataById(id, listStores);
+                if (!fragment?.etag) {
+                    try {
+                        fragment = await this.aem.sites.cf.fragments.getById(id);
+                    } catch {
+                        fragment = null;
+                    }
+                }
+                if (fragment) fragments.push(fragment);
+            }
 
             if (fragments.length === 0) {
                 if (withToast) showToast('No valid fragments found to publish.', 'negative');
                 return false;
             }
 
-            // Publish all fragments in a single request
             await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
-            // Refresh all published fragments
             const refreshPromises = fragmentIds.map((id) => {
-                const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
+                const store = findFragmentStoreById(id, listStores);
                 if (store) {
                     return this.refreshFragment(store);
                 }
@@ -1669,27 +1742,17 @@ export class MasRepository extends LitElement {
             }
         }
 
-        let success = false;
-        if (variations.length > 0) {
+        let success = await this.deleteFragment(fragment, {
+            startToast: variations.length === 0,
+            endToast: false,
+        });
+        if (!success) {
+            console.warn('Regular delete failed, trying force delete');
             try {
                 await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
                 success = true;
-            } catch (error) {
-                console.error(`Failed to force delete parent fragment:`, error);
-            }
-        } else {
-            success = await this.deleteFragment(fragment, {
-                startToast: true,
-                endToast: false,
-            });
-            if (!success) {
-                console.warn('Regular delete failed, trying force delete');
-                try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
-                    success = true;
-                } catch (forceError) {
-                    console.error('Force delete also failed:', forceError);
-                }
+            } catch (forceError) {
+                console.error('Force delete also failed:', forceError);
             }
         }
 
@@ -1946,9 +2009,14 @@ export class MasRepository extends LitElement {
             return await this.resolveHydratedParentFragment(path);
         }
         if (tab === VARIATION_SEARCH_TABS.PROMOTION) {
-            const parentPath = resolvePromoVariationParentPath(path);
-            if (!parentPath) return null;
-            return await this.aem.sites.cf.fragments.getByPath(parentPath, { references: 'direct-hydrated' });
+            const candidates = resolvePromoVariationParentPath(path);
+            for (const candidatePath of candidates) {
+                const fragment = await getFragmentByPathOrNull(this.aem.sites.cf.fragments, candidatePath, {
+                    references: 'direct-hydrated',
+                });
+                if (fragment) return fragment;
+            }
+            return null;
         }
         if (tab === VARIATION_SEARCH_TABS.LOCALE) {
             const parentPath = resolveLocaleVariationParentPath(path);
@@ -2164,11 +2232,15 @@ export class MasRepository extends LitElement {
      * Updates a given fragment store with the latest data
      * @param {FragmentStore} store
      */
-    async refreshFragment(store) {
+    async refreshFragment(store, { skipPromoMerge = false, skipReferences = false } = {}) {
         store.setLoading(true);
         const id = store.get().id;
-        let latest = await this.aem.sites.cf.fragments.getById(id);
-        latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () => this.loadPromotions());
+        let latest = await this.aem.sites.cf.fragments.getById(id, null, skipReferences ? { references: null } : undefined);
+        if (!skipPromoMerge) {
+            latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () =>
+                this.loadPromotions(),
+            );
+        }
 
         // Apply corrector transformer before refreshing
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();

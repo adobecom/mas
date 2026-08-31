@@ -7,6 +7,10 @@ import {
     collectSettingEntries,
     clearSettingsCache,
     applyCollectionSettings,
+    parsePlaceholderRemap,
+    applyPlaceholderRemaps,
+    resolveSettingEntry,
+    PLACEHOLDER_REMAP_SETTING,
 } from '../../src/fragment/transformers/settings.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
@@ -49,6 +53,70 @@ describe('settings', () => {
             expect(result.secureLabel.override[0].locales).to.include('fr_FR');
         });
 
+        it('groups a geo override that precedes the default', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                geos: ['mas:pzn/country/KR'],
+                            },
+                        },
+                    },
+                    ref2: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default).to.exist;
+            expect(result.hideTrialCTAs.default.booleanValue).to.be.false;
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].booleanValue).to.be.true;
+            expect(result.hideTrialCTAs.override[0].geos).to.include('mas:pzn/country/KR');
+        });
+
+        it('groups a template-scoped entry as the default', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'displayPlanType',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                templates: ['plans'],
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.displayPlanType.default.templates).to.deep.equal(['plans']);
+            expect(result.displayPlanType.override).to.be.empty;
+        });
+
+        it('uses the last unscoped entry as the default', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: true } } },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default.booleanValue).to.equal(true);
+            expect(result.hideTrialCTAs.override).to.be.empty;
+        });
+
         it('returns empty object when references is null', () => {
             expect(collectSettingEntries({})).to.deep.equal({});
             expect(collectSettingEntries({ references: null })).to.deep.equal({});
@@ -63,6 +131,162 @@ describe('settings', () => {
                 },
             };
             expect(collectSettingEntries(fragment)).to.deep.equal({});
+        });
+
+        it('reads geos directly from geos field', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                geos: ['mas:pzn/country/KR', 'mas:pzn/country/JP'],
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].geos).to.deep.equal(['mas:pzn/country/KR', 'mas:pzn/country/JP']);
+            expect(result.hideTrialCTAs.override[0].locales).to.deep.equal([]);
+        });
+    });
+
+    describe('resolveSettingEntry', () => {
+        const makeSetting = (overrides = []) => ({
+            default: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false, locales: [], geos: [] },
+            override: overrides,
+        });
+
+        it('matches country override when country codes are uppercase', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/KR'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('matches country override case-insensitively', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/kr'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('returns default when country does not match', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/KR'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'JP');
+            expect(entry.booleanValue).to.equal(false);
+        });
+
+        it('ignores override with no scope', () => {
+            const setting = makeSetting([
+                { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: true, locales: [], geos: [] },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, undefined);
+            expect(entry.booleanValue).to.equal(false);
+        });
+
+        it('matches template-only override when country is undefined', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    templates: ['plans'],
+                    locales: [],
+                    geos: [],
+                },
+            ]);
+            const entry = resolveSettingEntry({ fields: { variant: 'plans' } }, 'en_US', setting, undefined);
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('country-specific override wins over tag-only override when both match', () => {
+            const fragment = { fields: { tags: ['catalog'] } };
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/KR'],
+                    tags: [],
+                },
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: false,
+                    locales: [],
+                    geos: [],
+                    tags: ['catalog'],
+                },
+            ]);
+            const entry = resolveSettingEntry(fragment, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('locale-specific override wins over tag-only override when both match', () => {
+            const fragment = { fields: { tags: ['catalog'] } };
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: ['fr_FR'],
+                    geos: [],
+                    tags: [],
+                },
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: false,
+                    locales: [],
+                    geos: [],
+                    tags: ['catalog'],
+                },
+            ]);
+            const entry = resolveSettingEntry(fragment, 'fr_FR', setting, undefined);
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('prefers geos over legacy locales when both are present', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: ['en_US'],
+                    geos: ['mas:pzn/country/JP'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(false);
         });
     });
 
@@ -128,7 +352,14 @@ describe('settings', () => {
             const result = await getSettings(createContext());
             expect(result).to.deep.equal({
                 secureLabel: {
-                    default: { name: 'secureLabel', type: 'optional-text', booleanValue: true, textValue: '{{secure-label}}' },
+                    default: {
+                        name: 'secureLabel',
+                        type: 'optional-text',
+                        booleanValue: true,
+                        textValue: '{{secure-label}}',
+                        locales: [],
+                        geos: [],
+                    },
                     override: [],
                 },
             });
@@ -368,6 +599,43 @@ describe('settings', () => {
             expect(result.body.settings?.tagLabels).to.exist;
         });
 
+        it('applies country override to child fragments in a collection body', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: {
+                    model: { id: COLLECTION_MODEL_ID },
+                    references: {
+                        ref1: {
+                            type: 'content-fragment',
+                            value: { fields: { variant: 'plans' } },
+                        },
+                    },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.references.ref1.value.settings.hideTrialCTAs).to.be.true;
+        });
+
         it('applyCollectionSettings uses empty tagLabels when Object.fromEntries is falsy', function () {
             const fromEntriesStub = sinon.stub(Object, 'fromEntries').returns(null);
             const context = {
@@ -396,6 +664,93 @@ describe('settings', () => {
             };
             const result = await settings.process(context);
             expect(result.body.settings).to.be.undefined;
+        });
+
+        it('falls back to default quantitySelect when enabled in card fragment', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'quantitySelect',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'optional-text',
+                                textValue:
+                                    '<merch-quantity-select title="Select quantity" min="2" default-value="3" max="10" step="1"></merch-quantity-select>',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.quantitySelect).to.equal(
+                '<merch-quantity-select title="Select quantity" min="2" default-value="3" max="10" step="1"></merch-quantity-select>',
+            );
+        });
+
+        it('falls back to default additionalModalTriggers when enabled in card fragment', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'additionalModalTriggers',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.additionalModalTriggers).to.be.true;
+        });
+
+        it('publishes edu whats-included placeholders for pro/edu cards', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'pro', size: 'edu' } },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+            expect(result.body.placeholders.eduDisclaimer).to.equal('{{edu-disclaimer}}');
+        });
+
+        it('omits the edu disclaimer placeholder when hideEduDisclaimer setting is on', async () => {
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { variant: 'pro', size: 'edu' },
+                    settings: { hideEduDisclaimer: true },
+                },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+            expect(result.body.placeholders.eduDisclaimer).to.be.undefined;
+        });
+
+        it('does not add edu whats-included placeholders for non-edu pro cards', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'pro', size: 'wide' } },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders).to.be.undefined;
         });
 
         it('handles missing body', async () => {
@@ -630,6 +985,99 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.settings).to.exist;
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
+        });
+
+        it('applies hideTrialCTAs country override when context country matches', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
+        it('uses default when country does not match override', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
+        });
+
+        it('prefers region-locale geo override over country override when both match', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: false,
+                                    geos: ['mas:locale/US/en_US'],
+                                },
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
         });
 
         it('applies setting when templates is empty array (no template filter)', async () => {
@@ -948,6 +1396,153 @@ describe('settings', () => {
                 };
                 const result = await settings.process(context);
                 expect(result.body.settings.secureLabel).to.equal('');
+            });
+        });
+    });
+
+    describe('placeholder remap', () => {
+        const teamRemap = () => ({
+            [PLACEHOLDER_REMAP_SETTING]: {
+                default: { name: PLACEHOLDER_REMAP_SETTING, valuetype: 'text', textValue: '' },
+                override: [
+                    {
+                        name: PLACEHOLDER_REMAP_SETTING,
+                        valuetype: 'text',
+                        textValue: 'annual-billed-monthly:annual-billed-monthly-teams',
+                        locales: ['en_IL', 'he_IL'],
+                        tags: ['mas:customer_segment/team'],
+                    },
+                ],
+            },
+        });
+
+        describe('parsePlaceholderRemap', () => {
+            it('parses a single from:to pair', () => {
+                expect(parsePlaceholderRemap('annual-billed-monthly:annual-billed-monthly-teams')).to.deep.equal({
+                    'annual-billed-monthly': 'annual-billed-monthly-teams',
+                });
+            });
+
+            it('parses multiple newline-separated pairs', () => {
+                expect(parsePlaceholderRemap('a:b\nc:d')).to.deep.equal({ a: 'b', c: 'd' });
+            });
+
+            it('trims whitespace around keys and values', () => {
+                expect(parsePlaceholderRemap(' a : b \n c : d ')).to.deep.equal({ a: 'b', c: 'd' });
+            });
+
+            it('returns empty object for a blank string', () => {
+                expect(parsePlaceholderRemap('')).to.deep.equal({});
+            });
+
+            it('returns empty object for undefined input', () => {
+                expect(parsePlaceholderRemap(undefined)).to.deep.equal({});
+            });
+
+            it('ignores malformed lines (missing side or no colon)', () => {
+                expect(parsePlaceholderRemap('no-colon\n:only\nfrom:\nvalid:ok')).to.deep.equal({ valid: 'ok' });
+            });
+        });
+
+        describe('applyPlaceholderRemaps', () => {
+            it('rewrites a matching placeholder in a field value', () => {
+                const fragment = { fields: { callout: '{{annual-billed-monthly}}<p>terms</p>' } };
+                applyPlaceholderRemaps(fragment, { 'annual-billed-monthly': 'annual-billed-monthly-teams' });
+                expect(fragment.fields.callout).to.equal('{{annual-billed-monthly-teams}}<p>terms</p>');
+            });
+
+            it('matches placeholders with surrounding whitespace', () => {
+                const fragment = { fields: { callout: '{{ annual-billed-monthly }}' } };
+                applyPlaceholderRemaps(fragment, { 'annual-billed-monthly': 'annual-billed-monthly-teams' });
+                expect(fragment.fields.callout).to.equal('{{annual-billed-monthly-teams}}');
+            });
+
+            it('leaves non-matching placeholders untouched', () => {
+                const fragment = { fields: { callout: '{{annual-billed-monthly-teams}} {{other}}' } };
+                applyPlaceholderRemaps(fragment, { 'annual-billed-monthly': 'annual-billed-monthly-teams' });
+                expect(fragment.fields.callout).to.equal('{{annual-billed-monthly-teams}} {{other}}');
+            });
+
+            it('is a no-op when fragment has no fields', () => {
+                const fragment = { id: 'x' };
+                applyPlaceholderRemaps(fragment, { 'annual-billed-monthly': 'annual-billed-monthly-teams' });
+                expect(fragment).to.deep.equal({ id: 'x' });
+            });
+
+            it('is a no-op when the remap map is empty', () => {
+                const fragment = { fields: { callout: '{{annual-billed-monthly}}' } };
+                applyPlaceholderRemaps(fragment, {});
+                expect(fragment.fields.callout).to.equal('{{annual-billed-monthly}}');
+            });
+
+            it('does not chain rules across a single pass', () => {
+                const fragment = { fields: { callout: '{{a}} {{b}}' } };
+                applyPlaceholderRemaps(fragment, { a: 'b', b: 'c' });
+                expect(fragment.fields.callout).to.equal('{{b}} {{c}}');
+            });
+
+            it('treats replacement special patterns in the target as literal', () => {
+                const fragment = { fields: { callout: '{{x}}' } };
+                applyPlaceholderRemaps(fragment, { x: 'a$&b' });
+                expect(fragment.fields.callout).to.equal('{{a$&b}}');
+            });
+
+            it('logs and leaves fields unchanged when the rewrite produces invalid JSON', () => {
+                const logStub = sinon.stub(console, 'log');
+                const fragment = { id: 'f1', fields: { callout: '{{x}}' } };
+                applyPlaceholderRemaps(fragment, { x: 'a"b' }, { debugLogs: false });
+                logStub.restore();
+                expect(fragment.fields.callout).to.equal('{{x}}');
+                expect(logStub.calledOnce).to.be.true;
+            });
+        });
+
+        describe('applySettings integration', () => {
+            it('rewrites the field for an IL team fragment and does not emit the remap as a setting', async () => {
+                const context = {
+                    locale: 'en_IL',
+                    body: {
+                        fields: { variant: 'plans', tags: ['mas:customer_segment/team'], callout: '{{annual-billed-monthly}}' },
+                    },
+                    promises: { settings: Promise.resolve(teamRemap()) },
+                };
+                const result = await settings.process(context);
+                expect(result.body.fields.callout).to.equal('{{annual-billed-monthly-teams}}');
+                expect(result.body.settings?.[PLACEHOLDER_REMAP_SETTING]).to.be.undefined;
+            });
+
+            it('leaves the field unchanged for a non-team fragment (empty default applies)', async () => {
+                const context = {
+                    locale: 'en_IL',
+                    body: { fields: { variant: 'plans', tags: [], callout: '{{annual-billed-monthly}}' } },
+                    promises: { settings: Promise.resolve(teamRemap()) },
+                };
+                const result = await settings.process(context);
+                expect(result.body.fields.callout).to.equal('{{annual-billed-monthly}}');
+            });
+
+            it('remaps content-fragment references in a collection body', async () => {
+                const context = {
+                    locale: 'en_IL',
+                    body: {
+                        model: { id: COLLECTION_MODEL_ID },
+                        references: {
+                            ref1: {
+                                type: 'content-fragment',
+                                value: {
+                                    fields: {
+                                        variant: 'plans',
+                                        tags: ['mas:customer_segment/team'],
+                                        callout: '{{annual-billed-monthly}}',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    promises: { settings: Promise.resolve(teamRemap()) },
+                };
+                const result = await settings.process(context);
+                expect(result.body.references.ref1.value.fields.callout).to.equal('{{annual-billed-monthly-teams}}');
             });
         });
     });

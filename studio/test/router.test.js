@@ -699,21 +699,6 @@ describe('Router', () => {
         });
     });
 
-    describe('navigateToVariationsTable', () => {
-        it('should navigate to variations table', async () => {
-            await router.navigateToVariationsTable('test-id');
-            expect(Store.fragments.expandedId.get()).to.equal('test-id');
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-            expect(Store.renderMode.get()).to.equal('table');
-        });
-
-        it('should error if no fragmentId provided', async () => {
-            const consoleSpy = sandbox.stub(console, 'error');
-            await router.navigateToVariationsTable(null);
-            expect(consoleSpy.calledWith('Fragment ID is required for navigation')).to.be.true;
-        });
-    });
-
     describe('navigateToFragmentEditor', () => {
         it('should navigate to fragment editor', async () => {
             await router.navigateToFragmentEditor('test-id');

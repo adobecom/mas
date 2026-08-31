@@ -30,6 +30,8 @@ nala/.auth/
 .claude/*
 !.claude/commands/
 !.claude/commands/**
+extension/.claude/
+extension/mas-studio-extension.zip
 .logs/
 .scout
 .specify/
@@ -50,7 +52,7 @@ config.json
 MerchAtScale-*.json
 masStudio-*.json
 .env*
-.aio
+.aio*
 .cursor
 .superpowers/
 

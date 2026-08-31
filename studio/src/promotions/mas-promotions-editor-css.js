@@ -365,6 +365,53 @@ export const styles = [
             justify-content: center;
             z-index: 1000;
         }
+
+        .end-date-row {
+            display: flex;
+            align-items: center;
+            gap: var(--spectrum-spacing-200, 16px);
+        }
+
+        .end-date-row input[type='datetime-local']:disabled {
+            opacity: 0.4;
+        }
+
+        .promotion-tag-field {
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .fragment-validation-banner {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 12px;
+            margin-block-end: 16px;
+            border-radius: 4px;
+            border: 1px solid var(--merch-color-error, #d73220);
+            background-color: var(--spectrum-red-100, #ffebe7);
+            color: var(--merch-color-error, #d73220);
+        }
+
+        .fragment-validation-banner-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .fragment-validation-banner-title {
+            font-weight: 700;
+        }
+
+        .fragment-validation-banner-property {
+            font-family: var(--spectrum-code-font-family, monospace);
+            font-weight: 700;
+        }
+
+        .fragment-validation-banner-icon {
+            flex-shrink: 0;
+            color: var(--merch-color-error, #d73220);
+        }
     `,
 ];
 

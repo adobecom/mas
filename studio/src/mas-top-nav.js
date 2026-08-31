@@ -1,4 +1,4 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES, PICKERS } from './constants.js';
 import { LitElement, html, nothing } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { until } from 'lit/directives/until.js';
@@ -112,7 +112,7 @@ class MasTopNav extends LitElement {
 
     static properties = {
         aemEnv: { type: String, attribute: 'aem-env' },
-        showPickers: { type: Boolean, attribute: 'show-pickers' },
+        pickersToHide: { type: Array, attribute: 'pickers-to-hide' },
     };
 
     profileTemplatePromise = null;
@@ -120,7 +120,7 @@ class MasTopNav extends LitElement {
     constructor() {
         super();
         this.aemEnv = 'prod';
-        this.showPickers = true;
+        this.pickersToHide = [];
         this.search.subscribe(() => {
             this.requestUpdate();
         });
@@ -137,10 +137,6 @@ class MasTopNav extends LitElement {
             this.profileTemplatePromise = this.profileBuilder().then((profile) => html`${profile}`);
         }
         return this.profileTemplatePromise;
-    }
-
-    get shouldShowPickers() {
-        return this.showPickers;
     }
 
     get isContentPage() {
@@ -210,7 +206,7 @@ class MasTopNav extends LitElement {
                 const locale = Store.filters.value.locale;
                 return getDefaultLocaleCode(Store.surface(), locale) || locale;
             }
-            if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
+            if (this.editorContext.isLocaleVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
                 return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
             }
         }
@@ -227,7 +223,7 @@ class MasTopNav extends LitElement {
             // so users can browse to locale variations
             const fragmentId = this.inEdit.get()?.get()?.id;
             if (this.editorContext.isGroupedVariationByPath) return false;
-            return this.editorContext.isVariation(fragmentId);
+            return this.editorContext.isLocaleVariation(fragmentId);
         }
         return true;
     }
@@ -463,26 +459,29 @@ class MasTopNav extends LitElement {
                     : html`<div class="spacer"></div>`}
 
                 <div class="right-section">
-                    ${this.shouldShowPickers
-                        ? html`
-                              <mas-nav-folder-picker
-                                  ?disabled=${this.isFragmentEditorPage ||
-                                  this.isTranslationEditorPage ||
-                                  this.isSettingsEditorPage ||
-                                  this.isBulkPublishEditorPage ||
-                                  this.isPromotionsPage ||
-                                  this.isPromotionsEditorPage}
-                              ></mas-nav-folder-picker>
-                              <mas-locale-picker
-                                  displayMode="strong"
-                                  @locale-changed=${this.onLocaleChanged}
-                                  ?disabled=${this.isLocalePickerDisabled}
-                                  surface=${Store.surface()}
-                                  locale=${this.topNavLocale}
-                              ></mas-locale-picker>
-                              ${this.isProductCatalogPage
+                    ${!this.pickersToHide.includes(PICKERS.FOLDER)
+                        ? html` <mas-nav-folder-picker
+                              ?disabled=${this.isFragmentEditorPage ||
+                              this.isTranslationEditorPage ||
+                              this.isSettingsEditorPage ||
+                              this.isBulkPublishEditorPage ||
+                              this.isPromotionsPage ||
+                              this.isPromotionsEditorPage}
+                          ></mas-nav-folder-picker>`
+                        : nothing}
+                    ${!this.pickersToHide.includes(PICKERS.LOCALE)
+                        ? html` <mas-locale-picker
+                              displayMode="strong"
+                              @locale-changed=${this.onLocaleChanged}
+                              ?disabled=${this.isLocalePickerDisabled}
+                              surface=${Store.surface()}
+                              locale=${this.topNavLocale}
+                          ></mas-locale-picker>`
+                        : nothing}
+                    ${!this.pickersToHide.includes(PICKERS.LANDSCAPE)
+                        ? html` ${this.isProductCatalogPage
                                   ? nothing
-                                  : html`<sp-switch
+                                  : html` <sp-switch
                                         class="landscape-switch"
                                         size="m"
                                         ?checked=${this.isDraftLandscape}
@@ -502,9 +501,8 @@ class MasTopNav extends LitElement {
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>
                                   </button>
-                              </div>
-                          `
-                        : ''}
+                              </div>`
+                        : nothing}
                     ${until(this.getProfileTemplate())}
                 </div>
             </nav>

@@ -1,0 +1,190 @@
+{
+    "variant": {
+        "fieldLabel": "Variant",
+        "type": "string",
+        "maxLength": 255
+    },
+    "osi": {
+        "fieldLabel": "OSI",
+        "type": "string",
+        "maxLength": 255
+    },
+    "size": {
+        "fieldLabel": "Size",
+        "type": "string",
+        "maxLength": 255
+    },
+    "mnemonicIcon": {
+        "fieldLabel": "Mnemonic  Icon",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "mnemonicAlt": {
+        "fieldLabel": "Mnemonic Alt",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "mnemonicLink": {
+        "fieldLabel": "Mnemonic Link",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "badge": {
+        "fieldLabel": "Badge",
+        "type": "long-text"
+    },
+    "trialBadge": {
+        "fieldLabel": "Trial Badge",
+        "type": "long-text"
+    },
+    "backgroundColor": {
+        "fieldLabel": "Background Color",
+        "type": "string",
+        "maxLength": 255
+    },
+    "borderColor": {
+        "fieldLabel": "border Color",
+        "type": "string",
+        "maxLength": 255
+    },
+    "backgroundImage": {
+        "fieldLabel": "Background Image",
+        "type": "string",
+        "maxLength": 255
+    },
+    "backgroundImageAltText": {
+        "fieldLabel": "Background Image Alt Text",
+        "type": "string",
+        "maxLength": 255
+    },
+    "cardTitle": {
+        "fieldLabel": "Card title",
+        "type": "string",
+        "maxLength": 500
+    },
+    "cardName": {
+        "fieldLabel": "Card name",
+        "type": "string",
+        "maxLength": 255
+    },
+    "cardTitleLink": {
+        "fieldLabel": "Card title link",
+        "type": "string",
+        "maxLength": 255
+    },
+    "subtitle": {
+        "fieldLabel": "Subtitle",
+        "type": "string",
+        "maxLength": 255
+    },
+    "prices": {
+        "fieldLabel": "Prices",
+        "type": "long-text"
+    },
+    "shortDescription": {
+        "fieldLabel": "Short Description",
+        "type": "long-text"
+    },
+    "promoText": {
+        "fieldLabel": "Promo Text",
+        "type": "string",
+        "maxLength": 500
+    },
+    "promoCode": {
+        "fieldLabel": "Promo Code",
+        "type": "string",
+        "maxLength": 255
+    },
+    "description": {
+        "fieldLabel": "Description",
+        "type": "long-text"
+    },
+    "callout": {
+        "fieldLabel": "Callout Text",
+        "type": "long-text"
+    },
+    "showSecureLabel": {
+        "fieldLabel": "Show Secure Label",
+        "type": "boolean"
+    },
+    "showPlanType": {
+        "fieldLabel": "Show Plan Type",
+        "type": "boolean"
+    },
+    "quantitySelect": {
+        "fieldLabel": "Quantity Select",
+        "type": "string",
+        "maxLength": 255
+    },
+    "addon": {
+        "fieldLabel": "Addon",
+        "type": "string",
+        "maxLength": 255
+    },
+    "addonConfirmation": {
+        "fieldLabel": "Addon Confirmation",
+        "type": "string",
+        "maxLength": 255
+    },
+    "ctas": {
+        "fieldLabel": "CTAs",
+        "type": "long-text"
+    },
+    "variations": {
+        "fieldLabel": "Variations",
+        "type": "content-fragment[]"
+    },
+    "product": {
+        "fieldLabel": "Product",
+        "type": "content-reference"
+    },
+    "whatsIncluded": {
+        "fieldLabel": "Whats Included",
+        "type": "string",
+        "maxLength": 100000
+    },
+    "tags": {
+        "fieldLabel": "Tags",
+        "type": "tag[]"
+    },
+    "pznTags": {
+        "fieldLabel": "Personalization tags",
+        "type": "tag[]"
+    },
+    "perUnitLabel": {
+        "fieldLabel": "Per Unit Label",
+        "type": "string",
+        "maxLength": 255
+    },
+    "originalId": {
+        "fieldLabel": "Original ID",
+        "type": "string",
+        "maxLength": 255
+    },
+    "compatVersion": {
+        "fieldLabel": "Compatibility version",
+        "type": "number"
+    },
+    "locReady": {
+        "fieldLabel": "Loc ready",
+        "type": "boolean"
+    },
+    "features": {
+        "fieldLabel": "Features",
+        "type": "long-text[]"
+    },
+    "variables": {
+        "fieldLabel": "Variables",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "customFields": {
+        "fieldLabel": "Custom Fields",
+        "type": "long-text[]"
+    },
+    "customFieldLabels": {
+        "fieldLabel": "Custom Field Labels",
+        "type": "string[]",
+        "maxLength": 255
+    }
+}

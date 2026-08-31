@@ -9,6 +9,7 @@ const {
     fromCsv,
     buildResultRowKeys,
     buildCsvRowsFromFindResults,
+    buildReplaceRowsFromFindResults,
     parseRawBody,
     parseCsvUploadBody,
     extractCsvFromMultipart,
@@ -280,6 +281,24 @@ describe('bulk-edit/csv: buildCsvRowsFromFindResults', () => {
         const rows = buildCsvRowsFromFindResults(allItems, userRows);
         expect(rows).to.have.lengthOf(1);
         expect(rows[0].fragment_id).to.equal('a');
+    });
+});
+
+describe('bulk-edit/csv: buildReplaceRowsFromFindResults', () => {
+    const items = [
+        {
+            id: 'a',
+            path: '/p/a',
+            locale: 'en_US',
+            etag: 'e1',
+            status: 'PUBLISHED',
+            matches: [{ field: 'subtitle', value: 'school offer' }],
+        },
+    ];
+
+    it('computes replace from find params for replace execution', () => {
+        const rows = buildReplaceRowsFromFindResults(items, null, { find: 'school', replace: 'campus', matchCase: false });
+        expect(rows[0].replace).to.equal('campus offer');
     });
 });
 

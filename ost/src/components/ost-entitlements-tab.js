@@ -10,7 +10,6 @@ const FLOW_LABELS = [
     { value: 'single', label: 'Single Offer' },
     { value: 'tryBuy', label: 'Try / Buy' },
     { value: 'bundle', label: 'Soft Bundle' },
-    { value: 'consult', label: 'Consult' },
 ];
 
 export class OstEntitlementsTab extends LitElement {
@@ -85,6 +84,7 @@ export class OstEntitlementsTab extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 4px;
+            margin-bottom: 20px;
         }
 
         .footer {
@@ -122,6 +122,20 @@ export class OstEntitlementsTab extends LitElement {
         this.dispatchEvent(new CustomEvent('ost-tab-cancel', { bubbles: true, composed: true }));
     }
 
+    // Resolve any pending (debounced) search before advancing so a fast
+    // type-then-Next on an OSI/offer query still resolves its product/offer.
+    // The flush clears the prior selection synchronously, so "Use" stays
+    // disabled on the offer step until the new query's offer resolves (no race
+    // where Use is clickable on a stale selection).
+    handleNext() {
+        const search = this.shadowRoot?.querySelector('ost-search');
+        if (search?.hasPendingOsiSearch?.()) {
+            store.clearSelectedOffer();
+        }
+        search?.flushPendingSearch?.();
+        store.goToOffer();
+    }
+
     render() {
         return html`
             <h2 class="tab-heading">Select your product from the list below</h2>
@@ -141,12 +155,18 @@ export class OstEntitlementsTab extends LitElement {
                     <div class="mode-group">
                         <span class="panel-label">Authoring mode</span>
                         <sp-picker
+                            data-testid="ost-authoring-mode"
                             size="s"
                             label="Authoring mode"
                             value=${store.authoringFlow}
                             @change=${(e) => store.chooseAuthoringFlow(e.target.value)}
                         >
-                            ${FLOW_LABELS.map((flow) => html`<sp-menu-item value=${flow.value}>${flow.label}</sp-menu-item>`)}
+                            ${FLOW_LABELS.map(
+                                (flow) =>
+                                    html`<sp-menu-item data-testid="ost-authoring-mode-${flow.value}" value=${flow.value}
+                                        >${flow.label}</sp-menu-item
+                                    >`,
+                            )}
                         </sp-picker>
                     </div>
                     <ost-product-detail summary></ost-product-detail>
@@ -162,7 +182,7 @@ export class OstEntitlementsTab extends LitElement {
                     variant="accent"
                     size="m"
                     ?disabled=${!store.canAdvance}
-                    @click=${() => store.goToOffer()}
+                    @click=${() => this.handleNext()}
                     >Next</sp-button
                 >
             </div>

@@ -330,7 +330,7 @@ export default css`
 
     .ProseMirror {
         padding: 4px 8px 4px 14px;
-        line-height: 1.2;
+        line-height: 1.6;
         outline: none;
         width: stretch;
     }

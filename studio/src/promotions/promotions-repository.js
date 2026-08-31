@@ -1,5 +1,6 @@
 import Store from '../store.js';
-import { canProbePromoVariationsForFragment } from './promotion-model.js';
+import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from './promotion-model.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 
@@ -15,6 +16,17 @@ function readPromotionProjectsFromStore() {
             ?.map((store) => store.get())
             .filter(Boolean) || []
     );
+}
+
+/**
+ * @param {Array<Object>} projects
+ * @param {string} promoTagId
+ * @returns {string[]}
+ */
+function getAttachedFragmentPathsForTag(projects, promoTagId) {
+    const normalized = normalizeTagId(promoTagId);
+    const project = projects.find((candidate) => getPromotionTagFromFragment(candidate) === normalized);
+    return project?.getFieldValues?.('fragments') ?? [];
 }
 
 /**
@@ -37,12 +49,13 @@ export async function getPromotionProjectsForProbe(loadPromotions) {
  * @returns {Promise<Object>}
  */
 export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, loadPromotions) {
-    if (!canProbePromoVariationsForFragment(fragmentData)) return fragmentData;
-    return promotionVariations.mergePromoReferencesForDefaultFragment(
+    if (!canProbePromoVariationsForFragment(fragmentData)) return { ...fragmentData, promoVariationProbeNotNeeded: true };
+    const merged = await promotionVariations.mergePromoReferencesForDefaultFragment(
         aem,
         fragmentData,
         await getPromotionProjectsForProbe(loadPromotions),
     );
+    return { ...merged, promoVariationProbeNotNeeded: true };
 }
 
 /**
@@ -53,7 +66,19 @@ export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, lo
  * @returns {Promise<Object|null>}
  */
 export async function resolveDefaultFragmentForPromoVariation(aem, promoVariationPath, promoVariationId, loadPromotions) {
-    const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(aem, promoVariationPath, promoVariationId);
+    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    let attachedFragmentPaths = [];
+    if (promoVariationId) {
+        const variation = await aem.sites.cf.fragments.getById(promoVariationId);
+        const promoTag = getPromotionTagFromFragment(variation);
+        if (promoTag) attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTag);
+    }
+    const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+        aem,
+        promoVariationPath,
+        promoVariationId,
+        attachedFragmentPaths,
+    );
     if (!parent) return null;
     return mergePromoReferencesIntoFragmentData(aem, parent, loadPromotions);
 }
@@ -65,6 +90,24 @@ export async function resolveDefaultFragmentForPromoVariation(aem, promoVariatio
  */
 export async function getUnpublishedAttachedPromoVariations(aem, promotionFragment) {
     return promotionVariations.getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getPublishedAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.getPublishedAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getAllAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.getAllAttachedPromoVariations(aem, promotionFragment);
 }
 
 /**
@@ -88,12 +131,43 @@ export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refre
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} sourceFragmentId
  * @param {string} promoTagId
+ * @param {string[]} [geoTags]
  * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} [refreshFragment]
+ * @param {() => Promise<void>} [loadPromotions]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, refreshFragment) {
+export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], refreshFragment, loadPromotions) {
+    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    const attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTagId);
     const onCreated = refreshFragment ? buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) : undefined;
-    const createdFragment = await promotionVariations.createPromoVariation(aem, sourceFragmentId, promoTagId);
+    const createdFragment = await promotionVariations.createPromoVariation(
+        aem,
+        sourceFragmentId,
+        promoTagId,
+        geoTags,
+        attachedFragmentPaths,
+    );
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @param {string} promoTagId
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[] }>>}
+ */
+export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
+    return promotionVariations.probePromoVariationsForFragment(aem, defaultPath, promoTagId);
+}
+
+/**
+ * Probes promo variations for many fragments in a single recursive folder search per surface root.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} defaultPaths
+ * @param {string} promoTagId
+ * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[] }>>>}
+ */
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId);
 }

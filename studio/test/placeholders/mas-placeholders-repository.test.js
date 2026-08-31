@@ -22,7 +22,11 @@ import {
     clearDictionaryCache,
     loadPlaceholders,
     loadPreviewPlaceholders,
+    fetchDictionary,
 } from '../../src/placeholders/mas-placeholders-repository.js';
+import { odinUrl } from '../../../io/www/src/fragment/utils/paths.js';
+import { DEFAULT_CONTEXT } from '../../libs/fragment-client.js';
+import { createResponse } from '../../../io/www/test/fragment/mocks/MockFetch.js';
 
 const mockFragmentCache = {
     get: () => null,
@@ -509,7 +513,7 @@ describe('mas-placeholders-repository', () => {
             expect(repo.publishFragment.callCount).to.equal(2);
             expect(repo.publishFragment.firstCall.args[0]).to.equal(placeholder);
             expect(repo.publishFragment.secondCall.args[0].path).to.equal(expectedIndexPath);
-            expect(repo.publishFragment.secondCall.args.slice(1)).to.deep.equal([[], false]);
+            expect(repo.publishFragment.secondCall.args.slice(1)).to.deep.equal([{}, false]);
         });
 
         it('bails out and skips the index publish when the placeholder publish fails', async () => {
@@ -610,6 +614,39 @@ describe('mas-placeholders-repository', () => {
             repo.fetchDictionary = sandbox.stub();
             await loadPreviewPlaceholders();
             expect(repo.fetchDictionary.called).to.be.false;
+        });
+    });
+
+    describe('fetchDictionary', () => {
+        let fetchStub;
+
+        beforeEach(() => {
+            clearDictionaryCache(true);
+            fetchStub = sandbox.stub(globalThis, 'fetch');
+            fetchStub.callsFake(() => createResponse(404, null, 'not found'));
+        });
+
+        afterEach(() => clearDictionaryCache(true));
+
+        it('resolves a defaultLocale so the acom baseline layer is requested at a real locale, not a bare-surface URL', async () => {
+            repo.search = { value: { path: SURFACES.ACOM.name } };
+
+            await fetchDictionary(undefined, 'en_US');
+
+            const baselineUrl = odinUrl(SURFACES.ACOM.name, {
+                locale: 'en_US',
+                fragmentPath: 'dictionary/index',
+                preview: DEFAULT_CONTEXT.preview,
+            });
+            expect(fetchStub.calledWith(baselineUrl)).to.be.true;
+
+            // Before the fix, defaultLocale was undefined so odinUrl dropped the locale segment
+            // entirely, always 404ing the shared baseline that edu-disclaimer-style placeholders live on.
+            const localeLessUrl = odinUrl(SURFACES.ACOM.name, {
+                fragmentPath: 'dictionary/index',
+                preview: DEFAULT_CONTEXT.preview,
+            });
+            expect(fetchStub.calledWith(localeLessUrl)).to.be.false;
         });
     });
 

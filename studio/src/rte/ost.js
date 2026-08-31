@@ -57,6 +57,7 @@ const ostDefaultSettings = () => {
         displayTax,
         forceTaxExclusive: true, // see https://git.corp.adobe.com/wcms/tacocat.js/blob/develop/packages/offer-selector-tool/src/PlaceholderKey.jsx#L38
         isPerpetual,
+        quantity: 1,
         workflowStep: checkoutWorkflowStep,
     };
 };
@@ -105,6 +106,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayTax: 'data-display-tax',
     forceTaxExclusive: 'data-force-tax-exclusive',
     isPerpetual: 'data-perpetual',
+    quantity: 'data-quantity',
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
@@ -112,6 +114,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     modal: 'data-modal',
     entitlement: 'data-entitlement',
     upgrade: 'data-upgrade',
+    lockedOsi: 'data-locked-osi',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -131,7 +134,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
             masCommerceService.settings.country,
             null,
             offer.customer_segment,
-            offer.market_segments[0],
+            offer.market_segments?.[0],
         );
         settings = {
             ...settings,
@@ -158,9 +161,6 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         attributes['data-analytics-id'] = options.ctaText;
     }
 
-    if (promoOverride) {
-        attributes['data-promotion-code'] = promoOverride;
-    }
     if (!options.isPerpetual) {
         delete changes.isPerpetual;
     }
@@ -169,6 +169,12 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         if (attribute) {
             attributes[attribute] = value;
         }
+    }
+
+    if (promoOverride) {
+        attributes['data-promotion-code'] = promoOverride;
+    } else {
+        delete attributes['data-promotion-code'];
     }
 
     ostRoot.dispatchEvent(
@@ -224,6 +230,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         }
         let searchOfferSelectorId;
         let initialReferenceOsi;
+        let bundleOsis;
         const freshImsToken = window.adobeIMS?.getAccessToken?.()?.token;
         const aosAccessToken =
             freshImsToken ??
@@ -247,9 +254,18 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
-            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',');
-            searchOfferSelectorId = osiParts[0];
-            initialReferenceOsi = osiParts[1];
+            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
+            const isDiscount = offerElement.getAttribute('data-template') === 'discount';
+            // A soft-bundle placeholder carries every bundled OSI comma-joined
+            // (and is not a discount, whose second OSI is a reference price).
+            // Reopen it in bundle mode with all offers so the author edits the
+            // whole bundle, not just its first offer.
+            if (osiParts.length > 1 && !isDiscount) {
+                bundleOsis = osiParts;
+            } else {
+                searchOfferSelectorId = osiParts[0];
+                initialReferenceOsi = osiParts[1];
+            }
 
             // Set search parameters
             offerElement.getAttributeNames().forEach((key) => {
@@ -274,6 +290,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
                 'modal',
                 'entitlement',
                 'upgrade',
+                'lockedOsi',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
@@ -344,6 +361,8 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             searchParameters,
             searchOfferSelectorId,
             initialReferenceOsi,
+            bundleOsis,
+            authoringFlow: bundleOsis ? 'bundle' : undefined,
             country: localeMeta?.country ?? masCommerceService.settings.country,
             language: localeMeta?.lang ?? masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),

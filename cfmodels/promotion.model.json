@@ -1,0 +1,60 @@
+{
+    "title": {
+        "fieldLabel": "Title",
+        "type": "string",
+        "maxLength": 255
+    },
+    "startDate": {
+        "fieldLabel": "Start date",
+        "type": "datetime"
+    },
+    "endDate": {
+        "fieldLabel": "End date",
+        "type": "datetime"
+    },
+    "surfaces": {
+        "fieldLabel": "Surfaces",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "tags": {
+        "fieldLabel": "Tag",
+        "type": "tag[]"
+    },
+    "geos": {
+        "fieldLabel": "Geos",
+        "type": "tag[]"
+    },
+    "offers": {
+        "fieldLabel": "Offers",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "promoCode": {
+        "fieldLabel": "Promo Code",
+        "type": "string",
+        "maxLength": 255
+    },
+    "variationStrategy": {
+        "fieldLabel": "Variation Strategy",
+        "type": "enum",
+        "options": [
+            {
+                "label": "Yield (Default)",
+                "value": "yield"
+            },
+            {
+                "label": "Override",
+                "value": "override"
+            },
+            {
+                "label": "Merge",
+                "value": "merge"
+            }
+        ]
+    },
+    "fragments": {
+        "fieldLabel": "Fragments",
+        "type": "content-fragment[]"
+    }
+}

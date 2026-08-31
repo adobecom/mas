@@ -73,12 +73,13 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { html } from 'lit';
+            import { html, render } from 'lit';
             // Import actual components
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/aem/aem-tag-picker-field.js';
             import '../../src/mas-fragment-editor.js';
+            import '../../src/editors/merch-card-editor.js';
             import '../../src/mas-repository.js';
             import '../../src/mas-side-nav.js';
             // Import aem-fragment, mas-commerce-service, and merch-card from web-components
@@ -142,7 +143,7 @@
                 }),
                 createSettingRow({
                     name: 'addon',
-                    value: '',
+                    value: 'addon1',
                     valueType: 'optional-text',
                     booleanValue: false,
                 }),
@@ -177,6 +178,7 @@
                             if (field.name === 'promoText') return { ...field, values: ['<p>Parent Promo</p>'] };
                             if (field.name === 'callout') return { ...field, values: ['<p>Parent Callout</p>'] };
                             if (field.name === 'ctas') return { ...field, values: ['<p>Parent CTAs</p>'] };
+                            if (field.name === 'addon') return { ...field, values: ['{{addon1}}'] };
                             if (field.name === 'mnemonicIcon')
                                 return { ...field, values: ['/test/mocks/img/creative-cloud.svg'], multiple: true };
                             if (field.name === 'mnemonicAlt') return { ...field, values: ['Parent Alt'], multiple: true };
@@ -225,6 +227,10 @@
                         Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
+                        Store.placeholders.addons.data.set([
+                            { value: 'addon1', itemText: 'addon1' },
+                            { value: 'addon2', itemText: 'addon2' },
+                        ]);
                         Store.placeholders.previewByLocale.set({ [variationLocale]: {} });
                         Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
@@ -287,64 +293,6 @@
                         await sideNav.updateComplete;
 
                         return { fragmentStore, editor, sideNav, saveNavItem };
-                    }
-
-                    function setSourceVariationCounts({
-                        locale = 0,
-                        promo = 0,
-                        grouped = 0,
-                        includeReferences = true,
-                        includeCurrentGroupedPath = false,
-                    }) {
-                        const sourceFragment = fragmentEditor.localeDefaultFragment;
-                        const [, rootPath, sourceLocale, fragmentPath] =
-                            sourceFragment.path.match(/^(\/content\/dam\/mas\/[^/]+)\/([^/]+)\/(.+)$/) || [];
-
-                        // Locales in the same default-locale family as en_US on ACOM/nala (see getRegionLocales + isVariationPathInParentLocaleFamily)
-                        const localeCodes = ['en_CA', 'en_AE', 'en_BE', 'en_NZ', 'en_SG', 'en_IE', 'en_PH'];
-                        const variationPaths = [];
-                        const references = [];
-
-                        for (let i = 0; i < locale; i += 1) {
-                            const localeCode = localeCodes[i] || `x${i}_XX`;
-                            const path = `${rootPath}/${localeCode}/${fragmentPath}`;
-                            variationPaths.push(path);
-                            if (includeReferences) {
-                                references.push({ path, tags: [] });
-                            }
-                        }
-
-                        for (let i = 0; i < promo; i += 1) {
-                            const path = `${rootPath}/${sourceLocale}/promo-${i}-${fragmentPath}`;
-                            variationPaths.push(path);
-                            if (includeReferences) {
-                                references.push({ path, tags: [{ id: `${TAG_PROMOTION_PREFIX}test-${i}` }] });
-                            }
-                        }
-
-                        if (includeCurrentGroupedPath && grouped > 0) {
-                            const currentPath = fragmentEditor.fragment.path;
-                            variationPaths.push(currentPath);
-                            if (includeReferences) {
-                                references.push({ path: currentPath, tags: [] });
-                            }
-                        }
-
-                        for (let i = includeCurrentGroupedPath ? 1 : 0; i < grouped; i += 1) {
-                            const path = `${rootPath}/${sourceLocale}/pzn/${fragmentPath}-${i}`;
-                            variationPaths.push(path);
-                            if (includeReferences) {
-                                references.push({ path, tags: [] });
-                            }
-                        }
-
-                        sourceFragment.references = includeReferences ? references : [];
-                        const variationsField = sourceFragment.fields.find((f) => f.name === 'variations');
-                        if (variationsField) {
-                            variationsField.values = variationPaths;
-                        } else {
-                            sourceFragment.fields.push({ name: 'variations', values: variationPaths, multiple: true });
-                        }
                     }
 
                     afterEach(() => {
@@ -595,133 +543,6 @@
                             'mas:locale/AR/es_AR',
                             'mas:locale/es_CL',
                         ]);
-                    });
-
-                    it('displays grouped sibling variation count for grouped variations', async () => {
-                        await setupTestEnvironment(
-                            {
-                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-counts',
-                            },
-                            'grouped-variation-counts',
-                        );
-                        setSourceVariationCounts({ locale: 0, promo: 0, grouped: 3 });
-                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(3);
-                        expect(fragmentEditor.localeDefaultFragment.getGroupedVariationCount()).to.equal(3);
-                        fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-
-                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
-                        expect(relatedVariations).to.exist;
-
-                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
-                            el.textContent.trim().replace(/\s+/g, ' '),
-                        );
-                        expect(counts).to.deep.equal(['2 grouped sibling variations']);
-                    });
-
-                    it('displays regional sibling variation count for locale variations', async () => {
-                        await setupTestEnvironment(
-                            {
-                                path: '/content/dam/mas/nala/en_AU/test-locale-variation-counts',
-                            },
-                            'locale-variation-counts',
-                        );
-                        setSourceVariationCounts({ locale: 4, promo: 0, grouped: 0 });
-                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(4);
-                        expect(fragmentEditor.localeDefaultFragment.getLocaleVariationCount()).to.equal(4);
-                        fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-
-                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
-                        expect(relatedVariations).to.exist;
-
-                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
-                            el.textContent.trim().replace(/\s+/g, ' '),
-                        );
-                        expect(counts).to.deep.equal(['3 Regional sibling variations']);
-                    });
-
-                    it('does not display sibling counts when source has variations but no references', async () => {
-                        await setupTestEnvironment(
-                            {
-                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-no-references',
-                            },
-                            'grouped-variation-no-references',
-                        );
-                        setSourceVariationCounts({
-                            locale: 2,
-                            promo: 0,
-                            grouped: 5,
-                            includeReferences: false,
-                            includeCurrentGroupedPath: true,
-                        });
-
-                        fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-
-                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
-                        expect(relatedVariations).to.not.exist;
-                    });
-
-                    it('shows 5 regional + 1 grouped sibling counts when variations contains stale paths not present in references', async () => {
-                        await setupTestEnvironment(
-                            {
-                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-stale-paths',
-                            },
-                            'grouped-variation-stale-paths',
-                        );
-
-                        setSourceVariationCounts({
-                            locale: 5,
-                            promo: 0,
-                            grouped: 2,
-                            includeReferences: true,
-                            includeCurrentGroupedPath: false,
-                        });
-
-                        const source = fragmentEditor.localeDefaultFragment;
-                        const variationsField = source.fields.find((f) => f.name === 'variations');
-                        variationsField.values.push(
-                            '/content/dam/mas/nala/en_IE/test-grouped-variation-stale-paths',
-                            '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-stale-paths-stale',
-                        );
-
-                        fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-
-                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
-                        expect(relatedVariations).to.exist;
-
-                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
-                            el.textContent.trim().replace(/\s+/g, ' '),
-                        );
-                        expect(counts).to.deep.equal(['5 Regional sibling variations', '1 grouped sibling variation']);
-                    });
-
-                    it('does not render related variations container for source fragments when references are empty', async () => {
-                        await setupTestEnvironment(
-                            {
-                                path: '/content/dam/mas/nala/en_US/test-source-variation-container',
-                                isVariation: false,
-                            },
-                            'source-variation-container',
-                        );
-
-                        const sourceFragment = fragmentEditor.fragment;
-                        sourceFragment.references = [];
-                        const sourceVariationsField = sourceFragment.fields.find((f) => f.name === 'variations');
-                        const variationPath = '/content/dam/mas/nala/fr_FR/test-source-variation-container';
-                        if (sourceVariationsField) {
-                            sourceVariationsField.values = [variationPath];
-                        } else {
-                            sourceFragment.fields.push({ name: 'variations', values: [variationPath], multiple: true });
-                        }
-
-                        fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-
-                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
-                        expect(relatedVariations).to.not.exist;
                     });
 
                     describe('Options and settings override behavior', () => {
@@ -1026,22 +847,24 @@
                                 parentOverrides: {
                                     showPlanType: ['true'],
                                     showSecureLabel: ['true'],
+                                    addon: ['{{addon-stock-trial}}'],
+                                },
+                                variationOverrides: {
                                     addon: ['{{addon-mili-test}}'],
                                 },
-                                variationOverrides: {},
                                 testId: 'variation-inherits-parent-visual-overrides',
                             });
 
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
                             expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
-                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.true;
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
 
                             expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
                             expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
-                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+                            expect(editor.isAddonSettingVisuallyOverridden()).to.be.true;
 
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.exist;
@@ -1191,6 +1014,121 @@
                             .querySelector('quantity-select-field')
                             .shadowRoot.querySelector('#quantity-selector-default');
                         expect(qsDefault2.value).to.equal('1');
+                    });
+
+                    it('update addon value and then rollback to the settings value', async () => {
+                        const { editor, fragmentStore } = await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                addon: ['addon1'],
+                            },
+                            'test-addon',
+                        );
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal('{{addon2}}');
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal('');
+                    });
+
+                    it('update addon value and background and then rollback to the settings value', async () => {
+                        const { editor, fragmentStore } = await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                addon: ['addon1'],
+                            },
+                            'test-addon',
+                        );
+
+                        const addonBGEl = editor.querySelector('sp-picker#addonBackground');
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
+                            '<merch-addon background="#dadada">{{addon2}}</merch-addon>',
+                        );
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
+                            '<merch-addon background="#dadada">addon1</merch-addon>',
+                        );
+                    });
+
+                    it('update variation addon value and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await delay(200);
+
+                        expect(addonSelect.value).to.equal('addon1');
+                        const addonSelectOverride2 = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        expect(addonSelectOverride2).to.be.null;
+                    });
+
+                    it('update variation addon value and background and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const addonBGEl = editor.querySelector('sp-picker#addonBackground');
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+
+                        const addonValue = editor.fragment.getFieldValue('addon', 0);
+                        expect(addonValue).to.equal('<merch-addon background="#dadada">{{addon2}}</merch-addon>');
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await delay(200);
+
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonValue2 = editor.fragment.getFieldValue('addon', 0);
+                        expect(addonValue2).to.equal('<merch-addon background="#dadada">{{addon1}}</merch-addon>');
                     });
 
                     describe('getWhatsIncludedProps', () => {
@@ -1357,19 +1295,25 @@
                         });
                     });
 
-                    describe('#updateWhatsIncluded bizpro routing', () => {
-                        const BIZPRO_SEED =
+                    describe('#updateWhatsIncluded pro routing', () => {
+                        const PRO_SEED =
                             '<p class="whats-included-label">Voir :</p>' +
                             '<div class="section"><h4>PDF</h4><ul><li>row</li></ul></div>';
 
-                        async function setupBizPro(testId) {
-                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['bizpro'] }, testId);
-                            store.get().fields.push({ name: 'whatsIncluded', values: [BIZPRO_SEED], multiple: false });
+                        async function setupPro(testId) {
+                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['pro'] }, testId);
+                            store.get().fields.push({ name: 'whatsIncluded', values: [PRO_SEED], multiple: false });
                             return store;
                         }
 
+                        it('renders a stored bizpro variant as Pro in the picker', async () => {
+                            await setupTestEnvironment({ variant: ['bizpro'] }, 'legacy-pro-picker');
+
+                            expect(editor.querySelector('#card-variant').value).to.equal('pro');
+                        });
+
                         it('serializes bullet multifield changes and preserves the stored label', async () => {
-                            const store = await setupBizPro('bizpro-wi-bullets');
+                            const store = await setupPro('pro-wi-bullets');
 
                             const multifield = editor.querySelector('#whatsIncluded mas-multifield[button-label="Add bullet"]');
                             multifield.value = [{ icon: 'sp-icon-star', alt: '<p>Title</p><p>new row</p>', link: '' }];
@@ -1383,7 +1327,7 @@
                         });
 
                         it('serializes label input changes and preserves the stored bullets', async () => {
-                            const store = await setupBizPro('bizpro-wi-label');
+                            const store = await setupPro('pro-wi-label');
 
                             const labelField = editor.querySelector('#whatsIncludedLabel');
                             labelField.value = 'New label';
@@ -1395,8 +1339,8 @@
                             expect(stored).to.include('PDF');
                         });
 
-                        it('ignores the "Add application" multifield for bizpro', async () => {
-                            const store = await setupBizPro('bizpro-wi-applications');
+                        it('ignores the "Add application" multifield for pro', async () => {
+                            const store = await setupPro('pro-wi-applications');
 
                             const multifield = editor.querySelector(
                                 '#whatsIncluded mas-multifield[button-label="Add application"]',
@@ -1404,7 +1348,7 @@
                             multifield.value = [{ icon: '', alt: 'ignored', link: '' }];
                             multifield.dispatchEvent(new CustomEvent('change'));
 
-                            expect(store.get().getFieldValue('whatsIncluded')).to.equal(BIZPRO_SEED);
+                            expect(store.get().getFieldValue('whatsIncluded')).to.equal(PRO_SEED);
                         });
                     });
 
@@ -1598,6 +1542,114 @@
                             sw.click();
                             await editor.updateComplete;
                             expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([false]);
+                        });
+                    });
+
+                    describe('validationStatus banner', () => {
+                        it('renders a banner listing each validationStatus property and message', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'validation-banner');
+                            fragmentStore.get().validationStatus = [
+                                { property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' },
+                            ];
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+
+                            const banner = editor.querySelector('.fragment-validation-banner');
+                            expect(banner).to.exist;
+                            expect(banner.textContent).to.include('fields.ctas.values[0].<list element>');
+                            expect(banner.textContent).to.include('is not valid HTML');
+                        });
+
+                        it('lists every message when validationStatus has multiple errors', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'validation-banner-multi');
+                            fragmentStore.get().validationStatus = [
+                                { property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' },
+                                { property: 'path', message: 'is required' },
+                            ];
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+
+                            const messages = editor.querySelectorAll('.fragment-validation-banner-message');
+                            expect(messages.length).to.equal(2);
+                            expect(messages[0].textContent).to.include('is not valid HTML');
+                            expect(messages[1].textContent).to.include('is required');
+                        });
+
+                        it('renders no banner when validationStatus is empty', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'validation-none');
+                            expect(editor.querySelector('.fragment-validation-banner')).to.not.exist;
+                        });
+                    });
+
+                    describe('CTA reference key warning', () => {
+                        const makeEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = true;
+                            editor.localeDefaultFragment = new Fragment({
+                                path: '/content/dam/mas/x/en_US/base',
+                                fields: [{ name: 'ctas', values: [ctasHtml] }],
+                            });
+                            return editor;
+                        };
+
+                        it('flags base fragment CTA key issues on a variation', () => {
+                            const editor = makeEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('Base fragment CTAs need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                        });
+
+                        it('renders nothing when base CTA keys are clean', () => {
+                            const editor = makeEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
+                        });
+
+                        const makeBaselineEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = false;
+                            editor.fragmentStore = {
+                                get: () =>
+                                    new Fragment({
+                                        path: '/content/dam/mas/x/en_US/base',
+                                        fields: [{ name: 'ctas', values: [ctasHtml] }],
+                                    }),
+                            };
+                            return editor;
+                        };
+
+                        it('reports own CTA key issues with a Fix link on a baseline', () => {
+                            const editor = makeBaselineEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('CTA references need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                            expect(container.querySelector('sp-link.field-status-restore-link')).to.exist;
+                        });
+
+                        it('field-level Fix link invokes fixCtaKeys on the ctas RTE field', () => {
+                            const editor = makeBaselineEditor('<a data-key="dup">A</a><a data-key="dup">B</a>');
+                            const rte = document.createElement('rte-field');
+                            rte.id = 'ctas';
+                            let called = 0;
+                            rte.fixCtaKeys = () => (called += 1);
+                            editor.appendChild(rte);
+
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            container.querySelector('sp-link.field-status-restore-link').click();
+                            expect(called).to.equal(1);
+                        });
+
+                        it('renders nothing when own CTA keys are clean', () => {
+                            const editor = makeBaselineEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
                         });
                     });
                 });

@@ -160,7 +160,7 @@
 
                             const result = await editor.resolveVariationParentFragment(promoPath);
 
-                            expect(result).to.deep.equal(parentData);
+                            expect(result).to.deep.equal({ ...parentData, promoVariationProbeNotNeeded: true });
                             expect(resolveGroupedStub.called).to.be.false;
                             expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
                         });
@@ -221,9 +221,21 @@
                         await el.saveFragment();
 
                         expect(compareEditor.commitFeatureDrafts.calledOnce).to.be.true;
-                        expect(repository.saveFragment.firstCall.calledWith(cardStore, false)).to.be.true;
-                        expect(repository.saveFragment.secondCall.calledWith(secondCardStore, false)).to.be.true;
-                        expect(repository.saveFragment.thirdCall.calledWith(fragmentStore, false)).to.be.true;
+                        expect(
+                            repository.saveFragment.firstCall.calledWith(cardStore, { withToast: false, refetchEtag: false }),
+                        ).to.be.true;
+                        expect(
+                            repository.saveFragment.secondCall.calledWith(secondCardStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            repository.saveFragment.thirdCall.calledWith(fragmentStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
                     });
 
                     it('skips unchanged compare chart card fragments when saving', async () => {
@@ -246,8 +258,39 @@
                         await el.saveFragment();
 
                         expect(repository.saveFragment.calledWith(cleanCardStore)).to.be.false;
-                        expect(repository.saveFragment.firstCall.calledWith(dirtyCardStore, false)).to.be.true;
-                        expect(repository.saveFragment.secondCall.calledWith(fragmentStore, false)).to.be.true;
+                        expect(
+                            repository.saveFragment.firstCall.calledWith(dirtyCardStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            repository.saveFragment.secondCall.calledWith(fragmentStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
+                    });
+
+                    it('migrates a stored bizpro variant to pro when saving', async () => {
+                        const el = document.createElement('mas-fragment-editor');
+                        const fragmentStore = generateFragmentStore(
+                            new Fragment({
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'variant', values: ['bizpro'] }],
+                            }),
+                        );
+                        const repository = {
+                            saveFragment: sandbox.stub().resolves({}),
+                        };
+                        sandbox.stub(el, 'repository').get(() => repository);
+                        sandbox.stub(el, 'fragmentStore').get(() => fragmentStore);
+
+                        await el.saveFragment();
+
+                        expect(fragmentStore.get().getFieldValue('variant')).to.equal('pro');
+                        expect(repository.saveFragment.calledWith(fragmentStore, { withToast: true, refetchEtag: false })).to.be
+                            .true;
                     });
 
                     it('extracts locale from path', async () => {
@@ -1224,6 +1267,8 @@
                             document.body.appendChild(el);
 
                             await el.updateComplete;
+                            await customElements.whenDefined('mas-compare-chart-editor');
+                            await el.updateComplete;
 
                             expect(el.querySelector('#fragment-editor').classList.contains('compare-chart-editor')).to.be.true;
                             expect(el.querySelector('#editor-content').classList.contains('compare-chart-content')).to.be.true;
@@ -1285,14 +1330,6 @@
                             await el.navigateToLocaleDefaultFragment();
                             expect(navigateSpy.calledWith('parent-id')).to.be.true;
                         });
-
-                        it('navigates to variations table', async () => {
-                            const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
-                            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            el.inEdit.value = { get: () => ({ id: 'test-id' }) };
-                            el.navigateToVariationsTable();
-                            expect(navigateSpy.calledWith('test-id')).to.be.true;
-                        });
                     });
 
                     describe('additional rendering and logic', () => {
@@ -1336,24 +1373,6 @@
                         it('renders preview skeleton', () => {
                             const skeleton = el.previewSkeleton;
                             expect(skeleton).to.not.equal(nothing);
-                        });
-                    });
-
-                    describe('relatedVariationsSection', () => {
-                        let el;
-                        beforeEach(() => {
-                            el = document.createElement('mas-fragment-editor');
-                            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            const fragment = new Fragment({ id: 'test-id' });
-                            sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
-                            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
-                            sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
-                            el.inEdit.value = { get: () => fragment };
-                        });
-
-                        it('renders variation counts', () => {
-                            const section = el.relatedVariationsSection;
-                            expect(section).to.not.equal(nothing);
                         });
                     });
 

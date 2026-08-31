@@ -260,7 +260,10 @@ export class PlansV2 extends VariantLayout {
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
-            if (service.featureFlags[FF_ANNUAL_PRICE] && legal.options.displayTax) {
+            if (
+                service.featureFlags[FF_ANNUAL_PRICE] &&
+                legal.options.displayTax
+            ) {
                 legal.dataset.displayTax = 'false';
             } else if (headingPrice.options.displayTax) {
                 headingPrice.dataset.displayTax = 'false';

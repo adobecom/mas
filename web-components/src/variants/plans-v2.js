@@ -2,10 +2,12 @@ import { VariantLayout } from './variant-layout';
 import { html, css, unsafeCSS, nothing } from 'lit';
 import { CSS } from './plans-v2.css.js';
 import Media, { MOBILE_LANDSCAPE, TABLET_DOWN } from '../media.js';
+import { getService } from '../utilities.js';
 import {
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
+    FF_ANNUAL_PRICE,
 } from '../constants.js';
 
 export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
@@ -240,6 +242,7 @@ export class PlansV2 extends VariantLayout {
         if (this.legalAdjusted) return;
 
         try {
+            const service = getService();
             this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
@@ -254,10 +257,14 @@ export class PlansV2 extends VariantLayout {
 
             if (headingPrice.options.displayPerUnit)
                 headingPrice.dataset.displayPerUnit = 'false';
-            if (headingPrice.options.displayTax)
-                headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
+
+            if (service.featureFlags[FF_ANNUAL_PRICE] && legal.options.displayTax) {
+                legal.dataset.displayTax = 'false';
+            } else if (headingPrice.options.displayTax) {
+                headingPrice.dataset.displayTax = 'false';
+            }
 
             legal.setAttribute('data-template', 'legal');
             headingPrice.parentNode.insertBefore(

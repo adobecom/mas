@@ -291,7 +291,7 @@ merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="recurrence
     line-height: 1.4;
 }
 
-merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence:not(.disabled)::after,
+merch-card[variant="plans-v2"] [slot="heading-m"] .price:not(.price-annual) .price-recurrence:not(.disabled)::after,
 merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="recurrence"]:not(.disabled)::after {
     content: ' ';
     white-space: pre;

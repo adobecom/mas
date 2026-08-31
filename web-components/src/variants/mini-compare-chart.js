@@ -3,11 +3,13 @@ import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart.css.js';
 import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
+import { getService } from '../utilities.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
     TEMPLATE_PRICE_LEGAL,
+    FF_ANNUAL_PRICE,
 } from '../constants.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
@@ -585,6 +587,7 @@ export class MiniCompareChart extends VariantLayout {
 
         let legal;
         try {
+            const service = getService();
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
 
@@ -599,10 +602,14 @@ export class MiniCompareChart extends VariantLayout {
 
             if (headingPrice.options.displayPerUnit)
                 headingPrice.dataset.displayPerUnit = 'false';
-            if (headingPrice.options.displayTax)
-                headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
+
+            if (service.featureFlags[FF_ANNUAL_PRICE] && legal.options.displayTax) {
+                legal.dataset.displayTax = 'false';
+            } else if (headingPrice.options.displayTax) {
+                headingPrice.dataset.displayTax = 'false';
+            }
 
             legal.setAttribute('data-template', 'legal');
 

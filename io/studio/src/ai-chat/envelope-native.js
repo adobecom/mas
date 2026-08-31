@@ -3,7 +3,7 @@
  *
  * When the model is forced to call the emit_envelope tool, the envelope
  * arrives as schema-validated tool arguments instead of JSON embedded in
- * prose. These helpers extract that envelope from a Bedrock response and
+ * prose. These helpers extract that envelope from a Foundry response and
  * map a validated envelope onto the response body shape the frontend
  * dispatcher already consumes. The intent registry stays the single source
  * of truth: tool targets and confirmation requirements come from it, never

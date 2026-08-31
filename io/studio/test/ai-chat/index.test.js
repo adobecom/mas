@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const PARSE_ERROR_MESSAGE = 'I had trouble formatting that response. Please try asking again.';
 
 let main;
-let BedrockClient;
+let FoundryClient;
 let Ims;
 
 function makeParams(overrides = {}) {
@@ -36,13 +36,13 @@ describe('ai-chat/index main handler', () => {
 
     before(async () => {
         ({ main } = await import('../../src/ai-chat/index.js'));
-        ({ BedrockClient } = await import('../../src/ai-chat/bedrock-client.js'));
+        ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
         ({ Ims } = await import('@adobe/aio-lib-ims'));
     });
 
     beforeEach(() => {
         sinon.stub(Ims.prototype, 'validateTokenAllowList').resolves({ valid: true });
-        sendStub = sinon.stub(BedrockClient.prototype, 'sendWithContext');
+        sendStub = sinon.stub(FoundryClient.prototype, 'sendWithContext');
         sinon.stub(console, 'log');
         sinon.stub(console, 'error');
         sinon.stub(console, 'warn');
@@ -157,7 +157,7 @@ describe('ai-chat/index main handler', () => {
         });
     });
 
-    describe('Bedrock failure', () => {
+    describe('Adobe AI Foundry failure', () => {
         it('returns 502 with a generic error when the model call fails', async () => {
             sendStub.resolves({ success: false, errorType: 'ThrottlingException', error: 'throttled' });
             const result = await main(makeParams({ message: 'tell me about yourself' }));

@@ -238,7 +238,7 @@ DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow
  * Tool-mode variant of the guided card-creation prompt. The step narrative,
  * decision trees, and payload shapes are shared verbatim with the text-mode
  * prompt; only the output channel changes — the model calls one native tool
- * per turn instead of hand-writing fenced JSON, so Bedrock validates every
+ * per turn instead of hand-writing fenced JSON, so the provider validates every
  * payload against a schema. Used when NATIVE_GUIDED is on.
  */
 export const GUIDED_CARD_CREATION_TOOL_PROMPT = `

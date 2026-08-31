@@ -127,16 +127,12 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
-                            ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
-                            ANTHROPIC_MODEL: $ANTHROPIC_MODEL
-                            AWS_BEARER_TOKEN_BEDROCK: $AWS_BEARER_TOKEN_BEDROCK
-                            AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-                            AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-                            AWS_REGION: $AWS_REGION
-                            BEDROCK_MODEL_ID: $BEDROCK_MODEL_ID
+                            AI_FOUNDRY_API_KEY: $AI_FOUNDRY_API_KEY
+                            AI_FOUNDRY_BASE_URL: $AI_FOUNDRY_BASE_URL
+                            AI_FOUNDRY_MODEL_ID: $AI_FOUNDRY_MODEL_ID
+                            AI_FOUNDRY_FAST_MODEL_ID: $AI_FOUNDRY_FAST_MODEL_ID
                             RAG_ENABLED: $RAG_ENABLED
                             USE_LLM_CLASSIFIER: $USE_LLM_CLASSIFIER
-                            HAIKU_MODEL_ID: $HAIKU_MODEL_ID
                             NATIVE_ENVELOPE: $NATIVE_ENVELOPE
                             TEXT_PARSE_RETRY: $TEXT_PARSE_RETRY
                             NATIVE_GUIDED: $NATIVE_GUIDED

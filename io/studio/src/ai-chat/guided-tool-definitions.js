@@ -4,7 +4,7 @@
  * The guided flow historically asked the model to hand-write fenced JSON in
  * prose, which broke whenever catalog copy carried unescaped quotes (the
  * "creative cloud pro" incident). One tool per response type with
- * tool_choice "any" makes Bedrock validate the payload against a schema:
+ * Offering these tools makes the provider validate the payload against a schema:
  * the model picks the response type by picking the tool, and malformed JSON
  * becomes structurally impossible. Schemas constrain syntax, not domain —
  * payload-carrying objects stay open (additionalProperties) so the existing

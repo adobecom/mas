@@ -6,7 +6,7 @@
  * fallback.
  *
  * Purpose: replace the keyword cascade in determineSystemPromptWithMeta()
- * with one cheap Bedrock call (Claude Haiku) that classifies intent given:
+ * with one cheap Adobe AI Foundry call that classifies intent given:
  *   - the user's message (and optional one-back conversation context)
  *   - the MAS glossary (cached)
  *   - the workflows list (cached)
@@ -19,7 +19,7 @@
  * Latency: ~150ms warm, ~300ms cold.
  */
 
-import { BedrockClient } from './bedrock-client.js';
+import { FoundryClient } from './foundry-client.js';
 import { MAS_GLOSSARY } from './glossary.js';
 import { WORKFLOWS_LIST } from './workflows.js';
 
@@ -34,7 +34,7 @@ const VALID_INTENTS = new Set([
     'unknown',
 ]);
 
-const DEFAULT_HAIKU_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
+const DEFAULT_CLASSIFIER_MODEL_ID = 'hosted_vllm/Qwen/Qwen3.6-35B-A3B';
 
 const CLASSIFIER_SYSTEM_PROMPT = `You are an intent classifier for the Adobe Merch at Scale (M@S) AI assistant.
 
@@ -92,22 +92,21 @@ Examples:
 `;
 
 /**
- * Build a Bedrock client configured for Haiku.
+ * Build a Foundry client for the classifier tier.
  *
- * Uses the same credentials path as the main Sonnet client (bearer token
- * preferred, IAM fallback). Only the model ID differs.
+ * Uses the same credentials as the main chat client; only the model ID
+ * differs, so a cheaper model can be configured for classification.
  *
  * @param {Object} params - IO Runtime action params (env vars)
- * @returns {BedrockClient}
+ * @returns {FoundryClient}
  */
 export function createClassifierClient(params = {}) {
-    const haikuModelId = params.HAIKU_MODEL_ID || process.env.HAIKU_MODEL_ID || DEFAULT_HAIKU_MODEL_ID;
-    return new BedrockClient({
-        bearerToken: params.AWS_BEARER_TOKEN_BEDROCK,
-        accessKeyId: params.AWS_ACCESS_KEY_ID,
-        secretAccessKey: params.AWS_SECRET_ACCESS_KEY,
-        region: params.AWS_REGION,
-        modelId: haikuModelId,
+    const classifierModelId =
+        params.AI_FOUNDRY_FAST_MODEL_ID || process.env.AI_FOUNDRY_FAST_MODEL_ID || DEFAULT_CLASSIFIER_MODEL_ID;
+    return new FoundryClient({
+        apiKey: params.AI_FOUNDRY_API_KEY,
+        baseUrl: params.AI_FOUNDRY_BASE_URL,
+        modelId: classifierModelId,
     });
 }
 
@@ -116,18 +115,18 @@ const DEFAULT_CLASSIFIER_TIMEOUT_MS = 3000;
 /**
  * Classify the user's intent.
  *
- * Returns one of VALID_INTENTS. On any failure (Bedrock 5xx, timeout, etc.)
+ * Returns one of VALID_INTENTS. On any failure (Foundry 5xx, timeout, etc.)
  * returns 'unknown' so the caller can fall back to its keyword classifier
  * — never throws.
  *
- * Hard-capped at `timeoutMs` (default 3s) so a hanging Bedrock call never
- * eats the action's full 60s budget. If Haiku is missing or unprovisioned,
+ * Hard-capped at `timeoutMs` (default 3s) so a hanging Foundry call never
+ * eats the action's full 60s budget. If the model is missing or unprovisioned,
  * we still get a synchronous fallback to the keyword classifier.
  *
  * @param {Object} args
  * @param {string} args.message - Current user message
  * @param {Array<{role:string, content:string}>} [args.conversationHistory=[]] - Prior turns
- * @param {BedrockClient} args.client - Pre-constructed classifier client (Haiku)
+ * @param {FoundryClient} args.client - Pre-constructed classifier client
  * @param {number} [args.maxTokens=10] - Token budget for the classifier output
  * @param {number} [args.timeoutMs=3000] - Hard cap on classifier latency
  * @returns {Promise<{intent: string, raw: string, latencyMs: number, success: boolean, error?: string}>}

@@ -1,15 +1,27 @@
 /**
- * AWS Bedrock Client
+ * Adobe AI Foundry Client
  *
- * Handles communication with AWS Bedrock for Claude Sonnet 4 API calls.
- * Supports two authentication methods (in priority order):
- * 1. Bedrock API Key (bearer token) — uses direct REST API calls
- * 2. IAM credentials (access key + secret) — uses AWS SDK with SigV4
+ * Handles communication with Adobe AI Foundry (Qwen) over its
+ * OpenAI-compatible chat-completions API, authenticated with a single
+ * bearer API key.
  *
- * Falls back to process.env if credentials not provided (for local development).
+ * Two provider quirks shape this client:
+ *
+ * 1. Qwen is a reasoning model: it fills `reasoning_content` before it writes
+ *    any `content`, so a small max_tokens budget is consumed entirely by
+ *    thinking and the reply comes back empty. Thinking also corrupts forced
+ *    tool calls into raw Hermes markup. Both are avoided by disabling
+ *    thinking; AI_FOUNDRY_THINKING=on restores it.
+ * 2. Tool choice is always sent as auto. Forced choice adds no value once a
+ *    single tool is offered, and it is the shape that misbehaves upstream.
+ * 3. There is no prompt-caching equivalent, so the system prompt is sent as
+ *    a plain string every turn.
+ *
+ * Falls back to process.env if credentials are not provided (local dev).
  */
 
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+const DEFAULT_BASE_URL = 'https://ehl.infra.adobe.net/v1';
+const DEFAULT_MODEL_ID = 'hosted_vllm/Qwen/Qwen3.6-35B-A3B';
 
 const MAX_HISTORY_TURNS = 10;
 
@@ -93,124 +105,116 @@ function truncateHistory(conversationHistory) {
 }
 
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
-const RETRYABLE_ERROR_NAMES = new Set([
-    'ThrottlingException',
-    'ServiceUnavailableException',
-    'InternalServerException',
-    'ModelNotReadyException',
-]);
 const MAX_TRUNCATION_RETRY_TOKENS = 4096;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function isRetryableBedrockError(error) {
-    if (RETRYABLE_STATUS_CODES.has(error?.status)) return true;
-    if (RETRYABLE_STATUS_CODES.has(error?.$metadata?.httpStatusCode)) return true;
-    return RETRYABLE_ERROR_NAMES.has(error?.name);
+function isRetryableFoundryError(error) {
+    return RETRYABLE_STATUS_CODES.has(error?.status);
 }
 
 export function sumUsage(first = {}, second = {}) {
     return {
         input_tokens: (first.input_tokens || 0) + (second.input_tokens || 0),
         output_tokens: (first.output_tokens || 0) + (second.output_tokens || 0),
-        cache_read_input_tokens: (first.cache_read_input_tokens || 0) + (second.cache_read_input_tokens || 0),
-        cache_creation_input_tokens: (first.cache_creation_input_tokens || 0) + (second.cache_creation_input_tokens || 0),
     };
 }
 
-function markHistoryCachePoint(history) {
-    if (!history.length) return history;
-    const last = history[history.length - 1];
-    if (typeof last.content !== 'string') return history;
-    return [
-        ...history.slice(0, -1),
-        { ...last, content: [{ type: 'text', text: last.content, cache_control: { type: 'ephemeral' } }] },
-    ];
+/** Translate Anthropic-style tool definitions into OpenAI function tools. */
+function toFunctionTools(tools) {
+    return tools.map((tool) => ({
+        type: 'function',
+        function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.input_schema,
+        },
+    }));
 }
 
-export class BedrockClient {
+const STOP_REASON_BY_FINISH_REASON = {
+    stop: 'end_turn',
+    length: 'max_tokens',
+    tool_calls: 'tool_use',
+};
+
+export class FoundryClient {
     constructor(credentials = {}) {
-        const bearerToken = credentials.bearerToken || process.env.AWS_BEARER_TOKEN_BEDROCK;
-        const region = credentials.region || process.env.AWS_REGION || 'us-west-2';
-        const modelId = credentials.modelId || process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
-
-        this.modelId = modelId;
-        this.region = region;
-
-        if (bearerToken) {
-            this.authMode = 'bearer';
-            this.bearerToken = bearerToken;
-            this.endpoint = `https://bedrock-runtime.${region}.amazonaws.com/model/${encodeURIComponent(modelId)}/invoke`;
-        } else {
-            const accessKeyId = credentials.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
-            const secretAccessKey = credentials.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
-
-            if (!accessKeyId || !secretAccessKey) {
-                const errorMsg =
-                    'AWS credentials missing: provide AWS_BEARER_TOKEN_BEDROCK or AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY';
-                console.error(errorMsg);
-                throw new Error(errorMsg);
-            }
-
-            this.authMode = 'iam';
-            this.client = new BedrockRuntimeClient({
-                region,
-                credentials: { accessKeyId, secretAccessKey },
-            });
+        const apiKey = credentials.apiKey || process.env.AI_FOUNDRY_API_KEY;
+        if (!apiKey) {
+            const errorMsg = 'Adobe AI Foundry credentials missing: provide AI_FOUNDRY_API_KEY';
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
+
+        this.apiKey = apiKey;
+        this.modelId = credentials.modelId || process.env.AI_FOUNDRY_MODEL_ID || DEFAULT_MODEL_ID;
+        this.baseUrl = credentials.baseUrl || process.env.AI_FOUNDRY_BASE_URL || DEFAULT_BASE_URL;
+        this.endpoint = `${this.baseUrl}/chat/completions`;
     }
 
     /**
-     * Send a message to Claude Sonnet 4 via Bedrock
+     * Send a message to Qwen via Adobe AI Foundry
      * @param {Array} messages - Array of message objects {role, content}
-     * @param {string} system - System prompt
+     * @param {string|Array} system - System prompt
      * @param {number} maxTokens - Maximum tokens to generate
-     * @returns {Promise<Object>} - Claude response
+     * @returns {Promise<Object>} - Normalised response
      */
     async sendMessage(messages, system, maxTokens = 4096, options = {}) {
         const payload = {
-            anthropic_version: 'bedrock-2023-05-31',
+            model: this.modelId,
+            messages: [{ role: 'system', content: system ?? '' }, ...messages],
             max_tokens: maxTokens,
-            system,
-            messages,
+            temperature: 0,
         };
-        if (options.tools) {
-            payload.tools = options.tools;
+        // Qwen emits reasoning into `reasoning_content` before it writes any
+        // `content`, so a small budget is spent entirely on thinking and the
+        // reply comes back empty. Thinking also corrupts forced tool calls
+        // into raw Hermes markup. Escape hatch: AI_FOUNDRY_THINKING=on.
+        if (process.env.AI_FOUNDRY_THINKING !== 'on') {
+            payload.chat_template_kwargs = { enable_thinking: false };
         }
-        if (options.toolChoice) {
-            payload.tool_choice = options.toolChoice;
+        if (options.tools?.length) {
+            payload.tools = toFunctionTools(options.tools);
+            // Auto rather than the caller's specific toolChoice: forcing a
+            // named function is the shape that returns Hermes markup whenever
+            // thinking is on, and it buys nothing once the only tools the
+            // model can pick from are the ones the caller offered.
+            payload.tool_choice = 'auto';
         }
 
-        const maxRetries = Number(process.env.BEDROCK_MAX_RETRIES ?? 2);
-        const baseDelayMs = Number(process.env.BEDROCK_RETRY_BASE_DELAY_MS) || 500;
-        const totalBudgetMs = Number(process.env.BEDROCK_TOTAL_BUDGET_MS) || 55000;
+        const maxRetries = Number(process.env.AI_FOUNDRY_MAX_RETRIES ?? 2);
+        const baseDelayMs = Number(process.env.AI_FOUNDRY_RETRY_BASE_DELAY_MS) || 500;
+        const totalBudgetMs = Number(process.env.AI_FOUNDRY_TOTAL_BUDGET_MS) || 55000;
         const startedAt = Date.now();
 
         for (let attempt = 0; ; attempt += 1) {
             try {
-                const responseBody =
-                    this.authMode === 'bearer' ? await this.#invokeBearerToken(payload) : await this.#invokeSdk(payload);
-
-                const content = Array.isArray(responseBody.content) ? responseBody.content : [];
-                const textBlock = content.find((block) => block.type === 'text') ?? content[0];
-                const toolUseBlock = content.find((block) => block.type === 'tool_use');
+                const responseBody = await this.#invoke(payload);
+                const choice = responseBody.choices?.[0];
+                const message = choice?.message ?? {};
 
                 return {
                     success: true,
-                    message: textBlock?.text ?? '',
-                    toolUse: toolUseBlock ? { name: toolUseBlock.name, input: toolUseBlock.input } : null,
-                    usage: responseBody.usage,
-                    stopReason: responseBody.stop_reason,
+                    // Qwen prefixes replies with a blank line; trim so callers
+                    // that test for an empty message still see one.
+                    message: (message.content ?? '').trim(),
+                    toolUse: this.#extractToolUse(message),
+                    usage: {
+                        input_tokens: responseBody.usage?.prompt_tokens ?? 0,
+                        output_tokens: responseBody.usage?.completion_tokens ?? 0,
+                    },
+                    stopReason: STOP_REASON_BY_FINISH_REASON[choice?.finish_reason] ?? choice?.finish_reason,
                 };
             } catch (error) {
                 const delayMs = baseDelayMs * 2 ** attempt + Math.floor(Math.random() * (baseDelayMs / 2));
                 const withinBudget = Date.now() - startedAt + delayMs < totalBudgetMs;
-                if (attempt < maxRetries && withinBudget && isRetryableBedrockError(error)) {
-                    console.warn(`Bedrock retryable error (attempt ${attempt + 1}/${maxRetries}): ${error.message}`);
+                if (attempt < maxRetries && withinBudget && isRetryableFoundryError(error)) {
+                    console.warn(`Foundry retryable error (attempt ${attempt + 1}/${maxRetries}): ${error.message}`);
                     await sleep(delayMs);
                     continue;
                 }
-                console.error('Bedrock API Error:', error);
+                console.error('Adobe AI Foundry API Error:', error);
                 return {
                     success: false,
                     error: error.message,
@@ -220,9 +224,26 @@ export class BedrockClient {
         }
     }
 
-    async #invokeBearerToken(payload) {
+    /**
+     * Pull the first tool call off an assistant message. Malformed arguments
+     * are reported as "no tool call" so the caller falls back to parsing the
+     * prose response rather than failing the turn.
+     */
+    #extractToolUse(message) {
+        const call = message.tool_calls?.[0];
+        if (!call) return null;
+
+        try {
+            return { name: call.function.name, input: JSON.parse(call.function.arguments) };
+        } catch {
+            console.warn(`Foundry returned unparseable tool arguments for ${call.function?.name}; falling back to text`);
+            return null;
+        }
+    }
+
+    async #invoke(payload) {
         const controller = new AbortController();
-        const timeoutMs = Number(process.env.BEDROCK_FETCH_TIMEOUT_MS) || 50000;
+        const timeoutMs = Number(process.env.AI_FOUNDRY_FETCH_TIMEOUT_MS) || 50000;
         const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
@@ -230,7 +251,7 @@ export class BedrockClient {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${this.bearerToken}`,
+                    Authorization: `Bearer ${this.apiKey}`,
                 },
                 body: JSON.stringify(payload),
                 signal: controller.signal,
@@ -238,7 +259,7 @@ export class BedrockClient {
 
             if (!response.ok) {
                 const body = await response.text();
-                const error = new Error(`Bedrock API returned ${response.status}: ${body}`);
+                const error = new Error(`Adobe AI Foundry API returned ${response.status}: ${body}`);
                 error.status = response.status;
                 throw error;
             }
@@ -246,24 +267,12 @@ export class BedrockClient {
             return response.json();
         } catch (error) {
             if (error?.name === 'AbortError') {
-                throw new Error(`Bedrock fetch aborted after ${timeoutMs}ms`);
+                throw new Error(`Adobe AI Foundry fetch aborted after ${timeoutMs}ms`);
             }
             throw error;
         } finally {
             clearTimeout(timeoutHandle);
         }
-    }
-
-    async #invokeSdk(payload) {
-        const command = new InvokeModelCommand({
-            modelId: this.modelId,
-            contentType: 'application/json',
-            accept: 'application/json',
-            body: JSON.stringify(payload),
-        });
-
-        const response = await this.client.send(command);
-        return JSON.parse(new TextDecoder().decode(response.body));
     }
 
     /**
@@ -272,7 +281,7 @@ export class BedrockClient {
      * @param {string} userMessage - New user message
      * @param {string} system - System prompt
      * @param {Object} context - Additional context (current card config, etc.)
-     * @returns {Promise<Object>} - Claude response
+     * @returns {Promise<Object>} - Normalised response
      */
     async sendWithContext(conversationHistory, userMessage, system, context = null, maxTokens = 4096, options = {}) {
         let contextBlock = '';
@@ -372,25 +381,9 @@ export class BedrockClient {
             }
         }
 
-        // Static prompt first with a cache breakpoint, volatile context after
-        // it, and a second breakpoint on the last history message so the
-        // conversation prefix accrues cache hits turn over turn. The escape
-        // hatch (BEDROCK_PROMPT_CACHE=off) restores the pre-caching payload.
-        const cachingEnabled = process.env.BEDROCK_PROMPT_CACHE !== 'off';
-        let systemPayload;
-        if (cachingEnabled) {
-            systemPayload = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
-            if (contextBlock) {
-                systemPayload.push({ type: 'text', text: contextBlock });
-            }
-        } else {
-            systemPayload = contextBlock ? system + contextBlock : system;
-        }
-
-        const truncated = truncateHistory(conversationHistory);
-        const history = cachingEnabled ? markHistoryCachePoint(truncated) : truncated;
+        const systemPayload = contextBlock ? system + contextBlock : system;
         const messages = [
-            ...history,
+            ...truncateHistory(conversationHistory),
             {
                 role: 'user',
                 content: userMessage,
@@ -400,7 +393,7 @@ export class BedrockClient {
         const response = await this.sendMessage(messages, systemPayload, maxTokens, options);
         if (response.success && response.stopReason === 'max_tokens' && maxTokens < MAX_TRUNCATION_RETRY_TOKENS) {
             const retryTokens = Math.min(maxTokens * 2, MAX_TRUNCATION_RETRY_TOKENS);
-            console.warn(`Bedrock response truncated at ${maxTokens} tokens; retrying once at ${retryTokens}`);
+            console.warn(`Foundry response truncated at ${maxTokens} tokens; retrying once at ${retryTokens}`);
             const retry = await this.sendMessage(messages, systemPayload, retryTokens, options);
             if (retry.success) {
                 return { ...retry, usage: sumUsage(response.usage, retry.usage) };

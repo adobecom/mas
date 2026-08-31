@@ -2,7 +2,7 @@
  * AI Chat Action for MAS Studio
  *
  * Adobe I/O Runtime action that handles AI-powered card creation conversations.
- * Uses AWS Bedrock with Claude Sonnet 4 to generate merch card configurations.
+ * Uses Adobe AI Foundry (Qwen) to generate merch card configurations.
  *
  * Expected parameters:
  * - message: User's message
@@ -11,7 +11,7 @@
  */
 
 import { Ims } from '@adobe/aio-lib-ims';
-import { BedrockClient, sumUsage } from './bedrock-client.js';
+import { FoundryClient, sumUsage } from './foundry-client.js';
 import {
     COLLECTION_CREATION_SYSTEM_PROMPT,
     GUIDED_CARD_CREATION_PROMPT,
@@ -188,23 +188,14 @@ async function generateSessionTitle(params) {
     }
 
     try {
-        const {
-            AWS_BEARER_TOKEN_BEDROCK,
-            AWS_ACCESS_KEY_ID,
-            AWS_SECRET_ACCESS_KEY,
-            AWS_REGION,
-            BEDROCK_MODEL_ID,
-            HAIKU_MODEL_ID,
-        } = params;
+        const { AI_FOUNDRY_API_KEY, AI_FOUNDRY_BASE_URL, AI_FOUNDRY_MODEL_ID, AI_FOUNDRY_FAST_MODEL_ID } = params;
 
-        // Session titles are a 40-token completion — Haiku-tier work. Fall
-        // back to the default model when no Haiku model is configured.
-        const bedrockClient = new BedrockClient({
-            bearerToken: AWS_BEARER_TOKEN_BEDROCK,
-            accessKeyId: AWS_ACCESS_KEY_ID,
-            secretAccessKey: AWS_SECRET_ACCESS_KEY,
-            region: AWS_REGION,
-            modelId: HAIKU_MODEL_ID || BEDROCK_MODEL_ID,
+        // Session titles are a 40-token completion — cheap-tier work. Fall
+        // back to the default model when no fast model is configured.
+        const foundryClient = new FoundryClient({
+            apiKey: AI_FOUNDRY_API_KEY,
+            baseUrl: AI_FOUNDRY_BASE_URL,
+            modelId: AI_FOUNDRY_FAST_MODEL_ID || AI_FOUNDRY_MODEL_ID,
         });
 
         const systemPrompt =
@@ -217,9 +208,9 @@ async function generateSessionTitle(params) {
             ? `First user message:\n${userMessage}\n\nAssistant reply:\n${assistantMessage}`
             : `First user message:\n${userMessage}`;
 
-        const result = await bedrockClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40);
+        const result = await foundryClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40);
         logShadowValidation(result, params);
-        logUsageMetric(result, params, bedrockClient.modelId);
+        logUsageMetric(result, params, foundryClient.modelId);
 
         if (!result.success) {
             return {
@@ -360,7 +351,7 @@ async function authorize(headers) {
         if (token) {
             // validateTokenAllowList rejects tokens whose client_id is not in
             // MAS_CLIENT_IDS (audit finding M4 — prevents non-MAS Adobe apps
-            // from invoking this action and burning Bedrock budget).
+            // from invoking this action and burning Foundry budget).
             const imsValidation = await new Ims('prod').validateTokenAllowList(token, MAS_CLIENT_IDS);
             return imsValidation.valid;
         }
@@ -533,14 +524,12 @@ async function main(params) {
     };
 
     try {
-        const { AWS_BEARER_TOKEN_BEDROCK, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
+        const { AI_FOUNDRY_API_KEY, AI_FOUNDRY_BASE_URL, AI_FOUNDRY_MODEL_ID } = params;
 
-        const bedrockClient = new BedrockClient({
-            bearerToken: AWS_BEARER_TOKEN_BEDROCK,
-            accessKeyId: AWS_ACCESS_KEY_ID,
-            secretAccessKey: AWS_SECRET_ACCESS_KEY,
-            region: AWS_REGION,
-            modelId: BEDROCK_MODEL_ID,
+        const foundryClient = new FoundryClient({
+            apiKey: AI_FOUNDRY_API_KEY,
+            baseUrl: AI_FOUNDRY_BASE_URL,
+            modelId: AI_FOUNDRY_MODEL_ID,
         });
 
         const knowledgeClient = createKnowledgeClient(params);
@@ -811,7 +800,7 @@ async function main(params) {
 
         const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
 
-        let response = await bedrockClient.sendWithContext(
+        let response = await foundryClient.sendWithContext(
             conversationHistory,
             message,
             effectiveSystemPrompt,
@@ -819,10 +808,10 @@ async function main(params) {
             maxTokens,
             toolOptions,
         );
-        logUsageMetric(response, params, bedrockClient.modelId);
+        logUsageMetric(response, params, foundryClient.modelId);
 
         if (!response.success) {
-            console.error('Bedrock request failed', { errorType: response.errorType, error: response.error });
+            console.error('Adobe AI Foundry request failed', { errorType: response.errorType, error: response.error });
             return {
                 statusCode: 502,
                 headers: {
@@ -853,7 +842,7 @@ async function main(params) {
                       ? ` — intent "${debugDetail.attempted}" is not registered`
                       : '';
                 const corrective = `Your previous envelope was invalid (${validation.reason}${detail}). Call ${ENVELOPE_TOOL_NAME} again with a corrected envelope for the same user request, using the exact slot names and types from the system prompt.`;
-                const retryResponse = await bedrockClient.sendWithContext(
+                const retryResponse = await foundryClient.sendWithContext(
                     [...conversationHistory, { role: 'user', content: message }],
                     corrective,
                     effectiveSystemPrompt,
@@ -861,7 +850,7 @@ async function main(params) {
                     maxTokens,
                     toolOptions,
                 );
-                logUsageMetric(retryResponse, params, bedrockClient.modelId);
+                logUsageMetric(retryResponse, params, foundryClient.modelId);
                 if (retryResponse.success) {
                     usage = retryResponse.usage;
                     const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow });
@@ -900,7 +889,7 @@ async function main(params) {
             // envelopes in history teach later turns the wrong format.
             let handedOff = false;
             if (getFlowForIntent(finalEnvelope?.intent) === 'release_create') {
-                const guidedResponse = await bedrockClient.sendWithContext(
+                const guidedResponse = await foundryClient.sendWithContext(
                     conversationHistory,
                     message,
                     nativeGuidedEnabled ? GUIDED_CARD_CREATION_TOOL_PROMPT : GUIDED_CARD_CREATION_PROMPT,
@@ -908,7 +897,7 @@ async function main(params) {
                     2048,
                     nativeGuidedEnabled ? { tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE } : {},
                 );
-                logUsageMetric(guidedResponse, params, bedrockClient.modelId);
+                logUsageMetric(guidedResponse, params, foundryClient.modelId);
                 if (guidedResponse.success && (guidedResponse.message || guidedResponse.toolUse)) {
                     console.log(
                         JSON.stringify({
@@ -978,7 +967,7 @@ async function main(params) {
             const originalRaw = response.message;
             const retryEnabled = params.TEXT_PARSE_RETRY !== 'off';
             if (retryEnabled) {
-                const retryResponse = await bedrockClient.sendWithContext(
+                const retryResponse = await foundryClient.sendWithContext(
                     [
                         ...conversationHistory,
                         { role: 'user', content: message },
@@ -989,7 +978,7 @@ async function main(params) {
                     enrichedContext,
                     maxTokens,
                 );
-                logUsageMetric(retryResponse, params, bedrockClient.modelId);
+                logUsageMetric(retryResponse, params, foundryClient.modelId);
                 let recovered = false;
                 if (retryResponse.success && retryResponse.message) {
                     const retryParsed = parseAIResponse(retryResponse.message);
@@ -1071,7 +1060,7 @@ async function main(params) {
 
             if (!validation.valid) {
                 const correctiveMessage = buildCorrectivePrompt(parsedResponse.cardConfig, validation.errors);
-                const retryResponse = await bedrockClient.sendWithContext(
+                const retryResponse = await foundryClient.sendWithContext(
                     [
                         ...conversationHistory,
                         { role: 'user', content: message },
@@ -1083,7 +1072,7 @@ async function main(params) {
                     2048,
                 );
                 logShadowValidation(retryResponse, params);
-                logUsageMetric(retryResponse, params, bedrockClient.modelId);
+                logUsageMetric(retryResponse, params, foundryClient.modelId);
 
                 if (retryResponse.success) {
                     const retryParsed = parseAIResponse(retryResponse.message);
@@ -1396,9 +1385,9 @@ function logParseFailure(requestId, mode, rawText, { retried, recovered }) {
     );
 }
 
-function logShadowValidation(bedrockResponse, params) {
+function logShadowValidation(foundryResponse, params) {
     try {
-        const message = bedrockResponse?.message;
+        const message = foundryResponse?.message;
         if (typeof message !== 'string') return null;
         const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
         const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null });

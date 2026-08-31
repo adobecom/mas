@@ -74,7 +74,7 @@ function intentBlock(intent) {
  * The static registry prompt. Deliberately context-free: it is sent as the
  * cached system block, so any per-turn byte (path, locale, working set,
  * flow step) would invalidate the prompt cache. Per-turn context travels in
- * the dynamic block built by bedrock-client sendWithContext; the flow line
+ * the dynamic block built by foundry-client sendWithContext; the flow line
  * comes from buildFlowContext below.
  */
 export function buildPrompt() {

@@ -11,14 +11,14 @@ describe('ai-chat/retry usage merge', () => {
         source = fs.readFileSync(INDEX_PATH, 'utf8');
     });
 
-    it('never reads camelCase token keys Bedrock does not return', () => {
+    it('never reads camelCase token keys Adobe AI Foundry does not return', () => {
         const camelReads = source.match(/usage\?\.(inputTokens|outputTokens)/g) ?? [];
 
         expect(camelReads).to.deep.equal([]);
     });
 
     it('merges retry usage through the shared sumUsage helper', () => {
-        expect(source).to.match(/import \{[^}]*sumUsage[^}]*\} from '\.\/bedrock-client\.js'/);
+        expect(source).to.match(/import \{[^}]*sumUsage[^}]*\} from '\.\/foundry-client\.js'/);
 
         const totalUsageAssignments = source.match(/totalUsage = \{/g) ?? [];
         expect(totalUsageAssignments, 'hand-rolled usage object literals remain').to.deep.equal([]);

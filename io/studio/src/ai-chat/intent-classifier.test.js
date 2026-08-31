@@ -2,12 +2,12 @@
  * Intent classifier — accuracy test set.
  *
  * Modes:
- *   --dry        Validate the test cases + parser without hitting Bedrock.
+ *   --dry        Validate the test cases + parser without hitting Foundry.
  *                Stubs the classifier client so every call returns the
  *                expected label, exercising the fixture and runner only.
  *                Free to run.
  *
- *   (default)    LIVE mode. Loads AWS_BEARER_TOKEN_BEDROCK from the shell
+ *   (default)    LIVE mode. Loads AI_FOUNDRY_API_KEY from the shell
  *                env (must be a fresh token) or from io/studio/.env if
  *                present, instantiates the Haiku classifier, and runs every
  *                message in CASES through it. Costs ~$0.01 per full run.
@@ -240,7 +240,7 @@ function isCorrect(result, expected, tolerable) {
 }
 
 /**
- * In dry mode we replace the Bedrock call with a stub that returns the
+ * In dry mode we replace the Foundry call with a stub that returns the
  * fixture's expected label (or tolerable label, randomly). This validates
  * the fixture, the parser, the routing logic — but NOT model accuracy.
  *
@@ -260,10 +260,10 @@ async function main() {
     let client;
     if (!dryRun) {
         loadDotEnv();
-        client = createClassifierClient({ AWS_BEARER_TOKEN_BEDROCK: process.env.AWS_BEARER_TOKEN_BEDROCK });
+        client = createClassifierClient({ AI_FOUNDRY_API_KEY: process.env.AI_FOUNDRY_API_KEY });
     }
 
-    const mode = dryRun ? 'DRY (stub, free)' : 'LIVE (Haiku via Bedrock)';
+    const mode = dryRun ? 'DRY (stub, free)' : 'LIVE (Qwen via Adobe AI Foundry)';
     console.log(`Running ${CASES.length} cases — mode: ${mode}`);
     console.log('='.repeat(80));
 
@@ -320,7 +320,7 @@ async function main() {
 /**
  * Dry-mode simulator. Returns the fixture's `expected` label so the
  * runner exits clean and we can verify the test infrastructure end-to-end
- * without burning Bedrock calls. Logs a marker line so it's obvious the
+ * without burning Foundry calls. Logs a marker line so it's obvious the
  * result wasn't from a real model.
  *
  * @private

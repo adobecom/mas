@@ -107,6 +107,13 @@ export function priceOptionsProvider(element, options) {
             (masField ? contextPromotionCode(masField) : null);
         if (promotionCode) options.promotionCode = promotionCode;
     }
+
+    if (
+        options.displayAnnual === undefined &&
+        typeof masField.settings?.displayAnnual === 'boolean'
+    ) {
+        options.displayAnnual = masField.settings.displayAnnual;
+    }
 }
 
 /**
@@ -297,7 +304,7 @@ class MasField extends HTMLElement {
     #field = null;
     #loaded = false;
     #fields = null;
-    #settings = null;
+    settings = null;
     #contentElement = null;
 
     /**
@@ -346,7 +353,7 @@ class MasField extends HTMLElement {
     #onFragmentLoad = (event) => {
         if (event.target !== this.aemFragment) return;
         this.#fields = event.detail?.fields || null;
-        this.#settings = event.detail?.settings ?? null;
+        this.settings = event.detail?.settings ?? null;
         this.#loaded = true;
         this.#renderField();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
@@ -464,7 +471,7 @@ class MasField extends HTMLElement {
                       : [];
                 let html = this.#normalizeFieldValue(values[labelIndex]);
                 if (!html) return;
-                if (fieldName === 'ctas' && this.#settings?.hideTrialCTAs) {
+                if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                     html = stripTrialCtas(html, true);
                     if (html === null) return;
                 }
@@ -489,7 +496,7 @@ class MasField extends HTMLElement {
             html = this.#unwrapSingleParagraph(fieldValue);
         }
         if (typeof html === 'string') {
-            if (fieldName === 'ctas' && this.#settings?.hideTrialCTAs) {
+            if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                 html = stripTrialCtas(html, index !== null);
                 if (html === null) return;
             }

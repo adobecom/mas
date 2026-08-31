@@ -583,6 +583,8 @@ export default class MasFragmentEditor extends LitElement {
         referencingFragmentsError: { type: Boolean, state: true },
         expandedReferenceTypes: { type: Object, state: true },
         fragmentUsage: { type: Object, state: true },
+        usageExpanded: { type: Boolean, state: true },
+        isLoadingFragmentUsage: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -604,7 +606,8 @@ export default class MasFragmentEditor extends LitElement {
     #referencingLoadingForId = null;
     #referencingAbortController = null;
     #usageLoadToken = 0;
-    #usageLoadedForId = null;
+    #usageFragmentId = null;
+    #usageCache = new Map();
 
     get localeDefaultFragment() {
         return this.editorContextStore?.localeDefaultFragment ?? null;
@@ -651,6 +654,8 @@ export default class MasFragmentEditor extends LitElement {
         this.referencingFragmentsError = false;
         this.expandedReferenceTypes = new Set();
         this.fragmentUsage = null;
+        this.usageExpanded = false;
+        this.isLoadingFragmentUsage = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -741,7 +746,7 @@ export default class MasFragmentEditor extends LitElement {
 
         void this.#loadPromotionGeoOptions().then(() => this.#loadDisabledPromoGeoOptions());
         void this.#maybeLoadReferencingFragments();
-        void this.#maybeLoadFragmentUsage();
+        this.#resetUsageOnFragmentChange();
     }
 
     async #loadDisabledPromoGeoOptions() {
@@ -2108,29 +2113,46 @@ export default class MasFragmentEditor extends LitElement {
     // PROTOTYPE (epic 4A, MWPW-185891): consumer usage from Akamai logs via Grafana. fetchFragmentUsage
     // targets a future IO proxy and degrades to { available: false }, so this stays invisible until the
     // proxy + service token exist. Guarded to card/collection like the reference loader.
-    #maybeLoadFragmentUsage() {
-        const fragment = this.fragment;
-        if (!fragment?.id) return;
-        const modelPath = fragment.model?.path;
-        if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return;
-        if (fragment.id === this.#usageLoadedForId) return;
-        void this.#loadFragmentUsageFor(fragment);
+    // Usage hits the shared Grafana/Hydrolix cluster, so it is LAZY: reset (collapsed, cleared) when
+    // the fragment changes, fetch only when the author expands the section, and cache the result per
+    // fragment id for the session so re-expanding never re-queries.
+    #resetUsageOnFragmentChange() {
+        const id = this.fragment?.id ?? null;
+        if (id === this.#usageFragmentId) return;
+        this.#usageFragmentId = id;
+        this.usageExpanded = false;
+        this.fragmentUsage = null;
+        this.isLoadingFragmentUsage = false;
+    }
+
+    #toggleUsage() {
+        this.usageExpanded = !this.usageExpanded;
+        if (this.usageExpanded) void this.#loadFragmentUsageFor(this.fragment);
     }
 
     async #loadFragmentUsageFor(fragment) {
+        if (!fragment?.id) return;
+        if (this.#usageCache.has(fragment.id)) {
+            this.fragmentUsage = this.#usageCache.get(fragment.id);
+            return;
+        }
         const token = ++this.#usageLoadToken;
-        this.#usageLoadedForId = fragment.id;
+        this.fragmentUsage = null;
+        this.isLoadingFragmentUsage = true;
         const usage = await fetchFragmentUsage(fragment.id);
         if (token !== this.#usageLoadToken) return;
-        this.fragmentUsage = usage?.available ? usage : null;
+        this.isLoadingFragmentUsage = false;
+        this.#usageCache.set(fragment.id, usage);
+        this.fragmentUsage = usage;
     }
 
-    get fragmentUsageContainer() {
+    #renderUsageBody() {
+        if (this.isLoadingFragmentUsage) return html`<div class="referencing-message">Loading usage…</div>`;
         const usage = this.fragmentUsage;
-        if (!usage?.available || !usage.rows?.length) return nothing;
+        if (!usage?.available) return html`<div class="referencing-message">Usage data unavailable</div>`;
+        if (!usage.rows?.length) return html`<div class="referencing-message">No usage in this window</div>`;
         return html`
-            <div class="references-container">
-                <div class="references-title">Usage (last 30 days)</div>
+            <div class="reference-type-rows">
                 <div class="referencing-message">${usage.totalCount} requests</div>
                 ${usage.rows.map(
                     (row) => html`
@@ -2140,6 +2162,25 @@ export default class MasFragmentEditor extends LitElement {
                         </div>
                     `,
                 )}
+            </div>
+        `;
+    }
+
+    // Lazy usage collapsible (last 30 days), placed below References. Fetches only on expand.
+    get usageSection() {
+        const modelPath = this.fragment?.model?.path;
+        if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return nothing;
+        return html`
+            <div class="references-container">
+                <div class="reference-type-section">
+                    <sp-action-button quiet class="reference-type-toggle" @click=${() => this.#toggleUsage()}>
+                        ${this.usageExpanded
+                            ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
+                        Usage (last 30 days)
+                    </sp-action-button>
+                    ${this.usageExpanded ? this.#renderUsageBody() : nothing}
+                </div>
             </div>
         `;
     }
@@ -2257,7 +2298,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer} ${this.fragmentUsageContainer}
+            ${this.derivedFromContainer}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
@@ -2335,7 +2376,7 @@ export default class MasFragmentEditor extends LitElement {
                         ${this.previewErrorMessages}
                     </div>
                 </div>
-                ${this.relatedVariationsSection} ${this.referencesSection}
+                ${this.relatedVariationsSection} ${this.referencesSection} ${this.usageSection}
             </div>
         `;
     }

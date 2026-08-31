@@ -1822,18 +1822,32 @@ describe('MasFragmentEditor', () => {
             expect(link.getAttribute('href')).to.include('bulkPublishProjectId=p1');
         });
 
-        it('hides the usage section when no usage data is available (prototype gated off)', () => {
-            const { editor } = createEditor();
-            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
-            editor.fragmentUsage = null;
+        const renderUsage = (editor) => {
             const host = document.createElement('div');
-            render(editor.fragmentUsageContainer, host);
-            expect(host.textContent.trim()).to.equal('');
+            render(editor.usageSection, host);
+            return host;
+        };
+
+        it('does not auto-load usage on fragment open (lazy — no query until expand)', () => {
+            const editor = withCard();
+            editor.willUpdate(new Map());
+            expect(editor.usageExpanded).to.equal(false);
+            expect(editor.fragmentUsage).to.equal(null);
         });
 
-        it('renders the usage section with consumer breakdown when data is available', () => {
-            const { editor } = createEditor();
-            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+        it('shows the Usage collapsible but does not render the body while collapsed (lazy)', () => {
+            const editor = withCard();
+            editor.usageExpanded = false;
+            // even if data were cached, the body stays hidden until expanded
+            editor.fragmentUsage = { available: true, totalCount: 5, rows: [{ apiKey: 'cc', country: 'US', count: 5 }] };
+            const host = renderUsage(editor);
+            expect(host.textContent).to.include('Usage (last 30 days)');
+            expect(host.textContent).to.not.include('requests');
+        });
+
+        it('renders the usage breakdown once expanded', () => {
+            const editor = withCard();
+            editor.usageExpanded = true;
             editor.fragmentUsage = {
                 available: true,
                 totalCount: 1234,
@@ -1842,11 +1856,26 @@ describe('MasFragmentEditor', () => {
                     { locale: 'fr_FR', apiKey: 'express', country: 'FR', count: 34 },
                 ],
             };
-            const host = document.createElement('div');
-            render(editor.fragmentUsageContainer, host);
+            const host = renderUsage(editor);
             expect(host.textContent).to.include('1234 requests');
             expect(host.textContent).to.include('cc / US');
             expect(host.textContent).to.include('express / FR');
+        });
+
+        it('shows "unavailable" when expanded and the proxy returned no data', () => {
+            const editor = withCard();
+            editor.usageExpanded = true;
+            editor.fragmentUsage = { available: false };
+            expect(renderUsage(editor).textContent).to.include('Usage data unavailable');
+        });
+
+        it('does not render a usage section for non-card/collection fragments', () => {
+            const { editor } = createEditor();
+            sandbox
+                .stub(editor, 'fragment')
+                .get(() => ({ id: 'ph', model: { path: '/conf/mas/settings/dam/cfm/models/dictionnary' } }));
+            const host = renderUsage(editor);
+            expect(host.textContent.trim()).to.equal('');
         });
 
         it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {

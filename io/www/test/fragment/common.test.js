@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { matchesGeo, getCountry, isGroupedVariationFragmentPath } from '../../src/fragment/utils/common.js';
+import { geoMatchScore, matchesGeo, getCountry, isGroupedVariationFragmentPath } from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
     describe('matchesGeo', () => {
@@ -71,6 +71,15 @@ describe('common utils', () => {
                 const result = matchesGeo(['mas:locale/en_US'], {});
                 expect(result).to.be.null;
             });
+        });
+    });
+
+    describe('geoMatchScore', () => {
+        it('prefers region matches over country matches', () => {
+            expect(geoMatchScore(null)).to.equal(0);
+            expect(geoMatchScore({ region: false, country: true })).to.equal(1);
+            expect(geoMatchScore({ region: true, country: false })).to.equal(2);
+            expect(geoMatchScore({ region: true, country: true })).to.equal(3);
         });
     });
 

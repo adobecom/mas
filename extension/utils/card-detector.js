@@ -288,8 +288,7 @@ class CardDetector {
         this.bareElementIds.set(element, id);
 
         const localeInfo = this.pageLocale || this.getPageLocale();
-        const promotion =
-            typeof window !== 'undefined' && window.MASPromo ? window.MASPromo.readElementPromotion(element) : null;
+        const promotion = this.readPromotion(element, elementType);
 
         const displayText = (element.textContent || '').trim();
 

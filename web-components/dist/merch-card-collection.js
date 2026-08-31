@@ -5180,14 +5180,6 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     margin-inline: auto;
 }
 
-/* The one-merch-card grid zeroes the section .content padding to center the lone
-   card, which also wipes the C2 section-spacing metadata (e.g. spacing-2xs-top).
-   Restore the authored top spacing so single pro cards keep section rhythm.
-   MWPW-204106. */
-.one-merch-card.spacing-2xs-top {
-    padding-top: var(--s2a-viewport-vertical-padding-2xs);
-}
-
 @media screen and ${R} {
     merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));

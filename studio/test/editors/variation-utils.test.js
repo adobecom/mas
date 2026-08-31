@@ -12,6 +12,8 @@ import {
     listPromotionVariations,
     countryTagLeafToLocaleCode,
     normalizePznTagToLocaleCode,
+    getCtaKeyIssues,
+    summarizeCtaKeyIssues,
     VARIATION_TABS,
 } from '../../src/editors/variation-utils.js';
 
@@ -19,6 +21,42 @@ describe('variation-utils', () => {
     it('effectiveIsVariation requires a parent fragment', () => {
         expect(effectiveIsVariation({ path: '/foo' }, null, true)).to.equal(false);
         expect(effectiveIsVariation({ path: '/foo' }, { path: '/parent' }, true)).to.equal(true);
+    });
+
+    describe('getCtaKeyIssues', () => {
+        it('reports no issues for unique keys', () => {
+            const issues = getCtaKeyIssues([{ key: 'a' }, { key: 'b' }]);
+            expect(issues).to.deep.equal({ missingCount: 0, duplicateKeys: [], hasIssues: false });
+        });
+
+        it('counts anchors missing a key', () => {
+            const issues = getCtaKeyIssues([{ key: 'a' }, { key: null }, { key: '' }]);
+            expect(issues.missingCount).to.equal(2);
+            expect(issues.duplicateKeys).to.deep.equal([]);
+            expect(issues.hasIssues).to.equal(true);
+        });
+
+        it('lists keys shared by more than one anchor', () => {
+            const issues = getCtaKeyIssues([{ key: 'dup' }, { key: 'dup' }, { key: 'dup' }, { key: 'ok' }]);
+            expect(issues.duplicateKeys).to.deep.equal(['dup']);
+            expect(issues.hasIssues).to.equal(true);
+        });
+
+        it('tolerates an empty list', () => {
+            expect(getCtaKeyIssues().hasIssues).to.equal(false);
+        });
+    });
+
+    describe('summarizeCtaKeyIssues', () => {
+        it('joins missing and duplicate counts', () => {
+            expect(summarizeCtaKeyIssues({ missingCount: 2, duplicateKeys: ['a'] })).to.equal(
+                '2 without a reference key, 1 duplicated',
+            );
+        });
+
+        it('is empty when there is nothing to report', () => {
+            expect(summarizeCtaKeyIssues()).to.equal('');
+        });
     });
 
     describe('countryTagLeafToLocaleCode', () => {

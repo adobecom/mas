@@ -110,7 +110,7 @@ export function priceOptionsProvider(element, options) {
 
     if (
         options.displayAnnual === undefined &&
-        typeof masField.settings?.displayAnnual === 'boolean'
+        typeof masField?.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = masField.settings.displayAnnual;
     }

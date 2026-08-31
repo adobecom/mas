@@ -73,7 +73,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { html } from 'lit';
+            import { html, render } from 'lit';
             // Import actual components
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
@@ -1578,6 +1578,78 @@
                         it('renders no banner when validationStatus is empty', async () => {
                             const { editor } = await setupTestEnvironment({}, 'validation-none');
                             expect(editor.querySelector('.fragment-validation-banner')).to.not.exist;
+                        });
+                    });
+
+                    describe('CTA reference key warning', () => {
+                        const makeEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = true;
+                            editor.localeDefaultFragment = new Fragment({
+                                path: '/content/dam/mas/x/en_US/base',
+                                fields: [{ name: 'ctas', values: [ctasHtml] }],
+                            });
+                            return editor;
+                        };
+
+                        it('flags base fragment CTA key issues on a variation', () => {
+                            const editor = makeEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('Base fragment CTAs need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                        });
+
+                        it('renders nothing when base CTA keys are clean', () => {
+                            const editor = makeEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
+                        });
+
+                        const makeBaselineEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = false;
+                            editor.fragmentStore = {
+                                get: () =>
+                                    new Fragment({
+                                        path: '/content/dam/mas/x/en_US/base',
+                                        fields: [{ name: 'ctas', values: [ctasHtml] }],
+                                    }),
+                            };
+                            return editor;
+                        };
+
+                        it('reports own CTA key issues with a Fix link on a baseline', () => {
+                            const editor = makeBaselineEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('CTA references need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                            expect(container.querySelector('sp-link.field-status-restore-link')).to.exist;
+                        });
+
+                        it('field-level Fix link invokes fixCtaKeys on the ctas RTE field', () => {
+                            const editor = makeBaselineEditor('<a data-key="dup">A</a><a data-key="dup">B</a>');
+                            const rte = document.createElement('rte-field');
+                            rte.id = 'ctas';
+                            let called = 0;
+                            rte.fixCtaKeys = () => (called += 1);
+                            editor.appendChild(rte);
+
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            container.querySelector('sp-link.field-status-restore-link').click();
+                            expect(called).to.equal(1);
+                        });
+
+                        it('renders nothing when own CTA keys are clean', () => {
+                            const editor = makeBaselineEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
                         });
                     });
                 });

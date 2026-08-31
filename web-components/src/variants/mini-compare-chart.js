@@ -607,7 +607,7 @@ export class MiniCompareChart extends VariantLayout {
 
             if (
                 service.featureFlags[FF_ANNUAL_PRICE] &&
-                legal.options.displayTax
+                headingPrice.options.displayTax
             ) {
                 legal.dataset.displayTax = 'false';
             } else if (headingPrice.options.displayTax) {

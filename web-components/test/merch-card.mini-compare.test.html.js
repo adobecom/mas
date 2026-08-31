@@ -465,7 +465,7 @@ runTests(async () => {
                             data-wcs-osi="abm-mult"
                             data-template="price"
                             data-display-per-unit="false"
-                            data-display-tax="false"
+                            data-display-tax="true"
                             data-display-plan-type="true"
                         ></span>
                     </h5>

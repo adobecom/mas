@@ -1014,15 +1014,19 @@ sp-progress-circle.preview {
 /* "References" section: which collections / projects / cards use the open fragment, grouped by type
    with per-type collapsibles. Neutral gray palette so it reads as distinct from the blue blocks. */
 .references-container {
+    box-sizing: border-box;
+    width: 600px;
+    max-width: 100%;
     background: var(--spectrum-gray-75);
     border: 2px solid var(--spectrum-gray-300);
     border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 24px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    margin-bottom: 16px;
 }
 
 .references-title {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     color: var(--spectrum-global-color-gray-900);
     font-size: 14px;
     font-weight: bold;
@@ -1040,7 +1044,7 @@ sp-progress-circle.preview {
 }
 
 .reference-type-rows {
-    padding: 0 8px 8px 28px;
+    padding: 0 8px 4px 28px;
 }
 
 .referencing-message {
@@ -1056,7 +1060,7 @@ sp-progress-circle.preview {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 0;
+    padding: 3px 0;
     color: var(--spectrum-global-color-gray-900);
     font-size: 14px;
     text-decoration: none;

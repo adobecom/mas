@@ -133,6 +133,7 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
+            getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
             aem: {
@@ -367,7 +368,7 @@ describe('MasPromotionsEditor', () => {
             expect(repo.loadAllCollections.called).to.be.false;
         });
 
-        it('preloads fragment search when surfaces are already set', async () => {
+        it('does not preload surface fragments/collections on connect even when surfaces are set (deferred to picker open)', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
             const repo = makeRepo();
@@ -375,8 +376,8 @@ describe('MasPromotionsEditor', () => {
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
             await waitForEditorConnect(el);
-            expect(repo.searchFragments.calledOnce).to.be.true;
-            expect(repo.loadAllCollections.calledOnce).to.be.true;
+            expect(repo.searchFragments.called).to.be.false;
+            expect(repo.loadAllCollections.called).to.be.false;
         });
 
         it('reuses existing fragmentStore when inEdit already holds one', async () => {
@@ -1190,7 +1191,7 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedOffers.value).to.deep.equal(['osi-abc', 'osi-def']);
         });
 
-        it('hydrates selectedCards from fragments field when getFragmentByPath is unavailable', async () => {
+        it('hydrates selectedCards from fragments-field paths not matched as collections', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
             Store.promotions.inEdit.set(
@@ -1207,6 +1208,62 @@ describe('MasPromotionsEditor', () => {
             await el.connectedCallback();
             await el.updateComplete;
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
+        });
+
+        it('refines the card/collection split in the background from a surface collection search', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-2',
+                        surfaces: ['sandbox'],
+                        fragments: [cardPath, collectionPath],
+                    }),
+                ),
+            );
+            const getCollectionPathsForSurfaces = sandbox.stub().resolves(new Set([collectionPath]));
+            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
+            Store.promotions.promotionId.set('promo-2');
+            el.disconnectedCallback();
+            await el.connectedCallback();
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 50));
+            expect(getCollectionPathsForSurfaces.calledWith(['sandbox'])).to.be.true;
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
+        });
+
+        it('does not clobber a selection the user edited while the classification search was in flight', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-race',
+                        surfaces: ['sandbox'],
+                        fragments: [cardPath, collectionPath],
+                    }),
+                ),
+            );
+            let releaseSearch;
+            const getCollectionPathsForSurfaces = sandbox
+                .stub()
+                .callsFake(() => new Promise((resolve) => (releaseSearch = () => resolve(new Set([collectionPath])))));
+            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
+            Store.promotions.promotionId.set('promo-race');
+            el.disconnectedCallback();
+            await el.connectedCallback();
+            await el.updateComplete;
+            // User adds a card while the surface search is still pending.
+            Store.promotions.selectedCards.set([cardPath, collectionPath, addedPath]);
+            releaseSearch();
+            await new Promise((r) => setTimeout(r, 50));
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, addedPath]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });
     });
 
@@ -2157,6 +2214,67 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.cardsByPaths.value.size).to.equal(0);
             expect(Store.promotions.selectedCards.value).to.deep.equal(['/card/a', '/card/b']);
             expect(repo.searchFragments.called).to.be.true;
+        });
+    });
+
+    describe('validationStatus banner', () => {
+        async function mountEditorWithValidation(validationStatus) {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promotion = makePromotion({ id: 'p1', title: 'T' });
+            promotion.validationStatus = validationStatus;
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            return el;
+        }
+
+        it('renders a banner listing each validationStatus property and message', async () => {
+            const el = await mountEditorWithValidation([{ property: 'fields.startDate.values[0]', message: 'is required' }]);
+            const banner = el.renderRoot.querySelector('.fragment-validation-banner');
+            expect(banner).to.exist;
+            expect(banner.textContent).to.include('fields.startDate.values[0]');
+            expect(banner.textContent).to.include('is required');
+        });
+
+        it('lists every message when validationStatus has multiple errors', async () => {
+            const el = await mountEditorWithValidation([
+                { property: 'fields.startDate.values[0]', message: 'is required' },
+                { property: 'path', message: 'is not valid' },
+            ]);
+            const messages = el.renderRoot.querySelectorAll('.fragment-validation-banner-message');
+            expect(messages.length).to.equal(2);
+            expect(messages[0].textContent).to.include('is required');
+            expect(messages[1].textContent).to.include('is not valid');
+        });
+
+        it('renders no banner when validationStatus is empty', async () => {
+            const el = await mountEditorWithValidation(undefined);
+            expect(el.renderRoot.querySelector('.fragment-validation-banner')).to.not.exist;
+        });
+
+        it('refreshes by id on open so errors show even when the list handed over a store without validationStatus', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const listPayload = makePromotion({ id: 'promo-val', title: 'Invalid' });
+            listPayload.validationStatus = [];
+            Store.promotions.inEdit.set(new FragmentStore(listPayload));
+            Store.promotions.promotionId.set('promo-val');
+
+            const authoritative = makeFragmentData({ id: 'promo-val', title: 'Invalid' });
+            authoritative.validationStatus = [
+                { property: 'fields.fragments.values[0]', message: 'references a path that does not exist in JCR' },
+            ];
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(authoritative) } } },
+                    getFragmentByPath: null,
+                },
+            });
+            await waitForEditorConnect(el);
+            await el.updateComplete;
+
+            const banner = el.renderRoot.querySelector('.fragment-validation-banner');
+            expect(banner).to.exist;
+            expect(banner.textContent).to.include('references a path that does not exist in JCR');
         });
     });
 });

@@ -131,6 +131,9 @@ const Store = {
         // Offers-table display records ({ path, id, offerData, tags, fields, getTagTitle }) keyed by offer selector id.
         // Kept separate from offerDataCache so the two shapes never collide under the same OSI key.
         offerRecordsCache: new Map(),
+        // Bumped whenever offerRecordsCache is (re)hydrated; offer-derived UI subscribes to
+        // this so it can refresh once records land, since the cache itself is a plain Map.
+        offerRecordsHydrated: new ReactiveStore(0),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),
 

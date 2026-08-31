@@ -67,6 +67,8 @@ function initialize() {
             window.MASCardOverlay.updatePositions();
         });
 
+        if (cardData.elementType === 'price' || cardData.elementType === 'cta') return;
+
         if (fetchCount >= FETCH_BUDGET) return;
         fetchCount += 1;
         try {

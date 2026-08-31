@@ -82,7 +82,7 @@ function priceOptionsProvider(element, options) {
     }
     if (
         options.displayAnnual === undefined &&
-        typeof card.settings.displayAnnual === 'boolean'
+        typeof card.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = card.settings.displayAnnual;
     }

@@ -59,7 +59,7 @@ jobs:
             needs.check-paths.outputs.is-trivial != 'true' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
-        runs-on: [self-hosted, Linux, X64]
+        runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 45 # Prevent hanging jobs
         strategy:
             matrix:
@@ -143,7 +143,7 @@ jobs:
             needs.check-paths.outputs.is-trivial != 'true' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
-        runs-on: [self-hosted, Linux, X64]
+        runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
             matrix:

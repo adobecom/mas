@@ -53,11 +53,10 @@ describe('settings', () => {
             expect(result.secureLabel.override[0].locales).to.include('fr_FR');
         });
 
-        it('groups geos-only override into override array', () => {
+        it('groups a geo override that precedes the default', () => {
             const fragment = {
                 references: {
-                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
-                    ref2: {
+                    ref1: {
                         value: {
                             fields: {
                                 name: 'hideTrialCTAs',
@@ -67,22 +66,32 @@ describe('settings', () => {
                             },
                         },
                     },
-                },
-            };
-            const result = collectSettingEntries(fragment);
-            expect(result.hideTrialCTAs.default).to.exist;
-            expect(result.hideTrialCTAs.override).to.have.length(1);
-            expect(result.hideTrialCTAs.override[0].geos).to.include('mas:pzn/country/KR');
-        });
-
-        it('groups template-only override into override array', () => {
-            const fragment = {
-                references: {
-                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
                     ref2: {
                         value: {
                             fields: {
                                 name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default).to.exist;
+            expect(result.hideTrialCTAs.default.booleanValue).to.be.false;
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].booleanValue).to.be.true;
+            expect(result.hideTrialCTAs.override[0].geos).to.include('mas:pzn/country/KR');
+        });
+
+        it('groups a template-scoped entry as the default', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'displayPlanType',
                                 valuetype: 'boolean',
                                 booleanValue: true,
                                 templates: ['plans'],
@@ -92,11 +101,11 @@ describe('settings', () => {
                 },
             };
             const result = collectSettingEntries(fragment);
-            expect(result.hideTrialCTAs.override).to.have.length(1);
-            expect(result.hideTrialCTAs.override[0].templates).to.deep.equal(['plans']);
+            expect(result.displayPlanType.default.templates).to.deep.equal(['plans']);
+            expect(result.displayPlanType.override).to.be.empty;
         });
 
-        it('ignores an unscoped entry after the default', () => {
+        it('uses the last unscoped entry as the default', () => {
             const fragment = {
                 references: {
                     ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
@@ -104,7 +113,7 @@ describe('settings', () => {
                 },
             };
             const result = collectSettingEntries(fragment);
-            expect(result.hideTrialCTAs.default.booleanValue).to.equal(false);
+            expect(result.hideTrialCTAs.default.booleanValue).to.equal(true);
             expect(result.hideTrialCTAs.override).to.be.empty;
         });
 

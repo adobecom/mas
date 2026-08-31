@@ -6,6 +6,7 @@ import {
     MARK_DURATION_SUFFIX,
 } from './constants.js';
 import { MasError } from './mas-error.js';
+import { getImsCountryCookie } from './ims.js';
 import { getLogHeaders } from './utilities.js';
 import { getService, getValidatedMasLibsUrl, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
@@ -401,8 +402,7 @@ export class AemFragment extends HTMLElement {
             locale,
             instant,
         } = this.#service.settings;
-        const country =
-            (await this.#service.imsCountryPromise) ?? configuredCountry;
+        const country = getImsCountryCookie() ?? configuredCountry;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;

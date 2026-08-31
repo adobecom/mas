@@ -145,10 +145,11 @@ export function collectSettingEntries(settingFragment) {
         const geos = fields.geos ?? [];
         if (!name) continue;
         const normalizedFields = { ...fields, locales, geos };
-        if (!grouped[name]) {
-            grouped[name] = { default: normalizedFields, override: [] };
-        } else if (hasOverrideScope(normalizedFields)) {
+        if (!grouped[name]) grouped[name] = { default: null, override: [] };
+        if (locales.length > 0 || geos.length > 0 || fields.tags?.length > 0) {
             grouped[name].override.push(normalizedFields);
+        } else {
+            grouped[name].default = normalizedFields;
         }
     }
 

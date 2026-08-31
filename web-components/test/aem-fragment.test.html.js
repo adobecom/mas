@@ -561,7 +561,7 @@ runTests(async () => {
                 );
             });
 
-            it('uses the platform country cookie instead of configured country', async () => {
+            it('does not wait for IMS before using the platform country cookie', async () => {
                 cache.clear();
                 Object.defineProperty(document, 'cookie', {
                     configurable: true,
@@ -577,6 +577,7 @@ runTests(async () => {
                 publishService.setAttribute('country', 'CA');
                 publishService.setAttribute('locale', 'en_US');
                 document.body.insertBefore(publishService, existing);
+                publishService.imsCountryPromise = new Promise(() => undefined);
 
                 try {
                     const aemFragment = addFragment('fragment-cc-all-apps');

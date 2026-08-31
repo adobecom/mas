@@ -309,8 +309,6 @@ export class MiniCompareChartMweb extends VariantLayout {
 
             if (!headingPrice?.options) return;
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
@@ -321,6 +319,14 @@ export class MiniCompareChartMweb extends VariantLayout {
                 legal.dataset.displayTax = 'false';
             } else if (headingPrice.options.displayTax) {
                 headingPrice.dataset.displayTax = 'false';
+            }
+            if (
+                service.featureFlags[FF_ANNUAL_PRICE] &&
+                headingPrice.options.displayPerUnit
+            ) {
+                legal.dataset.displayPerUnit = 'false';
+            } else if (headingPrice.options.displayPerUnit) {
+                headingPrice.dataset.displayPerUnit = 'false';
             }
 
             legal.setAttribute('data-template', 'legal');

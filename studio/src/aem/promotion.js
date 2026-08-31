@@ -1,5 +1,7 @@
-import { FRAGMENT_STATUS } from '../constants.js';
+import { FRAGMENT_STATUS, SURFACES } from '../constants.js';
 import { Fragment } from './fragment.js';
+
+const NON_PRODUCTION_SURFACES = [SURFACES.SANDBOX.name, SURFACES.NALA.name];
 
 export class Promotion extends Fragment {
     get isEvergreen() {
@@ -52,6 +54,12 @@ export class Promotion extends Fragment {
         if (!this.isPromotionPublished) return 'draft';
         if (now < startDate) return 'scheduled';
         return 'active';
+    }
+
+    get promotionEnvironment() {
+        const surfaces = this.getFieldValues('surfaces');
+        const hasProductionSurface = surfaces.some((surface) => !NON_PRODUCTION_SURFACES.includes(surface));
+        return hasProductionSurface ? 'production' : 'test';
     }
 
     get promotionListFilterKey() {

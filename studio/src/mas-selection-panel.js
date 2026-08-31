@@ -261,7 +261,7 @@ class MasSelectionPanel extends LitElement {
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Copy Content Link(s)" @click=${this.handleCopyFragmentUrls}>
                       <sp-icon-link slot="icon"></sp-icon-link>
-                      <sp-tooltip self-managed placement="top">Copy the content link(s) (for authoring)</sp-tooltip>
+                      <sp-tooltip self-managed placement="top">Copy link(s) to paste into authored documents</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
         </sp-action-bar>`;

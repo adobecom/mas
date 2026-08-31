@@ -2,7 +2,6 @@ import { expect } from '@esm-bundle/chai';
 import Store from '../../src/store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
-    classifyPromotionPathsForSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
@@ -46,7 +45,6 @@ import {
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
 } from '../../src/promotions/promotion-editor-utils.js';
-import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
@@ -306,43 +304,6 @@ describe('promotion-editor-utils', () => {
 
         it('returns unique lowercase surface keys', () => {
             expect(parsePromotionSurfacesFieldValues(['NALA, sandbox', 'nala'])).to.deep.equal(['nala', 'sandbox']);
-        });
-    });
-
-    describe('classifyPromotionPathsForSelection', () => {
-        it('returns empty buckets for empty paths', async () => {
-            const out = await classifyPromotionPathsForSelection([], () => Promise.resolve({}));
-            expect(out).to.deep.equal({ cards: [], cols: [] });
-        });
-
-        it('classifies collection model as collections and others as cards', async () => {
-            const getFragmentByPath = (path) => {
-                if (path === '/col') return Promise.resolve({ model: { path: COLLECTION_MODEL_PATH } });
-                return Promise.resolve({ model: { path: '/other' } });
-            };
-            const out = await classifyPromotionPathsForSelection(['/card', '/col'], getFragmentByPath);
-            expect(out.cards).to.deep.equal(['/card']);
-            expect(out.cols).to.deep.equal(['/col']);
-        });
-
-        it('falls back to cards for rejected fetches', async () => {
-            const out = await classifyPromotionPathsForSelection([fetchFailed], () => Promise.reject(new Error('x')));
-            expect(out.cards).to.deep.equal([fetchFailed]);
-            expect(out.cols).to.deep.equal([]);
-        });
-
-        it('falls back to cards for fulfilled fragments without model path', async () => {
-            const out = await classifyPromotionPathsForSelection(['/no-model'], () => Promise.resolve(null));
-            expect(out.cards).to.deep.equal(['/no-model']);
-            expect(out.cols).to.deep.equal([]);
-        });
-
-        it('respects custom collection model path', async () => {
-            const custom = '/custom/collection';
-            const getFragmentByPath = () => Promise.resolve({ model: { path: custom } });
-            const out = await classifyPromotionPathsForSelection(['/p'], getFragmentByPath, custom);
-            expect(out.cols).to.deep.equal(['/p']);
-            expect(out.cards).to.deep.equal([]);
         });
     });
 

@@ -50,6 +50,7 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
+import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
@@ -1102,6 +1103,33 @@ export class MasRepository extends LitElement {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');
         }
+    }
+
+    /**
+     * Returns the set of collection paths across the given promotion surfaces, using one
+     * bounded collection-model search per surface (not one GET per attached path). Used by
+     * the promotions editor to classify attached paths as cards vs collections without a
+     * per-path request burst. Failures on a single surface are ignored so classification
+     * degrades gracefully rather than throwing.
+     * @param {string[]} surfaces
+     * @returns {Promise<Set<string>>}
+     */
+    async getCollectionPathsForSurfaces(surfaces) {
+        const paths = new Set();
+        if (!surfaces?.length) return paths;
+        await processConcurrently(
+            surfaces,
+            async (surface) => {
+                const fragments = await this.searchFragmentList({
+                    path: getDamPath(surface),
+                    modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]],
+                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                }).catch(() => []);
+                for (const fragment of fragments) paths.add(fragment.path);
+            },
+            OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+        return paths;
     }
 
     async loadPromotions() {

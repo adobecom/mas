@@ -209,3 +209,14 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
 export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
     return promotionVariations.probePromoVariationsForFragment(aem, defaultPath, promoTagId);
 }
+
+/**
+ * Probes promo variations for many fragments in a single recursive folder search per surface root.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} defaultPaths
+ * @param {string} promoTagId
+ * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[] }>>>}
+ */
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId);
+}

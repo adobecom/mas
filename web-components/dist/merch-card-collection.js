@@ -5191,7 +5191,6 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 .container.one-merch-card {
     padding-inline: var(--grid-padding);
 }
-
 @media screen and ${R} {
     merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));

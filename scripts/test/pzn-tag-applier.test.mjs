@@ -79,3 +79,14 @@ test('selectRows: falls back to `markets` when a row has no `batchMarkets`', () 
     const result = selectRows(report, { markets: new Set(['EC']), allowedFlags: new Set() });
     assert.equal(result.inBatch.length, 1);
 });
+
+test('selectRows: falls back to `report.failures` when `report.rows` is absent, to retry a failures file', () => {
+    const report = {
+        failures: [row({ error: 'PUT failed: 500 Internal Server Error', failedAt: '2026-08-31T00:00:00.000Z' })],
+    };
+    const result = selectRows(report, { markets: new Set(['EC']), allowedFlags: new Set() });
+    assert.deepEqual(
+        result.selected.map((r) => r.variationId),
+        ['id-1'],
+    );
+});

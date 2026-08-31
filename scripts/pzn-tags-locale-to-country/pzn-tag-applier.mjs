@@ -12,7 +12,11 @@
  *     its live `pznTags` must equal the report's `currentTags`, or the row is skipped as drifted
  *   - `createFragmentVersion` runs before every PUT (the primary rollback)
  *   - every PUT sends `If-Match: <etag>`
+ *   - a PUT returning HTTP 500 is retried once after `THROTTLE_MS` before the row is recorded as failed
  *   - rows carrying a blocking flag are skipped unless explicitly allowed via `--allow-flags`
+ *   - any row that throws (GET/version/PUT failure) is written, with full row context and the error,
+ *     to `./tmp/mas-pzn-tag-applier-failures-<markets>-<timestamp>.json` — console output alone does
+ *     not persist failures for later retry/inspection
  *
  * Rollback: `--revert ./tmp/mas-pzn-tag-inventory-acom.json` replays the report's `currentTags` backwards. Revert
  * verifies the live tags still equal the report's `targetTags` before restoring, so it cannot
@@ -29,18 +33,21 @@
  *   node pzn-tag-applier.mjs --author-host <host> --i-have-reviewed <report.json> --markets EC
  *   node pzn-tag-applier.mjs --author-host <host> --i-have-reviewed <report.json> --markets EC --live
  *   node pzn-tag-applier.mjs --author-host <host> --i-have-reviewed <report.json> --revert <report.json> --markets EC --live
+ *   pass a failures file as `--i-have-reviewed` to re-run only the failed rows — its `failures` array is read the same way `rows` is
  *
  * Exit codes: 0 = clean, 1 = bad usage / fatal error, 2 = one or more rows failed or drifted.
  */
 
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHeaders, parseArgs, wait } from '../content/common.js';
 import { ALLOWED_AUTHOR_HOSTS, BLOCKING_FLAGS, RULES } from './pzn-tag-mapping.mjs';
 
 const THROTTLE_MS = 1000;
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const OUTPUT_DIR = resolve(SCRIPT_DIR, 'tmp');
 
 const usage = () =>
     console.error(
@@ -50,7 +57,7 @@ const usage = () =>
 export const sameTags = (a, b) => a.length === b.length && a.every((tag, index) => tag === b[index]);
 
 export function selectRows(report, { markets, allowedFlags }) {
-    const rows = (report.rows ?? []).filter((row) => row.rule !== RULES.NOOP);
+    const rows = (report.rows ?? report.failures ?? []).filter((row) => row.rule !== RULES.NOOP);
     const inBatch = rows.filter((row) => (row.batchMarkets ?? row.markets ?? []).some((market) => markets.has(market)));
     const skipped = [];
     const selected = [];
@@ -112,12 +119,12 @@ export async function run({
             body: JSON.stringify({ label, comment: 'MWPW-203042 pznTags migration — pre-change snapshot' }),
         });
         if (!response.ok) {
-            throw new Error(`Version snapshot failed: ${response.status} ${response.statusText}`);
+            throw new Error(`Version snapshot failed: ${response} ${response.status} ${response.statusText}`);
         }
         return (response.headers.get('Location') ?? '').split('/').pop();
     }
 
-    async function putTags(fragment, tags) {
+    async function putTags(fragment, tags, attempt = 1) {
         const fields = fragment.fields.map((field) =>
             field.name === 'pznTags'
                 ? { ...field, type: field.type || 'text', values: tags }
@@ -130,6 +137,11 @@ export async function run({
         });
         if (response.status === 412) {
             throw new Error('etag conflict (412) — fragment was modified by someone else');
+        }
+        if (response.status === 500 && attempt === 1) {
+            console.log(`  RETRY           ${fragment.id}  PUT 500 — retrying once after ${THROTTLE_MS}ms`);
+            await wait(THROTTLE_MS);
+            return putTags(fragment, tags, attempt + 1);
         }
         if (!response.ok) {
             throw new Error(`PUT failed: ${response.status} ${response.statusText}`);
@@ -188,6 +200,7 @@ export async function run({
     }
 
     const counts = { written: 0, 'dry-run': 0, drifted: 0, 'already-applied': 0, failed: 0 };
+    const failures = [];
     for (const row of selected) {
         try {
             const { status, detail } = await applyRow(row);
@@ -196,8 +209,34 @@ export async function run({
         } catch (error) {
             counts.failed += 1;
             console.log(`  FAILED          ${row.variationPath}  ${error.message}`);
+            failures.push({ ...row, error: error.message, failedAt: new Date().toISOString() });
         }
         await wait(THROTTLE_MS);
+    }
+
+    if (failures.length) {
+        const failuresFile = resolve(
+            OUTPUT_DIR,
+            `mas-pzn-tag-applier-failures-${[...markets].join('-')}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+        );
+        await mkdir(dirname(failuresFile), { recursive: true });
+        await writeFile(
+            failuresFile,
+            `${JSON.stringify(
+                {
+                    generatedAt: new Date().toISOString(),
+                    authorHost,
+                    mode: reverting ? 'REVERT' : 'APPLY',
+                    reviewedFile: resolve(reviewedFile),
+                    markets: [...markets],
+                    failures,
+                },
+                null,
+                2,
+            )}\n`,
+            'utf8',
+        );
+        console.log(`\nFailed rows (with full row context) written to: ${failuresFile}`);
     }
 
     console.log(

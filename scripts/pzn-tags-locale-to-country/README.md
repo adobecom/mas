@@ -24,7 +24,7 @@ TYPE 1 never runs on `acom-dc` — that surface only gets the umbrella expansion
 | ---------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. `pzn-tag-inventory.mjs`   | no                             | Walks every locale folder for the selected surface, records current `pznTags` per grouped variation, flags cross-locale `TAG_DRIFT`, and checks which country tags already exist in the taxonomy.                                      |
 | 2. `pzn-tag-diff-report.mjs` | no                             | Pure computation over the inventory: current → target tags per variation, with collision / demotion / ambiguity flags, grouped by parent fragment and by market.                                                                       |
-| 3. `pzn-tag-applier.mjs`     | **yes**                        | The only writer. Dry-run by default. Versions each fragment before every `If-Match` PUT, batches one market at a time, and supports `--revert`.                                                                                        |
+| 3. `pzn-tag-applier.mjs`     | **yes**                        | The only writer. Dry-run by default. Versions each fragment before every `If-Match` PUT, batches one market at a time, and supports `--revert`. A PUT that gets HTTP 500 is retried once; rows that still fail are written to a `tmp/mas-pzn-tag-applier-failures-*.json` file with full row context. Pass that failures file back in as `--i-have-reviewed` to retry only the rows that failed. |
 | — `pzn-tag-mapping.mjs`      | no (library, not run directly) | Market and umbrella tables plus `applyLocaleToCountry` / `applyUmbrellaExpansion`, imported by all three scripts above. Pure, no I/O. The localeToCountry table is derived from `getSurfaceLocales('acom')` — do not hand-maintain it. |
 
 **Reports go to this folder's own `tmp/` directory, which is gitignored — never into the repo.**
@@ -68,6 +68,10 @@ node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host>
 node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
     --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json \
     --revert scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-diff-report-acom.json --markets EC --live
+
+# if any rows still failed after the automatic 500-retry, retry just those rows:
+node scripts/pzn-tags-locale-to-country/pzn-tag-applier.mjs --author-host <host> \
+    --i-have-reviewed scripts/pzn-tags-locale-to-country/tmp/mas-pzn-tag-applier-failures-EC-<timestamp>.json --markets EC --live
 ```
 
 ### acom-dc surface (TYPE 2 only)

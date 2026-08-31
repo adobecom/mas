@@ -132,6 +132,22 @@ function toFunctionTools(tools) {
     }));
 }
 
+/**
+ * Translate an Anthropic-style toolChoice into the OpenAI form.
+ *
+ * Forced choice is only safe with thinking disabled: with thinking on, the
+ * upstream parser emits raw Hermes markup into `arguments` instead of JSON,
+ * so a forced request is downgraded to auto in that mode.
+ */
+function toToolChoice(toolChoice, thinkingEnabled) {
+    if (thinkingEnabled) return 'auto';
+    if (toolChoice?.type === 'tool' && toolChoice.name) {
+        return { type: 'function', function: { name: toolChoice.name } };
+    }
+    if (toolChoice?.type === 'any') return 'required';
+    return 'auto';
+}
+
 const STOP_REASON_BY_FINISH_REASON = {
     stop: 'end_turn',
     length: 'max_tokens',
@@ -171,16 +187,13 @@ export class FoundryClient {
         // `content`, so a small budget is spent entirely on thinking and the
         // reply comes back empty. Thinking also corrupts forced tool calls
         // into raw Hermes markup. Escape hatch: AI_FOUNDRY_THINKING=on.
-        if (process.env.AI_FOUNDRY_THINKING !== 'on') {
+        const thinkingEnabled = process.env.AI_FOUNDRY_THINKING === 'on';
+        if (!thinkingEnabled) {
             payload.chat_template_kwargs = { enable_thinking: false };
         }
         if (options.tools?.length) {
             payload.tools = toFunctionTools(options.tools);
-            // Auto rather than the caller's specific toolChoice: forcing a
-            // named function is the shape that returns Hermes markup whenever
-            // thinking is on, and it buys nothing once the only tools the
-            // model can pick from are the ones the caller offered.
-            payload.tool_choice = 'auto';
+            payload.tool_choice = toToolChoice(options.toolChoice, thinkingEnabled);
         }
 
         const maxRetries = Number(process.env.AI_FOUNDRY_MAX_RETRIES ?? 2);

@@ -128,13 +128,56 @@ describe('ai-chat/foundry-client', () => {
             ]);
         });
 
-        it('always requests auto tool choice because forced choice is malformed on Qwen', async () => {
+        it('forces the named tool when the caller asks for a specific one', async () => {
             const client = makeClient();
             const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
 
             await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256, {
                 tools: [{ name: 'emit_envelope', input_schema: { type: 'object' } }],
                 toolChoice: { type: 'tool', name: 'emit_envelope' },
+            });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.tool_choice).to.deep.equal({ type: 'function', function: { name: 'emit_envelope' } });
+        });
+
+        it('requires some tool when the caller asks for any', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256, {
+                tools: [{ name: 'emit_guided_step', input_schema: { type: 'object' } }],
+                toolChoice: { type: 'any' },
+            });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.tool_choice).to.equal('required');
+        });
+
+        it('downgrades a forced choice to auto when thinking is on, which corrupts forced calls', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+            process.env.AI_FOUNDRY_THINKING = 'on';
+
+            try {
+                await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 800, {
+                    tools: [{ name: 'emit_envelope', input_schema: { type: 'object' } }],
+                    toolChoice: { type: 'tool', name: 'emit_envelope' },
+                });
+            } finally {
+                delete process.env.AI_FOUNDRY_THINKING;
+            }
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.tool_choice).to.equal('auto');
+        });
+
+        it('uses auto when tools are offered without a specific choice', async () => {
+            const client = makeClient();
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256, {
+                tools: [{ name: 'emit_envelope', input_schema: { type: 'object' } }],
             });
 
             const payload = JSON.parse(fetchStub.firstCall.args[1].body);

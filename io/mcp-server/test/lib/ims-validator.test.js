@@ -1,10 +1,5 @@
 import { expect } from 'chai';
-import {
-    deriveSurfaceFromPath,
-    canEditSurface,
-    fetchUserGroups,
-    requireSurfaceAccess,
-} from '../../src/lib/ims-validator.js';
+import { deriveSurfaceFromPath, canEditSurface, fetchUserGroups, requireSurfaceAccess } from '../../src/lib/ims-validator.js';
 import { Ims } from '@adobe/aio-lib-ims';
 
 describe('ims-validator surface authz', () => {
@@ -183,14 +178,10 @@ describe('ims-validator surface authz', () => {
         it('returns null (authorized) when caller is a MAS admin, for any mapped surface', async () => {
             stubProfile(['GRP-ODIN-MAS-ADMINS']);
             expect(
-                await requireSurfaceAccess(
-                    { authorization: 'Bearer t' },
-                    { parentPath: '/content/dam/mas/express/en_US/foo' },
-                ),
+                await requireSurfaceAccess({ authorization: 'Bearer t' }, { parentPath: '/content/dam/mas/express/en_US/foo' }),
             ).to.be.null;
-            expect(
-                await requireSurfaceAccess({ authorization: 'Bearer t' }, { parentPath: '/content/dam/mas/acom/en_US/foo' }),
-            ).to.be.null;
+            expect(await requireSurfaceAccess({ authorization: 'Bearer t' }, { parentPath: '/content/dam/mas/acom/en_US/foo' }))
+                .to.be.null;
         });
 
         it('accepts params.path when params.parentPath is absent', async () => {

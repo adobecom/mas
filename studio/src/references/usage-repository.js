@@ -22,7 +22,7 @@ const IMS_ORG_ID = '3B962FB55F5F922E0A495C88';
  * Parses a Grafana `/api/ds/query` response (columnar frames) into usage rows.
  * @param {Object} response the ds/query JSON returned by the proxy
  * @param {string} [refId]
- * @returns {Array<{ locale: string, apiKey: string, country: string, count: number }>}
+ * @returns {Array<{ apiKey: string, country: string, count: number }>}
  */
 export function parseUsageResponse(response, refId = 'A') {
     const frames = response?.results?.[refId]?.frames;
@@ -32,14 +32,12 @@ export function parseUsageResponse(response, refId = 'A') {
         const fields = frame?.schema?.fields ?? [];
         const columns = frame?.data?.values ?? [];
         const indexOf = (name) => fields.findIndex((f) => f.name === name);
-        const li = indexOf('locale');
         const ai = indexOf('api_key');
         const ci = indexOf('country');
         const ni = indexOf('count');
         const length = columns[ni]?.length ?? 0;
         for (let i = 0; i < length; i += 1) {
             rows.push({
-                locale: li >= 0 ? columns[li][i] : '',
                 apiKey: ai >= 0 ? columns[ai][i] : '',
                 country: ci >= 0 ? columns[ci][i] : '',
                 count: Number(columns[ni][i]) || 0,

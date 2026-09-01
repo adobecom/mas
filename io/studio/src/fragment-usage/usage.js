@@ -17,10 +17,15 @@
 const { Ims } = require('@adobe/aio-lib-ims');
 
 const DEFAULT_GRAFANA_URL = 'https://adobe-grafana.trafficpeak.live';
-const GRAFANA_DATASOURCE_UID = 'fdyta6qpga2o0d';
-const GRAFANA_ORG_ID = 750;
-const USAGE_TABLE = 'mas_fragment_requests'; // TODO(4A): confirm with WCMS Ops
-const DEFAULT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// Datasource + schema derived from the "M@S - web_commerce_artifact" Grafana dashboard on the
+// migrated adobe-grafana instance (the epic's fdyta6qpga2o0d / mas_fragment_requests were stale).
+const GRAFANA_DATASOURCE_UID = 'ffmjsr3rpsrnkc';
+const USAGE_TABLE = 'akamai.logs';
+// MAS fragments are served under this Akamai request path; the fragment id + api_key ride in the
+// query string (queryStr), not as columns — matches how the dashboard filters (queryStr LIKE …).
+const MAS_FRAGMENT_REQ_PATH = 'web_commerce_artifact';
+// Per-fragment usage scans raw CDN logs, so keep the default window tight (7d) pending ops sign-off.
+const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 const authorize = async (headers = {}) => {
     const authHeader = headers['authorization'];
@@ -35,10 +40,21 @@ const authorize = async (headers = {}) => {
 };
 
 function buildUsageQuery(fragmentId, fromMs, toMs) {
+    const fromSec = Math.floor(fromMs / 1000);
+    const toSec = Math.floor(toMs / 1000);
+    // fragmentId is validated to /^[\w-]+$/ by the caller, so it is safe to interpolate into the
+    // string literals below. api_key is pulled out of the query string with a regex capture.
+    // NOTE (validate on first real run / with ops): the exact reqTimeSec filter form and the
+    // api_key extraction were derived from the dashboard, not executed here (cluster probes are
+    // gated). Adjust if the first live query errors on either.
     const rawSql =
-        `SELECT locale, api_key, country, count(*) AS count FROM ${USAGE_TABLE} ` +
-        `WHERE fragment_id = '${fragmentId}' AND timestamp >= fromUnixTimestamp64Milli(${fromMs}) ` +
-        `AND timestamp <= fromUnixTimestamp64Milli(${toMs}) GROUP BY locale, api_key, country ORDER BY count DESC`;
+        `SELECT extract(queryStr, 'api_key=([^&]+)') AS api_key, country, count(*) AS count ` +
+        `FROM ${USAGE_TABLE} ` +
+        `WHERE reqTimeSec >= toDateTime(${fromSec}) AND reqTimeSec <= toDateTime(${toSec}) ` +
+        `AND reqPath LIKE '%${MAS_FRAGMENT_REQ_PATH}%' ` +
+        `AND (queryStr LIKE '%${fragmentId}%' OR reqPath LIKE '%${fragmentId}%') ` +
+        `GROUP BY api_key, country ORDER BY count DESC ` +
+        `SETTINGS hdx_query_max_execution_time=60, hdx_query_admin_comment='mas-studio-fragment-usage'`;
     return {
         from: String(fromMs),
         to: String(toMs),
@@ -48,7 +64,6 @@ function buildUsageQuery(fragmentId, fromMs, toMs) {
                 datasource: { type: 'grafana-clickhouse-datasource', uid: GRAFANA_DATASOURCE_UID },
                 rawSql,
                 format: 1,
-                meta: { orgId: GRAFANA_ORG_ID },
             },
         ],
     };
@@ -81,11 +96,9 @@ async function main(params) {
         if (!response.ok) {
             return { statusCode: response.status, body: `Grafana query failed: ${response.status}` };
         }
-        return {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-            statusCode: 200,
-            body: await response.json(),
-        };
+        // No custom headers: I/O Runtime auto-adds CORS (Access-Control-Allow-Origin) only when the
+        // response has none. Setting Content-Type here would drop CORS and break the browser call.
+        return { statusCode: 200, body: await response.json() };
     } catch (error) {
         return { statusCode: 500, body: `ERROR in usage proxy: ${error.toString()}` };
     }

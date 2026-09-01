@@ -8,7 +8,7 @@ describe('usage-repository (4A prototype)', () => {
                 frames: [
                     {
                         schema: {
-                            fields: [{ name: 'locale' }, { name: 'api_key' }, { name: 'country' }, { name: 'count' }],
+                            fields: [{ name: 'api_key' }, { name: 'country' }, { name: 'count' }],
                         },
                         data: { values },
                     },
@@ -21,15 +21,14 @@ describe('usage-repository (4A prototype)', () => {
         it('parses columnar frames into usage rows', () => {
             const rows = parseUsageResponse(
                 grafanaJson([
-                    ['en_US', 'fr_FR'],
                     ['cc', 'express'],
                     ['US', 'FR'],
                     [1200, 34],
                 ]),
             );
             expect(rows).to.have.lengthOf(2);
-            expect(rows[0]).to.deep.equal({ locale: 'en_US', apiKey: 'cc', country: 'US', count: 1200 });
-            expect(rows[1]).to.deep.equal({ locale: 'fr_FR', apiKey: 'express', country: 'FR', count: 34 });
+            expect(rows[0]).to.deep.equal({ apiKey: 'cc', country: 'US', count: 1200 });
+            expect(rows[1]).to.deep.equal({ apiKey: 'express', country: 'FR', count: 34 });
         });
 
         it('returns an empty array when there are no frames', () => {
@@ -47,7 +46,7 @@ describe('usage-repository (4A prototype)', () => {
             const fetchImpl = async (url, opts) => {
                 capturedUrl = url;
                 capturedBody = JSON.parse(opts.body);
-                return { ok: true, json: async () => grafanaJson([['en_US'], ['cc'], ['US'], [500]]) };
+                return { ok: true, json: async () => grafanaJson([['cc'], ['US'], [500]]) };
             };
             const result = await fetchFragmentUsage('frag-1', { fetchImpl, ioBaseUrl });
             expect(capturedUrl).to.equal(`${ioBaseUrl}/fragment-usage`);
@@ -70,7 +69,7 @@ describe('usage-repository (4A prototype)', () => {
         });
 
         it('degrades to { available: false } when the io base url is not configured', async () => {
-            const fetchImpl = async () => ({ ok: true, json: async () => grafanaJson([[], [], [], []]) });
+            const fetchImpl = async () => ({ ok: true, json: async () => grafanaJson([[], [], []]) });
             expect(await fetchFragmentUsage('frag-1', { fetchImpl })).to.deep.equal({ available: false });
         });
 

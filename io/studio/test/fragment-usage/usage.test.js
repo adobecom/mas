@@ -55,7 +55,11 @@ describe('fragment-usage/usage.js', () => {
         expect(opts.headers.Authorization).to.equal(`Bearer ${TOKEN}`);
         // server builds the SQL; the fragment id is bound, the client never supplies SQL
         expect(opts.body).to.include(baseParams.fragmentId);
-        expect(opts.body).to.include('GROUP BY locale, api_key, country');
+        expect(opts.body).to.include('FROM akamai.logs');
+        expect(opts.body).to.include('reqPath LIKE');
+        expect(opts.body).to.include('GROUP BY api_key, country');
+        // the service token must not appear in the outbound query body
+        expect(opts.body).to.not.include(TOKEN);
 
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.equal(grafanaJson);

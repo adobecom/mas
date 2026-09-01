@@ -1620,16 +1620,18 @@ export default class MasFragmentEditor extends LitElement {
                 const result = await MasPublishDialog.show(refs);
                 if (!result.confirmed) return;
 
-                const anyStaged = this.fragment.isStaged || refs.variations.some((variation) => {
-                    if (!result.selectedIds.includes(variation.id)) return false;
-                    const tags = variation.fields?.find((f) => f.name === 'tags')?.values || [];
-                    return tags.includes(STAGED.TAG);
-                });
+                const anyStaged =
+                    this.fragment.isStaged ||
+                    refs.variations.some((variation) => {
+                        if (!result.selectedIds.includes(variation.id)) return false;
+                        const tags = variation.fields?.find((f) => f.name === 'tags')?.values || [];
+                        return tags.includes(STAGED.TAG);
+                    });
                 if (anyStaged) {
                     const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
                     const resultStaged = await MasPublishStagedDialog.show();
                     if (!resultStaged.confirmed) return;
-                }                
+                }
 
                 await this.repository.publishFragment(this.fragment, {
                     selectedRefIds: result.selectedIds,

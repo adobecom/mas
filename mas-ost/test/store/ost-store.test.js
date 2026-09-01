@@ -417,15 +417,29 @@ describe('OstStore', () => {
             expect(store.selectedOsi).to.equal('osi-1');
         });
 
-        it('fills base slot then trial in tryBuy flow', () => {
+        // currentSlot starts on 'trial' (and is reset to it by init and
+        // applyFlowSwitch), and mas-ost-selection-list renders the trial slot
+        // above the base slot, so an unqualified addOffer fills trial first
+        // and then advances the target to base.
+        it('fills trial slot then base in tryBuy flow', () => {
             store.authoringFlow = 'tryBuy';
-            const base = { offerId: 'base' };
             const trial = { offerId: 'trial' };
-            store.addOffer(base, 'base-osi');
-            expect(store.selectedBaseOffer).to.equal(base);
-            expect(store.currentSlot).to.equal('trial');
+            const base = { offerId: 'base' };
             store.addOffer(trial, 'trial-osi');
             expect(store.selectedTrialOffer).to.equal(trial);
+            expect(store.currentSlot).to.equal('base');
+            store.addOffer(base, 'base-osi');
+            expect(store.selectedBaseOffer).to.equal(base);
+            expect(store.selectedTrialOffer).to.equal(trial);
+        });
+
+        it('honours an explicit role over the current slot', () => {
+            store.authoringFlow = 'tryBuy';
+            const base = { offerId: 'base' };
+            store.addOffer(base, 'base-osi', 'base');
+            expect(store.selectedBaseOffer).to.equal(base);
+            expect(store.selectedTrialOffer).to.be.null;
+            expect(store.currentSlot).to.equal('trial');
         });
 
         it('toggles offers in bundle flow', () => {

@@ -3,6 +3,22 @@ import '../../src/components/mas-ost-app.js';
 import { store } from '../../src/store/ost-store.js';
 
 describe('mas-ost-app', () => {
+    // A bare <mas-ost-app> sits on the welcome screen (no product selected,
+    // no flow chosen), and that state replaces the whole layout: no panels,
+    // no footer, and a header stripped down to the title. Tests that assert
+    // the offers-view layout have to pick a flow first, the way a host does
+    // by handing the element a config.
+    async function offersView() {
+        const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        el.config = { authoringFlow: 'single' };
+        await el.updateComplete;
+        return el;
+    }
+
+    beforeEach(() => {
+        store.init({});
+    });
+
     it('renders sp-theme with correct attributes', async () => {
         const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
         const theme = el.shadowRoot.querySelector('sp-theme');
@@ -21,7 +37,7 @@ describe('mas-ost-app', () => {
     });
 
     it('renders left and right panels', async () => {
-        const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        const el = await offersView();
         const leftPanel = el.shadowRoot.querySelector('.ost-left-panel');
         const rightPanel = el.shadowRoot.querySelector('.ost-right-panel');
         expect(leftPanel).to.exist;
@@ -29,7 +45,7 @@ describe('mas-ost-app', () => {
     });
 
     it('renders child component slots in correct panels', async () => {
-        const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        const el = await offersView();
         const left = el.shadowRoot.querySelector('.ost-left-panel');
         const headerBar = el.shadowRoot.querySelector('.ost-header-bar');
         expect(headerBar.querySelector('mas-ost-country-picker')).to.exist;
@@ -45,7 +61,7 @@ describe('mas-ost-app', () => {
     });
 
     it('renders header and footer bars', async () => {
-        const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        const el = await offersView();
         expect(el.shadowRoot.querySelector('.ost-header-bar')).to.exist;
         expect(el.shadowRoot.querySelector('.ost-footer-bar')).to.exist;
         expect(el.shadowRoot.querySelector('.ost-title').textContent).to.equal('Offer Selector Tool');

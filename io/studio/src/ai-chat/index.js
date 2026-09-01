@@ -37,7 +37,7 @@ import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText }
 import { getFlowForIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
-import { validateEnvelope } from './envelope-validator.js';
+import { validateEnvelope, collectObservedIds } from './envelope-validator.js';
 
 /**
  * IMS client_id allowlist for the AI Chat action.
@@ -506,12 +506,17 @@ async function main(params) {
     // parse-failure capture so field reports are greppable.
     const requestId = params.requestId ?? process.env.__OW_ACTIVATION_ID ?? null;
 
+    // Ids the request actually saw, so a state-changing envelope cannot act on
+    // ones the model invented. Covers the deterministic bypasses too, whose
+    // ids are regex captures from the user's own message.
+    const observedIds = collectObservedIds(params.context, conversationHistory, message);
+
     // Deterministic bypasses build envelopes from regex captures; run them
     // through the same validator as model output. A failure means either a
     // code bug or an active flow where the shortcut is illegal — the normal
     // LLM path is the safe degradation, never a malformed envelope.
     const bypassEnvelopeValid = (envelope) => {
-        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null });
+        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, observedIds });
         if (!validation.ok) {
             console.log(
                 JSON.stringify({
@@ -837,7 +842,7 @@ async function main(params) {
         if (nativeEnvelopeEligible && (response.toolUse || !response.message)) {
             const flow = params.context?.flow ?? null;
             let usage = response.usage;
-            let validation = validateEnvelope(extractToolEnvelope(response), { flow });
+            let validation = validateEnvelope(extractToolEnvelope(response), { flow, observedIds });
             let retried = false;
             let rejectedRaw = null;
 
@@ -862,7 +867,7 @@ async function main(params) {
                 logUsageMetric(retryResponse, params, foundryClient.modelId);
                 if (retryResponse.success) {
                     usage = retryResponse.usage;
-                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow });
+                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, observedIds });
                     if (retryValidation.ok) {
                         validation = retryValidation;
                     } else {

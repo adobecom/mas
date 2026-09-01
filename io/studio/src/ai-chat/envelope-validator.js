@@ -2,6 +2,67 @@ import { INTENTS, FLOWS, SLOT_VALIDATORS, META_INTENTS, getIntent, getNextIntent
 
 const ALLOWED_CONFIDENCES = new Set(['high', 'medium', 'low']);
 
+const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+/**
+ * Gather every fragment id the request actually saw, so a state-changing
+ * envelope can be checked against them.
+ *
+ * A model with no real ids in front of it will invent well-formed UUIDs to
+ * fill a required slot — `uuid[]` validates the shape, so nothing else
+ * catches it. Sources are the structured context the frontend sends, plus
+ * any id quoted in the conversation or typed by the user, which is what the
+ * deterministic identifier bypasses rely on.
+ *
+ * @param {object} context — request context (workingSet, cards, lastOperation)
+ * @param {Array} conversationHistory — prior turns
+ * @param {string} message — the current user message
+ * @returns {Set<string>} lowercased ids
+ */
+export function collectObservedIds(context = {}, conversationHistory = [], message = '') {
+    const ids = new Set();
+    const add = (value) => {
+        if (typeof value === 'string' && value) ids.add(value.toLowerCase());
+    };
+    const addFromText = (text) => {
+        if (typeof text !== 'string') return;
+        for (const match of text.matchAll(UUID_PATTERN)) add(match[0]);
+    };
+
+    const list = (value) => (Array.isArray(value) ? value : []);
+
+    for (const item of list(context?.workingSet)) add(typeof item === 'string' ? item : item?.id);
+
+    const cards = Array.isArray(context?.cards) ? context.cards : context?.cards ? [context.cards] : [];
+    for (const card of cards) add(typeof card === 'string' ? card : card?.id);
+
+    for (const id of list(context?.lastOperation?.fragmentIds)) add(id);
+
+    for (const turn of list(conversationHistory)) addFromText(turn?.content);
+    addFromText(message);
+
+    return ids;
+}
+
+/** Slots the registry validates as ids, so new id slots are covered as they are added. */
+function idSlotsFor(registered) {
+    return Object.entries(registered.slot_validators ?? {})
+        .filter(([, kind]) => kind === 'uuid' || kind === 'uuid[]')
+        .map(([slot]) => slot);
+}
+
+function unobservedIds(registered, slots, observedIds) {
+    const unseen = [];
+    for (const slot of idSlotsFor(registered)) {
+        const value = slots[slot];
+        if (value == null) continue;
+        for (const id of Array.isArray(value) ? value : [value]) {
+            if (typeof id === 'string' && !observedIds.has(id.toLowerCase())) unseen.push(id);
+        }
+    }
+    return unseen;
+}
+
 /**
  * Validate and coerce an LLM envelope.
  *
@@ -54,6 +115,19 @@ export function validateEnvelope(raw, context = {}) {
             if (validator && value != null && !validator(value)) {
                 return fail('slot-invalid', `The value for "${slot}" doesn't look right.`, { slot, value });
             }
+        }
+    }
+
+    // A state-changing intent may only act on ids the request actually saw.
+    // Skipped when the caller supplies no provenance, so the validator stays
+    // usable on its own.
+    if (!isMeta && context.observedIds && registered.category === 'state-changing') {
+        const unseen = unobservedIds(registered, slots, context.observedIds);
+        if (unseen.length > 0) {
+            return fail('ids-not-observed', "I don't have real ids for those cards yet. Want me to search for them first?", {
+                attempted: intent,
+                unobserved: unseen,
+            });
         }
     }
 

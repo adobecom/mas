@@ -271,6 +271,16 @@ function matchesGeo(tags, { regionLocale, country }) {
 }
 
 /**
+ * Scores a geo match, preferring region locale over country.
+ * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
+ * @returns {number}
+ */
+function geoMatchScore(geo) {
+    if (!geo) return 0;
+    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+}
+
+/**
  * Effective country for a request context. Prefer explicit `context.country`, otherwise
  * fall back to the country segment of `context.locale` (e.g. `en_US` → `US`).
  * @param {PipelineContext} context
@@ -316,6 +326,7 @@ export {
     getFragmentId,
     getJsonFromState,
     getFromState,
+    geoMatchScore,
     mark,
     matchesGeo,
     measureTiming,

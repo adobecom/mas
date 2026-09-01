@@ -180,6 +180,21 @@ describe('promotions', () => {
             expect(result.activeProjects[0].groupedVariationPaths).to.deep.equal(['PA-123/pzn/edu']);
         });
 
+        it('derives groupedVariationReferences with the fully hydrated fragment (including .path) for a /pzn/ folder fragment', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ fragmentPath: '/content/dam/mas/acom/en_US/PA-123/pzn/edu' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            const groupedVariationReferences = result.activeProjects[0].groupedVariationReferences;
+            expect(groupedVariationReferences).to.be.instanceOf(Map);
+            expect(groupedVariationReferences.size).to.equal(1);
+            const value = groupedVariationReferences.get('PA-123/pzn/edu');
+            expect(value.path).to.equal('/content/dam/mas/acom/en_US/PA-123/pzn/edu');
+            expect(value.id).to.equal('frag-1');
+        });
+
         it('does not classify a plain fragment as a grouped variation path', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();

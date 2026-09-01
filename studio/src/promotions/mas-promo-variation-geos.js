@@ -39,6 +39,7 @@ class MasPromoVariationGeos extends LitElement {
     }
 
     handleSearch(e) {
+        e.stopPropagation();
         this.searchQuery = handleSearchInput(e);
     }
 

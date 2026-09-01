@@ -4632,7 +4632,7 @@ describe('status filter narrowing', () => {
         expect(narrowed).to.equal(true);
     });
 
-    it('treats removing a status as widening (must refetch)', () => {
+    it('treats adding a status to an existing filter as widening (must refetch)', () => {
         const repository = createRepository();
         const narrowed = repository.testOnlyIsNarrowing(
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },

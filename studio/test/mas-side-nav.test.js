@@ -845,8 +845,7 @@ describe('MasSideNav – Copy Field', () => {
                 .callThrough()
                 .withArgs('merch-card')
                 .returns({
-                    getFragmentMapping: (variant) =>
-                        variant === 'faq' ? { callout: { editorLabel: 'FAQ answer 3' } } : null,
+                    getFragmentMapping: (variant) => (variant === 'faq' ? { callout: { editorLabel: 'FAQ answer 3' } } : null),
                 });
             const fragment = mockFragment([
                 { name: 'callout', values: ['Some answer'] },

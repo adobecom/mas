@@ -41,10 +41,7 @@ describe('marquee variant', () => {
     afterEach(() => card?.remove());
 
     it('renders a labeled row with a slot for each mapped field', async () => {
-        card = await renderCard(
-            'marquee',
-            '<h3 slot="heading-xs">Title</h3>',
-        );
+        card = await renderCard('marquee', '<h3 slot="heading-xs">Title</h3>');
         const rows = {
             'heading-xs': 'Title',
             'body-xs': 'Product description',
@@ -62,10 +59,7 @@ describe('marquee variant', () => {
     });
 
     it('omits the secure label row when secure-label is not set', async () => {
-        card = await renderCard(
-            'marquee',
-            '<h3 slot="heading-xs">Title</h3>',
-        );
+        card = await renderCard('marquee', '<h3 slot="heading-xs">Title</h3>');
         const labels = [
             ...card.shadowRoot.querySelectorAll('.headless-label'),
         ].map((el) => el.textContent);
@@ -73,11 +67,9 @@ describe('marquee variant', () => {
     });
 
     it('renders the secure label row when secure-label is set', async () => {
-        card = await renderCard(
-            'marquee',
-            '<h3 slot="heading-xs">Title</h3>',
-            { 'secure-label': 'Secure transaction' },
-        );
+        card = await renderCard('marquee', '<h3 slot="heading-xs">Title</h3>', {
+            'secure-label': 'Secure transaction',
+        });
         const rows = [...card.shadowRoot.querySelectorAll('.headless-row')];
         const secureRow = rows.find(
             (row) =>
@@ -94,10 +86,7 @@ describe('faq variant', () => {
     afterEach(() => card?.remove());
 
     it('renders a labeled row with a slot for each mapped field', async () => {
-        card = await renderCard(
-            'faq',
-            '<div slot="body-xs">Answer 1</div>',
-        );
+        card = await renderCard('faq', '<div slot="body-xs">Answer 1</div>');
         const rows = {
             prices: 'Product price',
             'body-xs': 'FAQ answer 1',

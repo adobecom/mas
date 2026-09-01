@@ -7,9 +7,10 @@ import { css, unsafeCSS } from 'lit';
 const HEADLESS_FAMILY_VARIANTS = ['headless', 'marquee', 'faq', 'banner-blade'];
 
 const familySelector = (slot, suffix = '') =>
-    HEADLESS_FAMILY_VARIANTS.map((variant) => `merch-card[variant='${variant}'] [slot='${slot}']${suffix}`).join(
-        ',\n',
-    );
+    HEADLESS_FAMILY_VARIANTS.map(
+        (variant) =>
+            `merch-card[variant='${variant}'] [slot='${slot}']${suffix}`,
+    ).join(',\n');
 
 /**
  * Global CSS for Headless variant (label + value only, no card chrome).

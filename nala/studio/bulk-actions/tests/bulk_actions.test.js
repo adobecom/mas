@@ -6,7 +6,7 @@ const { features } = BulkActionsSpec;
 
 test.describe('M@S Studio Bulk Actions Test Suite', () => {
     // @studio-bulk-copy-urls - Verify that selecting fragments in table view and clicking
-    // "Copy Code" in the selection panel copies code to clipboard and shows a success toast.
+    // "Copy Content Link(s)" in the selection panel copies the link to clipboard and shows a success toast.
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;
         setTestPage(testPage);
@@ -31,24 +31,24 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
             await studio.tableViewRows.first().click();
         });
 
-        await test.step('step-5: Verify Copy Code button is visible in the selection action bar', async () => {
-            const copyCodeButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy Code"]');
-            await expect(copyCodeButton).toBeVisible({ timeout: 5000 });
+        await test.step('step-5: Verify Copy Content Link(s) button is visible in the selection action bar', async () => {
+            const copyLinkButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy Content Link(s)"]');
+            await expect(copyLinkButton).toBeVisible({ timeout: 5000 });
         });
 
-        await test.step('step-6: Click Copy Code and verify success toast', async () => {
+        await test.step('step-6: Click Copy Content Link(s) and verify success toast', async () => {
             await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-            const copyCodeButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy Code"]');
-            await copyCodeButton.click();
+            const copyLinkButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy Content Link(s)"]');
+            await copyLinkButton.click();
 
             await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
-            await expect(studio.toastPositive).toContainText('code snippet');
+            await expect(studio.toastPositive).toContainText('Copied 1 link to clipboard');
         });
     });
 
-    // @studio-action-menu-copy-code - Verify that clicking "Copy Code" in the fragment
-    // table row action menu ("...") copies code to clipboard and shows a success toast.
+    // @studio-action-menu-copy-link - Verify that clicking "Copy Link" in the fragment
+    // table row action menu ("...") copies the link to clipboard and shows a success toast.
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}`;
         setTestPage(testPage);
@@ -69,24 +69,24 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
             await expect(actionsMenu).toBeVisible();
         });
 
-        await test.step('step-4: Open action menu and verify Copy Code option', async () => {
+        await test.step('step-4: Open action menu and verify Copy Link option', async () => {
             const firstRow = studio.tableViewRows.first();
             const actionsMenu = studio.tableViewActionsMenu(firstRow);
             await actionsMenu.click();
-            const copyCodeOption = studio.tableViewCopyCodeOption(actionsMenu);
-            await expect(copyCodeOption).toBeVisible();
+            const copyLinkOption = studio.tableViewCopyLinkOption(actionsMenu);
+            await expect(copyLinkOption).toBeVisible();
         });
 
-        await test.step('step-5: Click Copy Code and verify success toast', async () => {
+        await test.step('step-5: Click Copy Link and verify success toast', async () => {
             await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
             const firstRow = studio.tableViewRows.first();
             const actionsMenu = studio.tableViewActionsMenu(firstRow);
-            const copyCodeOption = studio.tableViewCopyCodeOption(actionsMenu);
-            await copyCodeOption.click();
+            const copyLinkOption = studio.tableViewCopyLinkOption(actionsMenu);
+            await copyLinkOption.click();
 
             await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
-            await expect(studio.toastPositive).toContainText('Code copied');
+            await expect(studio.toastPositive).toContainText('Link copied');
         });
     });
 

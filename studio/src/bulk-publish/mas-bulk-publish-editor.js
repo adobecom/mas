@@ -32,7 +32,7 @@ import {
     DELETE_SVG,
     REVERT_SVG,
 } from './bulk-publish-icons.js';
-import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+import { generateLinkToUse, showToast, normalizeKey } from '../utils.js';
 import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
@@ -177,7 +177,7 @@ class MasBulkPublishEditor extends LitElement {
                         try {
                             const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
                             const fragment = new Fragment(rawFragment);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             return {
                                 url: path,
                                 fragmentId: fragment.id,
@@ -707,7 +707,7 @@ class MasBulkPublishEditor extends LitElement {
                     ? await this.repository.getFragmentById(item.fragmentId)
                     : await this.repository.aem.sites.cf.fragments.getByPath(item.path);
                 const fragment = new Fragment(rawFragment);
-                const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                 return {
                     ...item,
                     fragmentId: fragment.id || item.fragmentId,
@@ -760,7 +760,7 @@ class MasBulkPublishEditor extends LitElement {
                             duplicateCount++;
                         } else {
                             existingIds.add(fragment.id);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             results[i] = {
                                 url: raw,
                                 fragmentId: fragment.id,

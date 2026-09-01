@@ -167,6 +167,12 @@ class MasStudio extends LitElement {
         return html`<mas-masks bucket=${this.bucket} base-url=${this.baseUrl}></mas-masks>`;
     }
 
+    get offerMapping() {
+        if (this.page.value !== PAGE_NAMES.OFFER_MAPPING) return nothing;
+        if (!this.#lazyLoad('mas-offer-mapping', './offer-mapping/mas-offer-mapping.js')) return nothing;
+        return html`<mas-offer-mapping bucket=${this.bucket} base-url=${this.baseUrl}></mas-offer-mapping>`;
+    }
+
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         if (!this.#lazyLoad('mas-splash-screen', './mas-splash-screen.js')) return nothing;
@@ -289,7 +295,7 @@ class MasStudio extends LitElement {
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
                           ${this.bulkPublish} ${this.bulkPublishEditor} ${this.advancedTools} ${this.editorPanel}
-                          ${this.settings} ${this.masks}
+                          ${this.settings} ${this.masks} ${this.offerMapping}
                       </div>`
                     : nothing}
             </div>

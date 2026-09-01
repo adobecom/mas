@@ -1,7 +1,7 @@
 import { expect } from '@open-wc/testing';
 import {
     buildCardsDeepLink,
-    generateCodeToUse,
+    generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
     camelToTitle,
@@ -13,6 +13,7 @@ import {
     resolveContentTypeFilters,
     createKeyedAsyncLoader,
     getCreateProjectErrorMessage,
+    describeVariationsToDelete,
 } from '../src/utils.js';
 import {
     CARD_MODEL_PATH,
@@ -41,10 +42,10 @@ function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch
     };
 }
 
-describe('generateCodeToUse', () => {
+describe('generateLinkToUse', () => {
     it('appends fragment title to richText link text for cards', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH);
-        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
         expect(authorPath).to.not.include('CC Plans Merch Card');
         expect(richText).to.include(`${authorPath} : ${fragment.title}`);
         expect(richText).to.include(href);
@@ -52,14 +53,14 @@ describe('generateCodeToUse', () => {
 
     it('appends fragment title to richText link text for collections', () => {
         const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
-        const { authorPath, richText } = generateCodeToUse(fragment, 'acom', 'content');
+        const { authorPath, richText } = generateLinkToUse(fragment, 'acom', 'content');
         expect(authorPath).to.include('My Collection Title');
         expect(richText).to.include(`${authorPath} : ${fragment.title}`);
     });
 
     it('leaves richText unchanged when fragment has no title', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH, 'frag-123', '');
-        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
         expect(richText).to.equal(`<a href="${href}" target="_blank">${authorPath}</a>`);
     });
 });
@@ -118,7 +119,7 @@ describe('generateFieldLink', () => {
     });
 });
 
-describe('generateCodeToUse', () => {
+describe('generateLinkToUse', () => {
     function mockFragment(modelPath, id = 'frag-123', fields = {}) {
         return {
             id,
@@ -141,14 +142,14 @@ describe('generateCodeToUse', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH, 'chart-123', {
             [COMPARE_CHART_FIELD]: { values: ['<mas-compare-chart></mas-compare-chart>'] },
         });
-        const result = generateCodeToUse(fragment, '/acom', 'content');
+        const result = generateLinkToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=mas-compare-chart');
         expect(result.href).to.include('query=chart-123');
     });
 
     it('keeps merch-card-collection as content type for regular collection fragments', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH);
-        const result = generateCodeToUse(fragment, '/acom', 'content');
+        const result = generateLinkToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=merch-card-collection');
     });
 
@@ -156,7 +157,7 @@ describe('generateCodeToUse', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH, 'frag-789', {
             [COMPARE_CHART_FIELD]: { values: [''] },
         });
-        const result = generateCodeToUse(fragment, '/acom', 'content');
+        const result = generateLinkToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=merch-card-collection');
     });
 });
@@ -554,6 +555,33 @@ describe('createKeyedAsyncLoader', () => {
 
         expect(loadCount).to.equal(2);
     });
+
+    it('ignores a stale in-flight load that resolves after a newer call for the same key', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        const appliedValues = [];
+        const resolvers = [];
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => true,
+                computeKey: () => 'same-key',
+                load: () => new Promise((resolve) => resolvers.push(resolve)),
+                apply: (value) => appliedValues.push(value),
+                reset: () => {},
+            });
+
+        const firstRun = run();
+        await runIfNeeded({ guard: () => false, computeKey: () => 'same-key', load: async () => {}, apply: () => {} });
+        const secondRun = run();
+
+        expect(resolvers).to.have.length(2);
+        resolvers[0]('stale');
+        await firstRun;
+        resolvers[1]('fresh');
+        await secondRun;
+
+        expect(appliedValues).to.deep.equal(['fresh']);
+    });
 });
 
 describe('getFragmentPartsToUse', () => {
@@ -672,5 +700,64 @@ describe('getCreateProjectErrorMessage', () => {
 
     it('returns the generic message when error is undefined', () => {
         expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
+    });
+});
+
+describe('describeVariationsToDelete', () => {
+    const fragment = { path: '/content/dam/mas/sandbox/en_US/my-fragment' };
+    const localePath1 = '/content/dam/mas/sandbox/en_BE/my-fragment';
+    const localePath2 = '/content/dam/mas/sandbox/en_CA/my-fragment';
+    const groupedPath1 = '/content/dam/mas/sandbox/en_US/pzn/my-fragment-a';
+    const groupedPath2 = '/content/dam/mas/sandbox/en_US/pzn/my-fragment-b';
+    const groupedPath3 = '/content/dam/mas/sandbox/en_US/pzn/my-fragment-c';
+    const promoPath1 = '/content/dam/mas/sandbox/en_US/promotions/summer-sale/my-fragment';
+    const promoPath2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-fragment';
+
+    it('lists only locale variations when that is the only category present', () => {
+        expect(describeVariationsToDelete(fragment, [localePath1, localePath2])).to.equal('2 locale variation(s)');
+    });
+
+    it('lists only promo variations when that is the only category present', () => {
+        expect(describeVariationsToDelete(fragment, [promoPath1])).to.equal('1 promo variation(s)');
+    });
+
+    it('combines locale and promo counts, separated by a comma', () => {
+        expect(describeVariationsToDelete(fragment, [localePath1, localePath2, promoPath1])).to.equal(
+            '2 locale, 1 promo variation(s)',
+        );
+    });
+
+    it('combines all three categories when present', () => {
+        expect(
+            describeVariationsToDelete(fragment, [
+                localePath1,
+                groupedPath1,
+                groupedPath2,
+                groupedPath3,
+                promoPath1,
+                promoPath2,
+            ]),
+        ).to.equal('1 locale, 3 grouped, 2 promo variation(s)');
+    });
+
+    it('omits zero-count categories', () => {
+        expect(describeVariationsToDelete(fragment, [groupedPath1, groupedPath2, groupedPath3])).to.equal(
+            '3 grouped variation(s)',
+        );
+    });
+
+    it('defaults variationsToDelete to an empty list when omitted', () => {
+        expect(describeVariationsToDelete(fragment)).to.equal(' variation(s)');
+    });
+
+    it('handles a fragment without a path', () => {
+        expect(describeVariationsToDelete(null, [promoPath1])).to.equal('1 promo variation(s)');
+    });
+
+    it('counts a path missing from fragment.references, unlike listLocaleVariations()', () => {
+        const fragmentWithNoReferences = { ...fragment, references: [] };
+        expect(describeVariationsToDelete(fragmentWithNoReferences, [localePath1, groupedPath1])).to.equal(
+            '1 locale, 1 grouped variation(s)',
+        );
     });
 });

@@ -146,7 +146,7 @@ jobs:
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true'
-        runs-on: [self-hosted, Linux, X64]
+        runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 45 # Prevent hanging jobs
         strategy:
             matrix:
@@ -230,7 +230,7 @@ jobs:
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true'
-        runs-on: [self-hosted, Linux, X64]
+        runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
             matrix:

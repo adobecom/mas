@@ -175,6 +175,31 @@ export function getValidatedMasLibsUrl(masLibs, extension = 'live') {
     return url.origin;
 }
 
+const ASSET_PROD_HOSTS = ['www.adobe.com', 'www.stage.adobe.com'];
+
+/**
+ * Rewrites an aem.live/aem.page asset URL to a relative path when the current
+ * page is served from a production/stage adobe.com host, so preview-domain
+ * URLs accidentally authored into content don't leak into production markup.
+ * @param {string} url
+ * @param {string} currentHostname defaults to window.location.hostname (injectable for tests)
+ * @returns {string} the relative path if rewritten, otherwise the original url
+ */
+export function toRelativeAssetUrl(
+    url,
+    currentHostname = window.location.hostname,
+) {
+    if (!url) return url;
+    if (!ASSET_PROD_HOSTS.includes(currentHostname)) return url;
+    try {
+        const parsed = new URL(url, `https://${currentHostname}`);
+        if (!/\.aem\.(live|page)$/.test(parsed.hostname)) return url;
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+        return url;
+    }
+}
+
 const MAS_IO_ALLOWED_HOSTS = [
     'adobe.com',
     'adobeioruntime.net',

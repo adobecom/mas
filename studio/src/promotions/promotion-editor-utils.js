@@ -1,6 +1,7 @@
+import { Fragment } from '../aem/fragment.js';
 import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalization-utils.js';
 import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
-import { COLLECTION_MODEL_PATH, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
@@ -128,37 +129,24 @@ export function parsePromotionSurfacesFieldValues(values) {
 }
 
 /**
- * @param {string[]} allPaths
- * @param {(path: string) => Promise<unknown>} getFragmentByPath
- * @param {string} [collectionModelPath]
- * @returns {Promise<{ cards: string[], cols: string[] }>}
+ * Drops grouped-variation paths whose resolved parent is no longer in the selection — removing a
+ * card from a promo project doesn't cascade to grouped variations curated separately for it.
+ * @param {string[]} selectedCards
+ * @param {(path: string) => Promise<string|null>} resolveParentPath
+ * @returns {Promise<string[]>}
  */
-export async function classifyPromotionPathsForSelection(
-    allPaths,
-    getFragmentByPath,
-    collectionModelPath = COLLECTION_MODEL_PATH,
-) {
-    if (!allPaths.length) {
-        return { cards: [], cols: [] };
-    }
-    const results = await Promise.allSettled(allPaths.map((path) => getFragmentByPath(path)));
-    const cards = [];
-    const cols = [];
-    results.forEach((result, i) => {
-        const path = allPaths[i];
-        if (result.status !== 'fulfilled') {
-            cards.push(path);
-            return;
-        }
-        const modelPath = result.value?.model?.path;
-        if (!modelPath) {
-            cards.push(path);
-            return;
-        }
-        if (modelPath === collectionModelPath) cols.push(path);
-        else cards.push(path);
+export async function pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath) {
+    const groupedPaths = selectedCards.filter((path) => Fragment.isGroupedVariationPath(path));
+    if (!groupedPaths.length) return selectedCards;
+    const selectedSet = new Set(selectedCards);
+    const parentPaths = await Promise.all(groupedPaths.map((path) => resolveParentPath(path)));
+    const orphaned = new Set();
+    groupedPaths.forEach((path, i) => {
+        const parentPath = parentPaths[i];
+        if (parentPath && !selectedSet.has(parentPath)) orphaned.add(path);
     });
-    return { cards, cols };
+    if (!orphaned.size) return selectedCards;
+    return selectedCards.filter((path) => !orphaned.has(path));
 }
 
 /**

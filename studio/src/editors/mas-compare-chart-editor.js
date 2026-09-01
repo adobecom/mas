@@ -15,7 +15,7 @@ import {
     VARIATION_TAB_NAME,
 } from '../constants.js';
 import Store from '../store.js';
-import { generateCodeToUse, getService } from '../utils.js';
+import { generateLinkToUse, getService } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFromFragmentCache } from '../mas-repository.js';
@@ -503,7 +503,7 @@ class MasCompareChartEditor extends LitElement {
 
     #authorPath(fragment) {
         if (!Array.isArray(fragment?.tags)) return fragment?.path || '';
-        return generateCodeToUse(fragment, Store.search.get().path, Store.page.get())?.authorPath || fragment.path;
+        return generateLinkToUse(fragment, Store.search.get().path, Store.page.get())?.authorPath || fragment.path;
     }
 
     #renderCardOffer(fragment) {

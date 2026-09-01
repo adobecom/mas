@@ -3,7 +3,7 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
-    classifyPromotionPathsForSelection,
+    pruneOrphanedGroupedVariationSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
@@ -47,7 +47,6 @@ import {
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
 } from '../../src/promotions/promotion-editor-utils.js';
-import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
@@ -310,40 +309,37 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('classifyPromotionPathsForSelection', () => {
-        it('returns empty buckets for empty paths', async () => {
-            const out = await classifyPromotionPathsForSelection([], () => Promise.resolve({}));
-            expect(out).to.deep.equal({ cards: [], cols: [] });
+    describe('pruneOrphanedGroupedVariationSelection', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/parent-card';
+        const groupedPath = '/content/dam/mas/sandbox/en_US/parent-card/pzn/edu';
+        const otherCardPath = '/content/dam/mas/sandbox/en_US/other-card';
+
+        it('drops a grouped variation whose parent is no longer selected', async () => {
+            const selectedCards = [groupedPath, otherCardPath];
+            const resolveParentPath = async (path) => (path === groupedPath ? parentPath : null);
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal([otherCardPath]);
         });
 
-        it('classifies collection model as collections and others as cards', async () => {
-            const getFragmentByPath = (path) => {
-                if (path === '/col') return Promise.resolve({ model: { path: COLLECTION_MODEL_PATH } });
-                return Promise.resolve({ model: { path: '/other' } });
-            };
-            const out = await classifyPromotionPathsForSelection(['/card', '/col'], getFragmentByPath);
-            expect(out.cards).to.deep.equal(['/card']);
-            expect(out.cols).to.deep.equal(['/col']);
+        it('keeps a grouped variation whose parent is still selected', async () => {
+            const selectedCards = [parentPath, groupedPath];
+            const resolveParentPath = async (path) => (path === groupedPath ? parentPath : null);
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal(selectedCards);
         });
 
-        it('falls back to cards for rejected fetches', async () => {
-            const out = await classifyPromotionPathsForSelection([fetchFailed], () => Promise.reject(new Error('x')));
-            expect(out.cards).to.deep.equal([fetchFailed]);
-            expect(out.cols).to.deep.equal([]);
+        it('keeps a grouped variation whose parent could not be resolved', async () => {
+            const selectedCards = [groupedPath];
+            const resolveParentPath = async () => null;
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal(selectedCards);
         });
 
-        it('falls back to cards for fulfilled fragments without model path', async () => {
-            const out = await classifyPromotionPathsForSelection(['/no-model'], () => Promise.resolve(null));
-            expect(out.cards).to.deep.equal(['/no-model']);
-            expect(out.cols).to.deep.equal([]);
-        });
-
-        it('respects custom collection model path', async () => {
-            const custom = '/custom/collection';
-            const getFragmentByPath = () => Promise.resolve({ model: { path: custom } });
-            const out = await classifyPromotionPathsForSelection(['/p'], getFragmentByPath, custom);
-            expect(out.cols).to.deep.equal(['/p']);
-            expect(out.cards).to.deep.equal([]);
+        it('returns the same array unchanged when there are no grouped-variation paths', async () => {
+            const selectedCards = [parentPath, otherCardPath];
+            const resolveParentPath = async () => null;
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.equal(selectedCards);
         });
     });
 

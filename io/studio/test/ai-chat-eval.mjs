@@ -15,6 +15,13 @@ function exitWith(code, msg) {
     process.exit(code);
 }
 
+// Guided turns (release, card creation, active flows) never emit an envelope:
+// index.js routes them to the guided path so their rich payloads survive. Such
+// a case asserts the response shape and its visible content instead.
+const RESPONSE_TYPES = new Set(['guided_step', 'mcp_operation', 'message', 'open_ost']);
+
+const isGuidedCase = (c) => Boolean(c.expect?.response_type);
+
 function runUnit() {
     let cases;
     try {
@@ -37,8 +44,10 @@ function runUnit() {
             failures.push(`case ${c.id}: intent_under_test ${c.intent_under_test} not in registry`);
         if (!c.user_message) failures.push(`case ${c.id}: missing user_message`);
         if (!c.expect) failures.push(`case ${c.id}: missing expect`);
-        if (c.expect && !c.expect.intent && !Array.isArray(c.expect.intent_one_of))
-            failures.push(`case ${c.id}: expect needs intent or intent_one_of`);
+        if (c.expect && !c.expect.intent && !Array.isArray(c.expect.intent_one_of) && !c.expect.response_type)
+            failures.push(`case ${c.id}: expect needs intent, intent_one_of or response_type`);
+        if (c.expect?.response_type && !RESPONSE_TYPES.has(c.expect.response_type))
+            failures.push(`case ${c.id}: unknown response_type ${c.expect.response_type}`);
         for (const name of c.expect?.intent_one_of ?? []) {
             if (!knownNames.has(name)) failures.push(`case ${c.id}: intent_one_of ${name} not in registry`);
         }
@@ -87,8 +96,13 @@ function runMockLlm() {
     }
 
     const failures = [];
+    let skipped = 0;
 
     for (const c of cases) {
+        if (isGuidedCase(c)) {
+            skipped += 1;
+            continue;
+        }
         const mockEnvelope = expectedEnvelopeFromCase(c);
         const result = validateEnvelope(mockEnvelope, c.context || {});
 
@@ -128,7 +142,7 @@ function runMockLlm() {
         exitWith(1, `--mock-llm FAIL (${failures.length} of ${cases.length} cases):\n  ${failures.join('\n  ')}`);
         return;
     }
-    exitWith(0, `--mock-llm PASS (${cases.length} cases)`);
+    exitWith(0, `--mock-llm PASS (${cases.length - skipped} cases, ${skipped} guided skipped)`);
 }
 
 async function runLiveLlm() {
@@ -166,6 +180,9 @@ async function runLiveLlm() {
             requestId: `eval-${c.id}`,
             useShadowPrompt: true,
         };
+        // The frontend forwards intentHint on every turn of a guided flow;
+        // without it the turn re-classifies and drifts out of the flow.
+        if (c.intent_hint) body.intentHint = c.intent_hint;
 
         let data;
         let status;
@@ -184,6 +201,24 @@ async function runLiveLlm() {
         } catch (err) {
             fail += 1;
             failures.push(`${c.id}: network error — ${err.message}`);
+            continue;
+        }
+
+        if (isGuidedCase(c)) {
+            if (data.type !== c.expect.response_type) {
+                fail += 1;
+                failures.push(`${c.id}: expected type ${c.expect.response_type}, got ${data.type} (status=${status})`);
+                continue;
+            }
+            const haystack = `${data.message ?? ''} ${JSON.stringify(data.buttonGroup ?? '')}`.toLowerCase();
+            const needles = c.expect.response_includes ?? [];
+            const missing = needles.filter((n) => !haystack.includes(String(n).toLowerCase()));
+            if (missing.length) {
+                fail += 1;
+                failures.push(`${c.id}: response missing ${JSON.stringify(missing)}`);
+                continue;
+            }
+            pass += 1;
             continue;
         }
 

@@ -541,6 +541,9 @@ export function resolveContentTypeFilters(tags) {
 /**
  * Runs `load` only when `computeKey()` differs from the last run — skips
  * redundant re-fetches when the derived data would come out the same.
+ * If a newer call starts (key or guard changes) before an older `load()`
+ * resolves, the older call's `apply` is discarded so stale results can't
+ * overwrite state set by the latest call.
  * @returns {(options: {
  *   guard: () => boolean,
  *   computeKey: () => unknown,
@@ -551,15 +554,20 @@ export function resolveContentTypeFilters(tags) {
  */
 export function createKeyedAsyncLoader() {
     let lastKey = null;
+    let activeToken = 0;
     return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
         if (!guard()) {
             lastKey = null;
+            activeToken += 1;
             reset?.();
             return;
         }
         const key = computeKey();
         if (lastKey === key) return;
         lastKey = key;
-        apply(await load());
+        const token = ++activeToken;
+        const result = await load();
+        if (token !== activeToken) return;
+        apply(result);
     };
 }

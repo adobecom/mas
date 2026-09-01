@@ -36,7 +36,7 @@ export default class EditorPage {
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
 
         this.footer = this.panel.locator('sp-field-group#ctas');
-        this.CTA = this.panel.locator('sp-field-group#ctas a');
+        this.CTA = this.panel.locator('sp-field-group#ctas rte-field a');
 
         this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics');
         this.mnemonicAddVisual = this.panel.locator('#mnemonics sp-icon-add');

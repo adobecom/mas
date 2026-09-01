@@ -288,10 +288,14 @@
                 "currentLocale": "en_US"
             },
             "conversationHistory": [],
-            "user_message": "find offers for photoshop",
+            "user_message": "show me offers for arrangement code cptv_direct_individual",
             "expect": {
-                "intent": "search_offers"
-            }
+                "intent": "search_offers",
+                "slots_include": {
+                    "arrangementCode": "cptv_direct_individual"
+                }
+            },
+            "note": "AOS searchOffers queries by arrangement_code and filters only, so search_offers is reachable only once an arrangement code is known."
         },
         {
             "id": "off-topic-weather",
@@ -385,6 +389,26 @@
             "expect": {
                 "intent_one_of": ["SHOW_HELP", "ASK_USER"]
             }
+        },
+        {
+            "id": "offers-by-product-name-resolves-product-first",
+            "intent_under_test": "list_products",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "find offers for photoshop",
+            "expect": {
+                "intent": "list_products",
+                "slots_include": {
+                    "searchText": "photoshop"
+                }
+            },
+            "note": "A product name cannot be passed to search_offers, so asking for offers by name must resolve the product first rather than stalling on the arrangement code."
         }
     ]
 }

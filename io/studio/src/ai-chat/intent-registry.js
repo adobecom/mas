@@ -212,7 +212,8 @@ export const INTENTS = [
     {
         name: 'search_offers',
         category: 'read-only',
-        description: 'Search the AOS offer catalog with filters.',
+        description:
+            'Search the AOS offer catalog by arrangement code plus optional filters (commitment, term, segment, country). It cannot search by product name: resolve a name to its arrangement code with list_products first.',
         required_slots: [],
         optional_slots: [
             'arrangementCode',
@@ -238,7 +239,8 @@ export const INTENTS = [
     {
         name: 'list_products',
         category: 'read-only',
-        description: 'List Adobe products from the MCS catalog.',
+        description:
+            'List or look up Adobe products in the MCS catalog, optionally filtered by searchText. This is how a product name is resolved to the arrangement code that search_offers needs.',
         required_slots: [],
         optional_slots: ['searchText', 'customerSegment', 'marketSegment', 'limit'],
         slot_validators: { searchText: 'string' },

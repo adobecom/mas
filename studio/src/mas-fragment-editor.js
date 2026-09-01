@@ -2207,7 +2207,8 @@ export default class MasFragmentEditor extends LitElement {
 
     #toggleReferenceType(key) {
         const next = new Set(this.expandedReferenceTypes);
-        next.has(key) ? next.delete(key) : next.add(key);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
         this.expandedReferenceTypes = next;
     }
 

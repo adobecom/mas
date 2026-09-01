@@ -31,18 +31,18 @@ export function parseUsageResponse(response, refId = 'A') {
     for (const frame of frames) {
         const fields = frame?.schema?.fields ?? [];
         const columns = frame?.data?.values ?? [];
-        const indexOf = (name) => fields.findIndex((f) => f.name === name);
-        const ai = indexOf('api_key');
-        const lo = indexOf('locale');
-        const ci = indexOf('country');
-        const ni = indexOf('count');
-        const length = columns[ni]?.length ?? 0;
+        const indexOf = (name) => fields.findIndex((field) => field.name === name);
+        const apiKeyIndex = indexOf('api_key');
+        const localeIndex = indexOf('locale');
+        const countryIndex = indexOf('country');
+        const countIndex = indexOf('count');
+        const length = columns[countIndex]?.length ?? 0;
         for (let i = 0; i < length; i += 1) {
             rows.push({
-                apiKey: ai >= 0 ? columns[ai][i] : '',
-                locale: lo >= 0 ? columns[lo][i] : '',
-                country: ci >= 0 ? columns[ci][i] : '',
-                count: Number(columns[ni][i]) || 0,
+                apiKey: apiKeyIndex >= 0 ? columns[apiKeyIndex][i] : '',
+                locale: localeIndex >= 0 ? columns[localeIndex][i] : '',
+                country: countryIndex >= 0 ? columns[countryIndex][i] : '',
+                count: Number(columns[countIndex][i]) || 0,
             });
         }
     }

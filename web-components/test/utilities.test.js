@@ -1,6 +1,33 @@
-import { selectOffers, sumOffers } from '../src/utilities.js';
+import { selectOffers, sumOffers, toPromotionCodes } from '../src/utilities.js';
 
 import { expect } from './utilities.js';
+
+describe('function "toPromotionCodes"', () => {
+    it('returns an empty array for null or undefined', () => {
+        expect(toPromotionCodes(null)).to.deep.equal([]);
+        expect(toPromotionCodes(undefined)).to.deep.equal([]);
+    });
+
+    it('returns a single-entry array for a value without a comma', () => {
+        expect(toPromotionCodes('promo1')).to.deep.equal(['promo1']);
+    });
+
+    it('splits a comma-separated value, preserving empty entries', () => {
+        expect(toPromotionCodes('promo1,')).to.deep.equal(['promo1', '']);
+        expect(toPromotionCodes(',cancel-context')).to.deep.equal([
+            '',
+            'cancel-context',
+        ]);
+        expect(toPromotionCodes('promo1,promo2')).to.deep.equal([
+            'promo1',
+            'promo2',
+        ]);
+    });
+
+    it('returns an array value as-is', () => {
+        expect(toPromotionCodes(['promo1', ''])).to.deep.equal(['promo1', '']);
+    });
+});
 
 describe('function "selectWcsOffers"', () => {
     it('uses offer prices without taxes if "forceTaxExclusive" is set', () => {

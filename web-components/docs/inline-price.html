@@ -83,7 +83,7 @@
 </tr>
 <tr>
 <td><code>data-promotion-code</code></td>
-<td>Flex promotion code to apply, if applicable</td>
+<td>Flex promotion code to apply, if applicable. Supports multiple comma-separated codes for soft bundles.</td>
 <td></td>
 <td><code>false</code></td>
 </tr>
@@ -148,6 +148,17 @@
 </code></pre>
 <div class="warning">
 <p><strong>Note</strong>: All OSIs in a soft bundle must resolve successfully. If any OSI fails to resolve, the entire price will fail to render. The <code>data-quantity</code> attribute is not supported for soft bundles.</p>
+</div>
+<h4 id="soft-bundle-with-per-osi-promotion-codes" tabindex="-1">Soft Bundle with Per-OSI Promotion Codes <a class="header-anchor" href="#soft-bundle-with-per-osi-promotion-codes" href="#soft-bundle-with-per-osi-promotion-codes" title="Permalink to this heading">#</a></h4>
+<p><code>data-promotion-code</code> can also be comma-separated, zipped positionally to <code>data-wcs-osi</code> (a single value still applies to every OSI).</p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">span</span>
+    <span class="hljs-attr">is</span>=<span class="hljs-string">&quot;inline-price&quot;</span>
+    <span class="hljs-attr">data-wcs-osi</span>=<span class="hljs-string">&quot;OSI_A,OSI_B&quot;</span>
+    <span class="hljs-attr">data-promotion-code</span>=<span class="hljs-string">&quot;PROMO1,&quot;</span>
+&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">span</span>&gt;</span>
+</code></pre>
+<div class="warning">
+<p><strong>Note</strong>: An empty entry means no promo for that position; <code>cancel-context</code> cancels only that OSI’s contextual promo. Extra codes are ignored and missing positions default to no promo. Checkout links use the first OSI’s code.</p>
 </div>
 <h4 id="display-per-unit-price-with-tax" tabindex="-1">Display Per Unit Price with Tax <a class="header-anchor" href="#display-per-unit-price-with-tax" href="#display-per-unit-price-with-tax" title="Permalink to this heading">#</a></h4>
 <pre><code class="hljs demo language-html"><span class="hljs-tag">&lt;<span class="hljs-name">span</span>

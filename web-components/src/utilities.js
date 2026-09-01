@@ -178,6 +178,17 @@ export function toOfferSelectorIds(value) {
 }
 
 /**
+ * Splits comma-separated promo codes into an array,
+ * keeping empty entries for OSI positions without a promo.
+ * @param {any} value
+ * @returns {string[]}
+ */
+export function toPromotionCodes(value) {
+    if (value == null) return [];
+    return Array.isArray(value) ? value : String(value).split(',');
+}
+
+/**
  * For internal use only.
  * This function expects an active instance of commerce service
  * to exist in the current DOM.

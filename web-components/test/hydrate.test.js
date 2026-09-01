@@ -936,6 +936,18 @@ describe('MerchCard promotionCode getter', () => {
     it('returns undefined when no descendant and no contextPromotionCode is set', () => {
         expect(card.promotionCode).to.be.undefined;
     });
+
+    it('reads only the first entry of a bundle placeholder comma-separated code', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild('promo1,');
+        expect(card.promotionCode).to.equal('promo1');
+    });
+
+    it('falls back to contextPromotionCode when the bundle placeholder has no promo for its first OSI', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild(',cancel-context');
+        expect(card.promotionCode).to.equal('CTX_PROMO');
+    });
 });
 
 describe('MerchCard fragment promo on prices via checkReady', () => {

@@ -69,6 +69,24 @@ describe('Checkout', () => {
                 wcsOsi: ['test-osi'],
             });
         });
+
+        it('should broadcast a single promotion code as promotionCodes', () => {
+            const overrides = { promotionCode: 'SINGLECODE' };
+            const options = checkout.collectCheckoutOptions(overrides);
+            expect(options).to.deep.include({
+                promotionCode: 'SINGLECODE',
+                promotionCodes: ['SINGLECODE'],
+            });
+        });
+
+        it('should split a comma-separated promotion code into promotionCodes and keep the first as promotionCode', () => {
+            const overrides = { promotionCode: 'promo1,' };
+            const options = checkout.collectCheckoutOptions(overrides);
+            expect(options).to.deep.include({
+                promotionCode: 'promo1',
+            });
+            expect(options.promotionCodes).to.deep.equal(['promo1', undefined]);
+        });
     });
 
     describe('buildCheckoutURL', () => {

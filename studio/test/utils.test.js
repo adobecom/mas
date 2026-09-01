@@ -1,7 +1,7 @@
 import { expect } from '@open-wc/testing';
 import {
     buildCardsDeepLink,
-    generateCodeToUse,
+    generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
     camelToTitle,
@@ -41,10 +41,10 @@ function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch
     };
 }
 
-describe('generateCodeToUse', () => {
+describe('generateLinkToUse', () => {
     it('appends fragment title to richText link text for cards', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH);
-        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
         expect(authorPath).to.not.include('CC Plans Merch Card');
         expect(richText).to.include(`${authorPath} : ${fragment.title}`);
         expect(richText).to.include(href);
@@ -52,14 +52,14 @@ describe('generateCodeToUse', () => {
 
     it('appends fragment title to richText link text for collections', () => {
         const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
-        const { authorPath, richText } = generateCodeToUse(fragment, 'acom', 'content');
+        const { authorPath, richText } = generateLinkToUse(fragment, 'acom', 'content');
         expect(authorPath).to.include('My Collection Title');
         expect(richText).to.include(`${authorPath} : ${fragment.title}`);
     });
 
     it('leaves richText unchanged when fragment has no title', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH, 'frag-123', '');
-        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
         expect(richText).to.equal(`<a href="${href}" target="_blank">${authorPath}</a>`);
     });
 });
@@ -118,7 +118,7 @@ describe('generateFieldLink', () => {
     });
 });
 
-describe('generateCodeToUse', () => {
+describe('generateLinkToUse', () => {
     function mockFragment(modelPath, id = 'frag-123', fields = {}) {
         return {
             id,
@@ -141,14 +141,14 @@ describe('generateCodeToUse', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH, 'chart-123', {
             [COMPARE_CHART_FIELD]: { values: ['<mas-compare-chart></mas-compare-chart>'] },
         });
-        const result = generateCodeToUse(fragment, '/acom', 'content');
+        const result = generateLinkToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=mas-compare-chart');
         expect(result.href).to.include('query=chart-123');
     });
 
     it('keeps merch-card-collection as content type for regular collection fragments', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH);
-        const result = generateCodeToUse(fragment, '/acom', 'content');
+        const result = generateLinkToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=merch-card-collection');
     });
 
@@ -156,7 +156,7 @@ describe('generateCodeToUse', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH, 'frag-789', {
             [COMPARE_CHART_FIELD]: { values: [''] },
         });
-        const result = generateCodeToUse(fragment, '/acom', 'content');
+        const result = generateLinkToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=merch-card-collection');
     });
 });

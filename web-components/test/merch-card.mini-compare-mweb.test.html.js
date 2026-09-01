@@ -239,7 +239,7 @@ runTests(async () => {
             expect(variantLayout2.icons).to.not.be.undefined;
         });
 
-        it('[desktop] should setup toggle with list always open', async () => {
+        it('[desktop] creates a hidden toggle button and shows the list via CSS', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();
             await delay(200);
@@ -249,13 +249,20 @@ runTests(async () => {
             expect(titleDiv, 'footer-rows-title created').to.exist;
             expect(titleDiv.textContent).to.include("See what's included:");
 
-            // Desktop: no toggle button, list always open
+            // The button is always in the DOM so a later resize to mobile has a
+            // collapse control; CSS (not JS) hides it and shows the list at
+            // desktop widths.
             const toggleBtn = titleDiv.querySelector('.toggle-icon');
-            expect(toggleBtn, 'no toggle button on desktop').to.be.null;
-
+            expect(toggleBtn, 'toggle button created').to.exist;
             const list = bodyXs.querySelector('ul.checkmark-copy-container');
             expect(list, 'list has checkmark-copy-container class').to.exist;
-            expect(list.classList.contains('open')).to.be.true;
+            expect(
+                getComputedStyle(toggleBtn).display,
+                'button hidden',
+            ).to.equal('none');
+            expect(getComputedStyle(list).display, 'list shown').to.equal(
+                'block',
+            );
         });
 
         it('[desktop→mobile] clears grow-only synced heights so mobile restores natural height', async () => {
@@ -303,7 +310,7 @@ runTests(async () => {
             }
         });
 
-        it('[desktop→mobile] reconciles toggle when crossing breakpoint on resize', async () => {
+        it('[mobile] title click toggles the collapsible list', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();
             await delay(200);
@@ -312,87 +319,74 @@ runTests(async () => {
             const bodyXs = card.querySelector('[slot="body-xs"]');
             const titleDiv = bodyXs.querySelector('.footer-rows-title');
             const list = bodyXs.querySelector('ul.checkmark-copy-container');
+            const toggleBtn = titleDiv.querySelector('.toggle-icon');
 
             try {
-                // Desktop baseline: list open, no toggle button
-                setIsMobile(false);
-                layout.reconcileBreakpoint();
-                expect(titleDiv.querySelector('.toggle-icon')).to.be.null;
-                expect(list.classList.contains('open')).to.be.true;
-
-                // Cross to mobile: collapsible toggle appears, list collapses
                 setIsMobile(true);
-                layout.reconcileBreakpoint();
-                const toggleBtn = titleDiv.querySelector('.toggle-icon');
-                expect(toggleBtn, 'toggle button added on mobile').to.exist;
-                expect(list.classList.contains('open'), 'collapsed on mobile')
-                    .to.be.false;
+                layout.setListOpen(false);
+                expect(list.classList.contains('open'), 'collapsed baseline').to
+                    .be.false;
                 expect(toggleBtn.getAttribute('aria-expanded')).to.equal(
                     'false',
                 );
 
-                // Cross back to desktop: toggle removed, list open again
-                setIsMobile(false);
-                layout.reconcileBreakpoint();
-                expect(
-                    titleDiv.querySelector('.toggle-icon'),
-                    'toggle removed on desktop',
-                ).to.be.null;
-                expect(list.classList.contains('open'), 'open on desktop').to.be
-                    .true;
+                titleDiv.click();
+                expect(list.classList.contains('open'), 'expands on click').to
+                    .be.true;
+                expect(toggleBtn.getAttribute('aria-expanded')).to.equal(
+                    'true',
+                );
+
+                titleDiv.click();
+                expect(list.classList.contains('open'), 'collapses on click').to
+                    .be.false;
             } finally {
                 resetIsMobile();
             }
         });
 
-        it('clears the resize observer on disconnect', async () => {
+        it('[desktop] title click never collapses the list', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();
-            await delay(100);
+            await delay(200);
 
             const layout = card.variantLayout;
-            layout.disconnectedCallbackHook();
-            expect(layout._syncObserver).to.be.null;
-            layout.connectedCallbackHook(); // reconnect must not throw
-        });
-
-        it('[regression] reconciles after a disconnect/reconnect across the breakpoint', async () => {
-            const card = document.querySelector('#card-mweb-1');
-            await card.checkReady();
-            await delay(100);
-
-            const layout = card.variantLayout;
-            const bodyXs = card.querySelector('[slot="body-xs"]');
-            const list = bodyXs.querySelector('ul.checkmark-copy-container');
+            const titleDiv = card.querySelector('.footer-rows-title');
 
             try {
-                // Collapse in mobile, then simulate a DOM move (disconnect).
-                setIsMobile(true);
-                layout.reconcileBreakpoint();
-                expect(list.classList.contains('open')).to.be.false;
-                layout.disconnectedCallbackHook();
-
-                // Reconnect on a desktop viewport: list must not be stranded
-                // display:none with no opener.
                 setIsMobile(false);
-                layout.connectedCallbackHook();
-                expect(
-                    list.classList.contains('open'),
-                    'list reopened on desktop reconnect',
-                ).to.be.true;
-
-                // The re-wired handler still reconciles on a later resize.
-                setIsMobile(true);
-                layout.reconcileBreakpoint();
-                expect(
-                    list.classList.contains('open'),
-                    'collapses again on mobile after reconnect',
-                ).to.be.false;
+                layout.setListOpen(false); // force a collapsed class
+                titleDiv.click();
+                // Desktop clicks are no-ops; CSS keeps the list visible.
+                expect(layout.isListOpen, 'click ignored on desktop').to.be
+                    .false;
             } finally {
                 resetIsMobile();
-                // Restore desktop state + listener for any later use of the card.
-                layout.connectedCallbackHook();
-                layout.applyToggleMode();
+            }
+        });
+
+        it('reconnects without throwing and still reconciles on resize', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(100);
+
+            const layout = card.variantLayout;
+            const container = layout.getContainer();
+
+            layout.disconnectedCallbackHook();
+            layout.connectedCallbackHook(); // must not throw
+
+            try {
+                setIsMobile(true);
+                layout.reconcileBreakpoint(); // re-wired path clears synced heights
+                expect(
+                    container.style.getPropertyValue(
+                        '--consonant-merch-card-footer-row-1-min-height',
+                    ),
+                    'heights cleared after reconnect',
+                ).to.equal('');
+            } finally {
+                resetIsMobile();
             }
         });
     });

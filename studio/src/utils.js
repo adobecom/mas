@@ -250,14 +250,14 @@ export function getFragmentPartsToUse(fragment, path) {
     return { fragmentParts, title };
 }
 
-export function generateCodeToUse(fragment, path, page, failMessage) {
+export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
                 variant: 'negative',
-                content: 'Failed to copy code to clipboard',
+                content: 'Failed to copy link to clipboard',
             });
         return [];
     }

@@ -282,7 +282,15 @@ function extractSurfaceFromPath(path) {
  * @param {string} message - User message
  * @returns {boolean} - True if message contains release/NPI intent
  */
-function isReleaseIntent(message, conversationHistory = []) {
+/**
+ * Note on the `[MCS product data retrieved ...]` marker: it is deliberately not
+ * a release signal. The client emits it only from continueWithMCPResult, which
+ * runs only when the active flow is NOT release — the release flow renders its
+ * product selection locally. Treating it as a release loaded the guided release
+ * prompt and tools onto a turn needing neither, pushing it past the budget.
+ * A release still wins here when the history says so.
+ */
+export function isReleaseIntent(message, conversationHistory = []) {
     const releaseKeywords = [
         'release',
         'npi',
@@ -295,7 +303,6 @@ function isReleaseIntent(message, conversationHistory = []) {
     ];
     const lowerMessage = message.toLowerCase();
     if (releaseKeywords.some((keyword) => lowerMessage.includes(keyword))) return true;
-    if (lowerMessage.includes('[mcs product data retrieved')) return true;
     if (
         conversationHistory.some(
             (msg) => msg.role === 'user' && releaseKeywords.some((kw) => msg.content?.toLowerCase().includes(kw)),

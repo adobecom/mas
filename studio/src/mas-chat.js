@@ -2043,23 +2043,19 @@ export class MasChat extends LitElement {
         const products = result?.products || [];
         if (!products.length) return;
 
+        // Only what the model chooses between. It picks a product to carry into
+        // the next hop, so names and arrangement codes decide the answer while
+        // icon urls, marketing copy, tags and the raw misc blob only inflate the
+        // prompt. Twenty products' worth of those ran to ~9900 characters and
+        // pushed the turn past the action's budget outright.
         const summary = products
             .slice(0, 20)
             .map((p) => {
                 const copy = p.copy || {};
-                const assets = p.assets || {};
+                const segment = p.customer_segment || Object.keys(p.customerSegments || {}).join(', ');
                 const parts = [`- ${copy.name || p.name} (code: ${p.product_code}, arrangement: ${p.arrangement_code}`];
-                parts.push(`icon: ${assets.icons?.svg || p.icon || 'none'}`);
-                if (copy.description) parts.push(`description: "${copy.description}"`);
-                else if (copy.short_description) parts.push(`short_description: "${copy.short_description}"`);
-                parts.push(`segment: ${p.customer_segment || Object.keys(p.customerSegments || {}).join(', ')}`);
-                parts.push(
-                    `markets: ${Array.isArray(p.market_segments) ? p.market_segments.join(', ') : Object.keys(p.marketSegments || {}).join(', ')}`,
-                );
-                parts.push(`family: ${p.product_family || 'none'}`);
-                if (copy.tags?.length) parts.push(`mcs_tags: ${copy.tags.join(', ')}`);
-                if (Object.keys(p.links || {}).length) parts.push(`has_links: yes`);
-                if (Object.keys(p.misc || {}).length) parts.push(`misc: ${JSON.stringify(p.misc)}`);
+                if (segment) parts.push(`segment: ${segment}`);
+                if (p.product_family) parts.push(`family: ${p.product_family}`);
                 parts.push(')');
                 return parts.join(', ');
             })
@@ -2067,7 +2063,10 @@ export class MasChat extends LitElement {
 
         const toolResultMessage = `[MCS product data retrieved via ${tool}]\n${summary}${products.length > 20 ? `\n...and ${products.length - 20} more` : ''}`;
 
-        this.conversationHistory = [...this.conversationHistory, { role: 'user', content: toolResultMessage }];
+        // The action appends `message` to the history it is given, so passing the
+        // post-append history would send the summary twice.
+        const historyBeforeToolResult = this.conversationHistory;
+        this.conversationHistory = [...historyBeforeToolResult, { role: 'user', content: toolResultMessage }];
 
         this.isLoading = true;
 
@@ -2075,7 +2074,7 @@ export class MasChat extends LitElement {
             const currentPath = Store.search?.value?.path || getHashParam('path');
             const response = await this.callAIChatAction({
                 message: toolResultMessage,
-                conversationHistory: this.conversationHistory,
+                conversationHistory: historyBeforeToolResult,
                 context: {
                     currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
                     currentLocale: Store.filters?.value?.locale || 'en_US',

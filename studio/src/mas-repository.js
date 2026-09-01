@@ -17,6 +17,7 @@ import {
     isUUID,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
+    resolveHydratedParentFragment,
 } from './utils.js';
 import {
     OPERATIONS,
@@ -51,7 +52,6 @@ import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';
 import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import {
@@ -2068,36 +2068,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object|null>}
      */
     async resolveHydratedParentFragment(fragmentPath) {
-        const references = await this.aem.sites.cf.fragments.getReferencedBy(fragmentPath);
-        const parentRefs = references?.parentReferences || [];
-        if (!parentRefs.length) return null;
-
-        const surface = extractSurfaceFromPath(fragmentPath);
-        const variationLocale = extractLocaleFromPath(fragmentPath);
-        const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
-        const sortedRefs = defaultLocale
-            ? [...parentRefs].sort((a, b) => {
-                  const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
-                  const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
-                  return aIsDefault - bIsDefault;
-              })
-            : parentRefs;
-
-        for (const ref of sortedRefs) {
-            const candidate = await this.aem.sites.cf.fragments.getByPath(ref.path);
-            if (!candidate) continue;
-
-            const variationsField = candidate.fields?.find((f) => f.name === 'variations');
-            const variations = variationsField?.values || [];
-            if (!variations.includes(fragmentPath)) continue;
-
-            if (!candidate.id) return candidate;
-
-            const hydrated = await this.aem.sites.cf.fragments.getById(candidate.id);
-            return hydrated || candidate;
-        }
-
-        return null;
+        return resolveHydratedParentFragment(this.aem, fragmentPath);
     }
 
     /**

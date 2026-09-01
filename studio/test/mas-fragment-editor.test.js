@@ -956,7 +956,7 @@ describe('MasFragmentEditor', () => {
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragment: sandbox.stub().resolves(),
+                deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                 removeFromParentVariations: sandbox.stub().resolves(),
             };
@@ -976,12 +976,52 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.deleteFragmentWithVariations.calledOnce).to.be.true;
         });
 
-        it('confirms delete for variation', async () => {
+        it('confirms delete for variation via the reference-aware delete (no force) when it succeeds', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
             await el.confirmDelete();
             expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
-            expect(mockRepo.deleteFragment.calledOnce).to.be.true;
+            expect(
+                mockRepo.deleteFragment.calledOnceWith(sinon.match.object, {
+                    startToast: false,
+                    endToast: false,
+                }),
+            ).to.be.true;
+        });
+
+        it('falls back to force delete for a variation only when the reference-aware delete fails', async () => {
+            mockRepo.deleteFragment = sandbox.stub();
+            mockRepo.deleteFragment.onFirstCall().resolves(false);
+            mockRepo.deleteFragment.onSecondCall().resolves(true);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            await el.confirmDelete();
+            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+            expect(
+                mockRepo.deleteFragment.secondCall.calledWith(sinon.match.object, {
+                    force: true,
+                    startToast: false,
+                    endToast: false,
+                }),
+            ).to.be.true;
+        });
+
+        it('shows a failure toast and does not navigate away when both delete attempts fail for a variation', async () => {
+            mockRepo.deleteFragment = sandbox.stub().resolves(false);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            const navigateSpy = sandbox.stub().resolves();
+            sandbox.stub(router, 'navigateToPage').returns(navigateSpy);
+            const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+
+            await el.confirmDelete();
+
+            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+            expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
+            expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+            expect(navigateSpy.called).to.be.false;
+            expect(Store.fragments.inEdit.set.called).to.be.false;
+            expect(el.deleteInProgress).to.be.false;
         });
     });
 
@@ -1315,6 +1355,30 @@ describe('MasFragmentEditor', () => {
             render(el.previewVariationHeader, previewContainer);
             expect(previewContainer.textContent).to.include('Promo variation:');
             expect(previewContainer.textContent).to.include('Back To School');
+        });
+
+        it('renders the promo variation header (not the grouped variation header) for a promo variation created from a grouped variation, with Grouped variation shown separately from Geos', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card/pzn/edu';
+            const fragment = new Fragment({
+                id: 'promo-var-grouped-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+            const geosLine = previewContainer.querySelectorAll('.preview-header-geos')[0].textContent;
+            expect(geosLine).to.include('Geos:');
+            expect(geosLine).to.include('ar');
+            expect(geosLine).to.not.include('edu');
+            expect(previewContainer.textContent).to.include('Grouped variation:');
+            expect(previewContainer.textContent).to.include('edu');
         });
 
         it('treats a sibling with no pznTags as covering every promotion project geo (legacy variation)', async () => {

@@ -4,6 +4,7 @@ import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
+import { parseCtas } from './editors/variation-utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -299,7 +300,7 @@ class MasSideNav extends LitElement {
         previewFragmentOnPage(this.fragmentEditor?.fragment);
     }
 
-    async copyCode() {
+    async copyLink() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.copyToUse();
     }
@@ -514,18 +515,6 @@ class MasSideNav extends LitElement {
         return !!fragmentId && !!this.fragmentEditor?.editorContextStore?.isVariation?.(fragmentId);
     }
 
-    /** Parses CTA HTML and returns an array of { text, href } objects, one per anchor.
-     *  Uses a <template> element so checkout-link custom elements are never upgraded
-     *  and their attributes are preserved as stored. */
-    #parseCtas(html) {
-        if (!html || typeof html !== 'string') return [];
-        const template = document.createElement('template');
-        template.innerHTML = html;
-        return [...template.content.querySelectorAll('a')]
-            .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '', key: a.getAttribute('data-key') }))
-            .filter(({ text, href }) => text || href);
-    }
-
     /** Individual CTA items extracted from the ctas field, split by source for variations. */
     get copyableCtas() {
         const fragment = this.fragmentEditor?.fragment;
@@ -534,7 +523,7 @@ class MasSideNav extends LitElement {
         const ctasField = fragment.fields.find((f) => f.name === 'ctas');
         const current =
             ctasField && !fragment.isValueEmpty(ctasField.values)
-                ? this.#parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
+                ? parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
                       ...cta,
                       index: i + 1,
                       source: FIELD_SOURCE.CURRENT,
@@ -551,7 +540,7 @@ class MasSideNav extends LitElement {
         const baseCtasField = baseFragment?.fields?.find((f) => f.name === 'ctas');
         const inherited =
             baseCtasField && !baseFragment.isValueEmpty(baseCtasField.values)
-                ? this.#parseCtas(baseCtasField.values[0]).map((cta, i) => ({
+                ? parseCtas(baseCtasField.values[0]).map((cta, i) => ({
                       ...cta,
                       index: i + 1,
                       source: FIELD_SOURCE.INHERITED,
@@ -1089,8 +1078,8 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Unpublish" disabled>
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
-                <sp-icon-code slot="icon"></sp-icon-code>
+            <mas-side-nav-item label="Copy Link" ?disabled=${loading} @nav-click="${this.copyLink}">
+                <sp-icon-link slot="icon"></sp-icon-link>
             </mas-side-nav-item>
             ${this.copyFieldButton}
             <mas-side-nav-item label="History" ?disabled=${loading} @nav-click="${this.showHistory}">

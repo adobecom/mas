@@ -561,6 +561,36 @@ runTests(async () => {
                 );
             });
 
+            it('does not wait for IMS before using the platform country cookie', async () => {
+                cache.clear();
+                Object.defineProperty(document, 'cookie', {
+                    configurable: true,
+                    get: () => 'ims_country_code=kr',
+                });
+                const existing = document.querySelector('mas-commerce-service');
+                const publishService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    publishService.setAttribute(attr.name, attr.value);
+                }
+                publishService.setAttribute('country', 'CA');
+                publishService.setAttribute('locale', 'en_US');
+                document.body.insertBefore(publishService, existing);
+                publishService.imsCountryPromise = new Promise(() => undefined);
+
+                try {
+                    const aemFragment = addFragment('fragment-cc-all-apps');
+                    await aemFragment.updateComplete;
+                    expect(fetch.lastCall.firstArg).to.equal(
+                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                    );
+                } finally {
+                    publishService.remove();
+                    delete document.cookie;
+                }
+            });
+
             it('dispatches aem:error when preview mode returns non-200', async () => {
                 cache.clear();
                 const existing = document.querySelector('mas-commerce-service');

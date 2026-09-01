@@ -1,4 +1,4 @@
-import { SELECTOR_MAS_INLINE_PRICE } from './constants.js';
+import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -12,13 +12,6 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-const TRIAL_ANALYTICS_IDS = new Set([
-    'free-trial',
-    'start-free-trial',
-    'seven-day-trial',
-    'fourteen-day-trial',
-    'thirty-day-trial',
-]);
 
 /**
  * Normalizes variant names for consistency.
@@ -99,9 +92,19 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     }
 }
 
-function processBadge(fields, merchCard, mapping) {
+function isMerchBadgeContentEmpty(badgeHtml) {
+    const el = new DOMParser()
+        .parseFromString(badgeHtml, 'text/html')
+        .querySelector('merch-badge');
+    if (!el) return true;
+    if (el.querySelector('span[is="inline-price"]')) return false;
+    return !el.textContent?.trim();
+}
+
+export function processBadge(fields, merchCard, mapping) {
     if (mapping.badge?.slot) {
-        if (fields.badge?.length && !fields.badge?.startsWith('<merch-badge')) {
+        const shouldRenderBadge = fields.badge?.length;
+        if (shouldRenderBadge && !fields.badge?.startsWith('<merch-badge')) {
             let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
             let setBorderColorForBadge = false;
 
@@ -121,6 +124,12 @@ function processBadge(fields, merchCard, mapping) {
             }
 
             fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
+        }
+        if (
+            fields.badge?.startsWith('<merch-badge') &&
+            isMerchBadgeContentEmpty(fields.badge)
+        ) {
+            fields.badge = '';
         }
         appendSlot('badge', fields, merchCard, mapping);
     } else {
@@ -280,6 +289,8 @@ export function processBorderColor(fields, merchCard, variantMapping) {
                 `var(--${fields.borderColor})`,
             );
         }
+    } else {
+        merchCard.style.removeProperty(customBorderColor);
     }
 }
 

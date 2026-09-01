@@ -4,8 +4,9 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
-import { applyPromoScope } from '../../src/fragment/transformers/wcs.js';
+import { updateOffers } from '../../src/fragment/transformers/wcs.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../src/fragment/utils/explicit-empty.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -1173,6 +1174,40 @@ describe('customize collections', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('default badge');
     });
+
+    it('should normalize explicit_empty sentinel to empty string after regional variation merge', async function () {
+        const regionVariationId = 'badge-clear-en-kw';
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/badge-sentinel-test',
+            id: 'badge-sentinel-test',
+            fields: {
+                badge: 'Sale',
+                variations: [regionVariationId],
+            },
+            references: {
+                [regionVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_KW/badge-sentinel-test',
+                        id: regionVariationId,
+                        fields: { badge: EXPLICIT_EMPTY_SENTINEL },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'badge-sentinel-test',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('');
+    });
 });
 
 async function process(context) {
@@ -1220,9 +1255,9 @@ async function processWithPromos(context, activeProject, promoMap) {
         context.promoProjects = [withPromoFlags({ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths })];
     }
     // customize records per-fragment promo scope; the wcs transformer applies the promo code and
-    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    // OSI substitution. Run updateOffers here so these tests exercise the full effect end-to-end.
     const result = await customize.process(context);
-    applyPromoScope(result);
+    updateOffers(result);
     return result;
 }
 
@@ -1243,9 +1278,9 @@ async function processWithPromoProjects(context, promoProjects) {
     context.promises = promises;
     context.promoProjects = promoProjects.map(withPromoFlags);
     // customize records per-fragment promo scope; the wcs transformer applies the promo code and
-    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    // OSI substitution. Run updateOffers here so these tests exercise the full effect end-to-end.
     const result = await customize.process(context);
-    applyPromoScope(result);
+    updateOffers(result);
     return result;
 }
 
@@ -3115,7 +3150,7 @@ describe('customize OSI substitution', function () {
 
     // Regression for the original bug shape (MWPW-201862): two cards share one base OSI, but only
     // one card is in the project's fragmentPaths. Exercised through the real customize.process gating
-    // (selectPromoProjectForFragment) + applyPromoScope — not a hand-built promoScopeById.
+    // (selectPromoProjectForFragment) + updateOffers — not a hand-built promoScopeById.
     it('scopes substitution + promo code to the in-project card when two cards share an OSI', async function () {
         const makeCard = (id) => ({
             type: 'content-fragment',

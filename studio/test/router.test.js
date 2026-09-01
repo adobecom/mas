@@ -699,21 +699,6 @@ describe('Router', () => {
         });
     });
 
-    describe('navigateToVariationsTable', () => {
-        it('should navigate to variations table', async () => {
-            await router.navigateToVariationsTable('test-id');
-            expect(Store.search.get().query).to.equal('test-id');
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-            expect(Store.renderMode.get()).to.equal('table');
-        });
-
-        it('should error if no fragmentId provided', async () => {
-            const consoleSpy = sandbox.stub(console, 'error');
-            await router.navigateToVariationsTable(null);
-            expect(consoleSpy.calledWith('Fragment ID is required for navigation')).to.be.true;
-        });
-    });
-
     describe('navigateToFragmentEditor', () => {
         it('should navigate to fragment editor', async () => {
             await router.navigateToFragmentEditor('test-id');
@@ -949,6 +934,10 @@ describe('Router', () => {
         beforeEach(() => {
             originalMasksCreating = Store.masks.creating.get();
             originalMasksFragmentId = Store.masks.fragmentId.get();
+            // Masks is now access-gated on direct hash too; authorize so the normalize-route cases
+            // reach masks. The "block unauthorized" case sets its own empty user to test denial.
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         });
 
         afterEach(() => {
@@ -989,6 +978,47 @@ describe('Router', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
             expect(Store.masks.creating.get()).to.equal(false);
             expect(Store.masks.fragmentId.get()).to.equal(null);
+        });
+
+        it('redirects an unauthorized direct hash to masks back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=masks&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=masks');
+        });
+    });
+
+    describe('offer mapping route access', () => {
+        it('should block unauthorized offer-mapping page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        });
+
+        it('redirects an unauthorized direct hash to offer-mapping back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=offer-mapping&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=offer-mapping');
+        });
+
+        it('allows an authorized user to reach offer-mapping', async () => {
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
+            Store.page.set(PAGE_NAMES.WELCOME);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.OFFER_MAPPING);
         });
     });
 

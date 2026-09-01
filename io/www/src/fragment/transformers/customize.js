@@ -1,6 +1,7 @@
 import { PATH_TOKENS } from '../utils/paths.js';
 import {
     CARD_MODEL_ID,
+    geoMatchScore,
     getRequestInfos,
     matchesGeo,
     PZN_FOLDER,
@@ -8,6 +9,7 @@ import {
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
+import { normalizeExplicitEmptyInFields } from '../utils/explicit-empty.js';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
@@ -114,16 +116,6 @@ function countMatchedPznTokens(tags, tokens) {
         }
     }
     return n;
-}
-
-/**
- * Region match beats country match when resolving ties (applies to both pzn and promo variations).
- * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
- * @returns {number}
- */
-function geoMatchScore(geo) {
-    if (!geo) return 0;
-    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
 }
 
 /**
@@ -435,6 +427,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
     const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).

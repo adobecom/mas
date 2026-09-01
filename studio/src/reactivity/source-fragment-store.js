@@ -133,6 +133,11 @@ export default function generateFragmentStore(fragment, parentFragment = null, o
  */
 export function createPreviewDataWithParent(sourceFragment, parentFragment) {
     const previewData = structuredClone(sourceFragment);
+    const tags = sourceFragment.fields?.find((f) => f.name === 'tags');
+    if (tags) {
+        tags.name = 'variation_tags';
+        previewData.fields.push({ ...tags });
+    }
 
     parentFragment.fields?.forEach((parentField) => {
         const sourceField = previewData.fields?.find((f) => f.name === parentField.name);

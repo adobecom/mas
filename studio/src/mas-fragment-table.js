@@ -5,7 +5,7 @@ import { getFragmentName } from './translation/translation-utils.js';
 import Store, { toggleSelection } from './store.js';
 import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
@@ -178,6 +178,11 @@ class MasFragmentTable extends LitElement {
         }
     }
 
+    get isStaged() {
+        const tags = this.fragmentStore.value.getField('variation_tags')?.values || this.fragmentStore.value.getField('tags')?.values || [];
+        return tags.includes(STAGED.TAG);
+    }
+
     get isVariationSelected() {
         return Store.selection.get().includes(this.fragmentStore.value.id);
     }
@@ -269,7 +274,7 @@ class MasFragmentTable extends LitElement {
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
                 <sp-table-cell class="wf-status"
-                    >${data.isStaged ? html`<span class="staged-badge">Staged</span>` : ''}</sp-table-cell
+                    >${this.isStaged ? html`<span class="staged-badge">Staged</span>` : ''}</sp-table-cell
                 >
                 <sp-table-cell class="offer-id">
                     <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>

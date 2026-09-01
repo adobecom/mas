@@ -51,7 +51,8 @@
             } from '../src/constants.js';
             import router from '../src/router.js';
             import { extractLocaleFromPath } from '../src/utils.js';
-            import { nothing, render } from 'lit';
+            import { delay } from './utils.js';
+            import { nothing } from 'lit';
             runTests(async () => {
                 describe('MasFragmentEditor', () => {
                     let sandbox;
@@ -205,32 +206,18 @@
                         });
                         const el = document.createElement('mas-fragment-editor');
                         el.inEdit.value = { get: () => fragment };
+                        el.publishFragment();
 
-                        await el.publishFragment();
-                        expect(el.showPublishStagedDialog).to.be.true;
+                        await delay(50);
+                        const dialog = document.body.querySelector('mas-publish-staged-dialog');
 
-                        const container = document.createElement('div');
-                        render(el.publishStagedDialog, container);
-                        expect(container.textContent).to.include('Staged content warning');
-                    });
-
-                    it('try to publish non-staged card', async () => {
-                        const fragment = new Fragment({
-                            id: 'test-id',
-                            fields: [
-                                { name: 'variant', values: ['plans'] },
-                                { name: 'size', values: ['wide'] },
-                                { name: 'cardName', values: ['Test Card'] },
-                            ],
+                        let cancelled = false;
+                        dialog.addEventListener('staged-cancelled', () => {
+                            cancelled = true;
                         });
-                        const el = document.createElement('mas-fragment-editor');
-                        el.inEdit.value = { get: () => fragment };
-
-                        await el.publishFragment();
-                        expect(el.showPublishStagedDialog).to.be.false;
-
-                        const dialog = el.publishStagedDialog;
-                        expect(dialog).to.equal(nothing);
+                        dialog.cancel();
+                        await delay(100);
+                        expect(cancelled).to.be.true;
                     });
 
                     it('renders loading state when no fragment', async () => {

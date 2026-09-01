@@ -192,6 +192,7 @@ class MasSelectionPanel extends LitElement {
             this.selection.map(async (id) => {
                 const data = await this.repository.aem.sites.cf.fragments.getById(id);
                 const fragment = new Fragment(data);
+                if (fragment.isStaged) return;
                 const oldTags = fragment.getFieldValues('tags') || [];
                 const tags = [...oldTags];
                 tags.push(STAGED.TAG);

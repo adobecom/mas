@@ -1104,7 +1104,7 @@ export class MasRepository extends LitElement {
         }
     }
 
-     /**
+    /**
      * Returns the set of collection paths across the given promotion surfaces, using one
      * bounded collection-model search per surface (not one GET per attached path). Used by
      * the promotions editor to classify attached paths as cards vs collections without a

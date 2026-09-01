@@ -271,6 +271,14 @@ function matchesGeo(tags, { regionLocale, country }) {
 }
 
 /**
+ * True when `tags` contains at least one geo tag (`locale/` or `country/` segment), regardless of value.
+ * @param {string[]} tags
+ * @returns {boolean}
+ */
+function hasGeoTag(tags) {
+    return tags.some((tag) => /(^|[/:])(locale|country)\//i.test(tag));
+}
+/**
  * Scores a geo match, preferring region locale over country.
  * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
  * @returns {number}
@@ -326,6 +334,7 @@ export {
     getFragmentId,
     getJsonFromState,
     getFromState,
+    hasGeoTag,
     geoMatchScore,
     mark,
     matchesGeo,

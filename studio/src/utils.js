@@ -15,7 +15,7 @@ import {
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
-import { isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
+import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
 import { isPromoVariationPath } from './promotions/promotion-model.js';
 
 /**
@@ -470,6 +470,45 @@ export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
     const match = fragmentPath.match(PATH_TOKENS);
     return match?.groups?.parsedLocale ?? null;
+}
+
+/**
+ * Resolves parent fragment by checking other fragments' variations fields.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {string} fragmentPath
+ * @returns {Promise<Object|null>}
+ */
+export async function resolveHydratedParentFragment(aem, fragmentPath) {
+    const references = await aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+    const parentRefs = references?.parentReferences || [];
+    if (!parentRefs.length) return null;
+
+    const surface = extractSurfaceFromPath(fragmentPath);
+    const variationLocale = extractLocaleFromPath(fragmentPath);
+    const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
+    const sortedRefs = defaultLocale
+        ? [...parentRefs].sort((a, b) => {
+              const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
+              const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
+              return aIsDefault - bIsDefault;
+          })
+        : parentRefs;
+
+    for (const ref of sortedRefs) {
+        const candidate = await aem.sites.cf.fragments.getByPath(ref.path);
+        if (!candidate) continue;
+
+        const variationsField = candidate.fields?.find((f) => f.name === 'variations');
+        const variations = variationsField?.values || [];
+        if (!variations.includes(fragmentPath)) continue;
+
+        if (!candidate.id) return candidate;
+
+        const hydrated = await aem.sites.cf.fragments.getById(candidate.id);
+        return hydrated || candidate;
+    }
+
+    return null;
 }
 
 export function previewFragmentOnPage(fragment) {

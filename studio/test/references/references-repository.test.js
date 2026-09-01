@@ -1,13 +1,13 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import {
-    BULK_PUBLISH_PROJECT_MODEL_ID,
+    BULK_PUBLISH_PROJECT_MODEL_PATH,
     BULK_PUBLISH_PROJECTS_FOLDER,
     COLLECTION_MODEL_PATH,
-    PROMOTION_MODEL_ID,
+    PROMOTION_MODEL_PATH,
     PROMOTIONS_PATH_PREFIX,
     PZN_FOLDER,
-    TRANSLATION_PROJECT_MODEL_ID,
+    TRANSLATION_PROJECT_MODEL_PATH,
 } from '../../src/constants.js';
 import {
     REFERENCED_BY_PAGE_LIMIT,
@@ -162,13 +162,13 @@ describe('references-repository', () => {
     });
 
     describe('isBulkPublishProjectReference', () => {
-        it('identifies a bulk-publish-project parent by model id', () => {
-            const reference = { model: { id: BULK_PUBLISH_PROJECT_MODEL_ID } };
+        it('identifies a bulk-publish-project parent by model path', () => {
+            const reference = { model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH } };
             expect(isBulkPublishProjectReference(reference)).to.be.true;
         });
 
         it('is false for a collection model', () => {
-            const reference = { model: { id: 'some-other-model-id' } };
+            const reference = { model: { path: COLLECTION_MODEL_PATH } };
             expect(isBulkPublishProjectReference(reference)).to.be.false;
         });
 
@@ -265,7 +265,7 @@ describe('references-repository', () => {
                     id: 'project-1',
                     title: 'Holiday Push',
                     status: 'PUBLISHED',
-                    model: { id: BULK_PUBLISH_PROJECT_MODEL_ID },
+                    model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
                 },
             ];
 
@@ -281,7 +281,7 @@ describe('references-repository', () => {
             const item = {
                 path: `/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`,
                 id: 'project-1',
-                model: { id: BULK_PUBLISH_PROJECT_MODEL_ID },
+                model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
             };
 
             const projects = groupBulkPublishProjects([item, { ...item }]);
@@ -355,19 +355,19 @@ describe('references-repository', () => {
                     id: 'project-1',
                     title: 'Holiday Push',
                     status: 'PUBLISHED',
-                    model: { id: BULK_PUBLISH_PROJECT_MODEL_ID },
+                    model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
                 },
                 {
                     path: '/content/dam/mas/acom/en_US/summer-sale',
                     id: 'promo-proj',
                     title: 'Summer',
-                    model: { id: PROMOTION_MODEL_ID },
+                    model: { path: PROMOTION_MODEL_PATH },
                 },
                 {
                     path: '/content/dam/mas/acom/en_US/loc-1',
                     id: 'loc-proj',
                     title: 'Loc',
-                    model: { id: TRANSLATION_PROJECT_MODEL_ID },
+                    model: { path: TRANSLATION_PROJECT_MODEL_PATH },
                 },
             ];
             const getReferencedByFragmentId = sandbox.stub().resolves({ items: referencedBy });
@@ -449,7 +449,7 @@ describe('references-repository', () => {
                 path: '/content/dam/mas/acom/bulk-publish-projects/launch-emea',
                 status: 'PUBLISHED',
                 id: 'proj1',
-                model: { id: BULK_PUBLISH_PROJECT_MODEL_ID, path: '/conf/mas/settings/dam/cfm/models/bulk-publish-project' },
+                model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
             };
             const [row] = groupBulkPublishProjects([project]);
             expect(row.representative.link).to.be.a('string');

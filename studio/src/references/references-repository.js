@@ -7,14 +7,14 @@ import {
     extractSurfaceFromPath,
 } from '../utils.js';
 import {
-    BULK_PUBLISH_PROJECT_MODEL_ID,
+    BULK_PUBLISH_PROJECT_MODEL_PATH,
     BULK_PUBLISH_PROJECTS_FOLDER,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
     PATH_TOKENS,
-    PROMOTION_MODEL_ID,
+    PROMOTION_MODEL_PATH,
     PROMOTIONS_PATH_PREFIX,
-    TRANSLATION_PROJECT_MODEL_ID,
+    TRANSLATION_PROJECT_MODEL_PATH,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../locales.js';
@@ -120,14 +120,14 @@ export function isExcludedReference(reference, openFragmentTokens) {
 }
 
 /**
- * A `bulk-publish-project` parent is identified by its model id, not its path — the path is only
- * useful once we already know it is a project (to suppress the bogus locale segment).
+ * A `bulk-publish-project` parent is identified by its model path. (The path also drives suppression
+ * of the bogus locale segment once we know it is a project.)
  *
  * @param {Object} reference raw `referencedBy` item
  * @returns {boolean}
  */
 export function isBulkPublishProjectReference(reference) {
-    return reference?.model?.id === BULK_PUBLISH_PROJECT_MODEL_ID;
+    return reference?.model?.path === BULK_PUBLISH_PROJECT_MODEL_PATH;
 }
 
 /**
@@ -245,21 +245,21 @@ export const REFERENCE_TYPES = [
         key: 'promoProjects',
         label: 'Promo Projects',
         grouping: 'flat',
-        match: (r) => r.model?.id === PROMOTION_MODEL_ID,
+        match: (r) => r.model?.path === PROMOTION_MODEL_PATH,
         buildLink: (item) => buildPromoProjectDeepLink(item.id),
     },
     {
         key: 'bulkPublishProjects',
         label: 'Bulk Publish Projects',
         grouping: 'flat',
-        match: (r) => r.model?.id === BULK_PUBLISH_PROJECT_MODEL_ID,
+        match: (r) => r.model?.path === BULK_PUBLISH_PROJECT_MODEL_PATH,
         buildLink: (item) => buildBulkPublishProjectDeepLink(item.id),
     },
     {
         key: 'localizationProjects',
         label: 'Localization Projects',
         grouping: 'flat',
-        match: (r) => r.model?.id === TRANSLATION_PROJECT_MODEL_ID,
+        match: (r) => r.model?.path === TRANSLATION_PROJECT_MODEL_PATH,
         buildLink: (item) => buildTranslationProjectDeepLink(item.id),
     },
     { key: 'other', label: 'Other', grouping: 'flat', match: () => true, buildLink: () => null },

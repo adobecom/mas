@@ -2150,14 +2150,17 @@ export default class MasFragmentEditor extends LitElement {
         if (this.isLoadingFragmentUsage) return html`<div class="referencing-message">Loading usage…</div>`;
         const usage = this.fragmentUsage;
         if (!usage?.available) return html`<div class="referencing-message">Usage data unavailable</div>`;
-        if (!usage.rows?.length) return html`<div class="referencing-message">No usage in this window</div>`;
+        if (!usage.rows?.length)
+            return html`<div class="referencing-message">No usage found for this fragment (last 7 days)</div>`;
         return html`
             <div class="reference-type-rows">
                 <div class="referencing-message">${usage.totalCount} requests</div>
                 ${usage.rows.map(
                     (row) => html`
                         <div class="referencing-row">
-                            <span class="referencing-title">${row.apiKey || 'unknown'} / ${row.locale || '--'} / ${row.country || '--'}</span>
+                            <span class="referencing-title"
+                                >${row.apiKey || 'unknown'} / ${row.locale || '--'} / ${row.country || '--'}</span
+                            >
                             <span class="referencing-status">${row.count}</span>
                         </div>
                     `,

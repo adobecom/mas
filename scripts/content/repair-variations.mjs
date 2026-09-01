@@ -7,9 +7,9 @@
  * Live copies are listed with cursor pagination and processed through a
  * concurrency pool. DRY-RUN BY DEFAULT — pass --apply to write.
  *
- * Auth: author API needs an IMS token + api key.
- *   export MAS_ACCESS_TOKEN=<token>   # copy(adobeid.authorize()) from MAS Studio devtools
- *   export MAS_API_KEY=mas-studio
+ * Auth: author API needs an access token + api key, from the env or a .env file:
+ *   MAS_ACCESS_TOKEN=<token>   # copy(adobeid.authorize()) from MAS Studio devtools
+ *   MAS_API_KEY=mas-studio
  *
  * Usage:
  *   node repair-variations.mjs --source <en_US-fragment-id> [--bucket author-p22655-e59433] [--locale bg_BG] \
@@ -55,7 +55,9 @@ const accessToken = process.env.MAS_ACCESS_TOKEN;
 const apiKey = process.env.MAS_API_KEY;
 
 if (!sourceId || !accessToken || !apiKey) {
-    console.error('Usage: node repair-variations.mjs --source <en_US-fragment-id> [--bucket author-p22655-e59433] [--locale <code>] [--field variations] [--concurrency 4] [--apply]');
+    console.error(
+        'Usage: node repair-variations.mjs --source <en_US-fragment-id> [--bucket author-p22655-e59433] [--locale <code>] [--field variations] [--concurrency 4] [--apply]',
+    );
     console.error('Set MAS_ACCESS_TOKEN and MAS_API_KEY (e.g. in .env).');
     process.exit(1);
 }
@@ -136,7 +138,9 @@ async function processTarget(liveCopy, sourceValues) {
 
     const target = await getFragmentByPath(rootPath);
     if (!target) {
-        console.log(`[${tag}] SKIP: no fragment at rootPath (tree-level live copy?) liveCopyId=${liveCopy.liveCopyId}; ${liveCopyState(liveCopy.isSuspended)}`);
+        console.log(
+            `[${tag}] SKIP: no fragment at rootPath (tree-level live copy?) liveCopyId=${liveCopy.liveCopyId}; ${liveCopyState(liveCopy.isSuspended)}`,
+        );
         return;
     }
     const label = `[${tag} ${target.id}]`;
@@ -147,7 +151,9 @@ async function processTarget(liveCopy, sourceValues) {
     }
 
     if (!apply) {
-        console.log(`${label} dry-run: would suspend -> set ${field}=${JSON.stringify(sourceValues)} -> resume; ${liveCopyState(liveCopy.isSuspended)}`);
+        console.log(
+            `${label} dry-run: would suspend -> set ${field}=${JSON.stringify(sourceValues)} -> resume; ${liveCopyState(liveCopy.isSuspended)}`,
+        );
         return;
     }
     await suspendLiveCopy(liveCopy.liveCopyId);

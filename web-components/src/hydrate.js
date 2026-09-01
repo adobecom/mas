@@ -1,4 +1,4 @@
-import { SELECTOR_MAS_INLINE_PRICE } from './constants.js';
+import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -12,13 +12,6 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-const TRIAL_ANALYTICS_IDS = new Set([
-    'free-trial',
-    'start-free-trial',
-    'seven-day-trial',
-    'fourteen-day-trial',
-    'thirty-day-trial',
-]);
 
 /**
  * Normalizes variant names for consistency.
@@ -889,7 +882,7 @@ export function processCTAs(
     variant,
     settings,
 ) {
-    if (fields.ctas) {
+    if (fields.ctas && aemFragmentMapping.ctas) {
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;

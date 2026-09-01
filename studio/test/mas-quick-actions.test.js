@@ -202,8 +202,8 @@ describe('MasQuickActions', () => {
                 parentNode: spTheme(),
             });
             const button = el.shadowRoot.querySelector('sp-action-button');
-            expect(button.title).to.equal('Copy code');
-            const icon = button.querySelector('sp-icon-code');
+            expect(button.title).to.equal('Copy Link');
+            const icon = button.querySelector('sp-icon-link');
             expect(icon).to.exist;
         });
         it('should render lock action button', async () => {

@@ -166,23 +166,25 @@ export class OstSearch extends LitElement {
             if (code) {
                 store.setSearch(code, 'product');
                 store.clearSelectedOffer();
-                // Keep every filter at its "All" default: the resolved offer's
-                // attributes are stashed for autoSelectByInitialOsi instead of
-                // narrowing the visible filter pickers to stale values.
-                store.initialOfferId = offer.offer_id;
-                store.initialOsiAttributes = {
+                const attributes = {
                     customer_segment: offer.customer_segment,
                     market_segment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
                     offer_type: offer.offer_type,
                     commitment: offer.commitment,
                     term: offer.term,
                 };
+                store.initialOfferId = offer.offer_id;
+                store.initialOsiAttributes = attributes;
+                // Show the found offer's own entitlements in the filter pickers
+                // rather than blanking them. Each filter is only narrowed to a
+                // value the offer actually defines, so the searched offer always
+                // stays within the resulting offer list.
                 store.setAosParams({
-                    customerSegment: '',
-                    marketSegment: '',
-                    offerType: '',
-                    commitment: '',
-                    term: '',
+                    customerSegment: attributes.customer_segment || '',
+                    marketSegment: attributes.market_segment || '',
+                    offerType: attributes.offer_type || '',
+                    commitment: attributes.commitment || '',
+                    term: attributes.term || '',
                 });
                 this.selectProductByCode(code);
             }

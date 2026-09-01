@@ -8,7 +8,7 @@ import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../
 import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
@@ -26,15 +26,24 @@ import {
     buildRemoveOfferConfirmationMessage,
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
+    pruneOrphanedGroupedVariationSelection,
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
-import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
+import {
+    createPromoVariation,
+    probePromoVariationsForFragment,
+    probePromoVariationsForFragments,
+} from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 import '../common/components/mas-select-items-table.js';
 
 const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variation. Check your connection and try again.';
+
+// How many already-selected items to fetch+render per window in the viewOnly tables,
+// so large promotions don't fetch every attached fragment at once.
+const SELECTED_ITEMS_WINDOW = 25;
 
 const offersTableColumns = [
     { label: '', key: 'expand' },
@@ -76,6 +85,10 @@ class MasPromotionsItemsTable extends LitElement {
     #loadedPathsKey = null;
     #processAbortController = null;
     #selectionController = null;
+    #allSelectedPaths = [];
+    #visibleCount = 0;
+    #offerRecordsHydratedSeen = 0;
+    #promoVariationProbe = null;
 
     constructor() {
         super();
@@ -118,7 +131,11 @@ class MasPromotionsItemsTable extends LitElement {
                 : this.type === TABLE_TYPE.CARDS
                   ? store.selectedCards
                   : store.selectedCollections;
-        this.#selectionController = new ReactiveController(this, [selectionStore, Store.promotions.inEdit]);
+        const controllerStores = [selectionStore, Store.promotions.inEdit];
+        // Offers render from offerRecordsCache, which is hydrated after first paint; refresh
+        // when it lands.
+        if (this.type === TABLE_TYPE.OFFERS) controllerStores.push(Store.promotions.offerRecordsHydrated);
+        this.#selectionController = new ReactiveController(this, controllerStores);
     }
 
     disconnectedCallback() {
@@ -189,6 +206,13 @@ class MasPromotionsItemsTable extends LitElement {
         }
         if (!this.type) return;
         if (this.type === TABLE_TYPE.OFFERS) {
+            // Force a rebuild from the cache when offer records finish hydrating, otherwise
+            // the same-ids key guard would keep the placeholder rows.
+            const hydratedVersion = Store.promotions.offerRecordsHydrated.get();
+            if (hydratedVersion !== this.#offerRecordsHydratedSeen) {
+                this.#offerRecordsHydratedSeen = hydratedVersion;
+                this.#loadedPathsKey = null;
+            }
             this.#loadSelectedOffers(this.selectedPaths);
             return;
         }
@@ -222,24 +246,59 @@ class MasPromotionsItemsTable extends LitElement {
         this.viewOnlyLoading = false;
     }
 
+    get #hasMoreSelected() {
+        return this.#visibleCount < this.#allSelectedPaths.length;
+    }
+
     async #loadSelected(paths) {
         this.#processAbortController?.abort();
+        this.#allSelectedPaths = paths;
+        this.#visibleCount = 0;
+        this.viewOnlyFragments = [];
+        // Probe every selected card's promo variations in a single recursive folder search
+        // (one request per surface root) rather than once per windowed item; windows then read
+        // from this shared result.
+        this.#promoVariationProbe =
+            this.type === TABLE_TYPE.CARDS && paths.length ? this.#probeAllPromoVariations(paths) : null;
         if (!paths.length) {
-            this.viewOnlyFragments = [];
             this.viewOnlyLoading = false;
             return;
         }
-        this.viewOnlyLoading = true;
+        await this.#loadNextSelectedWindow();
+    }
+
+    async #probeAllPromoVariations(paths) {
+        const promoTag = this.#promotionTagId;
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
+        try {
+            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
+        } catch {
+            return new Map();
+        }
+    }
+
+    #loadMore() {
+        if (this.viewOnlyLoading || !this.#hasMoreSelected) return;
+        void this.#loadNextSelectedWindow();
+    }
+
+    async #loadNextSelectedWindow() {
+        const start = this.#visibleCount;
+        const end = Math.min(start + SELECTED_ITEMS_WINDOW, this.#allSelectedPaths.length);
+        if (start >= end) return;
+        const slice = this.#allSelectedPaths.slice(start, end);
+        this.#processAbortController?.abort();
         this.#processAbortController = new AbortController();
         const signal = this.#processAbortController.signal;
-        await loadSelectedFragments(paths, this.type, this.repository, {
+        this.viewOnlyLoading = true;
+        await loadSelectedFragments(slice, this.type, this.repository, {
             signal,
             onItems: (items) => {
-                if (!signal.aborted) {
-                    this.viewOnlyFragments = items;
-                    if (this.type === TABLE_TYPE.CARDS) {
-                        this.#syncExistingPromoVariations(items, signal);
-                    }
+                if (signal.aborted) return;
+                this.viewOnlyFragments = start === 0 ? items : [...this.viewOnlyFragments, ...items];
+                this.#visibleCount = end;
+                if (this.type === TABLE_TYPE.CARDS) {
+                    this.#syncExistingPromoVariations(items, signal);
                 }
             },
             getDisplayName: this.getDisplayName,
@@ -260,31 +319,50 @@ class MasPromotionsItemsTable extends LitElement {
         }
         const previousGeos = this.existingPromoVariationGeosByPath;
         const previousVariations = this.existingPromoVariationsByPath;
-        const geosByPath = new Map();
-        const variationsByPath = new Map();
         const previousEmptyGeoPaths = this.existingPromoVariationEmptyGeoPaths;
-        const emptyGeoPaths = new Set();
+        // Seed from prior results scoped to the current selection: keeps earlier windows'
+        // lookups (windowed loads only probe their new slice) and retains a path's known
+        // variation when its re-probe fails transiently, while dropping paths that are no
+        // longer selected.
+        const selectedSet = new Set(this.#allSelectedPaths);
+        const scopedEntries = (map) => [...map].filter(([path]) => selectedSet.has(path));
+        const geosByPath = new Map(scopedEntries(previousGeos));
+        const variationsByPath = new Map(scopedEntries(previousVariations));
+        const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
+        const probedByPath = (await this.#promoVariationProbe) ?? new Map();
+        if (signal.aborted) return;
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
+                const groupedVariationPaths = new Fragment(item)
+                    .getVariations()
+                    .filter((path) => Fragment.isGroupedVariationPath(path));
+                let allVariations = [];
                 try {
-                    const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
-                    if (variations.length) {
-                        const enrichedVariations = await enrichPromoVariations(variations, item, {
-                            getDisplayName: this.getDisplayName,
-                        });
-                        geosByPath.set(item.path, getUsedGeoTags(variations));
-                        variationsByPath.set(item.path, enrichedVariations);
-                        if (variations.some((variation) => !variation.pznTags?.length)) {
-                            emptyGeoPaths.add(item.path);
-                        }
+                    const missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
+                    if (missingPaths.length) {
+                        const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
+                        for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
+                    allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);
                 } catch {
                     if (previousGeos.has(item.path)) {
                         geosByPath.set(item.path, previousGeos.get(item.path) || []);
                         variationsByPath.set(item.path, previousVariations.get(item.path) || []);
                         if (previousEmptyGeoPaths.has(item.path)) emptyGeoPaths.add(item.path);
                     }
+                    return;
+                }
+                if (signal.aborted) return;
+                if (!allVariations.length) return;
+                const enrichedVariations = await enrichPromoVariations(allVariations, item, {
+                    getDisplayName: this.getDisplayName,
+                });
+                if (signal.aborted) return;
+                geosByPath.set(item.path, getUsedGeoTags(allVariations));
+                variationsByPath.set(item.path, enrichedVariations);
+                if (allVariations.some((variation) => !variation.pznTags?.length)) {
+                    emptyGeoPaths.add(item.path);
                 }
             }),
         );
@@ -386,6 +464,10 @@ class MasPromotionsItemsTable extends LitElement {
             const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
             this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
             this.fragmentHasEmptyGeosVariation = existingVariations.some((variation) => !variation.pznTags?.length);
+            if (Fragment.isGroupedVariationPath(item.path)) {
+                await this.#createPromoVariationForItem(item, [], this.fragmentHasEmptyGeosVariation);
+                return;
+            }
             this.promoVariationGeosDialogItem = item;
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
@@ -409,17 +491,13 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    async #handlePromoVariationGeosConfirm() {
-        const item = this.promoVariationGeosDialogItem;
+    async #createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation) {
         const promoTag = this.#promotionTagId;
-        const geoTags = this.promoVariationSelectedGeos;
-        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
-        this.#closePromoVariationGeosDialog();
-        if (!promoTag || !item?.id || !this.repository) return;
-
         if (!geoTags.length && hasEmptyGeosVariation) {
             showToast(
-                'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
+                Fragment.isGroupedVariationPath(item.path)
+                    ? 'A promo variation for this grouped variation fragment already exists.'
+                    : 'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
                 'negative',
             );
             return;
@@ -456,6 +534,16 @@ class MasPromotionsItemsTable extends LitElement {
         }
     }
 
+    async #handlePromoVariationGeosConfirm() {
+        const item = this.promoVariationGeosDialogItem;
+        const promoTag = this.#promotionTagId;
+        const geoTags = this.promoVariationSelectedGeos;
+        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
+        this.#closePromoVariationGeosDialog();
+        if (!promoTag || !item?.id || !this.repository) return;
+        await this.#createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation);
+    }
+
     #getOfferRemovalContext(selectorId) {
         const store = getItemsSelectionStore();
         return {
@@ -488,7 +576,17 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    #applyOfferRemoval(selectorId) {
+    async #pruneOrphanedGroupedVariations() {
+        const store = getItemsSelectionStore();
+        const aem = this.repository?.aem;
+        if (!aem) return;
+        const pruned = await pruneOrphanedGroupedVariationSelection(store.selectedCards.value, (path) =>
+            resolveHydratedParentFragment(aem, path).then((parent) => parent?.path ?? null),
+        );
+        if (pruned !== store.selectedCards.value) store.selectedCards.set(pruned);
+    }
+
+    async #applyOfferRemoval(selectorId) {
         const store = getItemsSelectionStore();
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
@@ -509,6 +607,7 @@ class MasPromotionsItemsTable extends LitElement {
             });
             store.selectedCards.set(pruned.selectedCards);
             store.selectedCollections.set(pruned.selectedCollections);
+            await this.#pruneOrphanedGroupedVariations();
         }
         applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers);
         this.dispatchEvent(
@@ -540,11 +639,12 @@ class MasPromotionsItemsTable extends LitElement {
                 }
                 if (!confirmed) return;
             }
-            this.#applyOfferRemoval(selectorId);
+            await this.#applyOfferRemoval(selectorId);
             return;
         }
         if (this.type === TABLE_TYPE.CARDS) {
             store.selectedCards.set(store.selectedCards.value.filter((p) => p !== path));
+            await this.#pruneOrphanedGroupedVariations();
         } else {
             store.selectedCollections.set(store.selectedCollections.value.filter((p) => p !== path));
         }
@@ -883,6 +983,8 @@ class MasPromotionsItemsTable extends LitElement {
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            .viewOnlyHasMore=${this.#hasMoreSelected}
+            @view-only-load-more=${() => this.#loadMore()}
             @show-toast=${this.#showToast}
         >
         </mas-select-items-table>`;
@@ -902,6 +1004,8 @@ class MasPromotionsItemsTable extends LitElement {
             .selectableTabs=${[]}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            .viewOnlyHasMore=${this.#hasMoreSelected}
+            @view-only-load-more=${() => this.#loadMore()}
             @show-toast=${this.#showToast}
         ></mas-select-items-table>`;
     }

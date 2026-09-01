@@ -17,10 +17,11 @@ import router from './router.js';
 import { getReferencingFragments } from './references/references-repository.js';
 import { fetchFragmentUsage } from './references/usage-repository.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
+import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/variation-utils.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
-    generateCodeToUse,
+    generateLinkToUse,
     getFragmentMapping,
     getFragmentPartsToUse,
     hasNonEmptyCompareChart,
@@ -28,6 +29,7 @@ import {
     showToast,
     createKeyedAsyncLoader,
     MODEL_WEB_COMPONENT_MAPPING,
+    describeVariationsToDelete,
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import {
@@ -1535,7 +1537,16 @@ export default class MasFragmentEditor extends LitElement {
 
     async deleteFragment() {
         if (!this.editorContextStore.isVariation(this.fragment.id)) {
-            this.variationsToDelete = this.fragment.getVariations();
+            const fieldVariations = this.fragment.getVariations();
+            let promoVariationPaths;
+            try {
+                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
+            } catch (error) {
+                console.error('Failed to probe promo variations:', error);
+                showToast('Failed to check for promo variations. Please try again.', 'negative');
+                return;
+            }
+            this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         } else {
             this.variationsToDelete = [];
         }
@@ -1552,7 +1563,22 @@ export default class MasFragmentEditor extends LitElement {
                 if (localeDefaultFragment) {
                     await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
                 }
-                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
+                let deleted = await this.repository.deleteFragment(this.fragment, {
+                    startToast: false,
+                    endToast: false,
+                });
+                if (!deleted) {
+                    deleted = await this.repository.deleteFragment(this.fragment, {
+                        force: true,
+                        startToast: false,
+                        endToast: false,
+                    });
+                }
+                if (!deleted) {
+                    showToast('Failed to delete fragment', 'negative');
+                    this.deleteInProgress = false;
+                    return;
+                }
             } else {
                 await this.repository.deleteFragmentWithVariations(this.fragment);
             }
@@ -1684,11 +1710,11 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async copyToUse() {
-        const { code, richText, href } = generateCodeToUse(
+        const { code, richText, href } = generateLinkToUse(
             this.fragment,
             Store.search.get().path,
             PAGE_NAMES.CONTENT,
-            'Failed to copy code to clipboard',
+            'Failed to copy link to clipboard',
         );
         if (!code || !richText || !href) return;
 
@@ -1699,9 +1725,9 @@ export default class MasFragmentEditor extends LitElement {
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
-            showToast('Code copied to clipboard', 'positive');
+            showToast('Link copied to clipboard', 'positive');
         } catch (e) {
-            showToast('Failed to copy code to clipboard', 'negative');
+            showToast('Failed to copy link to clipboard', 'negative');
         }
     }
 
@@ -1711,8 +1737,8 @@ export default class MasFragmentEditor extends LitElement {
         const message = hasVariations
             ? html`<p>Are you sure you want to delete this fragment?</p>
                   <p>
-                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
-                      This action cannot be undone.
+                      <strong>Warning:</strong> This will also delete
+                      ${describeVariationsToDelete(this.fragment, this.variationsToDelete)}. This action cannot be undone.
                   </p>`
             : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`
@@ -1899,7 +1925,7 @@ export default class MasFragmentEditor extends LitElement {
 
     #promoVariationGeoCodes() {
         const pznTags = this.fragment.getFieldValues('pznTags') || [];
-        return pznTags.map((tag) => tag.split('/').pop());
+        return pznTags.filter((tag) => isGeoTag(tag)).map((tag) => tag.split('/').pop());
     }
 
     displayPromoVariationInfo(clazz) {
@@ -1911,10 +1937,16 @@ export default class MasFragmentEditor extends LitElement {
             Store.promotions.inEdit.get()?.get?.()?.title ||
             'Promotion';
         const geoCodes = this.#promoVariationGeoCodes();
+        const groupedVariationTags = Fragment.isGroupedVariationPath(this.fragment.path)
+            ? getPromoVariationPersonalizationTagLabels(this.fragment)
+            : '';
         return html`<div class="${clazz}">
             <span>Promo variation: <strong>${promotionName}</strong></span>
             ${geoCodes.length
                 ? html`<span class="preview-header-geos">Geos: <strong>${geoCodes.join(', ')}</strong></span>`
+                : nothing}
+            ${groupedVariationTags
+                ? html`<span class="preview-header-geos">Grouped variation: <strong>${groupedVariationTags}</strong></span>`
                 : nothing}
         </div>`;
     }
@@ -1929,11 +1961,11 @@ export default class MasFragmentEditor extends LitElement {
 
     variationTypeHeader(clazz) {
         if (!this.fragment) return nothing;
-        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-            return this.displayGroupedVariationInfo(clazz);
-        }
         if (this.isPromoVariationFragment()) {
             return this.displayPromoVariationInfo(clazz);
+        }
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return this.displayGroupedVariationInfo(clazz);
         }
         return this.displayRegionalVarationInfo(clazz);
     }
@@ -2354,7 +2386,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
-                    ${this.groupedPreviewLocaleSelector} ${this.previewVariationHeader}
+                    ${this.previewVariationHeader} ${this.groupedPreviewLocaleSelector}
                     <div class="preview-content columns mas-fragment">
                         <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
                             <merch-card

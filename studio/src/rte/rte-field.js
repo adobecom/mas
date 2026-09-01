@@ -10,6 +10,7 @@ import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
+import { getCtaKeyIssues } from '../editors/variation-utils.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 import './rte-link-editor.js';
@@ -74,8 +75,10 @@ class LinkNodeView {
         if (node.type !== this.node.type) {
             return false;
         }
+        // Preserve the existing key when a transaction drops it, but let an
+        // explicitly authored key (from the link editor) replace it.
         const oldKey = this.dom.getAttribute(LINK_KEY_ATTR);
-        if (oldKey) node.attrs[LINK_KEY_ATTR] = oldKey;
+        if (oldKey && node.attrs[LINK_KEY_ATTR] == null) node.attrs[LINK_KEY_ATTR] = oldKey;
         this.node = node;
 
         // Update attributes (excluding 'text')
@@ -192,6 +195,14 @@ class RteField extends LitElement {
                 fromAttribute: (value) => value.split(','),
             },
         },
+        /** Restricts which basic format buttons (strong/em/strikethrough/underline/superscript) render. Unset (default) shows all, preserving existing behavior for every other rte-field usage. */
+        formatMarks: {
+            type: Array,
+            attribute: 'format-marks',
+            converter: {
+                fromAttribute: (value) => value.split(','),
+            },
+        },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
         smallActive: { type: Boolean, state: true },
@@ -208,6 +219,8 @@ class RteField extends LitElement {
         floatingToolbar: { type: Boolean, attribute: 'floating-toolbar' },
         osi: { type: String },
         value: { type: String },
+        isVariation: { type: Boolean, attribute: 'is-variation' },
+        parentCtas: { type: Array },
     };
 
     static get styles() {
@@ -754,12 +767,15 @@ class RteField extends LitElement {
         this.hideOfferSelector = false;
         this.floatingToolbar = false;
         this.osi = '';
+        this.isVariation = false;
+        this.parentCtas = [];
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
             addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
+            fixCtaKeys: this.#handleFixCtaKeys.bind(this),
             iconSave: this.#handleIconSave.bind(this),
             mnemonicSave: this.#handleMnemonicSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
@@ -1341,7 +1357,12 @@ class RteField extends LitElement {
             this.#updateSelection(newState);
             this.editorView.updateState(newState);
 
-            if (newState.doc) {
+            // Selection-only transactions (docChanged === false) must not persist: serializing a
+            // ctas field mints missing data-keys (see #createLinkElement), so re-serializing on a
+            // mere CTA selection would silently heal and clear the key-issue warning. Only persist
+            // on real content edits — explicit fixes (fixCtaKeys) and link-editor saves change the
+            // doc and still heal.
+            if (newState.doc && transaction.docChanged) {
                 this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
@@ -1414,6 +1435,7 @@ class RteField extends LitElement {
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
                 ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
+                ctaRef: selection.node.attrs[LINK_KEY_ATTR] || '',
             };
         }
 
@@ -1433,6 +1455,7 @@ class RteField extends LitElement {
                 analyticsId: '',
                 checkoutParameters,
                 ctaToggleText: '',
+                ctaRef: '',
             };
         }
 
@@ -1447,6 +1470,7 @@ class RteField extends LitElement {
             analyticsId: '',
             checkoutParameters,
             ctaToggleText: '',
+            ctaRef: '',
         };
     }
 
@@ -1469,7 +1493,7 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText } = event.detail;
+        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText, ctaRef } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1497,6 +1521,10 @@ class RteField extends LitElement {
             'data-analytics-id': analyticsId || null,
             'data-cta-toggle-text': ctaToggleText || null,
         };
+
+        if (ctaRef !== undefined) {
+            linkAttrs[LINK_KEY_ATTR] = ctaRef || null;
+        }
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
@@ -1745,9 +1773,66 @@ class RteField extends LitElement {
 
     async openLinkEditor() {
         const attrs = this.#getLinkAttrs();
+        const node = this.editorView?.state?.selection?.node;
+        const showCtaReference = this.id === 'ctas' || !!node?.attrs?.[LINK_KEY_ATTR];
+        // The reference key is generated on creation and shown read-only, so mint it
+        // now when a CTA link has none yet rather than waiting for serialization.
+        if (showCtaReference && !attrs.ctaRef) attrs.ctaRef = this.#generateLinkKey();
+        // On a variation the reference targets the parent's CTAs; on a baseline it targets this
+        // field's own CTAs. Either set may carry legacy (missing) or duplicated keys to flag.
+        let ctaKeyIssues = { missingCount: 0, duplicateKeys: [], hasIssues: false };
+        if (this.id === 'ctas') {
+            ctaKeyIssues = getCtaKeyIssues(this.isVariation ? this.parentCtas : this.#collectCtaKeys());
+        }
         this.showLinkEditor = true;
         await this.updateComplete;
-        Object.assign(this.linkEditorElement, { ...attrs, open: true });
+        Object.assign(this.linkEditorElement, {
+            ...attrs,
+            showCtaReference,
+            isVariation: this.isVariation,
+            parentCtas: this.parentCtas,
+            ctaKeyIssues,
+            open: true,
+        });
+    }
+
+    /** Reference keys of every link in the current editor content, in document order. */
+    #collectCtaKeys() {
+        const ctas = [];
+        this.editorView?.state.doc.descendants((node) => {
+            if (node.type.name === 'link') ctas.push({ key: node.attrs[LINK_KEY_ATTR] });
+        });
+        return ctas;
+    }
+
+    /** Assigns a fresh unique key to every link missing one or sharing a key with an earlier link,
+     *  leaving already-unique keys untouched so existing references keep resolving. Public so both
+     *  the link editor and the field-level indicator can trigger the same normalization. */
+    fixCtaKeys() {
+        const { state, dispatch } = this.editorView;
+        let tr = state.tr;
+        const seen = new Set();
+        state.doc.descendants((node, pos) => {
+            if (node.type.name !== 'link') return;
+            let key = node.attrs[LINK_KEY_ATTR];
+            if (!key || seen.has(key)) {
+                do {
+                    key = this.#generateLinkKey();
+                } while (seen.has(key));
+                tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, [LINK_KEY_ATTR]: key });
+            }
+            seen.add(key);
+        });
+        if (tr.docChanged) dispatch(tr);
+    }
+
+    #handleFixCtaKeys() {
+        this.fixCtaKeys();
+        // Refresh the open link editor with the current link's (possibly new) key and cleared issues.
+        Object.assign(this.linkEditorElement, {
+            ctaRef: this.editorView.state.selection.node?.attrs?.[LINK_KEY_ATTR] ?? this.linkEditorElement.ctaRef,
+            ctaKeyIssues: getCtaKeyIssues(this.#collectCtaKeys()),
+        });
     }
 
     async openIconEditor() {
@@ -1920,6 +2005,7 @@ class RteField extends LitElement {
             dialog
             .linkAttrs=${attributes}
             @save="${this.#boundHandlers.linkSave}"
+            @fix-cta-keys="${this.#boundHandlers.fixCtaKeys}"
         ></rte-link-editor>`;
     }
 
@@ -2061,42 +2147,53 @@ class RteField extends LitElement {
 
     get #formatButtons() {
         if (this.hideFormatButtons) return nothing;
+        const showMark = (mark) => !this.formatMarks || this.formatMarks.includes(mark);
         return html`
-            <sp-action-button
-                @click=${this.#handleToolbarAction('strong')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Bold (Command+B)"
-            >
-                <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('em')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Italic (Command+I)"
-            >
-                <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('strikethrough')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Strikethrough (Command+S)"
-            >
-                <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('underline')}
-                title="Underline (Command+U)"
-                @mousedown=${(e) => e.preventDefault()}
-            >
-                <sp-icon-underline slot="icon"></sp-icon-underline>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('superscript')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Superscript (Command+Shift+.)"
-            >
-                <span slot="icon" class="superscript-icon">x²</span>
-            </sp-action-button>
+            ${showMark('strong')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('strong')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Bold (Command+B)"
+                  >
+                      <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('em')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('em')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Italic (Command+I)"
+                  >
+                      <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('strikethrough')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('strikethrough')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Strikethrough (Command+S)"
+                  >
+                      <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('underline')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('underline')}
+                      title="Underline (Command+U)"
+                      @mousedown=${(e) => e.preventDefault()}
+                  >
+                      <sp-icon-underline slot="icon"></sp-icon-underline>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('superscript')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('superscript')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Superscript (Command+Shift+.)"
+                  >
+                      <span slot="icon" class="superscript-icon">x²</span>
+                  </sp-action-button>`
+                : nothing}
             ${this.marks?.includes('small')
                 ? html`<sp-action-button
                       id="smallButton"

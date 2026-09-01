@@ -1722,7 +1722,6 @@ describe('MasPromotionsItemsTable', () => {
             setupPromotionInEdit();
             const groupedPath = `${defaultPath}/pzn/edu`;
             const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
-            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
             const cardWithGroupedVariation = {
                 ...cardFragment,
                 fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
@@ -1738,7 +1737,7 @@ describe('MasPromotionsItemsTable', () => {
                         cf: {
                             fragments: {
                                 search: makeSearchStub({
-                                    [groupedPromoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoVariationPath }],
+                                    [promoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoVariationPath }],
                                 }),
                             },
                         },

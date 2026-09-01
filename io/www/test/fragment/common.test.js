@@ -1,5 +1,11 @@
 import { expect } from 'chai';
-import { geoMatchScore, matchesGeo, getCountry, isGroupedVariationFragmentPath, hasGeoTag } from '../../src/fragment/utils/common.js';
+import {
+    geoMatchScore,
+    matchesGeo,
+    getCountry,
+    isGroupedVariationFragmentPath,
+    hasGeoTag,
+} from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
     describe('matchesGeo', () => {

@@ -372,9 +372,7 @@ describe('promotion-variations', () => {
             const groupedPromoFolder = `${promoFolder}/PA-123/pzn`;
             const siblingPath = `${groupedPromoFolder}/my-card-grouped`;
             const search = makeSearchStub({
-                [groupedPromoFolder]: [
-                    { id: 'sibling-1', path: siblingPath, fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] },
-                ],
+                [promoFolder]: [{ id: 'sibling-1', path: siblingPath, fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] }],
             });
             const aem = createAemMock({
                 fragments: {
@@ -400,7 +398,7 @@ describe('promotion-variations', () => {
             const groupedPromoFolder = `${promoFolder}/PA-123/pzn`;
             const siblingPath = `${groupedPromoFolder}/my-card-grouped`;
             const search = makeSearchStub({
-                [groupedPromoFolder]: [
+                [promoFolder]: [
                     {
                         id: 'sibling-1',
                         path: siblingPath,
@@ -1316,8 +1314,7 @@ describe('promotion-variations', () => {
             const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
             const groupedPromoPath = `${groupedPromoFolder}/edu`;
             const search = makeSearchStub({
-                [promoFolder]: [],
-                [groupedPromoFolder]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+                [promoFolder]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
             });
             const aem = createAemMock({ fragments: { search } });
             const fragmentData = {

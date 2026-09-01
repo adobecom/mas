@@ -356,8 +356,8 @@ export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) 
 }
 
 /**
- * Probes every promo variation path for known promotion projects (tag + path; not parent variations field).
- * A single project can have more than one geo-specific variation, so each project is probed for all indices.
+ * Only probes projects with defaultPath in their 'fragments' field.
+ * Unattached projects can't have a variation, so they're skipped without a network call.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {Array<Object>} promotionProjects
@@ -366,14 +366,46 @@ export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) 
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
     if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
 
-    if (!promotionProjects.length) return [];
+    const attachedProjects = promotionProjects.filter((project) =>
+        (project.getFieldValues?.('fragments') || []).includes(defaultPath),
+    );
+    if (!attachedProjects.length) return [];
+
+    const refsPerProject = await processConcurrently(
+        attachedProjects,
+        async (project) => {
+            const tagId = getPromotionTagFromFragment(project);
+            if (!tagId) return [];
+            return probePromoVariationsForFragment(aem, defaultPath, tagId);
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+    return refsPerProject.flat();
+}
+
+/**
+ * Searches promo variations for grouped paths by project tag.
+ * Skips the attachment check because grouped paths never appear
+ * in a project's 'fragments' field — only the parent card does.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} groupedVariationPaths
+ * @param {Array<Object>} promotionProjects
+ * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
+ */
+async function probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects = []) {
+    if (!aem || !groupedVariationPaths.length) return [];
 
     const refsPerProject = await processConcurrently(
         promotionProjects,
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
             if (!tagId) return [];
-            return probePromoVariationsForFragment(aem, defaultPath, tagId);
+            const refsPerPath = await processConcurrently(
+                groupedVariationPaths,
+                (path) => probePromoVariationsForFragment(aem, path, tagId),
+                VARIATIONS_CONCURRENCY_LIMIT,
+            );
+            return refsPerPath.flat();
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
@@ -390,12 +422,13 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
     const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
-    const discoveredPerPath = await processConcurrently(
-        [fragmentData.path, ...groupedVariationPaths],
-        (path) => probePromoVariationReferences(aem, path, promotionProjects),
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-    return mergePromoVariationReferences(fragmentData, discoveredPerPath.flat());
+
+    const [defaultRefs, groupedRefs] = await Promise.all([
+        probePromoVariationReferences(aem, fragmentData.path, promotionProjects),
+        probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects),
+    ]);
+
+    return mergePromoVariationReferences(fragmentData, [...defaultRefs, ...groupedRefs]);
 }
 
 const NUMERIC_SUFFIX_LEAF = /-\d+$/;

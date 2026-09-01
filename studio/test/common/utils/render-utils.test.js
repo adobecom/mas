@@ -93,6 +93,12 @@ describe('render-utils', () => {
             );
         });
 
+        it('returns Grouped variation for a promo variation created from a grouped variation', () => {
+            expect(
+                getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card/pzn/edu' }),
+            ).to.equal('Grouped variation');
+        });
+
         it('returns Placeholder for dictionary model', () => {
             expect(getItemTypeLabel({ model: { path: `${DICTIONARY_MODEL_PATH}/foo` } })).to.equal('Placeholder');
         });

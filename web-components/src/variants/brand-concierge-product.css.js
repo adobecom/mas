@@ -5,11 +5,6 @@ merch-card[variant="brand-concierge-product"] {
     max-width: 378px;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="heading-s"] {
-    font-weight: 700;
-    color: var(--merch-color-grey-80);
-}
-
 merch-card[variant="brand-concierge-product"] [slot="badge"] {
     position: absolute;
     top: 16px;
@@ -21,13 +16,9 @@ merch-card[variant="brand-concierge-product"] merch-badge {
     --merch-badge-border-radius: 7px;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"],
-merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
+merch-card[variant="brand-concierge-product"] [slot="heading-s"] {
+    font-weight: 700;
     color: var(--merch-color-grey-80);
-    font-size: var(--consonant-merch-card-body-xs-font-size);
-    line-height: var(--consonant-merch-card-body-xs-line-height);
-    font-weight: 400;
-    min-height: 0;
 }
 
 merch-card[variant="brand-concierge-product"] [slot="heading-xs"] {
@@ -37,7 +28,6 @@ merch-card[variant="brand-concierge-product"] [slot="heading-xs"] {
     gap: 4px;
 }
 
-/* Figma "Prior": 14/21/400, #717171 — matches body-xs size/line-height tokens. */
 merch-card[variant="brand-concierge-product"] [slot="heading-xs"] span.price-strikethrough {
     font-size: var(--consonant-merch-card-body-xs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
@@ -64,8 +54,16 @@ merch-card[variant="brand-concierge-product"] [slot="heading-xs"] .price-legal {
     color: var(--merch-color-grey-80);
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"] a,
-merch-card[variant="brand-concierge-product"] [slot="promo-text"] a {
-    color: var(--link-color, #1473e6);
+merch-card[variant="brand-concierge-product"] [slot="body-xs"],
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
+    color: var(--merch-color-grey-80);
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+    font-weight: 400;
+    min-height: 0;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary {
+    color: inherit;
 }
 `;

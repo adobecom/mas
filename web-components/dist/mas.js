@@ -7529,11 +7529,6 @@ merch-card[variant="brand-concierge-product"] {
     max-width: 378px;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="heading-s"] {
-    font-weight: 700;
-    color: var(--merch-color-grey-80);
-}
-
 merch-card[variant="brand-concierge-product"] [slot="badge"] {
     position: absolute;
     top: 16px;
@@ -7545,13 +7540,9 @@ merch-card[variant="brand-concierge-product"] merch-badge {
     --merch-badge-border-radius: 7px;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"],
-merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
+merch-card[variant="brand-concierge-product"] [slot="heading-s"] {
+    font-weight: 700;
     color: var(--merch-color-grey-80);
-    font-size: var(--consonant-merch-card-body-xs-font-size);
-    line-height: var(--consonant-merch-card-body-xs-line-height);
-    font-weight: 400;
-    min-height: 0;
 }
 
 merch-card[variant="brand-concierge-product"] [slot="heading-xs"] {
@@ -7561,7 +7552,6 @@ merch-card[variant="brand-concierge-product"] [slot="heading-xs"] {
     gap: 4px;
 }
 
-/* Figma "Prior": 14/21/400, #717171 \u2014 matches body-xs size/line-height tokens. */
 merch-card[variant="brand-concierge-product"] [slot="heading-xs"] span.price-strikethrough {
     font-size: var(--consonant-merch-card-body-xs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
@@ -7588,11 +7578,19 @@ merch-card[variant="brand-concierge-product"] [slot="heading-xs"] .price-legal {
     color: var(--merch-color-grey-80);
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"] a,
-merch-card[variant="brand-concierge-product"] [slot="promo-text"] a {
-    color: var(--link-color, #1473e6);
+merch-card[variant="brand-concierge-product"] [slot="body-xs"],
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
+    color: var(--merch-color-grey-80);
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+    font-weight: 400;
+    min-height: 0;
 }
-`;var yh={cardName:{attribute:"name"},mnemonics:{size:"l"},title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],ctas:{slot:"footer",size:"m"},style:"consonant"},Dr=class extends T{getGlobalCSS(){return xh}priceOptionsProvider(r,e){r.dataset.template===te&&(e.displayPlanType=!0)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.card.querySelector(`[slot="heading-xs"] ${N}[data-template="price"]`);if(!r)return;let e=r.cloneNode(!0);if(await r.onceSettled(),!r.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),r.parentNode.insertBefore(e,r.nextSibling),await e.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}renderLayout(){return f` ${this.badge}
+
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary {
+    color: inherit;
+}
+`;var yh={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},Dr=class extends T{getGlobalCSS(){return xh}priceOptionsProvider(r,e){r.dataset.template===te&&(e.displayPlanType=!0)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.card.querySelector(`[slot="heading-xs"] ${N}[data-template="price"]`);if(!r)return;let e=r.cloneNode(!0);if(await r.onceSettled(),!r.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),r.parentNode.insertBefore(e,r.nextSibling),await e.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}renderLayout(){return f` ${this.badge}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="badge"></slot>

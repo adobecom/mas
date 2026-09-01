@@ -1,25 +1,28 @@
 import { VariantLayout } from './variant-layout';
 import { html, css } from 'lit';
-import { SELECTOR_MAS_INLINE_PRICE, TEMPLATE_PRICE_LEGAL } from '../constants.js';
+import {
+    SELECTOR_MAS_INLINE_PRICE,
+    TEMPLATE_PRICE_LEGAL,
+} from '../constants.js';
 import { CSS } from './brand-concierge-product.css.js';
 
 export const BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: 'name' },
-  mnemonics: { size: 'l' },
-  title: { tag: 'h3', slot: 'heading-s' },
-  prices: { tag: 'p', slot: 'heading-xs' },
-  promoText: { tag: 'p', slot: 'promo-text' },
-  description: { tag: 'div', slot: 'body-xs' },
-  badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
-  allowedBadgeColors: [
-      'spectrum-yellow-300-plans',
-      'spectrum-gray-300-plans',
-      'spectrum-gray-700-plans',
-      'spectrum-green-900-plans',
-      'gradient-purple-blue',
-  ],
-  ctas: { slot: 'footer', size: 'm' },
-  style: 'consonant',
+    cardName: { attribute: 'name' },
+    mnemonics: { size: 'l' },
+    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-gray-700-plans',
+        'spectrum-green-900-plans',
+        'gradient-purple-blue',
+    ],
+    title: { tag: 'h3', slot: 'heading-s' },
+    prices: { tag: 'p', slot: 'heading-xs' },
+    promoText: { tag: 'p', slot: 'promo-text' },
+    description: { tag: 'div', slot: 'body-xs' },
+    ctas: { slot: 'footer', size: 'm' },
+    style: 'consonant',
 };
 
 export class BrandConciergeProduct extends VariantLayout {
@@ -54,7 +57,7 @@ export class BrandConciergeProduct extends VariantLayout {
             price.parentNode.insertBefore(legal, price.nextSibling);
             await legal.onceSettled();
         } catch {
-            /* leave the price unchanged if legal cloning fails */
+            // Proceed with the other post-update adjustments
         }
     }
 

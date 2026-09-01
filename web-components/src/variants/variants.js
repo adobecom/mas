@@ -143,8 +143,6 @@ registerVariant(
     BrandConciergeProduct,
     BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING,
     BrandConciergeProduct.variantStyle,
-    // No collectionOptions: Brand Concierge serves this card standalone,
-    // never inside a sidenav merch-card-collection.
 );
 registerVariant(
     'segment',

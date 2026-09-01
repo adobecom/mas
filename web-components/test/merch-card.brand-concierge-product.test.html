@@ -56,7 +56,8 @@
                     ></span>
                 </p>
                 <div slot="body-xs">
-                    Get 20+ apps, including Photoshop, Illustrator, and Premiere.
+                    Get 20+ apps, including Photoshop, Illustrator, and
+                    Premiere.
                     <a href="https://adobe.com/learn-more">Learn more</a>
                 </div>
                 <p slot="promo-text">
@@ -105,7 +106,8 @@
                     ></span>
                 </p>
                 <div slot="body-xs">
-                    Get 20+ apps, including Photoshop, Illustrator, and Premiere.
+                    Get 20+ apps, including Photoshop, Illustrator, and
+                    Premiere.
                     <a href="https://adobe.com/learn-more">Learn more</a>
                 </div>
                 <p slot="promo-text">
@@ -136,6 +138,11 @@
             import { withAem } from './mocks/aem.js';
             import { getTemplateContent } from './utils.js';
             import '../src/mas.js';
+            // Loaded dynamically (not statically) to avoid the
+            // variant-layout <-> variants circular-dep deadlock, as in pro.test.js.
+            const { BrandConciergeProduct } = await import(
+                '../src/variants/brand-concierge-product.js'
+            );
 
             runTests(async () => {
                 mockIms();
@@ -158,47 +165,97 @@
                         ).to.equal(2);
                         expect(card.querySelector('[slot="heading-xs"]')).to
                             .exist;
-                        // Figma "Body & Links" -> description (body-xs): the
-                        // product description plus its inline "Learn more" link.
                         const description =
                             card.querySelector('[slot="body-xs"]');
                         expect(description, 'description authored').to.exist;
                         expect(description.querySelector('a')).to.exist;
-                        // The shadow layout must expose the body-xs slot, else
-                        // the authored description never renders (the bug).
                         expect(
-                            card.shadowRoot.querySelector('slot[name="body-xs"]'),
+                            card.shadowRoot.querySelector(
+                                'slot[name="body-xs"]',
+                            ),
                             'description slot rendered',
                         ).to.exist;
-                        // Figma "evergreen promo" -> promo-text.
                         const promo = card.querySelector('[slot="promo-text"]');
                         expect(promo).to.exist;
                         expect(promo.querySelector('a')).to.exist;
-                        // Invented slots must not be used.
                         expect(card.querySelector('[slot="promo-link"]')).to.not
                             .exist;
                         expect(card.querySelector('[slot="body-xxs"]')).to.not
                             .exist;
-                        // No quantity-select / secure-transaction lock.
-                        expect(card.querySelector('[slot="quantity-select"]')).to
-                            .not.exist;
+                        expect(card.querySelector('[slot="quantity-select"]'))
+                            .to.not.exist;
                         expect(card.secureLabel).to.not.exist;
                     });
 
-                    it('renders at the 248px narrow breakpoint without quantity-select or secure-label', async () => {
+                    it('clones the main price into a resolved legal-template sibling', async () => {
                         const [masCommerceService, card] =
-                            getTemplateContent('product-card-narrow');
+                            getTemplateContent('product-card-wide');
+                        container.append(masCommerceService, card);
+                        await card.updateComplete;
+                        const legalSelector =
+                            '[slot="heading-xs"] [is="inline-price"][data-template="legal"]';
+                        let legal;
+                        for (let i = 0; i < 50 && !legal; i++) {
+                            legal = card.querySelector(legalSelector);
+                            if (!legal)
+                                await new Promise((r) => setTimeout(r, 20));
+                        }
+                        expect(legal, 'legal clone inserted').to.exist;
+                        await legal.onceSettled();
+                        expect(
+                            legal.textContent.trim(),
+                            'legal clone rendered price content',
+                        ).to.not.equal('');
+                    });
+
+                    it('does nothing when there is no main price', async () => {
+                        const layout = Object.create(
+                            BrandConciergeProduct.prototype,
+                        );
+                        let inserted = false;
+                        layout.card = {
+                            updateComplete: Promise.resolve(),
+                            querySelector: () => null,
+                        };
+                        await layout.adjustLegal(); // must not throw
+                        expect(inserted).to.be.false;
+                    });
+
+                    it('swallows a clone/resolve failure and leaves the price', async () => {
+                        const layout = Object.create(
+                            BrandConciergeProduct.prototype,
+                        );
+                        const price = {
+                            dataset: {},
+                            cloneNode: () => ({ setAttribute() {} }),
+                            onceSettled: () =>
+                                Promise.reject(new Error('unpriced')),
+                            parentNode: { insertBefore() {} },
+                        };
+                        layout.card = {
+                            updateComplete: Promise.resolve(),
+                            querySelector: () => price,
+                        };
+                        await layout.adjustLegal(); // catch swallows the rejection
+                        expect(price.dataset.displayTax).to.be.undefined;
+                    });
+
+                    it('renders at the 248px narrow breakpoint without quantity-select or secure-label', async () => {
+                        const [masCommerceService, card] = getTemplateContent(
+                            'product-card-narrow',
+                        );
                         container.append(masCommerceService, card);
                         await card.updateComplete;
                         expect(card).to.exist;
+                        expect(card.querySelector('[slot="promo-text"] a')).to
+                            .exist;
                         expect(
-                            card.querySelector('[slot="promo-text"] a'),
+                            card.shadowRoot.querySelector(
+                                'slot[name="body-xs"]',
+                            ),
                         ).to.exist;
-                        expect(
-                            card.shadowRoot.querySelector('slot[name="body-xs"]'),
-                        ).to.exist;
-                        expect(card.querySelector('[slot="quantity-select"]')).to
-                            .not.exist;
+                        expect(card.querySelector('[slot="quantity-select"]'))
+                            .to.not.exist;
                         expect(
                             card.shadowRoot.querySelector(
                                 '.secure-transaction-label',

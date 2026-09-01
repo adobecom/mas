@@ -21,9 +21,10 @@ const DEFAULT_GRAFANA_URL = 'https://adobe-grafana.trafficpeak.live';
 // migrated adobe-grafana instance (the epic's fdyta6qpga2o0d / mas_fragment_requests were stale).
 const GRAFANA_DATASOURCE_UID = 'ffmjsr3rpsrnkc';
 const USAGE_TABLE = 'akamai.logs';
-// MAS fragments are served under this Akamai request path; the fragment id + api_key ride in the
-// query string (queryStr), not as columns — matches how the dashboard filters (queryStr LIKE …).
-const MAS_FRAGMENT_REQ_PATH = 'web_commerce_artifact';
+// The direct fragment request endpoint. FluffyJaws (M@S monitoring wiki + MWPW-185891) confirms the
+// canonical source is reqPath = '/mas/io/fragment' with id/locale/api_key in the query string —
+// NOT the web_commerce_artifact WCS path. Extract the exact params rather than substring-matching.
+const MAS_FRAGMENT_ENDPOINT = '/mas/io/fragment';
 // Per-fragment usage scans raw CDN logs, so keep the default window tight (7d) pending ops sign-off.
 const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -44,16 +45,19 @@ function buildUsageQuery(fragmentId, fromMs, toMs) {
     const toSec = Math.floor(toMs / 1000);
     // fragmentId is validated to /^[\w-]+$/ by the caller, so it is safe to interpolate into the
     // string literals below. api_key is pulled out of the query string with a regex capture.
-    // NOTE (validate on first real run / with ops): the exact reqTimeSec filter form and the
-    // api_key extraction were derived from the dashboard, not executed here (cluster probes are
-    // gated). Adjust if the first live query errors on either.
+    // NOTE (validate on first real run): query shape confirmed by FluffyJaws against the M@S story
+    // (MWPW-185891) + monitoring wiki, but not executed here (cluster probes are gated). The one
+    // thing to sanity-check live is the reqTimeSec filter form (toDateTime vs raw seconds).
+    // extractURLParameter needs a leading '?', so prepend it to the bare query string.
+    const qs = "concat('?', queryStr)";
     const rawSql =
-        `SELECT extract(queryStr, 'api_key=([^&]+)') AS api_key, country, count(*) AS count ` +
+        `SELECT extractURLParameter(${qs}, 'api_key') AS api_key, ` +
+        `extractURLParameter(${qs}, 'locale') AS locale, country, count() AS count ` +
         `FROM ${USAGE_TABLE} ` +
-        `WHERE reqTimeSec >= toDateTime(${fromSec}) AND reqTimeSec <= toDateTime(${toSec}) ` +
-        `AND reqPath LIKE '%${MAS_FRAGMENT_REQ_PATH}%' ` +
-        `AND (queryStr LIKE '%${fragmentId}%' OR reqPath LIKE '%${fragmentId}%') ` +
-        `GROUP BY api_key, country ORDER BY count DESC ` +
+        `WHERE reqPath = '${MAS_FRAGMENT_ENDPOINT}' ` +
+        `AND reqTimeSec >= toDateTime(${fromSec}) AND reqTimeSec <= toDateTime(${toSec}) ` +
+        `AND extractURLParameter(${qs}, 'id') = '${fragmentId}' ` +
+        `GROUP BY api_key, locale, country ORDER BY count DESC ` +
         `SETTINGS hdx_query_max_execution_time=60, hdx_query_admin_comment='mas-studio-fragment-usage'`;
     return {
         from: String(fromMs),

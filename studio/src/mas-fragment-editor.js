@@ -2157,7 +2157,7 @@ export default class MasFragmentEditor extends LitElement {
                 ${usage.rows.map(
                     (row) => html`
                         <div class="referencing-row">
-                            <span class="referencing-title">${row.apiKey || 'unknown'} / ${row.country || '--'}</span>
+                            <span class="referencing-title">${row.apiKey || 'unknown'} / ${row.locale || '--'} / ${row.country || '--'}</span>
                             <span class="referencing-status">${row.count}</span>
                         </div>
                     `,

@@ -1858,8 +1858,8 @@ describe('MasFragmentEditor', () => {
             };
             const host = renderUsage(editor);
             expect(host.textContent).to.include('1234 requests');
-            expect(host.textContent).to.include('cc / US');
-            expect(host.textContent).to.include('express / FR');
+            expect(host.textContent).to.include('cc / en_US / US');
+            expect(host.textContent).to.include('express / fr_FR / FR');
         });
 
         it('shows "unavailable" when expanded and the proxy returned no data', () => {

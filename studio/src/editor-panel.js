@@ -21,6 +21,7 @@ import {
     previewFragmentOnPage,
     getFragmentPartsToUse,
     MODEL_WEB_COMPONENT_MAPPING,
+    describeVariationsToDelete,
 } from './utils.js';
 import { getCountryName } from './locales.js';
 import './rte/osi-field.js';
@@ -560,7 +561,18 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        this.variationsToDelete = this.fragment?.getVariations() || [];
+        const fieldVariations = this.fragment?.getVariations() || [];
+        let promoVariationPaths = [];
+        if (this.fragment) {
+            try {
+                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
+            } catch (error) {
+                console.error('Failed to probe promo variations:', error);
+                showToast('Failed to check for promo variations. Please try again.', 'negative');
+                return;
+            }
+        }
+        this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         this.showDeleteDialog = true;
     }
 
@@ -575,14 +587,29 @@ export default class EditorPanel extends LitElement {
                 if (parent) {
                     await this.repository.removeFromParentVariations(parent, this.fragment.path);
                 }
-                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
+                let deleted = await this.repository.deleteFragment(this.fragment, {
+                    startToast: false,
+                    endToast: false,
+                });
+                if (!deleted) {
+                    deleted = await this.repository.deleteFragment(this.fragment, {
+                        force: true,
+                        startToast: false,
+                        endToast: false,
+                    });
+                }
+                if (!deleted) {
+                    showToast('Failed to delete fragment', 'negative');
+                    return;
+                }
                 showToast('Fragment successfully deleted.', 'positive');
             } else {
-                await this.repository.deleteFragment(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment);
             }
             this.#closeEditorAfterDelete();
         } catch (error) {
             console.error('Error deleting fragment:', error);
+            showToast('Failed to delete fragment', 'negative');
         }
     }
 
@@ -872,8 +899,8 @@ export default class EditorPanel extends LitElement {
         const message = hasVariations
             ? html`<p>Are you sure you want to delete this fragment?</p>
                   <p>
-                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
-                      This action cannot be undone.
+                      <strong>Warning:</strong> This will also delete
+                      ${describeVariationsToDelete(this.fragment, this.variationsToDelete)}. This action cannot be undone.
                   </p>`
             : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`

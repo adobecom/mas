@@ -80,6 +80,12 @@ function priceOptionsProvider(element, options) {
     if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
     }
+    if (
+        options.displayAnnual === undefined &&
+        typeof card.settings?.displayAnnual === 'boolean'
+    ) {
+        options.displayAnnual = card.settings.displayAnnual;
+    }
 }
 
 function checkoutOptionsProvider(element, options) {

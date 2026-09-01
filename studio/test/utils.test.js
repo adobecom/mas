@@ -555,6 +555,33 @@ describe('createKeyedAsyncLoader', () => {
 
         expect(loadCount).to.equal(2);
     });
+
+    it('ignores a stale in-flight load that resolves after a newer call for the same key', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        const appliedValues = [];
+        const resolvers = [];
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => true,
+                computeKey: () => 'same-key',
+                load: () => new Promise((resolve) => resolvers.push(resolve)),
+                apply: (value) => appliedValues.push(value),
+                reset: () => {},
+            });
+
+        const firstRun = run();
+        await runIfNeeded({ guard: () => false, computeKey: () => 'same-key', load: async () => {}, apply: () => {} });
+        const secondRun = run();
+
+        expect(resolvers).to.have.length(2);
+        resolvers[0]('stale');
+        await firstRun;
+        resolvers[1]('fresh');
+        await secondRun;
+
+        expect(appliedValues).to.deep.equal(['fresh']);
+    });
 });
 
 describe('getFragmentPartsToUse', () => {

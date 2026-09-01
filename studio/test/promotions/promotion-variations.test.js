@@ -512,9 +512,10 @@ describe('promotion-variations', () => {
         it("does not attribute a sibling fragment's own leaf name as this fragment's suffixed variation", async () => {
             const cardPath = '/content/dam/mas/sandbox/en_US/dir/card';
             const card2Path = '/content/dam/mas/sandbox/en_US/dir/card-2';
-            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday/dir';
+            const promoRoot = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const promoFolder = `${promoRoot}/dir`;
             const search = makeSearchStub({
-                [promoFolder]: [
+                [promoRoot]: [
                     { id: 'var-card', path: `${promoFolder}/card`, fields: [] },
                     { id: 'var-card-2', path: `${promoFolder}/card-2`, fields: [] },
                 ],
@@ -530,6 +531,27 @@ describe('promotion-variations', () => {
             expect(card2Variations).to.have.lengthOf(1);
             expect(card2Variations[0].path).to.equal(`${promoFolder}/card-2`);
             expect(card2Variations[0].index).to.equal(1);
+        });
+
+        it('searches the shared promotions/{promoName} root once for cards nested in different folders', async () => {
+            const cardAPath = '/content/dam/mas/sandbox/en_US/dirA/card-a';
+            const cardBPath = '/content/dam/mas/sandbox/en_US/dirB/deeper/card-b';
+            const promoRoot = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const varAPath = `${promoRoot}/dirA/card-a`;
+            const varBPath = `${promoRoot}/dirB/deeper/card-b`;
+            const search = makeSearchStub({
+                [promoRoot]: [
+                    { id: 'var-a', path: varAPath, fields: [] },
+                    { id: 'var-b', path: varBPath, fields: [] },
+                ],
+            });
+            const aem = createAemMock({ fragments: { search } });
+
+            const result = await probePromoVariationsForFragments(aem, [cardAPath, cardBPath], promoTag);
+
+            expect(search.calledOnce, 'one recursive root search covers cards in any subfolder').to.be.true;
+            expect(result.get(cardAPath).map((variation) => variation.path)).to.deep.equal([varAPath]);
+            expect(result.get(cardBPath).map((variation) => variation.path)).to.deep.equal([varBPath]);
         });
     });
 
@@ -829,7 +851,8 @@ describe('promotion-variations', () => {
         it('does not attribute a sibling fragment named "card-2" as "card"\'s own suffixed variation', async () => {
             const cardPath = '/content/dam/mas/sandbox/en_US/dir/card';
             const card2Path = '/content/dam/mas/sandbox/en_US/dir/card-2';
-            const dirPromoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday/dir';
+            const promoRoot = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const dirPromoFolder = `${promoRoot}/dir`;
             const promotionFragment = {
                 getFieldValues: sandbox.stub().callsFake((name) => {
                     if (name === 'fragments') return [cardPath, card2Path];
@@ -838,7 +861,7 @@ describe('promotion-variations', () => {
                 tags: [{ id: 'mas:promotion/black-friday' }],
             };
             const search = makeSearchStub({
-                [dirPromoFolder]: [
+                [promoRoot]: [
                     { id: 'var-card', path: `${dirPromoFolder}/card`, fields: [] },
                     { id: 'var-card-2', path: `${dirPromoFolder}/card-2`, fields: [] },
                 ],
@@ -925,7 +948,8 @@ describe('promotion-variations', () => {
     describe('probePromoVariationReferences', () => {
         const defaultPath = '/content/dam/mas/sandbox/en_US/Plans/Individual/com/my-card';
         const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
-        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/Plans/Individual/com';
+        const promoRoot = `${promotionsRoot}/back-to-school`;
+        const promoFolder = `${promoRoot}/Plans/Individual/com`;
         const promoPath = `${promoFolder}/my-card`;
 
         const attachedProject = (tagId, fragments = [defaultPath]) => ({
@@ -935,7 +959,7 @@ describe('promotion-variations', () => {
 
         it('returns references for existing promo copies from promotion project tags', async () => {
             const search = makeSearchStub({
-                [promoFolder]: [{ id: 'promo-var-id', path: promoPath, tags: [{ id: 'mas:promotion/back-to-school' }] }],
+                [promoRoot]: [{ id: 'promo-var-id', path: promoPath, tags: [{ id: 'mas:promotion/back-to-school' }] }],
             });
             const aem = createAemMock({ fragments: { search } });
 
@@ -949,7 +973,7 @@ describe('promotion-variations', () => {
         it('returns every variation when the same project has more than one, geo-specific, promo variation', async () => {
             const promoPath2 = `${promoFolder}/my-card-2`;
             const search = makeSearchStub({
-                [promoFolder]: [
+                [promoRoot]: [
                     { id: 'promo-var-1', path: promoPath, status: 'PUBLISHED' },
                     { id: 'promo-var-2', path: promoPath2, status: 'DRAFT' },
                 ],

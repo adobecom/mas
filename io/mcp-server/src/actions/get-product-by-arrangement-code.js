@@ -23,7 +23,7 @@ async function main(params) {
         const authManager = new AuthManager();
         authManager.setAccessToken(accessToken);
 
-        const productCatalog = new ProductCatalog(authManager, params.PRODUCTS_ENDPOINT);
+        const productCatalog = new ProductCatalog(authManager, params.PRODUCTS_ENDPOINT, params.PRODUCTS_CACHE_TTL_MS);
 
         const product = await productCatalog.getProduct(arrangementCode);
 

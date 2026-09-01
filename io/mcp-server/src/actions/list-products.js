@@ -17,7 +17,7 @@ async function main(params) {
         authManager.setAccessToken(accessToken);
 
         const productsEndpoint = params.PRODUCTS_ENDPOINT;
-        const productCatalog = new ProductCatalog(authManager, productsEndpoint);
+        const productCatalog = new ProductCatalog(authManager, productsEndpoint, params.PRODUCTS_CACHE_TTL_MS);
 
         const products = await productCatalog.searchProducts({
             searchText,

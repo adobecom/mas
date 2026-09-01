@@ -218,6 +218,7 @@ application:
                         runtime: nodejs:22
                         inputs:
                             PRODUCTS_ENDPOINT: $PRODUCTS_ENDPOINT
+                            PRODUCTS_CACHE_TTL_MS: $PRODUCTS_CACHE_TTL_MS
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -227,6 +228,7 @@ application:
                         runtime: nodejs:22
                         inputs:
                             PRODUCTS_ENDPOINT: $PRODUCTS_ENDPOINT
+                            PRODUCTS_CACHE_TTL_MS: $PRODUCTS_CACHE_TTL_MS
                         annotations:
                             require-adobe-auth: false
                             final: true

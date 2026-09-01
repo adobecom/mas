@@ -110,15 +110,16 @@ jobs:
                   path: ${{ inputs.odin-bucket-path || inputs.vault-path }}
                   env-fields: odin_bucket
 
-            # AOS / OST credentials are identical across environments — stored once in a
-            # shared path so they don't need to live in every workspace's .env blob.
+            # AOS / OST / AI Foundry credentials are identical across environments —
+            # stored once in a shared path so they don't need to live in every
+            # workspace's .env blob.
             - name: Fetch shared service secrets from Vault
               uses: ./.github/actions/vault-secrets
               with:
                   role-id: ${{ secrets.VAULT_ROLE_ID }}
                   secret-id: ${{ secrets.VAULT_SECRET_ID }}
                   path: merch-at-scale/aio-studio/common
-                  env-fields: aos_url,aos_api_key,ost_write_api_key
+                  env-fields: aos_url,aos_api_key,ost_write_api_key,ai_foundry_api_key
 
             # Derive namespace from the deployed .env (AIO_runtime_namespace). We must NOT
             # source it from a masked Vault field: GitHub empties job outputs whose value is
@@ -136,4 +137,11 @@ jobs:
                   BATCH_SIZE: ${{ inputs.batch_size }}
                   RPS_LIMIT: ${{ inputs.rps_limit }}
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
+                  # Endpoint and model ids are not secrets; only the key comes from
+                  # Vault, as $AI_FOUNDRY_API_KEY. Thinking stays off: on Qwen-latest
+                  # it costs ~25s a turn and corrupts forced tool calls.
+                  AI_FOUNDRY_BASE_URL: https://ehl.infra.adobe.net/v1
+                  AI_FOUNDRY_MODEL_ID: aifoundry/Qwen/Qwen-latest
+                  AI_FOUNDRY_FAST_MODEL_ID: aifoundry/Qwen/Qwen-latest
+                  AI_FOUNDRY_THINKING: 'off'
               run: npx aio app deploy -v

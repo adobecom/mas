@@ -10,14 +10,28 @@ before(async () => {
 });
 
 describe('prompt-builder', () => {
-    it('emits the envelope shape contract', () => {
+    it('points at the emit_envelope tool instead of restating its JSON schema', () => {
         const prompt = buildPrompt({});
-        expect(prompt).to.include('"intent"');
-        expect(prompt).to.include('"slots"');
-        expect(prompt).to.include('"confidence"');
-        expect(prompt).to.include('"missing_slots"');
-        expect(prompt).to.include('"clarification_question"');
+        // The tool schema travels in the same request and defines every
+        // field; spelling the shape out again is the same contract twice.
+        expect(prompt).to.include('emit_envelope');
+        expect(prompt).to.not.include('```json');
+        expect(prompt).to.not.include('"missing_slots"');
         expect(prompt).to.include('ASK_USER');
+    });
+
+    it('drops the no-required-slots filler from intent lines', () => {
+        const prompt = buildPrompt({});
+        expect(prompt).to.not.include('no required slots');
+        // Intents that do have slots still declare them.
+        expect(prompt).to.match(/`get_card`.*\[req: id\]/);
+        expect(prompt).to.match(/`list_products`.*\[opt: searchText/);
+    });
+
+    it('leaves documentation grounding to the turns that actually retrieve it', () => {
+        // The instruction only means something when retrieved context is in
+        // the request, so it rides with that context instead of every turn.
+        expect(buildPrompt({})).to.not.include('ANSWERING QUESTIONS ABOUT MAS FEATURES');
     });
 
     it('lists every registered intent name in the prompt', () => {

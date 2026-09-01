@@ -403,10 +403,53 @@ export function isQuestionShaped(message) {
     );
 }
 
+/**
+ * Shape test for "could this text be a query against the docs corpus?".
+ *
+ * Two shapes never are, whatever the keyword classifier decided:
+ *   1. Machine-generated markers — the frontend continues a tool call by
+ *      sending `[MCS product data retrieved via <tool>]` plus a product list.
+ *      Retrieving product documentation for that text is wasted work.
+ *   2. Bare acknowledgements — "yes" alone scores full coverage against any
+ *      chunk containing it and injects ~400 tokens of unrelated docs.
+ *
+ * Deliberately shape-only: a bare topic word ("collections") still retrieves,
+ * because ungrounded feature answers contradict the docs.
+ */
+const ACKNOWLEDGEMENTS = new Set([
+    'yes',
+    'yep',
+    'yeah',
+    'no',
+    'nope',
+    'ok',
+    'okay',
+    'sure',
+    'thanks',
+    'thank you',
+    'done',
+    'next',
+    'back',
+    'stop',
+    'cancel',
+    'continue',
+    'go ahead',
+]);
+
+export function isRetrievableQuery(message) {
+    if (typeof message !== 'string') return false;
+    const trimmed = message.trim();
+    if (!trimmed) return false;
+    // A bracketed marker that owns its whole first line, not a message that
+    // merely opens with a bracket ("[urgent] how do I ...").
+    if (/^\[[^\]\n]*\]\s*(\n|$)/.test(trimmed)) return false;
+    return !ACKNOWLEDGEMENTS.has(trimmed.toLowerCase().replace(/[.!,]+$/, ''));
+}
+
 export async function retrieveRAGContext(message, knowledgeClient, options = {}) {
     const { isDocumentation = false, ragVariantDetails = false, detectedVariant = null } = options;
 
-    if (!knowledgeClient) {
+    if (!knowledgeClient || !isRetrievableQuery(message)) {
         return { ragContext: '', sources: [] };
     }
 

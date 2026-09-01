@@ -1,18 +1,8 @@
 import { INTENTS, META_INTENTS, getFlow } from './intent-registry.js';
 
 const ENVELOPE_CONTRACT = `
-You MUST respond with exactly one JSON object in this shape:
-
-\`\`\`json
-{
-  "intent": "<one of the registered intent names>",
-  "slots": { "...": "..." },
-  "confidence": "high" | "medium" | "low",
-  "missing_slots": ["<slot name>", "..."],
-  "clarification_question": null | "<short question to the user>",
-  "user_message": null | "<short message rendered above any action>"
-}
-\`\`\`
+OUTPUT: call the \`emit_envelope\` tool exactly once. Its schema, sent with this
+request, defines every field — never restate the envelope as text.
 
 Three structural rules you MUST follow:
 
@@ -65,9 +55,11 @@ Always use the canonical enum — NEVER output "ANNUAL" for commitment (that is 
 `;
 
 function intentBlock(intent) {
-    const required = intent.required_slots.length ? `required: ${intent.required_slots.join(', ')}` : 'no required slots';
-    const optional = intent.optional_slots.length ? `; optional: ${intent.optional_slots.join(', ')}` : '';
-    return `- \`${intent.name}\` (${intent.category}) — ${intent.description} [${required}${optional}]`;
+    const slots = [];
+    if (intent.required_slots.length) slots.push(`req: ${intent.required_slots.join(', ')}`);
+    if (intent.optional_slots.length) slots.push(`opt: ${intent.optional_slots.join(', ')}`);
+    const slotList = slots.length ? ` [${slots.join('; ')}]` : '';
+    return `- \`${intent.name}\` (${intent.category}) — ${intent.description}${slotList}`;
 }
 
 /**
@@ -76,6 +68,12 @@ function intentBlock(intent) {
  * flow step) would invalidate the prompt cache. Per-turn context travels in
  * the dynamic block built by foundry-client sendWithContext; the flow line
  * comes from buildFlowContext below.
+ *
+ * Anything that is only meaningful when some per-turn input is present
+ * belongs in that dynamic block, not here — the grounding rule for retrieved
+ * documentation rides with the retrieved documentation for that reason. The
+ * emit_envelope tool schema travels in the same request, so the prompt names
+ * the tool rather than restating its field list.
  */
 export function buildPrompt() {
     const intentsList = INTENTS.map(intentBlock).join('\n');
@@ -85,8 +83,8 @@ export function buildPrompt() {
 SCOPE AND OFF-TOPIC REQUESTS:
 If the request is unrelated to Merch at Scale or Adobe commerce authoring (weather, general coding, news, personal advice, other products), it is off-topic: respond with intent ASK_USER, put a brief friendly deflection in user_message that names what you can help with, and never emit an operation or invent an intent for it. For questions about how MAS itself works, answer helpfully in user_message via ASK_USER or SHOW_HELP.
 
-ANSWERING QUESTIONS ABOUT MAS FEATURES:
-When documentation context is provided in this conversation, ground your answer in it — it reflects the current product and overrides your prior knowledge. Frame feature answers as practical how-to guidance for using MAS Studio (which page, which steps, what to expect), not as internal architecture or data-model description. If no documentation context covers the question, say what you are unsure about and point to the closest thing you can help with instead of guessing at internals.
+FEATURE QUESTIONS:
+Answer as practical how-to guidance for using MAS Studio (which page, which steps, what to expect), not internal architecture. Without documentation context, say what you are unsure about instead of guessing at internals.
 
 REGISTERED INTENTS:
 ${intentsList}

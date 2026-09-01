@@ -384,6 +384,35 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 }
 
 /**
+ * Searches promo variations for grouped paths by project tag.
+ * Skips the attachment check because grouped paths never appear
+ * in a project's 'fragments' field — only the parent card does.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} groupedVariationPaths
+ * @param {Array<Object>} promotionProjects
+ * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
+ */
+async function probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects = []) {
+    if (!aem || !groupedVariationPaths.length) return [];
+
+    const refsPerProject = await processConcurrently(
+        promotionProjects,
+        async (project) => {
+            const tagId = getPromotionTagFromFragment(project);
+            if (!tagId) return [];
+            const refsPerPath = await processConcurrently(
+                groupedVariationPaths,
+                (path) => probePromoVariationsForFragment(aem, path, tagId),
+                VARIATIONS_CONCURRENCY_LIMIT,
+            );
+            return refsPerPath.flat();
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+    return refsPerProject.flat();
+}
+
+/**
  * Merges probed promo variation references into a default fragment payload for listPromoVariations().
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragmentData
@@ -393,12 +422,13 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
     const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
-    const discoveredPerPath = await processConcurrently(
-        [fragmentData.path, ...groupedVariationPaths],
-        (path) => probePromoVariationReferences(aem, path, promotionProjects),
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-    return mergePromoVariationReferences(fragmentData, discoveredPerPath.flat());
+
+    const [defaultRefs, groupedRefs] = await Promise.all([
+        probePromoVariationReferences(aem, fragmentData.path, promotionProjects),
+        probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects),
+    ]);
+
+    return mergePromoVariationReferences(fragmentData, [...defaultRefs, ...groupedRefs]);
 }
 
 const NUMERIC_SUFFIX_LEAF = /-\d+$/;

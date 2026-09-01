@@ -1162,7 +1162,7 @@ export class MasRepository extends LitElement {
         return paths;
     }
 
-    async loadPromotions() {
+    async loadPromotions({ rethrow = false } = {}) {
         try {
             const promotionsPath = this.getPromotionsPath();
 
@@ -1193,8 +1193,8 @@ export class MasRepository extends LitElement {
             }
         } catch (error) {
             if (error.name === 'AbortError') return;
-            Store.promotions.list.data.setMeta('listFetched', true);
             this.processError(error, 'Could not load promotions.');
+            if (rethrow) throw error;
         } finally {
             Store.promotions.list.loading.set(false);
         }
@@ -1739,12 +1739,25 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Deletes a fragment and all its locale variations
+     * Finds the fragment's promo variation paths.
+     * @param {Fragment} fragment
+     * @returns {Promise<string[]>} Paths of the fragment's promo variations
+     */
+    async getPromoVariationPaths(fragment) {
+        const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragment, () =>
+            this.loadPromotions({ rethrow: true }),
+        );
+        return new Fragment(enrichedData).listPromoVariations().map((ref) => ref.path);
+    }
+
+    /**
+     * Deletes a fragment and all its variations (locale, grouped, and promo)
      * @param {Fragment} fragment - The parent fragment to delete
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        const variations = fragment.getVariations();
+        const promoVariationPaths = await this.getPromoVariationPaths(fragment);
+        const variations = [...new Set([...fragment.getVariations(), ...promoVariationPaths])];
         const failedVariations = [];
 
         if (variations.length > 0) {

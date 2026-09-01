@@ -71,6 +71,7 @@ describe('promotions-repository', () => {
                 {
                     get: () => ({
                         tags: [{ id: 'mas:promotion/black-friday' }],
+                        getFieldValues: (name) => (name === 'fragments' ? [defaultPath] : undefined),
                     }),
                 },
             ]);

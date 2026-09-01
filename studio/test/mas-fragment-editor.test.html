@@ -1200,12 +1200,35 @@
                             sandbox.stub(Store.editor, 'hasChanges').get(() => false);
                         });
 
-                        it('shows and cancels delete dialog', () => {
+                        it('shows and cancels delete dialog', async () => {
                             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            el.deleteFragment();
+                            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths: sandbox.stub().resolves([]) }));
+                            await el.deleteFragment();
                             expect(el.showDeleteDialog).to.be.true;
                             el.cancelDelete();
                             expect(el.showDeleteDialog).to.be.false;
+                        });
+
+                        it('does not probe promo variations when deleting a variation fragment', async () => {
+                            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+                            const getPromoVariationPaths = sandbox.stub().resolves(['should-not-be-used']);
+                            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths }));
+
+                            await el.deleteFragment();
+
+                            expect(getPromoVariationPaths.called).to.be.false;
+                            expect(el.variationsToDelete).to.deep.equal([]);
+                            expect(el.showDeleteDialog).to.be.true;
+                        });
+
+                        it('renders the promo-variation warning in the delete confirmation dialog', () => {
+                            el.showDeleteDialog = true;
+                            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/nbbdsa/f'];
+
+                            const dialog = el.deleteConfirmationDialog;
+                            const message = dialog.values.find((value) => value?.strings);
+
+                            expect(message.values).to.include('1 promo variation(s)');
                         });
 
                         it('shows and cancels clone dialog', async () => {

@@ -1862,7 +1862,8 @@ class MerchCardEditor extends LitElement {
                         .value=${form.ctas.values[0] || ''}
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
-                        default-link-style="primary-outline"
+                        ?is-headless-cta=${this.fragment.variant === VARIANT_NAMES.HEADLESS}
+                        default-link-style="${this.fragment.variant === VARIANT_NAMES.HEADLESS ? 'primary' : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}

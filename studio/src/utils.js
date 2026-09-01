@@ -333,15 +333,19 @@ export function parseStudioDeepLinksFromText(text) {
  * @param {string} page - The current Studio page (e.g. "content")
  * @param {string} fieldName - The field to link to (e.g. "prices", "description")
  * @param {string} fieldNameText - Alternative value for fieldName
+ * @param {string} [fieldNameMarkup] - HTML-only alternative to fieldNameText for the richText label
+ *   (e.g. wraps a CTA's own text in <strong>/<em>). Never used for displayText/text-plain, so it can
+ *   safely contain markup without leaking literal tags into a plain-text paste.
  * @returns {{ displayText: string, href: string, richText: string } | null}
  */
-export function generateFieldLink(fragment, path, page, fieldName, fieldNameText) {
+export function generateFieldLink(fragment, path, page, fieldName, fieldNameText, fieldNameMarkup) {
     const resolvedFieldName = fieldName ?? page;
     const resolvedPage = fieldName ? page : 'content';
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
     const displayText = `mas-field: ${fragmentParts} → ${fieldNameText ?? resolvedFieldName}`;
+    const richLabel = `mas-field: ${fragmentParts} → ${fieldNameMarkup ?? fieldNameText ?? resolvedFieldName}`;
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,
@@ -349,7 +353,7 @@ export function generateFieldLink(fragment, path, page, fieldName, fieldNameText
         path,
         fieldName: resolvedFieldName,
     });
-    const richText = `<a href="${href}" target="_blank">${displayText}</a>`;
+    const richText = `<a href="${href}" target="_blank">${richLabel}</a>`;
     return { displayText, href, richText };
 }
 

@@ -474,18 +474,33 @@ export function processFeatures(fields, merchCard, mapping) {
     processFeaturesLinks(merchCard, mapping);
 }
 
-function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
+function transformLinkToButton(
+    linkElement,
+    merchCard,
+    aemFragmentMapping,
+    isCtaField = false,
+) {
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));
     const originalClassName = linkElement.className || '';
-    const checkoutLinkStyle =
-        CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent';
-    const isAccent = checkoutLinkStyle.includes('accent');
-    const isPrimary = checkoutLinkStyle.includes('primary');
-    const isSecondary = checkoutLinkStyle.includes('secondary');
-    const isOutline = checkoutLinkStyle.includes('-outline');
-    const isLinkStyle = checkoutLinkStyle.includes('-link');
+    const parentTag = linkElement.parentElement?.tagName;
+    // Headless CTAs authored via the 3-option picker never carry a button-style class, and
+    // MAS must not add one either (see rte-field.js's #marksForHeadlessVariant) - only the
+    // real <strong>/<em> wrapper is preserved, unstyled, below. Scoped to the ctas field on a
+    // headless card so other fields/variants (which may legitimately have no class and rely
+    // on the accent default) are unaffected.
+    const isHeadlessCta =
+        isCtaField && !originalClassName && merchCard.variant === 'headless';
+    const checkoutLinkStyle = originalClassName
+        ? (CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent')
+        : 'accent';
+    const isAccent = !isHeadlessCta && checkoutLinkStyle.includes('accent');
+    const isPrimary = !isHeadlessCta && checkoutLinkStyle.includes('primary');
+    const isSecondary =
+        !isHeadlessCta && checkoutLinkStyle.includes('secondary');
+    const isOutline = !isHeadlessCta && checkoutLinkStyle.includes('-outline');
+    const isLinkStyle = isHeadlessCta || checkoutLinkStyle.includes('-link');
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
@@ -529,6 +544,12 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
                       variant,
                       isCheckoutLink,
                   );
+    }
+
+    if (isHeadlessCta && (parentTag === 'STRONG' || parentTag === 'EM')) {
+        const wrapper = document.createElement(parentTag.toLowerCase());
+        wrapper.append(newButtonElement);
+        return wrapper;
     }
     return newButtonElement;
 }
@@ -896,7 +917,7 @@ export function processCTAs(
         const ctas = (
             filteredLinks.length > 0 ? filteredLinks : allCtaLinks
         ).map((cta) =>
-            transformLinkToButton(cta, merchCard, aemFragmentMapping),
+            transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
         );
 
         footer.textContent = '';

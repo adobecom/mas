@@ -1937,7 +1937,7 @@ export class MasChat extends LitElement {
             if (this.activeGuidedFlow === 'release') {
                 await this.presentProductSelection(operationResult.rawResult, operation.mcpParams?.searchText);
             } else {
-                await this.continueWithMCPResult('list_products', operationResult.rawResult);
+                await this.handleProductListResult(operationResult.rawResult, operation.mcpParams);
             }
         }
 
@@ -2037,6 +2037,58 @@ export class MasChat extends LitElement {
                 context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
             },
         });
+    }
+
+    /**
+     * A list_products with no searchText is someone browsing the catalog: the
+     * model's first turn already answered them and the client holds the result,
+     * so handing it back only makes the model re-issue the same operation and
+     * re-type the list. Rendering locally drops a whole round trip.
+     *
+     * With searchText the model is resolving a named product on the way to
+     * something else (offers for Photoshop), and that second hop is a real
+     * decision, so it still goes to the model.
+     */
+    async handleProductListResult(result, mcpParams) {
+        if (mcpParams?.searchText) {
+            await this.continueWithMCPResult('list_products', result);
+            return;
+        }
+        await this.presentProductCatalog(result);
+    }
+
+    /** Render a catalog browse from the result the client already has. */
+    async presentProductCatalog(result) {
+        const rawProducts = result?.products || [];
+
+        if (!rawProducts.length) {
+            const empty = 'No products found in the catalog.';
+            this.messages = [...this.messages, { role: 'assistant', content: empty, timestamp: Date.now(), fresh: true }];
+            this.appendLocalTurns(`[0 products retrieved]`, empty);
+            return;
+        }
+
+        const productCards = rawProducts.map((product) => this.mapProductToChatCard(product));
+        const message = `Found ${rawProducts.length} product${rawProducts.length === 1 ? '' : 's'} in the catalog:`;
+
+        this.messages = [
+            ...this.messages,
+            { role: 'assistant', content: message, productCards, timestamp: Date.now(), fresh: true },
+        ];
+        this.appendLocalTurns(`[${rawProducts.length} products retrieved]`, message);
+    }
+
+    /**
+     * Plain history turns for a locally rendered answer. Unlike
+     * appendLocalGuidedTurns this stamps no flowId, so a catalog browse does
+     * not look like a release flow to the next turn.
+     */
+    appendLocalTurns(userMarker, message) {
+        this.conversationHistory = [
+            ...this.conversationHistory,
+            { role: 'user', content: userMarker },
+            { role: 'assistant', content: message },
+        ];
     }
 
     async continueWithMCPResult(tool, result) {

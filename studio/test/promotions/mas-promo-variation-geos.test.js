@@ -72,6 +72,22 @@ describe('MasPromoVariationGeos', () => {
             await el.updateComplete;
             expect(el.searchQuery).to.equal('ae');
         });
+
+        it('does not emit a selection change from the search control', async () => {
+            const el = await fixture(html`<mas-promo-variation-geos .geos=${geos}></mas-promo-variation-geos>`);
+            let changeCount = 0;
+            el.addEventListener('change', () => {
+                changeCount += 1;
+            });
+
+            const search = el.shadowRoot.querySelector('sp-search');
+            search.value = 'ae';
+            search.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(el.searchQuery).to.equal('ae');
+            expect(changeCount).to.equal(0);
+        });
     });
 
     describe('toggling a geo', () => {

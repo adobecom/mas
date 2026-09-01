@@ -10,6 +10,13 @@ import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+const CONTEXT_ATTRIBUTES = [
+    'fragment-id',
+    'variation-id',
+    'mask-id',
+    'data-promotion-project',
+    'data-promotion-variation-project',
+];
 
 /**
  * Resolves the promo code the mas-field should apply to its prices/CTAs,
@@ -72,8 +79,12 @@ function stripTrialCtas(html, indexed) {
  * locale-driven labels like the FR_fr "TTC" tax indicator.
  */
 export function priceOptionsProvider(element, options) {
-    const masField = element?.closest?.(MAS_FIELD_TAG);
-    if (!masField) return options;
+    if (!element) return options;
+    // Milo's unwrap strips the <mas-field> ancestor; #stampContext leaves a
+    // fragment-id on the survivor, so trust that as the ownership marker.
+    const masField = element.closest(MAS_FIELD_TAG);
+    const owned = masField || element.hasAttribute('fragment-id');
+    if (!owned) return options;
     options[FF_DEFAULTS] = true;
 
     if (shouldHideStPriceLabels(element)) {
@@ -85,37 +96,38 @@ export function priceOptionsProvider(element, options) {
     // displayPlanType setting, mirroring the merch-card variant provider.
     // mas-field renders legal templates outside a card, so it must apply the
     // setting itself, otherwise the plan type is always dropped.
-    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+    if (masField && element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayPlanType =
             masField.aemFragment?.data?.settings?.displayPlanType ?? false;
     }
 
     if (!options.promotionCode) {
-        const promotionCode = contextPromotionCode(masField);
+        const promotionCode =
+            element.dataset.promotionCode ??
+            (masField ? contextPromotionCode(masField) : null);
         if (promotionCode) options.promotionCode = promotionCode;
     }
 
     if (
         options.displayAnnual === undefined &&
-        typeof masField.settings?.displayAnnual === 'boolean'
+        typeof masField?.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = masField.settings.displayAnnual;
     }
 }
 
 /**
- * Applies the enclosing mas-field's promo code to checkout options,
- * mirroring what merch-card's checkout options provider does for cards.
- * Without this, CTAs rendered through <mas-field field="ctas"> resolve
- * checkout URLs without the promotion applied by a promo project.
+ * Applies the mas-field promo code to checkout options, like merch-card does
+ * for cards. Reads the element's own dataset first, so a CTA unwrapped out of
+ * its <mas-field> still resolves; falls back to the wrapper when still nested.
  */
 export function checkoutOptionsProvider(element, options) {
-    const masField = element?.closest?.(MAS_FIELD_TAG);
-    if (!masField) return options;
-    if (!options.promotionCode) {
-        const promotionCode = contextPromotionCode(masField);
-        if (promotionCode) options.promotionCode = promotionCode;
-    }
+    if (options.promotionCode || !element) return;
+    const masField = element.closest(MAS_FIELD_TAG);
+    const promotionCode =
+        element.dataset.promotionCode ??
+        (masField ? contextPromotionCode(masField) : null);
+    if (promotionCode) options.promotionCode = promotionCode;
 }
 
 function registerOptionsProviders(service) {
@@ -467,6 +479,7 @@ class MasField extends HTMLElement {
                 const content = this.#ensureContentElement();
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
                 this.#decorateTooltips(content);
+                this.#stampContext(content);
                 return;
             }
         }
@@ -491,13 +504,13 @@ class MasField extends HTMLElement {
                 const ctaEl = this.#renderCtaField(html);
                 if (ctaEl) {
                     content.replaceChildren(ctaEl);
-                    this.#stampPromotionCode(content, fieldName);
+                    this.#stampContext(content);
                     return;
                 }
             }
             content.innerHTML = html;
             this.#decorateTooltips(content);
-            this.#stampPromotionCode(content, fieldName);
+            this.#stampContext(content);
             return;
         }
         content.textContent = html == null ? '' : String(html);
@@ -634,23 +647,24 @@ class MasField extends HTMLElement {
     }
 
     /**
-     * Stamps the context promo code onto the CTA's checkout anchor(s) so it
-     * survives Milo's merch-card autoblock unwrapping the mas-field: the anchor
-     * is moved out of the wrapper (and any [data-promotion-code] ancestor)
-     * before its checkout URL resolves, so a promo code kept only on the
-     * wrapper is lost. Carrying it on the element itself lets both the checkout
-     * options provider (via dataset) and Milo's getCommerceContext (via
-     * closest) resolve it. Never overwrites an anchor's own authored promo code.
+     * Stamps context (ids, and the gated promo code) onto the commerce elements
+     * mas-field renders. Milo's autoblock unwraps the mas-field, so context kept
+     * only on the wrapper is lost; carrying it on the element itself survives the
+     * move. Never overwrites an element's own authored value.
      */
-    #stampPromotionCode(content, fieldName) {
-        if (fieldName !== 'ctas') return;
-        const promotionCode = contextPromotionCode(this);
-        if (!promotionCode) return;
+    #stampContext(content) {
         const targets = content.querySelectorAll(
-            'a[data-wcs-osi]:not([data-promotion-code])',
+            'a[data-wcs-osi],button[is="checkout-button"],span[is="inline-price"]',
         );
-        for (const el of targets)
-            el.setAttribute('data-promotion-code', promotionCode);
+        if (!targets.length) return;
+        const stamp = (name, value) => {
+            if (value == null) return;
+            for (const el of targets)
+                if (!el.hasAttribute(name)) el.setAttribute(name, value);
+        };
+        for (const name of CONTEXT_ATTRIBUTES)
+            stamp(name, this.getAttribute(name));
+        stamp('data-promotion-code', contextPromotionCode(this));
     }
 
     /**

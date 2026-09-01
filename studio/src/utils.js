@@ -14,6 +14,7 @@ import {
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 /**
  * @param {string} input
@@ -249,14 +250,14 @@ export function getFragmentPartsToUse(fragment, path) {
     return { fragmentParts, title };
 }
 
-export function generateCodeToUse(fragment, path, page, failMessage) {
+export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
                 variant: 'negative',
-                content: 'Failed to copy code to clipboard',
+                content: 'Failed to copy link to clipboard',
             });
         return [];
     }
@@ -469,6 +470,45 @@ export function extractLocaleFromPath(fragmentPath) {
     return match?.groups?.parsedLocale ?? null;
 }
 
+/**
+ * Resolves parent fragment by checking other fragments' variations fields.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {string} fragmentPath
+ * @returns {Promise<Object|null>}
+ */
+export async function resolveHydratedParentFragment(aem, fragmentPath) {
+    const references = await aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+    const parentRefs = references?.parentReferences || [];
+    if (!parentRefs.length) return null;
+
+    const surface = extractSurfaceFromPath(fragmentPath);
+    const variationLocale = extractLocaleFromPath(fragmentPath);
+    const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
+    const sortedRefs = defaultLocale
+        ? [...parentRefs].sort((a, b) => {
+              const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
+              const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
+              return aIsDefault - bIsDefault;
+          })
+        : parentRefs;
+
+    for (const ref of sortedRefs) {
+        const candidate = await aem.sites.cf.fragments.getByPath(ref.path);
+        if (!candidate) continue;
+
+        const variationsField = candidate.fields?.find((f) => f.name === 'variations');
+        const variations = variationsField?.values || [];
+        if (!variations.includes(fragmentPath)) continue;
+
+        if (!candidate.id) return candidate;
+
+        const hydrated = await aem.sites.cf.fragments.getById(candidate.id);
+        return hydrated || candidate;
+    }
+
+    return null;
+}
+
 export function previewFragmentOnPage(fragment) {
     if (!fragment?.id) return;
 
@@ -541,6 +581,9 @@ export function resolveContentTypeFilters(tags) {
 /**
  * Runs `load` only when `computeKey()` differs from the last run — skips
  * redundant re-fetches when the derived data would come out the same.
+ * If a newer call starts (key or guard changes) before an older `load()`
+ * resolves, the older call's `apply` is discarded so stale results can't
+ * overwrite state set by the latest call.
  * @returns {(options: {
  *   guard: () => boolean,
  *   computeKey: () => unknown,
@@ -551,15 +594,20 @@ export function resolveContentTypeFilters(tags) {
  */
 export function createKeyedAsyncLoader() {
     let lastKey = null;
+    let activeToken = 0;
     return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
         if (!guard()) {
             lastKey = null;
+            activeToken += 1;
             reset?.();
             return;
         }
         const key = computeKey();
         if (lastKey === key) return;
         lastKey = key;
-        apply(await load());
+        const token = ++activeToken;
+        const result = await load();
+        if (token !== activeToken) return;
+        apply(result);
     };
 }

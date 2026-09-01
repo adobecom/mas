@@ -8,6 +8,8 @@ export MAS_ACCESS_TOKEN="your-access-token"
 export MAS_API_KEY="your-api-key"
 ```
 
+`repair-variations.mjs` also reads these from a `scripts/content/.env` file (gitignored) if present; inline/exported values take precedence.
+
 # gen-locales.mjs
 
 Creates locale folder tree for a given surface in Odin. Locales are sourced from `locales.js` for the given surface. Existing folders are skipped; missing ones are created in batches of 5.

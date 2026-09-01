@@ -73,19 +73,19 @@ describe('ai-chat/foundry-client', () => {
             }
         });
 
-        it('defaults to the MoE Qwen model on the Adobe Foundry endpoint', () => {
+        it('defaults to Qwen-latest on the Adobe Foundry endpoint', () => {
             const client = makeClient();
-            expect(client.modelId).to.equal('hosted_vllm/Qwen/Qwen3.6-35B-A3B');
+            expect(client.modelId).to.equal('aifoundry/Qwen/Qwen-latest');
             expect(client.endpoint).to.equal('https://ehl.infra.adobe.net/v1/chat/completions');
         });
 
         it('allows the model and base URL to be overridden', () => {
             const client = new FoundryClient({
                 apiKey: 'k',
-                modelId: 'aifoundry/Qwen/Qwen-latest',
+                modelId: 'hosted_vllm/Qwen/Qwen3.6-35B-A3B',
                 baseUrl: 'https://example.test/v1',
             });
-            expect(client.modelId).to.equal('aifoundry/Qwen/Qwen-latest');
+            expect(client.modelId).to.equal('hosted_vllm/Qwen/Qwen3.6-35B-A3B');
             expect(client.endpoint).to.equal('https://example.test/v1/chat/completions');
         });
     });
@@ -98,7 +98,7 @@ describe('ai-chat/foundry-client', () => {
             await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE PROMPT', 256);
 
             const payload = JSON.parse(fetchStub.firstCall.args[1].body);
-            expect(payload.model).to.equal('hosted_vllm/Qwen/Qwen3.6-35B-A3B');
+            expect(payload.model).to.equal('aifoundry/Qwen/Qwen-latest');
             expect(payload.max_tokens).to.equal(256);
             expect(payload.messages[0]).to.deep.equal({ role: 'system', content: 'BASE PROMPT' });
             expect(payload.messages[1]).to.deep.equal({ role: 'user', content: 'hi' });
@@ -239,7 +239,7 @@ describe('ai-chat/foundry-client', () => {
             expect(payload.chat_template_kwargs).to.deep.equal({ enable_thinking: false });
         });
 
-        it('still forces the named tool when thinking is on', async () => {
+        it('downgrades forced choice to auto when thinking is on, which Qwen-latest corrupts', async () => {
             const client = makeClient();
             const fetchStub = sandbox.stub(global, 'fetch').resolves(chatResponse());
 
@@ -250,7 +250,7 @@ describe('ai-chat/foundry-client', () => {
             });
 
             const payload = JSON.parse(fetchStub.firstCall.args[1].body);
-            expect(payload.tool_choice).to.deep.equal({ type: 'function', function: { name: 'emit_envelope' } });
+            expect(payload.tool_choice).to.equal('auto');
         });
 
         it('re-enables thinking when AI_FOUNDRY_THINKING is on', async () => {

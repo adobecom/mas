@@ -21,7 +21,7 @@
  */
 
 const DEFAULT_BASE_URL = 'https://ehl.infra.adobe.net/v1';
-const DEFAULT_MODEL_ID = 'hosted_vllm/Qwen/Qwen3.6-35B-A3B';
+const DEFAULT_MODEL_ID = 'aifoundry/Qwen/Qwen-latest';
 
 const MAX_HISTORY_TURNS = 10;
 
@@ -146,12 +146,13 @@ function toFunctionTools(tools) {
 /**
  * Translate an Anthropic-style toolChoice into the OpenAI form.
  *
- * Note for anyone switching AI_FOUNDRY_MODEL_ID to aifoundry/Qwen/Qwen-latest:
- * on that model a forced choice combined with thinking makes the upstream
- * parser emit raw Hermes markup into `arguments` instead of JSON. The MoE
- * model this client defaults to handles every combination correctly.
+ * On Qwen-latest a forced choice combined with thinking makes the upstream
+ * parser emit raw Hermes markup into `arguments` instead of JSON, so a forced
+ * request is downgraded to auto whenever thinking is on. With thinking off,
+ * every form returns valid JSON.
  */
-function toToolChoice(toolChoice) {
+function toToolChoice(toolChoice, thinkingEnabled) {
+    if (thinkingEnabled) return 'auto';
     if (toolChoice?.type === 'tool' && toolChoice.name) {
         return { type: 'function', function: { name: toolChoice.name } };
     }
@@ -210,7 +211,7 @@ export class FoundryClient {
         }
         if (options.tools?.length) {
             payload.tools = toFunctionTools(options.tools);
-            payload.tool_choice = toToolChoice(options.toolChoice);
+            payload.tool_choice = toToolChoice(options.toolChoice, thinkingEnabled);
         }
 
         const maxRetries = Number(process.env.AI_FOUNDRY_MAX_RETRIES ?? 2);

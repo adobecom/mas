@@ -34,7 +34,7 @@ const VALID_INTENTS = new Set([
     'unknown',
 ]);
 
-const DEFAULT_CLASSIFIER_MODEL_ID = 'hosted_vllm/Qwen/Qwen3.6-35B-A3B';
+const DEFAULT_CLASSIFIER_MODEL_ID = 'aifoundry/Qwen/Qwen-latest';
 
 const CLASSIFIER_SYSTEM_PROMPT = `You are an intent classifier for the Adobe Merch at Scale (M@S) AI assistant.
 

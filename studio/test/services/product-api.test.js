@@ -1,12 +1,13 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { fetchProducts, fetchProductDetail } from '../../src/services/product-api.js';
+import { fetchProducts, fetchProductDetail, clearProductCache } from '../../src/services/product-api.js';
 
 describe('product-api', () => {
     let sandbox;
     let fetchStub;
 
     beforeEach(() => {
+        clearProductCache();
         sandbox = sinon.createSandbox();
         fetchStub = sandbox.stub(window, 'fetch');
 
@@ -27,6 +28,127 @@ describe('product-api', () => {
     afterEach(() => {
         sandbox.restore();
         delete window.adobeIMS;
+        clearProductCache();
+    });
+
+    describe('fetchProducts caching', () => {
+        const catalog = {
+            combinedProducts: {
+                p1: { name: 'Photoshop', arrangement_code: 'PHSP' },
+                p2: { name: 'Lightroom', arrangement_code: 'LGHT' },
+            },
+        };
+
+        function resolveCatalog() {
+            fetchStub.resolves({ ok: true, json: () => Promise.resolve(catalog) });
+        }
+
+        it('does not refetch the catalog on a second call', async () => {
+            resolveCatalog();
+
+            const first = await fetchProducts();
+            const second = await fetchProducts();
+
+            expect(fetchStub.callCount).to.equal(1);
+            expect(first.products).to.have.length(2);
+            expect(second.products).to.have.length(2);
+        });
+
+        it('caches the unfiltered catalog and re-filters per call', async () => {
+            resolveCatalog();
+
+            const all = await fetchProducts();
+            const filtered = await fetchProducts({ searchText: 'lightroom' });
+            const againAll = await fetchProducts();
+
+            expect(fetchStub.callCount).to.equal(1);
+            expect(all.products).to.have.length(2);
+            expect(filtered.products).to.have.length(1);
+            expect(filtered.products[0].name).to.equal('Lightroom');
+            expect(againAll.products).to.have.length(2);
+        });
+
+        it('does not let a filtered call poison the cache for later callers', async () => {
+            resolveCatalog();
+
+            await fetchProducts({ searchText: 'photoshop' });
+            const all = await fetchProducts();
+
+            expect(fetchStub.callCount).to.equal(1);
+            expect(all.products).to.have.length(2);
+        });
+
+        it('shares one request when callers arrive concurrently', async () => {
+            let release;
+            const gate = new Promise((resolve) => {
+                release = resolve;
+            });
+            fetchStub.callsFake(async () => {
+                await gate;
+                return { ok: true, json: () => Promise.resolve(catalog) };
+            });
+
+            const pending = [fetchProducts(), fetchProducts(), fetchProducts({ searchText: 'photoshop' })];
+            release();
+            const results = await Promise.all(pending);
+
+            expect(fetchStub.callCount).to.equal(1);
+            expect(results[0].products).to.have.length(2);
+            expect(results[2].products).to.have.length(1);
+        });
+
+        it('refetches once the TTL has expired', async () => {
+            const clock = sandbox.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            resolveCatalog();
+
+            await fetchProducts();
+            clock.tick(60 * 1000);
+            await fetchProducts();
+            expect(fetchStub.callCount).to.equal(1);
+
+            clock.tick(10 * 60 * 1000);
+            await fetchProducts();
+            expect(fetchStub.callCount).to.equal(2);
+        });
+
+        it('does not cache a failed fetch', async () => {
+            fetchStub.onFirstCall().resolves({ ok: false, status: 503, text: () => Promise.resolve('down') });
+            fetchStub.onSecondCall().resolves({ ok: true, json: () => Promise.resolve(catalog) });
+
+            try {
+                await fetchProducts();
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('Failed to fetch products');
+            }
+
+            const result = await fetchProducts();
+            expect(fetchStub.callCount).to.equal(2);
+            expect(result.products).to.have.length(2);
+        });
+
+        it('hands each caller its own array so sorting one cannot corrupt the cache', async () => {
+            resolveCatalog();
+
+            const first = await fetchProducts();
+            first.products.sort((a, b) => a.name.localeCompare(b.name));
+            first.products.pop();
+            const second = await fetchProducts();
+
+            expect(fetchStub.callCount).to.equal(1);
+            expect(second.products).to.have.length(2);
+            expect(second.products[0].name).to.equal('Photoshop');
+        });
+
+        it('refetches after the cache is cleared', async () => {
+            resolveCatalog();
+
+            await fetchProducts();
+            clearProductCache();
+            await fetchProducts();
+
+            expect(fetchStub.callCount).to.equal(2);
+        });
     });
 
     describe('fetchProducts', () => {

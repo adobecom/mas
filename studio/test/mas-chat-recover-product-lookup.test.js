@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { fetchProducts } from '../src/services/product-api.js';
+import { fetchProducts, clearProductCache } from '../src/services/product-api.js';
 
 const MOCK_PRODUCT = {
     arrangement_code: 'phsp_direct_individual',
@@ -61,6 +61,9 @@ describe('recoverProductLookup', () => {
     let fetchStub;
 
     beforeEach(() => {
+        // fetchProducts caches the catalog for the tab, so each case must start
+        // from a cold cache or it inherits the previous case's catalog.
+        clearProductCache();
         sessionStorage.setItem('masAccessToken', 'test-token');
         fetchStub = sinon.stub(window, 'fetch');
     });
@@ -68,6 +71,7 @@ describe('recoverProductLookup', () => {
     afterEach(() => {
         fetchStub.restore();
         sessionStorage.removeItem('masAccessToken');
+        clearProductCache();
     });
 
     it('appends productCards guided step when products are found', async () => {

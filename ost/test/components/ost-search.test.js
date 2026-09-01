@@ -207,7 +207,7 @@ describe('ost-search', () => {
         expect(store.selectedOsi).to.equal(undefined);
     });
 
-    it('resolveOfferId resets segment filters to All and stashes the offer attributes for auto-select', async () => {
+    it('resolveOfferId loads the found offer entitlements into the filters', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         const product = { arrangement_code: 'offer-arr', name: 'Acrobat' };
         store.allProducts = [['acro', product]];
@@ -226,13 +226,35 @@ describe('ost-search', () => {
             ],
         });
         await el.resolveOfferId('257E1D82082387D152029F93C1030624');
+        expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
+        expect(store.aosParams.marketSegment).to.equal('COM');
+        expect(store.aosParams.offerType).to.equal('BASE');
+        expect(store.aosParams.commitment).to.equal('YEAR');
+        expect(store.aosParams.term).to.equal('MONTHLY');
+    });
+
+    it('resolveOfferId stashes the offer attributes and product for auto-select', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'offer-arr', name: 'Acrobat' };
+        store.allProducts = [['acro', product]];
+        window.fetch = async () => ({
+            ok: true,
+            json: async () => [
+                {
+                    offer_id: '040DCF1A11122A9096E4756473D186AF',
+                    product_arrangement_code: 'offer-arr',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segments: ['COM'],
+                    offer_type: 'BASE',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+            ],
+        });
+        await el.resolveOfferId('040DCF1A11122A9096E4756473D186AF');
         expect(store.searchQuery).to.equal('offer-arr');
         expect(store.searchType).to.equal('product');
-        expect(store.aosParams.customerSegment).to.equal('');
-        expect(store.aosParams.marketSegment).to.equal('');
-        expect(store.aosParams.offerType).to.equal('');
-        expect(store.aosParams.commitment).to.equal('');
-        expect(store.aosParams.term).to.equal('');
+        expect(store.initialOfferId).to.equal('040DCF1A11122A9096E4756473D186AF');
         expect(store.initialOsiAttributes).to.deep.equal({
             customer_segment: 'INDIVIDUAL',
             market_segment: 'COM',
@@ -241,6 +263,28 @@ describe('ost-search', () => {
             term: 'MONTHLY',
         });
         expect(store.selectedProduct).to.equal(product);
+    });
+
+    it('resolveOfferId omits entitlement filters the found offer does not define', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'offer-arr', name: 'Acrobat' };
+        store.allProducts = [['acro', product]];
+        store.setAosParams({ customerSegment: 'TEAM', marketSegment: 'EDU', offerType: 'TRIAL' });
+        window.fetch = async () => ({
+            ok: true,
+            json: async () => [
+                {
+                    product_arrangement_code: 'offer-arr',
+                    offer_type: 'BASE',
+                },
+            ],
+        });
+        await el.resolveOfferId('257E1D82082387D152029F93C1030624');
+        expect(store.aosParams.offerType).to.equal('BASE');
+        expect(store.aosParams.customerSegment).to.equal('');
+        expect(store.aosParams.marketSegment).to.equal('');
+        expect(store.aosParams.commitment).to.equal('');
+        expect(store.aosParams.term).to.equal('');
     });
 
     it('resolveOfferId swallows fetch errors without throwing', async () => {

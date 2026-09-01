@@ -6,6 +6,7 @@ import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
+import { isGeoTag } from './variation-utils.js';
 import './variant-picker.js';
 import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
@@ -29,8 +30,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
-import { EXPLICIT_EMPTY_SENTINEL, parentValuesHaveContent } from '../../../io/www/src/fragment/utils/explicit-empty.js';
-import { normalizePznTagToLocaleCode } from './variation-utils.js';
+import { normalizePznTagToLocaleCode, parseCtas, getCtaKeyIssues, summarizeCtaKeyIssues } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
@@ -153,6 +153,12 @@ class MerchCardEditor extends LitElement {
         return Fragment.isGroupedVariationPath(this.fragment?.path);
     }
 
+    /** Parent baseline CTAs (text + data-key) offered to a variation as override targets. */
+    get parentCtas() {
+        if (!this.effectiveIsVariation) return [];
+        return parseCtas(this.localeDefaultFragment?.getFieldValue('ctas', 0) || '');
+    }
+
     get pznTagsValue() {
         return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).join(',');
     }
@@ -216,7 +222,7 @@ class MerchCardEditor extends LitElement {
     };
 
     get groupedVariationTagsTemplate() {
-        if (!this.isGroupedVariation) return nothing;
+        if (!this.isGroupedVariation || this.isPromoVariation) return nothing;
         const locale = this.fragment?.locale;
         const isReadonly = locale !== 'en_US';
         return html`
@@ -242,18 +248,22 @@ class MerchCardEditor extends LitElement {
     }
 
     get promoGeoTags() {
-        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean);
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).filter((tag) => isGeoTag(tag));
+    }
+
+    #nonGeoPznTags() {
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).filter((tag) => !isGeoTag(tag));
     }
 
     #removePromoGeoTag(tag) {
-        this.fragmentStore.updateField(
-            'pznTags',
-            this.promoGeoTags.filter((existing) => existing !== tag),
-        );
+        this.fragmentStore.updateField('pznTags', [
+            ...this.#nonGeoPznTags(),
+            ...this.promoGeoTags.filter((existing) => existing !== tag),
+        ]);
     }
 
     #handlePromoGeoTagsChange(e) {
-        this.fragmentStore.updateField('pznTags', e.detail.value);
+        this.fragmentStore.updateField('pznTags', [...this.#nonGeoPznTags(), ...e.detail.value]);
     }
 
     get promoVariationGeoTagsTemplate() {
@@ -396,6 +406,38 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
+    /** Flags reference-key problems (missing or duplicated `data-key`) in the CTAs field that would
+     *  keep `cta[<key>]` references from resolving. On a variation the offending CTAs live in the base
+     *  fragment and can only be fixed there; on a baseline the author can normalize them in place. */
+    renderCtaKeyWarning() {
+        if (this.effectiveIsVariation) {
+            const issues = getCtaKeyIssues(this.parentCtas);
+            if (!issues.hasIssues) return nothing;
+            return html`
+                <div class="field-status-indicator field-status-indicator--error" role="alert">
+                    <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                    <span class="field-status-label">Base fragment CTAs need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                </div>
+            `;
+        }
+        const issues = getCtaKeyIssues(parseCtas(this.fragment?.getFieldValue('ctas', 0) || ''));
+        if (!issues.hasIssues) return nothing;
+        return html`
+            <div class="field-status-indicator field-status-indicator--error" role="alert">
+                <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                <span class="field-status-label">CTA references need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                <sp-link href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}
+                    >Fix references</sp-link
+                >
+            </div>
+        `;
+    }
+
+    #fixCtaKeys(event) {
+        event.preventDefault();
+        this.querySelector('rte-field#ctas')?.fixCtaKeys();
+    }
+
     isAddonBgOverridden() {
         if (this.effectiveIsVariation) {
             const settingsValue = this.globalSettingsDefaults[ADDON];
@@ -506,6 +548,8 @@ class MerchCardEditor extends LitElement {
         }
 
         if (!settingsContextFragment.locale) settingsContextFragment.locale = this.fragment.locale;
+        if (!settingsContextFragment.country)
+            settingsContextFragment.country = settingsContextFragment.locale?.split('_')[1] || '';
 
         return settingsContextFragment;
     }
@@ -1821,10 +1865,12 @@ class MerchCardEditor extends LitElement {
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.ctas.values[0] || ''}
+                        ?is-variation=${this.effectiveIsVariation}
+                        .parentCtas=${this.parentCtas}
                         default-link-style="primary-outline"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderFieldStatusIndicator('ctas')}
+                    ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
                 </sp-field-group>
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>

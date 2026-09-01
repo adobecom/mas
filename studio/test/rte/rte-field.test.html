@@ -354,6 +354,91 @@
                         expect(a.innerText).to.equal('ebodA');
                     });
 
+                    it('generates a read-only CTA reference when creating a CTA link', async function () {
+                        rte = await createFromTemplate('rte-ctas', this.test.title);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        // A brand-new ctas link gets a key minted up-front, shown read-only.
+                        expect(rte.linkEditorElement.showCtaReference).to.be.true;
+                        expect(rte.linkEditorElement.ctaRefElement.readonly).to.be.ok;
+                        const key = rte.linkEditorElement.ctaRef;
+                        expect(key).to.have.lengthOf(10);
+
+                        rte.linkEditorElement.href = 'https://www.adobe.com';
+                        rte.linkEditorElement.text = 'Buy now';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('data-key')).to.equal(key);
+                    });
+
+                    it('surfaces the existing key and lets a variation retarget it to a parent CTA', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.isVariation = true;
+                        rte.parentCtas = [{ text: 'Save today', key: 'save-today' }];
+                        rte.value = '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm">Buy now</a>';
+                        await delay(100);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        expect(rte.linkEditorElement.showCtaReference).to.be.true;
+                        expect(rte.linkEditorElement.isVariation).to.be.true;
+                        expect(rte.linkEditorElement.ctaRef).to.equal('abc1234xyz');
+
+                        // Picking a parent CTA sets the reference key.
+                        const picker = rte.linkEditorElement.shadowRoot.getElementById('ctaRefPicker');
+                        picker.value = 'save-today';
+                        picker.dispatchEvent(new Event('change'));
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('data-key')).to.equal('save-today');
+                    });
+
+                    it('detects and fixes missing/duplicate reference keys from the modal', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.value =
+                            '<a class="accent" data-key="dup" data-wcs-osi="a">A</a>' +
+                            '<a class="accent" data-key="dup" data-wcs-osi="b">B</a>' +
+                            '<a class="accent" data-wcs-osi="c">C</a>';
+                        await delay(100);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        // One anchor is missing a key and two share 'dup'.
+                        expect(rte.linkEditorElement.ctaKeyIssues.hasIssues).to.be.true;
+                        expect(rte.linkEditorElement.ctaKeyIssues.missingCount).to.equal(1);
+                        expect(rte.linkEditorElement.ctaKeyIssues.duplicateKeys).to.deep.equal(['dup']);
+
+                        const fixLink = rte.linkEditorElement.ctaKeyIssuesElement.querySelector('sp-link');
+                        fixLink.click();
+                        await delay(100);
+
+                        const keys = [...new DOMParser().parseFromString(rte.value, 'text/html').querySelectorAll('a')].map(
+                            (a) => a.getAttribute('data-key'),
+                        );
+                        expect(keys).to.have.lengthOf(3);
+                        expect(keys.every(Boolean)).to.be.true; // no missing keys
+                        expect(new Set(keys).size).to.equal(3); // all unique
+                    });
+
+                    it('does not emit change when a keyless CTA is only selected', async function () {
+                        // Selecting a CTA must not silently heal its key or clear the key-issue
+                        // warning: a selection-only transaction leaves the doc unchanged, so no
+                        // change is dispatched and the fragment is never updated. (MWPW-204765)
+                        rte = await createFromTemplate('rte-ctas', this.test.title);
+                        rte.value = '<a class="accent" data-wcs-osi="a">A</a>';
+                        await delay(100);
+                        let changeCount = 0;
+                        rte.addEventListener('change', () => {
+                            changeCount += 1;
+                        });
+                        rte.selectLink(1);
+                        await delay(100);
+                        expect(changeCount).to.equal(0);
+                    });
+
                     it('should open the link editor on selection and support update', async function () {
                         rte = await createFromTemplate('rte', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'only');
@@ -698,6 +783,9 @@
         </template>
         <template id="rte-link">
             <rte-field id="ctas" link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
+        </template>
+        <template id="rte-ctas">
+            <rte-field id="ctas" link><p>Text only</p></rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>

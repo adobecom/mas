@@ -59,27 +59,57 @@ export class ProductCatalog {
         return new Map(Object.entries(productsObj));
     }
 
+    /**
+     * One line per call so the cache can be measured in real traffic.
+     * `reason=warm` means a container reused an already-settled entry, which is
+     * the number that says whether container reuse is actually happening;
+     * `reason=inflight` only means a concurrent caller shared a pending fetch.
+     */
+    logCache(outcome, reason, fields = {}) {
+        const parts = [`cache=${outcome}`, `reason=${reason}`, `ttlMs=${this.cacheTtlMs}`];
+        for (const [key, value] of Object.entries(fields)) {
+            parts.push(`${key}=${value}`);
+        }
+        console.log(`[ProductCatalog] ${parts.join(' ')}`);
+    }
+
     async loadProducts() {
         if (this.cacheTtlMs === 0) {
+            this.logCache('bypass', 'disabled');
             return this.fetchProducts();
         }
 
         const cached = catalogCache.get(this.productsEndpoint);
         if (cached && cached.expiresAt > Date.now()) {
-            return cached.products;
+            const settled = cached.settled;
+            const products = await cached.products;
+            this.logCache('hit', settled ? 'warm' : 'inflight', {
+                ageMs: Date.now() - cached.cachedAt,
+                products: products.size,
+            });
+            return products;
         }
 
         const products = this.fetchProducts();
-        catalogCache.set(this.productsEndpoint, {
+        const entry = {
             products,
+            cachedAt: Date.now(),
             expiresAt: Date.now() + this.cacheTtlMs,
-        });
+            settled: false,
+        };
+        catalogCache.set(this.productsEndpoint, entry);
 
         try {
-            return await products;
+            const resolved = await products;
+            entry.settled = true;
+            this.logCache('miss', cached ? 'expired' : 'cold', {
+                products: resolved.size,
+                fetchMs: Date.now() - entry.cachedAt,
+            });
+            return resolved;
         } catch (error) {
             // A failed fetch must not be cached: the next call retries.
-            if (catalogCache.get(this.productsEndpoint)?.products === products) {
+            if (catalogCache.get(this.productsEndpoint) === entry) {
                 catalogCache.delete(this.productsEndpoint);
             }
             throw error;

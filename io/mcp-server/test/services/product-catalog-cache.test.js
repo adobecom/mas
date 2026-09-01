@@ -43,6 +43,19 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Captures console.log lines emitted by the service. */
+function captureLogs() {
+    const lines = [];
+    const original = console.log;
+    console.log = (...args) => {
+        lines.push(args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
+    };
+    lines.restore = () => {
+        console.log = original;
+    };
+    return lines;
+}
+
 describe('ProductCatalog caching', () => {
     let originalFetch;
 
@@ -187,5 +200,82 @@ describe('ProductCatalog caching', () => {
         await catalog.loadProducts();
 
         expect(fetchState.calls.length).to.equal(2);
+    });
+
+    describe('hit/miss logging', () => {
+        let logs;
+
+        beforeEach(() => {
+            logs = captureLogs();
+        });
+
+        afterEach(() => {
+            logs.restore();
+        });
+
+        it('logs a cold miss on the first call', async () => {
+            stubFetch([catalogPayload(['A', 'B'])]);
+
+            await new ProductCatalog(STUB_AUTH, ENDPOINT).loadProducts();
+
+            const line = logs.find((l) => l.includes('[ProductCatalog]'));
+            expect(line).to.contain('cache=miss');
+            expect(line).to.contain('reason=cold');
+            expect(line).to.contain('products=2');
+        });
+
+        it('logs a hit with the entry age on a subsequent call', async () => {
+            stubFetch([catalogPayload(['A', 'B'])]);
+            const catalog = new ProductCatalog(STUB_AUTH, ENDPOINT);
+
+            await catalog.loadProducts();
+            await catalog.loadProducts();
+
+            const hits = logs.filter((l) => l.includes('cache=hit'));
+            expect(hits.length).to.equal(1);
+            expect(hits[0]).to.contain('reason=warm');
+            expect(hits[0]).to.match(/ageMs=\d+/);
+            expect(hits[0]).to.contain('products=2');
+        });
+
+        it('distinguishes an expired miss from a cold miss', async () => {
+            stubFetch([catalogPayload(['A']), catalogPayload(['A', 'B'])]);
+            const catalog = new ProductCatalog(STUB_AUTH, ENDPOINT, 10);
+
+            await catalog.loadProducts();
+            await sleep(30);
+            await catalog.loadProducts();
+
+            const misses = logs.filter((l) => l.includes('cache=miss'));
+            expect(misses.length).to.equal(2);
+            expect(misses[0]).to.contain('reason=cold');
+            expect(misses[1]).to.contain('reason=expired');
+        });
+
+        it('logs a bypass when caching is turned off', async () => {
+            stubFetch([catalogPayload(['A'])]);
+
+            await new ProductCatalog(STUB_AUTH, ENDPOINT, 0).loadProducts();
+
+            const line = logs.find((l) => l.includes('[ProductCatalog]'));
+            expect(line).to.contain('cache=bypass');
+        });
+
+        it('marks a stampede waiter as inflight, not as a warm-container hit', async () => {
+            const fetchState = stubFetch([catalogPayload(['A', 'B'])], { deferred: true });
+
+            const pending = [
+                new ProductCatalog(STUB_AUTH, ENDPOINT).loadProducts(),
+                new ProductCatalog(STUB_AUTH, ENDPOINT).loadProducts(),
+                new ProductCatalog(STUB_AUTH, ENDPOINT).loadProducts(),
+            ];
+            fetchState.release();
+            await Promise.all(pending);
+
+            expect(logs.filter((l) => l.includes('cache=miss')).length).to.equal(1);
+            const hits = logs.filter((l) => l.includes('cache=hit'));
+            expect(hits.length).to.equal(2);
+            expect(hits.every((l) => l.includes('reason=inflight'))).to.equal(true);
+        });
     });
 });

@@ -315,10 +315,12 @@ describe('promotions-repository', () => {
     });
 
     describe('buildPromoVariationParentRefreshCallback', () => {
-        it('does nothing when the parent store is not found in Store.fragments.list.data', async () => {
+        it('does nothing when the id is not a top-level entry and not a grouped variation', async () => {
             sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+            const getById = sandbox.stub().resolves({ id: 'missing-id', path: '/content/dam/mas/sandbox/en_US/my-card' });
+            const aem = { sites: { cf: { fragments: { getById } } } };
             const refreshFragment = sandbox.stub().resolves();
-            const callback = buildPromoVariationParentRefreshCallback('missing-id', refreshFragment);
+            const callback = buildPromoVariationParentRefreshCallback(aem, 'missing-id', refreshFragment);
 
             await callback({ id: 'created', path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card' });
 
@@ -330,13 +332,40 @@ describe('promotions-repository', () => {
             parentStore.get.onFirstCall().returns({ id: 'parent-1' });
             parentStore.get.onSecondCall().returns(null);
             sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            const aem = { sites: { cf: { fragments: { getById: sandbox.stub() } } } };
             const refreshFragment = sandbox.stub().resolves();
-            const callback = buildPromoVariationParentRefreshCallback('parent-1', refreshFragment);
+            const callback = buildPromoVariationParentRefreshCallback(aem, 'parent-1', refreshFragment);
 
             await callback({ id: 'created', path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card' });
 
             expect(refreshFragment.calledOnce).to.be.true;
             expect(parentStore.refreshFrom.called).to.be.false;
+        });
+
+        it('remaps a grouped-variation id to its top-level card before refreshing', async () => {
+            const parentStore = { get: sandbox.stub().returns({ id: 'card-1', references: [] }), refreshFrom: sandbox.stub() };
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            const groupedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-card-edu';
+            const cardPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const getById = sandbox.stub();
+            getById.withArgs('grouped-1').resolves({ id: 'grouped-1', path: groupedPath });
+            getById.withArgs('card-1').resolves({ id: 'card-1', path: cardPath });
+            const getByPath = sandbox
+                .stub()
+                .withArgs(cardPath)
+                .resolves({ id: 'card-1', path: cardPath, fields: [{ name: 'variations', values: [groupedPath] }] });
+            const getReferencedBy = sandbox
+                .stub()
+                .withArgs(groupedPath)
+                .resolves({ parentReferences: [{ path: cardPath }] });
+            const aem = { sites: { cf: { fragments: { getById, getByPath, getReferencedBy } } } };
+            const refreshFragment = sandbox.stub().resolves();
+            const callback = buildPromoVariationParentRefreshCallback(aem, 'grouped-1', refreshFragment);
+
+            await callback({ id: 'created', path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card-edu' });
+
+            expect(refreshFragment.calledOnceWith(parentStore)).to.be.true;
+            expect(parentStore.refreshFrom.calledOnce).to.be.true;
         });
     });
 

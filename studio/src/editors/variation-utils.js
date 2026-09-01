@@ -83,6 +83,42 @@ export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
     return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
 }
 
+/** Parses CTA HTML and returns an array of `{ text, href, key }` objects, one per anchor.
+ *  Uses a <template> element so checkout-link custom elements are never upgraded and their
+ *  attributes (href, data-key, data-wcs-osi, …) are preserved exactly as stored. */
+export function parseCtas(html) {
+    if (!html || typeof html !== 'string') return [];
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return [...template.content.querySelectorAll('a')]
+        .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '', key: a.getAttribute('data-key') }))
+        .filter(({ text, href }) => text || href);
+}
+
+/** Reference-key problems in a list of parsed CTAs (see {@link parseCtas}): anchors missing a
+ *  `data-key`, and keys shared by more than one anchor. Both break `cta[<key>]` references. */
+export function getCtaKeyIssues(ctas = []) {
+    const counts = new Map();
+    let missingCount = 0;
+    for (const { key } of ctas) {
+        if (!key) {
+            missingCount += 1;
+            continue;
+        }
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const duplicateKeys = [...counts.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+    return { missingCount, duplicateKeys, hasIssues: missingCount > 0 || duplicateKeys.length > 0 };
+}
+
+/** Human-readable summary of {@link getCtaKeyIssues} counts, e.g. "2 without a reference key, 1 duplicated". */
+export function summarizeCtaKeyIssues({ missingCount = 0, duplicateKeys = [] } = {}) {
+    const parts = [];
+    if (missingCount) parts.push(`${missingCount} without a reference key`);
+    if (duplicateKeys.length) parts.push(`${duplicateKeys.length} duplicated`);
+    return parts.join(', ');
+}
+
 export function listLocaleVariations(fragment) {
     return fragment?.listLocaleVariations?.() || [];
 }

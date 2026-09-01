@@ -1,6 +1,7 @@
 import { PATH_TOKENS } from '../utils/paths.js';
 import {
     CARD_MODEL_ID,
+    geoMatchScore,
     getRequestInfos,
     hasGeoTag,
     matchesGeo,
@@ -116,16 +117,6 @@ function countMatchedPznTokens(tags, tokens) {
         }
     }
     return n;
-}
-
-/**
- * Region match beats country match when resolving ties (applies to both pzn and promo variations).
- * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
- * @returns {number}
- */
-function geoMatchScore(geo) {
-    if (!geo) return 0;
-    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
 }
 
 /**

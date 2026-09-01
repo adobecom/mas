@@ -137,6 +137,7 @@ export const PAGE_NAMES = {
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
+    OFFER_MAPPING: 'offer-mapping',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';

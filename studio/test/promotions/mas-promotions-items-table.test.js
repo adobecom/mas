@@ -62,6 +62,26 @@ describe('MasPromotionsItemsTable', () => {
         ]);
     });
 
+    it('rebuilds offer rows when offer records finish hydrating after first paint', async () => {
+        const offerId = 'osi-xyz';
+        Store.promotions.selectedOffers.set([offerId]);
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        // Placeholder row before the records land (offers render immediately, unblocked).
+        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerId });
+
+        Store.promotions.offerRecordsCache.set(offerId, {
+            path: offerId,
+            id: offerId,
+            offerData: { offerId, offerType: 'BASE' },
+            tags: [],
+            fields: [],
+        });
+        Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+        await el.updateComplete;
+        expect(el.viewOnlyFragments[0].offerData.offerType).to.equal('BASE');
+    });
+
     it('shows empty state when there is no repository and paths are selected', async () => {
         Store.promotions.selectedCards.set(['/some/path']);
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
@@ -110,6 +130,86 @@ describe('MasPromotionsItemsTable', () => {
         await selectItemsTable.updateComplete;
         expect(selectItemsTable.shadowRoot.textContent).to.include('Collection title');
         el.remove();
+    });
+
+    describe('viewOnly windowing', () => {
+        let restoreIO;
+
+        beforeEach(() => {
+            // Replace IntersectionObserver with a no-op so the scroll sentinel does not
+            // auto-cascade load-more in the (unbounded-height) test DOM; we drive it manually.
+            const original = window.IntersectionObserver;
+            window.IntersectionObserver = class {
+                observe() {}
+                unobserve() {}
+                disconnect() {}
+            };
+            restoreIO = () => {
+                window.IntersectionObserver = original;
+            };
+        });
+
+        afterEach(() => restoreIO());
+
+        function makeCollectionRepo() {
+            const getFragmentByPath = sandbox.stub().callsFake((path) =>
+                Promise.resolve({
+                    path,
+                    id: path,
+                    title: path,
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                    tags: [],
+                }),
+            );
+            return { getFragmentByPath, repo: { aem: { getFragmentByPath } } };
+        }
+
+        async function mountWindowed(pathCount) {
+            const paths = Array.from({ length: pathCount }, (_, i) => `/content/dam/mas/sandbox/en_US/col-${i}`);
+            Store.promotions.selectedCollections.set(paths);
+            const { getFragmentByPath, repo } = makeCollectionRepo();
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.COLLECTIONS;
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            return { el, getFragmentByPath };
+        }
+
+        function fireLoadMore(el) {
+            el.shadowRoot
+                .querySelector('mas-select-items-table')
+                .dispatchEvent(new CustomEvent('view-only-load-more', { bubbles: true, composed: true }));
+        }
+
+        it('loads only the first window of selected items initially', async () => {
+            const { el, getFragmentByPath } = await mountWindowed(60);
+            expect(el.viewOnlyFragments.length).to.equal(25);
+            expect(getFragmentByPath.callCount).to.equal(25);
+            el.remove();
+        });
+
+        it('appends the next window on view-only-load-more, capped at the total', async () => {
+            const { el } = await mountWindowed(60);
+            fireLoadMore(el);
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(50);
+
+            fireLoadMore(el);
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(60);
+
+            // No more to load: the sentinel is gone and further events are no-ops.
+            fireLoadMore(el);
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(60);
+            el.remove();
+        });
     });
 
     it('typeUppercased returns capitalized type string', async () => {

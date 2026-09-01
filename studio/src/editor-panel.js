@@ -15,7 +15,7 @@ import {
 import Events from './events.js';
 import { migrateLegacyVariant } from './editors/variant-picker.js';
 import {
-    generateCodeToUse,
+    generateLinkToUse,
     showToast,
     extractLocaleFromPath,
     previewFragmentOnPage,
@@ -507,7 +507,7 @@ export default class EditorPanel extends LitElement {
     showNegativeAlert() {
         Events.toast.emit({
             variant: 'negative',
-            content: 'Failed to copy code to clipboard',
+            content: 'Failed to copy link to clipboard',
         });
     }
 
@@ -516,11 +516,11 @@ export default class EditorPanel extends LitElement {
     }
 
     async copyToUse() {
-        const { code, richText, href } = generateCodeToUse(
+        const { code, richText, href } = generateLinkToUse(
             this.fragment,
             Store.search.get().path,
             Store.page.get(),
-            'Failed to copy code to clipboard',
+            'Failed to copy link to clipboard',
         );
         if (!code || !richText || !href) return;
 
@@ -534,7 +534,7 @@ export default class EditorPanel extends LitElement {
             ]);
             Events.toast.emit({
                 variant: 'positive',
-                content: 'Code copied to clipboard',
+                content: 'Link copied to clipboard',
             });
         } catch (e) {
             this.showNegativeAlert();
@@ -851,7 +851,7 @@ export default class EditorPanel extends LitElement {
                         <sp-tooltip self-managed placement="bottom">Unpublish</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button label="Use" title="Use (Ctrl+K)" value="use" @click="${this.copyToUse}">
-                        <sp-icon-code slot="icon"></sp-icon-code>
+                        <sp-icon-link slot="icon"></sp-icon-link>
                         <sp-tooltip self-managed placement="bottom">Use (Ctrl+K)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button

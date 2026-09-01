@@ -18,7 +18,7 @@ import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
-    generateCodeToUse,
+    generateLinkToUse,
     getFragmentMapping,
     getFragmentPartsToUse,
     hasNonEmptyCompareChart,
@@ -1627,11 +1627,11 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async copyToUse() {
-        const { code, richText, href } = generateCodeToUse(
+        const { code, richText, href } = generateLinkToUse(
             this.fragment,
             Store.search.get().path,
             PAGE_NAMES.CONTENT,
-            'Failed to copy code to clipboard',
+            'Failed to copy link to clipboard',
         );
         if (!code || !richText || !href) return;
 
@@ -1642,9 +1642,9 @@ export default class MasFragmentEditor extends LitElement {
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
-            showToast('Code copied to clipboard', 'positive');
+            showToast('Link copied to clipboard', 'positive');
         } catch (e) {
-            showToast('Failed to copy code to clipboard', 'negative');
+            showToast('Failed to copy link to clipboard', 'negative');
         }
     }
 

@@ -8,6 +8,7 @@ import {
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
+import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
 import { MasksStore } from './masks/masks-store.js';
 
 let editorContextInstance = null;
@@ -95,6 +96,7 @@ const Store = {
         previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
+    offerMapping: new OfferMappingStore(),
     masks: new MasksStore(),
     profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
@@ -327,6 +329,7 @@ function pageValidator(value) {
         PAGE_NAMES.ADVANCED_TOOLS,
         PAGE_NAMES.MASKS,
         PAGE_NAMES.MASKS_EDITOR,
+        PAGE_NAMES.OFFER_MAPPING,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

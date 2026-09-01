@@ -39,18 +39,12 @@ import {
     COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
 } from './compare-chart-column.js';
 import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
+import { Marquee, MARQUEE_AEM_FRAGMENT_MAPPING } from './marquee.js';
+import { Faq, FAQ_AEM_FRAGMENT_MAPPING } from './faq.js';
 import {
-    MarqueeHeadless,
-    MARQUEE_HEADLESS_AEM_FRAGMENT_MAPPING,
-} from './marquee-headless.js';
-import {
-    FaqHeadless,
-    FAQ_HEADLESS_AEM_FRAGMENT_MAPPING,
-} from './faq-headless.js';
-import {
-    StickyBannerBladeHeadless,
-    STICKY_BANNER_BLADE_HEADLESS_AEM_FRAGMENT_MAPPING,
-} from './sticky-banner-blade-headless.js';
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+} from './banner-blade.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -186,22 +180,17 @@ registerVariant(
     FriesCard.variantStyle,
 );
 registerVariant(
-    'marquee-headless',
-    MarqueeHeadless,
-    MARQUEE_HEADLESS_AEM_FRAGMENT_MAPPING,
-    MarqueeHeadless.variantStyle,
+    'marquee',
+    Marquee,
+    MARQUEE_AEM_FRAGMENT_MAPPING,
+    Marquee.variantStyle,
 );
+registerVariant('faq', Faq, FAQ_AEM_FRAGMENT_MAPPING, Faq.variantStyle);
 registerVariant(
-    'faq-headless',
-    FaqHeadless,
-    FAQ_HEADLESS_AEM_FRAGMENT_MAPPING,
-    FaqHeadless.variantStyle,
-);
-registerVariant(
-    'sticky-banner-blade-headless',
-    StickyBannerBladeHeadless,
-    STICKY_BANNER_BLADE_HEADLESS_AEM_FRAGMENT_MAPPING,
-    StickyBannerBladeHeadless.variantStyle,
+    'banner-blade',
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+    BannerBlade.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

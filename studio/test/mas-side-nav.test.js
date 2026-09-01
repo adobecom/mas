@@ -142,10 +142,10 @@ describe('MasSideNav – Copy Field', () => {
                 .withArgs('merch-card')
                 .returns({
                     getFragmentMapping: (variant) =>
-                        variant === 'faq-headless' ? { description: { editorLabel: 'FAQ answer 1' } } : null,
+                        variant === 'faq' ? { description: { editorLabel: 'FAQ answer 1' } } : null,
                 });
             const fragment = mockFragment([
-                { name: 'variant', values: ['faq-headless'] },
+                { name: 'variant', values: ['faq'] },
                 { name: 'description', values: ['Answer text'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
@@ -160,7 +160,7 @@ describe('MasSideNav – Copy Field', () => {
                 .withArgs('merch-card')
                 .returns({
                     getFragmentMapping: (variant) =>
-                        variant === 'faq-headless'
+                        variant === 'faq'
                             ? {
                                   prices: {},
                                   description: { editorLabel: 'FAQ answer 1' },
@@ -171,7 +171,7 @@ describe('MasSideNav – Copy Field', () => {
                 });
             // Fragment fields arrive out of the mapping's intended order (e.g. alphabetical).
             const fragment = mockFragment([
-                { name: 'variant', values: ['faq-headless'] },
+                { name: 'variant', values: ['faq'] },
                 { name: 'callout', values: ['Answer 3 text'] },
                 { name: 'description', values: ['Answer 1 text'] },
                 { name: 'prices', values: ['$10/mo'] },
@@ -839,19 +839,19 @@ describe('MasSideNav – Copy Field', () => {
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
         });
 
-        it("should use the variant's editorLabel in the copied text and toast for FAQ Headless", async () => {
+        it("should use the variant's editorLabel in the copied text and toast for FAQ", async () => {
             sandbox
                 .stub(customElements, 'get')
                 .callThrough()
                 .withArgs('merch-card')
                 .returns({
                     getFragmentMapping: (variant) =>
-                        variant === 'faq-headless' ? { callout: { editorLabel: 'FAQ answer 3' } } : null,
+                        variant === 'faq' ? { callout: { editorLabel: 'FAQ answer 3' } } : null,
                 });
             const fragment = mockFragment([
                 { name: 'callout', values: ['Some answer'] },
                 { name: 'name', values: ['card-name'] },
-                { name: 'variant', values: ['faq-headless'] },
+                { name: 'variant', values: ['faq'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             await el.copyField('callout');

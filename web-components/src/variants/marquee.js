@@ -2,8 +2,8 @@ import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 
-/** AEM fragment field → slot mapping so hydrate() can populate all Marquee Headless slots. */
-export const MARQUEE_HEADLESS_AEM_FRAGMENT_MAPPING = {
+/** AEM fragment field → slot mapping so hydrate() can populate all Marquee slots. */
+export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
@@ -13,10 +13,10 @@ export const MARQUEE_HEADLESS_AEM_FRAGMENT_MAPPING = {
 };
 
 /**
- * Slot name to display label for Marquee Headless variant (label + value only, no card).
+ * Slot name to display label for Marquee variant (label + value only, no card).
  * Labels match the editor (merch-card-editor.js). Order defines render order.
  */
-const MARQUEE_HEADLESS_FIELDS = [
+const MARQUEE_FIELDS = [
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Product description' },
     { slot: 'short-description', label: 'Short Description' },
@@ -24,7 +24,7 @@ const MARQUEE_HEADLESS_FIELDS = [
     { slot: 'footer', label: 'CTAs' },
 ];
 
-export class MarqueeHeadless extends VariantLayout {
+export class Marquee extends VariantLayout {
     constructor(card) {
         super(card);
     }
@@ -36,7 +36,7 @@ export class MarqueeHeadless extends VariantLayout {
     renderLayout() {
         return html`
             <div class="headless">
-                ${MARQUEE_HEADLESS_FIELDS.map(
+                ${MARQUEE_FIELDS.map(
                     ({ slot, label }) => html`
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
@@ -60,5 +60,5 @@ export class MarqueeHeadless extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('marquee-headless');
+    static variantStyle = headlessRowStyle('marquee');
 }

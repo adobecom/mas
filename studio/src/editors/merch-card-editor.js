@@ -87,14 +87,14 @@ const VARIANT_RTE_MARKS = {
     },
 };
 
-/** Basic format buttons allowed on FAQ Headless's 3 answer fields (bold, italic, underline only). */
+/** Basic format buttons allowed on FAQ's 3 answer fields (bold, italic, underline only). */
 const FAQ_ANSWER_FORMAT_MARKS = ['strong', 'em', 'underline'];
 
-/** Marquee/FAQ/Sticky Banner-Blade Headless templates don't offer a "Send to translation?" toggle. */
+/** Marquee/FAQ/Banner-Blade templates don't offer a "Send to translation?" toggle. */
 const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
-    VARIANT_NAMES.MARQUEE_HEADLESS,
-    VARIANT_NAMES.FAQ_HEADLESS,
-    VARIANT_NAMES.STICKY_BANNER_BLADE_HEADLESS,
+    VARIANT_NAMES.MARQUEE,
+    VARIANT_NAMES.FAQ,
+    VARIANT_NAMES.BANNER_BLADE,
 ]);
 
 class MerchCardEditor extends LitElement {
@@ -1807,20 +1807,20 @@ class MerchCardEditor extends LitElement {
                     ></sp-textfield>
                     ${this.renderFieldStatusIndicator('perUnitLabel')}
                 </sp-field-group>
-                <div class="section-title">${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? 'Answers' : 'Product details'}</div>
+                <div class="section-title">${variantValue === VARIANT_NAMES.FAQ ? 'Answers' : 'Product details'}</div>
                 <sp-field-group class="toggle" id="description">
                     <sp-field-label for="description">
                         ${this.currentVariantMapping?.description?.editorLabel ?? 'Product description'}
                     </sp-field-label>
                     <rte-field
                         id="description"
-                        ?styling=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        ?styling=${variantValue !== VARIANT_NAMES.FAQ}
                         link
                         upt-link
                         list
-                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
-                        ?divider=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
-                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ}
+                        ?divider=${variantValue !== VARIANT_NAMES.FAQ}
+                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
                         .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                         data-field="description"
                         data-field-state="${this.getFieldState('description')}"
@@ -1837,13 +1837,13 @@ class MerchCardEditor extends LitElement {
                     </sp-field-label>
                     <rte-field
                         id="shortDescription"
-                        ?styling=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
+                        ?styling=${variantValue !== VARIANT_NAMES.FAQ}
                         link
                         upt-link
                         list
-                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
-                        ?icon=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
-                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ}
+                        ?icon=${variantValue !== VARIANT_NAMES.FAQ}
+                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
                         data-field="shortDescription"
                         data-field-state="${this.getFieldState('shortDescription')}"
                         .osi=${form.osi.values[0]}
@@ -1860,10 +1860,10 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="callout"
                         link
-                        ?icon=${variantValue !== VARIANT_NAMES.FAQ_HEADLESS}
-                        ?list=${variantValue === VARIANT_NAMES.FAQ_HEADLESS}
-                        ?upt-link=${variantValue === VARIANT_NAMES.FAQ_HEADLESS}
-                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ_HEADLESS ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                        ?icon=${variantValue !== VARIANT_NAMES.FAQ}
+                        ?list=${variantValue === VARIANT_NAMES.FAQ}
+                        ?upt-link=${variantValue === VARIANT_NAMES.FAQ}
+                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
                         data-field="callout"
                         data-field-state="${this.getFieldState('callout')}"
                         .osi=${form.osi.values[0]}

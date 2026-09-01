@@ -36,13 +36,13 @@ function headlessRow(card, slotName) {
     );
 }
 
-describe('marquee-headless variant', () => {
+describe('marquee variant', () => {
     let card;
     afterEach(() => card?.remove());
 
     it('renders a labeled row with a slot for each mapped field', async () => {
         card = await renderCard(
-            'marquee-headless',
+            'marquee',
             '<h3 slot="heading-xs">Title</h3>',
         );
         const rows = {
@@ -63,7 +63,7 @@ describe('marquee-headless variant', () => {
 
     it('omits the secure label row when secure-label is not set', async () => {
         card = await renderCard(
-            'marquee-headless',
+            'marquee',
             '<h3 slot="heading-xs">Title</h3>',
         );
         const labels = [
@@ -74,7 +74,7 @@ describe('marquee-headless variant', () => {
 
     it('renders the secure label row when secure-label is set', async () => {
         card = await renderCard(
-            'marquee-headless',
+            'marquee',
             '<h3 slot="heading-xs">Title</h3>',
             { 'secure-label': 'Secure transaction' },
         );
@@ -89,13 +89,13 @@ describe('marquee-headless variant', () => {
     });
 });
 
-describe('faq-headless variant', () => {
+describe('faq variant', () => {
     let card;
     afterEach(() => card?.remove());
 
     it('renders a labeled row with a slot for each mapped field', async () => {
         card = await renderCard(
-            'faq-headless',
+            'faq',
             '<div slot="body-xs">Answer 1</div>',
         );
         const rows = {
@@ -114,13 +114,13 @@ describe('faq-headless variant', () => {
     });
 });
 
-describe('sticky-banner-blade-headless variant', () => {
+describe('banner-blade variant', () => {
     let card;
     afterEach(() => card?.remove());
 
     it('renders a labeled row with a slot for each mapped field', async () => {
         card = await renderCard(
-            'sticky-banner-blade-headless',
+            'banner-blade',
             '<div slot="body-xs">Description</div>',
         );
         const rows = {

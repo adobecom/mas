@@ -1,6 +1,17 @@
 import { css, unsafeCSS } from 'lit';
 
 /**
+ * Variant names sharing the "headless" label + value row styling (no card chrome).
+ * Add new headless-family variants here so the global overrides below reach them.
+ */
+const HEADLESS_FAMILY_VARIANTS = ['headless', 'marquee', 'faq', 'banner-blade'];
+
+const familySelector = (slot, suffix = '') =>
+    HEADLESS_FAMILY_VARIANTS.map((variant) => `merch-card[variant='${variant}'] [slot='${slot}']${suffix}`).join(
+        ',\n',
+    );
+
+/**
  * Global CSS for Headless variant (label + value only, no card chrome).
  * Layout is primarily defined in headlessRowStyle().
  */
@@ -14,29 +25,23 @@ export const CSS = `
 
 /* Neutralize non-headless slot treatments (heading weight/color, promo-text green,
    callout background box) from global.css.js so every row renders as plain text,
-   matching the untouched body-xs/short-description rows. Applies to "headless" and
-   any "*-headless" family variant. */
-merch-card[variant='headless'] [slot='heading-xs'],
-merch-card[variant$='-headless'] [slot='heading-xs'],
-merch-card[variant='headless'] [slot='promo-text'],
-merch-card[variant$='-headless'] [slot='promo-text'] {
+   matching the untouched body-xs/short-description rows. Applies to every variant
+   in HEADLESS_FAMILY_VARIANTS above. */
+${familySelector('heading-xs')},
+${familySelector('promo-text')} {
     color: var(--consonant-merch-card-body-xs-color);
     font-weight: 400;
     font-size: var(--consonant-merch-card-body-xs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
 }
-merch-card[variant='headless'] [slot='callout-content'],
-merch-card[variant$='-headless'] [slot='callout-content'] {
+${familySelector('callout-content')} {
     display: block;
     margin: 0;
     gap: 0;
 }
-merch-card[variant='headless'] [slot='callout-content'] > p,
-merch-card[variant$='-headless'] [slot='callout-content'] > p,
-merch-card[variant='headless'] [slot='callout-content'] > div,
-merch-card[variant$='-headless'] [slot='callout-content'] > div,
-merch-card[variant='headless'] [slot='callout-content'] > div > div,
-merch-card[variant$='-headless'] [slot='callout-content'] > div > div {
+${familySelector('callout-content', ' > p')},
+${familySelector('callout-content', ' > div')},
+${familySelector('callout-content', ' > div > div')} {
     background: transparent;
     padding: 0;
     border-radius: 0;

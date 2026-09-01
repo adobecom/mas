@@ -185,7 +185,7 @@ describe('processCTAs', async () => {
         expect(merchCard.shadowRoot.append.called).to.be.false;
     });
 
-    it('should not throw when fields.ctas has leftover content but the variant mapping has no ctas slot (e.g. FAQ Headless)', async () => {
+    it('should not throw when fields.ctas has leftover content but the variant mapping has no ctas slot (e.g. FAQ)', async () => {
         const fields = {
             ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Click me</a>',
         };

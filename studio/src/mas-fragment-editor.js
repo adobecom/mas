@@ -2166,7 +2166,7 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
-    // Lazy usage collapsible (last 30 days), placed below References. Fetches only on expand.
+    // Lazy usage collapsible (last 7 days), placed below References. Fetches only on expand.
     get usageSection() {
         const modelPath = this.fragment?.model?.path;
         if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return nothing;
@@ -2177,7 +2177,7 @@ export default class MasFragmentEditor extends LitElement {
                         ${this.usageExpanded
                             ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
                             : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
-                        Usage (last 30 days)
+                        Usage (last 7 days)
                     </sp-action-button>
                     ${this.usageExpanded ? this.#renderUsageBody() : nothing}
                 </div>

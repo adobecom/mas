@@ -1841,7 +1841,7 @@ describe('MasFragmentEditor', () => {
             // even if data were cached, the body stays hidden until expanded
             editor.fragmentUsage = { available: true, totalCount: 5, rows: [{ apiKey: 'cc', country: 'US', count: 5 }] };
             const host = renderUsage(editor);
-            expect(host.textContent).to.include('Usage (last 30 days)');
+            expect(host.textContent).to.include('Usage (last 7 days)');
             expect(host.textContent).to.not.include('requests');
         });
 

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch Card Brand Concierge Product variant test page</title>
+        <style>
+            main {
+                display: flex;
+                align-items: flex-start;
+                gap: 20px;
+                flex-wrap: wrap;
+                padding-top: 80px;
+            }
+            mas-commerce-service {
+                display: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <main>
+            <div id="container"></div>
+        </main>
+        <template id="product-card-wide">
+            <mas-commerce-service
+                env="stage"
+                country="US"
+                language="en"
+            ></mas-commerce-service>
+            <merch-card
+                variant="brand-concierge-product"
+                consonant="true"
+                style="width: 378px"
+            >
+                <merch-icon
+                    slot="icons"
+                    src="/test/mocks/img/photoshop.svg"
+                    loading="lazy"
+                    size="l"
+                    alt="Photoshop"
+                ></merch-icon>
+                <merch-icon
+                    slot="icons"
+                    src="/test/mocks/img/photoshop.svg"
+                    loading="lazy"
+                    size="l"
+                    alt="Lightroom"
+                ></merch-icon>
+                <p slot="heading-s">Photoshop</p>
+                <p slot="heading-xs">
+                    <span
+                        is="inline-price"
+                        data-template="price"
+                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                    ></span>
+                </p>
+                <div slot="body-xs">
+                    Get 20+ apps, including Photoshop, Illustrator, and Premiere.
+                    <a href="https://adobe.com/learn-more">Learn more</a>
+                </div>
+                <p slot="promo-text">
+                    Get Photoshop and Lightroom for one low price.
+                    <a href="https://adobe.com/plans"
+                        >See all plans &amp; pricing details</a
+                    >
+                </p>
+                <div slot="footer">
+                    <a
+                        is="checkout-link"
+                        data-checkout-workflow-step="commitment"
+                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                        data-template="checkoutUrl"
+                        data-analytics-id="buy-now"
+                        class="con-button blue"
+                        >Buy now</a
+                    >
+                </div>
+            </merch-card>
+        </template>
+        <template id="product-card-narrow">
+            <mas-commerce-service
+                env="stage"
+                country="US"
+                language="en"
+            ></mas-commerce-service>
+            <merch-card
+                variant="brand-concierge-product"
+                consonant="true"
+                style="width: 248px"
+            >
+                <merch-icon
+                    slot="icons"
+                    src="/test/mocks/img/photoshop.svg"
+                    loading="lazy"
+                    size="l"
+                    alt="Photoshop"
+                ></merch-icon>
+                <p slot="heading-s">Photoshop</p>
+                <p slot="heading-xs">
+                    <span
+                        is="inline-price"
+                        data-template="price"
+                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                    ></span>
+                </p>
+                <div slot="body-xs">
+                    Get 20+ apps, including Photoshop, Illustrator, and Premiere.
+                    <a href="https://adobe.com/learn-more">Learn more</a>
+                </div>
+                <p slot="promo-text">
+                    Get Photoshop for one low price.
+                    <a href="https://adobe.com/plans"
+                        >See all plans &amp; pricing details</a
+                    >
+                </p>
+                <div slot="footer">
+                    <a
+                        is="checkout-link"
+                        data-checkout-workflow-step="commitment"
+                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                        data-template="checkoutUrl"
+                        data-analytics-id="buy-now"
+                        class="con-button blue"
+                        >Buy now</a
+                    >
+                </div>
+            </merch-card>
+        </template>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { mockFetch } from './mocks/fetch.js';
+            import { mockIms } from './mocks/ims.js';
+            import { withWcs } from './mocks/wcs.js';
+            import { withAem } from './mocks/aem.js';
+            import { getTemplateContent } from './utils.js';
+            import '../src/mas.js';
+
+            runTests(async () => {
+                mockIms();
+                await mockFetch(withWcs, withAem);
+                const container = document.querySelector('#container');
+
+                describe('merch-card web component with brand-concierge-product variant', () => {
+                    beforeEach(() => {
+                        container.innerHTML = '';
+                    });
+
+                    it('renders icons, price, product description (with link) and promo at the 378px wide breakpoint', async () => {
+                        const [masCommerceService, card] =
+                            getTemplateContent('product-card-wide');
+                        container.append(masCommerceService, card);
+                        await card.updateComplete;
+                        expect(card).to.exist;
+                        expect(
+                            card.querySelectorAll('[slot="icons"]').length,
+                        ).to.equal(2);
+                        expect(card.querySelector('[slot="heading-xs"]')).to
+                            .exist;
+                        // Figma "Body & Links" -> description (body-xs): the
+                        // product description plus its inline "Learn more" link.
+                        const description =
+                            card.querySelector('[slot="body-xs"]');
+                        expect(description, 'description authored').to.exist;
+                        expect(description.querySelector('a')).to.exist;
+                        // The shadow layout must expose the body-xs slot, else
+                        // the authored description never renders (the bug).
+                        expect(
+                            card.shadowRoot.querySelector('slot[name="body-xs"]'),
+                            'description slot rendered',
+                        ).to.exist;
+                        // Figma "evergreen promo" -> promo-text.
+                        const promo = card.querySelector('[slot="promo-text"]');
+                        expect(promo).to.exist;
+                        expect(promo.querySelector('a')).to.exist;
+                        // Invented slots must not be used.
+                        expect(card.querySelector('[slot="promo-link"]')).to.not
+                            .exist;
+                        expect(card.querySelector('[slot="body-xxs"]')).to.not
+                            .exist;
+                        // No quantity-select / secure-transaction lock.
+                        expect(card.querySelector('[slot="quantity-select"]')).to
+                            .not.exist;
+                        expect(card.secureLabel).to.not.exist;
+                    });
+
+                    it('renders at the 248px narrow breakpoint without quantity-select or secure-label', async () => {
+                        const [masCommerceService, card] =
+                            getTemplateContent('product-card-narrow');
+                        container.append(masCommerceService, card);
+                        await card.updateComplete;
+                        expect(card).to.exist;
+                        expect(
+                            card.querySelector('[slot="promo-text"] a'),
+                        ).to.exist;
+                        expect(
+                            card.shadowRoot.querySelector('slot[name="body-xs"]'),
+                        ).to.exist;
+                        expect(card.querySelector('[slot="quantity-select"]')).to
+                            .not.exist;
+                        expect(
+                            card.shadowRoot.querySelector(
+                                '.secure-transaction-label',
+                            ),
+                        ).to.not.exist;
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

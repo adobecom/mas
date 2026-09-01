@@ -3,7 +3,14 @@ import router from './router.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
+import {
+    generateFieldLink,
+    generateJsonLdLink,
+    camelToTitle,
+    previewValue,
+    previewFragmentOnPage,
+    getFragmentMapping,
+} from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
@@ -314,6 +321,10 @@ class MasSideNav extends LitElement {
         whatsIncluded: "What's Included",
         originalId: 'Original ID',
         jsonLdSchema: 'JSON-LD Schema',
+        cardTitle: 'Title',
+        description: 'Product description',
+        callout: 'Callout text',
+        prices: 'Product price',
     };
     static SHOW_FIELDS = new Set([
         'prices',
@@ -551,6 +562,27 @@ class MasSideNav extends LitElement {
         return { current, inherited };
     }
 
+    /** Resolves a field's display name, preferring the current variant's editorLabel override. */
+    #getFieldDisplayName(fieldName, fragment) {
+        const variantEditorLabel = getFragmentMapping(fragment?.getFieldValue?.('variant'))?.[fieldName]?.editorLabel;
+        return variantEditorLabel ?? MasSideNav.FIELD_DISPLAY_NAMES[fieldName] ?? camelToTitle(fieldName);
+    }
+
+    /** Orders copyable fields to match the variant's fragment-mapping key order (e.g. FAQ answer 1/2/3), leaving any field the mapping doesn't know about after the ones it does, in their original relative order. */
+    #sortFieldsByVariantOrder(fields, fragment) {
+        const mapping = getFragmentMapping(fragment?.getFieldValue?.('variant'));
+        if (!mapping) return fields;
+        const order = Object.keys(mapping);
+        return [...fields].sort((a, b) => {
+            const ai = order.indexOf(a.name);
+            const bi = order.indexOf(b.name);
+            if (ai === -1 && bi === -1) return 0;
+            if (ai === -1) return 1;
+            if (bi === -1) return -1;
+            return ai - bi;
+        });
+    }
+
     #buildCopyableField(field, source, sourceFragment, resolvedInlinePrices) {
         const displayValues = this.#getDisplayValues(field);
         // If the previewStore resolved inline-prices to text, fall back to the original
@@ -563,7 +595,7 @@ class MasSideNav extends LitElement {
 
         return {
             name: field.name,
-            displayName: MasSideNav.FIELD_DISPLAY_NAMES[field.name] ?? camelToTitle(field.name),
+            displayName: this.#getFieldDisplayName(field.name, sourceFragment),
             preview,
             source,
             sourceFragment,
@@ -575,9 +607,12 @@ class MasSideNav extends LitElement {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
-        const currentFields = fragment.fields
-            .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !fragment.isValueEmpty(f.values))
-            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment, resolvedInlinePrices));
+        const currentFields = this.#sortFieldsByVariantOrder(
+            fragment.fields
+                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !fragment.isValueEmpty(f.values))
+                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment, resolvedInlinePrices)),
+            fragment,
+        );
 
         const fragmentId = fragment?.id;
         if (!this.#isVariationFragment(fragmentId)) {
@@ -590,10 +625,13 @@ class MasSideNav extends LitElement {
         }
 
         const currentFieldNames = new Set(currentFields.map((field) => field.name));
-        const inheritedFields = baseFragment.fields
-            .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
-            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices))
-            .filter((f) => !!f.preview);
+        const inheritedFields = this.#sortFieldsByVariantOrder(
+            baseFragment.fields
+                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
+                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices))
+                .filter((f) => !!f.preview),
+            baseFragment,
+        );
 
         return [...currentFields, ...inheritedFields];
     }
@@ -815,7 +853,8 @@ class MasSideNav extends LitElement {
         const fragment = sourceFragment;
         if (!fragment) return;
         const path = Store.search.get().path;
-        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);
+        const displayName = this.#getFieldDisplayName(fieldName, fragment);
+        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, displayName);
         if (!link) return;
         try {
             await navigator.clipboard.write([
@@ -824,7 +863,6 @@ class MasSideNav extends LitElement {
                     'text/html': new Blob([link.richText], { type: 'text/html' }),
                 }),
             ]);
-            const displayName = MasSideNav.FIELD_DISPLAY_NAMES[fieldName] ?? camelToTitle(fieldName);
             Events.toast.emit({ variant: 'positive', content: `Copied ${displayName} field link` });
         } catch {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });

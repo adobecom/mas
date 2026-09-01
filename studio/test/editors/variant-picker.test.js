@@ -148,11 +148,14 @@ describe('VariantPicker', () => {
             expect(names).to.include('headless');
             expect(names).to.include('compare-chart-column');
             expect(names).to.include('pro');
+            expect(names).to.include('marquee');
+            expect(names).to.include('faq');
+            expect(names).to.include('banner-blade');
             expect(names).to.not.include('bizpro');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('catalog');
             expect(names).to.not.include('ccd-slice');
-            expect(names.length).to.equal(9);
+            expect(names.length).to.equal(12);
         });
 
         it('should return only DC templates for acom-dc surface', () => {
@@ -165,10 +168,13 @@ describe('VariantPicker', () => {
             expect(names).to.include('headless');
             expect(names).to.include('compare-chart-column');
             expect(names).to.include('pro');
+            expect(names).to.include('marquee');
+            expect(names).to.include('faq');
+            expect(names).to.include('banner-blade');
             expect(names).to.not.include('special-offers');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('mini-compare-chart-mweb');
-            expect(names.length).to.equal(7);
+            expect(names.length).to.equal(10);
         });
 
         it('should return only plans/catalog templates for acom surface', () => {
@@ -183,11 +189,14 @@ describe('VariantPicker', () => {
             expect(names).to.include('media');
             expect(names).to.include('mini-compare-chart-mweb');
             expect(names).to.include('compare-chart-column');
+            expect(names).to.include('marquee');
+            expect(names).to.include('faq');
+            expect(names).to.include('banner-blade');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');
             expect(names).to.not.include('special-offers');
-            expect(names.length).to.equal(9);
+            expect(names.length).to.equal(12);
         });
 
         it('should return all variants for sandbox surface', () => {

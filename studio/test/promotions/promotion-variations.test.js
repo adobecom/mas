@@ -1126,6 +1126,11 @@ describe('promotion-variations', () => {
         const promoFolder = `${promoRoot}/Plans/Individual/com`;
         const promoPath = `${promoFolder}/my-card`;
 
+        const attachedProject = (tagId, fragments = [defaultPath]) => ({
+            tags: [{ id: tagId }],
+            getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? fragments : undefined)),
+        });
+
         it('returns references for existing promo copies from promotion project tags', async () => {
             const search = makeSearchStub({
                 [promoRoot]: [{ id: 'promo-var-id', path: promoPath, tags: [{ id: 'mas:promotion/back-to-school' }] }],
@@ -1133,7 +1138,7 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+                attachedProject('mas:promotion/back-to-school'),
             ]);
             expect(refs).to.have.lengthOf(1);
             expect(refs[0].path).to.equal(promoPath);
@@ -1150,20 +1155,26 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+                attachedProject('mas:promotion/back-to-school'),
             ]);
             expect(refs).to.have.lengthOf(2);
             expect(refs.map((ref) => ref.path)).to.deep.equal([promoPath, promoPath2]);
         });
 
         it('returns an empty array when aem, defaultPath, or promotionProjects is missing/empty', async () => {
-            expect(await probePromoVariationReferences(null, defaultPath, [{ tags: [] }])).to.deep.equal([]);
-            expect(await probePromoVariationReferences(createAemMock(), '', [{ tags: [] }])).to.deep.equal([]);
+            expect(await probePromoVariationReferences(null, defaultPath, [attachedProject('mas:promotion/x')])).to.deep.equal(
+                [],
+            );
+            expect(
+                await probePromoVariationReferences(createAemMock(), '', [attachedProject('mas:promotion/x')]),
+            ).to.deep.equal([]);
             expect(await probePromoVariationReferences(createAemMock(), defaultPath, [])).to.deep.equal([]);
         });
 
         it('returns an empty array when defaultPath is already a promo variation path', async () => {
-            const result = await probePromoVariationReferences(createAemMock(), promoPath, [{ tags: [] }]);
+            const result = await probePromoVariationReferences(createAemMock(), promoPath, [
+                attachedProject('mas:promotion/x', [promoPath]),
+            ]);
             expect(result).to.deep.equal([]);
         });
 
@@ -1173,7 +1184,7 @@ describe('promotion-variations', () => {
             });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+                attachedProject('mas:promotion/back-to-school'),
             ]);
             expect(refs).to.deep.equal([]);
         });
@@ -1196,10 +1207,24 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/some-other-project' }] },
+                attachedProject('mas:promotion/some-other-project'),
             ]);
             expect(refs).to.deep.equal([]);
             expect(search.calledWith({ path: promotionsRoot }), 'should not scan the promotions tree').to.be.false;
+        });
+
+        it('skips probing projects that do not have the fragment attached, without issuing a search', async () => {
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoPath, tags: [{ id: 'mas:promotion/back-to-school' }] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const unattachedProject = attachedProject('mas:promotion/back-to-school', [
+                '/content/dam/mas/sandbox/en_US/other-card',
+            ]);
+
+            const refs = await probePromoVariationReferences(aem, defaultPath, [unattachedProject]);
+            expect(refs).to.deep.equal([]);
+            expect(search.called, 'should not probe a project the fragment is not attached to').to.be.false;
         });
     });
 
@@ -1301,7 +1326,10 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const enriched = await mergePromoReferencesForDefaultFragment(aem, { path: defaultPath, references: [] }, [
-                { tags: [{ id: 'mas:promotion/black-friday' }] },
+                {
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                    getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? [defaultPath] : undefined)),
+                },
             ]);
             expect(enriched.references).to.have.lengthOf(1);
             expect(enriched.references[0].path).to.equal(promoPath);

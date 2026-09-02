@@ -1948,25 +1948,55 @@ export class MasChat extends LitElement {
         // not re-involved here — it has hallucinated a different arrangement
         // code in the past, producing the wrong product.
         if (operationType === 'get_offer_by_id' && operationResult?.success) {
-            const pa = operationResult.rawResult?.offer?.product_arrangement_code;
-            if (pa) {
-                this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
-                await this.resolveReleaseProductByArrangementCode(pa);
-            }
+            await this.continueFromResolvedOffer(operationResult, operationResult.rawResult?.offer?.product_arrangement_code);
         }
         if (operationType === 'resolve_offer_selector' && operationResult?.success) {
-            const pa =
+            await this.continueFromResolvedOffer(
+                operationResult,
                 operationResult.rawResult?.selector?.product_arrangement_code ||
-                operationResult.rawResult?.offers?.[0]?.product_arrangement_code;
-            if (pa) {
-                this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
-                await this.resolveReleaseProductByArrangementCode(pa);
-            }
+                    operationResult.rawResult?.offers?.[0]?.product_arrangement_code,
+            );
         }
         if (operationType === 'get_product_by_arrangement_code' && operationResult?.success) {
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             await this.handleResolvedReleaseProduct(operationResult);
         }
+    }
+
+    /**
+     * Continue the release flow from a resolved offer.
+     *
+     * AOS derives the arrangement code from the resolved offers, so a resolve
+     * can succeed and still yield none. That used to fall through an
+     * `if (pa)` guard with no else, leaving the user on "Resolving the
+     * selected offers..." with no error and nothing to click. A resolve that
+     * cannot name a product now ends the same way a missing MCS product does.
+     */
+    async continueFromResolvedOffer(operationResult, arrangementCode) {
+        this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
+
+        if (!arrangementCode) {
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content:
+                        'I could not work out which product that offer belongs to, so I cannot continue the release from it. Pick a different offer, or cancel and start again.',
+                    buttonGroup: {
+                        label: 'Release Recovery',
+                        options: [
+                            { label: 'Pick a different offer', value: 'release_pick_different_offer' },
+                            { label: 'Cancel release flow', value: 'release_cancel' },
+                        ],
+                    },
+                    timestamp: Date.now(),
+                    fresh: true,
+                },
+            ];
+            return;
+        }
+
+        await this.resolveReleaseProductByArrangementCode(arrangementCode);
     }
 
     async resolveReleaseProductByArrangementCode(arrangementCode) {

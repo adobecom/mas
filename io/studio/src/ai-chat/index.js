@@ -1089,6 +1089,7 @@ async function main(params) {
                     body: {
                         ...envelopePayload,
                         type: 'mcp_operation',
+                        ...(operationResult.flowId ? { flowId: operationResult.flowId } : {}),
                         mcpTool: operationResult.mcpTool,
                         mcpParams: operationResult.mcpParams,
                         message: operationResult.message,

@@ -349,6 +349,12 @@ export function processOperation(operation, message) {
 
     return {
         type: 'mcp_operation',
+        // A guided flow labels its turns so the client can tell a release
+        // lookup from an ordinary one. Rebuilding the operation from a fixed
+        // field list used to drop it here, and a free-text start never marks
+        // the conversation as a release any other way, so the lookup was
+        // dispatched as ordinary and the products were rendered twice.
+        ...(operation.flowId ? { flowId: operation.flowId } : {}),
         mcpTool: operation.mcpTool,
         mcpParams: operation.mcpParams,
         message: message || operation.message || `Executing ${operation.mcpTool} operation...`,

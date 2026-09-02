@@ -621,6 +621,22 @@ export class MasChat extends LitElement {
 
             if (!this.isCurrentTurn(turn)) return;
 
+            // The server labels a guided turn with flowId, and on a free-text
+            // start it is the only thing that knows. handlePromptSelected only
+            // fires for a suggestion chip, and a release lookup carries no
+            // envelope, so "Create cards for firefly standard" left the client
+            // with no flow at all: the lookup dispatched as an ordinary one and
+            // the products were rendered twice. Take the server's word rather
+            // than keeping a second copy of its keyword list here.
+            //
+            // This must run before tryDispatchEnvelope: that path returns
+            // without reaching the bookkeeping below, so a later assignment
+            // would fix only the legacy path.
+            if (response?.flowId && GUIDED_FLOW_HINTS.has(response.flowId)) {
+                this.activeGuidedFlow = response.flowId;
+                this.guidedFlowTurns = 0;
+            }
+
             // Envelope-first dispatcher (Stage 3.2). When the backend
             // returned an envelope (always, since Stage 3.1), prefer it
             // over the legacy `response.type` switch. If the envelope path

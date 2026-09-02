@@ -1639,7 +1639,7 @@ export default class MasFragmentEditor extends LitElement {
                     });
                 if (anyStaged) {
                     const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
-                    const resultStaged = await MasPublishStagedDialog.show();
+                    const resultStaged = await MasPublishStagedDialog.show(true);
                     if (!resultStaged.confirmed) return;
                 }
 

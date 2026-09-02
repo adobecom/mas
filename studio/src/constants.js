@@ -350,5 +350,7 @@ export const STAGED = {
     TAG: 'mas:studio/internal/staged',
     DIALOG_CONFIRM_TEXT:
         'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_CONFIRM_MULTIPLE_TEXT:
+        'Some of the selected fragments is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
     DIALOG_TITLE: 'Staged content warning',
 };

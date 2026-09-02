@@ -4,11 +4,13 @@ import { STAGED } from '../constants.js';
 class MasPublishStagedDialog extends LitElement {
     static properties = {
         open: { type: Boolean },
+        multiselect: { type: Boolean },
     };
 
     constructor() {
         super();
         this.open = false;
+        this.multiselect = false;
     }
 
     confirm() {
@@ -34,12 +36,12 @@ class MasPublishStagedDialog extends LitElement {
                 @cancel=${this.cancel}
                 @close=${this.cancel}
             >
-                <p>${STAGED.DIALOG_CONFIRM_TEXT}</p>
+                <p>${this.multiselect ? STAGED.DIALOG_CONFIRM_MULTIPLE_TEXT : STAGED.DIALOG_CONFIRM_TEXT}</p>
             </sp-dialog-wrapper>
         `;
     }
 
-    static show() {
+    static show(multiselect) {
         return new Promise((resolve) => {
             const dialog = document.createElement('mas-publish-staged-dialog');
             const container = document.querySelector('sp-theme') ?? document.body;
@@ -54,6 +56,7 @@ class MasPublishStagedDialog extends LitElement {
             dialog.addEventListener('staged-cancelled', () => cleanup({ confirmed: false }), { once: true });
 
             dialog.open = true;
+            dialog.multiselect = !!multiselect;
         });
     }
 }

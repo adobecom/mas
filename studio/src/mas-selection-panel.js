@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, PAGE_NAMES, STAGED } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES, STAGED, CARD_MODEL_PATH } from './constants.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
@@ -172,7 +172,7 @@ class MasSelectionPanel extends LitElement {
         });
         if (anyStaged) {
             const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
-            const result = await MasPublishStagedDialog.show();
+            const result = await MasPublishStagedDialog.show(true);
             if (!result.confirmed) return;
         }
 
@@ -188,18 +188,33 @@ class MasSelectionPanel extends LitElement {
             return;
         }
 
+        const saved = [];
         await Promise.all(
             this.selection.map(async (id) => {
                 const data = await this.repository.aem.sites.cf.fragments.getById(id);
                 const fragment = new Fragment(data);
-                if (fragment.isStaged) return;
+                if (fragment.isStaged || fragment.model.path !== CARD_MODEL_PATH) return;
                 const oldTags = fragment.getFieldValues('tags') || [];
                 const tags = [...oldTags];
                 tags.push(STAGED.TAG);
                 fragment.updateField('tags', tags);
                 this.repository.aem.sites.cf.fragments.save(fragment);
+                saved.push(id);
             }),
         );
+
+        Store.fragments.list.data.set((prev) => {
+            return [...prev].map((fragmentStore) => {
+                const fragment = fragmentStore.get();
+                if (saved.includes(fragment?.id)) {
+                    const tags = fragment.getFieldValues('tags') || [];
+                    tags.push(STAGED.TAG);
+                    fragment.updateField('tags', tags);
+                }
+                return fragmentStore;
+            });
+        });
+
         this.selectionStore.set([]);
         showToast('Fragments marked as Staged.', 'positive');
     }

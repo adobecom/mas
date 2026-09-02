@@ -1030,6 +1030,7 @@ class MasBulkPublishEditor extends LitElement {
             ></mas-bulk-publish-duplicate-dialog>
             <mas-publish-staged-dialog
                 .open=${this.stagedOpen}
+                .multiselect=${true}
                 @staged-confirmed=${this.handleStagedConfirmed}
                 @staged-cancelled=${this.handleStagedCancel}
             ></mas-publish-staged-dialog>

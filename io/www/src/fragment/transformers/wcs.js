@@ -67,11 +67,13 @@ async function wcs(context) {
 
     const parts = [];
     let lastEnd = 0;
+    const replacedOsis = [];
     matches.forEach((match) => {
         const originalOsi = match.groups.osi;
         const substitutedOsi = context.substituteMap?.[originalOsi];
         if (substitutedOsi) {
             logDebug(() => `Substituting OSI ${originalOsi} with ${substitutedOsi}`, context);
+            replacedOsis.push(originalOsi);
             parts.push(bodyString.slice(lastEnd, match.index));
             parts.push(match[0].replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`));
             lastEnd = match.index + match[0].length;
@@ -86,10 +88,15 @@ async function wcs(context) {
         }
     }
     if (context.body.fields?.osi) {
-        const substitutedOsi = context.substituteMap?.[context.body.fields.osi] ?? context.body.fields.osi;
-        if (substitutedOsi !== context.body.fields.osi) {
+        const originalOsi = context.body.fields.osi;
+        const substitutedOsi = context.substituteMap?.[originalOsi] ?? originalOsi;
+        if (substitutedOsi !== originalOsi) {
+            replacedOsis.push(originalOsi);
             context.body.fields.osi = substitutedOsi;
         }
+    }
+    if (replacedOsis.length) {
+        context.body.fields.replacedOsi = [...new Set(replacedOsis)].join(',');
     }
 
     const wcsConfigs = context.wcsConfiguration;

@@ -240,6 +240,37 @@ export class MerchCard extends LitElement {
     static getCollectionOptions = getCollectionOptions;
 
     contextPromotionCode;
+
+    #lockedOsi;
+
+    get lockedOsi() {
+        return this.#lockedOsi;
+    }
+
+    set lockedOsi(value) {
+        this.#lockedOsi = value;
+        if (value) {
+            this.setAttribute('data-locked-osi', value);
+        } else {
+            this.removeAttribute('data-locked-osi');
+        }
+    }
+
+    #replacedOsi;
+
+    get replacedOsi() {
+        return this.#replacedOsi;
+    }
+
+    set replacedOsi(value) {
+        this.#replacedOsi = value;
+        if (value) {
+            this.setAttribute('data-replaced-osi', value);
+        } else {
+            this.removeAttribute('data-replaced-osi');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;

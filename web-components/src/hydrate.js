@@ -996,6 +996,8 @@ export async function hydrate(fragment, merchCard) {
     cleanup(merchCard);
     merchCard.compatVersion = fields.compatVersion;
     merchCard.contextPromotionCode = fields.promoCode;
+    merchCard.lockedOsi = fields.osi;
+    merchCard.replacedOsi = fields.replacedOsi;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;

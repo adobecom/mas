@@ -1276,6 +1276,7 @@ async function main(params) {
                 body: {
                     ...envelopePayload,
                     type: 'guided_step',
+                    ...flowIdField(parsedResponse),
                     message: parsedResponse.message,
                     buttonGroup: parsedResponse.buttonGroup,
                     productCards: parsedResponse.productCards,
@@ -1298,6 +1299,7 @@ async function main(params) {
                 body: {
                     ...envelopePayload,
                     type: 'release_confirmation',
+                    ...flowIdField(parsedResponse),
                     message: parsedResponse.message,
                     confirmationSummary: parsedResponse.confirmationSummary,
                     usage: response.usage,
@@ -1319,6 +1321,7 @@ async function main(params) {
                 body: {
                     ...envelopePayload,
                     type: 'release_cards',
+                    ...flowIdField(parsedResponse),
                     message: parsedResponse.message,
                     parentPath: parsedResponse.parentPath,
                     cardConfigs: parsedResponse.cardConfigs,
@@ -1341,6 +1344,7 @@ async function main(params) {
                 body: {
                     ...envelopePayload,
                     type: 'open_ost',
+                    ...flowIdField(parsedResponse),
                     message: parsedResponse.message,
                     searchParams: parsedResponse.searchParams,
                     usage: response.usage,
@@ -1527,6 +1531,21 @@ export function buildCorrectivePrompt(cardConfig, errors) {
  * (e.g. an older deployed frontend, or a future guided menu type that
  * forgets to wire the hint through).
  */
+/**
+ * Carry the guided flow's id onto a response body.
+ *
+ * Every guided body is rebuilt from a fixed field list, which silently dropped
+ * flowId even though the tools require the model to emit it. Losing it means
+ * the next turn cannot tell it is mid-flow: inferGuidedFlowFromHistory finds
+ * nothing to match, the client cannot pin activeGuidedFlow, and the model
+ * starts guessing its step — emitting one step's message with the previous
+ * step's buttons, or a step with no buttons at all.
+ */
+export function flowIdField(parsed) {
+    const flowId = parsed?.flowId;
+    return typeof flowId === 'string' && flowId ? { flowId } : {};
+}
+
 export function inferGuidedFlowFromHistory(conversationHistory) {
     if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
         return null;

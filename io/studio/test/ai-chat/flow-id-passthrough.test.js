@@ -73,3 +73,26 @@ describe('ai-chat/flowId reaches the client', () => {
         expect(result.flowId).to.not.equal('release');
     });
 });
+
+describe('ai-chat/flowIdField', () => {
+    let flowIdField;
+
+    before(async () => {
+        ({ flowIdField } = await import('../../src/ai-chat/index.js'));
+    });
+
+    it('carries a real flow id', () => {
+        expect(flowIdField({ type: 'guided_step', flowId: 'release' })).to.deep.equal({ flowId: 'release' });
+    });
+
+    it('adds nothing when the payload carries no flow', () => {
+        expect(flowIdField({ type: 'guided_step' })).to.deep.equal({});
+        expect(flowIdField({ type: 'guided_step', flowId: '' })).to.deep.equal({});
+        expect(flowIdField(null)).to.deep.equal({});
+    });
+
+    it('ignores a non-string flow id rather than shipping it', () => {
+        expect(flowIdField({ flowId: 42 })).to.deep.equal({});
+        expect(flowIdField({ flowId: { id: 'release' } })).to.deep.equal({});
+    });
+});

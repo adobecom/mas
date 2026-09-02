@@ -251,6 +251,45 @@ describe('replace', () => {
             expect(cardDescription).to.contain('data-placeholder="plan-type-text"');
         });
 
+        it('skips non-card references in a collection walk (wrong model.id, and non content-fragment type)', async () => {
+            const context = await initContext();
+            context.body = {
+                ...odinResponse('collection body'),
+                model: { id: COLLECTION_MODEL_ID },
+                references: {
+                    'card-1': {
+                        type: 'content-fragment',
+                        value: {
+                            model: { id: CARD_MODEL_ID },
+                            fields: { description: 'legal: {{plan-type-text}}' },
+                        },
+                    },
+                    // content-fragment, but not a card (mirrors a nested subcollection reference) -
+                    // guard's model.id check must take the false branch and skip injection.
+                    'subcoll-1': {
+                        type: 'content-fragment',
+                        value: {
+                            model: { id: COLLECTION_MODEL_ID },
+                            fields: { description: 'sub: {{plan-type-text}}' },
+                        },
+                    },
+                    // not a content-fragment at all (mirrors a tag reference) - guard's type check
+                    // must take the false branch and skip injection.
+                    'tag-1': {
+                        type: 'tag',
+                        value: { fields: { description: 'tag: {{plan-type-text}}' } },
+                    },
+                },
+            };
+            const response = await replace.process(context);
+            const { references } = response.body;
+            expect(references['card-1'].value.fields.description).to.contain('data-placeholder="plan-type-text"');
+            expect(references['subcoll-1'].value.fields.description).to.equal('sub: ');
+            expect(references['subcoll-1'].value.fields.description).to.not.contain('is="inline-price"');
+            expect(references['tag-1'].value.fields.description).to.equal('tag: ');
+            expect(references['tag-1'].value.fields.description).to.not.contain('is="inline-price"');
+        });
+
         it('resolves {{plan-type-text}} to empty for a non-card fragment (no marker, no bare key leak)', async () => {
             const response = await getResponse('legal: {{plan-type-text}}');
             expect(response.body.fields.description).to.equal('legal: ');

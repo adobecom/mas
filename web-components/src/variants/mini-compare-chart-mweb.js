@@ -9,7 +9,25 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
-const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
+const FOOTER_ROW_MIN_HEIGHT = 32;
+// Fallback list id for cards without a heading id; the counter keeps siblings
+// unique so aria-controls / DOM ids never collide.
+let listIdCounter = 0;
+const nextListId = () => `mweb-list-${(listIdCounter += 1)}`;
+
+// Card-scoped min-height props set by syncHeights (via syncRowHeights). The sync
+// only grows heights and never runs on mobile, so these must be cleared when the
+// layout collapses to one mobile column — else cards keep the taller desktop
+// heights and the collapsed "what's included" leaves dead space.
+const SYNCED_HEIGHT_NAMES = [
+    'heading-xs',
+    'subtitle',
+    'heading-m-price',
+    'promo-text',
+    'body-m',
+    'body-xs',
+];
+const MAX_FOOTER_ROWS = 8; // matches the .footer-row-cell nth-child rules in CSS
 
 export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -47,6 +65,10 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
 
 export class MiniCompareChartMweb extends VariantLayout {
     #syncObserver;
+    #resizeObserver;
+    #resizeTimer;
+    #lastWidth = 0;
+    #toggleEls;
 
     constructor(card) {
         super(card);
@@ -58,6 +80,21 @@ export class MiniCompareChartMweb extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        // Re-sync on any width change, not just the mobile boundary: a narrower
+        // column re-wraps text, so row heights must be recomputed to stay aligned.
+        // Guard on width — a list toggle changes height only and must not retrigger.
+        this.#lastWidth = this.card.getBoundingClientRect().width;
+        this.#resizeObserver = new ResizeObserver(() => {
+            const width = this.card.getBoundingClientRect().width;
+            if (width === this.#lastWidth) return;
+            this.#lastWidth = width;
+            clearTimeout(this.#resizeTimer);
+            this.#resizeTimer = setTimeout(
+                () => this.reconcileBreakpoint(),
+                150,
+            );
+        });
+        this.#resizeObserver.observe(this.card);
     }
 
     disconnectedCallbackHook() {
@@ -65,10 +102,20 @@ export class MiniCompareChartMweb extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
-        this._syncObserver?.disconnect();
-        this._syncObserver = null;
+        clearTimeout(this.#resizeTimer);
+        this.#resizeObserver?.disconnect();
+        this.#resizeObserver = null;
         this.#syncObserver?.disconnect();
         this.#syncObserver = null;
+    }
+
+    reconcileBreakpoint() {
+        if (Media.isMobile) {
+            this.resetSyncedHeights();
+            this.removeEmptyRows();
+        } else {
+            this.#syncSiblingsWhenSettled();
+        }
     }
 
     updatePriceQuantity({ detail }) {
@@ -77,6 +124,9 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     syncHeights() {
+        // A desktop sync started before a resize can resolve after the switch to
+        // mobile; never apply cross-card heights to the single mobile column.
+        if (Media.isMobile) return;
         if (this.card.getBoundingClientRect().width <= 2) {
             if (!this.#syncObserver) {
                 this.#syncObserver = new ResizeObserver(() => {
@@ -150,54 +200,6 @@ export class MiniCompareChartMweb extends VariantLayout {
         </div>`;
     };
 
-    adjustMiniCompareBodySlots() {
-        if (this.card.getBoundingClientRect().width <= 2) {
-            // Card not yet laid out (e.g. Milo section grid applied after card renders).
-            // Observe for first non-zero width then retry.
-            if (!this._syncObserver) {
-                this._syncObserver = new ResizeObserver(() => {
-                    if (this.card.getBoundingClientRect().width > 2) {
-                        this._syncObserver?.disconnect();
-                        this._syncObserver = null;
-                        this.adjustMiniCompareBodySlots();
-                        this.adjustMiniCompareFooterRows();
-                    }
-                });
-                this._syncObserver.observe(this.card);
-            }
-            return;
-        }
-
-        const slots = [
-            'heading-xs',
-            'subtitle',
-            'heading-m-price',
-            'price-wrapping',
-            'promo-text',
-            'body-m',
-            'body-xs',
-            'footer-rows',
-        ];
-
-        slots.forEach((slot) => {
-            const lightEl = this.card.querySelector(`[slot="${slot}"]`);
-            const el =
-                lightEl ??
-                this.card.shadowRoot.querySelector(`slot[name="${slot}"]`);
-            this.updateCardElementMinHeight(el, slot);
-        });
-
-        [
-            ['slot[name="promo-text"]', 'promo-text'],
-            ['footer', 'footer'],
-        ].forEach(([selector, name]) => {
-            this.updateCardElementMinHeight(
-                this.card.shadowRoot.querySelector(selector),
-                name,
-            );
-        });
-    }
-
     adjustMiniCompareFooterRows() {
         if (this.card.getBoundingClientRect().width === 0) return;
         const footerRows = this.card.querySelector('[slot="footer-rows"] ul');
@@ -240,44 +242,51 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     setupToggle() {
-        if (this.toggleSetupDone) return;
         const bodyXs = this.card.querySelector('[slot="body-xs"]');
-        if (!bodyXs) return;
-        const titleEl = bodyXs.querySelector('p');
-        const listEl = bodyXs.querySelector('ul');
+        const titleEl = bodyXs?.querySelector('p');
+        const listEl = bodyXs?.querySelector('ul');
         if (!titleEl || !listEl) return;
-        // Already transformed (e.g. by Milo block)
+        // Skip if the Milo block already built this structure.
         if (bodyXs.querySelector('.footer-rows-title')) return;
-        this.toggleSetupDone = true;
+
         const titleText = titleEl.textContent.trim();
-        const cardHeading = this.card.querySelector('h3')?.id;
-        const listId = cardHeading
-            ? `${cardHeading}-list`
-            : `mweb-list-${Date.now()}`;
-        listEl.setAttribute('id', listId);
+        const heading = this.card.querySelector('h3')?.id;
+        const listId = heading ? `${heading}-list` : nextListId();
+        listEl.id = listId;
         listEl.classList.add('checkmark-copy-container');
+
         const titleDiv = createTag(
             'h4',
             { class: 'footer-rows-title' },
             titleText,
         );
-        if (Media.isMobile) {
-            const toggleBtn = createTag('button', {
-                class: 'toggle-icon',
-                'aria-label': titleText,
-                'aria-expanded': 'false',
-                'aria-controls': listId,
-            });
-            titleDiv.appendChild(toggleBtn);
-            titleDiv.addEventListener('click', () => {
-                const isOpen = listEl.classList.toggle('open');
-                toggleBtn.classList.toggle('expanded', isOpen);
-                toggleBtn.setAttribute('aria-expanded', String(isOpen));
-            });
-        } else {
-            listEl.classList.add('open');
-        }
+        const toggleBtn = createTag('button', {
+            class: 'toggle-icon',
+            'aria-label': titleText,
+            'aria-expanded': 'false',
+            'aria-controls': listId,
+        });
+        this.#toggleEls = { toggleBtn, listEl };
+        titleDiv.append(toggleBtn);
+
+        // Collapsing is mobile-only; CSS hides the button and forces the list
+        // open on desktop, so a click there must never collapse it.
+        titleDiv.addEventListener('click', () => {
+            if (Media.isMobile) this.setListOpen(!this.isListOpen);
+        });
         titleEl.replaceWith(titleDiv);
+    }
+
+    get isListOpen() {
+        return this.#toggleEls?.listEl.classList.contains('open') ?? false;
+    }
+
+    // One definition of "open" for the mobile click handler.
+    setListOpen(isOpen) {
+        const { toggleBtn, listEl } = this.#toggleEls;
+        listEl.classList.toggle('open', isOpen);
+        toggleBtn.classList.toggle('expanded', isOpen);
+        toggleBtn.setAttribute('aria-expanded', String(isOpen));
     }
 
     get legalDisplayDot() {
@@ -363,26 +372,51 @@ export class MiniCompareChartMweb extends VariantLayout {
             this.removeEmptyRows();
         }
         await super.postCardUpdateHook();
-        if (window.matchMedia('(min-width: 768px)').matches) {
-            // Wait for ALL sibling cards to complete before any card syncs
-            const container = this.card.parentElement;
-            const allCards = Array.from(
-                container.querySelectorAll(
-                    `merch-card[variant="${this.card.variant}"]`,
-                ),
+        if (!Media.isMobile) {
+            await this.#syncSiblingsWhenSettled();
+        }
+    }
+
+    // All sibling cards of this variant inside the given container.
+    #siblingCards(container) {
+        return container.querySelectorAll(
+            `merch-card[variant="${this.card.variant}"]`,
+        );
+    }
+
+    // Sync only after every sibling card has finished updating and the layout
+    // has settled, driven once from the first card. Running per-card mid-reflow
+    // (e.g. straight off a breakpoint change) groups cards by a transient top
+    // and strands siblings at mismatched heights.
+    async #syncSiblingsWhenSettled() {
+        const container = this.getContainer();
+        if (!container) return;
+        const cards = Array.from(this.#siblingCards(container));
+        // Elect the first card of the sibling set as leader; querySelectorAll
+        // matches at any depth, so firstElementChild would miss nested layouts.
+        if (this.card !== cards[0]) return;
+        await Promise.all(cards.map((card) => card.updateComplete));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        requestAnimationFrame(() => {
+            this.resetSyncedHeights();
+            this.syncHeights();
+        });
+    }
+
+    resetSyncedHeights() {
+        const container = this.getContainer();
+        if (!container) return;
+        const variant = this.card.variant;
+        const cards = this.#siblingCards(container);
+        for (const name of SYNCED_HEIGHT_NAMES) {
+            const prop = `--consonant-merch-card-${variant}-${name}-height`;
+            container.style.removeProperty(prop);
+            cards.forEach((card) => card.style.removeProperty(prop));
+        }
+        for (let index = 1; index <= MAX_FOOTER_ROWS; index += 1) {
+            container.style.removeProperty(
+                this.getRowMinHeightPropertyName(index),
             );
-
-            // Wait for all cards to complete their post update hooks
-            await Promise.all(allCards.map((card) => card.updateComplete));
-
-            // Additional small delay to ensure DOM is settled
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            if (this.card === container.firstElementChild) {
-                requestAnimationFrame(() => {
-                    this.syncHeights();
-                });
-            }
         }
     }
 

@@ -306,7 +306,7 @@ merch-card span[is='inline-price'] {
     display: inline-block;
 }
 
-merch-card span[is='inline-price'][data-placeholder='plan-type-text'] {
+merch-card span[is='inline-price'][data-template='legal'][data-placeholder='plan-type-text'] {
     display: inline;
 }
 

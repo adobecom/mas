@@ -33,11 +33,11 @@ export class BrandConciergeProduct extends VariantLayout {
 
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-        options.displayPlanType = this.card?.settings?.displayPlanType ?? true;
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
     }
 
     async adjustLegal() {
-        if (this.legalAdjusted) return;
+        if (this.legalAdjusted || !this.card.id) return;
         try {
             this.legalAdjusted = true;
             await this.card.updateComplete;

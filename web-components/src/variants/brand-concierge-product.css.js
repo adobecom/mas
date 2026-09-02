@@ -71,4 +71,9 @@ merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
 merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary {
     color: inherit;
 }
+
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--primary,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--primary {
+    color: #3b63fb;
+}
 `;

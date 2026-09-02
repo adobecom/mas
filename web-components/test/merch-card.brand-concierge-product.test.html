@@ -214,6 +214,7 @@
                         );
                         let inserted = false;
                         layout.card = {
+                            id: 'card-1',
                             updateComplete: Promise.resolve(),
                             querySelector: () => null,
                         };
@@ -233,6 +234,7 @@
                             parentNode: { insertBefore() {} },
                         };
                         layout.card = {
+                            id: 'card-1',
                             updateComplete: Promise.resolve(),
                             querySelector: () => price,
                         };

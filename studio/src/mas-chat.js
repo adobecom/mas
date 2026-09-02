@@ -103,6 +103,11 @@ export class MasChat extends LitElement {
         this.showWelcomeScreen = true;
         this.recentReleaseProductsPromise = null;
         this.recentReleaseProductsCache = [];
+        this.resetReleaseFlow();
+    }
+
+    /** Everything the release flow accumulates, cleared in one place. */
+    resetReleaseFlow() {
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
         this.selectedReleaseOsi = null;
@@ -373,6 +378,44 @@ export class MasChat extends LitElement {
                 });
             }
             return;
+        }
+        if (value === 'release_cancel') {
+            this.resetReleaseFlow();
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: 'Cancelled the release flow. What would you like to do next?',
+                    timestamp: Date.now(),
+                    fresh: true,
+                },
+            ];
+            return;
+        }
+        if (value === 'release_pick_different_offer') {
+            // The product is already resolved, so there is nothing for the
+            // model to decide: reopen OST scoped to it. Only the offer that
+            // failed is cleared, so a stale osi cannot be carried into the
+            // retry. With no product we have nothing to scope a search to, so
+            // fall through and let the model drive.
+            const releaseCode =
+                this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
+            if (releaseCode) {
+                this.selectedReleaseOffer = null;
+                this.selectedReleaseOsi = null;
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: 'Opening the Offer Selector Tool — please pick a different offer.',
+                        openOst: true,
+                        ostSearchParams: { arrangement_code: releaseCode, mode: 'plans-base-and-trial' },
+                        timestamp: Date.now(),
+                        fresh: true,
+                    },
+                ];
+                return;
+            }
         }
         const arrangementCode = product?.arrangement_code || product?.arrangementCode;
         if (arrangementCode) {
@@ -951,30 +994,14 @@ export class MasChat extends LitElement {
         }
 
         if (intent === 'ABORT') {
-            this.activeGuidedFlow = null;
-            this.guidedFlowTurns = 0;
-            this.pendingSearchIntent = null;
-            this.selectedReleaseProduct = null;
-            this.selectedReleaseOffer = null;
-            this.selectedReleaseOsi = null;
-            this.selectedReleaseTrialOffer = null;
-            this.selectedReleaseTrialOsi = null;
-            this.trialCtaAsked = false;
+            this.resetReleaseFlow();
             const text = envelope.user_message || 'Cancelled. What would you like to do next?';
             this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
             return true;
         }
 
         if (intent === 'START_OVER') {
-            this.activeGuidedFlow = null;
-            this.guidedFlowTurns = 0;
-            this.pendingSearchIntent = null;
-            this.selectedReleaseProduct = null;
-            this.selectedReleaseOffer = null;
-            this.selectedReleaseOsi = null;
-            this.selectedReleaseTrialOffer = null;
-            this.selectedReleaseTrialOsi = null;
-            this.trialCtaAsked = false;
+            this.resetReleaseFlow();
             this.messages = [];
             this.conversationHistory = [];
             const text = envelope.user_message || 'Starting fresh. How can I help?';

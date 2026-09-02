@@ -55,11 +55,6 @@ const KNOWN_UNBACKED = {
  * knowing before anyone "implements" one that already works under another name.
  */
 const KNOWN_SLOT_GAPS = {
-    // status/sortBy/sortDirection: the Find Cards chips promise filtering and
-    // sorting search-cards.js does not implement, so a "draft cards" request
-    // returns an unfiltered list under a heading that says otherwise.
-    // offset: never read, so paging past the first page silently repeats it.
-    search_cards: ['status', 'sortBy', 'sortDirection', 'offset'],
     // copy-card.js reads `newTitle`.
     copy_card: ['title'],
     // get-offer-by-id.js takes `country` only; there is no locale handling.
@@ -109,11 +104,14 @@ function readClientAliases() {
  */
 function declaredParams(file) {
     const src = fs.readFileSync(file, 'utf8');
-    const destructure = src.match(/const\s*\{([^}]*)\}\s*=\s*params\s*;/);
-    if (!destructure) return null;
+    // Every `= params` destructure, not just the first: an action may split its
+    // signature across more than one, and missing the rest would report a slot
+    // as unread when it is read.
+    const blocks = [...src.matchAll(/const\s*\{([^}]*)\}\s*=\s*params\s*;/g)];
+    if (!blocks.length) return null;
     return new Set(
-        destructure[1]
-            .split(',')
+        blocks
+            .flatMap((block) => block[1].split(','))
             .map((part) => part.split(':')[0].split('=')[0].trim())
             .filter(Boolean)
             .filter((name) => !PLATFORM_PARAMS.has(name)),

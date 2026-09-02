@@ -7,6 +7,10 @@ import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
 const DEFAULT_TIMEOUT_MS = 5000;
 const KEYWORD_SEARCH_TIMEOUT_MS = 45000;
 const HARD_RESULT_CAP = 200;
+// A status filter thins results after the search, so read wider than asked.
+const FILTER_OVERFETCH = 5;
+const MAX_FILTER_READ = 200;
+const DEFAULT_FILTER_LIMIT = 10;
 
 // Adobe I/O Runtime enforces a 1 MB hard cap on web-action response bodies;
 // exceeding it triggers a 400 with "Response is not valid 'message/http'".
@@ -63,8 +67,81 @@ function fitToResponseBudget(result) {
  *   - When the caller provides `id` or `osi` only (no `query`/`tags`), the
  *     request is short-circuited to `studioOps.searchById` for a fast path.
  */
+
+/** Published is the only positive state AEM reports; everything else is a draft. */
+function isPublished(card) {
+    return String(card?.status ?? '').toUpperCase() === 'PUBLISHED';
+}
+
+/**
+ * How wide to read when a status filter will thin the results afterwards.
+ * Bounded so a filter cannot turn into a full-surface scan.
+ */
+function widenForFilter(limit) {
+    const asked = Number(limit) || DEFAULT_FILTER_LIMIT;
+    return Math.min(asked * FILTER_OVERFETCH, MAX_FILTER_READ);
+}
+
+/**
+ * Apply the filtering and ordering the Find Cards chips promise. Cards carry
+ * `status` and `modified` already, so this is presentation over data we have,
+ * not a second query.
+ *
+ * The filter runs over what the search returned, so on a very large surface it
+ * sees a window rather than everything. That is why the read is widened above.
+ */
+function applyStatusAndSort(result, { status, sortBy, sortDirection, limit }) {
+    if (!result || !Array.isArray(result.results)) return result;
+
+    let rows = result.results;
+    let label = '';
+
+    if (status) {
+        const wantPublished = String(status).toUpperCase() === 'PUBLISHED';
+        rows = rows.filter((card) => isPublished(card) === wantPublished);
+        label = wantPublished ? 'published' : 'draft';
+    }
+
+    if (sortBy) {
+        const descending = String(sortDirection ?? 'desc').toLowerCase() !== 'asc';
+        rows = [...rows].sort((a, b) => {
+            const left = String(a?.[sortBy] ?? '');
+            const right = String(b?.[sortBy] ?? '');
+            if (left === right) return 0;
+            return (left < right ? -1 : 1) * (descending ? -1 : 1);
+        });
+    }
+
+    if (status && Number(limit) > 0) {
+        rows = rows.slice(0, Number(limit));
+    }
+
+    result.results = rows;
+    result.count = rows.length;
+    if (label) {
+        result.message = `Found ${rows.length} ${label} card${rows.length !== 1 ? 's' : ''}`;
+    }
+    return result;
+}
+
 async function main(params) {
-    const { surface, query, tags, limit, locale, osi, titleSearch, id, variant, variationType, __ow_headers } = params;
+    const {
+        surface,
+        query,
+        tags,
+        limit,
+        locale,
+        osi,
+        titleSearch,
+        id,
+        variant,
+        variationType,
+        status,
+        sortBy,
+        sortDirection,
+        offset,
+        __ow_headers,
+    } = params;
 
     try {
         const authError = await requireIMSAuth(__ow_headers);
@@ -104,15 +181,21 @@ async function main(params) {
                   surface,
                   query,
                   tags,
-                  limit: capLimit(limit),
+                  // A status filter is applied to what comes back, so asking
+                  // for exactly `limit` rows would starve it: ten cards might
+                  // contain one draft. Read wider, then trim to what was asked.
+                  limit: status ? capLimit(widenForFilter(limit)) : capLimit(limit),
                   locale,
                   osi,
                   titleSearch,
                   variant,
                   variationType,
+                  offset,
               });
 
-        const result = await withTimeout(operation, timeoutMs);
+        const settled = await withTimeout(operation, timeoutMs);
+        const result =
+            settled === TIMEOUT_SENTINEL ? settled : applyStatusAndSort(settled, { status, sortBy, sortDirection, limit });
 
         if (result === TIMEOUT_SENTINEL) {
             return {

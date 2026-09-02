@@ -108,6 +108,8 @@ class MasBulkPublishEditor extends LitElement {
     #projectStoreController = new ReactiveController(this, []);
     #subscribedProject = null;
 
+    saveSnapshotFn = null;
+
     constructor() {
         super();
         this.confirmOpen = false;
@@ -629,6 +631,20 @@ class MasBulkPublishEditor extends LitElement {
         this.#discardResolve = null;
     }
 
+    async #recordSnapshotAfterSave(project) {
+        const { saveSnapshot } = await import('./bulk-publish-store.js');
+        try {
+            await saveSnapshot({
+                project,
+                token: this.token,
+                ioBaseUrl: this.ioBaseUrl,
+                saveSnapshotFn: this.saveSnapshotFn,
+            });
+        } catch (err) {
+            console.error('Failed to record snapshot after save:', err);
+        }
+    }
+
     async saveBulkProject() {
         await this.#withPendingAction(QUICK_ACTION.SAVE, async () => {
             this.ensureSurface();
@@ -653,6 +669,8 @@ class MasBulkPublishEditor extends LitElement {
                     Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
+                    const createdProject = Store.bulkPublishProjects.inEdit.get();
+                    await this.#recordSnapshotAfterSave(createdProject);
                 } else {
                     const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
@@ -674,6 +692,7 @@ class MasBulkPublishEditor extends LitElement {
                     if (!saved) return;
                     this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');
+                    await this.#recordSnapshotAfterSave(this.project);
                 }
             } catch (err) {
                 console.error('Failed to save bulk publish project:', err);

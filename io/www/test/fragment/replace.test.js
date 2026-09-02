@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { transformer as replace, clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
 
@@ -199,39 +200,72 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
 
-    describe('system placeholders', () => {
-        it('resolves {{plan-type-text}} to a legal inline-price marker without a dictionary entry', async () => {
-            const response = await getResponse('legal: {{plan-type-text}}');
+    describe('plan-type-text (card-model scoped)', () => {
+        const buildContext = () => ({
+            surface: DEFAULT_SURFACE,
+            locale: DEFAULT_LOCALE,
+            regionLocale: DEFAULT_LOCALE,
+            defaultLocale: DEFAULT_LOCALE,
+            loggedTransformer: 'replace',
+            requestId: 'mas-replace-ut',
+            promises: {},
+        });
+
+        const initContext = async (dictionaryFixture = DICTIONARY_RESPONSE) => {
+            clearDictionaryCache();
+            stubEmptyDictionary(false, BASELINE_SURFACE, DEFAULT_LOCALE, fetchStub);
+            mockDirectDictionary(false, DEFAULT_SURFACE, DEFAULT_LOCALE, dictionaryFixture, fetchStub);
+            const context = buildContext();
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            return context;
+        };
+
+        it('resolves {{plan-type-text}} to the legal inline-price marker for a card-model fragment', async () => {
+            const context = await initContext();
+            context.body = { ...odinResponse('legal: {{plan-type-text}}'), model: { id: CARD_MODEL_ID } };
+            const response = await replace.process(context);
             const { description } = response.body.fields;
             expect(description).to.contain('is="inline-price"');
             expect(description).to.contain('data-template="legal"');
             expect(description).to.contain('data-placeholder="plan-type-text"');
         });
 
-        it('system placeholder wins over a dictionary entry of the same key', async () => {
+        it('resolves {{plan-type-text}} inside a card fragment referenced by a collection', async () => {
+            const context = await initContext();
+            context.body = {
+                ...odinResponse('collection body'),
+                model: { id: COLLECTION_MODEL_ID },
+                references: {
+                    'card-1': {
+                        type: 'content-fragment',
+                        value: {
+                            model: { id: CARD_MODEL_ID },
+                            fields: { description: 'legal: {{plan-type-text}}' },
+                        },
+                    },
+                },
+            };
+            const response = await replace.process(context);
+            const cardDescription = response.body.references['card-1'].value.fields.description;
+            expect(cardDescription).to.contain('data-placeholder="plan-type-text"');
+        });
+
+        it('resolves {{plan-type-text}} to empty for a non-card fragment (no marker, no bare key leak)', async () => {
+            const response = await getResponse('legal: {{plan-type-text}}');
+            expect(response.body.fields.description).to.equal('legal: ');
+        });
+
+        it('empty plan-type-text seeding wins over an Odin dictionary entry of the same key', async () => {
             const dict = structuredClone(DICTIONARY_RESPONSE);
             dict.references[Object.keys(dict.references)[0]].value.fields = {
                 key: 'plan-type-text',
                 value: 'SHOULD_NOT_WIN',
             };
-            clearDictionaryCache();
-            stubEmptyDictionary(false, BASELINE_SURFACE, DEFAULT_LOCALE, fetchStub);
-            mockDirectDictionary(false, DEFAULT_SURFACE, DEFAULT_LOCALE, dict, fetchStub);
-            const context = {
-                surface: DEFAULT_SURFACE,
-                locale: DEFAULT_LOCALE,
-                regionLocale: DEFAULT_LOCALE,
-                defaultLocale: DEFAULT_LOCALE,
-                loggedTransformer: 'replace',
-                requestId: 'mas-replace-ut',
-                promises: {},
-            };
-            context.promises.replace = replace.init(context);
-            await context.promises.replace;
+            const context = await initContext(dict);
             context.body = odinResponse('x {{plan-type-text}}');
             const response = await replace.process(context);
-            expect(response.body.fields.description).to.not.contain('SHOULD_NOT_WIN');
-            expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
+            expect(response.body.fields.description).to.equal('x ');
         });
     });
 

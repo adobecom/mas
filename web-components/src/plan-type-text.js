@@ -23,22 +23,27 @@ export function planTypeCaseFor(element) {
 }
 
 /**
- * Price-options provider for the {{plan-type-text}} token. Renders the plan
- * type only, using the surrounding card/field's OSI, cased from the preceding
- * copy.
+ * Price-options provider covering two opt-in behaviors on legal inline-prices:
+ * - the {{plan-type-text}} token (`data-placeholder`) renders the plan type
+ *   only, sourcing the OSI from the surrounding card/field;
+ * - `data-legal-case` opts any legal price into sentence-boundary casing.
  */
 export function planTypeTextOptionsProvider(element, options) {
-    if (element.dataset.placeholder !== PLACEHOLDER_PLAN_TYPE_TEXT) return;
-    const osi = element.closest('merch-card, mas-field')?.osi;
-    if (!osi) return;
-    options.wcsOsi = osi;
-    options.displayPlanType = true;
-    options.displayPerUnit = false;
-    options.displayTax = false;
-    options.displayRecurrence = false;
-    options.displayOldPrice = false;
-    options.displayAnnual = false;
-    options.forceTaxExclusive = false;
-    options.displayDot = false;
-    options.planTypeCase = planTypeCaseFor(element);
+    if (element.dataset.placeholder === PLACEHOLDER_PLAN_TYPE_TEXT) {
+        const osi = element.closest('merch-card, mas-field')?.osi;
+        if (osi) {
+            options.wcsOsi = osi;
+            options.displayPlanType = true;
+            options.displayPerUnit = false;
+            options.displayTax = false;
+            options.displayRecurrence = false;
+            options.displayOldPrice = false;
+            options.displayAnnual = false;
+            options.forceTaxExclusive = false;
+            options.displayDot = false;
+        }
+    }
+    if ('legalCase' in element.dataset) {
+        options.planTypeCase = planTypeCaseFor(element);
+    }
 }

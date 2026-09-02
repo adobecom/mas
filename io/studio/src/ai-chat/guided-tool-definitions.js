@@ -90,12 +90,20 @@ export function buildGuidedTools() {
             input_schema: {
                 type: 'object',
                 properties: {
+                    flowId: {
+                        type: 'string',
+                        enum: ['release'],
+                        description:
+                            'Always "release". A lookup is a step of the flow, not the end of it. The turn is ' +
+                            'recorded in the transcript, and without this the next turn reads it as terminal and ' +
+                            'restarts the flow from the beginning.',
+                    },
                     mcpTool: { type: 'string', description: 'The MCP tool name, e.g. list_products.' },
                     mcpParams: { type: 'object', additionalProperties: true },
                     message: { type: 'string', description: 'Progress text shown while the tool runs.' },
                     confirmationRequired: { type: 'boolean' },
                 },
-                required: ['mcpTool', 'mcpParams', 'message'],
+                required: ['flowId', 'mcpTool', 'mcpParams', 'message'],
             },
         },
         {
@@ -159,10 +167,26 @@ export function buildGuidedTools() {
  * The tool name owns the type field; the schema-validated input carries
  * everything else. Returns null when the response is not a guided tool call.
  */
+/**
+ * A button group offering neither options nor an input hint renders as a
+ * question with nothing to answer it: the schema cannot say "Step 4 needs
+ * options" without also breaking Step 1, which legitimately asks the user to
+ * type. Dropping the empty control leaves the ordinary chat input usable
+ * instead of a dead card.
+ */
+function usableButtonGroup(buttonGroup) {
+    if (!buttonGroup || typeof buttonGroup !== 'object') return false;
+    return Boolean(buttonGroup.options?.length) || Boolean(buttonGroup.inputHint);
+}
+
 export function extractGuidedTool(response) {
     if (!response?.success || !response.toolUse) return null;
     const type = GUIDED_TOOL_TYPES[response.toolUse.name];
     if (!type) return null;
     const input = response.toolUse.input && typeof response.toolUse.input === 'object' ? response.toolUse.input : {};
-    return { ...input, type };
+    const payload = { ...input, type };
+    if ('buttonGroup' in payload && !usableButtonGroup(payload.buttonGroup)) {
+        delete payload.buttonGroup;
+    }
+    return payload;
 }

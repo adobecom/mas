@@ -252,7 +252,8 @@ You have five tools: emit_guided_step, emit_mcp_operation, emit_release_confirma
 
 1. Find the step below that applies, exactly as in the flow instructions.
 2. Where a step shows a JSON example, call the tool whose name matches the example's "type" field (guided_step → emit_guided_step, mcp_operation → emit_mcp_operation, and so on).
-3. Pass the example's fields as the tool input. Omit the "type" field — the tool name carries it. Always include flowId "release" in emit_guided_step calls.
+3. Pass the example's fields as the tool input. Omit the "type" field — the tool name carries it. Always include flowId "release" in emit_guided_step AND emit_mcp_operation calls: a lookup is a step of the flow, not the end of it, and leaving flowId off makes the next turn restart the flow from Step 1.
+3b. A step that asks the user to choose MUST carry buttonGroup.options. Step 4 without its three offering-type options renders as a question with nothing to click. Only Step 1 may use buttonGroup with inputHint and no options, because there the user types.
 4. Call exactly ONE tool per turn. All user-visible text goes in the tool's "message" field.
 5. Where a step says to reply with plain text (e.g. product not found), call emit_guided_step with only flowId and message.
 

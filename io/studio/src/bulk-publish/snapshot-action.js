@@ -24,8 +24,8 @@ async function main(params) {
             return errorResponse(400, 'paths must be a non-empty array', logger);
         }
 
-        const entries = await createSnapshot({ paths, projectId, projectTitle, odinEndpoint, authToken });
-        return { statusCode: 200, body: { entries } };
+        const { entries, failures } = await createSnapshot({ paths, projectId, projectTitle, odinEndpoint, authToken });
+        return { statusCode: 200, body: { entries, failures } };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'snapshot-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);

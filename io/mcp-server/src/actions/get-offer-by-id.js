@@ -4,7 +4,7 @@ import { AOSClient } from '../services/aos-client.js';
 import { requireIMSAuth } from '../lib/ims-validator.js';
 
 async function main(params) {
-    const { offerId, country = 'US', __ow_headers } = params;
+    const { offerId, country = 'US', arrangementCode, __ow_headers } = params;
 
     try {
         const authError = await requireIMSAuth(__ow_headers);
@@ -34,7 +34,10 @@ async function main(params) {
         });
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
 
-        const offer = await aosClient.getOffer(offerId, country);
+        // AOS does not filter by offer id; arrangement_code is the filter it
+        // honours. The release flow knows the product a turn before it asks
+        // about the offer, so pass it through and this becomes a real lookup.
+        const offer = await aosClient.getOffer(offerId, country, { arrangementCode });
 
         const studioLinks = urlBuilder.createOfferLinks({
             product_arrangement_code: offer.product_arrangement_code,

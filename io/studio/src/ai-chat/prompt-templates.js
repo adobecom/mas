@@ -51,10 +51,12 @@ The user has provided some identifier in their last turn. You MUST classify it u
    {
      "type": "mcp_operation",
      "mcpTool": "get_offer_by_id",
-     "mcpParams": { "offerId": "<offer id verbatim>" },
+     "mcpParams": { "offerId": "<offer id verbatim>", "arrangementCode": "<the selected product's arrangement code, if one is known>" },
      "message": "Resolving offer <offer id> to its product..."
    }
    \`\`\`
+   ALWAYS include \`arrangementCode\` when a product has already been selected in this flow, which it has by Step 5. AOS does not filter by offer id, so without it the lookup scans an unfiltered page and reports "not found" for offers that exist. With it the lookup is exact.
+
    After the lookup returns, read the \`product_arrangement_code\` field from the response. Your NEXT response MUST call \`list_products\` with \`searchText\` set to that exact \`product_arrangement_code\` value (do NOT use the original offer/OSI string, do NOT use the offer name). \`list_products\` maps the PA code against the MCS product cache — this is how we reach a product that can drive card creation. Then continue from Step 3 with that product.
 
 2. **Does the input contain a substring matching \`[A-Za-z0-9_-]{15,}\` that is NOT a 32-hex offer ID — at least 15 characters, mixing letters, digits, and \`-\` or \`_\`, no spaces?** (The input may be the raw OSI or wrapped like "Selected offer: <osi>" — extract the token regardless.)

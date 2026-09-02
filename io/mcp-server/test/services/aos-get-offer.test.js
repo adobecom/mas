@@ -92,17 +92,16 @@ describe('AOSClient.getOffer', () => {
             );
     });
 
-    it('gives the v3 fallback the landscape and environment it needs', async () => {
-        fetchStub = stubFetch((url) =>
-            url.pathname.includes('/v3/offers') ? ok({ data: [{ offer_id: OFFER_ID }] }) : notFound(),
-        );
+    it('does not call the v3 endpoint, which AOS answers with a 404', async () => {
+        // Measured 2026-09-02: POST /v3/offers returns 404 Not Found. It was
+        // dead code standing in as the fallback for exactly the lookups that
+        // needed one.
+        fetchStub = stubFetch(() => notFound());
 
-        const offer = await client().getOffer(OFFER_ID, 'US');
+        await client()
+            .getOffer(OFFER_ID, 'US')
+            .catch(() => {});
 
-        expect(offer.offer_id).to.equal(OFFER_ID);
-        const v3 = fetchStub.calls.find((call) => call.url.pathname.includes('/v3/offers'));
-        const body = JSON.parse(v3.init.body);
-        expect(body.landscape, 'v3 returns empty without a landscape').to.be.a('string');
-        expect(body.environment, 'v3 returns empty without an environment').to.be.a('string');
+        expect(fetchStub.calls.filter((call) => call.url.pathname.includes('/v3/'))).to.have.lengthOf(0);
     });
 });

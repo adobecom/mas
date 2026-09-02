@@ -59,3 +59,19 @@ describe('ai-chat/guided card creation — Step 1 skip', () => {
         expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.include('go straight to Step 2');
     });
 });
+
+describe('ai-chat/guided card creation — offer lookup carries the product', () => {
+    let GUIDED_CARD_CREATION_PROMPT;
+
+    before(async () => {
+        ({ GUIDED_CARD_CREATION_PROMPT } = await import('../../src/ai-chat/prompt-templates.js'));
+    });
+
+    it('asks for arrangementCode alongside the offer id', () => {
+        // AOS does not filter by offer id, so a bare offerId lookup scans an
+        // unfiltered page and reports "not found" for offers that exist.
+        expect(GUIDED_CARD_CREATION_PROMPT).to.include('"mcpTool": "get_offer_by_id"');
+        expect(GUIDED_CARD_CREATION_PROMPT).to.include('arrangementCode');
+        expect(GUIDED_CARD_CREATION_PROMPT).to.match(/ALWAYS include .?arrangementCode/);
+    });
+});

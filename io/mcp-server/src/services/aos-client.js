@@ -88,23 +88,23 @@ export class AOSClient {
         return this.enrichOffersWithPlanType(list);
     }
 
-    async getOffer(offerId, country) {
+    /**
+     * Fetch one offer by id.
+     *
+     * AOS does not filter by offer id on GET /offers. Measured 2026-09-02:
+     * offer_id, offer_ids and offer_selector_ids are all ignored and the
+     * endpoint answers with an unfiltered page, while POST /v3/offers is a 404.
+     * arrangement_code is honoured, and asking by it returned 15 rows for one
+     * product containing the wanted offer.
+     *
+     * So pass an arrangementCode whenever the caller has one: it turns a scan
+     * of whatever AOS felt like returning into a real lookup. Without it we can
+     * only page through the unfiltered list and hope the offer is on it, which
+     * is why this used to report "not found" for offers that plainly exist.
+     */
+    async getOffer(offerId, country, { arrangementCode } = {}) {
         const authHeader = await this.authManager.getAuthHeader();
 
-        // AOS's legacy GET /offers is the shape OST's browser client uses
-        // successfully. Match its getOfferById signature exactly: offer_id,
-        // country, api_key, environment=PROD (not PRODUCTION) and landscape.
-        //
-        // Do NOT add buying_program/merchant/sales_channel/service_providers
-        // here. Those belong to searchOffers, where narrowing an
-        // arrangement-code search is the point. An offer_id is unique, so
-        // against a lookup they only exclude: they filtered out every offer
-        // outside RETAIL/DIRECT, which is most ETLA and enterprise offers, and
-        // an offer the user had just picked in OST came back "not found".
-        //
-        // We iterate (landscape × country) for coverage. The v3 POST
-        // /v3/offers path is kept as a fallback for offers not in the legacy
-        // index.
         const countries = ['US', country, 'CA', 'IN', 'GB', 'DE', 'FR', 'JP', 'AU'].filter(
             (c, i, arr) => c && arr.indexOf(c) === i,
         );
@@ -112,22 +112,30 @@ export class AOSClient {
 
         let lastError = null;
         let lastStatus = 0;
+        let sawAnyOffer = false;
 
-        // Attempt 1: legacy GET — AOS expects environment=PROD, with the
-        // buying_program/merchant/sales_channel/service_providers quartet
-        // that OST's aos-client passes.
         for (const landscape of landscapes) {
             for (const c of countries) {
-                const params = new URLSearchParams({
-                    offer_id: offerId,
+                const query = {
                     country: c,
                     api_key: this.apiKey,
                     environment: 'PROD',
                     landscape,
                     page: '0',
                     page_size: '100',
-                });
-                const url = `${this.baseUrl}/offers?${params.toString()}`;
+                };
+                // Only narrow by something AOS honours. Do NOT add
+                // buying_program/merchant/sales_channel here: those belong to
+                // searchOffers, and on a lookup they excluded every offer
+                // outside RETAIL and DIRECT.
+                if (arrangementCode) {
+                    query.arrangement_code = arrangementCode;
+                    query.service_providers = 'PRICING';
+                } else {
+                    query.offer_id = offerId;
+                }
+
+                const url = `${this.baseUrl}/offers?${new URLSearchParams(query).toString()}`;
                 try {
                     const response = await fetch(url, {
                         method: 'GET',
@@ -140,9 +148,10 @@ export class AOSClient {
                     if (response.ok) {
                         const data = await response.json();
                         const list = Array.isArray(data) ? data : data?.data || [];
-                        // Exact match only — AOS ignores unknown offer_id
-                        // filters and returns an unfiltered list, so taking
-                        // list[0] would fabricate a wrong answer.
+                        if (list.length) sawAnyOffer = true;
+                        // Exact match only. Without an arrangement code this
+                        // list is whatever AOS returned rather than a filtered
+                        // result, so taking list[0] would fabricate an answer.
                         const match = list.find((o) => o.offer_id === offerId);
                         if (match) return this.enrichOffersWithPlanType([match])[0];
                     } else {
@@ -157,44 +166,20 @@ export class AOSClient {
             }
         }
 
-        // Attempt 2: v3 POST as a fallback. It returns empty when landscape and
-        // environment are unset, which is why this path used to find nothing.
-        for (const landscape of landscapes) {
-            for (const c of countries) {
-                const searchParams = {
-                    offer_ids: [offerId],
-                    country: c,
-                    environment: 'PROD',
-                    landscape,
-                };
-                try {
-                    const response = await fetch(`${this.baseUrl}/v3/offers`, {
-                        method: 'POST',
-                        headers: {
-                            Authorization: authHeader,
-                            'Content-Type': 'application/json',
-                            'x-api-key': this.apiKey,
-                        },
-                        body: JSON.stringify(searchParams),
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        // Same exact-match rule as the legacy path: AOS ignores
-                        // an offer_id filter it does not recognise and answers
-                        // with an unfiltered list, so returning offers[0] would
-                        // hand back a confidently wrong offer.
-                        const match = (data.data || []).find((o) => o.offer_id === offerId);
-                        if (match) return this.enrichOffersWithPlanType([match])[0];
-                    } else if (response.status !== 404) {
-                        lastError = await response.json().catch(() => ({ message: response.statusText }));
-                    }
-                } catch (err) {
-                    lastError = err;
-                }
-            }
+        console.error('[AOS] getOffer failed', {
+            offerId,
+            arrangementCode: arrangementCode ?? null,
+            lastStatus,
+            lastError: JSON.stringify(lastError),
+        });
+        if (!arrangementCode && sawAnyOffer) {
+            // Be explicit that this was a scan, not a lookup, so the next
+            // reader does not conclude the offer is missing from AOS.
+            throw new Error(
+                `Failed to get offer: AOS does not filter by offer id, and ${offerId} was not in the unfiltered results. ` +
+                    'Retry with the product arrangement code.',
+            );
         }
-
-        console.error('[AOS] getOffer failed', { offerId, lastStatus, lastError: JSON.stringify(lastError) });
         throw new Error(`Failed to get offer: ${lastError?.message || `Offer ${offerId} not found`}`);
     }
 

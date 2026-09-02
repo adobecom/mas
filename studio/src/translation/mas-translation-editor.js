@@ -10,8 +10,8 @@ import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
-import { normalizeKey, showToast } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
+import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
@@ -329,7 +329,7 @@ class MasTranslationEditor extends LitElement {
             }
         } catch (error) {
             console.error('Error creating translation project', error);
-            showToast('Failed to create translation project.', 'negative');
+            showToast(getCreateProjectErrorMessage(error), 'negative');
         }
     }
 
@@ -346,14 +346,19 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
         this.translationProject.updateField('projectType', [Store.translationProjects.projectType.value]);
         showToast('Updating the project...');
+        let saved;
         try {
-            await this.repository.saveFragment(this.translationProjectStore, false);
-            this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+            saved = await this.repository.saveFragment(this.translationProjectStore, {
+                withToast: false,
+                refetchEtag: false,
+            });
         } catch (error) {
             console.error('Error updating translation project', error);
             showToast('Failed to update translation project.', 'negative');
             return;
         }
+        if (!saved) return;
+        this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         showToast('Translation project updated successfully.', 'positive');
     }
 
@@ -575,7 +580,9 @@ class MasTranslationEditor extends LitElement {
             >
                 <mas-items-selector
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
-                    .disableLocaleVariations=${true}
+                    .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                    .hidePromoVariations=${true}
+                    .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;

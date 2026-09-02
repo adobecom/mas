@@ -1,6 +1,6 @@
-import { html, css, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS } from './headless.css.js';
+import { CSS, headlessRowStyle } from './headless.css.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Headless slots. */
 export const HEADLESS_AEM_FRAGMENT_MAPPING = {
@@ -26,6 +26,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     backgroundColor: { attribute: 'background-color' },
     size: [],
     mnemonics: { size: 'm' },
+    customFields: { tag: 'div', slot: 'custom-fields' },
 };
 
 /**
@@ -62,6 +63,9 @@ export class Headless extends VariantLayout {
     }
 
     renderLayout() {
+        const customFieldEls = [
+            ...this.card.querySelectorAll('[slot^="custom-field-"]'),
+        ];
         return html`
             <div class="headless">
                 ${HEADLESS_FIELDS.map(
@@ -74,6 +78,30 @@ export class Headless extends VariantLayout {
                         </div>
                     `,
                 )}
+                ${customFieldEls.length
+                    ? html`
+                          <div class="headless-row">
+                              <span class="headless-label headless-section">
+                                  Custom fields
+                              </span>
+                          </div>
+                          ${customFieldEls.map(
+                              (el, i) => html`
+                                  <div class="headless-row">
+                                      <span class="headless-label">
+                                          ${el.dataset.label ||
+                                          `Custom field ${i + 1}`}
+                                      </span>
+                                      <span class="headless-value">
+                                          <slot
+                                              name="${el.getAttribute('slot')}"
+                                          ></slot>
+                                      </span>
+                                  </div>
+                              `,
+                          )}
+                      `
+                    : nothing}
                 ${this.card.secureLabel
                     ? html`
                           <div class="headless-row">
@@ -88,32 +116,5 @@ export class Headless extends VariantLayout {
         `;
     }
 
-    static variantStyle = css`
-        :host([variant='headless']) {
-            border: none;
-            background: transparent;
-            box-shadow: none;
-        }
-        :host([variant='headless']) .headless {
-            display: flex;
-            flex-direction: column;
-            padding: var(--consonant-merch-spacing-xs, 8px);
-        }
-        :host([variant='headless']) .headless-row {
-            display: flex;
-            gap: var(--consonant-merch-spacing-xs, 8px);
-            padding: var(--consonant-merch-spacing-xxs, 4px) 0;
-        }
-        :host([variant='headless']) .headless-label {
-            flex-shrink: 0;
-            font-weight: 600;
-            min-width: 8em;
-        }
-        :host([variant='headless']) .headless-value {
-            flex: 1;
-        }
-        :host([variant='headless']) .headless-value::slotted(*) {
-            display: inline;
-        }
-    `;
+    static variantStyle = headlessRowStyle('headless');
 }

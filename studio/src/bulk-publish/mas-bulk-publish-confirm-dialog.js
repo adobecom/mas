@@ -37,6 +37,17 @@ class MasBulkPublishConfirmDialog extends LitElement {
         dd {
             margin: 0;
         }
+        .cascade-note {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--spectrum-global-color-gray-800);
+        }
+        .cascade-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
     `;
 
     static properties = {
@@ -44,6 +55,8 @@ class MasBulkPublishConfirmDialog extends LitElement {
         validCount: { type: Number },
         skippedCount: { type: Number },
         open: { type: Boolean },
+        _includeVariations: { type: Boolean, state: true },
+        _includeCards: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -52,10 +65,21 @@ class MasBulkPublishConfirmDialog extends LitElement {
         this.validCount = 0;
         this.skippedCount = 0;
         this.open = false;
+        this._includeVariations = false;
+        this._includeCards = false;
     }
 
     confirm() {
-        this.dispatchEvent(new CustomEvent('publish-confirmed', { bubbles: true, composed: true }));
+        this.dispatchEvent(
+            new CustomEvent('publish-confirmed', {
+                bubbles: true,
+                composed: true,
+                detail: {
+                    includeVariations: this._includeVariations,
+                    includeCards: this._includeCards,
+                },
+            }),
+        );
     }
 
     cancel() {
@@ -98,6 +122,23 @@ class MasBulkPublishConfirmDialog extends LitElement {
                     <dt>Items:</dt>
                     <dd>${this.validCount} of ${total}</dd>
                 </dl>
+                <p class="cascade-note">Only top-level fragments are published by default.</p>
+                <div class="cascade-options">
+                    <sp-checkbox
+                        .checked=${this._includeCards}
+                        @change=${(e) => {
+                            this._includeCards = e.target.checked;
+                        }}
+                        >Include sub-collections &amp; cards</sp-checkbox
+                    >
+                    <sp-checkbox
+                        .checked=${this._includeVariations}
+                        @change=${(e) => {
+                            this._includeVariations = e.target.checked;
+                        }}
+                        >Include variations (incl. nested items)</sp-checkbox
+                    >
+                </div>
             </sp-dialog-wrapper>
         `;
     }

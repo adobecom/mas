@@ -1,8 +1,9 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
+import { extractLocaleFromPath, generateLinkToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
-import Store from './store.js';
+import Store, { toggleSelection } from './store.js';
+import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
@@ -40,7 +41,7 @@ class MasFragmentTable extends LitElement {
         this.failedPrice = false;
     }
 
-    #reactiveControllers = new ReactiveController(this);
+    #reactiveController = new ReactiveController(this);
 
     /** @type {MasRepository} */
     get repository() {
@@ -84,8 +85,12 @@ class MasFragmentTable extends LitElement {
     }
 
     update(changedProperties) {
-        if (changedProperties.has('fragmentStore')) {
-            this.#reactiveControllers.updateStores([this.fragmentStore]);
+        if (changedProperties.has('fragmentStore') || changedProperties.has('nested')) {
+            const stores = [this.fragmentStore];
+            if (this.nested) {
+                stores.push(Store.selecting, Store.selection);
+            }
+            this.#reactiveController.updateStores(stores);
         }
         super.update(changedProperties);
     }
@@ -97,7 +102,7 @@ class MasFragmentTable extends LitElement {
     }
 
     get name() {
-        return generateCodeToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
+        return generateLinkToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
     }
 
     get price() {
@@ -155,9 +160,9 @@ class MasFragmentTable extends LitElement {
         previewFragmentOnPage(this.fragmentStore.value);
     }
 
-    async copyCode(event) {
+    async copyLink(event) {
         event.stopPropagation();
-        const { code, richText, href } = generateCodeToUse(this.data, Store.search.get().path, Store.page.get());
+        const { code, richText, href } = generateLinkToUse(this.data, Store.search.get().path, Store.page.get());
         if (!code || !richText || !href) return;
 
         try {
@@ -167,10 +172,25 @@ class MasFragmentTable extends LitElement {
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
-            showToast('Code copied to clipboard', 'positive');
+            showToast('Link copied to clipboard', 'positive');
         } catch (e) {
-            showToast('Failed to copy code to clipboard', 'negative');
+            showToast('Failed to copy link to clipboard', 'negative');
         }
+    }
+
+    get isVariationSelected() {
+        return Store.selection.get().includes(this.fragmentStore.value.id);
+    }
+
+    handleVariationSelect(event) {
+        event.stopPropagation();
+        toggleSelection(this.fragmentStore.value.id);
+    }
+
+    handleNestedRowClick(event) {
+        if (!this.nested || !Store.selecting.get()) return;
+        if (shouldIgnoreRowClickForSelection(event)) return;
+        toggleSelection(this.fragmentStore.value.id);
     }
 
     getTruncatedOfferId() {
@@ -195,6 +215,7 @@ class MasFragmentTable extends LitElement {
 
     render() {
         const data = this.fragmentStore.value;
+        const validationErrors = data.getValidationErrors();
         return html`
             ${this.showVariationDialog
                 ? html`<mas-variation-dialog
@@ -206,20 +227,42 @@ class MasFragmentTable extends LitElement {
                   ></mas-variation-dialog>`
                 : ''}
             <sp-table-row
-                value="${data.id}"
-                class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''}"
+                value="${this.nested ? '' : data.id}"
+                class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''} ${this.nested &&
+                Store.selecting.get()
+                    ? 'selectable-row'
+                    : ''}"
+                @click=${this.handleNestedRowClick}
             >
-                ${this.nested
+                ${this.nested && !this.toggleExpand
                     ? ''
-                    : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
-                          <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
+                    : html`<sp-table-cell class="expand-cell">
+                          ${this.nested && this.toggleExpand && Store.selecting.get()
+                              ? html`<sp-checkbox
+                                    ?checked=${this.isVariationSelected}
+                                    @change=${this.handleVariationSelect}
+                                    @click=${(e) => e.stopPropagation()}
+                                ></sp-checkbox>`
+                              : ''}
+                          <button
+                              class="expand-button"
+                              aria-label="${this.expanded ? 'Collapse' : 'Expand'} row"
+                              @click=${this.toggleExpand}
+                          >
                               ${this.expanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                           </button>
                       </sp-table-cell>`}
                 <sp-table-cell class="name">
-                    ${this.nested
+                    ${this.nested && !this.toggleExpand && Store.selecting.get()
+                        ? html`<sp-checkbox
+                              ?checked=${this.isVariationSelected}
+                              @change=${this.handleVariationSelect}
+                              @click=${(e) => e.stopPropagation()}
+                          ></sp-checkbox>`
+                        : ''}
+                    ${this.nested && !this.toggleExpand
                         ? html`${data.locale}`
                         : html`<div class="icon">${this.icon}</div>
                               ${getFragmentName(data)}`}
@@ -242,7 +285,14 @@ class MasFragmentTable extends LitElement {
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
                 <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>
-                    <span class="status-text">${data.status}</span></sp-table-cell
+                    <span class="status-text">${data.status}</span>
+                    ${validationErrors.length
+                        ? html`<span
+                              class="validation-error-indicator"
+                              title="${validationErrors.map((error) => error.message).join('\n')}"
+                              ><sp-icon-alert class="validation-error-icon"></sp-icon-alert
+                          ></span>`
+                        : nothing}</sp-table-cell
                 >
                 <sp-table-cell class="actions">
                     ${this.failedPrice
@@ -264,9 +314,9 @@ class MasFragmentTable extends LitElement {
                                   <sp-icon-preview slot="icon"></sp-icon-preview>
                                   Preview on page
                               </sp-menu-item>
-                              <sp-menu-item @click=${this.copyCode}>
-                                  <sp-icon-code slot="icon"></sp-icon-code>
-                                  Copy Code
+                              <sp-menu-item @click=${this.copyLink}>
+                                  <sp-icon-link slot="icon"></sp-icon-link>
+                                  Copy Link
                               </sp-menu-item>
                           </sp-action-menu>`}
                 </sp-table-cell>

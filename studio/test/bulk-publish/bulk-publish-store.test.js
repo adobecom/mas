@@ -2,7 +2,7 @@ import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
-import { startPublishing, startReverting } from '../../src/bulk-publish/bulk-publish-store.js';
+import { startPublishing, startReverting, saveSnapshot, resetToDraft } from '../../src/bulk-publish/bulk-publish-store.js';
 
 function makeProject(id = 'proj-1') {
     let status = BULK_PUBLISH_STATUS.PUBLISHING;
@@ -53,11 +53,33 @@ describe('startPublishing()', () => {
         expect(publishFn.firstCall.args[0]).to.include({ projectId: 'proj-1', publishedBy: 'user@example.com' });
     });
 
+    it('forwards includeVariations and includeCards to publishFn', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+            includeVariations: true,
+            includeCards: true,
+        });
+        expect(publishFn.firstCall.args[0]).to.include({ includeVariations: true, includeCards: true });
+    });
+
     it('calls repository.refreshFragment after successful publish', async () => {
         const publishFn = sinon.stub().resolves({ accepted: true });
         await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
         expect(repo.refreshFragment.called).to.equal(true);
         expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
+    });
+
+    it('calls refreshFragment with skipPromoMerge:true and skipReferences:true during polling', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
+        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true, skipReferences: true });
     });
 
     it('removes project from publishing map after completion', async () => {
@@ -72,6 +94,30 @@ describe('startPublishing()', () => {
             () => {},
         );
         expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
+    });
+
+    it('returns alreadyPublishing when project is already in the publishing map', async () => {
+        Store.bulkPublishProjects.publishing.set({ [project.id]: true });
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const result = await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+        });
+        expect(result).to.deep.equal({ alreadyPublishing: true });
+        expect(publishFn.called).to.equal(false);
+    });
+
+    it('prevents double-dispatch when two calls start synchronously', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const opts = { project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 };
+        const [r1, r2] = await Promise.all([startPublishing(opts), startPublishing(opts)]);
+        expect(publishFn.callCount).to.equal(1);
+        expect([r1, r2].some((r) => r?.alreadyPublishing === true)).to.equal(true);
     });
 });
 
@@ -104,11 +150,55 @@ describe('startReverting()', () => {
         expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
     });
 
+    it('calls refreshFragment with skipPromoMerge:true after revert', async () => {
+        const project = makeProject();
+        await startReverting({ project, token, ioBaseUrl, repository: repo });
+        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true });
+    });
+
     it('returns the IO action result', async () => {
         const expected = { status: 'Reverted', failures: [], skipped: [] };
         fetchStub.resolves(fetchOk(expected));
         const project = makeProject();
         const result = await startReverting({ project, token, ioBaseUrl, repository: repo });
+        expect(result).to.deep.equal(expected);
+    });
+});
+
+describe('resetToDraft()', () => {
+    let fetchStub;
+    let repo;
+    const token = 'test-token';
+    const ioBaseUrl = 'https://io.example';
+
+    beforeEach(() => {
+        Store.bulkPublishProjects.list.data.set([]);
+        repo = makeRepo();
+        fetchStub = sinon.stub(window, 'fetch').resolves(fetchOk({ status: 'Draft' }));
+    });
+
+    afterEach(() => sinon.restore());
+
+    it('calls the reset action with projectId', async () => {
+        const project = makeProject();
+        await resetToDraft({ project, token, ioBaseUrl, repository: repo });
+        const [url, init] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-publish-reset');
+        expect(JSON.parse(init.body).projectId).to.equal('proj-1');
+    });
+
+    it('refreshes the fragment so the row leaves Publishing', async () => {
+        const project = makeProject();
+        await resetToDraft({ project, token, ioBaseUrl, repository: repo });
+        expect(repo.refreshFragment.calledOnce).to.equal(true);
+        expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
+    });
+
+    it('returns the IO action result', async () => {
+        const expected = { status: 'Draft' };
+        fetchStub.resolves(fetchOk(expected));
+        const project = makeProject();
+        const result = await resetToDraft({ project, token, ioBaseUrl, repository: repo });
         expect(result).to.deep.equal(expected);
     });
 });
@@ -283,5 +373,37 @@ describe('startPublishing (async dispatch + poll)', () => {
         });
         expect(delays.length).to.be.greaterThan(1);
         expect(delays[1]).to.be.greaterThan(delays[0]);
+    });
+});
+
+describe('saveSnapshot()', () => {
+    let saveSnapshotActionStub;
+
+    beforeEach(() => {
+        saveSnapshotActionStub = sinon.stub().resolves({ entries: [] });
+    });
+
+    afterEach(() => sinon.restore());
+
+    it('calls saveSnapshotFn with projectId, token, ioBaseUrl', async () => {
+        const project = { id: 'proj-123' };
+        await saveSnapshot({
+            project,
+            token: 'tok',
+            ioBaseUrl: 'https://io.example',
+            saveSnapshotFn: saveSnapshotActionStub,
+        });
+
+        expect(saveSnapshotActionStub.calledOnce).to.equal(true);
+        const args = saveSnapshotActionStub.firstCall.args[0];
+        expect(args.projectId).to.equal('proj-123');
+        expect(args.token).to.equal('tok');
+        expect(args.ioBaseUrl).to.equal('https://io.example');
+    });
+
+    it('does nothing when project has no id (new unsaved project)', async () => {
+        const project = { id: null };
+        await saveSnapshot({ project, token: 'tok', ioBaseUrl: 'https://io.example', saveSnapshotFn: saveSnapshotActionStub });
+        expect(saveSnapshotActionStub.called).to.equal(false);
     });
 });

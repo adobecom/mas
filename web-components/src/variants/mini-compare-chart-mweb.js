@@ -2,14 +2,32 @@ import { html, css, unsafeCSS, nothing } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
-import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
+import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
-const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
+const FOOTER_ROW_MIN_HEIGHT = 32;
+// Fallback list id for cards without a heading id; the counter keeps siblings
+// unique so aria-controls / DOM ids never collide.
+let listIdCounter = 0;
+const nextListId = () => `mweb-list-${(listIdCounter += 1)}`;
+
+// Card-scoped min-height props set by syncHeights (via syncRowHeights). The sync
+// only grows heights and never runs on mobile, so these must be cleared when the
+// layout collapses to one mobile column — else cards keep the taller desktop
+// heights and the collapsed "what's included" leaves dead space.
+const SYNCED_HEIGHT_NAMES = [
+    'heading-xs',
+    'subtitle',
+    'heading-m-price',
+    'promo-text',
+    'body-m',
+    'body-xs',
+];
+const MAX_FOOTER_ROWS = 8; // matches the .footer-row-cell nth-child rules in CSS
 
 export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -46,6 +64,12 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
 };
 
 export class MiniCompareChartMweb extends VariantLayout {
+    #syncObserver;
+    #resizeObserver;
+    #resizeTimer;
+    #lastWidth = 0;
+    #toggleEls;
+
     constructor(card) {
         super(card);
         this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
@@ -56,6 +80,21 @@ export class MiniCompareChartMweb extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        // Re-sync on any width change, not just the mobile boundary: a narrower
+        // column re-wraps text, so row heights must be recomputed to stay aligned.
+        // Guard on width — a list toggle changes height only and must not retrigger.
+        this.#lastWidth = this.card.getBoundingClientRect().width;
+        this.#resizeObserver = new ResizeObserver(() => {
+            const width = this.card.getBoundingClientRect().width;
+            if (width === this.#lastWidth) return;
+            this.#lastWidth = width;
+            clearTimeout(this.#resizeTimer);
+            this.#resizeTimer = setTimeout(
+                () => this.reconcileBreakpoint(),
+                150,
+            );
+        });
+        this.#resizeObserver.observe(this.card);
     }
 
     disconnectedCallbackHook() {
@@ -63,13 +102,59 @@ export class MiniCompareChartMweb extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
-        this._syncObserver?.disconnect();
-        this._syncObserver = null;
+        clearTimeout(this.#resizeTimer);
+        this.#resizeObserver?.disconnect();
+        this.#resizeObserver = null;
+        this.#syncObserver?.disconnect();
+        this.#syncObserver = null;
+    }
+
+    reconcileBreakpoint() {
+        if (Media.isMobile) {
+            this.resetSyncedHeights();
+            this.removeEmptyRows();
+        } else {
+            this.#syncSiblingsWhenSettled();
+        }
     }
 
     updatePriceQuantity({ detail }) {
         if (!this.mainPrice || !detail?.option) return;
         this.mainPrice.dataset.quantity = detail.option;
+    }
+
+    syncHeights() {
+        // A desktop sync started before a resize can resolve after the switch to
+        // mobile; never apply cross-card heights to the single mobile column.
+        if (Media.isMobile) return;
+        if (this.card.getBoundingClientRect().width <= 2) {
+            if (!this.#syncObserver) {
+                this.#syncObserver = new ResizeObserver(() => {
+                    if (this.card.getBoundingClientRect().width > 2) {
+                        this.#syncObserver?.disconnect();
+                        this.#syncObserver = null;
+                        this.syncHeights();
+                    }
+                });
+                this.#syncObserver.observe(this.card);
+            }
+            return;
+        }
+        const slots = [
+            'heading-xs',
+            'subtitle',
+            'heading-m-price',
+            'promo-text',
+            'body-m',
+            'body-xs',
+        ];
+        this.syncRowHeights(
+            slots.map((slot) => ({
+                name: slot,
+                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
+            })),
+        );
+        this.adjustMiniCompareFooterRows();
     }
 
     priceOptionsProvider(element, options) {
@@ -115,52 +200,6 @@ export class MiniCompareChartMweb extends VariantLayout {
         </div>`;
     };
 
-    adjustMiniCompareBodySlots() {
-        if (this.card.getBoundingClientRect().width <= 2) {
-            // Card not yet laid out (e.g. Milo section grid applied after card renders).
-            // Observe for first non-zero width then retry.
-            if (!this._syncObserver) {
-                this._syncObserver = new ResizeObserver(() => {
-                    if (this.card.getBoundingClientRect().width > 2) {
-                        this._syncObserver?.disconnect();
-                        this._syncObserver = null;
-                        this.adjustMiniCompareBodySlots();
-                        this.adjustMiniCompareFooterRows();
-                    }
-                });
-                this._syncObserver.observe(this.card);
-            }
-            return;
-        }
-
-        const slots = [
-            'heading-xs',
-            'subtitle',
-            'heading-m-price',
-            'promo-text',
-            'body-m',
-            'body-xs',
-            'footer-rows',
-        ];
-
-        slots.forEach((slot) => {
-            const lightEl = this.card.querySelector(`[slot="${slot}"]`);
-            const el =
-                lightEl ??
-                this.card.shadowRoot.querySelector(`slot[name="${slot}"]`);
-            this.updateCardElementMinHeight(el, slot);
-        });
-        // Re-measure promo-text from shadow DOM slot (includes slotted content padding)
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('slot[name="promo-text"]'),
-            'promo-text',
-        );
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('footer'),
-            'footer',
-        );
-    }
-
     adjustMiniCompareFooterRows() {
         if (this.card.getBoundingClientRect().width === 0) return;
         const footerRows = this.card.querySelector('[slot="footer-rows"] ul');
@@ -203,44 +242,51 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     setupToggle() {
-        if (this.toggleSetupDone) return;
         const bodyXs = this.card.querySelector('[slot="body-xs"]');
-        if (!bodyXs) return;
-        const titleEl = bodyXs.querySelector('p');
-        const listEl = bodyXs.querySelector('ul');
+        const titleEl = bodyXs?.querySelector('p');
+        const listEl = bodyXs?.querySelector('ul');
         if (!titleEl || !listEl) return;
-        // Already transformed (e.g. by Milo block)
+        // Skip if the Milo block already built this structure.
         if (bodyXs.querySelector('.footer-rows-title')) return;
-        this.toggleSetupDone = true;
+
         const titleText = titleEl.textContent.trim();
-        const cardHeading = this.card.querySelector('h3')?.id;
-        const listId = cardHeading
-            ? `${cardHeading}-list`
-            : `mweb-list-${Date.now()}`;
-        listEl.setAttribute('id', listId);
+        const heading = this.card.querySelector('h3')?.id;
+        const listId = heading ? `${heading}-list` : nextListId();
+        listEl.id = listId;
         listEl.classList.add('checkmark-copy-container');
+
         const titleDiv = createTag(
-            'div',
+            'h4',
             { class: 'footer-rows-title' },
             titleText,
         );
-        if (Media.isMobile) {
-            const toggleBtn = createTag('button', {
-                class: 'toggle-icon',
-                'aria-label': titleText,
-                'aria-expanded': 'false',
-                'aria-controls': listId,
-            });
-            titleDiv.appendChild(toggleBtn);
-            titleDiv.addEventListener('click', () => {
-                const isOpen = listEl.classList.toggle('open');
-                toggleBtn.classList.toggle('expanded', isOpen);
-                toggleBtn.setAttribute('aria-expanded', String(isOpen));
-            });
-        } else {
-            listEl.classList.add('open');
-        }
+        const toggleBtn = createTag('button', {
+            class: 'toggle-icon',
+            'aria-label': titleText,
+            'aria-expanded': 'false',
+            'aria-controls': listId,
+        });
+        this.#toggleEls = { toggleBtn, listEl };
+        titleDiv.append(toggleBtn);
+
+        // Collapsing is mobile-only; CSS hides the button and forces the list
+        // open on desktop, so a click there must never collapse it.
+        titleDiv.addEventListener('click', () => {
+            if (Media.isMobile) this.setListOpen(!this.isListOpen);
+        });
         titleEl.replaceWith(titleDiv);
+    }
+
+    get isListOpen() {
+        return this.#toggleEls?.listEl.classList.contains('open') ?? false;
+    }
+
+    // One definition of "open" for the mobile click handler.
+    setListOpen(isOpen) {
+        const { toggleBtn, listEl } = this.#toggleEls;
+        listEl.classList.toggle('open', isOpen);
+        toggleBtn.classList.toggle('expanded', isOpen);
+        toggleBtn.setAttribute('aria-expanded', String(isOpen));
     }
 
     get legalDisplayDot() {
@@ -300,13 +346,17 @@ export class MiniCompareChartMweb extends VariantLayout {
         return html`
             ${this.badge}
             <div class="body">
-                ${this.icons}
-                <slot name="badge"></slot>
-                <slot name="heading-xs"></slot>
-                <slot name="subtitle"></slot>
-                <slot name="heading-m-price"></slot>
-                <slot name="body-m"></slot>
-                <slot name="promo-text"></slot>
+                <div class="body-main">
+                    ${this.icons}
+                    <slot name="badge"></slot>
+                    <slot name="heading-xs"></slot>
+                    <div class="price-wrapping">
+                        <slot name="subtitle"></slot>
+                        <slot name="heading-m-price"></slot>
+                    </div>
+                    <slot name="promo-text"></slot>
+                    <slot name="body-m"></slot>
+                </div>
                 ${this.getMiniCompareFooter()}
             </div>
             ${this.getMiniCompareFooterRows()}
@@ -314,42 +364,107 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await super.postCardUpdateHook();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
         this.setupToggle();
         if (Media.isMobile) {
             this.removeEmptyRows();
-        } else {
-            this.adjustMiniCompareFooterRows();
+        }
+        await super.postCardUpdateHook();
+        if (!Media.isMobile) {
+            await this.#syncSiblingsWhenSettled();
+        }
+    }
 
-            const container = this.getContainer();
-            if (!container) return;
+    // All sibling cards of this variant inside the given container.
+    #siblingCards(container) {
+        return container.querySelectorAll(
+            `merch-card[variant="${this.card.variant}"]`,
+        );
+    }
 
-            requestAnimationFrame(() => {
-                const cards = container.querySelectorAll(
-                    'merch-card[variant="mini-compare-chart-mweb"]',
-                );
-                cards.forEach((card) => {
-                    card.variantLayout?.adjustMiniCompareBodySlots?.();
-                    card.variantLayout?.adjustMiniCompareFooterRows?.();
-                });
-            });
+    // Sync only after every sibling card has finished updating and the layout
+    // has settled, driven once from the first card. Running per-card mid-reflow
+    // (e.g. straight off a breakpoint change) groups cards by a transient top
+    // and strands siblings at mismatched heights.
+    async #syncSiblingsWhenSettled() {
+        const container = this.getContainer();
+        if (!container) return;
+        const cards = Array.from(this.#siblingCards(container));
+        // Elect the first card of the sibling set as leader; querySelectorAll
+        // matches at any depth, so firstElementChild would miss nested layouts.
+        if (this.card !== cards[0]) return;
+        await Promise.all(cards.map((card) => card.updateComplete));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        requestAnimationFrame(() => {
+            this.resetSyncedHeights();
+            this.syncHeights();
+        });
+    }
+
+    resetSyncedHeights() {
+        const container = this.getContainer();
+        if (!container) return;
+        const variant = this.card.variant;
+        const cards = this.#siblingCards(container);
+        for (const name of SYNCED_HEIGHT_NAMES) {
+            const prop = `--consonant-merch-card-${variant}-${name}-height`;
+            container.style.removeProperty(prop);
+            cards.forEach((card) => card.style.removeProperty(prop));
+        }
+        for (let index = 1; index <= MAX_FOOTER_ROWS; index += 1) {
+            container.style.removeProperty(
+                this.getRowMinHeightPropertyName(index),
+            );
         }
     }
 
     static variantStyle = css`
-        :host([variant='mini-compare-chart-mweb']) .body > slot {
+        :host([variant='mini-compare-chart-mweb'])
+            .body-main
+            > .price-wrapping {
+            display: flex;
+            flex-direction: column;
+        }
+
+        :host([variant='mini-compare-chart-mweb']) .body {
+            padding: 0;
+        }
+
+        :host([variant='mini-compare-chart-mweb']) .body-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height: 100%;
+            gap: var(--consonant-merch-spacing-xxs);
+            padding: var(--consonant-merch-spacing-xs);
+            padding-bottom: 0;
+        }
+
+        :host([variant='mini-compare-chart-mweb']) footer {
+            margin: var(--consonant-merch-spacing-xs);
+            margin-top: 0;
+            width: auto;
+        }
+
+        :host([variant='mini-compare-chart-mweb'])
+            .price-wrapping
+            > slot[name='subtitle'] {
             display: block;
         }
 
         :host([variant='mini-compare-chart-mweb'])
-            .body
+            .price-wrapping
             > slot[name='heading-m-price'] {
             display: flex;
+            flex: 1;
             flex-direction: column;
             justify-content: flex-end;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
+            );
         }
 
         :host([variant='mini-compare-chart-mweb'])
@@ -397,6 +512,17 @@ export class MiniCompareChartMweb extends VariantLayout {
         @media screen and ${unsafeCSS(DESKTOP_UP)} {
             :host([variant='mini-compare-chart-mweb']) footer {
                 padding: 0;
+            }
+        }
+
+        @media screen and ${unsafeCSS(TABLET_UP)} {
+            :host([variant='mini-compare-chart-mweb'])
+                .price-wrapping
+                > slot[name='subtitle'] {
+                min-height: var(
+                    --consonant-merch-card-mini-compare-chart-mweb-subtitle-height,
+                    0px
+                );
             }
         }
 
@@ -478,36 +604,35 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
         /* Shadow DOM slot min-heights — ensures empty slots reserve space for cross-card alignment */
         :host([variant='mini-compare-chart-mweb'])
-            .body
+            .body-main
             > slot[name='heading-xs'] {
+            display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-heading-xs-height
             );
         }
         :host([variant='mini-compare-chart-mweb'])
-            .body
-            > slot[name='subtitle'] {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-subtitle-height
-            );
-        }
-        :host([variant='mini-compare-chart-mweb'])
-            .body
-            > slot[name='heading-m-price'] {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
-            );
-        }
-        :host([variant='mini-compare-chart-mweb'])
-            .body
+            .body-main
             > slot[name='promo-text'] {
+            display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-promo-text-height
             );
         }
-        :host([variant='mini-compare-chart-mweb']) .body > slot[name='body-m'] {
+        :host([variant='mini-compare-chart-mweb'])
+            .body-main
+            > slot[name='body-m'] {
+            display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-body-m-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            .footer-rows-container
+            > slot[name='body-xs'] {
+            display: block;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-body-xs-height
             );
         }
 
@@ -595,6 +720,11 @@ export class MiniCompareChartMweb extends VariantLayout {
             #badge.spectrum-red-700-plans {
             background-color: #eb1000;
             color: #ffffff;
+        }
+
+        :host([variant='mini-compare-chart-mweb'])
+            ::slotted(h3[slot='heading-xs']) {
+            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
 
         :host([variant='mini-compare-chart-mweb']) .footer-rows-container {

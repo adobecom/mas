@@ -11,7 +11,6 @@ import {
 } from './variants/variants.js';
 
 import './global.css.js';
-import './aem-fragment.js';
 import './merch-badge.js';
 import './merch-mnemonic-list.js';
 import './merch-whats-included.js';
@@ -47,7 +46,12 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
     'simplified-pricing-express',
 ];
 
-const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment', 'product'];
+const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
+    'segment',
+    'product',
+    'plans-education',
+    'mini-compare-chart-mweb',
+];
 
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
@@ -64,7 +68,8 @@ function priceOptionsProvider(element, options) {
 
     if (
         !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+            card.hasAttribute('data-promotion-project'))
     ) {
         options.promotionCode = card.contextPromotionCode;
     }
@@ -75,6 +80,12 @@ function priceOptionsProvider(element, options) {
     if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
     }
+    if (
+        options.displayAnnual === undefined &&
+        typeof card.settings?.displayAnnual === 'boolean'
+    ) {
+        options.displayAnnual = card.settings.displayAnnual;
+    }
 }
 
 function checkoutOptionsProvider(element, options) {
@@ -82,7 +93,8 @@ function checkoutOptionsProvider(element, options) {
     if (!card) return options;
     if (
         !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+            card.hasAttribute('data-promotion-project'))
     ) {
         options.promotionCode = card.contextPromotionCode;
     }
@@ -109,7 +121,9 @@ const intersectionObserver = new IntersectionObserver((entries) => {
         if (VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(card.variant)) {
             if (entry.boundingClientRect.width === 0) return;
             if (
-                card.variant === 'product' &&
+                (card.variant === 'product' ||
+                    card.variant === 'mini-compare-chart-mweb' ||
+                    card.variant === 'plans-education') &&
                 card.querySelector('merch-icon[slot="icons"]')
             ) {
                 intersectionObserver.unobserve(card);
@@ -117,9 +131,9 @@ const intersectionObserver = new IntersectionObserver((entries) => {
             }
 
             const cardWidth = card.getBoundingClientRect().width;
-            const badgeEl = card.querySelector('[slot="badge"]');
+            const badgeEl = card.querySelector('[slot="badge"] > merch-badge');
             const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
-            if (cardWidth === 0 || badgeWidth === 0) {
+            if (cardWidth === 0 || !badgeEl) {
                 intersectionObserver.unobserve(card);
                 return;
             }
@@ -239,7 +253,20 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    contextPromotionCode;
+    #contextPromotionCode;
+
+    get contextPromotionCode() {
+        return this.#contextPromotionCode;
+    }
+
+    set contextPromotionCode(value) {
+        this.#contextPromotionCode = value;
+        if (value) {
+            this.setAttribute('data-promotion-code', value);
+        } else {
+            this.removeAttribute('data-promotion-code');
+        }
+    }
 
     #lockedOsi;
 
@@ -304,6 +331,7 @@ export class MerchCard extends LitElement {
         this.spectrum = 'css';
         this.loading = 'lazy';
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
+        this.handleMasReady = this.handleMasReady.bind(this);
         this.handleMerchOfferSelectReady =
             this.handleMerchOfferSelectReady.bind(this);
     }
@@ -598,6 +626,19 @@ export class MerchCard extends LitElement {
         }
     }
 
+    additionalModalTriggers() {
+        if (!this.settings?.additionalModalTriggers) return;
+
+        const mapping = this.variantLayout.aemFragmentMapping.title;
+        this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
+        this.makeElementModalTrigger('merch-icon', 'icons');
+    }
+
+    handleMasReady() {
+        this.handleInfoIconEvents();
+        this.additionalModalTriggers();
+    }
+
     /* c8 ignore next 3 */
     includes(text) {
         return this.textContent.match(new RegExp(text, 'i')) !== null;
@@ -639,7 +680,7 @@ export class MerchCard extends LitElement {
         // aem-fragment logic
         this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.addEventListener(EVENT_MAS_READY, this.handleInfoIconEvents);
+        this.addEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.addEventListener('change', this.changeHandler);
 
         if (this.variantLayout) {
@@ -648,6 +689,33 @@ export class MerchCard extends LitElement {
 
         if (!this.aemFragment) {
             setTimeout(() => this.checkReady(), 0);
+        }
+    }
+
+    makeElementModalTrigger(tag, slot) {
+        const isIcon = tag === 'merch-icon';
+        const trigger = this.querySelector(
+            `${tag}[slot="${slot}"]:not(.modal-trigger)`,
+        );
+        if (!trigger) return;
+        const cta = this.querySelector(
+            'a.button.placeholder-resolved[data-modal]',
+        );
+        if (!cta) return;
+        trigger.setAttribute('tabindex', '0');
+        trigger.addEventListener('click', (e) => {
+            cta.checkoutActionHandler?.(e);
+        });
+        trigger.addEventListener('keypress', (e) => {
+            if (e.code === 'Enter') cta.checkoutActionHandler?.(e);
+        });
+        trigger.classList.add('modal-trigger');
+        const titleDaaLL = this.title.replace(/\s+/g, '-').toLowerCase();
+        const daaLL = `${titleDaaLL}${isIcon ? '-icon' : ''}--${this.analyticsId}--card`;
+        trigger.setAttribute('daa-ll', daaLL);
+        trigger.setAttribute('role', 'link');
+        if (isIcon) {
+            trigger.setAttribute('alt', this.title);
         }
     }
 
@@ -661,7 +729,7 @@ export class MerchCard extends LitElement {
         );
         this.removeEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.removeEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.removeEventListener(EVENT_MAS_READY, this.handleInfoIconEvents);
+        this.removeEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.removeEventListener('change', this.changeHandler);
         this.removeEventListener(
             EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,

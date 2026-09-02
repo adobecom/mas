@@ -41,9 +41,9 @@ describe('resolveLocaleVariationParentPath', () => {
 });
 
 describe('resolvePromoVariationParentPath', () => {
-    it('resolves default fragment path from promo variation path', () => {
+    it('resolves default fragment path candidates from promo variation path', () => {
         const path = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
-        const parent = resolvePromoVariationParentPath(path);
-        expect(parent).to.equal(`${ROOT_PATH}/acom/en_US/my-card`);
+        const candidates = resolvePromoVariationParentPath(path);
+        expect(candidates).to.deep.equal([`${ROOT_PATH}/acom/en_US/my-card`]);
     });
 });

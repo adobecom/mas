@@ -55,7 +55,7 @@
             import { expect } from '@esm-bundle/chai';
             import sinon from 'sinon';
             import { html } from 'lit';
-            import { fixture, oneEvent } from '@open-wc/testing-helpers';
+            import { fixture } from '@open-wc/testing-helpers';
             import '../src/swc.js';
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
@@ -67,6 +67,7 @@
             import Store from '../src/store.js';
             import { COLLECTION_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
             import Events from '../src/events.js';
+            import { MasPublishDialog } from '../src/publish/mas-publish-dialog.js';
             import { createFromTemplate, delay, triggerInput, triggerRteInput } from './utils.js';
 
             runTests(async () => {
@@ -98,6 +99,7 @@
                         editorPanel.repository.refreshFragment = async () => {};
                         editorPanel.repository.getFragment = async () => mockFragment;
                         editorPanel.repository.aem.getFragmentById = async () => mockFragment;
+                        sandbox.stub(editorPanel.editorContextStore, 'loadFragmentContext').resolves();
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                         const store = Store.fragments.inEdit.get();
@@ -205,7 +207,7 @@
                         expect(editorPanel.textContent).to.include('Belgium (EN)');
                     });
 
-                    it('confirmDelete skips removeFromParentVariations when no parent resolves', async () => {
+                    it('confirmDelete deletes via the reference-aware path (no force) when it succeeds, and skips removeFromParentVariations when no parent resolves', async () => {
                         const grouped = new Fragment({
                             id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
                             path: '/content/dam/mas/sandbox/en_US/pac/pzn/orphan-del',
@@ -230,7 +232,6 @@
                         expect(removeSpy.called).to.be.false;
                         expect(
                             deleteSpy.calledOnceWith(grouped, {
-                                force: true,
                                 startToast: false,
                                 endToast: false,
                             }),
@@ -238,7 +239,7 @@
                         expect(resetSpy.callCount).to.equal(1);
                     });
 
-                    it('confirmDelete calls deleteFragment with fragment only for non-variation', async () => {
+                    it('confirmDelete calls deleteFragmentWithVariations for non-variation', async () => {
                         const collection = new Fragment({
                             id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
                             path: '/content/dam/mas/sandbox/en_US/pac/root-collection',
@@ -250,13 +251,15 @@
                         editorPanel.inEdit.set(new FragmentStore(collection));
                         sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(false);
                         const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
-                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        const deleteWithVariationsSpy = sandbox
+                            .stub(editorPanel.repository, 'deleteFragmentWithVariations')
+                            .resolves(true);
                         sandbox.stub(editorPanel, 'unmaskOtherFragments');
                         sandbox.stub(editorPanel.reactiveController, 'updateStores');
 
                         await editorPanel.confirmDelete();
 
-                        expect(deleteSpy.calledOnceWith(collection)).to.be.true;
+                        expect(deleteWithVariationsSpy.calledOnceWith(collection)).to.be.true;
                         expect(resetSpy.callCount).to.equal(1);
                     });
 
@@ -296,7 +299,7 @@
                         sandbox.restore();
                     });
 
-                    it('confirmDelete removes variation from parent, deletes with force, and clears editor', async () => {
+                    it('confirmDelete removes variation from parent, falls back to force delete only when the reference-aware delete fails, and clears editor', async () => {
                         const grouped = new Fragment({
                             id: '99999999-9999-9999-9999-999999999999',
                             path: '/content/dam/mas/sandbox/en_US/pac/pzn/to-delete',
@@ -319,7 +322,9 @@
                         sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
                         const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
                         const removeSpy = sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
-                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment');
+                        deleteSpy.onFirstCall().resolves(false);
+                        deleteSpy.onSecondCall().resolves(true);
                         const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
                         const unmaskSpy = sandbox.stub(editorPanel, 'unmaskOtherFragments');
                         const updateStoresSpy = sandbox.stub(editorPanel.reactiveController, 'updateStores');
@@ -329,8 +334,15 @@
                         expect(editorPanel.showDeleteDialog).to.be.false;
                         expect(resetSpy.callCount).to.equal(1);
                         expect(removeSpy.calledOnceWith(parentFrag, grouped.path)).to.be.true;
+                        expect(deleteSpy.callCount).to.equal(2);
                         expect(
-                            deleteSpy.calledOnceWith(grouped, {
+                            deleteSpy.firstCall.calledWithExactly(grouped, {
+                                startToast: false,
+                                endToast: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            deleteSpy.secondCall.calledWithExactly(grouped, {
                                 force: true,
                                 startToast: false,
                                 endToast: false,
@@ -345,6 +357,212 @@
                         expect(unmaskSpy.calledOnce).to.be.true;
                         expect(editorPanel.inEdit.get()).to.be.null;
                         expect(updateStoresSpy.called).to.be.true;
+                    });
+
+                    it('confirmDelete shows a failure toast and keeps the editor open when both delete attempts fail', async () => {
+                        const grouped = new Fragment({
+                            id: '77777777-7777-7777-7777-777777777777',
+                            path: '/content/dam/mas/sandbox/en_US/pac/pzn/undeleteable',
+                            title: 'Del',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        const store = new FragmentStore(grouped);
+                        editorPanel.inEdit.set(store);
+                        const parentFrag = new Fragment({
+                            id: '66666666-6666-6666-6666-666666666666',
+                            path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                            title: 'Parent',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['P'] }],
+                            tags: [],
+                        });
+                        editorPanel.localeDefaultFragment = parentFrag;
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
+                        sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(false);
+                        const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+                        const unmaskSpy = sandbox.stub(editorPanel, 'unmaskOtherFragments');
+                        const updateStoresSpy = sandbox.stub(editorPanel.reactiveController, 'updateStores');
+
+                        await editorPanel.confirmDelete();
+
+                        expect(deleteSpy.callCount).to.equal(2);
+                        expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
+                        expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+                        expect(resetSpy.called).to.be.false;
+                        expect(unmaskSpy.called).to.be.false;
+                        expect(editorPanel.inEdit.get()).to.not.be.null;
+                        expect(updateStoresSpy.called).to.be.false;
+                    });
+
+                    it('saveFragment saves with refetchEtag disabled and returns the saved fragment', async () => {
+                        const savedFragment = { id: 'saved-fragment' };
+                        const saveSpy = sandbox.stub(editorPanel.repository, 'saveFragment').resolves(savedFragment);
+
+                        const result = await editorPanel.saveFragment();
+
+                        expect(saveSpy.calledOnceWith(editorPanel.fragmentStore, { refetchEtag: false })).to.be.true;
+                        expect(result).to.equal(savedFragment);
+                    });
+
+                    it('saveFragment returns falsy when the repository rejects the save due to a conflict', async () => {
+                        sandbox.stub(editorPanel.repository, 'saveFragment').resolves(false);
+
+                        const result = await editorPanel.saveFragment();
+
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('promo variation delete dialog', () => {
+                    let editorPanel;
+
+                    beforeEach(async () => {
+                        editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        editorPanel.repository.refreshFragment = async () => {};
+                    });
+
+                    afterEach(() => {
+                        sandbox.restore();
+                    });
+
+                    it('deleteFragment merges promo variation paths into variationsToDelete and opens the dialog', async () => {
+                        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/nbbdsa/card-with-promo';
+                        const fragment = new Fragment({
+                            id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+                            path: '/content/dam/mas/sandbox/en_US/card-with-promo',
+                            title: 'Card',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'variations', values: ['/content/dam/mas/sandbox/en_US/card-with-promo/ar'] }],
+                            tags: [],
+                        });
+                        editorPanel.inEdit.set(new FragmentStore(fragment));
+                        sandbox.stub(editorPanel.repository, 'getPromoVariationPaths').resolves([promoPath]);
+
+                        await editorPanel.deleteFragment();
+
+                        expect(editorPanel.showDeleteDialog).to.be.true;
+                        expect(editorPanel.variationsToDelete).to.include(promoPath);
+                        expect(editorPanel.variationsToDelete).to.include('/content/dam/mas/sandbox/en_US/card-with-promo/ar');
+                    });
+
+                    it('renders the promo-variation warning in the delete confirmation dialog', () => {
+                        const fragment = new Fragment({
+                            id: 'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                            path: '/content/dam/mas/sandbox/en_US/card-with-promo',
+                            title: 'Card',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [],
+                            tags: [],
+                        });
+                        editorPanel.inEdit.set(new FragmentStore(fragment));
+                        editorPanel.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/nbbdsa/card-with-promo'];
+                        editorPanel.showDeleteDialog = true;
+
+                        const dialog = editorPanel.deleteConfirmationDialog;
+                        const message = dialog.values.find((value) => value?.strings);
+
+                        expect(message.values).to.include('1 promo variation(s)');
+                    });
+                });
+
+                describe('publishFragment', () => {
+                    let pSandbox;
+                    let pEditorPanel;
+                    let pMockFragment;
+                    let publishStub;
+
+                    beforeEach(async () => {
+                        pSandbox = sinon.createSandbox();
+                        pMockFragment = {
+                            ...fragmentData,
+                            id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                        };
+                        const frag = new Fragment(pMockFragment);
+                        const store = new FragmentStore(frag);
+                        pEditorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        pEditorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
+                        pEditorPanel.repository.refreshFragment = async () => {};
+                        pEditorPanel.repository.getFragment = async () => pMockFragment;
+                        pEditorPanel.repository.aem.getFragmentById = async () => pMockFragment;
+                        await pEditorPanel.editFragment(store);
+                        await pEditorPanel.updateComplete;
+                        publishStub = pSandbox.stub(pEditorPanel.repository, 'publishFragment').resolves();
+                    });
+
+                    afterEach(() => {
+                        pSandbox.restore();
+                    });
+
+                    it('calls repository.publishFragment directly when fragment has no refs', async () => {
+                        pSandbox.stub(pEditorPanel.fragment, 'getPublishableReferences').returns({ variations: [], cards: [] });
+                        await pEditorPanel.publishFragment();
+                        expect(publishStub.calledOnce).to.be.true;
+                        expect(publishStub.calledWith(pEditorPanel.fragment)).to.be.true;
+                    });
+
+                    it('shows dialog and publishes with selected refs when fragment has variations', async () => {
+                        const variation = new Fragment({
+                            id: 'var1-0000-0000-0000-000000000000',
+                            path: '/content/dam/mas/test/en_CA/var1',
+                            title: 'Variation 1',
+                            model: { path: '/conf/mas/settings/dam/cfm/models/card', name: 'Card' },
+                            fields: [],
+                            tags: [],
+                        });
+                        pSandbox
+                            .stub(pEditorPanel.fragment, 'getPublishableReferences')
+                            .returns({ variations: [variation], cards: [] });
+                        pSandbox.stub(MasPublishDialog, 'show').resolves({
+                            confirmed: true,
+                            selectedIds: ['var1-0000-0000-0000-000000000000'],
+                            allSelected: false,
+                        });
+                        await pEditorPanel.publishFragment();
+                        expect(publishStub.calledOnce).to.be.true;
+                        expect(
+                            publishStub.calledWith(pEditorPanel.fragment, {
+                                selectedRefIds: ['var1-0000-0000-0000-000000000000'],
+                                allSelected: false,
+                            }),
+                        ).to.be.true;
+                    });
+
+                    it('does not call repository.publishFragment when dialog is cancelled', async () => {
+                        const variation = new Fragment({
+                            id: 'var2-0000-0000-0000-000000000000',
+                            path: '/content/dam/mas/test/en_CA/var2',
+                            title: 'Variation 2',
+                            model: { path: '/conf/mas/settings/dam/cfm/models/card', name: 'Card' },
+                            fields: [],
+                            tags: [],
+                        });
+                        pSandbox
+                            .stub(pEditorPanel.fragment, 'getPublishableReferences')
+                            .returns({ variations: [variation], cards: [] });
+                        pSandbox.stub(MasPublishDialog, 'show').resolves({ confirmed: false });
+                        await pEditorPanel.publishFragment();
+                        expect(publishStub.called).to.be.false;
+                    });
+
+                    it('shows negative toast and rethrows when repository.publishFragment throws', async () => {
+                        pSandbox.stub(pEditorPanel.fragment, 'getPublishableReferences').returns({ variations: [], cards: [] });
+                        const error = new Error('publish failed');
+                        publishStub.rejects(error);
+                        const toastStub = pSandbox.stub(Events.toast, 'emit');
+                        let threw = false;
+                        try {
+                            await pEditorPanel.publishFragment();
+                        } catch (e) {
+                            threw = true;
+                            expect(e).to.equal(error);
+                        }
+                        expect(threw).to.be.true;
+                        expect(toastStub.calledOnce).to.be.true;
+                        expect(toastStub.firstCall.args[0]).to.include({ variant: 'negative' });
                     });
                 });
             });

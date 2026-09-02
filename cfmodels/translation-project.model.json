@@ -1,0 +1,56 @@
+{
+    "title": {
+        "fieldLabel": "Title",
+        "type": "string",
+        "maxLength": 255
+    },
+    "status": {
+        "fieldLabel": "status",
+        "type": "string",
+        "maxLength": 255
+    },
+    "targetLocales": {
+        "fieldLabel": "Target Locales",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "completedLocales": {
+        "fieldLabel": "Completed Locales",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "submissionDate": {
+        "fieldLabel": "submissionDate",
+        "type": "datetime"
+    },
+    "items": {
+        "fieldLabel": "Items",
+        "type": "content-fragment[]"
+    },
+    "fragments": {
+        "fieldLabel": "Fragments",
+        "type": "content-fragment[]"
+    },
+    "placeholders": {
+        "fieldLabel": "Placeholders",
+        "type": "content-fragment[]"
+    },
+    "collections": {
+        "fieldLabel": "Collections",
+        "type": "content-fragment[]"
+    },
+    "projectType": {
+        "fieldLabel": "Project Type",
+        "type": "enum",
+        "options": [
+            {
+                "label": "Translation",
+                "value": "translation"
+            },
+            {
+                "label": "Rollout",
+                "value": "rollout"
+            }
+        ]
+    }
+}

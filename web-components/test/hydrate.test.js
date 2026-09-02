@@ -25,6 +25,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processBadge,
     processFeatures,
     normalizeVariant,
 } from '../src/hydrate.js';
@@ -36,6 +37,8 @@ import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
+import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
+import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -75,7 +78,11 @@ describe('normalizeVariant', () => {
         expect(normalizeVariant('plans-v2')).to.equal('plans');
     });
 
-    it('normalizes bizpro to plans for shared collection styling', () => {
+    it('normalizes pro to plans for shared collection styling', () => {
+        expect(normalizeVariant('pro')).to.equal('plans');
+    });
+
+    it('still normalizes legacy bizpro to plans', () => {
         expect(normalizeVariant('bizpro')).to.equal('plans');
     });
 
@@ -176,6 +183,15 @@ describe('processCTAs', async () => {
 
         expect(merchCard.append.called).to.be.false;
         expect(merchCard.shadowRoot.append.called).to.be.false;
+    });
+
+    it('should not throw when fields.ctas has leftover content but the variant mapping has no ctas slot (e.g. FAQ)', async () => {
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Click me</a>',
+        };
+
+        expect(() => processCTAs(fields, merchCard, {})).to.not.throw();
+        expect(merchCard.append.called).to.be.false;
     });
 
     it('should create spectrum css buttons by default (merchCard.spectrum=css)', async () => {
@@ -695,6 +711,35 @@ describe('hydrate', () => {
         );
     });
 
+    it('sets data-promotion-project and data-promotion-variation-project independently', async () => {
+        const fragment = {
+            promoProject: 'Summer Sale 2026',
+            promoVariationProject: 'Layout Experiment A',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('data-promotion-project')).to.equal(
+            'Summer Sale 2026',
+        );
+        expect(
+            merchCard.getAttribute('data-promotion-variation-project'),
+        ).to.equal('Layout Experiment A');
+    });
+
     it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
@@ -722,16 +767,16 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
+    it('injects merch-addon at slot="addon" for pro variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
 
         const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
         const fragment = {
-            id: 'bizpro-addon',
+            id: 'pro-addon',
             fields: {
-                variant: 'bizpro',
+                variant: 'pro',
                 cardTitle: 'Creative Cloud Pro',
                 prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
@@ -742,6 +787,26 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('hydrates a legacy bizpro fragment as pro', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const fragment = {
+            id: 'legacy-bizpro',
+            fields: {
+                variant: 'bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.variant).to.equal('pro');
+        expect(litCard.getAttribute('variant')).to.equal('pro');
         litCard.remove();
     });
 
@@ -812,6 +877,29 @@ describe('hydrate', () => {
         await hydrate(fragment, litCard);
         expect(litCard.promotionCode).to.equal('CTX_PROMO');
         litCard.remove();
+    });
+
+    it('keeps each collection card promoCode on its own card when two cards have different promos', async () => {
+        await customElements.whenDefined('merch-card');
+        const cardA = document.createElement('merch-card');
+        const cardB = document.createElement('merch-card');
+        document.body.append(cardA, cardB);
+        const makeFragment = (id, promoCode) => ({
+            id,
+            fields: {
+                variant: 'ccd-slice',
+                promoCode,
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        });
+        await hydrate(makeFragment('collection-card-a', 'PROMO_A'), cardA);
+        await hydrate(makeFragment('collection-card-b', 'PROMO_B'), cardB);
+        expect(cardA.promotionCode).to.equal('PROMO_A');
+        expect(cardB.promotionCode).to.equal('PROMO_B');
+        cardA.remove();
+        cardB.remove();
     });
 });
 
@@ -1093,29 +1181,6 @@ describe('processDescription', async () => {
         );
     });
 
-    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
-        const fields = {
-            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
-        };
-        merchCard.spectrum = 'swc';
-
-        processDescription(fields, merchCard, aemFragmentMapping);
-        updateLinksCSS(merchCard);
-
-        const primary = merchCard.querySelector('sp-link[href="#"]');
-        const secondary = merchCard.querySelector(
-            'sp-link[variant="secondary"]',
-        );
-        expect(primary).to.exist;
-        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
-        expect(primary.hasAttribute('variant')).to.be.false;
-        expect(primary.textContent.trim()).to.equal('Primary');
-        expect(secondary).to.exist;
-        expect(secondary.textContent.trim()).to.equal('Secondary');
-        expect(merchCard.querySelector('a.primary-link')).to.be.null;
-        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
-    });
-
     it('should preserve primary-link and secondary-link on consonant cards', async () => {
         const fields = {
             description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
@@ -1382,6 +1447,24 @@ describe('processBorderColor', () => {
             ),
         ).to.equal('transparent');
     });
+
+    it('should clear a stale border color left over from a previous hydration', () => {
+        merchCard.style.setProperty(
+            '--consonant-merch-card-border-color',
+            'var(--spectrum-blue-400)',
+        );
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor({ borderColor: '' }, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.be.empty;
+    });
 });
 
 describe('processWhatsIncludedDividerColor', () => {
@@ -1622,6 +1705,90 @@ describe('processTrialBadge', () => {
         expect(badge).to.exist;
         await delay(50);
         expect(badge.getAttribute('variant')).to.equal('another-variant');
+    });
+});
+
+describe('processBadge', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should not append a badge when text is empty on full-pricing-express', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not honor a stray mapping.badge.alwaysRender flag', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        const mapping = {
+            ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+            badge: {
+                ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING.badge,
+                alwaysRender: true,
+            },
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not append a badge when text is empty on simplified-pricing-express', () => {
+        const fields = { badge: '', variant: 'simplified-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not double-wrap when badge already contains merch-badge markup', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express">Sale</merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelectorAll('merch-badge').length).to.equal(1);
+    });
+
+    it('should not append a legacy merch-badge tag that has no text or price content', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express" background-color="spectrum-blue-400" border-color="spectrum-blue-400"></merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should still append a legacy merch-badge tag that only wraps an inline price', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express"><span is="inline-price">$9.99</span></merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"] merch-badge')).to.exist;
     });
 });
 

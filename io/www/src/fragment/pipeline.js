@@ -15,7 +15,7 @@ import { transformer as mask } from './transformers/mask.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
-import { isKnownLocale } from './locales.js';
+import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
@@ -127,6 +127,11 @@ async function mainProcess(context) {
             body: JSON.stringify({ message: `unknown locale '${context.locale}'` }),
         };
     }
+    // MWPW-204652: split content vs commerce country at ingress, before the metadata
+    // read and the parallel init fan-out (promotions.init reads context.country).
+    const territory = resolveTerritoryCountries(context.locale, context.country);
+    context.country = territory.country;
+    context.wcsCountry = territory.wcsCountry;
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -138,7 +143,8 @@ async function mainProcess(context) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
             const initContext = {
-                ...structuredClone(context),
+                ...structuredClone({ ...context, state: undefined }),
+                state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
             };

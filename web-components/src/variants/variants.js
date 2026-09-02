@@ -16,7 +16,7 @@ import {
     PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
-import { BizPro, BIZPRO_AEM_FRAGMENT_MAPPING } from './bizpro.js';
+import { Pro, PRO_AEM_FRAGMENT_MAPPING } from './pro.js';
 import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
 import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
 import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
@@ -39,6 +39,12 @@ import {
     COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
 } from './compare-chart-column.js';
 import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
+import { Marquee, MARQUEE_AEM_FRAGMENT_MAPPING } from './marquee.js';
+import { Faq, FAQ_AEM_FRAGMENT_MAPPING } from './faq.js';
+import {
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+} from './banner-blade.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -114,13 +120,13 @@ registerVariant(
     PlansV2.collectionOptions,
 );
 registerVariant(
-    'bizpro',
-    BizPro,
-    BIZPRO_AEM_FRAGMENT_MAPPING,
-    BizPro.variantStyle,
+    'pro',
+    Pro,
+    PRO_AEM_FRAGMENT_MAPPING,
+    Pro.variantStyle,
     // No collectionOptions (unlike the plans* variants): those only drive
     // sidenav-collection behavior (header visibility, results text, wide-card
-    // resize) and bizpro collections render without a sidenav.
+    // resize) and pro collections render without a sidenav.
 );
 registerVariant(
     'product',
@@ -172,6 +178,19 @@ registerVariant(
     FriesCard,
     FRIES_AEM_FRAGMENT_MAPPING,
     FriesCard.variantStyle,
+);
+registerVariant(
+    'marquee',
+    Marquee,
+    MARQUEE_AEM_FRAGMENT_MAPPING,
+    Marquee.variantStyle,
+);
+registerVariant('faq', Faq, FAQ_AEM_FRAGMENT_MAPPING, Faq.variantStyle);
+registerVariant(
+    'banner-blade',
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+    BannerBlade.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

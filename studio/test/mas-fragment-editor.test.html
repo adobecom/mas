@@ -49,6 +49,7 @@
                 ODIN_PREVIEW_ORIGIN,
             } from '../src/constants.js';
             import router from '../src/router.js';
+            import Events from '../src/events.js';
             import { extractLocaleFromPath } from '../src/utils.js';
             import { nothing } from 'lit';
             runTests(async () => {
@@ -160,7 +161,7 @@
 
                             const result = await editor.resolveVariationParentFragment(promoPath);
 
-                            expect(result).to.deep.equal(parentData);
+                            expect(result).to.deep.equal({ ...parentData, promoVariationProbeNotNeeded: true });
                             expect(resolveGroupedStub.called).to.be.false;
                             expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
                         });
@@ -221,9 +222,21 @@
                         await el.saveFragment();
 
                         expect(compareEditor.commitFeatureDrafts.calledOnce).to.be.true;
-                        expect(repository.saveFragment.firstCall.calledWith(cardStore, false)).to.be.true;
-                        expect(repository.saveFragment.secondCall.calledWith(secondCardStore, false)).to.be.true;
-                        expect(repository.saveFragment.thirdCall.calledWith(fragmentStore, false)).to.be.true;
+                        expect(
+                            repository.saveFragment.firstCall.calledWith(cardStore, { withToast: false, refetchEtag: false }),
+                        ).to.be.true;
+                        expect(
+                            repository.saveFragment.secondCall.calledWith(secondCardStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            repository.saveFragment.thirdCall.calledWith(fragmentStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
                     });
 
                     it('skips unchanged compare chart card fragments when saving', async () => {
@@ -246,8 +259,39 @@
                         await el.saveFragment();
 
                         expect(repository.saveFragment.calledWith(cleanCardStore)).to.be.false;
-                        expect(repository.saveFragment.firstCall.calledWith(dirtyCardStore, false)).to.be.true;
-                        expect(repository.saveFragment.secondCall.calledWith(fragmentStore, false)).to.be.true;
+                        expect(
+                            repository.saveFragment.firstCall.calledWith(dirtyCardStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            repository.saveFragment.secondCall.calledWith(fragmentStore, {
+                                withToast: false,
+                                refetchEtag: false,
+                            }),
+                        ).to.be.true;
+                    });
+
+                    it('migrates a stored bizpro variant to pro when saving', async () => {
+                        const el = document.createElement('mas-fragment-editor');
+                        const fragmentStore = generateFragmentStore(
+                            new Fragment({
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'variant', values: ['bizpro'] }],
+                            }),
+                        );
+                        const repository = {
+                            saveFragment: sandbox.stub().resolves({}),
+                        };
+                        sandbox.stub(el, 'repository').get(() => repository);
+                        sandbox.stub(el, 'fragmentStore').get(() => fragmentStore);
+
+                        await el.saveFragment();
+
+                        expect(fragmentStore.get().getFieldValue('variant')).to.equal('pro');
+                        expect(repository.saveFragment.calledWith(fragmentStore, { withToast: true, refetchEtag: false })).to.be
+                            .true;
                     });
 
                     it('extracts locale from path', async () => {
@@ -1030,7 +1074,7 @@
                         beforeEach(() => {
                             el = document.createElement('mas-fragment-editor');
                             mockRepo = {
-                                deleteFragment: sandbox.stub().resolves(),
+                                deleteFragment: sandbox.stub().resolves(true),
                                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                                 removeFromParentVariations: sandbox.stub().resolves(),
                             };
@@ -1050,12 +1094,52 @@
                             expect(mockRepo.deleteFragmentWithVariations.calledOnce).to.be.true;
                         });
 
-                        it('confirms delete for variation', async () => {
+                        it('confirms delete for variation via the reference-aware delete (no force) when it succeeds', async () => {
                             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
                             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
                             await el.confirmDelete();
                             expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
-                            expect(mockRepo.deleteFragment.calledOnce).to.be.true;
+                            expect(
+                                mockRepo.deleteFragment.calledOnceWith(sinon.match.object, {
+                                    startToast: false,
+                                    endToast: false,
+                                }),
+                            ).to.be.true;
+                        });
+
+                        it('falls back to force delete for a variation only when the reference-aware delete fails', async () => {
+                            mockRepo.deleteFragment = sandbox.stub();
+                            mockRepo.deleteFragment.onFirstCall().resolves(false);
+                            mockRepo.deleteFragment.onSecondCall().resolves(true);
+                            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+                            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+                            await el.confirmDelete();
+                            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+                            expect(
+                                mockRepo.deleteFragment.secondCall.calledWith(sinon.match.object, {
+                                    force: true,
+                                    startToast: false,
+                                    endToast: false,
+                                }),
+                            ).to.be.true;
+                        });
+
+                        it('shows a failure toast and does not navigate away when both delete attempts fail for a variation', async () => {
+                            mockRepo.deleteFragment = sandbox.stub().resolves(false);
+                            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+                            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+                            const navigateSpy = sandbox.stub().resolves();
+                            sandbox.stub(router, 'navigateToPage').returns(navigateSpy);
+                            const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+
+                            await el.confirmDelete();
+
+                            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+                            expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
+                            expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+                            expect(navigateSpy.called).to.be.false;
+                            expect(Store.fragments.inEdit.set.called).to.be.false;
+                            expect(el.deleteInProgress).to.be.false;
                         });
                     });
 
@@ -1116,12 +1200,35 @@
                             sandbox.stub(Store.editor, 'hasChanges').get(() => false);
                         });
 
-                        it('shows and cancels delete dialog', () => {
+                        it('shows and cancels delete dialog', async () => {
                             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            el.deleteFragment();
+                            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths: sandbox.stub().resolves([]) }));
+                            await el.deleteFragment();
                             expect(el.showDeleteDialog).to.be.true;
                             el.cancelDelete();
                             expect(el.showDeleteDialog).to.be.false;
+                        });
+
+                        it('does not probe promo variations when deleting a variation fragment', async () => {
+                            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+                            const getPromoVariationPaths = sandbox.stub().resolves(['should-not-be-used']);
+                            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths }));
+
+                            await el.deleteFragment();
+
+                            expect(getPromoVariationPaths.called).to.be.false;
+                            expect(el.variationsToDelete).to.deep.equal([]);
+                            expect(el.showDeleteDialog).to.be.true;
+                        });
+
+                        it('renders the promo-variation warning in the delete confirmation dialog', () => {
+                            el.showDeleteDialog = true;
+                            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/nbbdsa/f'];
+
+                            const dialog = el.deleteConfirmationDialog;
+                            const message = dialog.values.find((value) => value?.strings);
+
+                            expect(message.values).to.include('1 promo variation(s)');
                         });
 
                         it('shows and cancels clone dialog', async () => {
@@ -1224,6 +1331,8 @@
                             document.body.appendChild(el);
 
                             await el.updateComplete;
+                            await customElements.whenDefined('mas-compare-chart-editor');
+                            await el.updateComplete;
 
                             expect(el.querySelector('#fragment-editor').classList.contains('compare-chart-editor')).to.be.true;
                             expect(el.querySelector('#editor-content').classList.contains('compare-chart-content')).to.be.true;
@@ -1285,14 +1394,6 @@
                             await el.navigateToLocaleDefaultFragment();
                             expect(navigateSpy.calledWith('parent-id')).to.be.true;
                         });
-
-                        it('navigates to variations table', async () => {
-                            const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
-                            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            el.inEdit.value = { get: () => ({ id: 'test-id' }) };
-                            el.navigateToVariationsTable();
-                            expect(navigateSpy.calledWith('test-id')).to.be.true;
-                        });
                     });
 
                     describe('additional rendering and logic', () => {
@@ -1336,24 +1437,6 @@
                         it('renders preview skeleton', () => {
                             const skeleton = el.previewSkeleton;
                             expect(skeleton).to.not.equal(nothing);
-                        });
-                    });
-
-                    describe('relatedVariationsSection', () => {
-                        let el;
-                        beforeEach(() => {
-                            el = document.createElement('mas-fragment-editor');
-                            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            const fragment = new Fragment({ id: 'test-id' });
-                            sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
-                            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
-                            sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
-                            el.inEdit.value = { get: () => fragment };
-                        });
-
-                        it('renders variation counts', () => {
-                            const section = el.relatedVariationsSection;
-                            expect(section).to.not.equal(nothing);
                         });
                     });
 

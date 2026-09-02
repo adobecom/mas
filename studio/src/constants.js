@@ -69,7 +69,8 @@ export const EVENT_KEYUP = 'keyup';
 
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
-export const EVENT_OST_SELECT = 'ost-select';
+// Avoids event name collision with ost-app.js ('ost-select').
+export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
 export const OPERATIONS = {
@@ -114,6 +115,12 @@ export const STATUS_PUBLISHED = 'PUBLISHED';
 export const STATUS_DRAFT = 'DRAFT';
 export const STATUS_MODIFIED = 'MODIFIED';
 
+export const PICKERS = {
+    FOLDER: 'folder',
+    LOCALE: 'locale',
+    LANDSCAPE: 'landscape',
+};
+
 export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
@@ -131,6 +138,7 @@ export const PAGE_NAMES = {
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
+    OFFER_MAPPING: 'offer-mapping',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -161,6 +169,7 @@ export const FIELD_MODEL_MAPPING = {
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
+export const TAG_LOCALE_PREFIX = 'mas:locale/';
 export const TAG_MERCH_CARD_COLLECTION = `${TAG_STUDIO_CONTENT_TYPE}/merch-card-collection`;
 export const TAG_MERCH_CARD = `${TAG_STUDIO_CONTENT_TYPE}/merch-card`;
 export const TAG_COMPARE_CHART = `${TAG_STUDIO_CONTENT_TYPE}/${COMPARE_CHART_CREATE_TYPE}`;
@@ -300,8 +309,8 @@ export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
 
 export const BULK_PUBLISH_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstcHVibGlzaC1wcm9qZWN0';
 
-// Contract: the terminal values (Published/Partially published/Failed) must match
-// WORKER_STATUS in io/studio/src/bulk-publish/bulk-publish-worker.js (IO side).
+// Contract: every value except LOCKED must match PROJECT_STATUS in
+// io/studio/src/bulk-publish/project.js (IO side). LOCKED is client-side only — no IO writer sets it.
 export const BULK_PUBLISH_STATUS = {
     DRAFT: 'Draft',
     PUBLISHING: 'Publishing',
@@ -324,3 +333,15 @@ export const COMPAT_VERSION = COMPAT_VERSION_GLOBAL_PROMO_CODE;
 
 /** Freyja fragments API root on the preview origin — use as `preview.url` in pipeline contexts. */
 export const ODIN_PREVIEW_FRAGMENTS_URL = `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`;
+
+export const VARIATION_TAB_NAME = {
+    LOCALE: 'locale',
+    PROMOTION: 'promotion',
+    GROUPED: 'grouped',
+};
+
+export const BASELINE_VARIATION = {
+    TEXT: 'Baseline variation',
+    TOOLTIP_TEXT:
+        'This variation is the baseline for the project and inherits all geos tagged in the project. Any additional variations tagged with specific geos will override the baseline.',
+};

@@ -21,7 +21,9 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '22.x'
+                  # Pinned: 22.23.1 fixes the node-fetch v2 gzip / ERR_STREAM_PREMATURE_CLOSE
+                  # regression introduced in 22.23.0.
+                  node-version: '22.23.1'
                   cache: 'npm'
                   cache-dependency-path: io/www/package.json
 

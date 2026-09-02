@@ -1,6 +1,8 @@
 const ENDPOINT = '/bulk-publish';
 const REVERT_ENDPOINT = '/bulk-revert';
+const RESET_ENDPOINT = '/bulk-publish-reset';
 const CHECK_MODIFICATIONS_ENDPOINT = '/bulk-check-modifications';
+const SAVE_SNAPSHOT_ENDPOINT = '/bulk-save-snapshot';
 
 export class BulkPublishError extends Error {
     constructor(message, { status = null, body = null } = {}) {
@@ -40,9 +42,19 @@ async function callAction(ioBaseUrl, endpoint, payload, token) {
     return body;
 }
 
-export async function publishBulk({ ioBaseUrl, projectId, publishedBy = '', token }) {
+export async function publishBulk({
+    ioBaseUrl,
+    projectId,
+    publishedBy = '',
+    token,
+    aemOdinEndpoint,
+    includeVariations = false,
+    includeCards = false,
+}) {
     if (!projectId) throw new BulkPublishError('projectId is required');
-    return callAction(ioBaseUrl, ENDPOINT, { projectId, publishedBy }, token);
+    const payload = { projectId, publishedBy, includeVariations, includeCards };
+    if (aemOdinEndpoint) payload.aemOdinEndpoint = aemOdinEndpoint;
+    return callAction(ioBaseUrl, ENDPOINT, payload, token);
 }
 
 export async function revertAction({ ioBaseUrl, projectId, token }) {
@@ -50,6 +62,16 @@ export async function revertAction({ ioBaseUrl, projectId, token }) {
     return callAction(ioBaseUrl, REVERT_ENDPOINT, { projectId }, token);
 }
 
+export async function resetAction({ ioBaseUrl, projectId, token }) {
+    if (!projectId) throw new BulkPublishError('projectId is required');
+    return callAction(ioBaseUrl, RESET_ENDPOINT, { projectId }, token);
+}
+
 export async function checkModificationsAction({ ioBaseUrl, entries, token }) {
     return callAction(ioBaseUrl, CHECK_MODIFICATIONS_ENDPOINT, { entries }, token);
+}
+
+export async function saveSnapshotAction({ ioBaseUrl, projectId, token }) {
+    if (!projectId) throw new BulkPublishError('projectId is required');
+    return callAction(ioBaseUrl, SAVE_SNAPSHOT_ENDPOINT, { projectId }, token);
 }

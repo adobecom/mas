@@ -1,7 +1,10 @@
 import Store from '../store.js';
-import { canProbePromoVariationsForFragment } from './promotion-model.js';
+import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from './promotion-model.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
+import { Fragment } from '../aem/fragment.js';
+import { resolveHydratedParentFragment } from '../utils.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
 
@@ -15,6 +18,17 @@ function readPromotionProjectsFromStore() {
             ?.map((store) => store.get())
             .filter(Boolean) || []
     );
+}
+
+/**
+ * @param {Array<Object>} projects
+ * @param {string} promoTagId
+ * @returns {string[]}
+ */
+function getAttachedFragmentPathsForTag(projects, promoTagId) {
+    const normalized = normalizeTagId(promoTagId);
+    const project = projects.find((candidate) => getPromotionTagFromFragment(candidate) === normalized);
+    return project?.getFieldValues?.('fragments') ?? [];
 }
 
 /**
@@ -37,12 +51,13 @@ export async function getPromotionProjectsForProbe(loadPromotions) {
  * @returns {Promise<Object>}
  */
 export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, loadPromotions) {
-    if (!canProbePromoVariationsForFragment(fragmentData)) return fragmentData;
-    return promotionVariations.mergePromoReferencesForDefaultFragment(
+    if (!canProbePromoVariationsForFragment(fragmentData)) return { ...fragmentData, promoVariationProbeNotNeeded: true };
+    const merged = await promotionVariations.mergePromoReferencesForDefaultFragment(
         aem,
         fragmentData,
         await getPromotionProjectsForProbe(loadPromotions),
     );
+    return { ...merged, promoVariationProbeNotNeeded: true };
 }
 
 /**
@@ -53,7 +68,19 @@ export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, lo
  * @returns {Promise<Object|null>}
  */
 export async function resolveDefaultFragmentForPromoVariation(aem, promoVariationPath, promoVariationId, loadPromotions) {
-    const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(aem, promoVariationPath, promoVariationId);
+    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    let attachedFragmentPaths = [];
+    if (promoVariationId) {
+        const variation = await aem.sites.cf.fragments.getById(promoVariationId);
+        const promoTag = getPromotionTagFromFragment(variation);
+        if (promoTag) attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTag);
+    }
+    const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+        aem,
+        promoVariationPath,
+        promoVariationId,
+        attachedFragmentPaths,
+    );
     if (!parent) return null;
     return mergePromoReferencesIntoFragmentData(aem, parent, loadPromotions);
 }
@@ -68,13 +95,51 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
 }
 
 /**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getPublishedAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.getPublishedAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getAllAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.getAllAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
+ * Remaps grouped-variation IDs to their top-level card ID.
+ * Refreshes the store entry for sourceFragmentId.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} sourceFragmentId
+ * @returns {Promise<import('../reactivity/fragment-store.js').FragmentStore|undefined>}
+ */
+async function resolveParentStoreForRefresh(aem, sourceFragmentId) {
+    const listData = Store.fragments.list.data.get();
+    const directMatch = listData.find((store) => store.get()?.id === sourceFragmentId);
+    if (directMatch) return directMatch;
+
+    const sourceFragment = await aem.sites.cf.fragments.getById(sourceFragmentId).catch(() => null);
+    if (!sourceFragment || !Fragment.isGroupedVariationPath(sourceFragment.path)) return undefined;
+    const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
+    if (!parentFragment) return undefined;
+    return listData.find((store) => store.get()?.id === parentFragment.id);
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
  * @param {string} sourceFragmentId
  * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} refreshFragment
  * @returns {(created: Object) => Promise<void>}
  */
-export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) {
+export function buildPromoVariationParentRefreshCallback(aem, sourceFragmentId, refreshFragment) {
     return async (createdFragment) => {
-        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragmentId);
+        const parentStore = await resolveParentStoreForRefresh(aem, sourceFragmentId);
         if (!parentStore) return;
         await refreshFragment(parentStore);
         const parent = parentStore.get();
@@ -88,12 +153,45 @@ export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refre
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} sourceFragmentId
  * @param {string} promoTagId
+ * @param {string[]} [geoTags]
  * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} [refreshFragment]
+ * @param {() => Promise<void>} [loadPromotions]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, refreshFragment) {
-    const onCreated = refreshFragment ? buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) : undefined;
-    const createdFragment = await promotionVariations.createPromoVariation(aem, sourceFragmentId, promoTagId);
+export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], refreshFragment, loadPromotions) {
+    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    const attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTagId);
+    const onCreated = refreshFragment
+        ? buildPromoVariationParentRefreshCallback(aem, sourceFragmentId, refreshFragment)
+        : undefined;
+    const createdFragment = await promotionVariations.createPromoVariation(
+        aem,
+        sourceFragmentId,
+        promoTagId,
+        geoTags,
+        attachedFragmentPaths,
+    );
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @param {string} promoTagId
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[] }>>}
+ */
+export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
+    return promotionVariations.probePromoVariationsForFragment(aem, defaultPath, promoTagId);
+}
+
+/**
+ * Probes promo variations for many fragments in a single recursive folder search per surface root.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} defaultPaths
+ * @param {string} promoTagId
+ * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[] }>>>}
+ */
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId);
 }

@@ -9,60 +9,24 @@ import {
     COLLECTION_MODEL_PATH,
     EVENT_KEYDOWN,
     EVENT_OST_OFFER_SELECT,
-    MAS_PRODUCT_CODE_PREFIX,
     OPERATIONS,
     PAGE_NAMES,
-    TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import Events from './events.js';
-import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, showToast, extractLocaleFromPath, previewFragmentOnPage } from './utils.js';
+import { migrateLegacyVariant } from './editors/variant-picker.js';
+import {
+    generateLinkToUse,
+    showToast,
+    extractLocaleFromPath,
+    previewFragmentOnPage,
+    getFragmentPartsToUse,
+    MODEL_WEB_COMPONENT_MAPPING,
+    describeVariationsToDelete,
+} from './utils.js';
 import { getCountryName } from './locales.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import router from './router.js';
-
-export const MODEL_WEB_COMPONENT_MAPPING = {
-    [CARD_MODEL_PATH]: 'merch-card',
-    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
-};
-
-export function getFragmentPartsToUse(store, fragment) {
-    let fragmentParts = '';
-    let title = '';
-    const surface = store.search.value.path?.toUpperCase();
-    switch (fragment?.model?.path) {
-        case CARD_MODEL_PATH:
-            const props = {
-                cardName: fragment?.getField('name')?.values[0],
-                cardTitle: fragment?.getField('cardTitle')?.values[0],
-                variantCode: fragment?.getField('variant')?.values[0],
-                marketSegment: fragment?.getTagTitle('market_segment'),
-                customerSegment: fragment?.getTagTitle('customer_segment'),
-                product_code:
-                    fragment?.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment?.getTagTitle?.('mas:product/'),
-                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
-            };
-
-            VARIANTS.forEach((variant) => {
-                if (variant.value === props.variantCode) {
-                    props.variantLabel = variant.label;
-                }
-            });
-            const buildPart = (part) => {
-                if (part) return ` / ${part}`;
-                return '';
-            };
-            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product_code)}${buildPart(props.promotion)}`;
-            title = props.cardTitle;
-            break;
-        case COLLECTION_MODEL_PATH:
-            title = fragment?.title;
-            fragmentParts = `${surface} / ${title}`;
-            break;
-    }
-    return { fragmentParts, title };
-}
 
 const MODELS_NEEDING_MASK = [CARD_MODEL_PATH];
 export default class EditorPanel extends LitElement {
@@ -543,7 +507,7 @@ export default class EditorPanel extends LitElement {
     showNegativeAlert() {
         Events.toast.emit({
             variant: 'negative',
-            content: 'Failed to copy code to clipboard',
+            content: 'Failed to copy link to clipboard',
         });
     }
 
@@ -552,11 +516,11 @@ export default class EditorPanel extends LitElement {
     }
 
     async copyToUse() {
-        const { code, richText, href } = generateCodeToUse(
+        const { code, richText, href } = generateLinkToUse(
             this.fragment,
             Store.search.get().path,
             Store.page.get(),
-            'Failed to copy code to clipboard',
+            'Failed to copy link to clipboard',
         );
         if (!code || !richText || !href) return;
 
@@ -570,7 +534,7 @@ export default class EditorPanel extends LitElement {
             ]);
             Events.toast.emit({
                 variant: 'positive',
-                content: 'Code copied to clipboard',
+                content: 'Link copied to clipboard',
             });
         } catch (e) {
             this.showNegativeAlert();
@@ -597,7 +561,18 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        this.variationsToDelete = this.fragment?.getVariations() || [];
+        const fieldVariations = this.fragment?.getVariations() || [];
+        let promoVariationPaths = [];
+        if (this.fragment) {
+            try {
+                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
+            } catch (error) {
+                console.error('Failed to probe promo variations:', error);
+                showToast('Failed to check for promo variations. Please try again.', 'negative');
+                return;
+            }
+        }
+        this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         this.showDeleteDialog = true;
     }
 
@@ -612,14 +587,29 @@ export default class EditorPanel extends LitElement {
                 if (parent) {
                     await this.repository.removeFromParentVariations(parent, this.fragment.path);
                 }
-                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
+                let deleted = await this.repository.deleteFragment(this.fragment, {
+                    startToast: false,
+                    endToast: false,
+                });
+                if (!deleted) {
+                    deleted = await this.repository.deleteFragment(this.fragment, {
+                        force: true,
+                        startToast: false,
+                        endToast: false,
+                    });
+                }
+                if (!deleted) {
+                    showToast('Failed to delete fragment', 'negative');
+                    return;
+                }
                 showToast('Fragment successfully deleted.', 'positive');
             } else {
-                await this.repository.deleteFragment(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment);
             }
             this.#closeEditorAfterDelete();
         } catch (error) {
             console.error('Error deleting fragment:', error);
+            showToast('Failed to delete fragment', 'negative');
         }
     }
 
@@ -715,12 +705,32 @@ export default class EditorPanel extends LitElement {
         this.#pendingDiscardPromise = null;
     }
 
-    saveFragment() {
-        this.repository.saveFragment(this.fragmentStore);
+    async saveFragment() {
+        if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+            migrateLegacyVariant(this.fragmentStore);
+        }
+        return this.repository.saveFragment(this.fragmentStore, { refetchEtag: false });
     }
 
-    publishFragment() {
-        this.repository.publishFragment(this.fragment);
+    async publishFragment() {
+        const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
+        try {
+            if (refs.variations.length || refs.cards.length) {
+                const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
+                const result = await MasPublishDialog.show(refs);
+                if (!result.confirmed) return;
+                await this.repository.publishFragment(this.fragment, {
+                    selectedRefIds: result.selectedIds,
+                    allSelected: result.allSelected,
+                });
+            } else {
+                await this.repository.publishFragment(this.fragment);
+            }
+        } catch (error) {
+            console.error('Failed to publish fragment:', error);
+            showToast(`Failed to publish fragment: ${error.message}`, 'negative');
+            throw error;
+        }
     }
 
     /**
@@ -855,7 +865,7 @@ export default class EditorPanel extends LitElement {
                         <sp-tooltip self-managed placement="bottom">Unpublish</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button label="Use" title="Use (Ctrl+K)" value="use" @click="${this.copyToUse}">
-                        <sp-icon-code slot="icon"></sp-icon-code>
+                        <sp-icon-link slot="icon"></sp-icon-link>
                         <sp-tooltip self-managed placement="bottom">Use (Ctrl+K)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
@@ -889,8 +899,8 @@ export default class EditorPanel extends LitElement {
         const message = hasVariations
             ? html`<p>Are you sure you want to delete this fragment?</p>
                   <p>
-                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
-                      This action cannot be undone.
+                      <strong>Warning:</strong> This will also delete
+                      ${describeVariationsToDelete(this.fragment, this.variationsToDelete)}. This action cannot be undone.
                   </p>`
             : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`
@@ -1045,7 +1055,7 @@ export default class EditorPanel extends LitElement {
 
     get authorPath() {
         if (!this.fragment) return nothing;
-        let { fragmentParts } = getFragmentPartsToUse(Store, this.fragment);
+        let { fragmentParts } = getFragmentPartsToUse(this.fragment, Store.search.value.path);
         if (
             this.fragment.model.path === COLLECTION_MODEL_PATH &&
             Fragment.isGroupedVariationPath(this.fragment.path) &&
@@ -1112,12 +1122,20 @@ export default class EditorPanel extends LitElement {
         if (this.showEditor) {
             switch (this.fragment.model.path) {
                 case COLLECTION_MODEL_PATH:
-                    editor = html` <merch-card-collection-editor
-                        .fragmentStore=${this.fragmentStore}
-                        .updateFragment=${this.updateFragment}
-                        .localeDefaultFragment=${this.localeDefaultFragment}
-                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
-                    ></merch-card-collection-editor>`;
+                    if (!customElements.get('merch-card-collection-editor')) {
+                        import('./editors/merch-card-collection-editor.js')
+                            .then(() => this.requestUpdate())
+                            .catch(() => {
+                                Events.toast.emit({ variant: 'negative', content: 'Failed to load collection editor' });
+                            });
+                    } else {
+                        editor = html` <merch-card-collection-editor
+                            .fragmentStore=${this.fragmentStore}
+                            .updateFragment=${this.updateFragment}
+                            .localeDefaultFragment=${this.localeDefaultFragment}
+                            .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                        ></merch-card-collection-editor>`;
+                    }
                     break;
             }
         }

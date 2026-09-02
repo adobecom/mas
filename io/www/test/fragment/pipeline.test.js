@@ -97,7 +97,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
-const EXPECTED_BODY_HASH = 'c18ffd8f69c63d3313c3dfa3dcb71126717e83be7085acda810f4e5d1b572125';
+const EXPECTED_BODY_HASH = '53e93f636fc6ff1d38b8508a2e5e4568914bca44d2f308deb7cf47f5d1024165';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -142,10 +142,12 @@ describe('collection placeholders', () => {
                 'https://odin.adobe.com/adobe/contentFragments/07f9729e-dc1f-4634-829d-7aa469bb0d33?references=all-hydrated',
             )
             .returns(createResponse(200, COLLECTION_RESPONSE));
+        // Placeholders resolve from the acom baseline dictionary (direct-hydrated).
         fetchStub
-            .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/412fda08-7b73-4a01-a04f-1953e183bad2?references=all-hydrated',
-            )
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom/en_US/dictionary/index')
+            .returns(createResponse(200, { id: 'acom_en_US_dictionary' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/acom_en_US_dictionary?references=direct-hydrated')
             .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
             'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
@@ -257,6 +259,58 @@ describe('pipeline corner cases', () => {
             api_key: 'CreativeCloud_v42_99',
         });
         expect(result.statusCode).to.equal(200);
+    });
+
+    it('should return 200 for an es_PR territory request (content PR, commerce US)', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // es_PR is a region of the ACOM es_ES default locale; defaultLanguage looks up the
+        // es_ES default-locale fragment id, then fetches it hydrated.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app',
+            )
+            .returns(createResponse(200, { id: 'some-es-es-fragment' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-es-es-fragment?references=all-hydrated')
+            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: new MockState(),
+            locale: 'es_PR',
+            country: 'US',
+        });
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('does not leak a US-scoped WCS request as country=PR for an es_PR request (MWPW-204652)', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // es_PR is a region of the ACOM es_ES default locale; defaultLanguage looks up the
+        // es_ES default-locale fragment id, then fetches it hydrated.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app',
+            )
+            .returns(createResponse(200, { id: 'some-es-es-fragment' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-es-es-fragment?references=all-hydrated')
+            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: new MockState(),
+            locale: 'es_PR',
+            country: 'US',
+        });
+        expect(result.statusCode).to.equal(200);
+        const wcsCalls = fetchStub.getCalls().filter((call) => String(call.args[0]).includes('web_commerce_artifact'));
+        expect(wcsCalls.length).to.be.greaterThan(0);
+        expect(wcsCalls.every((call) => String(call.args[0]).includes('country=US'))).to.be.true;
+        expect(wcsCalls.some((call) => String(call.args[0]).includes('country=PR'))).to.be.false;
     });
 
     it('should accept a state-supplied literal api_key', async () => {

@@ -1,6 +1,15 @@
-import { odinUrl, odinReferences } from '../utils/paths.js';
-import { COLLECTION_MODEL_ID, fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
-import { logDebug } from '../utils/log.js';
+import { odinUrl, odinReferences, REFERENCES } from '../utils/paths.js';
+import {
+    COLLECTION_MODEL_ID,
+    fetch,
+    geoMatchScore,
+    getCountry,
+    getFragmentId,
+    getRegionalLocale,
+    getRequestInfos,
+    matchesGeo,
+} from '../utils/common.js';
+import { log, logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -8,6 +17,8 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 /**
  * Available setting name definitions.
  */
+export const PLACEHOLDER_REMAP_SETTING = 'placeholderRemap';
+
 export const SETTING_NAME_DEFINITIONS = [
     { name: 'addon', valueType: 'optional-text', editor: 'addon' },
     { name: 'secureLabel', valueType: 'optional-text', editor: 'text', propertyName: 'showSecureLabel' },
@@ -15,6 +26,9 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
     { name: 'hideTrialCTAs', valueType: 'boolean' },
+    { name: 'hideEduDisclaimer', valueType: 'boolean' },
+    { name: 'additionalModalTriggers', valueType: 'boolean' },
+    { name: PLACEHOLDER_REMAP_SETTING, valueType: 'text' },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
@@ -113,6 +127,10 @@ export function extractValue(entry, fragment) {
     }
 }
 
+export function hasOverrideScope(entry = {}) {
+    return ['templates', 'locales', 'geos', 'tags'].some((field) => entry[field]?.length > 0);
+}
+
 export function collectSettingEntries(settingFragment) {
     const { references } = settingFragment;
     const grouped = {};
@@ -122,15 +140,16 @@ export function collectSettingEntries(settingFragment) {
             value: { fields },
         } = ref;
         if (!fields) continue;
-        const { name, locales, tags } = fields;
+        const { name } = fields;
+        const locales = fields.locales ?? [];
+        const geos = fields.geos ?? [];
         if (!name) continue;
-        if (!grouped[name]) {
-            grouped[name] = { default: null, override: [] };
-        }
-        if (locales?.length > 0 || tags?.length > 0) {
-            grouped[name].override.push(fields);
+        const normalizedFields = { ...fields, locales, geos };
+        if (!grouped[name]) grouped[name] = { default: null, override: [] };
+        if (locales.length > 0 || geos.length > 0 || fields.tags?.length > 0) {
+            grouped[name].override.push(normalizedFields);
         } else {
-            grouped[name].default = fields;
+            grouped[name].default = normalizedFields;
         }
     }
 
@@ -146,7 +165,7 @@ export async function getSettings(context) {
     if (!id) {
         return null;
     }
-    const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
+    const response = await fetch(odinReferences(id, context.preview, REFERENCES.ALL), context, 'settings');
 
     if (response.status !== 200) {
         logDebug(() => 'Failed to fetch settings fragment', context);
@@ -161,47 +180,109 @@ async function init(initContext) {
     return await getSettings(initContext);
 }
 
-export function resolveSettingEntry(fragment, locale, setting) {
+export function resolveSettingEntry(fragment, locale, setting, country) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
     const template = fragment.fields?.variant;
-    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
+    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) {
+        const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
+        const fragmentValue = fragment.fields[definition?.propertyName || definition?.name];
+        if (typeof fragmentValue !== 'undefined') {
+            const isBoolean = 'boolean' === typeof normalizeBoolean(fragmentValue);
+            const entry = {
+                ...defaultEntry,
+                templates: [],
+                [isBoolean ? 'booleanValue' : 'textValue']: fragmentValue,
+            };
+            if (!isBoolean) entry.booleanValue = true;
+            return entry;
+        }
+        return null;
+    }
     const fragmentTags = fragment.fields?.tags ?? [];
-    const filtered = setting.override.filter((overrideSetting) => {
-        const localeOk =
-            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale);
-        const tagsOk =
-            !overrideSetting.tags ||
-            overrideSetting.tags.length === 0 ||
-            overrideSetting.tags.some((tag) => fragmentTags.includes(tag));
-        return localeOk && tagsOk;
-    });
+    const filtered = setting.override
+        .map((overrideSetting) => ({
+            overrideSetting,
+            geo: overrideGeoMatch(overrideSetting, { locale, country }),
+        }))
+        .filter(({ overrideSetting, geo }) => {
+            const tagsOk =
+                !overrideSetting.tags ||
+                overrideSetting.tags.length === 0 ||
+                overrideSetting.tags.some((tag) => fragmentTags.includes(tag));
+            const templateOk =
+                !overrideSetting.templates ||
+                overrideSetting.templates.length === 0 ||
+                overrideSetting.templates.includes(template);
+            return hasOverrideScope(overrideSetting) && geo !== null && tagsOk && templateOk;
+        });
     if (filtered.length === 0) return defaultEntry;
-    let bestMatch = defaultEntry;
-    let maxTagMatches = -1;
-    if (filtered.length > 1 && fragmentTags.length > 0) {
-        for (const overrideSetting of filtered) {
+    let bestMatch;
+    if (filtered.length === 1) {
+        bestMatch = filtered[0].overrideSetting;
+    } else {
+        let maxScore = -1;
+        for (const { overrideSetting, geo } of filtered) {
             const tagMatches = overrideSetting.tags?.filter((tag) => fragmentTags.includes(tag)).length ?? 0;
-            if (tagMatches > maxTagMatches) {
-                maxTagMatches = tagMatches;
+            const score = geoMatchScore(geo) * 10 + tagMatches;
+            if (score > maxScore) {
+                maxScore = score;
                 bestMatch = overrideSetting;
             }
         }
-    } else if (filtered.length === 1) {
-        bestMatch = filtered[0];
     }
     return { ...defaultEntry, ...bestMatch };
 }
 
-function applySettings(context, fragment, locale, settings) {
+function overrideGeoMatch(overrideSetting, { locale, country }) {
+    if (overrideSetting.geos?.length > 0) {
+        return matchesGeo(overrideSetting.geos, { regionLocale: locale, country });
+    }
+    if (overrideSetting.locales?.length > 0) {
+        return overrideSetting.locales.includes(locale) ? { region: true, country: false } : null;
+    }
+    return undefined;
+}
+
+export function parsePlaceholderRemap(textValue) {
+    const remaps = {};
+    if (!textValue) return remaps;
+    for (const line of textValue.split('\n')) {
+        const [from, to] = line.split(':').map((part) => part.trim());
+        if (from && to) remaps[from] = to;
+    }
+    return remaps;
+}
+
+export function applyPlaceholderRemaps(fragment, remaps, context) {
+    const entries = Object.entries(remaps);
+    if (!fragment?.fields || entries.length === 0) return;
+    const escaped = entries.map(([from]) => from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(`{{\\s*(${escaped.join('|')})\\s*}}`, 'g');
+    const fieldsString = JSON.stringify(fragment.fields).replace(pattern, (match, key) => `{{${remaps[key]}}}`);
+    try {
+        fragment.fields = JSON.parse(fieldsString);
+    } catch {
+        log(`placeholderRemap produced invalid JSON for fragment ${fragment.id}; leaving fields unchanged`, context);
+    }
+}
+
+function applySettings(context, fragment, locale, settings, country) {
+    const remaps = {};
     for (const key of Object.keys(settings)) {
-        const entry = resolveSettingEntry(fragment, locale, settings[key]);
+        const entry = resolveSettingEntry(fragment, locale, settings[key], country);
         if (!entry) continue;
+        if (entry.name === PLACEHOLDER_REMAP_SETTING) {
+            // remap is a field-rewrite directive, not a card setting: collect it and skip the settings write
+            Object.assign(remaps, parsePlaceholderRemap(extractValue(entry, fragment)));
+            continue;
+        }
         fragment.settings = {
             ...fragment.settings,
             [entry.name]: extractValue(entry, fragment),
         };
     }
+    applyPlaceholderRemaps(fragment, remaps, context);
     //temporary fix waiting for MWPW-189860 to be implemented
     if (fragment?.fields?.perUnitLabel) {
         fragment.priceLiterals ??= {};
@@ -210,11 +291,11 @@ function applySettings(context, fragment, locale, settings) {
     logDebug(() => `Applying settings for fragment ${fragment.id}: ${JSON.stringify(fragment.settings)}`, context);
 }
 
-function applyCollectionSettings(context, locale, settings) {
+function applyCollectionSettings(context, locale, settings, country) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
-                applySettings(context, ref.value, locale, settings);
+                applySettings(context, ref.value, locale, settings, country);
             }
         });
     }
@@ -257,6 +338,21 @@ function applyCollectionSettings(context, locale, settings) {
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
+// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)
+// into body.placeholders, like applyPriceLiterals. `replace` resolves them
+// from the dictionary; pro.js places the resolved strings client-side.
+function applyEduPlaceholders(body) {
+    const fields = body?.fields;
+    if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
+    body.placeholders = {
+        ...body.placeholders,
+        whatsIncludedLabel: '{{whats-included}}',
+    };
+    if (!body.settings?.hideEduDisclaimer) {
+        body.placeholders.eduDisclaimer = '{{edu-disclaimer}}';
+    }
+}
+
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -284,14 +380,17 @@ async function settings(context) {
 
     const { body } = context;
     const locale = getRegionalLocale(context);
+    const country = getCountry(context);
 
     if (settings) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {
-            applyCollectionSettings(context, locale, settings);
+            applyCollectionSettings(context, locale, settings, country);
         } else {
-            applySettings(context, body, locale, settings);
+            applySettings(context, body, locale, settings, country);
         }
     }
+
+    applyEduPlaceholders(body);
 
     return context;
 }

@@ -1,68 +1,29 @@
-import { odinReferences, odinUrl } from '../utils/paths.js';
-import { fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
 const TRANSFORMER_NAME = 'replace';
-const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
-let dictionaryCache;
+// Each dictionary layer (base or region, per surface+locale) is cached with jittered TTL,
+// single-flight refills, and stale-while-revalidate. The shared `acom/<baseLocale>` global
+// baseline is read by every placeholder request across every surface, so a synchronized
+// expiry would herd the whole fleet onto one `direct-hydrated` Odin fetch — see createSwrCache.
+const dictionaryCache = createSwrCache({ name: 'dictionary' });
 
 export function clearDictionaryCache(preview = false) {
-    if (preview) {
-        console.log('Clearing dictionary preview cache');
-        Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('dictionary-')) {
-                localStorage.removeItem(key);
-            }
-        });
-    } else {
-        dictionaryCache = undefined;
-    }
+    dictionaryCache.clear(preview);
 }
 
-async function cacheKey(context) {
-    const { surface } = await getRequestInfos(context);
-    return `dictionary-${surface}-${getRegionalLocale(context)}`;
-}
-
-async function getCachedDictionary(context) {
-    const key = await cacheKey(context);
-    const cacheEntry = context.preview ? JSON.parse(localStorage.getItem(key)) : dictionaryCache?.[key];
-    if (cacheEntry) {
-        cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
-        return cacheEntry;
-    }
-    return null;
-}
-
-async function cache(context, dictionary) {
-    const key = await cacheKey(context);
-    const cacheEntry = {
-        dictionary,
-        timestamp: Date.now(),
-    };
-    if (context.preview) {
-        localStorage.setItem(key, JSON.stringify(cacheEntry));
-    } else {
-        dictionaryCache = dictionaryCache || {};
-        dictionaryCache[key] = cacheEntry;
-    }
-    return dictionary;
-}
-
-async function getDictionaryId(context) {
-    const { surface } = await getRequestInfos(context);
-    if (!surface) return { status: 400, message: 'surface not available' };
+async function getDictionaryId(context, surface, locale) {
     const { preview } = context;
-    const dictionaryUrl = odinUrl(surface, { locale: getRegionalLocale(context), fragmentPath: DICTIONARY_ID_PATH, preview });
-    const { id, status, message } = await getFragmentId(context, dictionaryUrl, 'dictionary-id');
-    if (status != 200) {
-        return { status, message };
-    }
-    return { status: 200, id };
+    const dictionaryUrl = odinUrl(surface, { locale, fragmentPath: DICTIONARY_ID_PATH, preview });
+    const { id, status } = await getFragmentId(context, dictionaryUrl, `dictionary-id-${surface}-${locale}`);
+    return { id: status == 200 ? id : null, status };
 }
 
 function extractValue(ref) {
@@ -71,60 +32,82 @@ function extractValue(ref) {
     return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
 }
 
-// Helper function to process entries for a fragment and its parents
-function collectDictionariesEntries(fragmentId, rootFragment, references, dictionary) {
-    // Get the fragment from references or use root
-    const fragment = fragmentId === rootFragment.id ? rootFragment : references[fragmentId]?.value;
-
-    // Process this fragment's entries first (child takes precedence)
+// Flattens a single `direct-hydrated` fragment response into `dictionary`: its own entries first
+// (first-writer-wins, so a level already collected is not overwritten), then a sweep of the response
+// references for any keyed entry not listed in `entries`. The shallow parent carries no `key`, so the
+// sweep only ever picks up this level's own entries.
+function collectEntries(fragment, references, dictionary) {
     const entries = fragment?.fields?.entries || [];
+    //we just test truthy keys as we can have empty placeholders (treated different from absent ones)
     entries.forEach((entryId) => {
         const entry = references[entryId]?.value?.fields;
         if (entry?.key && !(entry.key in dictionary)) {
-            //we just test truthy keys as we can have empty placeholders
-            //(treated different from absent ones)
             dictionary[entry.key] = extractValue(entry);
         }
     });
+    Object.keys(references).forEach((refId) => {
+        const ref = references[refId]?.value?.fields;
+        if (ref?.key && !(ref.key in dictionary)) {
+            dictionary[ref.key] = extractValue(ref);
+        }
+    });
+}
 
-    // Then process parent if exists
-    const parentId = fragment?.fields?.parent;
-    if (parentId) {
-        collectDictionariesEntries(parentId, rootFragment, references, dictionary);
-    }
+// One dictionary layer: the entries of a single `(surface, locale)` index, fetched `direct-hydrated`
+// (its content `parent` is intentionally ignored — inheritance is expressed by the layering in
+// `getDictionary`, not by walking parents). Cached under `${prefix}-${surface}-${locale}`.
+// A 404 on a REGION overlay = no dictionary authored for this surface/locale — a STABLE absence (the
+// common case, e.g. `ccd/en_AU`), so the loader resolves an empty layer `{}` which IS cached:
+// otherwise every request re-hits Odin's byPath for a folder that will never exist (a per-request
+// herd on absent regions). A 404 on a `base` layer (the shared `acom/<base>` global baseline, or the
+// surface baseline) is instead treated as TRANSIENT: those dictionaries are expected to exist, so a
+// 404 there means a mid-publish/softpurge race — caching `{}` would render raw `{{tokens}}` fleet-wide
+// until TTL. Transient results resolve `null`, which is NOT cached (see createSwrCache) so they retry.
+async function buildDictionaryLayer(context, surface, locale, prefix) {
+    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async () => {
+        const { id, status } = await getDictionaryId(context, surface, locale);
+        if (!id) return status === 404 && prefix === 'region' ? {} : null;
+        const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, `dictionary-${prefix}`);
+        if (response.status != 200) return null;
+        const dictionary = {};
+        collectEntries(response.body, response.body.references || {}, dictionary);
+        return dictionary;
+    });
+    return layer ?? {};
 }
 
 export async function getDictionary(context) {
     /* c8 ignore next 1 */
     if (context.hasExternalDictionary) return context.dictionary;
-    const cachedDictionary = await getCachedDictionary(context);
-    if (cachedDictionary && !cachedDictionary.isExpired) return cachedDictionary.dictionary;
-    const dictionary = context.dictionary || {};
-    const { id } = await getDictionaryId(context);
-    if (!id) {
-        return dictionary;
-    }
-    const response = await fetch(odinReferences(id, true, context.preview), context, 'dictionary');
-    if (response.status == 200) {
-        const references = response.body.references;
-        const rootFragment = response.body;
+    const { surface } = await getRequestInfos(context);
+    if (!surface) return context.dictionary || {};
+    const baselineSurface = PLACEHOLDERS_BASELINE_SURFACE;
+    // Base = the request's own default locale (en_US page → en_US, en_GB page → en_GB). Region reaches
+    // en_IN/en_AU by country even from an en_US request, without moving the shared regionLocale.
+    const baseLocale = context.defaultLocale;
+    const regionLocale = getPlaceholdersRegionLocale(surface, baseLocale, getCountry(context), getRegionalLocale(context));
 
-        // Start processing from root fragment (handles hierarchical parent chain)
-        collectDictionariesEntries(rootFragment.id, rootFragment, references, dictionary);
+    // Three layers, lowest → highest priority: the global baseline (shared, cache-friendly), the current
+    // surface's baseline-language dictionary, and the region overlay. They are independent, so fetch them
+    // in parallel — a cold read is one round-trip, not three sequential ones. Layers that would duplicate
+    // a lower one are skipped (resolved to `{}`): the surface baseline when the request is already on the
+    // baseline surface, the region overlay when the region is the baseline language itself.
+    const [globalBaseline, surfaceBaseline, regionOverlay] = await Promise.all([
+        buildDictionaryLayer(context, baselineSurface, baseLocale, 'base'),
+        surface === baselineSurface ? {} : buildDictionaryLayer(context, surface, baseLocale, 'base'),
+        regionLocale === baseLocale ? {} : buildDictionaryLayer(context, surface, regionLocale, 'region'),
+    ]);
 
-        // Also process any additional entries in references not in entries array
-        Object.keys(references).forEach((refId) => {
-            const ref = references[refId]?.value?.fields;
-            if (ref?.key && !(ref.key in dictionary)) {
-                //we just test truthy keys as we can have empty placeholders
-                //(treated different from absent ones)
-                dictionary[ref.key] = extractValue(ref);
-            }
-        });
+    logDebug(() => {
+        const inherited = { ...globalBaseline, ...surfaceBaseline };
+        const duplicates = Object.keys(regionOverlay).filter(
+            (key) => key in inherited && inherited[key] === regionOverlay[key],
+        );
+        return `[replace] ${surface}/${regionLocale} placeholders duplicating baseline ${baseLocale}: ${duplicates.join(', ')}`;
+    }, context);
 
-        return await cache(context, dictionary);
-    }
-    return dictionary;
+    // Higher-priority layers win; an externally seeded context.dictionary wins over all.
+    return { ...globalBaseline, ...surfaceBaseline, ...regionOverlay, ...context.dictionary };
 }
 
 function replaceValues(input, dictionary, calls) {
@@ -154,9 +137,9 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function init(context) {
-    // Dictionary URL and cache key use the regional locale resolved by `defaultLanguage` (e.g. fr_BE
-    // when locale=fr_FR + country=BE) — see `cacheKey`/`getDictionaryId` reading `context.regionLocale`.
-    // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId.
+    // Dictionary resolution needs the regional/default locales resolved by `defaultLanguage` (e.g. fr_BE
+    // when locale=fr_FR + country=BE): the region overlay keys off `regionLocale`, the base off the
+    // request's `defaultLocale` (with region flag) — see `getDictionary`. Merge that result into context.
     const fetchResult = await context?.promises?.defaultLanguage;
     // If defaultLanguage is missing or non-200 (e.g. fragment not found), skip dictionary fetch entirely.
     if (fetchResult?.status !== 200) return null;

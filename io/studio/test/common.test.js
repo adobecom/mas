@@ -79,6 +79,23 @@ describe('common.js - fetchOdin', () => {
             expect(result).to.equal(mockResponse);
         });
 
+        it('should override the User-Agent header when userAgent is provided', async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.resolves(mockResponse);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken, { userAgent: 'mas-bulk-edit' });
+
+            expect(fetchStub).to.have.been.calledWith(
+                'https://test-odin.example.com/api/test',
+                sinon.match({ headers: { 'User-Agent': 'mas-bulk-edit' } }),
+            );
+        });
+
         it('should make a POST request with body and Content-Type header', async () => {
             const mockResponse = {
                 ok: true,
@@ -975,7 +992,7 @@ describe('common.js - processBatchWithConcurrency', () => {
     });
 });
 
-describe('common.js - postToOdinWithRetry - 429 passthrough', () => {
+describe('common.js - postToOdin retry behaviour', () => {
     let common;
     let mockLogger;
     let fetchStub;
@@ -983,29 +1000,39 @@ describe('common.js - postToOdinWithRetry - 429 passthrough', () => {
     const odinEndpoint = 'https://test-odin.example.com';
     const authToken = 'test-auth-token';
 
+    function makeOkResponse() {
+        return {
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            headers: { get: sinon.stub().returns(null) },
+            json: sinon.stub().resolves({}),
+        };
+    }
+
+    function makeErrorResponse(status, statusText) {
+        return {
+            ok: false,
+            status,
+            statusText,
+            headers: { get: sinon.stub().returns(null) },
+            json: sinon.stub().resolves({}),
+        };
+    }
+
     beforeEach(function () {
         this.timeout(5000);
 
-        mockLogger = {
-            info: sinon.stub(),
-            error: sinon.stub(),
-            warn: sinon.stub(),
-        };
-
+        mockLogger = { info: sinon.stub(), error: sinon.stub(), warn: sinon.stub() };
         fetchStub = sinon.stub();
 
-        // Stub setTimeout to immediately call the callback (avoids real 60 s waits)
         sinon.stub(global, 'setTimeout').callsFake((fn) => {
             fn();
             return 1;
         });
 
         common = proxyquire('../src/common.js', {
-            '@adobe/aio-sdk': {
-                Core: {
-                    Logger: sinon.stub().returns(mockLogger),
-                },
-            },
+            '@adobe/aio-sdk': { Core: { Logger: sinon.stub().returns(mockLogger) } },
         });
 
         global.fetch = fetchStub;
@@ -1017,7 +1044,32 @@ describe('common.js - postToOdinWithRetry - 429 passthrough', () => {
         delete global.fetch;
     });
 
-    it('should not add backoff retries on top when fetchOdin exhausts 429 retries', async () => {
+    it('should retry after a transient 500 and resolve on second attempt', async () => {
+        fetchStub.onFirstCall().resolves(makeErrorResponse(500, 'Internal Server Error'));
+        fetchStub.onSecondCall().resolves(makeOkResponse());
+
+        const result = await common.postToOdin(odinEndpoint, '/api/loc', authToken, { data: 'test' });
+
+        expect(fetchStub).to.have.been.calledTwice;
+        expect(result.ok).to.equal(true);
+    });
+
+    it('should throw after exhausting all 3 retries', async () => {
+        fetchStub.resolves(makeErrorResponse(500, 'Internal Server Error'));
+
+        let error;
+        try {
+            await common.postToOdin(odinEndpoint, '/api/loc', authToken, { data: 'test' });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(fetchStub).to.have.been.calledThrice;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('status 500');
+    });
+
+    it('should not outer-retry when fetchOdin exhausts 429 retries (3 fetch calls total)', async () => {
         const headersGet = sinon.stub();
         headersGet.withArgs('Retry-After').returns('60');
         headersGet.returns(null);
@@ -1032,15 +1084,158 @@ describe('common.js - postToOdinWithRetry - 429 passthrough', () => {
 
         let error;
         try {
-            await common.postToOdinWithRetry(odinEndpoint, '/api/loc', authToken, { data: 'test' });
+            await common.postToOdin(odinEndpoint, '/api/loc', authToken, { data: 'test' });
         } catch (e) {
             error = e;
         }
 
-        // fetchOdin retries 3× internally (max429Retries default = 3).
-        // postToOdinWithRetry must NOT stack its own retries on top → exactly 3 fetch calls total.
         expect(fetchStub).to.have.been.calledThrice;
         expect(error).to.be.an.instanceOf(Error);
         expect(error.message).to.include('status 429');
+    });
+});
+
+describe('common.js - putToOdin retry behaviour', () => {
+    let common;
+    let mockLogger;
+    let fetchStub;
+
+    const odinEndpoint = 'https://test-odin.example.com';
+    const authToken = 'test-auth-token';
+    const fragmentId = 'fragment-abc';
+    const payload = { title: 'Test', description: '', fields: [], etag: '"etag-1"' };
+
+    function makeOkResponse() {
+        return {
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            headers: { get: sinon.stub().returns(null) },
+            json: sinon.stub().resolves({}),
+        };
+    }
+
+    function makeErrorResponse(status, statusText) {
+        return {
+            ok: false,
+            status,
+            statusText,
+            headers: { get: sinon.stub().returns(null) },
+            json: sinon.stub().resolves({}),
+        };
+    }
+
+    beforeEach(function () {
+        this.timeout(5000);
+
+        mockLogger = { info: sinon.stub(), error: sinon.stub(), warn: sinon.stub() };
+        fetchStub = sinon.stub();
+
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+
+        common = proxyquire('../src/common.js', {
+            '@adobe/aio-sdk': { Core: { Logger: sinon.stub().returns(mockLogger) } },
+        });
+
+        global.fetch = fetchStub;
+        global.performance = { now: sinon.stub().returns(0) };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        delete global.fetch;
+    });
+
+    it('should return { success: true } on first-attempt success', async () => {
+        fetchStub.resolves(makeOkResponse());
+
+        const result = await common.putToOdin(odinEndpoint, fragmentId, authToken, payload);
+
+        expect(result).to.deep.equal({ success: true });
+        expect(fetchStub).to.have.been.calledOnce;
+    });
+
+    it('should retry after a transient 500 and return { success: true } on second attempt', async () => {
+        fetchStub.onFirstCall().resolves(makeErrorResponse(500, 'Internal Server Error'));
+        fetchStub.onSecondCall().resolves(makeOkResponse());
+
+        const result = await common.putToOdin(odinEndpoint, fragmentId, authToken, payload);
+
+        expect(result).to.deep.equal({ success: true });
+        expect(fetchStub).to.have.been.calledTwice;
+        expect(mockLogger.warn).to.have.been.calledWith(sinon.match(/PUT.*fragment-abc.*attempt 1\/3.*retrying/));
+    });
+
+    it('should throw after exhausting all 3 retries', async () => {
+        fetchStub.resolves(makeErrorResponse(500, 'Internal Server Error'));
+
+        let error;
+        try {
+            await common.putToOdin(odinEndpoint, fragmentId, authToken, payload);
+        } catch (e) {
+            error = e;
+        }
+
+        expect(fetchStub).to.have.been.calledThrice;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('status 500');
+        expect(error.message).to.include('fragment-abc');
+    });
+
+    it('should apply exponential backoff between retries', async () => {
+        fetchStub.onFirstCall().resolves(makeErrorResponse(500, 'Internal Server Error'));
+        fetchStub.onSecondCall().resolves(makeErrorResponse(503, 'Service Unavailable'));
+        fetchStub.onThirdCall().resolves(makeOkResponse());
+
+        await common.putToOdin(odinEndpoint, fragmentId, authToken, payload);
+
+        // attempt 1 fails → delay = min(1000 * 2^0, 5000) = 1000 ms
+        // attempt 2 fails → delay = min(1000 * 2^1, 5000) = 2000 ms
+        expect(global.setTimeout).to.have.been.calledTwice;
+        expect(global.setTimeout.firstCall.args[1]).to.equal(1000);
+        expect(global.setTimeout.secondCall.args[1]).to.equal(2000);
+    });
+
+    it('should not outer-retry when fetchOdin exhausts 429 retries (3 fetch calls total)', async () => {
+        const headersGet = sinon.stub();
+        headersGet.withArgs('Retry-After').returns('60');
+        headersGet.returns(null);
+        const mock429 = {
+            ok: false,
+            status: 429,
+            statusText: 'Too Many Requests',
+            headers: { get: headersGet },
+            json: sinon.stub().resolves({}),
+        };
+        fetchStub.resolves(mock429);
+
+        let error;
+        try {
+            await common.putToOdin(odinEndpoint, fragmentId, authToken, payload);
+        } catch (e) {
+            error = e;
+        }
+
+        expect(fetchStub).to.have.been.calledThrice;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('status 429');
+    });
+
+    it('should respect a custom maxRetries value', async () => {
+        fetchStub.resolves(makeErrorResponse(500, 'Internal Server Error'));
+
+        let error;
+        try {
+            await common.putToOdin(odinEndpoint, fragmentId, authToken, payload, 1);
+        } catch (e) {
+            error = e;
+        }
+
+        expect(fetchStub).to.have.been.calledOnce;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('status 500');
     });
 });

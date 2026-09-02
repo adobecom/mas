@@ -1,15 +1,22 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
-import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedVariationRegion } from '../src/mas-fragment-editor.js';
+import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
+import {
+    PAGE_NAMES,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    ODIN_PREVIEW_ORIGIN,
+    COMPARE_CHART_FIELD,
+} from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
 import { nothing, render } from 'lit';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 describe('MasFragmentEditor', () => {
     let sandbox;
@@ -78,7 +85,7 @@ describe('MasFragmentEditor', () => {
 
             const result = await editor.resolveVariationParentFragment(promoPath);
 
-            expect(result).to.deep.equal(parentData);
+            expect(result).to.deep.equal({ ...parentData, promoVariationProbeNotNeeded: true });
             expect(resolveGroupedStub.called).to.be.false;
             expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
         });
@@ -949,7 +956,7 @@ describe('MasFragmentEditor', () => {
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragment: sandbox.stub().resolves(),
+                deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                 removeFromParentVariations: sandbox.stub().resolves(),
             };
@@ -969,12 +976,52 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.deleteFragmentWithVariations.calledOnce).to.be.true;
         });
 
-        it('confirms delete for variation', async () => {
+        it('confirms delete for variation via the reference-aware delete (no force) when it succeeds', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
             await el.confirmDelete();
             expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
-            expect(mockRepo.deleteFragment.calledOnce).to.be.true;
+            expect(
+                mockRepo.deleteFragment.calledOnceWith(sinon.match.object, {
+                    startToast: false,
+                    endToast: false,
+                }),
+            ).to.be.true;
+        });
+
+        it('falls back to force delete for a variation only when the reference-aware delete fails', async () => {
+            mockRepo.deleteFragment = sandbox.stub();
+            mockRepo.deleteFragment.onFirstCall().resolves(false);
+            mockRepo.deleteFragment.onSecondCall().resolves(true);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            await el.confirmDelete();
+            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+            expect(
+                mockRepo.deleteFragment.secondCall.calledWith(sinon.match.object, {
+                    force: true,
+                    startToast: false,
+                    endToast: false,
+                }),
+            ).to.be.true;
+        });
+
+        it('shows a failure toast and does not navigate away when both delete attempts fail for a variation', async () => {
+            mockRepo.deleteFragment = sandbox.stub().resolves(false);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            const navigateSpy = sandbox.stub().resolves();
+            sandbox.stub(router, 'navigateToPage').returns(navigateSpy);
+            const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+
+            await el.confirmDelete();
+
+            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+            expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
+            expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+            expect(navigateSpy.called).to.be.false;
+            expect(Store.fragments.inEdit.set.called).to.be.false;
+            expect(el.deleteInProgress).to.be.false;
         });
     });
 
@@ -1035,9 +1082,10 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(Store.editor, 'hasChanges').get(() => false);
         });
 
-        it('shows and cancels delete dialog', () => {
+        it('shows and cancels delete dialog', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            el.deleteFragment();
+            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths: sandbox.stub().resolves([]) }));
+            await el.deleteFragment();
             expect(el.showDeleteDialog).to.be.true;
             el.cancelDelete();
             expect(el.showDeleteDialog).to.be.false;
@@ -1208,12 +1256,16 @@ describe('MasFragmentEditor', () => {
             expect(navigateSpy.calledWith('parent-id')).to.be.true;
         });
 
-        it('navigates to variations table', async () => {
-            const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            el.inEdit.value = { get: () => ({ id: 'test-id' }) };
-            el.navigateToVariationsTable();
-            expect(navigateSpy.calledWith('test-id')).to.be.true;
+        it('sets Store.search.path to parent surface on navigateToLocaleDefaultFragment', async () => {
+            el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/nala/en_US/parent-card' };
+            sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+            const searchSetSpy = sandbox.stub(Store.search, 'set');
+            await el.navigateToLocaleDefaultFragment();
+            const pathCall = searchSetSpy.getCalls().find((call) => {
+                const result = call.args[0]({ path: 'sandbox' });
+                return result?.path === 'nala';
+            });
+            expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
         });
     });
 
@@ -1306,6 +1358,80 @@ describe('MasFragmentEditor', () => {
             expect(previewContainer.textContent).to.include('Back To School');
         });
 
+        it('renders the promo variation header (not the grouped variation header) for a promo variation created from a grouped variation, with Grouped variation shown separately from Geos', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card/pzn/edu';
+            const fragment = new Fragment({
+                id: 'promo-var-grouped-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+            const geosLine = previewContainer.querySelectorAll('.preview-header-geos')[0].textContent;
+            expect(geosLine).to.include('Geos:');
+            expect(geosLine).to.include('ar');
+            expect(geosLine).to.not.include('edu');
+            expect(previewContainer.textContent).to.include('Grouped variation:');
+            expect(previewContainer.textContent).to.include('edu');
+        });
+
+        it('treats a sibling with no pznTags as covering every promotion project geo (legacy variation)', async () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const siblingPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card-2';
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [{ name: 'tags', values: ['mas:promotion/back-to-school'] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.editorContextStore.localeDefaultFragment = { id: 'parent-id', path: parentPath };
+            Store.promotions.promotionId.set('promo-project-id');
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            Store.fragmentEditor.fragmentId.value = fragment.id;
+
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/back-to-school';
+            const search = makeSearchStub(sandbox, {
+                [promoFolder]: [
+                    { id: 'promo-var-id', path: promoPath, fields: [] },
+                    { id: 'sibling-id', path: siblingPath, fields: [] },
+                ],
+            });
+            const mockRepo = {
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves({
+                                    id: 'promo-project-id',
+                                    fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
+                                }),
+                                search,
+                            },
+                        },
+                    },
+                },
+            };
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(el.disabledPromoGeoOptions).to.deep.equal(['mas:locale/de_AT', 'mas:locale/en_NG']);
+
+            Store.promotions.promotionId.set(null);
+            Store.fragmentEditor.fragmentId.value = originalFragmentId;
+        });
+
         it('does not render promo variation preview header on default fragment opened from promotion project', () => {
             const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
             const fragment = new Fragment({
@@ -1357,43 +1483,82 @@ describe('MasFragmentEditor', () => {
             const skeleton = el.previewSkeleton;
             expect(skeleton).to.not.equal(nothing);
         });
-    });
 
-    describe('relatedVariationsSection', () => {
-        let el;
-        beforeEach(() => {
-            el = document.createElement('mas-fragment-editor');
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            const fragment = new Fragment({ id: 'test-id' });
-            sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
-            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
-            sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
-            el.inEdit.value = { get: () => fragment };
+        it('binds no target fragment to mas-related-variations when there is no fragment', () => {
+            el.inEdit.value = { get: () => null };
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            const related = container.querySelector('mas-related-variations');
+            expect(related).to.be.null;
         });
 
-        it('renders variation counts', () => {
-            const section = el.relatedVariationsSection;
-            expect(section).to.not.equal(nothing);
-        });
-    });
-
-    describe('relatedVariationsSection grouped variation counts', () => {
-        it('subtracts grouped count when current fragment is a grouped variation', () => {
-            const el = document.createElement('mas-fragment-editor');
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+        it('renders nothing from mas-related-variations for promo variation paths', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
             const fragment = new Fragment({
-                id: 'grouped-var',
-                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one',
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
             });
-            el.localeDefaultFragment = {
-                id: 'parent',
-                getLocaleVariationCount: () => 0,
-                getPromoVariationCount: () => 0,
-                getGroupedVariationCount: () => 1,
-            };
             el.inEdit.value = { get: () => fragment };
-            const section = el.relatedVariationsSection;
-            expect(section).to.equal(nothing);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            const related = container.querySelector('mas-related-variations');
+            expect(related).to.be.null;
+        });
+
+        it('binds fragment, targetFragment, isVariation, isPromoVariation, and repository to mas-related-variations', () => {
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/s/en_US/f',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            sandbox.stub(el, 'isPromoVariationFragment').returns(false);
+
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            const related = container.querySelector('mas-related-variations');
+            expect(related.fragment).to.equal(fragment);
+            expect(related.targetFragment).to.equal(fragment);
+            expect(related.isVariation).to.be.false;
+            expect(related.isPromoVariation).to.be.false;
+            expect(related.repository).to.equal(el.repository);
+        });
+
+        it('resolves relatedVariationsTargetFragment to the fragment itself when it is not a variation', () => {
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            expect(el.relatedVariationsTargetFragment).to.equal(fragment);
+        });
+
+        it('resolves relatedVariationsTargetFragment to localeDefaultFragment when viewing a variation', () => {
+            const fragment = new Fragment({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_BE/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/sandbox/en_US/my-fragment', fields: [] };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            expect(el.relatedVariationsTargetFragment.id).to.equal('parent-id');
         });
     });
 
@@ -1423,12 +1588,21 @@ describe('MasFragmentEditor', () => {
             });
             el.inEdit.value = { get: () => fragment };
             el.localeDefaultFragment = {
-                id: 'parent-id',
-                title: 'Parent collection',
-                path: '/content/dam/mas/sandbox/en_US/pac/parent',
-                getLocaleVariationCount: () => 1,
-                getGroupedVariationCount: () => 2,
-                getPromoVariationCount: () => 0,
+                id: 'parent-collection-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                fields: [
+                    {
+                        name: 'variations',
+                        values: ['/content/dam/mas/sandbox/en_US/promotions/back-to-school/parent-collection'],
+                    },
+                ],
+                references: [
+                    {
+                        id: 'ref-1',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/parent-collection',
+                        tags: [],
+                    },
+                ],
             };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const col = el.previewColumn;
@@ -1537,34 +1711,38 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    describe('syncGroupedVariationRegion', () => {
+    describe('syncGroupedPreviewLocale', () => {
         let savedSearch;
         let savedFilters;
+        let editor;
 
         beforeEach(() => {
             savedSearch = structuredClone(Store.search.get());
             savedFilters = structuredClone(Store.filters.get());
             Store.search.set({ path: 'sandbox' });
             Store.filters.set({ locale: 'fr_FR' });
+            editor = document.createElement('merch-card-editor');
+            document.body.append(editor);
         });
 
         afterEach(() => {
+            editor.remove();
             Store.search.set(savedSearch);
             Store.filters.set(savedFilters);
         });
 
-        it('sets region from pzn tags when parent catalog is fr_FR', () => {
+        it('applies the preview locale to the editor override without writing region to the URL', () => {
             const fragment = new Fragment({
                 id: 'grouped',
                 path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
                 fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
             });
-            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.true;
-            expect(Store.search.get().region).to.equal('fr_CA');
+            expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.equal('fr_CA');
+            expect(editor.previewLocaleOverride).to.equal('fr_CA');
+            expect(Store.search.get().region).to.be.undefined;
         });
 
-        it('keeps region from URL when it matches a pzn tag', () => {
-            Store.search.set({ path: 'sandbox', region: 'fr_CA' });
+        it('prefers the global locale when it is one of the grouped codes', () => {
             const fragment = new Fragment({
                 id: 'grouped',
                 path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
@@ -1575,8 +1753,136 @@ describe('MasFragmentEditor', () => {
                     },
                 ],
             });
-            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.false;
-            expect(Store.search.get().region).to.equal('fr_CA');
+            expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.equal('fr_FR');
+            expect(editor.previewLocaleOverride).to.equal('fr_FR');
+            expect(Store.search.get().region).to.be.undefined;
         });
+
+        it('returns null and writes no region when the override already matches', () => {
+            editor.previewLocaleOverride = 'fr_CA';
+            const fragment = new Fragment({
+                id: 'grouped',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
+            });
+            expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.be.null;
+            expect(Store.search.get().region).to.be.undefined;
+        });
+    });
+});
+
+describe('MasFragmentEditor – #preloadEditorModule', () => {
+    let sandbox;
+    let savedInEdit;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        savedInEdit = Store.fragments.inEdit.value;
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+        Store.fragments.inEdit.value = savedInEdit;
+    });
+
+    function makeEditorWithFragment(modelPath, extraFields = []) {
+        const editor = new MasFragmentEditor();
+        const fragment = new Fragment({
+            id: 'test-frag',
+            path: '/content/dam/mas/acom/en_US/test',
+            model: { path: modelPath, id: 'test-model' },
+            fields: extraFields,
+        });
+        editor.inEdit.value = { get: () => fragment };
+        return { editor, fragment };
+    }
+
+    it('checks customElements.get for merch-card-editor on CARD_MODEL_PATH fragment', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('merch-card-editor')).to.be.true;
+    });
+
+    it('skips import for CARD_MODEL_PATH when merch-card-editor is already defined', () => {
+        sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const toastSpy = sandbox.spy(Events.toast, 'emit');
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(toastSpy.called).to.be.false;
+    });
+
+    it('starts import for CARD_MODEL_PATH when merch-card-editor is not yet defined', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(undefined);
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('merch-card-editor')).to.be.true;
+    });
+
+    it('checks for mas-compare-chart-editor on compare-chart COLLECTION_MODEL_PATH', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const { editor } = makeEditorWithFragment(COLLECTION_MODEL_PATH, [
+            { name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] },
+        ]);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('mas-compare-chart-editor')).to.be.true;
+    });
+
+    it('checks for merch-card-collection-editor on non-compare COLLECTION_MODEL_PATH', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const { editor } = makeEditorWithFragment(COLLECTION_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('merch-card-collection-editor')).to.be.true;
+    });
+
+    it('emits negative toast when merch-card-editor import fails', async () => {
+        sandbox.stub(customElements, 'get').returns(undefined);
+        const toastSpy = sandbox.spy(Events.toast, 'emit');
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated = function () {
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                if (!customElements.get('merch-card-editor')) {
+                    Promise.reject(new Error('load failed'))
+                        .then(() => this.requestUpdate())
+                        .catch(() =>
+                            Events.toast.emit({
+                                variant: 'negative',
+                                content: 'Failed to load merch card editor',
+                            }),
+                        );
+                }
+            }
+        };
+
+        editor.updated(new Map());
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(toastSpy.calledOnce).to.be.true;
+        expect(toastSpy.firstCall.args[0]).to.deep.equal({
+            variant: 'negative',
+            content: 'Failed to load merch card editor',
+        });
+    });
+
+    it('does not check for editor elements when fragment has unknown model path', () => {
+        const getSpy = sandbox.spy(customElements, 'get');
+        const { editor } = makeEditorWithFragment('/some/unknown/model');
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getSpy.calledWith('merch-card-editor')).to.be.false;
+        expect(getSpy.calledWith('merch-card-collection-editor')).to.be.false;
+        expect(getSpy.calledWith('mas-compare-chart-editor')).to.be.false;
     });
 });

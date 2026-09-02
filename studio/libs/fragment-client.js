@@ -15,9 +15,10 @@ import { transformer as customize } from '../../io/www/src/fragment/transformers
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 import { transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
-import { transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
+import { clearOfferMappingCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
 import { mark } from '../../io/www/src/fragment/utils/common.js';
+import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
@@ -50,7 +51,8 @@ const DEFAULT_CONTEXT = {
     networkConfig: {
         mainTimeout: 20000,
         fetchTimeout: 15000,
-        retries: 3,
+        retries: 1,
+        retryDelay: 1000,
     },
     locale: 'en_US',
 };
@@ -58,7 +60,7 @@ const DEFAULT_CONTEXT = {
 if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
     DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
-    if (params.has('clearCaches.io')) {
+    if (params.get('mas.cache') === 'off') {
         clearCaches();
     }
 }
@@ -67,16 +69,30 @@ function clearCaches() {
     clearDictionaryCache(true);
     clearSettingsCache(true);
     clearPromoCache(true);
+    clearOfferMappingCache(true);
+}
+
+function getPageWcsConfiguration(serviceElement) {
+    const settings = serviceElement?.settings;
+    if (!settings?.wcsURL) return null;
+    const isStage = settings.env === 'STAGE';
+    return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
 }
 
 async function previewFragment(id, options) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
-    let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
+    let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'mas-studio' };
+    // MWPW-204652: mirror the production pipeline ingress split so preview matches prod.
+    const territory = resolveTerritoryCountries(context.locale, context.country);
+    context.country = territory.country;
+    context.wcsCountry = territory.wcsCountry;
     const initPromises = {};
     const now = mark(context, 'config-check');
     context = await loadConfiguration(context, now);
+    const pageWcsConfiguration = getPageWcsConfiguration(serviceElement);
+    if (pageWcsConfiguration) context.wcsConfiguration = pageWcsConfiguration;
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -121,7 +137,7 @@ async function previewFragment(id, options) {
 
 /* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
+    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'mas-studio' };
     const { locale, surface } = options;
     const fragmentPath = options.fragmentPath ?? body?.path;
     const phase1 = {
@@ -169,4 +185,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { DEFAULT_CONTEXT, clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };

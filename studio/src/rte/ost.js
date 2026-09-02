@@ -56,6 +56,7 @@ const ostDefaultSettings = () => {
         displayTax,
         forceTaxExclusive: true, // see https://git.corp.adobe.com/wcms/tacocat.js/blob/develop/packages/offer-selector-tool/src/PlaceholderKey.jsx#L38
         isPerpetual,
+        quantity: 1,
         workflowStep: checkoutWorkflowStep,
     };
 };
@@ -104,6 +105,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayTax: 'data-display-tax',
     forceTaxExclusive: 'data-force-tax-exclusive',
     isPerpetual: 'data-perpetual',
+    quantity: 'data-quantity',
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
@@ -111,6 +113,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     modal: 'data-modal',
     entitlement: 'data-entitlement',
     upgrade: 'data-upgrade',
+    lockedOsi: 'data-locked-osi',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -130,7 +133,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
             masCommerceService.settings.country,
             null,
             offer.customer_segment,
-            offer.market_segments[0],
+            offer.market_segments?.[0],
         );
         settings = {
             ...settings,
@@ -157,9 +160,6 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         attributes['data-analytics-id'] = options.ctaText;
     }
 
-    if (promoOverride) {
-        attributes['data-promotion-code'] = promoOverride;
-    }
     if (!options.isPerpetual) {
         delete changes.isPerpetual;
     }
@@ -170,6 +170,12 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         }
     }
 
+    if (promoOverride) {
+        attributes['data-promotion-code'] = promoOverride;
+    } else {
+        delete attributes['data-promotion-code'];
+    }
+
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_SELECT, {
             detail: attributes,
@@ -178,10 +184,13 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
     );
 }
 
-export function onOfferSelect(offerSelectorId, type, offer) {
+export function onOfferSelect(offerSelectorId, type, offer, options, promoOverride) {
+    // OST passes the promo code as `promoOverride` (or on the placeholder options); forward it so an
+    // osi-field opted into promo capture can store `<osi>,<promoCode>`.
+    const promotionCode = promoOverride || options?.storedPromoOverride || options?.promotionCode;
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_OFFER_SELECT, {
-            detail: { offerSelectorId, offer },
+            detail: { offerSelectorId, offer, promotionCode },
             bubbles: true,
         }),
     );
@@ -207,7 +216,12 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         }
         let searchOfferSelectorId;
         let initialReferenceOsi;
-        const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
+        let bundleOsis;
+        const aosAccessToken =
+            localStorage.getItem('masAccessToken') ??
+            sessionStorage.getItem('masAccessToken') ??
+            window.adobeIMS?.getAccessToken()?.token ??
+            window.adobeid?.authorize?.();
         const searchParameters = new URLSearchParams();
         const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
@@ -217,9 +231,18 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
-            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',');
-            searchOfferSelectorId = osiParts[0];
-            initialReferenceOsi = osiParts[1];
+            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
+            const isDiscount = offerElement.getAttribute('data-template') === 'discount';
+            // A soft-bundle placeholder carries every bundled OSI comma-joined
+            // (and is not a discount, whose second OSI is a reference price).
+            // Reopen it in bundle mode with all offers so the author edits the
+            // whole bundle, not just its first offer.
+            if (osiParts.length > 1 && !isDiscount) {
+                bundleOsis = osiParts;
+            } else {
+                searchOfferSelectorId = osiParts[0];
+                initialReferenceOsi = osiParts[1];
+            }
 
             // Set search parameters
             offerElement.getAttributeNames().forEach((key) => {
@@ -244,6 +267,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 'modal',
                 'entitlement',
                 'upgrade',
+                'lockedOsi',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
@@ -289,6 +313,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchParameters,
             searchOfferSelectorId,
             initialReferenceOsi,
+            bundleOsis,
+            authoringFlow: bundleOsis ? 'bundle' : undefined,
             country: localeMeta?.country ?? masCommerceService.settings.country,
             language: localeMeta?.lang ?? masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),

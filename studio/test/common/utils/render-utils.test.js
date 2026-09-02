@@ -7,10 +7,17 @@ import {
     getItemTitle,
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
+    renderInheritedTagsNotice,
 } from '../../../src/common/utils/render-utils.js';
-import { generateCodeToUse } from '../../../src/utils.js';
+import { generateLinkToUse } from '../../../src/utils.js';
 import Store from '../../../src/store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    DICTIONARY_MODEL_PATH,
+    FRAGMENT_STATUS,
+    BASELINE_VARIATION,
+} from '../../../src/constants.js';
 
 describe('render-utils', () => {
     describe('renderFragmentStatusCell', () => {
@@ -80,6 +87,18 @@ describe('render-utils', () => {
             expect(getItemTypeLabel({ path: '/content/x/pzn/y/var' })).to.equal('Grouped variation');
         });
 
+        it('returns Promotion for promo variation paths', () => {
+            expect(getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card' })).to.equal(
+                'Promotion',
+            );
+        });
+
+        it('returns Grouped variation for a promo variation created from a grouped variation', () => {
+            expect(
+                getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card/pzn/edu' }),
+            ).to.equal('Grouped variation');
+        });
+
         it('returns Placeholder for dictionary model', () => {
             expect(getItemTypeLabel({ model: { path: `${DICTIONARY_MODEL_PATH}/foo` } })).to.equal('Placeholder');
         });
@@ -131,11 +150,15 @@ describe('render-utils', () => {
             getTagTitle: () => null,
         });
 
+        afterEach(() => {
+            Store.promotions.itemPickerSurface.set(null);
+        });
+
         it('returns the prefixed studio path (authorPath) for the active surface', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
-            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateCodeToUse(fragment, 'acom', 'content').authorPath);
+            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
             expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
         });
 
@@ -144,6 +167,65 @@ describe('render-utils', () => {
             Store.page.set('content');
             const fragment = { id: 'x', model: { path: '/unknown/model' }, path: '/content/dam/mas/acom/en_US/x' };
             expect(getStudioFragmentDisplayPath(fragment)).to.equal('');
+        });
+
+        it('uses the surface from the fragment path when it differs from the active search surface', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('content');
+            const fragment = { ...mockCardFragment(), path: '/content/dam/mas/nala/en_US/some-card' };
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('NALA');
+            expect(result).not.to.include('SANDBOX');
+        });
+
+        it('uses itemPickerSurface instead of search path on promotions-editor page', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('promotions-editor');
+            Store.promotions.itemPickerSurface.set('commerce');
+            const fragment = mockCardFragment();
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('COMMERCE');
+            expect(result).not.to.include('SANDBOX');
+        });
+
+        it('falls back to search path on promotions-editor when itemPickerSurface is null and fragment has no path', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('promotions-editor');
+            Store.promotions.itemPickerSurface.set(null);
+            const fragment = mockCardFragment();
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('SANDBOX');
+        });
+
+        it('uses the surface from fragment path in view-only mode (itemPickerSurface null)', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('promotions-editor');
+            Store.promotions.itemPickerSurface.set(null);
+            const fragment = {
+                ...mockCardFragment(),
+                path: '/content/dam/mas/express/en_US/some-card',
+            };
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('EXPRESS');
+            expect(result).not.to.include('SANDBOX');
+        });
+    });
+
+    describe('renderInheritedTagsNotice', () => {
+        it('renders the baseline-variation text and tooltip content', () => {
+            const container = document.createElement('div');
+            render(renderInheritedTagsNotice(), container);
+            expect(container.querySelector('.text-with-tooltip')).to.exist;
+            expect(container.textContent).to.include(BASELINE_VARIATION.TEXT);
+            const tooltip = container.querySelector('sp-tooltip');
+            expect(tooltip?.textContent.trim()).to.equal(BASELINE_VARIATION.TOOLTIP_TEXT);
+        });
+
+        it('renders the info icon inside the overlay trigger slot', () => {
+            const container = document.createElement('div');
+            render(renderInheritedTagsNotice(), container);
+            const trigger = container.querySelector('div[slot="trigger"]');
+            expect(trigger?.querySelector('sp-icon-info')).to.exist;
         });
     });
 

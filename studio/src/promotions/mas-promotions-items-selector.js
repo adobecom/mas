@@ -4,7 +4,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import StoreController from '../reactivity/store-controller.js';
 import Store from '../store.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { SURFACES, TABLE_TYPE } from '../constants.js';
+import { SURFACES, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { toggleSidebarIcon } from '../icons.js';
 import '../common/components/mas-select-items-table.js';
 import './mas-promotions-items-table.js';
@@ -247,7 +247,7 @@ class MasPromotionsItemsSelector extends LitElement {
         const s = getItemsSelectionStore({ allowUnset: true });
         return (s?.selectedOffers.value ?? []).map((id) => ({
             id,
-            label: Store.promotions.offerDataCache.get(id)?.getTagTitle?.('product_code') ?? id,
+            label: Store.promotions.offerRecordsCache.get(id)?.getTagTitle?.('product_code') ?? id,
         }));
     }
 
@@ -259,13 +259,13 @@ class MasPromotionsItemsSelector extends LitElement {
     };
 
     get #offerProductTags() {
-        return collectPromotionOfferProductTags(Store.promotions.offerDataCache, this.#activeFilterIds);
+        return collectPromotionOfferProductTags(Store.promotions.offerRecordsCache, this.#activeFilterIds);
     }
 
     #syncOfferProductTagsToFragmentSearch() {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
-        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, this.#activeFilterIds);
+        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeFilterIds);
         const filters = this.renderRoot.querySelectorAll('mas-search-and-filters');
         filters.forEach((el) => {
             if (el.type === TABLE_TYPE.CARDS) {
@@ -357,14 +357,20 @@ class MasPromotionsItemsSelector extends LitElement {
                                     : html`<mas-select-items-table
                                           .viewOnly=${false}
                                           .type=${tab.value}
-                                          .disableCardExpansion=${true}
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                                          .hidePromoVariations=${true}
+                                          .hideGroupedVariations=${true}
+                                          .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                                          .selectableTabs="${[VARIATION_TAB_NAME.GROUPED]}"
                                           @show-toast=${this.#showToast}
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly
                                     ? nothing
-                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
+                                    : html`<mas-selected-items
+                                          .getDisplayName=${this.getDisplayName}
+                                          .hideGroupedVariations=${true}
+                                      ></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

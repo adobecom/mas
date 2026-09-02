@@ -2,13 +2,21 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import {
+    buildPromoVariationParentRefreshCallback,
     createPromoVariation,
     getPromotionProjectsForProbe,
+    getPublishedAttachedPromoVariations,
+    getUnpublishedAttachedPromoVariations,
     mergePromoReferencesIntoFragmentData,
+    probePromoVariationsForFragment,
+    resolveDefaultFragmentForPromoVariation,
 } from '../../src/promotions/promotions-repository.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('promotions-repository', () => {
     let sandbox;
+
+    const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sandbox, itemsByFolder);
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -63,16 +71,17 @@ describe('promotions-repository', () => {
                 {
                     get: () => ({
                         tags: [{ id: 'mas:promotion/black-friday' }],
+                        getFieldValues: (name) => (name === 'fragments' ? [defaultPath] : undefined),
                     }),
                 },
             ]);
             Store.promotions.list.loading.set(false);
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'promo-var', path: promoPath }] });
             const aem = {
                 sites: {
                     cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoPath).resolves({ id: 'promo-var', path: promoPath }),
-                        },
+                        fragments: { search },
                     },
                 },
             };
@@ -83,6 +92,7 @@ describe('promotions-repository', () => {
 
             expect(result.references).to.have.lengthOf(1);
             expect(result.references[0].path).to.equal(promoPath);
+            expect(result.promoVariationProbeNotNeeded).to.be.true;
         });
     });
 
@@ -102,7 +112,7 @@ describe('promotions-repository', () => {
                     cf: {
                         fragments: {
                             getById: sandbox.stub().resolves(parentFragment),
-                            getByPath: sandbox.stub().resolves(null),
+                            search: makeSearchStub(),
                             ensureFolderExists: sandbox.stub().resolves(),
                             pollCreatedFragment: sandbox.stub().resolves(createdFragment),
                         },
@@ -120,11 +130,271 @@ describe('promotions-repository', () => {
             };
             sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
 
-            const result = await createPromoVariation(aem, parentFragment.id, promoTag, refreshFragment);
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, [], refreshFragment, () =>
+                Promise.resolve(),
+            );
 
             expect(result).to.deep.equal(createdFragment);
             expect(refreshFragment.calledOnceWith(parentStore)).to.be.true;
             expect(parentStore.refreshFrom.calledOnce).to.be.true;
+        });
+
+        it('passes the attached fragment paths of the matching promo project to the model layer', async () => {
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const search = makeSearchStub();
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(parentFragment),
+                            search,
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                        getFieldValues: (name) => (name === 'fragments' ? ['/content/dam/mas/sandbox/en_US/my-card-2'] : []),
+                    }),
+                },
+            ]);
+
+            await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            expect(search.calledWith({ path: promoFolder }, 50)).to.be.true;
+        });
+
+        it('creates a geo-specific variation even when a legacy sibling (no pznTags) already exists', async () => {
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'existing-var', path: targetPath, fields: [] }] });
+            const createdFragment = { id: 'new-promo-var-2', path: variation2Path };
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(parentFragment),
+                            search,
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-2' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        getFieldValues: (name) => {
+                            if (name === 'tags') return ['mas:promotion/black-friday'];
+                            if (name === 'geos') return ['mas:pzn/country/fr'];
+                            return [];
+                        },
+                    }),
+                },
+            ]);
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/fr']);
+
+            expect(result).to.deep.equal(createdFragment);
+        });
+    });
+
+    describe('resolveDefaultFragmentForPromoVariation', () => {
+        it('resolves the default fragment for a promo variation path', async () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const parentData = { id: 'default-id', path: parentPath, references: [] };
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                        getFieldValues: (name) => (name === 'fragments' ? [parentPath] : []),
+                    }),
+                },
+            ]);
+            Store.promotions.list.loading.set(false);
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves({
+                                id: 'promo-var',
+                                path: promoPath,
+                                tags: [{ id: 'mas:promotion/black-friday' }],
+                            }),
+                            getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                        },
+                    },
+                },
+            };
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath, 'promo-var', () => Promise.resolve());
+
+            expect(result.path).to.equal(parentPath);
+        });
+    });
+
+    describe('getUnpublishedAttachedPromoVariations', () => {
+        it('delegates to the promotion-variations model layer and returns its result', async () => {
+            const promotionFragment = {
+                getFieldValues: (name) => (name === 'fragments' ? ['/content/dam/mas/sandbox/en_US/my-card'] : undefined),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const promoPath = `${promoFolder}/my-card`;
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'Promo Card' }],
+            });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: { search },
+                    },
+                },
+            };
+
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(promoPath);
+        });
+    });
+
+    describe('getPublishedAttachedPromoVariations', () => {
+        it('delegates to the promotion-variations model layer and returns its result', async () => {
+            const promotionFragment = {
+                getFieldValues: (name) => (name === 'fragments' ? ['/content/dam/mas/sandbox/en_US/my-card'] : undefined),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const promoPath = `${promoFolder}/my-card`;
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'Promo Card' }],
+            });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: { search },
+                    },
+                },
+            };
+
+            const result = await getPublishedAttachedPromoVariations(aem, promotionFragment);
+
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(promoPath);
+        });
+    });
+
+    describe('probePromoVariationsForFragment', () => {
+        it('delegates to the promotion-variations model layer and returns its result', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoTag = 'mas:promotion/black-friday';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const variationPath = `${promoFolder}/my-card`;
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'var-1', path: variationPath, fields: [] }] });
+            const aem = { sites: { cf: { fragments: { search } } } };
+
+            const result = await probePromoVariationsForFragment(aem, defaultPath, promoTag);
+
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(variationPath);
+        });
+    });
+
+    describe('buildPromoVariationParentRefreshCallback', () => {
+        it('does nothing when the id is not a top-level entry and not a grouped variation', async () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+            const getById = sandbox.stub().resolves({ id: 'missing-id', path: '/content/dam/mas/sandbox/en_US/my-card' });
+            const aem = { sites: { cf: { fragments: { getById } } } };
+            const refreshFragment = sandbox.stub().resolves();
+            const callback = buildPromoVariationParentRefreshCallback(aem, 'missing-id', refreshFragment);
+
+            await callback({ id: 'created', path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card' });
+
+            expect(refreshFragment.called).to.be.false;
+        });
+
+        it('does nothing after refresh when the parent store has no data', async () => {
+            const parentStore = { get: sandbox.stub(), refreshFrom: sandbox.stub() };
+            parentStore.get.onFirstCall().returns({ id: 'parent-1' });
+            parentStore.get.onSecondCall().returns(null);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            const aem = { sites: { cf: { fragments: { getById: sandbox.stub() } } } };
+            const refreshFragment = sandbox.stub().resolves();
+            const callback = buildPromoVariationParentRefreshCallback(aem, 'parent-1', refreshFragment);
+
+            await callback({ id: 'created', path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card' });
+
+            expect(refreshFragment.calledOnce).to.be.true;
+            expect(parentStore.refreshFrom.called).to.be.false;
+        });
+
+        it('remaps a grouped-variation id to its top-level card before refreshing', async () => {
+            const parentStore = { get: sandbox.stub().returns({ id: 'card-1', references: [] }), refreshFrom: sandbox.stub() };
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            const groupedPath = '/content/dam/mas/sandbox/en_US/my-card/pzn/my-card-edu';
+            const cardPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const getById = sandbox.stub();
+            getById.withArgs('grouped-1').resolves({ id: 'grouped-1', path: groupedPath });
+            getById.withArgs('card-1').resolves({ id: 'card-1', path: cardPath });
+            const getByPath = sandbox
+                .stub()
+                .withArgs(cardPath)
+                .resolves({ id: 'card-1', path: cardPath, fields: [{ name: 'variations', values: [groupedPath] }] });
+            const getReferencedBy = sandbox
+                .stub()
+                .withArgs(groupedPath)
+                .resolves({ parentReferences: [{ path: cardPath }] });
+            const aem = { sites: { cf: { fragments: { getById, getByPath, getReferencedBy } } } };
+            const refreshFragment = sandbox.stub().resolves();
+            const callback = buildPromoVariationParentRefreshCallback(aem, 'grouped-1', refreshFragment);
+
+            await callback({ id: 'created', path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card-edu' });
+
+            expect(refreshFragment.calledOnceWith(parentStore)).to.be.true;
+            expect(parentStore.refreshFrom.calledOnce).to.be.true;
+        });
+    });
+
+    describe('mergePromoReferencesIntoFragmentData', () => {
+        it('marks promoVariationProbeNotNeeded but leaves other fields untouched when it cannot be probed', async () => {
+            const fragmentData = { path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card', references: [] };
+            const result = await mergePromoReferencesIntoFragmentData({}, fragmentData, () => Promise.resolve());
+            expect(result).to.not.equal(fragmentData);
+            expect(result.promoVariationProbeNotNeeded).to.be.true;
+            expect(result.references).to.deep.equal(fragmentData.references);
+            expect(result.path).to.equal(fragmentData.path);
+        });
+    });
+
+    describe('resolveDefaultFragmentForPromoVariation edge cases', () => {
+        it('returns null when no promoVariationId is provided so the model layer cannot resolve a promo name', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            const aem = { sites: { cf: { fragments: { getById: sandbox.stub().resolves(null) } } } };
+
+            const result = await resolveDefaultFragmentForPromoVariation(
+                aem,
+                '/content/dam/mas/sandbox/en_US/promotions/sale/my-card',
+                undefined,
+                () => Promise.resolve(),
+            );
+
+            expect(result).to.be.null;
         });
     });
 });

@@ -48,8 +48,7 @@ export class OstProductList extends LitElement {
         }
 
         .product-card[selected] {
-            border-left-color: var(--spectrum-blue-900);
-            background: var(--spectrum-blue-100);
+            background: var(--spectrum-gray-200);
         }
 
         .product-icon {
@@ -217,6 +216,10 @@ export class OstProductList extends LitElement {
 
     handleProductClick(product) {
         const code = product.arrangement_code || product.code || '';
+        // A manual product pick supersedes any deep-linked OSI — otherwise the
+        // stale deep link re-resolves on the offer step and flips the product
+        // back to the originally opened one.
+        store.clearInitialOsi();
         store.setProduct(product);
         store.setAosParams({ arrangementCode: code });
     }

@@ -26,19 +26,61 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
+    .environment-filter-picker {
+        display: flex;
+    }
+
+    sp-action-button.environment-filter {
+        display: flex;
+        flex-direction: row-reverse;
+    }
+
+    .filter-popover {
+        padding: 12px;
+    }
+
+    .checkbox-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 150px;
+        padding-inline-start: 4px;
+    }
+
+    .applied-filters {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .applied-filters sp-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
     .promotions-segmented-control-container {
         margin-bottom: 24px;
     }
 
     .promotions-filters-container {
         display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .promotions-filters-row {
+        display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
     }
 
     .filters-container {
         display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .promotions-table {
@@ -62,6 +104,22 @@ export const styles = css`
 
     .promotions-table sp-table-cell:last-child {
         justify-content: center;
+    }
+
+    .timeline-cell {
+        display: grid;
+        grid-template-columns: 140px auto;
+        align-items: center;
+        gap: var(--spectrum-spacing-100, 8px);
+    }
+
+    .evergreen-badge {
+        background-color: var(--spectrum-orange-200);
+        color: var(--spectrum-gray-900);
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
     }
 
     .duplicating-overlay {

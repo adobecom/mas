@@ -16,6 +16,7 @@ function mockFragment(fields = [], overrides = {}) {
     fragment.fields = overrides.fields ?? fields;
     fragment.isValueEmpty = (val) => !val || val.length === 0 || val.every((v) => !v);
     fragment.getField = (name) => fragment.fields.find((f) => f.name === name) || null;
+    fragment.getFieldValue = (name) => fragment.fields.find((f) => f.name === name)?.values[0] || null;
     fragment.getTagTitle = () => null;
     return fragment;
 }
@@ -116,15 +117,69 @@ describe('MasSideNav – Copy Field', () => {
             expect(map.osi).to.be.undefined;
         });
 
-        it('should fall back to camelToTitle for unmapped fields', () => {
+        it('should use the explicit display name for cardTitle', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'borderColor', values: ['#fff'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
-            expect(map.cardTitle).to.equal('Card Title');
+            expect(map.cardTitle).to.equal('Title');
             expect(map.borderColor).to.be.undefined;
+        });
+
+        it('should fall back to camelToTitle for unmapped fields', () => {
+            const fragment = mockFragment([{ name: 'subtitle', values: ['Save big'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
+            expect(map.subtitle).to.equal('Subtitle');
+        });
+
+        it("should use the variant's editorLabel override when present", () => {
+            sandbox
+                .stub(customElements, 'get')
+                .callThrough()
+                .withArgs('merch-card')
+                .returns({
+                    getFragmentMapping: (variant) =>
+                        variant === 'faq' ? { description: { editorLabel: 'FAQ answer 1' } } : null,
+                });
+            const fragment = mockFragment([
+                { name: 'variant', values: ['faq'] },
+                { name: 'description', values: ['Answer text'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.displayName).to.equal('FAQ answer 1');
+        });
+
+        it("should reorder fields to match the variant mapping's key order regardless of raw fragment field order", () => {
+            sandbox
+                .stub(customElements, 'get')
+                .callThrough()
+                .withArgs('merch-card')
+                .returns({
+                    getFragmentMapping: (variant) =>
+                        variant === 'faq'
+                            ? {
+                                  prices: {},
+                                  description: { editorLabel: 'FAQ answer 1' },
+                                  shortDescription: { editorLabel: 'FAQ answer 2' },
+                                  callout: { editorLabel: 'FAQ answer 3' },
+                              }
+                            : null,
+                });
+            // Fragment fields arrive out of the mapping's intended order (e.g. alphabetical).
+            const fragment = mockFragment([
+                { name: 'variant', values: ['faq'] },
+                { name: 'callout', values: ['Answer 3 text'] },
+                { name: 'description', values: ['Answer 1 text'] },
+                { name: 'prices', values: ['$10/mo'] },
+                { name: 'shortDescription', values: ['Answer 2 text'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const names = el.copyableFields.map((f) => f.name);
+            expect(names).to.deep.equal(['prices', 'description', 'shortDescription', 'callout']);
         });
 
         it('should use previewValue pipeline for prices like other fields', () => {
@@ -549,6 +604,201 @@ describe('MasSideNav – Copy Field', () => {
         });
     });
 
+    describe('copyableCustomFields', () => {
+        it("should read the resolved price straight from the custom field's own hydrated slot", () => {
+            const fragment = mockFragment([
+                {
+                    name: 'customFields',
+                    values: ['<span is="inline-price" data-template="price" data-wcs-osi="abc"></span>'],
+                },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+            // Mirrors hydrate.js#processCustomFields: each customFields[i] value is hydrated
+            // into its own `[slot="custom-field-i"]` light-DOM child.
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+            const resolvedPrice = document.createElement('span');
+            resolvedPrice.setAttribute('is', 'inline-price');
+            resolvedPrice.setAttribute('data-template', 'price');
+            resolvedPrice.setAttribute('data-wcs-osi', 'abc');
+            resolvedPrice.textContent = 'US$69.99/mo';
+            slot.append(resolvedPrice);
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const { current } = el.copyableCustomFields;
+            expect(current).to.have.length(1);
+            expect(current[0].value).to.include('US$69.99/mo');
+        });
+
+        it('should decode &nbsp; and preserve strikethrough when rendering the custom field row', () => {
+            const fragment = mockFragment([
+                { name: 'customFields', values: ['<s>US$69.99/mo</s>&nbsp;US$34.99/mo'] },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+            slot.innerHTML = '<s>US$69.99/mo</s>&nbsp;US$34.99/mo';
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const fieldValue = container.querySelector('.field-value');
+            expect(fieldValue.textContent).to.not.include('&nbsp;');
+            expect(fieldValue.querySelector('s').textContent).to.equal('US$69.99/mo');
+        });
+
+        it('should strip sr-only aria labels (e.g. "Regularly at ") from the custom field preview', () => {
+            // Reproduces the bug: the live inline-price element's strikethrough/promo price
+            // carries a visually-hidden sr-only label for accessibility (see the "Prices" field
+            // tests above), which isn't part of what the rendered card actually shows and must
+            // not leak into the Copy Field popover preview.
+            const fragment = mockFragment([
+                { name: 'customFields', values: ['<span is="inline-price" data-template="strikethrough"></span> then price'] },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+
+            const oldPrice = document.createElement('span');
+            oldPrice.setAttribute('is', 'inline-price');
+            oldPrice.setAttribute('data-template', 'strikethrough');
+            const oldPriceAria = document.createElement('sr-only');
+            oldPriceAria.textContent = 'Regularly at ';
+            const oldPriceVisible = document.createElement('span');
+            oldPriceVisible.className = 'price price-strikethrough';
+            oldPriceVisible.textContent = 'US$69.99/mo';
+            oldPrice.append(oldPriceAria, oldPriceVisible);
+            slot.append(oldPrice, document.createTextNode(' US$34.99/mo'));
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const { current } = el.copyableCustomFields;
+            expect(current[0].value).to.not.include('Regularly at');
+            expect(current[0].value).to.include('US$69.99/mo');
+            expect(current[0].value).to.include('US$34.99/mo');
+        });
+
+        it('should not leak resolved text from an unrelated inline-price element on the card', () => {
+            // Reproduces the regression: matching by attribute-subset against every inline-price
+            // element on the card could pick up the main "Prices" field's own resolved text
+            // (with a per-unit label like "per license") instead of the custom field's own,
+            // differently-configured price element, which legitimately renders without it.
+            const fragment = mockFragment([
+                {
+                    name: 'customFields',
+                    values: ['<span is="inline-price" data-template="price" data-wcs-osi="abc"></span>'],
+                },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+
+            const pricesFieldResolved = document.createElement('span');
+            pricesFieldResolved.setAttribute('is', 'inline-price');
+            pricesFieldResolved.setAttribute('data-template', 'price');
+            pricesFieldResolved.setAttribute('data-wcs-osi', 'abc');
+            pricesFieldResolved.textContent = 'US$69.99/mo per license';
+            card.append(pricesFieldResolved);
+
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+            const customFieldResolved = document.createElement('span');
+            customFieldResolved.setAttribute('is', 'inline-price');
+            customFieldResolved.setAttribute('data-template', 'price');
+            customFieldResolved.setAttribute('data-wcs-osi', 'abc');
+            customFieldResolved.textContent = 'US$69.99/mo';
+            slot.append(customFieldResolved);
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const { current } = el.copyableCustomFields;
+            expect(current[0].value).to.include('US$69.99/mo');
+            expect(current[0].value).to.not.include('per license');
+        });
+
+        it('should return empty arrays when no fragment editor', () => {
+            editorStub.withArgs('mas-fragment-editor').returns(null);
+            expect(el.copyableCustomFields).to.deep.equal({ current: [], inherited: [] });
+        });
+    });
+
+    describe('copyCustomFieldItem', () => {
+        let clipboardStub;
+        let toastStub;
+        let clipboardItem;
+
+        beforeEach(() => {
+            clipboardStub = { write: sandbox.stub().resolves() };
+            Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
+            toastStub = sandbox.stub(Events.toast, 'emit');
+            sandbox.stub(Store.search, 'get').returns({ path: '/acom' });
+            clipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+
+                async getType(type) {
+                    return this.data[type];
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = clipboardItem;
+        });
+
+        it('should copy custom field link to clipboard and show positive toast', async () => {
+            const fragment = mockFragment([{ name: 'customFields', values: ['<p>US$69.99/mo</p>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCustomFieldItem('Custom 1', 1, fragment);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+            expect(toastStub.firstCall.args[0].content).to.include('Custom 1');
+        });
+
+        it('should show negative toast on clipboard failure', async () => {
+            clipboardStub.write.rejects(new Error('denied'));
+            const fragment = mockFragment([{ name: 'customFields', values: ['<p>US$69.99/mo</p>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCustomFieldItem('Custom 1', 1, fragment);
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+        });
+
+        it('should do nothing when sourceFragment is null', async () => {
+            await el.copyCustomFieldItem('Custom 1', 1, null);
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.called).to.be.false;
+        });
+
+        it('should fall back to index in the field name when label is empty', async () => {
+            const fragment = mockFragment([{ name: 'customFields', values: ['<p>US$69.99/mo</p>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCustomFieldItem('', 2, fragment);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].content).to.include('2');
+        });
+    });
+
     describe('copyField', () => {
         let clipboardStub;
         let toastStub;
@@ -587,6 +837,28 @@ describe('MasSideNav – Copy Field', () => {
             expect(clipboardStub.write.calledOnce).to.be.true;
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+        });
+
+        it("should use the variant's editorLabel in the copied text and toast for FAQ", async () => {
+            sandbox
+                .stub(customElements, 'get')
+                .callThrough()
+                .withArgs('merch-card')
+                .returns({
+                    getFragmentMapping: (variant) => (variant === 'faq' ? { callout: { editorLabel: 'FAQ answer 3' } } : null),
+                });
+            const fragment = mockFragment([
+                { name: 'callout', values: ['Some answer'] },
+                { name: 'name', values: ['card-name'] },
+                { name: 'variant', values: ['faq'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyField('callout');
+            const [clipboardItem] = clipboardStub.write.firstCall.args[0];
+            const text = await (await clipboardItem.getType('text/plain')).text();
+            expect(text).to.include('FAQ answer 3');
+            expect(text).to.not.include('callout');
+            expect(toastStub.firstCall.args[0].content).to.include('FAQ answer 3');
         });
 
         it('should show negative toast on clipboard failure', async () => {
@@ -916,7 +1188,7 @@ describe('MasSideNav – Copy Field', () => {
                 el.textContent.startsWith('CTA '),
             );
             expect(ctaValueLabels).to.have.length(1);
-            expect(ctaValueLabels[0].textContent).to.equal('CTA 1');
+            expect(ctaValueLabels[0].textContent).to.equal('CTA - 1');
 
             // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
             const fieldLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent === 'CTAs');
@@ -972,8 +1244,8 @@ describe('MasSideNav – Copy Field', () => {
 
             const ctaLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent.startsWith('CTA '));
             expect(ctaLabels).to.have.length(2);
-            expect(ctaLabels[0].textContent).to.equal('CTA 1');
-            expect(ctaLabels[1].textContent).to.equal('CTA 2');
+            expect(ctaLabels[0].textContent).to.equal('CTA - 1');
+            expect(ctaLabels[1].textContent).to.equal('CTA - 2');
         });
 
         it('should not render CTAs section when no ctas in fragment', () => {
@@ -985,6 +1257,66 @@ describe('MasSideNav – Copy Field', () => {
 
             const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
             expect(ctaLabel).to.not.exist;
+        });
+
+        it('should render overridden Custom Fields section for variation with current custom fields', () => {
+            const variationFragment = mockFragment(
+                [
+                    { name: 'customFields', values: ['Variation value'] },
+                    { name: 'customFieldLabels', values: ['Custom 1'] },
+                ],
+                { id: 'variation-123' },
+            );
+            const baseFragment = mockFragment(
+                [
+                    { name: 'customFields', values: ['Base value'] },
+                    { name: 'customFieldLabels', values: ['Custom 1'] },
+                ],
+                { id: 'base-123' },
+            );
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
+                (item) =>
+                    item.classList.contains('overridden-section') && item.textContent.includes('Overridden in this variation'),
+            );
+            expect(overriddenSection).to.exist;
+            const customFieldEntries = [...container.querySelectorAll('.field-entry-overridden')].filter((entry) =>
+                entry.textContent.includes('Custom 1'),
+            );
+            expect(customFieldEntries.length).to.be.greaterThan(0);
+        });
+
+        it('should render inherited Custom Fields section for variation without current custom fields', () => {
+            const variationFragment = mockFragment([], { id: 'variation-123' });
+            const baseFragment = mockFragment(
+                [
+                    { name: 'customFields', values: ['Base value'] },
+                    { name: 'customFieldLabels', values: ['Custom 1'] },
+                ],
+                { id: 'base-123' },
+            );
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
+                (item) =>
+                    item.classList.contains('inherited-section') && item.textContent.includes('Inherited from base fragment'),
+            );
+            expect(inheritedSection).to.exist;
+            const fieldValue = [...container.querySelectorAll('.field-value')].find((el) =>
+                el.textContent.includes('Base value'),
+            );
+            expect(fieldValue).to.exist;
         });
     });
 
@@ -1133,6 +1465,29 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.resolvedPriceText).to.equal('US$54.99/mo');
             expect(updateStub.called).to.be.true;
+            el.remove();
+            editor.remove();
+        });
+
+        it('should resolve and cache price preview when merch-card dispatches mas:error', async () => {
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            const card = document.createElement('merch-card');
+            editor.append(card);
+            document.body.append(el, editor);
+
+            const price = document.createElement('span');
+            price.setAttribute('is', 'inline-price');
+            price.setAttribute('data-template', 'price');
+            price.textContent = ' US$54.99/mo ';
+            card.append(price);
+            sandbox.stub(editor, 'querySelector').withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            card.dispatchEvent(new CustomEvent('mas:error', { bubbles: true, composed: true }));
+            await Promise.resolve();
+
+            expect(el.resolvedPriceText).to.equal('US$54.99/mo');
             el.remove();
             editor.remove();
         });
@@ -1318,14 +1673,14 @@ describe('MasSideNav - Promotions nav item', () => {
         Store.page.set(originalPage);
     });
 
-    it('hides Promotions for non-admin users', async () => {
+    it('shows Promotions for non-admin users (editing is gated downstream)', async () => {
         Store.profile.set({ email: 'user@adobe.com' });
         Store.users.set([{ userPrincipalName: 'user@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         await el.updateComplete;
         const items = el.shadowRoot.querySelectorAll('mas-side-nav-item');
         const promotions = [...items].find((n) => n.label === 'Promotions');
-        expect(promotions).to.be.undefined;
-        expect([...items].some((n) => n.label === 'Collections')).to.be.true;
+        expect(promotions).to.exist;
+        expect(promotions.hasAttribute('disabled')).to.be.false;
     });
 
     it('shows Promotions for MAS admin users', async () => {

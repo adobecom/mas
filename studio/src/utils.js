@@ -10,10 +10,13 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
+    PZN_FOLDER,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
+import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
+import { isPromoVariationPath } from './promotions/promotion-model.js';
 
 /**
  * @param {string} input
@@ -249,14 +252,14 @@ export function getFragmentPartsToUse(fragment, path) {
     return { fragmentParts, title };
 }
 
-export function generateCodeToUse(fragment, path, page, failMessage) {
+export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
                 variant: 'negative',
-                content: 'Failed to copy code to clipboard',
+                content: 'Failed to copy link to clipboard',
             });
         return [];
     }
@@ -304,10 +307,7 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
  */
 export function parseStudioDeepLinksFromText(text) {
     if (!text || typeof text !== 'string') return [];
-    const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
+    const lines = text.split(/\s+/).filter(Boolean);
     const out = [];
     for (const line of lines) {
         const hashIdx = line.indexOf('#');
@@ -317,7 +317,8 @@ export function parseStudioDeepLinksFromText(text) {
             const contentType = params.get('content-type');
             const query = params.get('query');
             if (!query || !isUUID(query)) continue;
-            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection') continue;
+            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection' && contentType !== 'mas-compare-chart')
+                continue;
             out.push({ contentType, fragmentId: query });
         } catch {
             /* skip invalid entries */
@@ -334,15 +335,16 @@ export function parseStudioDeepLinksFromText(text) {
  * @param {string} path - The current surface path (e.g. "/acom")
  * @param {string} page - The current Studio page (e.g. "content")
  * @param {string} fieldName - The field to link to (e.g. "prices", "description")
+ * @param {string} fieldNameText - Alternative value for fieldName
  * @returns {{ displayText: string, href: string, richText: string } | null}
  */
-export function generateFieldLink(fragment, path, page, fieldName) {
+export function generateFieldLink(fragment, path, page, fieldName, fieldNameText) {
     const resolvedFieldName = fieldName ?? page;
     const resolvedPage = fieldName ? page : 'content';
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
-    const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
+    const displayText = `mas-field: ${fragmentParts} → ${fieldNameText ?? resolvedFieldName}`;
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,
@@ -391,18 +393,37 @@ export function stripHtml(value) {
     return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
 }
 
+/** Re-serializes a parsed DOM node to text, keeping only <s> tags (strikethrough prices)
+ *  and decoding HTML entities (e.g. &nbsp;) via the text nodes' already-decoded data. */
+function flattenPreservingStrikethrough(node) {
+    let result = '';
+    for (const child of node.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE) {
+            result += child.data;
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            const inner = flattenPreservingStrikethrough(child);
+            result += child.tagName === 'S' ? `<s>${inner}</s>` : inner;
+        }
+    }
+    return result;
+}
+
 /**
  * Returns a preview of the first value in an array.
- * HTML is stripped except {@html <s>} tags (strikethrough prices).
+ * HTML is stripped except {@html <s>} tags (strikethrough prices), and HTML entities
+ * (e.g. &nbsp;) are decoded rather than left as literal text.
  * @param {any[]} values
  * @returns {string}
  */
 export function previewValue(values) {
     const raw = values?.[0] ?? '';
     if (!raw) return '';
-    if (typeof raw !== 'string' || !raw.includes('<')) return String(raw);
+    if (typeof raw !== 'string' || (!raw.includes('<') && !raw.includes('&'))) return String(raw);
     // Strip all HTML except <s> tags used for strikethrough prices.
-    return raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
+    const stripped = raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
+    const temp = document.createElement('div');
+    temp.innerHTML = stripped;
+    return flattenPreservingStrikethrough(temp);
 }
 
 /*
@@ -415,6 +436,16 @@ export function showToast(message, variant = 'info') {
         variant,
         content: message,
     });
+}
+
+/**
+ * Builds the error message for a failed project create, distinguishing a
+ * duplicate-name conflict (HTTP 409) from other failures.
+ * @param {Error} error - The error thrown by repository.createFragment
+ * @returns {string}
+ */
+export function getCreateProjectErrorMessage(error) {
+    return error?.message?.includes(': 409') ? 'Project with this name already exists.' : 'Failed to create project.';
 }
 
 /**
@@ -439,6 +470,45 @@ export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
     const match = fragmentPath.match(PATH_TOKENS);
     return match?.groups?.parsedLocale ?? null;
+}
+
+/**
+ * Resolves parent fragment by checking other fragments' variations fields.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {string} fragmentPath
+ * @returns {Promise<Object|null>}
+ */
+export async function resolveHydratedParentFragment(aem, fragmentPath) {
+    const references = await aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+    const parentRefs = references?.parentReferences || [];
+    if (!parentRefs.length) return null;
+
+    const surface = extractSurfaceFromPath(fragmentPath);
+    const variationLocale = extractLocaleFromPath(fragmentPath);
+    const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
+    const sortedRefs = defaultLocale
+        ? [...parentRefs].sort((a, b) => {
+              const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
+              const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
+              return aIsDefault - bIsDefault;
+          })
+        : parentRefs;
+
+    for (const ref of sortedRefs) {
+        const candidate = await aem.sites.cf.fragments.getByPath(ref.path);
+        if (!candidate) continue;
+
+        const variationsField = candidate.fields?.find((f) => f.name === 'variations');
+        const variations = variationsField?.values || [];
+        if (!variations.includes(fragmentPath)) continue;
+
+        if (!candidate.id) return candidate;
+
+        const hydrated = await aem.sites.cf.fragments.getById(candidate.id);
+        return hydrated || candidate;
+    }
+
+    return null;
 }
 
 export function previewFragmentOnPage(fragment) {
@@ -508,4 +578,79 @@ export function resolveContentTypeFilters(tags) {
         ),
     ];
     return { contentTypes, modelIds };
+}
+
+/**
+ * Runs `load` only when `computeKey()` differs from the last run — skips
+ * redundant re-fetches when the derived data would come out the same.
+ * If a newer call starts (key or guard changes) before an older `load()`
+ * resolves, the older call's `apply` is discarded so stale results can't
+ * overwrite state set by the latest call.
+ * @returns {(options: {
+ *   guard: () => boolean,
+ *   computeKey: () => unknown,
+ *   load: () => Promise<unknown>,
+ *   apply: (result: unknown) => void,
+ *   reset?: () => void,
+ * }) => Promise<void>}
+ */
+export function createKeyedAsyncLoader() {
+    let lastKey = null;
+    let activeToken = 0;
+    return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
+        if (!guard()) {
+            lastKey = null;
+            activeToken += 1;
+            reset?.();
+            return;
+        }
+        const key = computeKey();
+        if (lastKey === key) return;
+        lastKey = key;
+        const token = ++activeToken;
+        const result = await load();
+        if (token !== activeToken) return;
+        apply(result);
+    };
+}
+
+/**
+ * Generates the delete confirmation summary, omitting categories with a zero count.
+ * Classifies `variationsToDelete` directly by path, so the count always matches what's actually deleted.
+ * @param {import('./aem/fragment.js').Fragment} fragment
+ * @param {string[]} [variationsToDelete]
+ * @returns {string}
+ */
+export function describeVariationsToDelete(fragment, variationsToDelete = []) {
+    const { surface, parsedLocale: currentLocale, fragmentPath } = fragment?.path?.match(PATH_TOKENS)?.groups || {};
+
+    let localeCount = 0;
+    let groupedCount = 0;
+    let promoCount = 0;
+
+    for (const path of variationsToDelete) {
+        if (path.includes(`/${PZN_FOLDER}/`)) {
+            if (isVariationPathInParentLocaleFamily(surface, currentLocale, path)) groupedCount += 1;
+            continue;
+        }
+        if (isPromoVariationPath(path)) {
+            promoCount += 1;
+            continue;
+        }
+        const pathGroups = surface && currentLocale && fragmentPath ? path.match(PATH_TOKENS)?.groups : null;
+        if (
+            pathGroups?.surface === surface &&
+            pathGroups?.fragmentPath === fragmentPath &&
+            pathGroups?.parsedLocale !== currentLocale &&
+            isVariationPathInParentLocaleFamily(surface, currentLocale, path)
+        ) {
+            localeCount += 1;
+        }
+    }
+
+    const parts = [];
+    if (localeCount) parts.push(`${localeCount} locale`);
+    if (groupedCount) parts.push(`${groupedCount} grouped`);
+    if (promoCount) parts.push(`${promoCount} promo`);
+    return `${parts.join(', ')} variation(s)`;
 }

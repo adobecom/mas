@@ -40,6 +40,12 @@ const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const VALID_PARAMETER_VALUE_REGEX = /^[a-zA-Z0-9_-]+$/;
 
+const PZN_FOLDER = '/pzn/';
+
+function isGroupedVariationFragmentPath(fragmentPath) {
+    return typeof fragmentPath === 'string' && fragmentPath.includes(PZN_FOLDER);
+}
+
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
@@ -88,12 +94,13 @@ function measureTiming(context, label, startLabel = label) {
 async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
-        const responsePromise = fetch(path, {
-            headers: {
-                ...context.DEFAULT_HEADERS,
-                'X-Request-ID': globalThis.crypto.randomUUID(),
-            },
-        });
+        const headers = { ...context.DEFAULT_HEADERS };
+        // In preview the pipeline runs in the browser; a custom request header triggers a CORS
+        // preflight that WCS rejects, so only send the tracing header server-side.
+        if (!context.preview) {
+            headers['X-Request-ID'] = globalThis.crypto.randomUUID();
+        }
+        const responsePromise = fetch(path, { headers });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
@@ -264,6 +271,24 @@ function matchesGeo(tags, { regionLocale, country }) {
 }
 
 /**
+ * True when `tags` contains at least one geo tag (`locale/` or `country/` segment), regardless of value.
+ * @param {string[]} tags
+ * @returns {boolean}
+ */
+function hasGeoTag(tags) {
+    return tags.some((tag) => /(^|[/:])(locale|country)\//i.test(tag));
+}
+/**
+ * Scores a geo match, preferring region locale over country.
+ * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
+ * @returns {number}
+ */
+function geoMatchScore(geo) {
+    if (!geo) return 0;
+    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+}
+
+/**
  * Effective country for a request context. Prefer explicit `context.country`, otherwise
  * fall back to the country segment of `context.locale` (e.g. `en_US` → `US`).
  * @param {PipelineContext} context
@@ -299,6 +324,8 @@ export {
     CARD_MODEL_ID,
     COLLECTION_MODEL_ID,
     VALID_PARAMETER_VALUE_REGEX,
+    PZN_FOLDER,
+    isGroupedVariationFragmentPath,
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,
@@ -307,6 +334,8 @@ export {
     getFragmentId,
     getJsonFromState,
     getFromState,
+    hasGeoTag,
+    geoMatchScore,
     mark,
     matchesGeo,
     measureTiming,

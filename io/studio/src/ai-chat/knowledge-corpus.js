@@ -451,7 +451,7 @@ export const KNOWLEDGE_CHUNKS = [
             "parent fragment",
             "translation"
         ],
-        "text": "Read-only operations: get_variations returns the variation graph for a fragment; get_card_with_variations returns a card plus its full variation tree; list_variation_locales lists the locales for which a card has variations; get_variation_parent returns the parent fragment of a variation; and find_untranslated_cards finds cards missing a variation in a target locale, optionally filtered by surface. State-changing operations, which always require confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags."
+        "text": "Read-only operations: get_variations returns the variation graph for a fragment; get_card_with_variations returns a card plus its full variation tree; list_variation_locales lists the locales for which a card has variations; and get_variation_parent returns the parent fragment of a variation. State-changing operations, which always require confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags."
     },
     {
         "id": "offers-and-ost.md#0",

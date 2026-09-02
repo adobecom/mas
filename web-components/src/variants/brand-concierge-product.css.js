@@ -9,11 +9,15 @@ merch-card[variant="brand-concierge-product"] [slot="badge"] {
     position: absolute;
     top: 16px;
     inset-inline-end: 16px;
-    line-height: 16px;
 }
 
 merch-card[variant="brand-concierge-product"] merch-badge {
     --merch-badge-border-radius: 7px;
+    --merch-badge-padding: 7px 10px;
+    font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+    font-weight: 500;
+    line-height: 18px;
+    inset-inline-start: 0;
 }
 
 merch-card[variant="brand-concierge-product"] [slot="heading-s"] {

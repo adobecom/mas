@@ -19,6 +19,7 @@ export const BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {
     ],
     title: { tag: 'h3', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
+    planType: true,
     promoText: { tag: 'p', slot: 'promo-text' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },
@@ -32,7 +33,7 @@ export class BrandConciergeProduct extends VariantLayout {
 
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-        options.displayPlanType = true;
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? true;
     }
 
     async adjustLegal() {
@@ -98,13 +99,6 @@ export class BrandConciergeProduct extends VariantLayout {
         :host([variant='brand-concierge-product']) footer {
             padding: 0px 16px 16px;
             gap: 8px;
-        }
-
-        :host([variant='brand-concierge-product']) #badge {
-            border-radius: 4px 0 0 4px;
-            font-weight: 400;
-            line-height: 21px;
-            padding: 2px 10px 3px;
         }
     `;
 }

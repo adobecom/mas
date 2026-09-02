@@ -49,6 +49,10 @@ import {
     BannerBlade,
     BANNER_BLADE_AEM_FRAGMENT_MAPPING,
 } from './banner-blade.js';
+import {
+    UberPricing,
+    UBER_PRICING_AEM_FRAGMENT_MAPPING,
+} from './uber-pricing.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -201,6 +205,12 @@ registerVariant(
     BannerBlade,
     BANNER_BLADE_AEM_FRAGMENT_MAPPING,
     BannerBlade.variantStyle,
+);
+registerVariant(
+    'uber-pricing',
+    UberPricing,
+    UBER_PRICING_AEM_FRAGMENT_MAPPING,
+    UberPricing.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

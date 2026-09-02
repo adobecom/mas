@@ -69,7 +69,7 @@ ${familyClassSelector('.headless-cta-variant-label')} {
     margin-left: var(--consonant-merch-spacing-xxs, 4px);
 }
 ${familyClassSelector('.headless-cta-item:not(:last-child)::after')} {
-    content: ',';
+    content: ', ';
 }
 `;
 

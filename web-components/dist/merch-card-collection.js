@@ -6316,13 +6316,14 @@ merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
     min-height: 0;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary {
-    color: inherit;
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a {
+    color: #3b63fb;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--primary,
-merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--primary {
-    color: #3b63fb;
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--secondary {
+    color: inherit;
 }
 `;var zn={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},planType:!0,promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},vt=class extends y{getGlobalCSS(){return In}priceOptionsProvider(r,t){r.dataset.template===K&&(t.displayPlanType=this.card?.settings?.displayPlanType??!1)}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.card.querySelector(`[slot="heading-xs"] ${G}[data-template="price"]`);if(!r)return;let t=r.cloneNode(!0);if(await r.onceSettled(),!r.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),r.parentNode.insertBefore(t,r.nextSibling),await t.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}renderLayout(){return Jc` ${this.badge}
             <div class="body">

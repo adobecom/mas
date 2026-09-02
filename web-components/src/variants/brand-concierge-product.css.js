@@ -68,12 +68,13 @@ merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
     min-height: 0;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary {
-    color: inherit;
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a {
+    color: #3b63fb;
 }
 
-merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--primary,
-merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--primary {
-    color: #3b63fb;
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--secondary {
+    color: inherit;
 }
 `;

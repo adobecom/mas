@@ -17,7 +17,10 @@ import { main } from '../../src/actions/search-cards.js';
 const validHeaders = { authorization: 'Bearer valid-test-token' };
 const baseParams = { AEM_BASE_URL: 'https://author-test.adobeaemcloud.com', __ow_headers: validHeaders };
 
-const card = (id, status, modified) => ({ id, title: `Card ${id}`, status, modified });
+// AEM returns modified as { at, by, fullName }, not a timestamp string. The
+// first version of this suite used strings and passed while the live sort did
+// nothing, because every object stringifies to the same "[object Object]".
+const card = (id, status, at) => ({ id, title: `Card ${id}`, status, modified: { at, by: 'someone@adobe.com' } });
 
 describe('search-cards filters', () => {
     let originalValidateToken;
@@ -78,6 +81,23 @@ describe('search-cards filters', () => {
         const result = await main({ ...baseParams, surface: 'acom', sortBy: 'modified', sortDirection: 'desc' });
 
         expect(result.body.results.map((c) => c.id)).to.deep.equal(['d', 'a', 'c', 'b']);
+    });
+
+    it('sorts on the timestamp inside a { at, by } field rather than the object', async () => {
+        stubResults(MIXED);
+
+        const result = await main({ ...baseParams, surface: 'acom', sortBy: 'modified', sortDirection: 'desc' });
+        const timestamps = result.body.results.map((c) => c.modified.at);
+
+        expect(timestamps).to.deep.equal([...timestamps].sort().reverse());
+    });
+
+    it('leaves order alone when the sort field is absent from every card', async () => {
+        stubResults(MIXED);
+
+        const result = await main({ ...baseParams, surface: 'acom', sortBy: 'nonexistent' });
+
+        expect(result.body.results.map((c) => c.id)).to.deep.equal(['a', 'b', 'c', 'd']);
     });
 
     it('honours an ascending sort direction', async () => {

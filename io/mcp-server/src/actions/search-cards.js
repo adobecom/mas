@@ -83,6 +83,17 @@ function widenForFilter(limit) {
 }
 
 /**
+ * The value to order a card by. AEM returns audit fields as
+ * { at, by, fullName } rather than a timestamp, so sorting the field itself
+ * compares "[object Object]" to "[object Object]" and does nothing.
+ */
+function sortValue(card, field) {
+    const raw = card?.[field];
+    if (raw && typeof raw === 'object') return String(raw.at ?? '');
+    return String(raw ?? '');
+}
+
+/**
  * Apply the filtering and ordering the Find Cards chips promise. Cards carry
  * `status` and `modified` already, so this is presentation over data we have,
  * not a second query.
@@ -105,8 +116,8 @@ function applyStatusAndSort(result, { status, sortBy, sortDirection, limit }) {
     if (sortBy) {
         const descending = String(sortDirection ?? 'desc').toLowerCase() !== 'asc';
         rows = [...rows].sort((a, b) => {
-            const left = String(a?.[sortBy] ?? '');
-            const right = String(b?.[sortBy] ?? '');
+            const left = sortValue(a, sortBy);
+            const right = sortValue(b, sortBy);
             if (left === right) return 0;
             return (left < right ? -1 : 1) * (descending ? -1 : 1);
         });

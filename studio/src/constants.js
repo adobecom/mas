@@ -141,7 +141,13 @@ export const PAGE_NAMES = {
     MASKS_EDITOR: 'masks-editor',
 };
 
-export const IO_DEV_NAMESPACE = '14257-merchatscale-axel';
+/**
+ * Used only when the io-base-url meta tag is absent (tests, or a page that did
+ * not run studio.html's bootstrap). studio.html is the real source of the
+ * namespace, so point a developer workspace at it with ?io.studio.env= rather
+ * than editing this.
+ */
+export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';

@@ -1,10 +1,10 @@
-import { IO_MCP_URL } from '../mas-chat/config.js';
+import { getIoMcpURL, getIoStudioURL } from '../mas-chat/config.js';
 
 // TODO(MWPW-183572 post-merge): revert to masstudio (prod) endpoint once the
 // masstudio OST cache has been rebuilt with DIRECT/RETAIL channel filtering.
 // Tracking: https://jira.corp.adobe.com/browse/MWPW-183572
 // Do NOT ship this dev namespace to production unchanged.
-const OST_PRODUCTS_URL = 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
+const ostProductsURL = () => `${getIoStudioURL()}/ost-products-read`;
 
 // Defense-in-depth: client-side format check on arrangement codes before they
 // reach the backend. Real MCS arrangement codes are alphanumeric + underscore
@@ -33,7 +33,7 @@ async function loadCatalog() {
     }
 
     const request = (async () => {
-        const response = await fetchWithTimeout(OST_PRODUCTS_URL, {
+        const response = await fetchWithTimeout(ostProductsURL(), {
             headers: getAuthHeaders(),
         });
         if (!response.ok) {
@@ -115,7 +115,7 @@ export async function fetchProductDetail(arrangementCode, { landscape = 'DRAFT' 
     if (typeof arrangementCode !== 'string' || !ARRANGEMENT_CODE_PATTERN.test(arrangementCode)) {
         throw new Error(`Invalid arrangement code: must match ${ARRANGEMENT_CODE_PATTERN}`);
     }
-    const response = await fetchWithTimeout(`${IO_MCP_URL}/get-product-detail`, {
+    const response = await fetchWithTimeout(`${getIoMcpURL()}/get-product-detail`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ arrangementCode, landscape }),

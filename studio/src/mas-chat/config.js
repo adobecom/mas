@@ -1,28 +1,65 @@
-import { IO_DEV_NAMESPACE } from '../constants.js';
+import { IO_FALLBACK_NAMESPACE } from '../constants.js';
+
+const IO_API_PREFIX = '/api/v1/web';
+const STUDIO_PACKAGE = 'MerchAtScaleStudio';
 
 function isLocalhostHostname(hostname) {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
 }
 
-export function getAIChatBaseURL(location = window.location) {
-    if (isLocalhostHostname(location.hostname)) {
-        const override = new URLSearchParams(location.search).get('ai.chat');
-        if (override) return override;
-    }
-    return `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+/**
+ * The IO Runtime base URL for the Studio package.
+ *
+ * studio.html writes this into the `io-base-url` meta tag, honouring
+ * ?io.studio.env=, and users.js, translation and bulk-publish already read it.
+ * Reading it here too means the assistant, MCP and knowledge services follow
+ * whatever environment the page was loaded for, instead of a namespace baked
+ * into the bundle.
+ */
+function ioStudioBaseURL() {
+    const fromMeta = document.querySelector('meta[name="io-base-url"]')?.content;
+    return fromMeta || `https://${IO_FALLBACK_NAMESPACE}.adobeioruntime.net${IO_API_PREFIX}/${STUDIO_PACKAGE}`;
 }
-export const AI_CHAT_BASE_URL = getAIChatBaseURL();
+
+/** Same namespace and environment as the Studio package, different IO package. */
+function siblingPackageURL(packageName) {
+    const base = ioStudioBaseURL();
+    const index = base.lastIndexOf(`/${STUDIO_PACKAGE}`);
+    return index === -1 ? `${base}/${packageName}` : `${base.slice(0, index)}/${packageName}`;
+}
+
+/** Only localhost may redirect these, so a crafted query cannot move production traffic. */
+function localOverride(location, param) {
+    if (!isLocalhostHostname(location.hostname)) return null;
+    return new URLSearchParams(location.search).get(param);
+}
+
+export function getAIChatBaseURL(location = window.location) {
+    return localOverride(location, 'ai.chat') || ioStudioBaseURL();
+}
 
 export function getMCPServerURL(location = window.location) {
-    if (isLocalhostHostname(location.hostname)) {
-        const override = new URLSearchParams(location.search).get('mcp.server');
-        if (override) return override;
-    }
-    return `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
+    return localOverride(location, 'mcp.server') || siblingPackageURL('MerchAtScaleMCP');
 }
+
+export function getKnowledgeServiceURL(location = window.location) {
+    return localOverride(location, 'knowledge.service') || siblingPackageURL('MerchAtScaleKnowledge');
+}
+
+/** The MCP package without the localhost override, for non-chat callers. */
+export function getIoMcpURL() {
+    return siblingPackageURL('MerchAtScaleMCP');
+}
+
+/** The Studio package without the localhost override, for non-chat callers. */
+export function getIoStudioURL() {
+    return ioStudioBaseURL();
+}
+
+export const AI_CHAT_BASE_URL = getAIChatBaseURL();
 export const MCP_SERVER_URL = getMCPServerURL();
-export const IO_MCP_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
-export const KNOWLEDGE_SERVICE_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleKnowledge`;
+export const IO_MCP_URL = getIoMcpURL();
+export const KNOWLEDGE_SERVICE_URL = getKnowledgeServiceURL();
 
 export const TEMPLATE_PREVIEWS = {
     'ccd-slice': '0ef2a804-e788-4959-abb8-b4d96a18b0ef',

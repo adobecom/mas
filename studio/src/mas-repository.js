@@ -17,6 +17,7 @@ import {
     isUUID,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
+    resolveHydratedParentFragment,
 } from './utils.js';
 import {
     OPERATIONS,
@@ -53,7 +54,6 @@ import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';
 import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import {
@@ -1131,7 +1131,7 @@ export class MasRepository extends LitElement {
         return paths;
     }
 
-    async loadPromotions() {
+    async loadPromotions({ rethrow = false } = {}) {
         try {
             const promotionsPath = this.getPromotionsPath();
 
@@ -1162,8 +1162,8 @@ export class MasRepository extends LitElement {
             }
         } catch (error) {
             if (error.name === 'AbortError') return;
-            Store.promotions.list.data.setMeta('listFetched', true);
             this.processError(error, 'Could not load promotions.');
+            if (rethrow) throw error;
         } finally {
             Store.promotions.list.loading.set(false);
         }
@@ -1708,12 +1708,25 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Deletes a fragment and all its locale variations
+     * Finds the fragment's promo variation paths.
+     * @param {Fragment} fragment
+     * @returns {Promise<string[]>} Paths of the fragment's promo variations
+     */
+    async getPromoVariationPaths(fragment) {
+        const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragment, () =>
+            this.loadPromotions({ rethrow: true }),
+        );
+        return new Fragment(enrichedData).listPromoVariations().map((ref) => ref.path);
+    }
+
+    /**
+     * Deletes a fragment and all its variations (locale, grouped, and promo)
      * @param {Fragment} fragment - The parent fragment to delete
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        const variations = fragment.getVariations();
+        const promoVariationPaths = await this.getPromoVariationPaths(fragment);
+        const variations = [...new Set([...fragment.getVariations(), ...promoVariationPaths])];
         const failedVariations = [];
 
         if (variations.length > 0) {
@@ -2037,36 +2050,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object|null>}
      */
     async resolveHydratedParentFragment(fragmentPath) {
-        const references = await this.aem.sites.cf.fragments.getReferencedBy(fragmentPath);
-        const parentRefs = references?.parentReferences || [];
-        if (!parentRefs.length) return null;
-
-        const surface = extractSurfaceFromPath(fragmentPath);
-        const variationLocale = extractLocaleFromPath(fragmentPath);
-        const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
-        const sortedRefs = defaultLocale
-            ? [...parentRefs].sort((a, b) => {
-                  const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
-                  const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
-                  return aIsDefault - bIsDefault;
-              })
-            : parentRefs;
-
-        for (const ref of sortedRefs) {
-            const candidate = await this.aem.sites.cf.fragments.getByPath(ref.path);
-            if (!candidate) continue;
-
-            const variationsField = candidate.fields?.find((f) => f.name === 'variations');
-            const variations = variationsField?.values || [];
-            if (!variations.includes(fragmentPath)) continue;
-
-            if (!candidate.id) return candidate;
-
-            const hydrated = await this.aem.sites.cf.fragments.getById(candidate.id);
-            return hydrated || candidate;
-        }
-
-        return null;
+        return resolveHydratedParentFragment(this.aem, fragmentPath);
     }
 
     /**

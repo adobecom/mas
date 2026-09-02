@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
+import { STAGED } from '../constants.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
@@ -32,7 +33,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     get errorCount() {
-        return this.items.filter((i) => i.status === 'error').length;
+        return this.items.filter((i) => i.status === 'error' && i.reason !== STAGED.NAME).length;
     }
 
     get urlLines() {
@@ -93,7 +94,14 @@ class MasBulkPublishItems extends LitElement {
                 Validated
             </span>`;
         }
+
         const label = ERROR_LABELS[item.reason] ?? 'Invalid URL';
+        if (item.reason === STAGED.NAME) {
+            return html`<span class="status-cell">
+                <span class="status-staged">${label}</span>
+            </span>`;
+        }
+
         return html`<span class="status-cell status-error">
             <sp-icon-alert></sp-icon-alert>
             ${label}

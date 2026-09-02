@@ -54,13 +54,16 @@ export const STATE_CHANGING_INTENTS = new Set([
     'add_cards_to_collection',
     'create_collection',
     'link_card_to_offer',
-    'release_create.confirm',
 ]);
 
 /**
  * Confirmation templates for state-changing intents. Mirrors the
  * `confirmation_template` field in intent-registry.js, kept here as a small
  * subset to avoid importing the full backend registry.
+ *
+ * Keys must be intents that classify as mcp-state-changing. A dotted intent
+ * never does — it routes to 'guided' first, and a guided flow renders its own
+ * confirmation — so a template keyed to one can never be looked up.
  */
 const CONFIRMATION_TEMPLATES = {
     publish_card: 'Publish card {{id}} to production?',
@@ -76,7 +79,6 @@ const CONFIRMATION_TEMPLATES = {
     add_cards_to_collection: 'Add {{cardPaths.length}} cards to collection {{id}}?',
     create_collection: 'Create collection "{{title}}" at {{parentPath}}?',
     link_card_to_offer: 'Link card {{cardId}} to offer {{offerSelectorId}}?',
-    release_create_confirm: 'Create {{cardConfigs.length}} release cards?',
 };
 
 /**
@@ -89,6 +91,10 @@ export function classifyEnvelopeIntent(envelope) {
     if (!envelope || typeof envelope.intent !== 'string') return 'unknown';
     const { intent } = envelope;
     if (META_INTENTS.has(intent)) return 'meta';
+    // A dotted name is a step of a guided flow, and a guided flow renders its
+    // own confirmation (the release flow's Card Configuration summary), so it
+    // must not also go through the generic gate below. Anything dotted
+    // therefore never reaches STATE_CHANGING_INTENTS.
     if (intent.includes('.') || NON_MCP_INTENTS.has(intent)) return 'guided';
     if (STATE_CHANGING_INTENTS.has(intent)) return 'mcp-state-changing';
     return 'mcp-readonly';

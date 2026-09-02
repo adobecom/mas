@@ -16,13 +16,39 @@ describe('ai-chat/registry drift — client dispatcher vs intent registry', () =
         expect([...dispatcher.META_INTENTS].sort()).to.deep.equal([...REGISTRY_META_INTENTS].sort());
     });
 
+    /**
+     * Dotted names are steps of a guided flow, and the client routes anything
+     * dotted to 'guided' before it consults STATE_CHANGING_INTENTS — a guided
+     * flow renders its own confirmation (the release flow's Card Configuration
+     * summary) and must not also go through the generic gate. So a dotted
+     * intent listed there could never be read, and listing it only made the
+     * gate look wider than it is.
+     */
+    const isGuidedFlowStep = (name) => name.includes('.');
+
     it('gates every registry state-changing intent client-side', () => {
         const missing = INTENTS.filter((intent) => intent.category === 'state-changing')
             .map((intent) => intent.name)
+            .filter((name) => !isGuidedFlowStep(name))
             .filter((name) => !dispatcher.STATE_CHANGING_INTENTS.has(name));
         expect(missing, 'add these to STATE_CHANGING_INTENTS in studio/src/utils/ai-chat-envelope-dispatcher.js').to.deep.equal(
             [],
         );
+    });
+
+    it('confirms a state-changing guided step inside its flow, not through the generic gate', () => {
+        const guidedStateChanging = INTENTS.filter(
+            (intent) => intent.category === 'state-changing' && isGuidedFlowStep(intent.name),
+        ).map((intent) => intent.name);
+
+        // If this is ever empty the exemption above is dead and should go.
+        expect(guidedStateChanging, 'expected at least one dotted state-changing intent').to.not.deep.equal([]);
+        for (const name of guidedStateChanging) {
+            expect(
+                dispatcher.classifyEnvelopeIntent({ intent: name }),
+                `${name} must reach its flow, not the generic confirmation gate`,
+            ).to.equal('guided');
+        }
     });
 
     it('has no client state-changing entries that are not registered intents', () => {

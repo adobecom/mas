@@ -7,6 +7,12 @@ chai.use(sinonChai);
 
 describe('bulk-publish-worker — runWorker', () => {
     let worker, deps;
+    const preRecordedEntries = [
+        '{"fragmentId":"frag-1","versionId":"v-green","wasPublished":true,"createdAt":"2026-01-01T00:00:00Z"}',
+    ];
+    const publishCreatedEntries = [
+        '{"fragmentId":"frag-1","versionId":"v-red","wasPublished":true,"createdAt":"2026-01-02T00:00:00Z"}',
+    ];
     beforeEach(() => {
         deps = {
             readProjectFragment: sinon.stub().resolves({ fragment: { id: 'proj-1' }, etag: 'e1' }),
@@ -15,7 +21,8 @@ describe('bulk-publish-worker — runWorker', () => {
             getProjectTitle: sinon.stub().returns('Proj'),
             getProjectSnapshots: sinon.stub().returns([]),
             publishResolved: sinon.stub(),
-            createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [] }),
+            createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [], failures: [] }),
+            recordSnapshot: sinon.stub().resolves({ entries: preRecordedEntries, failures: [] }),
             updateProjectFragment: sinon.stub().resolves(),
             now: () => new Date('2026-06-04T00:00:00.000Z'),
             logger: { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() },
@@ -205,6 +212,20 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(finalSnapshots[0]).to.not.include('publishComplete');
     });
 
+    it('uses pre-recorded snapshots as revert target and still calls createSnapshot for CF versions', async () => {
+        deps.getProjectSnapshots.returns(preRecordedEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+        expect(deps.recordSnapshot).to.not.have.been.called;
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green');
+    });
+
     it('publishes expanded paths (cards) when includeCards is true', async () => {
         const collPath = '/content/dam/mas/acom/en_US/coll';
         const cardPath = '/content/dam/mas/acom/en_US/card-1';
@@ -213,6 +234,7 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.createSnapshot.resolves({
             entries: ['{"fragmentId":"f-coll"}'],
             expandedPaths: [collPath, cardPath],
+            failures: [],
         });
         deps.publishResolved.resolves([
             { path: collPath, status: 'published' },
@@ -237,6 +259,7 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.createSnapshot.resolves({
             entries: ['{"fragmentId":"f-coll"}'],
             expandedPaths: [collPath, cardPath],
+            failures: [],
         });
         deps.publishResolved.resolves([{ path: collPath, status: 'published' }]);
 
@@ -264,6 +287,21 @@ describe('bulk-publish-worker — runWorker', () => {
         await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
 
         expect(deps.createSnapshot).to.have.been.calledOnce;
+    });
+
+    it('calls recordSnapshot when no pre-recorded snapshots exist (fallback path)', async () => {
+        deps.getProjectSnapshots.returns([]);
+        deps.recordSnapshot.resolves({ entries: preRecordedEntries, failures: [] });
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.recordSnapshot).to.have.been.calledOnce;
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green');
     });
 
     it('publishes card paths recovered from pending snapshot entries on resume with includeCards', async () => {
@@ -306,13 +344,48 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.createSnapshot).to.not.have.been.called;
     });
 
-    it('treats a malformed snapshot entry as not-pending and takes a fresh snapshot', async () => {
+    it('falls through to record+createSnapshot when existing entry has publishComplete: true', async () => {
+        const completedEntry = JSON.stringify({
+            fragmentId: 'frag-1',
+            versionId: 'v-green',
+            wasPublished: true,
+            createdAt: '2026-01-01T00:00:00Z',
+            publishComplete: true,
+        });
+        deps.getProjectSnapshots.returns([completedEntry]);
+        deps.recordSnapshot.resolves({ entries: preRecordedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.recordSnapshot).to.have.been.calledOnce;
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+    });
+
+    it('preserves snapshotError in final update when recordSnapshot has failures (fallback path)', async () => {
+        deps.getProjectSnapshots.returns([]);
+        const failures = [{ path: '/content/dam/mas/acom/en_US/a', error: 'No non-translation version found' }];
+        deps.recordSnapshot.resolves({ entries: [], failures });
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        const finalLastError = deps.updateProjectFragment.lastCall.args[3].lastError;
+        expect(finalLastError).to.include('SAVE_SNAPSHOT:');
+        expect(finalLastError).to.include('/content/dam/mas/acom/en_US/a');
+    });
+
+    it('treats a malformed snapshot entry as not pre-recorded and falls back to record+snapshot', async () => {
         deps.getProjectSnapshots.returns(['not-json']);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
         deps.getProjectLocales.returns([]);
 
         await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
 
+        expect(deps.recordSnapshot).to.have.been.calledOnce;
         expect(deps.createSnapshot).to.have.been.calledOnce;
     });
 

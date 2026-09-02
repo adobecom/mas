@@ -386,6 +386,122 @@ describe('processCTAs', async () => {
     });
 });
 
+describe('processCTAs - headless CTA variant labels', async () => {
+    let merchCard;
+    let aemFragmentMapping;
+
+    beforeEach(async () => {
+        merchCard = mockMerchCard();
+        aemFragmentMapping = {
+            ctas: {
+                slot: 'footer',
+                size: 'm',
+            },
+        };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('labels a <strong>-wrapped CTA as Primary on a headless card', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<strong><a href="#">Buy now</a></strong>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('strong a')).to.exist;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+    });
+
+    it('labels an <em>-wrapped CTA as Secondary', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<em><a href="#">Learn more</a></em>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('em a')).to.exist;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Secondary');
+    });
+
+    it('labels a bare CTA (no strong/em wrapper) as Link', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<a href="#">Contact us</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('strong, em')).to.not.exist;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Link');
+    });
+
+    it('wraps each of multiple headless CTAs in its own labeled item', async () => {
+        merchCard.variant = 'headless';
+        const fields = {
+            ctas: '<strong><a href="#">Buy now</a></strong><em><a href="#">Learn more</a></em>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const items = footer.querySelectorAll('.headless-cta-item');
+        expect(items).to.have.lengthOf(2);
+        expect(
+            items[0].querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+        expect(
+            items[1].querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Secondary');
+    });
+
+    ['marquee', 'banner-blade'].forEach((variant) => {
+        it(`applies the same variant labeling to the ${variant} template`, async () => {
+            merchCard.variant = variant;
+            const fields = { ctas: '<strong><a href="#">Buy now</a></strong>' };
+
+            processCTAs(fields, merchCard, aemFragmentMapping);
+
+            const footer = getFooterElement(merchCard);
+            const item = footer.querySelector('.headless-cta-item');
+            expect(item).to.exist;
+            expect(
+                item.querySelector('.headless-cta-variant-label').textContent,
+            ).to.equal('Primary');
+        });
+    });
+
+    it('does not label CTAs that carry an authored style class, even on a headless card', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<a href="#" class="accent">Buy now</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
+    });
+
+    it('does not label CTAs on variants outside the headless-style set', async () => {
+        merchCard.variant = 'plans';
+        const fields = { ctas: '<a href="#">Buy now</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
+    });
+});
+
 describe('processSubtitle', () => {
     let merchCard;
 

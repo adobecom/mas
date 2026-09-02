@@ -12,6 +12,11 @@ const familySelector = (slot, suffix = '') =>
             `merch-card[variant='${variant}'] [slot='${slot}']${suffix}`,
     ).join(',\n');
 
+const familyClassSelector = (className) =>
+    HEADLESS_FAMILY_VARIANTS.map(
+        (variant) => `merch-card[variant='${variant}'] ${className}`,
+    ).join(',\n');
+
 /**
  * Global CSS for Headless variant (label + value only, no card chrome).
  * Layout is primarily defined in headlessRowStyle().
@@ -47,6 +52,24 @@ ${familySelector('callout-content', ' > div > div')} {
     padding: 0;
     border-radius: 0;
     width: auto;
+}
+/* Subtle gray annotation next to each headless CTA showing its authored variant
+   (Primary/Secondary/Link), set alongside the button in hydrate.js's transformLinkToButton(). */
+${familyClassSelector('.headless-cta-item')} {
+    display: inline-flex;
+    align-items: center;
+}
+${familyClassSelector('.headless-cta-variant-label')} {
+    font-size: 0.75em;
+    color: var(--spectrum-gray-600);
+    background: var(--spectrum-gray-100);
+    border-radius: 4px;
+    padding: 2px 6px;
+    line-height: 1.4;
+    margin-left: var(--consonant-merch-spacing-xxs, 4px);
+}
+${familyClassSelector('.headless-cta-item:not(:last-child)::after')} {
+    content: ',';
 }
 `;
 
@@ -84,6 +107,13 @@ export function headlessRowStyle(variantName) {
         }
         :host([variant='${variant}']) .headless-value::slotted(*) {
             display: inline;
+        }
+        :host([variant='${variant}'])
+            .headless-value[data-slot='footer']::slotted(div) {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--consonant-merch-spacing-xs, 8px);
         }
         :host([variant='${variant}']) .headless-section {
             font-size: 0.75em;

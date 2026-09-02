@@ -264,7 +264,28 @@ export class AOSClient {
         }
 
         const data = await response.json();
-        const offers = Array.isArray(data) ? data : data?.data || [];
+        let offers = Array.isArray(data) ? data : data?.data || [];
+
+        // AOS ignores an offer_selector_ids filter it does not recognise and
+        // answers with an unfiltered page, the same way it does for offer_id.
+        // Verified against the live service: a mistyped OSI and the literal
+        // string "THIS_IS_NOT_A_REAL_OSI_AT_ALL_1234567890xyz" both returned
+        // the same 20 offers across 19 products. Callers read offers[0], so
+        // that silently became a Creative Cloud EDU Team card for someone
+        // asking about Firefly.
+        //
+        // The offers name no selector, so coherence is the only signal we have:
+        // a selector resolves offers for ONE product arrangement (its base,
+        // trial and term variants). Spanning several means the filter was
+        // dropped. Answer empty — callers already handle that, and a wrong
+        // offer here becomes a wrong card.
+        if (offers.length > 1) {
+            const products = new Set(offers.map((o) => o?.product_arrangement_code).filter(Boolean));
+            if (products.size > 1) {
+                offers = [];
+            }
+        }
+
         if (offers.length === 0) {
             // OST occasionally populates data-wcs-osi with a 32-char hex
             // Offer ID instead of a selector ID (draft/unindexed offers).

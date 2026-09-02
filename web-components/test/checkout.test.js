@@ -87,6 +87,16 @@ describe('Checkout', () => {
             });
             expect(options.promotionCodes).to.deep.equal(['promo1', undefined]);
         });
+
+        it('keeps promotionCodes aligned to wcsOsi when an OSI entry is blank', () => {
+            const overrides = {
+                wcsOsi: 'abm,,stock-abm',
+                promotionCode: 'P1,P2,P3',
+            };
+            const options = checkout.collectCheckoutOptions(overrides);
+            expect(options.wcsOsi).to.deep.equal(['abm', 'stock-abm']);
+            expect(options.promotionCodes).to.deep.equal(['P1', 'P3']);
+        });
     });
 
     describe('buildCheckoutURL', () => {

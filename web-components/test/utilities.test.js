@@ -1,4 +1,9 @@
-import { selectOffers, sumOffers, toPromotionCodes } from '../src/utilities.js';
+import {
+    selectOffers,
+    sumOffers,
+    toPromotionCodes,
+    toWcsOsiAndPromotionCodes,
+} from '../src/utilities.js';
 
 import { expect } from './utilities.js';
 
@@ -35,6 +40,55 @@ describe('function "toPromotionCodes"', () => {
             'CODE3',
         ]);
         expect(toPromotionCodes(' CODE1 , ')).to.deep.equal(['CODE1', '']);
+    });
+});
+
+describe('function "toWcsOsiAndPromotionCodes"', () => {
+    it('leaves promotionCodes untouched when OSI is null or undefined', () => {
+        expect(toWcsOsiAndPromotionCodes(null, 'P1')).to.deep.equal({
+            wcsOsi: [],
+            promotionCodes: ['P1'],
+        });
+        expect(toWcsOsiAndPromotionCodes(undefined, 'P1,P2')).to.deep.equal({
+            wcsOsi: [],
+            promotionCodes: ['P1', 'P2'],
+        });
+    });
+
+    it('broadcasts a single promo code regardless of OSI blanks', () => {
+        expect(
+            toWcsOsiAndPromotionCodes('abm,,stock-abm', 'BROADCAST'),
+        ).to.deep.equal({
+            wcsOsi: ['abm', 'stock-abm'],
+            promotionCodes: ['BROADCAST'],
+        });
+    });
+
+    it('keeps a blank OSI entry from shifting later promo codes onto the wrong OSI', () => {
+        expect(
+            toWcsOsiAndPromotionCodes('abm,,stock-abm', 'P1,P2,P3'),
+        ).to.deep.equal({
+            wcsOsi: ['abm', 'stock-abm'],
+            promotionCodes: ['P1', 'P3'],
+        });
+    });
+
+    it('pairs a genuinely promo-less OSI with an empty code', () => {
+        expect(toWcsOsiAndPromotionCodes('abm,stock-abm', 'P1,')).to.deep.equal(
+            {
+                wcsOsi: ['abm', 'stock-abm'],
+                promotionCodes: ['P1', ''],
+            },
+        );
+    });
+
+    it('accepts an array OSI value as-is', () => {
+        expect(
+            toWcsOsiAndPromotionCodes(['abm', 'stock-abm'], 'P1,P2'),
+        ).to.deep.equal({
+            wcsOsi: ['abm', 'stock-abm'],
+            promotionCodes: ['P1', 'P2'],
+        });
     });
 });
 

@@ -6,7 +6,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
 import { generateLinkToUse, showToast } from './utils.js';
-import { fileSendIcon } from './icons.js';
+import { privacyServicesIcon } from './icons.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -292,7 +292,7 @@ class MasSelectionPanel extends LitElement {
                       label="Mark as Staged"
                       @click=${this.handleMarkStaged}
                   >
-                      ${fileSendIcon}
+                      ${privacyServicesIcon}
                       <sp-tooltip self-managed placement="top">Mark as Staged</sp-tooltip>
                   </sp-action-button>`
                 : nothing}

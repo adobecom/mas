@@ -44,30 +44,36 @@ const PROBES = [
     ['how do I send cards for localization?', 'localization'],
     ['what is the MCS product catalog?', 'product catalog'],
     ['how do I edit a card that is already published?', 'publish'],
+    // Written 2026-09-02, after this suite measured them as broken.
+    ['what is mas-field?', 'mas-field'],
+    ['how do headless cards work?', 'headless'],
+    ['how do I author a headless card?', 'headless'],
+    ['what card variants are available?', 'variant'],
+    ['why is my card showing English on a French page?', 'english'],
+    ['what are masks?', 'mask'],
+    ['what is the advanced tools page?', 'advanced tools'],
+    ['how do I use the locale picker?', 'locale picker'],
+    ['what does the fragment editor do?', 'fragment editor'],
+    ['how do I roll out a card to other locales?', 'roll out'],
+    ['how do I preview a card on a page?', 'preview'],
 ];
 
 /**
- * Questions the corpus cannot answer correctly today. Every entry is a real
- * gap a user can hit right now, and all but the `miss` ones currently return a
- * confidently wrong passage.
+ * Questions the corpus cannot answer correctly today. Empty, and worth keeping
+ * that way: every entry is a real question a user can ask and get a wrong
+ * answer to.
  *
- * Fix one by writing the knowledge, running `npm run build:knowledge`, and
- * deleting its line — the last test in this file fails if an entry here starts
- * working, so the list cannot rot into a fiction.
+ * It held 11 entries when this suite was written. They were the measurement
+ * that said what to write: mas-field and the headless variant, the card
+ * variants, masks, Advanced tools, the locale picker, the fragment editor,
+ * rollout projects, previewing a card on a page, and the English-fallback
+ * question. All are now covered and have moved into PROBES above.
+ *
+ * To park a gap here, give the question and why it fails. The test below fails
+ * when a parked question starts working, so the list cannot drift into
+ * fiction.
  */
-const KNOWN_GAPS = {
-    'what is mas-field?': 'miss — headless cards are undocumented',
-    'how do headless cards work?': 'wrong — returns "How do I create a card"',
-    'how do I author a headless card?': 'wrong — returns "What is Merch at Scale"',
-    'what card variants are available?': 'wrong — no chunk lists the variants',
-    'why is my card showing English on a French page?': 'wrong — returns the fragment-not-found chunk',
-    'what are masks?': 'wrong — returns the generic features chunk',
-    'what is the advanced tools page?': 'wrong — returns the generic features chunk',
-    'how do I use the locale picker?': 'wrong — returns a translation-project chunk',
-    'what does the fragment editor do?': 'wrong — returns a translation-project chunk',
-    'how do I roll out a card to other locales?': 'miss — rollout projects are undocumented',
-    'what does the preview toggle do?': 'miss — preview mode is undocumented',
-};
+const KNOWN_GAPS = {};
 
 let retrieve;
 
@@ -141,24 +147,9 @@ describe('ai-chat/knowledge coverage', () => {
 
     describe('the known gaps', () => {
         it('shrinks: a question that now answers correctly must leave KNOWN_GAPS', async () => {
-            // Markers for the gap questions, kept here so KNOWN_GAPS stays a
-            // plain readable list of what the assistant cannot do.
-            const markers = {
-                'what is mas-field?': 'mas-field',
-                'how do headless cards work?': 'headless',
-                'how do I author a headless card?': 'headless',
-                'what card variants are available?': 'variant',
-                'why is my card showing English on a French page?': 'locale',
-                'what are masks?': 'mask',
-                'what is the advanced tools page?': 'advanced tools',
-                'how do I use the locale picker?': 'locale picker',
-                'what does the fragment editor do?': 'fragment editor',
-                'how do I roll out a card to other locales?': 'rollout',
-                'what does the preview toggle do?': 'preview',
-            };
             const fixed = [];
-            for (const question of Object.keys(KNOWN_GAPS)) {
-                const verdict = await answersAbout(question, markers[question]);
+            for (const [question, entry] of Object.entries(KNOWN_GAPS)) {
+                const verdict = await answersAbout(question, entry.marker);
                 if (verdict.ok) fixed.push(question);
             }
 

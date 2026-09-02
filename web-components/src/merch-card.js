@@ -959,6 +959,19 @@ export class MerchCard extends LitElement {
         return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
     }
 
+    get osi() {
+        const promo = this.querySelector(
+            '[is="inline-price"][data-template="price"][data-promotion-code]',
+        );
+        const regular = this.querySelector(
+            '[is="inline-price"][data-template="price"]',
+        );
+        return (
+            (promo ?? regular)?.dataset.wcsOsi ??
+            this.aemFragment?.data?.fields?.osi
+        );
+    }
+
     get promoPrice() {
         if (!this.querySelector(`span.price-strikethrough`)) return;
         let price = this.querySelector(`.price.price-alternative`);

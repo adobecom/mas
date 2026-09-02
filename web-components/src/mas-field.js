@@ -372,6 +372,19 @@ class MasField extends HTMLElement {
         return this.querySelector('aem-fragment');
     }
 
+    get osi() {
+        const promo = this.querySelector(
+            '[is="inline-price"][data-template="price"][data-promotion-code]',
+        );
+        const regular = this.querySelector(
+            '[is="inline-price"][data-template="price"]',
+        );
+        return (
+            (promo ?? regular)?.dataset.wcsOsi ??
+            this.aemFragment?.data?.fields?.osi
+        );
+    }
+
     #ensureContentElement() {
         if (this.#contentElement?.isConnected) return this.#contentElement;
         const existing = this.querySelector(

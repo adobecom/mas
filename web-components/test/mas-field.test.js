@@ -1245,3 +1245,21 @@ describe('mas-field – hideTrialCTAs setting', () => {
         expect(anchorsOf(el)).to.be.empty;
     });
 });
+
+describe('mas-field osi getter', () => {
+    it('returns the regular price OSI', () => {
+        const field = document.createElement('mas-field');
+        field.innerHTML =
+            '<span is="inline-price" data-template="price" data-wcs-osi="REG"></span>';
+        expect(field.osi).to.equal('REG');
+    });
+
+    it('falls back to the fragment osi field', () => {
+        const field = document.createElement('mas-field');
+        Object.defineProperty(field, 'aemFragment', {
+            configurable: true,
+            value: { data: { fields: { osi: 'FIELD' } } },
+        });
+        expect(field.osi).to.equal('FIELD');
+    });
+});

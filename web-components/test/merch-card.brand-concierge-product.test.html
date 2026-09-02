@@ -28,55 +28,8 @@
                 country="US"
                 language="en"
             ></mas-commerce-service>
-            <merch-card
-                variant="brand-concierge-product"
-                consonant="true"
-                style="width: 378px"
-            >
-                <merch-icon
-                    slot="icons"
-                    src="/test/mocks/img/photoshop.svg"
-                    loading="lazy"
-                    size="l"
-                    alt="Photoshop"
-                ></merch-icon>
-                <merch-icon
-                    slot="icons"
-                    src="/test/mocks/img/photoshop.svg"
-                    loading="lazy"
-                    size="l"
-                    alt="Lightroom"
-                ></merch-icon>
-                <p slot="heading-s">Photoshop</p>
-                <p slot="heading-xs">
-                    <span
-                        is="inline-price"
-                        data-template="price"
-                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
-                    ></span>
-                </p>
-                <div slot="body-xs">
-                    Get 20+ apps, including Photoshop, Illustrator, and
-                    Premiere.
-                    <a href="https://adobe.com/learn-more">Learn more</a>
-                </div>
-                <p slot="promo-text">
-                    Get Photoshop and Lightroom for one low price.
-                    <a href="https://adobe.com/plans"
-                        >See all plans &amp; pricing details</a
-                    >
-                </p>
-                <div slot="footer">
-                    <a
-                        is="checkout-link"
-                        data-checkout-workflow-step="commitment"
-                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
-                        data-template="checkoutUrl"
-                        data-analytics-id="buy-now"
-                        class="con-button blue"
-                        >Buy now</a
-                    >
-                </div>
+            <merch-card style="width: 378px">
+                <aem-fragment fragment="brand-concierge-product"></aem-fragment>
             </merch-card>
         </template>
         <template id="product-card-narrow">
@@ -85,48 +38,10 @@
                 country="US"
                 language="en"
             ></mas-commerce-service>
-            <merch-card
-                variant="brand-concierge-product"
-                consonant="true"
-                style="width: 248px"
-            >
-                <merch-icon
-                    slot="icons"
-                    src="/test/mocks/img/photoshop.svg"
-                    loading="lazy"
-                    size="l"
-                    alt="Photoshop"
-                ></merch-icon>
-                <p slot="heading-s">Photoshop</p>
-                <p slot="heading-xs">
-                    <span
-                        is="inline-price"
-                        data-template="price"
-                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
-                    ></span>
-                </p>
-                <div slot="body-xs">
-                    Get 20+ apps, including Photoshop, Illustrator, and
-                    Premiere.
-                    <a href="https://adobe.com/learn-more">Learn more</a>
-                </div>
-                <p slot="promo-text">
-                    Get Photoshop for one low price.
-                    <a href="https://adobe.com/plans"
-                        >See all plans &amp; pricing details</a
-                    >
-                </p>
-                <div slot="footer">
-                    <a
-                        is="checkout-link"
-                        data-checkout-workflow-step="commitment"
-                        data-wcs-osi="caA1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
-                        data-template="checkoutUrl"
-                        data-analytics-id="buy-now"
-                        class="con-button blue"
-                        >Buy now</a
-                    >
-                </div>
+            <merch-card style="width: 248px">
+                <aem-fragment
+                    fragment="brand-concierge-product-narrow"
+                ></aem-fragment>
             </merch-card>
         </template>
         <script type="module">
@@ -158,7 +73,7 @@
                         const [masCommerceService, card] =
                             getTemplateContent('product-card-wide');
                         container.append(masCommerceService, card);
-                        await card.updateComplete;
+                        await card.checkReady();
                         expect(card).to.exist;
                         expect(
                             card.querySelectorAll('[slot="icons"]').length,
@@ -191,7 +106,7 @@
                         const [masCommerceService, card] =
                             getTemplateContent('product-card-wide');
                         container.append(masCommerceService, card);
-                        await card.updateComplete;
+                        await card.checkReady();
                         const legalSelector =
                             '[slot="heading-xs"] [is="inline-price"][data-template="legal"]';
                         let legal;
@@ -201,11 +116,13 @@
                                 await new Promise((r) => setTimeout(r, 20));
                         }
                         expect(legal, 'legal clone inserted').to.exist;
-                        await legal.onceSettled();
+                        const main = card.querySelector(
+                            '[slot="heading-xs"] [is="inline-price"][data-template="price"]',
+                        );
                         expect(
-                            legal.textContent.trim(),
-                            'legal clone rendered price content',
-                        ).to.not.equal('');
+                            legal.previousElementSibling,
+                            'legal clone sits right after the main price',
+                        ).to.equal(main);
                     });
 
                     it('does nothing when there is no main price', async () => {
@@ -247,7 +164,7 @@
                             'product-card-narrow',
                         );
                         container.append(masCommerceService, card);
-                        await card.updateComplete;
+                        await card.checkReady();
                         expect(card).to.exist;
                         expect(card.querySelector('[slot="promo-text"] a')).to
                             .exist;

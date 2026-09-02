@@ -2280,11 +2280,16 @@ export class MasChat extends LitElement {
             }
         } catch (error) {
             logError('Continue with MCP result error', error);
+            // The fetch worked; only the follow-up turn failed, and that turn
+            // can time out at 55s under a slow provider. Show the products the
+            // user already waited for rather than discarding them behind an
+            // error that makes a successful fetch look like a total failure.
+            await this.presentProductCatalog(result);
             this.messages = [
                 ...this.messages,
                 {
                     role: 'error',
-                    content: `Failed to process product data: ${error.message}`,
+                    content: `I could not finish that request: ${error.message}`,
                     timestamp: Date.now(),
                     fresh: true,
                 },

@@ -92,12 +92,19 @@ export class AOSClient {
         const authHeader = await this.authManager.getAuthHeader();
 
         // AOS's legacy GET /offers is the shape OST's browser client uses
-        // successfully. It requires a specific query signature: environment=PROD
-        // (not PRODUCTION), plus buying_program/merchant/sales_channel/
-        // service_providers to narrow the response. We query by offer_id
-        // directly and iterate (landscape × country) for coverage. The v3
-        // POST /v3/offers path is kept as a fallback for offers not in the
-        // legacy index.
+        // successfully. Match its getOfferById signature exactly: offer_id,
+        // country, api_key, environment=PROD (not PRODUCTION) and landscape.
+        //
+        // Do NOT add buying_program/merchant/sales_channel/service_providers
+        // here. Those belong to searchOffers, where narrowing an
+        // arrangement-code search is the point. An offer_id is unique, so
+        // against a lookup they only exclude: they filtered out every offer
+        // outside RETAIL/DIRECT, which is most ETLA and enterprise offers, and
+        // an offer the user had just picked in OST came back "not found".
+        //
+        // We iterate (landscape × country) for coverage. The v3 POST
+        // /v3/offers path is kept as a fallback for offers not in the legacy
+        // index.
         const countries = ['US', country, 'CA', 'IN', 'GB', 'DE', 'FR', 'JP', 'AU'].filter(
             (c, i, arr) => c && arr.indexOf(c) === i,
         );
@@ -113,12 +120,7 @@ export class AOSClient {
             for (const c of countries) {
                 const params = new URLSearchParams({
                     offer_id: offerId,
-                    buying_program: 'RETAIL',
                     country: c,
-                    language: 'MULT',
-                    merchant: 'ADOBE',
-                    sales_channel: 'DIRECT',
-                    service_providers: 'PRICING',
                     api_key: this.apiKey,
                     environment: 'PROD',
                     landscape,
@@ -155,31 +157,40 @@ export class AOSClient {
             }
         }
 
-        // Attempt 2: v3 POST as a fallback.
-        for (const c of countries) {
-            const searchParams = {
-                offer_ids: [offerId],
-                country: c,
-            };
-            try {
-                const response = await fetch(`${this.baseUrl}/v3/offers`, {
-                    method: 'POST',
-                    headers: {
-                        Authorization: authHeader,
-                        'Content-Type': 'application/json',
-                        'x-api-key': this.apiKey,
-                    },
-                    body: JSON.stringify(searchParams),
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    const offers = this.enrichOffersWithPlanType(data.data || []);
-                    if (offers.length) return offers[0];
-                } else if (response.status !== 404) {
-                    lastError = await response.json().catch(() => ({ message: response.statusText }));
+        // Attempt 2: v3 POST as a fallback. It returns empty when landscape and
+        // environment are unset, which is why this path used to find nothing.
+        for (const landscape of landscapes) {
+            for (const c of countries) {
+                const searchParams = {
+                    offer_ids: [offerId],
+                    country: c,
+                    environment: 'PROD',
+                    landscape,
+                };
+                try {
+                    const response = await fetch(`${this.baseUrl}/v3/offers`, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: authHeader,
+                            'Content-Type': 'application/json',
+                            'x-api-key': this.apiKey,
+                        },
+                        body: JSON.stringify(searchParams),
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Same exact-match rule as the legacy path: AOS ignores
+                        // an offer_id filter it does not recognise and answers
+                        // with an unfiltered list, so returning offers[0] would
+                        // hand back a confidently wrong offer.
+                        const match = (data.data || []).find((o) => o.offer_id === offerId);
+                        if (match) return this.enrichOffersWithPlanType([match])[0];
+                    } else if (response.status !== 404) {
+                        lastError = await response.json().catch(() => ({ message: response.statusText }));
+                    }
+                } catch (err) {
+                    lastError = err;
                 }
-            } catch (err) {
-                lastError = err;
             }
         }
 

@@ -32,7 +32,19 @@ const STALE_CARDS = [
     { label: 'Adobe Illustrator', value: 'illu_direct_individual', arrangement_code: 'illu_direct_individual' },
 ];
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/**
+ * Waiting a fixed number of macrotasks makes a result depend on how loaded the
+ * machine is. Wait for the condition the assertion actually needs instead.
+ */
+const until = async (predicate, what) => {
+    const deadline = Date.now() + 2000;
+    while (!predicate()) {
+        if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+        await tick();
+    }
+};
 
 const deferred = () => {
     let resolve;
@@ -56,6 +68,7 @@ const pickPhotoshop = (el) =>
 describe('MasChat drops a turn the user has superseded', () => {
     let el;
     let calls;
+    let turn;
 
     beforeEach(async () => {
         localStorage.removeItem('mas-chat-sessions');
@@ -63,6 +76,7 @@ describe('MasChat drops a turn the user has superseded', () => {
         document.body.appendChild(el);
         await el.updateComplete;
         calls = [];
+        turn = (index) => until(() => calls.length > index, `chat request ${index}`).then(() => calls[index]);
         // Title and feedback posts are not conversation turns; keeping them out
         // of `calls` keeps the indexes below pointing at the turns under test.
         sinon.stub(el, 'callAIChatAction').callsFake((params) => {
@@ -80,13 +94,13 @@ describe('MasChat drops a turn the user has superseded', () => {
 
     it('does not re-render the product list after the user has picked one', async () => {
         const pending = el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
-        await flush();
+        const followUp = await turn(0);
         expect(cardMessages(el)).to.have.length(1);
 
         pickPhotoshop(el);
-        await flush();
+        await turn(1);
 
-        calls[0].resolve({ type: 'guided_step', message: 'Select a product:', productCards: STALE_CARDS });
+        followUp.resolve({ type: 'guided_step', message: 'Select a product:', productCards: STALE_CARDS });
         await pending;
 
         expect(cardMessages(el)).to.have.length(1);
@@ -94,13 +108,13 @@ describe('MasChat drops a turn the user has superseded', () => {
 
     it('does not rewind the conversation history the live turn is building on', async () => {
         const pending = el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
-        await flush();
+        const followUp = await turn(0);
 
         pickPhotoshop(el);
-        await flush();
+        await turn(1);
         const historyAfterClick = el.conversationHistory;
 
-        calls[0].resolve({
+        followUp.resolve({
             type: 'message',
             message: 'stale',
             conversationHistory: [{ role: 'user', content: 'stale' }],
@@ -112,13 +126,13 @@ describe('MasChat drops a turn the user has superseded', () => {
 
     it('leaves the spinner up for the turn the user is actually waiting on', async () => {
         const pending = el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
-        await flush();
+        const followUp = await turn(0);
 
         pickPhotoshop(el);
-        await flush();
+        await turn(1);
         expect(el.isLoading).to.equal(true);
 
-        calls[0].resolve({ type: 'message', message: 'stale' });
+        followUp.resolve({ type: 'message', message: 'stale' });
         await pending;
 
         expect(el.isLoading).to.equal(true);
@@ -126,25 +140,25 @@ describe('MasChat drops a turn the user has superseded', () => {
 
     it('marks the product list answered so its tiles stop accepting clicks', async () => {
         const pending = el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
-        await flush();
+        const followUp = await turn(0);
 
         pickPhotoshop(el);
 
         const [list] = cardMessages(el);
         expect(list.productCardsSelectedValue).to.equal('phsp_direct_individual');
 
-        calls[0].resolve({ type: 'message', message: 'stale' });
+        followUp.resolve({ type: 'message', message: 'stale' });
         await pending;
     });
 
     it('names what is still running while the follow-up turn is in flight', async () => {
         const pending = el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
-        await flush();
+        const followUp = await turn(0);
 
         expect(el.isLoading).to.equal(true);
         expect(el.loadingLabel).to.be.a('string').and.not.equal('');
 
-        calls[0].resolve({ type: 'message', message: 'done' });
+        followUp.resolve({ type: 'message', message: 'done' });
         await pending;
 
         expect(el.loadingLabel).to.equal('');
@@ -159,9 +173,9 @@ describe('MasChat drops a turn the user has superseded', () => {
     it('auto-answers the segment step from the offer the release flow holds', async () => {
         el.selectedReleaseOffer = { customer_segment: 'TEAM' };
         const pending = el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
-        await flush();
+        const followUp = await turn(0);
 
-        calls[0].resolve({
+        followUp.resolve({
             type: 'guided_step',
             message: 'Which customer segment?',
             buttonGroup: {
@@ -172,8 +186,7 @@ describe('MasChat drops a turn the user has superseded', () => {
                 ],
             },
         });
-        await flush();
-        calls[1]?.resolve({ type: 'message', message: 'ok' });
+        (await turn(1)).resolve({ type: 'message', message: 'ok' });
         await pending;
 
         expect(el.messages.some((m) => m.buttonGroup?.label === 'Customer Segment')).to.equal(false);
@@ -211,11 +224,11 @@ describe('MasChat aborts the request a new turn supersedes', () => {
 
     it('aborts the in-flight chat request when the next turn starts', async () => {
         send('find photoshop');
-        await flush();
+        await until(() => signals.length === 1, 'the first request');
         expect(signals[0].aborted).to.equal(false);
 
         send('actually, illustrator');
-        await flush();
+        await until(() => signals.length === 2, 'the second request');
 
         expect(signals[0].aborted).to.equal(true);
         expect(signals[1].aborted).to.equal(false);
@@ -223,20 +236,20 @@ describe('MasChat aborts the request a new turn supersedes', () => {
 
     it('leaves feedback and title posts out of turn cancellation', async () => {
         el.callAIChatAction({ requestType: 'feedback', rating: 'up' });
-        await flush();
+        await until(() => signals.length === 1, 'the feedback post');
 
         send('next question');
-        await flush();
+        await until(() => signals.length === 2, 'the next turn');
 
         expect(signals[0].aborted).to.equal(false);
     });
 
     it('does not surface a cancelled turn as a chat error', async () => {
         send('find photoshop');
-        await flush();
+        await until(() => signals.length === 1, 'the first request');
 
         send('actually, illustrator');
-        await flush();
+        await until(() => signals.length === 2, 'the second request');
 
         expect(el.error).to.equal(null);
         expect(el.messages.some((m) => m.role === 'error')).to.equal(false);

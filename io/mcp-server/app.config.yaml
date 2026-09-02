@@ -140,6 +140,56 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    get-card-with-variations:
+                        function: src/actions/get-card-with-variations.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    list-variation-locales:
+                        function: src/actions/list-variation-locales.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-variation-parent:
+                        function: src/actions/get-variation-parent.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    create-locale-variation:
+                        function: src/actions/create-locale-variation.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    create-grouped-variation:
+                        function: src/actions/create-grouped-variation.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     create-card:
                         function: src/actions/create-card.js
                         web: 'yes'

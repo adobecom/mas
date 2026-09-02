@@ -30,17 +30,13 @@ const MCP_CLIENT = path.join(__dirname, '../../../../studio/src/services/mcp-cli
  * tool_targets with no action behind them today.
  *
  *   alias    - reachable, the client rewrites the name (get_variations)
- *   unwired  - the logic exists in mcp-server/src/lib/studio-operations.js but
- *              no action exposes it; these are plumbing, not new work
  *   missing  - no implementation anywhere; the docs corpus advertises these
+ *
+ * The five 'unwired' variation intents that were here are gone: the logic was
+ * already on StudioOperations and only the actions were missing.
  */
 const KNOWN_UNBACKED = {
     get_variations: 'alias',
-    create_locale_variation: 'unwired',
-    create_grouped_variation: 'unwired',
-    get_card_with_variations: 'unwired',
-    list_variation_locales: 'unwired',
-    get_variation_parent: 'unwired',
     create_tags: 'missing',
     find_untranslated_cards: 'missing',
     translation_coverage_report: 'missing',

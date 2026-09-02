@@ -839,6 +839,47 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('loads fragments when the shared cache already holds a non-Fragment entry for the same id', async () => {
+            // The AI assistant seeds the shared aem-fragment cache with plain
+            // fragment data (map-shaped fields) so its cards can hydrate. That
+            // entry has no refreshFrom, so the repository must not assume every
+            // hit is one of its own Fragment instances.
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const cursor = createMockCursor([[createFragment({ id: 'chat-cached-fragment' })]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            sandbox
+                .stub(mockFragmentCache, 'get')
+                .callsFake((id) => (id === 'chat-cached-fragment' ? { id, fields: { cardTitle: 'From chat' } } : null));
+            const processErrorSpy = sandbox.spy(repository, 'processError');
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+
+                expect(processErrorSpy.called).to.be.false;
+                const listed = mockDataStore.set.lastCall.args[0];
+                expect(listed).to.have.lengthOf(1);
+                expect(listed[0].value).to.be.instanceOf(Fragment);
+                expect(listed[0].value.id).to.equal('chat-cached-fragment');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('routes single variant via fullText.EDGES and applies user query client-side', async () => {
             // Single variant + user query: AEM call carries the variant name as fullText so
             // it can prune via the indexed text fields. The user's query ("photoshop") is

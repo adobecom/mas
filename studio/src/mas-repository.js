@@ -1359,13 +1359,19 @@ export class MasRepository extends LitElement {
             if (fragmentCache.has(reference.id)) continue;
             await this.#addToCache(reference);
         }
-        let fragment = fragmentCache.get(fragmentData.id);
-        if (!fragment) {
-            fragment = new Fragment(fragmentData);
-            fragmentCache.add(fragment);
-        } else {
-            fragment.refreshFrom(fragmentData);
+        // The aem-fragment cache is shared with anything that renders a card,
+        // and those writers store plain fragment data (map-shaped fields) that
+        // the web component hydrates from — no refreshFrom, and a shape this
+        // repository cannot use. Only refresh an entry we put there ourselves;
+        // otherwise build our own Fragment from the data we just fetched and
+        // leave theirs alone, since it is what their rendered cards read.
+        const cached = fragmentCache.get(fragmentData.id);
+        if (cached instanceof Fragment) {
+            cached.refreshFrom(fragmentData);
+            return cached;
         }
+        const fragment = new Fragment(fragmentData);
+        if (!cached) fragmentCache.add(fragment);
         return fragment;
     }
 

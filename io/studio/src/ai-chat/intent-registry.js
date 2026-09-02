@@ -69,10 +69,14 @@ export const INTENTS = [
     {
         name: 'update_card',
         category: 'state-changing',
+        // `fields`, not `updates`: update-card.js reads { id, fields, title,
+        // tags }. The registry said `updates`, so every envelope-path update
+        // was dropped by the action after the user had confirmed it. The text
+        // path always taught `fields` and always worked.
         description: 'Update fields of a single card.',
-        required_slots: ['id', 'updates'],
-        optional_slots: [],
-        slot_validators: { id: 'uuid', updates: 'object' },
+        required_slots: ['id', 'fields'],
+        optional_slots: ['title', 'tags'],
+        slot_validators: { id: 'uuid', fields: 'object', title: 'string', tags: 'string[]' },
         tool_target: 'update_card',
         confirmation_template: 'Update card {{id}}?',
     },

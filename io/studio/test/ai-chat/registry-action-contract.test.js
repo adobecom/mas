@@ -55,8 +55,6 @@ const KNOWN_UNBACKED = {
  * knowing before anyone "implements" one that already works under another name.
  */
 const KNOWN_SLOT_GAPS = {
-    // Registry requires `updates`; update-card.js reads { id, fields, title, tags }.
-    update_card: ['updates'],
     // status/sortBy/sortDirection: the Find Cards chips promise filtering and
     // sorting search-cards.js does not implement, so a "draft cards" request
     // returns an unfiltered list under a heading that says otherwise.

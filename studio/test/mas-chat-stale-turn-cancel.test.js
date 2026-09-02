@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-chat.js';
+import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js';
 
 /**
  * Product cards render before the follow-up model turn resolves, so the user
@@ -67,11 +68,12 @@ const pickPhotoshop = (el) =>
 
 describe('MasChat drops a turn the user has superseded', () => {
     let el;
+    let storageSandbox;
     let calls;
     let turn;
 
     beforeEach(async () => {
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox = useIsolatedChatSessionStorage();
         el = document.createElement('mas-chat');
         document.body.appendChild(el);
         await el.updateComplete;
@@ -90,10 +92,7 @@ describe('MasChat drops a turn the user has superseded', () => {
     afterEach(() => {
         sinon.restore();
         el.remove();
-        // Sessions persist to localStorage, which is shared with every other
-        // test file's page. Leaving this file's product-card messages behind
-        // makes them the starting transcript of whatever runs next.
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox.restore();
     });
 
     it('does not re-render the product list after the user has picked one', async () => {
@@ -200,10 +199,11 @@ describe('MasChat drops a turn the user has superseded', () => {
 
 describe('MasChat aborts the request a new turn supersedes', () => {
     let el;
+    let storageSandbox;
     let signals;
 
     beforeEach(async () => {
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox = useIsolatedChatSessionStorage();
         el = document.createElement('mas-chat');
         document.body.appendChild(el);
         await el.updateComplete;
@@ -222,7 +222,7 @@ describe('MasChat aborts the request a new turn supersedes', () => {
         sinon.restore();
         delete window.adobeIMS;
         el.remove();
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox.restore();
     });
 
     const send = (message) => el.handleSendMessage({ detail: { message, context: { skipDeterministicRouter: true } } });

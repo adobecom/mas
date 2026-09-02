@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-chat.js';
+import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js';
 
 /**
  * The catalog fetch is fast and reliable (~0.6s); the model turn that decides
@@ -31,12 +32,10 @@ const cardMessages = (el) => el.messages.filter((m) => m.productCards?.length);
 
 describe('MasChat renders products before the follow-up turn', () => {
     let el;
+    let storageSandbox;
 
     beforeEach(async () => {
-        // mas-chat restores the active session on connect, and localStorage is
-        // shared across every test file's page. Without this the counts below
-        // start from another file's leftover product cards.
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox = useIsolatedChatSessionStorage();
         el = document.createElement('mas-chat');
         document.body.appendChild(el);
         await el.updateComplete;
@@ -45,7 +44,7 @@ describe('MasChat renders products before the follow-up turn', () => {
     afterEach(() => {
         sinon.restore();
         el.remove();
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox.restore();
     });
 
     it('shows the products before the follow-up call resolves', async () => {

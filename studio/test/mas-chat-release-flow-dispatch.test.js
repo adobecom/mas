@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-chat.js';
+import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js';
 
 /**
  * A release-flow product lookup rendered twice: the tiles from
@@ -28,10 +29,11 @@ const LIST_PRODUCTS = {
 
 describe('MasChat dispatches a release lookup as a release lookup', () => {
     let el;
+    let storageSandbox;
     let executed;
 
     beforeEach(async () => {
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox = useIsolatedChatSessionStorage();
         el = document.createElement('mas-chat');
         document.body.appendChild(el);
         await el.updateComplete;
@@ -42,7 +44,7 @@ describe('MasChat dispatches a release lookup as a release lookup', () => {
     afterEach(() => {
         sinon.restore();
         el.remove();
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox.restore();
     });
 
     const send = () => el.handleSendMessage({ detail: { message: 'photoshop', context: { skipDeterministicRouter: true } } });
@@ -75,9 +77,10 @@ describe('MasChat dispatches a release lookup as a release lookup', () => {
 
 describe('MasChat routes a product list by the flow it was dispatched with', () => {
     let el;
+    let storageSandbox;
 
     beforeEach(async () => {
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox = useIsolatedChatSessionStorage();
         el = document.createElement('mas-chat');
         document.body.appendChild(el);
         await el.updateComplete;
@@ -86,7 +89,7 @@ describe('MasChat routes a product list by the flow it was dispatched with', () 
     afterEach(() => {
         sinon.restore();
         el.remove();
-        localStorage.removeItem('mas-chat-sessions');
+        storageSandbox.restore();
     });
 
     it('passes the caller-supplied flow through to the regular operation path', async () => {

@@ -20,12 +20,16 @@ describe('prompt-builder', () => {
         expect(prompt).to.include('ASK_USER');
     });
 
-    it('drops the no-required-slots filler from intent lines', () => {
+    it('states an empty required-slot list rather than omitting it', () => {
         const prompt = buildPrompt({});
+        // The long "no required slots" filler is gone, but the fact itself is
+        // not: dropping it entirely made the model treat an optional filter as
+        // a prerequisite and stall on ASK_USER for search_offers.
         expect(prompt).to.not.include('no required slots');
+        expect(prompt).to.match(/`search_offers`.*\[req: none;/);
         // Intents that do have slots still declare them.
         expect(prompt).to.match(/`get_card`.*\[req: id\]/);
-        expect(prompt).to.match(/`list_products`.*\[opt: searchText/);
+        expect(prompt).to.match(/`list_products`.*\[req: none; opt: searchText/);
     });
 
     it('leaves documentation grounding to the turns that actually retrieve it', () => {

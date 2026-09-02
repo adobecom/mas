@@ -56,7 +56,9 @@ Always use the canonical enum — NEVER output "ANNUAL" for commitment (that is 
 
 function intentBlock(intent) {
     const slots = [];
-    if (intent.required_slots.length) slots.push(`req: ${intent.required_slots.join(', ')}`);
+    // "none" is load-bearing: dropping it made the model treat an optional
+    // filter as a prerequisite and stall on ASK_USER for search_offers.
+    slots.push(intent.required_slots.length ? `req: ${intent.required_slots.join(', ')}` : 'req: none');
     if (intent.optional_slots.length) slots.push(`opt: ${intent.optional_slots.join(', ')}`);
     const slotList = slots.length ? ` [${slots.join('; ')}]` : '';
     return `- \`${intent.name}\` (${intent.category}) — ${intent.description}${slotList}`;

@@ -39,6 +39,12 @@ import {
     COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
 } from './compare-chart-column.js';
 import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
+import { Marquee, MARQUEE_AEM_FRAGMENT_MAPPING } from './marquee.js';
+import { Faq, FAQ_AEM_FRAGMENT_MAPPING } from './faq.js';
+import {
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+} from './banner-blade.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -172,6 +178,19 @@ registerVariant(
     FriesCard,
     FRIES_AEM_FRAGMENT_MAPPING,
     FriesCard.variantStyle,
+);
+registerVariant(
+    'marquee',
+    Marquee,
+    MARQUEE_AEM_FRAGMENT_MAPPING,
+    Marquee.variantStyle,
+);
+registerVariant('faq', Faq, FAQ_AEM_FRAGMENT_MAPPING, Faq.variantStyle);
+registerVariant(
+    'banner-blade',
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+    BannerBlade.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

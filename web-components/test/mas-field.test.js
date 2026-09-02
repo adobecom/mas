@@ -674,6 +674,39 @@ describe('mas-field – stamps context promo code on CTA anchors', () => {
         const a = el.querySelector('[slot="footer"] a');
         expect(a.hasAttribute('data-promotion-code')).to.be.false;
     });
+
+    it('propagates the fragment id onto the CTA anchor unconditionally', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('fragment-id')).to.equal('f1');
+        expect(a.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('resolves promo code and id after the anchor is unwrapped out of mas-field', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        document.body.append(a);
+        el.remove();
+
+        expect(a.closest('mas-field')).to.be.null;
+        expect(a.getAttribute('fragment-id')).to.equal('f1');
+        const options = {};
+        checkoutOptionsProvider(a, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+        a.remove();
+    });
 });
 
 describe('mas-field – price options provider (locale defaults)', () => {
@@ -693,6 +726,18 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options[FF_DEFAULTS]).to.equal(true);
+    });
+
+    it('opts inline-prices inside mas-field into clause wrapping', () => {
+        const masField = document.createElement('mas-field');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.wrapClauses).to.equal(true);
     });
 
     it('does not opt into FF_DEFAULTS for inline-prices outside mas-field', () => {
@@ -776,6 +821,49 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.be.undefined;
+    });
+
+    it('resolves FF_DEFAULTS and promo code for a price unwrapped out of mas-field via the fragment-id marker', () => {
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.setAttribute('fragment-id', 'f1');
+        inline.setAttribute('data-promotion-code', 'PROMO123');
+        document.body.append(inline);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options[FF_DEFAULTS]).to.equal(true);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('stamps context onto inline-price spans rendered for a prices field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'prices');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        };
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        prices: '<span is="inline-price" data-template="price" data-wcs-osi="osi1"></span>',
+                    },
+                },
+            }),
+        );
+        const span = el.querySelector(
+            '[data-role="mas-field-content"] span[is="inline-price"]',
+        );
+        expect(span.getAttribute('data-promotion-code')).to.equal('PROMO123');
+        expect(span.getAttribute('fragment-id')).to.equal('f1');
     });
 
     it('sets checkout options.promotionCode when compatVersion opts into global promo codes', () => {

@@ -882,7 +882,7 @@ export function processCTAs(
     variant,
     settings,
 ) {
-    if (fields.ctas) {
+    if (fields.ctas && aemFragmentMapping.ctas) {
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;

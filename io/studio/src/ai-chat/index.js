@@ -22,7 +22,7 @@ import {
 } from './prompt-templates.js';
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
-import { parseAIResponse, validateCollectionConfig, extractJSON } from './response-parser.js';
+import { parseAIResponse, validateCollectionConfig, extractJSON, flowIdField } from './response-parser.js';
 import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
@@ -1531,21 +1531,6 @@ export function buildCorrectivePrompt(cardConfig, errors) {
  * (e.g. an older deployed frontend, or a future guided menu type that
  * forgets to wire the hint through).
  */
-/**
- * Carry the guided flow's id onto a response body.
- *
- * Every guided body is rebuilt from a fixed field list, which silently dropped
- * flowId even though the tools require the model to emit it. Losing it means
- * the next turn cannot tell it is mid-flow: inferGuidedFlowFromHistory finds
- * nothing to match, the client cannot pin activeGuidedFlow, and the model
- * starts guessing its step — emitting one step's message with the previous
- * step's buttons, or a step with no buttons at all.
- */
-export function flowIdField(parsed) {
-    const flowId = parsed?.flowId;
-    return typeof flowId === 'string' && flowId ? { flowId } : {};
-}
-
 export function inferGuidedFlowFromHistory(conversationHistory) {
     if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
         return null;

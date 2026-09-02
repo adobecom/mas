@@ -240,6 +240,21 @@ function describeParseFailure(responseText) {
  * @param {string} responseText - Raw AI response from the model
  * @returns {Object} - {type, message, cardConfig, collectionConfig, fragmentIds}
  */
+/**
+ * Carry the guided flow's id through a rebuild.
+ *
+ * The model's payload is rebuilt three times on its way to the client: here,
+ * then in the response body, then by the client. Each rebuild used a fixed
+ * field list, so flowId was dropped at the first one and the later fixes had
+ * nothing left to pass on. Losing it means the next turn cannot tell it is
+ * mid-flow, and the model starts pairing one step's message with another
+ * step's buttons.
+ */
+export function flowIdField(payload) {
+    const flowId = payload?.flowId;
+    return typeof flowId === 'string' && flowId ? { flowId } : {};
+}
+
 export function parseAIResponse(responseText) {
     const cardConfig = extractJSON(responseText);
     const conversationalText = extractConversationalText(responseText);
@@ -279,6 +294,7 @@ export function parseAIResponse(responseText) {
         if (cardConfig.type === 'guided_step') {
             return {
                 type: 'guided_step',
+                ...flowIdField(cardConfig),
                 message: conversationalText || cardConfig.message || 'Please make a selection:',
                 buttonGroup: cardConfig.buttonGroup || null,
                 productCards: cardConfig.productCards || null,
@@ -288,6 +304,7 @@ export function parseAIResponse(responseText) {
         if (cardConfig.type === 'release_confirmation') {
             return {
                 type: 'release_confirmation',
+                ...flowIdField(cardConfig),
                 message: conversationalText || cardConfig.message || "Here's what I'll create:",
                 confirmationSummary: cardConfig.confirmationSummary || null,
             };
@@ -296,6 +313,7 @@ export function parseAIResponse(responseText) {
         if (cardConfig.type === 'release_cards') {
             return {
                 type: 'release_cards',
+                ...flowIdField(cardConfig),
                 message: conversationalText || cardConfig.message || 'Creating release cards...',
                 parentPath: cardConfig.parentPath || null,
                 cardConfigs: Array.isArray(cardConfig.cardConfigs) ? cardConfig.cardConfigs : [],
@@ -305,6 +323,7 @@ export function parseAIResponse(responseText) {
         if (cardConfig.type === 'open_ost') {
             return {
                 type: 'open_ost',
+                ...flowIdField(cardConfig),
                 message: conversationalText || cardConfig.message || 'Opening the Offer Selector Tool...',
                 searchParams: cardConfig.searchParams || null,
             };

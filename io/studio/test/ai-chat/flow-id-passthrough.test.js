@@ -78,7 +78,7 @@ describe('ai-chat/flowIdField', () => {
     let flowIdField;
 
     before(async () => {
-        ({ flowIdField } = await import('../../src/ai-chat/index.js'));
+        ({ flowIdField } = await import('../../src/ai-chat/response-parser.js'));
     });
 
     it('carries a real flow id', () => {
@@ -94,5 +94,49 @@ describe('ai-chat/flowIdField', () => {
     it('ignores a non-string flow id rather than shipping it', () => {
         expect(flowIdField({ flowId: 42 })).to.deep.equal({});
         expect(flowIdField({ flowId: { id: 'release' } })).to.deep.equal({});
+    });
+});
+
+describe('ai-chat/parseAIResponse keeps the flow id', () => {
+    let parseAIResponse;
+
+    before(async () => {
+        ({ parseAIResponse } = await import('../../src/ai-chat/response-parser.js'));
+    });
+
+    const fencedStep = (payload) => `\`\`\`json\n${JSON.stringify(payload)}\n\`\`\``;
+
+    it('keeps it on a guided step, the first of three rebuilds that dropped it', () => {
+        const parsed = parseAIResponse(
+            fencedStep({
+                type: 'guided_step',
+                flowId: 'release',
+                message: 'What type of offering should this card feature?',
+                buttonGroup: { label: 'Offering Type', options: [{ label: 'Monthly', value: 'MONTH|MONTHLY' }] },
+            }),
+        );
+
+        expect(parsed.type).to.equal('guided_step');
+        expect(parsed.flowId, 'without this the next turn cannot tell it is mid-flow').to.equal('release');
+        expect(parsed.buttonGroup.options).to.have.lengthOf(1);
+    });
+
+    it('keeps it when the flow opens the offer selector', () => {
+        const parsed = parseAIResponse(
+            fencedStep({
+                type: 'open_ost',
+                flowId: 'release',
+                message: 'Opening the Offer Selector Tool',
+                searchParams: { arrangement_code: 'PA-1930' },
+            }),
+        );
+
+        expect(parsed.flowId).to.equal('release');
+    });
+
+    it('adds nothing when the model sent no flow', () => {
+        const parsed = parseAIResponse(fencedStep({ type: 'guided_step', message: 'pick one' }));
+
+        expect(parsed.flowId).to.equal(undefined);
     });
 });

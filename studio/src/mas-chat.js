@@ -2080,11 +2080,15 @@ export class MasChat extends LitElement {
      * decision, so it still goes to the model.
      */
     async handleProductListResult(result, mcpParams) {
-        if (mcpParams?.searchText) {
-            await this.continueWithMCPResult('list_products', result);
-            return;
-        }
+        // The fetch is fast and reliable (~0.6s); the follow-up turn is
+        // neither and can time out at 55s. Render the products as soon as they
+        // arrive so a browse is answered immediately, and a named lookup shows
+        // its resolved products while the next hop is still running.
         await this.presentProductCatalog(result);
+
+        if (mcpParams?.searchText) {
+            await this.continueWithMCPResult('list_products', result, { productsShown: true });
+        }
     }
 
     /** Render a catalog browse from the result the client already has. */
@@ -2121,7 +2125,7 @@ export class MasChat extends LitElement {
         ];
     }
 
-    async continueWithMCPResult(tool, result) {
+    async continueWithMCPResult(tool, result, { productsShown = false } = {}) {
         const products = result?.products || [];
         if (!products.length) return;
 
@@ -2165,6 +2169,13 @@ export class MasChat extends LitElement {
             });
 
             this.conversationHistory = response.conversationHistory || [];
+
+            // The model sometimes answers a completed lookup by re-issuing it
+            // with no new parameters, which would re-fetch and re-render what
+            // the user is already looking at.
+            if (response.type === 'mcp_operation' && response.mcpTool === tool) {
+                return;
+            }
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
@@ -2284,7 +2295,9 @@ export class MasChat extends LitElement {
             // can time out at 55s under a slow provider. Show the products the
             // user already waited for rather than discarding them behind an
             // error that makes a successful fetch look like a total failure.
-            await this.presentProductCatalog(result);
+            if (!productsShown) {
+                await this.presentProductCatalog(result);
+            }
             this.messages = [
                 ...this.messages,
                 {

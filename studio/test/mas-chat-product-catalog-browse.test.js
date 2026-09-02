@@ -77,14 +77,17 @@ describe('MasChat catalog browse renders locally', () => {
         expect(JSON.stringify(added)).to.not.include('release');
     });
 
-    it('still hands a named product lookup to the model, because its next hop is real', async () => {
+    it('still hands a named product lookup to the model, and shows the products first', async () => {
         const continueStub = sinon.stub(el, 'continueWithMCPResult').resolves();
         const catalogSpy = sinon.spy(el, 'presentProductCatalog');
 
         await el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
 
+        // Both: the next hop is a real model decision, but the products it
+        // resolved are shown immediately rather than held behind that turn.
         expect(continueStub.calledOnce).to.equal(true);
-        expect(catalogSpy.called).to.equal(false);
+        expect(catalogSpy.calledOnce).to.equal(true);
+        expect(catalogSpy.calledBefore(continueStub)).to.equal(true);
     });
 
     it('renders locally when the lookup carried no search text', async () => {

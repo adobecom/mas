@@ -185,7 +185,11 @@ export function toOfferSelectorIds(value) {
  */
 export function toPromotionCodes(value) {
     if (value == null) return [];
-    return Array.isArray(value) ? value : String(value).split(',');
+    return Array.isArray(value)
+        ? value
+        : String(value)
+              .split(',')
+              .map((code) => code.trim());
 }
 
 /**

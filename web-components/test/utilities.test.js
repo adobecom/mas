@@ -27,6 +27,15 @@ describe('function "toPromotionCodes"', () => {
     it('returns an array value as-is', () => {
         expect(toPromotionCodes(['promo1', ''])).to.deep.equal(['promo1', '']);
     });
+
+    it('trims surrounding whitespace around each entry', () => {
+        expect(toPromotionCodes('CODE1, CODE2, CODE3')).to.deep.equal([
+            'CODE1',
+            'CODE2',
+            'CODE3',
+        ]);
+        expect(toPromotionCodes(' CODE1 , ')).to.deep.equal(['CODE1', '']);
+    });
 });
 
 describe('function "selectWcsOffers"', () => {

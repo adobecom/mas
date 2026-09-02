@@ -25,7 +25,7 @@ import {
     fetchDictionary,
 } from '../../src/placeholders/mas-placeholders-repository.js';
 import { odinUrl } from '../../../io/www/src/fragment/utils/paths.js';
-import { DEFAULT_CONTEXT } from '../../libs/fragment-client.js';
+import { DEFAULT_CONTEXT, clearCaches } from '../../libs/fragment-client.js';
 import { createResponse } from '../../../io/www/test/fragment/mocks/MockFetch.js';
 
 const mockFragmentCache = {
@@ -620,13 +620,26 @@ describe('mas-placeholders-repository', () => {
     describe('fetchDictionary', () => {
         let fetchStub;
 
+        // Two different caches sit behind this call, and clearing one is not
+        // enough. clearDictionaryCache is the REPOSITORY's, but fetchDictionary
+        // delegates to getDictionary in the replace transformer, which keeps
+        // its own dictionary cache and memoizes fragment ids per
+        // surface+locale. Leaving that one warm makes the call return without
+        // fetching, so the assertions below see no request and fail — but only
+        // when an earlier test happened to populate it, which is why this
+        // failed intermittently rather than always. clearCaches() clears the
+        // transformer side.
         beforeEach(() => {
             clearDictionaryCache(true);
+            clearCaches();
             fetchStub = sandbox.stub(globalThis, 'fetch');
             fetchStub.callsFake(() => createResponse(404, null, 'not found'));
         });
 
-        afterEach(() => clearDictionaryCache(true));
+        afterEach(() => {
+            clearDictionaryCache(true);
+            clearCaches();
+        });
 
         it('resolves a defaultLocale so the acom baseline layer is requested at a real locale, not a bare-surface URL', async () => {
             repo.search = { value: { path: SURFACES.ACOM.name } };

@@ -167,9 +167,10 @@ export const CHAT_REQUEST_TIMEOUT_MS = 55000;
 
 export const CHAT_TIMEOUT_MESSAGE = 'The AI service took too long to respond. Please try again.';
 
-export function composeChatRequestSignal(timeoutMs, componentSignal) {
+export function composeChatRequestSignal(timeoutMs, ...signals) {
     const timeoutSignal = AbortSignal.timeout(timeoutMs);
-    return componentSignal ? AbortSignal.any([timeoutSignal, componentSignal]) : timeoutSignal;
+    const sources = signals.filter(Boolean);
+    return sources.length ? AbortSignal.any([timeoutSignal, ...sources]) : timeoutSignal;
 }
 
 export function isChatRequestTimeout(error) {

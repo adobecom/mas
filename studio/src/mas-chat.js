@@ -48,6 +48,13 @@ import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintFor
 const RECENT_MCS_PRODUCT_LIMIT = 6;
 
 /**
+ * Shown beside the typing indicator while the follow-up turn runs. The
+ * products are already on screen by then, so the bare dots read as "nothing is
+ * happening" rather than "the next step is still coming".
+ */
+const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
+
+/**
  * Intent hints that drive multi-turn guided flows. While one of these is
  * the active flow, button clicks and free-text replies stay in the same
  * system prompt instead of being re-classified per turn — that mis-routing
@@ -90,6 +97,7 @@ export class MasChat extends LitElement {
         showPromptSuggestions: { type: Boolean },
         currentSessionId: { type: String },
         showWelcomeScreen: { type: Boolean },
+        loadingLabel: { type: String },
     };
 
     constructor() {
@@ -101,6 +109,7 @@ export class MasChat extends LitElement {
         this.showPromptSuggestions = true;
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
+        this.loadingLabel = '';
         this.recentReleaseProductsPromise = null;
         this.recentReleaseProductsCache = [];
         this.resetReleaseFlow();
@@ -120,6 +129,31 @@ export class MasChat extends LitElement {
     }
 
     #repositoryEl = null;
+
+    /** The turn currently allowed to write to the transcript. */
+    #turn = null;
+
+    /**
+     * Starts a turn and cancels whatever was still running. Product cards are
+     * rendered before the follow-up turn resolves, so the user can answer a
+     * step while the previous turn is in flight; without this the stale turn
+     * lands afterwards and re-renders the list the user already moved past,
+     * rewinds the conversation history, and clears the live turn's spinner.
+     */
+    beginTurn() {
+        this.#turn?.controller.abort();
+        this.#turn = { controller: new AbortController() };
+        return this.#turn;
+    }
+
+    /** True while `turn` is still the one the user is waiting on. */
+    isCurrentTurn(turn) {
+        return !!turn && this.#turn === turn && !turn.controller.signal.aborted;
+    }
+
+    isTurnAborted(error) {
+        return error?.name === 'AbortError';
+    }
 
     get repository() {
         return (this.#repositoryEl ??= document.querySelector('mas-repository'));
@@ -159,6 +193,8 @@ export class MasChat extends LitElement {
         super.disconnectedCallback();
         this.abortController?.abort();
         this.abortController = null;
+        this.#turn?.controller.abort();
+        this.#turn = null;
         this.saveCurrentSession();
         this.removeEventListener('cards-selected', this.handleCardsSelected);
         this.removeEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
@@ -344,6 +380,25 @@ export class MasChat extends LitElement {
             };
             this.messages = [...this.messages.slice(0, messageIndex), updatedMessage, ...this.messages.slice(messageIndex + 1)];
         }
+        // A product list rendered without a buttonGroup had nothing to record
+        // the answer on, so its tiles kept accepting clicks after the pick and
+        // came back clickable every time the session was reloaded.
+        if (product) {
+            const productIndex = this.messages.findLastIndex(
+                (m) =>
+                    m.role === 'assistant' &&
+                    m.productCards?.length &&
+                    !m.productCardsSelectedValue &&
+                    !m.buttonGroup?.selectedValue,
+            );
+            if (productIndex !== -1) {
+                this.messages = [
+                    ...this.messages.slice(0, productIndex),
+                    { ...this.messages[productIndex], productCardsSelectedValue: value },
+                    ...this.messages.slice(productIndex + 1),
+                ];
+            }
+        }
         if (answeredGroupLabel === 'Trial CTA') {
             if (value === 'trial-yes') {
                 const offer = this.selectedReleaseOffer || {};
@@ -398,8 +453,7 @@ export class MasChat extends LitElement {
             // failed is cleared, so a stale osi cannot be carried into the
             // retry. With no product we have nothing to scope a search to, so
             // fall through and let the model drive.
-            const releaseCode =
-                this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
+            const releaseCode = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
             if (releaseCode) {
                 this.selectedReleaseOffer = null;
                 this.selectedReleaseOsi = null;
@@ -517,6 +571,7 @@ export class MasChat extends LitElement {
 
         this.messages = [...this.messages, { ...userMessage, fresh: true }];
 
+        const turn = this.beginTurn();
         this.isLoading = true;
         this.error = null;
 
@@ -533,7 +588,7 @@ export class MasChat extends LitElement {
                     this.activeGuidedFlow = null;
                     this.guidedFlowTurns = 0;
                 }
-                this.isLoading = false;
+                if (this.isCurrentTurn(turn)) this.isLoading = false;
                 return;
             }
         }
@@ -563,6 +618,8 @@ export class MasChat extends LitElement {
                 context: enrichedContext,
                 intentHint: resolveIntentHint(enrichedContext.intentHint, this.activeGuidedFlow),
             });
+
+            if (!this.isCurrentTurn(turn)) return;
 
             // Envelope-first dispatcher (Stage 3.2). When the backend
             // returned an envelope (always, since Stage 3.1), prefer it
@@ -856,6 +913,7 @@ export class MasChat extends LitElement {
                 this.conversationHistory = response.conversationHistory || [];
             }
         } catch (error) {
+            if (this.isTurnAborted(error) || !this.isCurrentTurn(turn)) return;
             logError('Chat error', error);
             this.error = error.message;
             this.messages = [
@@ -868,7 +926,10 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            this.isLoading = false;
+            if (this.isCurrentTurn(turn)) {
+                this.isLoading = false;
+                this.loadingLabel = '';
+            }
         }
     }
 
@@ -1203,7 +1264,11 @@ export class MasChat extends LitElement {
                     'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
                 },
                 body: JSON.stringify(params),
-                signal: composeChatRequestSignal(CHAT_REQUEST_TIMEOUT_MS, this.abortController?.signal),
+                signal: composeChatRequestSignal(
+                    CHAT_REQUEST_TIMEOUT_MS,
+                    this.abortController?.signal,
+                    params?.requestType ? null : this.#turn?.controller.signal,
+                ),
             });
         } catch (error) {
             if (isChatRequestTimeout(error)) {
@@ -2181,7 +2246,9 @@ export class MasChat extends LitElement {
         const historyBeforeToolResult = this.conversationHistory;
         this.conversationHistory = [...historyBeforeToolResult, { role: 'user', content: toolResultMessage }];
 
+        const turn = this.beginTurn();
         this.isLoading = true;
+        this.loadingLabel = FOLLOW_UP_LOADING_LABEL;
 
         try {
             const currentPath = Store.search?.value?.path || getHashParam('path');
@@ -2194,6 +2261,8 @@ export class MasChat extends LitElement {
                 },
                 intentHint: resolveIntentHint(null, this.activeGuidedFlow),
             });
+
+            if (!this.isCurrentTurn(turn)) return;
 
             this.conversationHistory = response.conversationHistory || [];
 
@@ -2229,7 +2298,10 @@ export class MasChat extends LitElement {
                     await this.executeOperation(op);
                 }
             } else if (response.type === 'guided_step') {
-                const autoSelectedSegment = this.getAutoSelectedSegmentOption(response, context?.offer);
+                // This turn carries no per-send context object; the offer the
+                // segment step is answered from is the one the release flow
+                // is already holding.
+                const autoSelectedSegment = this.getAutoSelectedSegmentOption(response, this.selectedReleaseOffer);
                 if (autoSelectedSegment) {
                     await this.handleSendMessage({
                         detail: {
@@ -2317,6 +2389,7 @@ export class MasChat extends LitElement {
                 ];
             }
         } catch (error) {
+            if (this.isTurnAborted(error) || !this.isCurrentTurn(turn)) return;
             logError('Continue with MCP result error', error);
             // The fetch worked; only the follow-up turn failed, and that turn
             // can time out at 55s under a slow provider. Show the products the
@@ -2335,7 +2408,10 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            this.isLoading = false;
+            if (this.isCurrentTurn(turn)) {
+                this.isLoading = false;
+                this.loadingLabel = '';
+            }
         }
     }
 
@@ -2915,6 +2991,9 @@ export class MasChat extends LitElement {
                                           <div class="typing-dot"></div>
                                           <div class="typing-dot"></div>
                                       </div>
+                                      ${this.loadingLabel
+                                          ? html`<span class="typing-status">${this.loadingLabel}</span>`
+                                          : nothing}
                                   </div>
                               `
                             : nothing}

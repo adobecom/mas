@@ -2629,6 +2629,12 @@ body.chat-resizing {
     animation: avatarPop 300ms var(--mas-ease-spring) both;
 }
 
+.typing-status {
+    align-self: center;
+    color: var(--spectrum-global-color-gray-600, #6e6e6e);
+    font-size: var(--spectrum-global-dimension-font-size-75, 12px);
+}
+
 .typing-indicator {
     position: relative;
 }

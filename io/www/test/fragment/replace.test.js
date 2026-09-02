@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { transformer as replace, clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
-import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
 
@@ -200,7 +199,7 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
 
-    describe('plan-type-text (card-model scoped)', () => {
+    describe('system placeholders (plan-type-text)', () => {
         const buildContext = () => ({
             surface: DEFAULT_SURFACE,
             locale: DEFAULT_LOCALE,
@@ -221,81 +220,25 @@ describe('replace', () => {
             return context;
         };
 
-        it('resolves {{plan-type-text}} to the legal inline-price marker for a card-model fragment', async () => {
+        it('resolves {{plan-type-text}} to the legal inline-price marker with data-legal-case', async () => {
             const context = await initContext();
-            context.body = { ...odinResponse('legal: {{plan-type-text}}'), model: { id: CARD_MODEL_ID } };
+            context.body = odinResponse('legal: {{plan-type-text}}');
             const response = await replace.process(context);
             const { description } = response.body.fields;
             expect(description).to.contain('is="inline-price"');
             expect(description).to.contain('data-template="legal"');
             expect(description).to.contain('data-placeholder="plan-type-text"');
+            expect(description).to.contain('data-legal-case');
         });
 
-        it('resolves {{plan-type-text}} inside a card fragment referenced by a collection', async () => {
+        it('resolves the system placeholder regardless of fragment model', async () => {
             const context = await initContext();
-            context.body = {
-                ...odinResponse('collection body'),
-                model: { id: COLLECTION_MODEL_ID },
-                references: {
-                    'card-1': {
-                        type: 'content-fragment',
-                        value: {
-                            model: { id: CARD_MODEL_ID },
-                            fields: { description: 'legal: {{plan-type-text}}' },
-                        },
-                    },
-                },
-            };
+            context.body = { ...odinResponse('legal: {{plan-type-text}}'), model: { id: 'some-other-model' } };
             const response = await replace.process(context);
-            const cardDescription = response.body.references['card-1'].value.fields.description;
-            expect(cardDescription).to.contain('data-placeholder="plan-type-text"');
+            expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
         });
 
-        it('skips non-card references in a collection walk (wrong model.id, and non content-fragment type)', async () => {
-            const context = await initContext();
-            context.body = {
-                ...odinResponse('collection body'),
-                model: { id: COLLECTION_MODEL_ID },
-                references: {
-                    'card-1': {
-                        type: 'content-fragment',
-                        value: {
-                            model: { id: CARD_MODEL_ID },
-                            fields: { description: 'legal: {{plan-type-text}}' },
-                        },
-                    },
-                    // content-fragment, but not a card (mirrors a nested subcollection reference) -
-                    // guard's model.id check must take the false branch and skip injection.
-                    'subcoll-1': {
-                        type: 'content-fragment',
-                        value: {
-                            model: { id: COLLECTION_MODEL_ID },
-                            fields: { description: 'sub: {{plan-type-text}}' },
-                        },
-                    },
-                    // not a content-fragment at all (mirrors a tag reference) - guard's type check
-                    // must take the false branch and skip injection.
-                    'tag-1': {
-                        type: 'tag',
-                        value: { fields: { description: 'tag: {{plan-type-text}}' } },
-                    },
-                },
-            };
-            const response = await replace.process(context);
-            const { references } = response.body;
-            expect(references['card-1'].value.fields.description).to.contain('data-placeholder="plan-type-text"');
-            expect(references['subcoll-1'].value.fields.description).to.equal('sub: ');
-            expect(references['subcoll-1'].value.fields.description).to.not.contain('is="inline-price"');
-            expect(references['tag-1'].value.fields.description).to.equal('tag: ');
-            expect(references['tag-1'].value.fields.description).to.not.contain('is="inline-price"');
-        });
-
-        it('resolves {{plan-type-text}} to empty for a non-card fragment (no marker, no bare key leak)', async () => {
-            const response = await getResponse('legal: {{plan-type-text}}');
-            expect(response.body.fields.description).to.equal('legal: ');
-        });
-
-        it('empty plan-type-text seeding wins over an Odin dictionary entry of the same key', async () => {
+        it('system placeholder wins over an Odin dictionary entry of the same key', async () => {
             const dict = structuredClone(DICTIONARY_RESPONSE);
             dict.references[Object.keys(dict.references)[0]].value.fields = {
                 key: 'plan-type-text',
@@ -304,7 +247,8 @@ describe('replace', () => {
             const context = await initContext(dict);
             context.body = odinResponse('x {{plan-type-text}}');
             const response = await replace.process(context);
-            expect(response.body.fields.description).to.equal('x ');
+            expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
+            expect(response.body.fields.description).to.not.contain('SHOULD_NOT_WIN');
         });
     });
 

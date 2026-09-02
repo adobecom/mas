@@ -1,5 +1,5 @@
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { CARD_MODEL_ID, fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
@@ -7,10 +7,13 @@ import { log, logDebug, logError } from '../utils/log.js';
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
-const PLAN_TYPE_TEXT_KEY = 'plan-type-text';
-const PLAN_TYPE_TEXT_TOKEN_REGEXP = /{{\s*plan-type-text\s*}}/g;
-export const PLAN_TYPE_TEXT_MARKER =
-    '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\"></span>';
+// Built-in placeholders resolved for every fragment on top of the Odin dictionary. Each key maps to a
+// fixed value; add entries here to expose new system placeholders. `data-legal-case` opts the marker
+// into sentence-boundary casing, applied client-side by the price provider.
+export const SYSTEM_PLACEHOLDERS = {
+    'plan-type-text':
+        '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\" data-legal-case></span>',
+};
 
 const TRANSFORMER_NAME = 'replace';
 
@@ -141,26 +144,6 @@ function replaceValues(input, dictionary, calls) {
     return replaced;
 }
 
-// Injects the legal inline-price marker into a single card fragment's own {{plan-type-text}}
-// occurrences. Mirrors applyCollectionSettings' reference-walking shape (settings.js): the token is
-// replaced in the stringified fields, then parsed back, so a card's fields never carry the raw token
-// past this point regardless of the global dictionary replace below.
-function injectCardPlanType(fragment) {
-    if (fragment?.model?.id !== CARD_MODEL_ID || !fragment.fields) return;
-    const fieldsString = JSON.stringify(fragment.fields).replace(PLAN_TYPE_TEXT_TOKEN_REGEXP, PLAN_TYPE_TEXT_MARKER);
-    fragment.fields = JSON.parse(fieldsString);
-}
-
-// Scopes {{plan-type-text}} to card-model fragments: the top-level body when it's a card itself, and
-// any card fragment nested under a collection's references (shape mirrors applyCollectionSettings).
-function applyCardPlanType(context) {
-    const body = context.body;
-    injectCardPlanType(body);
-    Object.values(body?.references || {}).forEach((ref) => {
-        if (ref?.type === 'content-fragment') injectCardPlanType(ref.value);
-    });
-}
-
 async function init(context) {
     // Dictionary resolution needs the regional/default locales resolved by `defaultLanguage` (e.g. fr_BE
     // when locale=fr_FR + country=BE): the region overlay keys off `regionLocale`, the base off the
@@ -173,7 +156,6 @@ async function init(context) {
 }
 
 async function replace(context) {
-    applyCardPlanType(context);
     let body = context.body;
     let bodyString = JSON.stringify(body);
     if (bodyString.match(PH_REGEXP)) {
@@ -185,9 +167,8 @@ async function replace(context) {
             dictionary = await getDictionary(context);
         }
         if (dictionary && Object.keys(dictionary).length > 0) {
-            // Spread last so an Odin dictionary entry of the same key cannot shadow it: any
-            // {{plan-type-text}} left outside a card fragment resolves to empty, not a bare-key leak.
-            dictionary = { ...dictionary, [PLAN_TYPE_TEXT_KEY]: '' };
+            // System placeholders spread last so an Odin dictionary entry cannot shadow a reserved key.
+            dictionary = { ...dictionary, ...SYSTEM_PLACEHOLDERS };
             bodyString = replaceValues(bodyString, dictionary, []);
             try {
                 body = JSON.parse(bodyString);

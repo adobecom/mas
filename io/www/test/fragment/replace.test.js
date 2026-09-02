@@ -199,6 +199,42 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
 
+    describe('system placeholders', () => {
+        it('resolves {{plan-type-text}} to a legal inline-price marker without a dictionary entry', async () => {
+            const response = await getResponse('legal: {{plan-type-text}}');
+            const { description } = response.body.fields;
+            expect(description).to.contain('is="inline-price"');
+            expect(description).to.contain('data-template="legal"');
+            expect(description).to.contain('data-placeholder="plan-type-text"');
+        });
+
+        it('system placeholder wins over a dictionary entry of the same key', async () => {
+            const dict = structuredClone(DICTIONARY_RESPONSE);
+            dict.references[Object.keys(dict.references)[0]].value.fields = {
+                key: 'plan-type-text',
+                value: 'SHOULD_NOT_WIN',
+            };
+            clearDictionaryCache();
+            stubEmptyDictionary(false, BASELINE_SURFACE, DEFAULT_LOCALE, fetchStub);
+            mockDirectDictionary(false, DEFAULT_SURFACE, DEFAULT_LOCALE, dict, fetchStub);
+            const context = {
+                surface: DEFAULT_SURFACE,
+                locale: DEFAULT_LOCALE,
+                regionLocale: DEFAULT_LOCALE,
+                defaultLocale: DEFAULT_LOCALE,
+                loggedTransformer: 'replace',
+                requestId: 'mas-replace-ut',
+                promises: {},
+            };
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            context.body = odinResponse('x {{plan-type-text}}');
+            const response = await replace.process(context);
+            expect(response.body.fields.description).to.not.contain('SHOULD_NOT_WIN');
+            expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
+        });
+    });
+
     describe('layering (acom default + surface baseline + region overlay)', () => {
         // sandbox/fr_BE → base language fr_FR: acom/fr_FR (default) + sandbox/fr_FR (baseline) + sandbox/fr_BE (region).
         const layeredContext = () => ({

@@ -7,6 +7,10 @@ import { log, logDebug, logError } from '../utils/log.js';
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
+export const SYSTEM_PLACEHOLDERS = {
+    'plan-type-text': '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\"></span>',
+};
+
 const TRANSFORMER_NAME = 'replace';
 
 // Each dictionary layer (base or region, per surface+locale) is cached with jittered TTL,
@@ -159,6 +163,9 @@ async function replace(context) {
             dictionary = await getDictionary(context);
         }
         if (dictionary && Object.keys(dictionary).length > 0) {
+            // System keys spread last so an Odin dictionary entry cannot shadow them. The escaped \"
+            // keeps quotes valid inside the stringified JSON body that replaceValues operates on.
+            dictionary = { ...dictionary, ...SYSTEM_PLACEHOLDERS };
             bodyString = replaceValues(bodyString, dictionary, []);
             try {
                 body = JSON.parse(bodyString);

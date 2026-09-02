@@ -75,3 +75,20 @@ describe('ai-chat/guided card creation — offer lookup carries the product', ()
         expect(GUIDED_CARD_CREATION_PROMPT).to.match(/ALWAYS include .?arrangementCode/);
     });
 });
+
+describe('ai-chat/guided card creation — skipping must act, not narrate', () => {
+    let GUIDED_CARD_CREATION_PROMPT;
+
+    before(async () => {
+        ({ GUIDED_CARD_CREATION_PROMPT } = await import('../../src/ai-chat/prompt-templates.js'));
+    });
+
+    it('forbids announcing the lookup instead of performing it', () => {
+        // Observed four times: the model answered "I'll help you create cards
+        // for X. Let me look up that product first." and emitted no operation,
+        // so the flow dead-ended with no spinner and nothing to click.
+        expect(GUIDED_CARD_CREATION_PROMPT).to.include('the mcp_operation IS your entire response');
+        expect(GUIDED_CARD_CREATION_PROMPT).to.match(/Do NOT acknowledge the request/);
+        expect(GUIDED_CARD_CREATION_PROMPT).to.include('Perform the lookup instead of describing it');
+    });
+});

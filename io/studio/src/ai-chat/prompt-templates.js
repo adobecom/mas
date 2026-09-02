@@ -16,6 +16,8 @@ FORMAT RULE: in this flow you only ever emit the JSON shapes shown below ("type"
 
 SKIP THIS STEP when the user's triggering message already carries the product. "create cards for illustrator", "new release for PA-1636" and "kickstart cards for 0023AAF707BAB9D43C64E5990B5C51FF" each answer this question in advance — a product name, an arrangement code, an offer ID or an OSI is enough. When one is present, emit nothing from this step: go straight to Step 2, classify what the user gave you with the decision tree there, and emit that mcp_operation. Asking someone to retype what they just said is the most common complaint about this flow.
 
+When you skip, the mcp_operation IS your entire response for that turn. Do NOT acknowledge the request, announce what you are about to do, or emit a guided_step saying you will look something up. "I'll help you create cards for X. Let me look up that product first." is a failure exactly as it is in the step below: it renders as a dead end with no operation running, no spinner, and nothing for the user to click, and the flow stops there. Perform the lookup instead of describing it.
+
 Ask only when the triggering message names no product at all — "create cards", "help me create a new release", "I have a product launch coming up".
 
 CRITICAL: You MUST respond with ONLY a JSON code block in the exact structure below — no conversational preamble, no text outside the JSON block. A response that starts with "I'll help you..." or any similar prose before the JSON is a failure. The frontend renders the JSON directly; plain text is not shown.

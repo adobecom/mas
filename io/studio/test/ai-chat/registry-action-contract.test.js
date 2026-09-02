@@ -30,21 +30,14 @@ const MCP_CLIENT = path.join(__dirname, '../../../../studio/src/services/mcp-cli
  * tool_targets with no action behind them today.
  *
  *   alias    - reachable, the client rewrites the name (get_variations)
- *   missing  - no implementation anywhere; the docs corpus advertises these
- *
- * The five 'unwired' variation intents that were here are gone: the logic was
- * already on StudioOperations and only the actions were missing.
+ * The five 'unwired' variation intents that were listed here now have actions.
+ * The eight unimplemented ones (create_tags and the translation group) were
+ * removed from the registry instead: the assistant should not offer an
+ * operation that 404s after the user confirms it. Translation still exists in
+ * Studio, on the Translations page, which is where the docs corpus now points.
  */
 const KNOWN_UNBACKED = {
     get_variations: 'alias',
-    create_tags: 'missing',
-    find_untranslated_cards: 'missing',
-    translation_coverage_report: 'missing',
-    create_translation_project: 'missing',
-    submit_translation_project: 'missing',
-    get_translation_project: 'missing',
-    list_translation_projects: 'missing',
-    check_translation_status: 'missing',
 };
 
 /**

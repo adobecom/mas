@@ -33,9 +33,12 @@ describe('ai-chat/operations-handler', () => {
             'list_products',
             'get_product_by_arrangement_code',
             'create_release_cards',
-            'create_tags',
             'create_offer_selector',
         ];
+        // create_tags was on the hardcoded list and in the registry, but no
+        // action ever backed it, so a confirmed request 404'd. It left the
+        // registry with the seven translation intents, and the allowlist is
+        // derived from the registry, so it is gone from here too.
 
         function toolNameVerdict(mcpTool) {
             const result = validateOperation({ type: 'mcp_operation', mcpTool, mcpParams: { any: true } });
@@ -52,8 +55,8 @@ describe('ai-chat/operations-handler', () => {
             for (const tool of [
                 'search_collections',
                 'compare_offers',
-                'find_untranslated_cards',
-                'create_translation_project',
+                'list_variation_locales',
+                'get_variation_parent',
             ]) {
                 expect(toolNameVerdict(tool), tool).to.not.include('Invalid MCP tool');
             }

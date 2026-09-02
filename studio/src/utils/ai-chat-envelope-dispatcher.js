@@ -54,9 +54,6 @@ export const STATE_CHANGING_INTENTS = new Set([
     'add_cards_to_collection',
     'create_collection',
     'link_card_to_offer',
-    'create_tags',
-    'create_translation_project',
-    'submit_translation_project',
     'release_create.confirm',
 ]);
 
@@ -79,9 +76,6 @@ const CONFIRMATION_TEMPLATES = {
     add_cards_to_collection: 'Add {{cardPaths.length}} cards to collection {{id}}?',
     create_collection: 'Create collection "{{title}}" at {{parentPath}}?',
     link_card_to_offer: 'Link card {{cardId}} to offer {{offerSelectorId}}?',
-    create_tags: 'Create {{tags.length}} tags?',
-    create_translation_project: 'Create translation project "{{title}}" for {{targetLocales.length}} locales?',
-    submit_translation_project: 'Submit translation project {{id}}?',
     release_create_confirm: 'Create {{cardConfigs.length}} release cards?',
 };
 

@@ -90,6 +90,10 @@ describe('MasChat drops a turn the user has superseded', () => {
     afterEach(() => {
         sinon.restore();
         el.remove();
+        // Sessions persist to localStorage, which is shared with every other
+        // test file's page. Leaving this file's product-card messages behind
+        // makes them the starting transcript of whatever runs next.
+        localStorage.removeItem('mas-chat-sessions');
     });
 
     it('does not re-render the product list after the user has picked one', async () => {
@@ -218,6 +222,7 @@ describe('MasChat aborts the request a new turn supersedes', () => {
         sinon.restore();
         delete window.adobeIMS;
         el.remove();
+        localStorage.removeItem('mas-chat-sessions');
     });
 
     const send = (message) => el.handleSendMessage({ detail: { message, context: { skipDeterministicRouter: true } } });

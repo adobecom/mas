@@ -77,9 +77,18 @@
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
             const authorBucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
             document.querySelector('meta[name="aem-author-url"]')?.setAttribute('content', `https://author-p22655-${authorBucket}.adobeaemcloud.com`);
-            const ioStudioEnvParam = params.get('io.studio.env') || envOverride;
+            // Both halves of the namespace are interpolated into a URL, so keep them to a
+            // bare label: a value carrying '/' or '.' would move the host off adobeioruntime.
+            const ioLabel = (value) => (/^[a-z0-9-]{1,40}$/.test(value ?? '') ? value : '');
+            const ioStudioEnvParam = ioLabel(params.get('io.studio.env') || envOverride);
             const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
-            const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+            // The IO packages are split across two console projects. MerchAtScaleStudio
+            // (ai-chat, ost-products-read) ships from masStudio; MerchAtScaleMCP and
+            // MerchAtScaleKnowledge ship from MerchAtScale. A developer workspace only has
+            // all of them under one project, so ?io.project= selects which one to read.
+            // Production takes the default and stays on masStudio.
+            const ioProject = ioLabel(params.get('io.project')) || 'masstudio';
+            const ioBaseUrl = `https://14257-${ioProject}${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
             document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>

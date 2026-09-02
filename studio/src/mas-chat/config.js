@@ -8,13 +8,18 @@ function isLocalhostHostname(hostname) {
 }
 
 /**
- * The IO Runtime base URL for the Studio package.
+ * The IO Runtime base URL every assistant package is read from.
  *
- * studio.html writes this into the `io-base-url` meta tag, honouring
+ * studio.html writes it into the `io-base-url` meta tag, honouring
  * ?io.studio.env=, and users.js, translation and bulk-publish already read it.
  * Reading it here too means the assistant, MCP and knowledge services follow
  * whatever environment the page was loaded for, instead of a namespace baked
  * into the bundle.
+ *
+ * This assumes MerchAtScaleStudio, MerchAtScaleMCP and MerchAtScaleKnowledge are
+ * all deployed to that one namespace. When they are not, the missing package
+ * answers with a 404 that carries no CORS headers, and the browser reports it as
+ * "Failed to fetch" rather than as a status.
  */
 function ioStudioBaseURL() {
     const fromMeta = document.querySelector('meta[name="io-base-url"]')?.content;

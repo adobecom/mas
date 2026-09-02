@@ -3,9 +3,9 @@ import { getAIChatBaseURL, getMCPServerURL } from '../src/mas-chat/config.js';
 
 const ATTACKER_AI_CHAT = 'https://attacker.example/chat';
 const ATTACKER_MCP = 'https://attacker.example/mcp';
-// The shared namespace, not a developer's. These assert the OVERRIDE rules;
-// which namespace is in force comes from the io-base-url meta tag and is
-// covered by mas-chat-io-namespace.test.js.
+// The shared namespace, not a developer's. One namespace serves ai-chat and
+// MCP alike. These assert the OVERRIDE rules; which namespace is in force comes
+// from the io-base-url meta tag and is covered by mas-chat-io-namespace.test.js.
 const PROD_AI_CHAT_HOST = '14257-masstudio.adobeioruntime.net';
 const PROD_MCP_HOST = '14257-masstudio.adobeioruntime.net';
 

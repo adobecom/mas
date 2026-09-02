@@ -144,8 +144,12 @@ export const PAGE_NAMES = {
 /**
  * Used only when the io-base-url meta tag is absent (tests, or a page that did
  * not run studio.html's bootstrap). studio.html is the real source of the
- * namespace, so point a developer workspace at it with ?io.studio.env= rather
- * than editing this.
+ * namespace, so point a developer workspace at it with ?io.studio.env=
+ * rather than editing this.
+ *
+ * One namespace serves every assistant package — MerchAtScaleStudio (ai-chat,
+ * ost-products-read), MerchAtScaleMCP and MerchAtScaleKnowledge — so all three
+ * URLs are derived from this one base.
  */
 export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
 

@@ -7,6 +7,7 @@ import {
 } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -136,6 +137,9 @@ function registerOptionsProviders(service) {
         return;
     service.providers.price(priceOptionsProvider);
     service.providers.checkout(checkoutOptionsProvider);
+    if (!service.providers.has(planTypeTextOptionsProvider)) {
+        service.providers.price(planTypeTextOptionsProvider);
+    }
 }
 
 const MAS_FIELD_STYLES = `

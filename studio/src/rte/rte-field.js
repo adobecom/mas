@@ -1595,7 +1595,8 @@ class RteField extends LitElement {
         // did not change (e.g. a promo-only edit). The multi-step OST flow collapses
         // the editor selection before the checkout-link event arrives, so fall back
         // to the label captured when the CTA was double-clicked.
-        const selectedText = selection.node?.type === state.schema.nodes.link ? selection.node.textContent : '';
+        const selectedText =
+            selection.node && selection.node.type === state.schema.nodes.link ? selection.node.textContent : '';
         const ctaText = attributes.text || selectedText || this.ostTargetText || '';
         const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && ctaText ? state.schema.text(ctaText) : null;
 

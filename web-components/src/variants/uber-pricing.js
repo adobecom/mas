@@ -1,6 +1,7 @@
 import { VariantLayout } from './variant-layout';
 import { html, css } from 'lit';
 import {
+    EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
@@ -28,8 +29,9 @@ export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {
 };
 
 export class UberPricing extends VariantLayout {
-    #resizeFrame = null;
-    #syncObserver = null;
+    #sizeObserver = null;
+    #onPriceResolved = () => this.resyncOnReflow();
+    lastSyncKey = null;
 
     getGlobalCSS() {
         return CSS;
@@ -66,33 +68,14 @@ export class UberPricing extends VariantLayout {
         if (!this.card.isConnected) return;
         if (!this.legalAdjusted) await this.adjustLegal();
         await super.postCardUpdateHook();
-        // One card per collection drives the pass; syncRowHeights groups the
-        // rest by row. Desktop only: stacked mobile cards are each their own row.
-        if (
-            window.matchMedia(SYNC_MIN_WIDTH).matches &&
-            this.card === this.card.parentElement?.firstElementChild
-        ) {
+        if (window.matchMedia(SYNC_MIN_WIDTH).matches) {
             requestAnimationFrame(() => this.syncHeights());
         }
     }
 
-    // Reserve each variable slot's row-max height so price + CTA line up across
-    // a row. Same base helper plans/product use; no height:100% or margin-top
-    // hacks (those feed back inside the collection grid and stretch cards).
     syncHeights() {
-        if (this.card.getBoundingClientRect().width <= 2) {
-            if (!this.#syncObserver) {
-                this.#syncObserver = new ResizeObserver(() => {
-                    if (this.card.getBoundingClientRect().width > 2) {
-                        this.#syncObserver?.disconnect();
-                        this.#syncObserver = null;
-                        this.syncHeights();
-                    }
-                });
-                this.#syncObserver.observe(this.card);
-            }
-            return;
-        }
+        if (this.card.getBoundingClientRect().width <= 2) return;
+        if (!window.matchMedia(SYNC_MIN_WIDTH).matches) return;
         this.syncRowHeights(
             SYNCED_SLOTS.map((slot) => ({
                 name: slot,
@@ -101,26 +84,40 @@ export class UberPricing extends VariantLayout {
         );
     }
 
-    resizeHandler = () => {
-        if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
-        this.#resizeFrame = requestAnimationFrame(() => {
-            this.#resizeFrame = null;
-            if (window.matchMedia(SYNC_MIN_WIDTH).matches) this.syncHeights();
-        });
-    };
+    // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
+    resyncOnReflow() {
+        const width = this.card.getBoundingClientRect().width;
+        if (width <= 2) return;
+        const height = (selector) =>
+            Math.round(
+                this.card.querySelector(selector)?.getBoundingClientRect()
+                    .height || 0,
+            );
+        const key = [
+            Math.round(width),
+            ...SYNCED_SLOTS.map((slot) => height(`[slot="${slot}"]`)),
+        ].join(':');
+        if (key === this.lastSyncKey) return;
+        this.lastSyncKey = key;
+        this.syncHeights();
+    }
 
     connectedCallbackHook() {
-        window.addEventListener('resize', this.resizeHandler);
+        this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
+        if (typeof ResizeObserver === 'undefined') return;
+        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
+        this.#sizeObserver.observe(this.card);
+        const desc = this.card.querySelector('[slot="body-xs"]');
+        if (desc) this.#sizeObserver.observe(desc);
     }
 
     disconnectedCallbackHook() {
-        window.removeEventListener('resize', this.resizeHandler);
-        this.#syncObserver?.disconnect();
-        this.#syncObserver = null;
-        if (this.#resizeFrame) {
-            cancelAnimationFrame(this.#resizeFrame);
-            this.#resizeFrame = null;
-        }
+        this.card.removeEventListener(
+            EVENT_TYPE_RESOLVED,
+            this.#onPriceResolved,
+        );
+        this.#sizeObserver?.disconnect();
+        this.#sizeObserver = null;
     }
 
     renderLayout() {

@@ -634,6 +634,12 @@ export class MasChat extends LitElement {
                 return;
             }
 
+            // Which flow this response belongs to, captured before the
+            // bookkeeping below ends it. An mcp_operation is terminal, so by
+            // the time the operation is dispatched activeGuidedFlow is already
+            // null, and a release lookup could not be recognised as one.
+            const respondingFlow = this.activeGuidedFlow;
+
             // Update guided-flow bookkeeping from the response type: terminal
             // types (operation, card creation, plain message) end the flow,
             // non-terminal turns count toward the cap so a drifting flow can
@@ -691,7 +697,7 @@ export class MasChat extends LitElement {
                               }
                             : response.data;
 
-                    await this.executeOperation(operationToExecute);
+                    await this.executeOperation(operationToExecute, { guidedFlow: respondingFlow });
                 }
             } else if (response.type === 'card') {
                 const messageIndex = this.messages.length;
@@ -1761,7 +1767,7 @@ export class MasChat extends LitElement {
         }
     }
 
-    async executeOperation(operation) {
+    async executeOperation(operation, { guidedFlow = this.activeGuidedFlow } = {}) {
         this.isLoading = true;
 
         const operationType = operation.mcpTool;
@@ -1783,7 +1789,7 @@ export class MasChat extends LitElement {
         } else if (isBulkOperation) {
             await this.executeBulkOperationWithProgress(operation, operationType);
         } else {
-            await this.executeRegularOperation(operation, operationType);
+            await this.executeRegularOperation(operation, operationType, guidedFlow);
         }
 
         this.isLoading = false;
@@ -1945,7 +1951,7 @@ export class MasChat extends LitElement {
         }
     }
 
-    async executeRegularOperation(operation, operationType) {
+    async executeRegularOperation(operation, operationType, guidedFlow = this.activeGuidedFlow) {
         const loadingMessage = this.getOperationLoadingMessage(operationType);
 
         const loadingMessageObj = {
@@ -2026,7 +2032,7 @@ export class MasChat extends LitElement {
         if (operationType === 'list_products' && operationResult?.success) {
             this.recentProducts = operationResult.rawResult?.products ?? null;
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
-            if (this.activeGuidedFlow === 'release') {
+            if (guidedFlow === 'release') {
                 await this.presentProductSelection(operationResult.rawResult, operation.mcpParams?.searchText);
             } else {
                 await this.handleProductListResult(operationResult.rawResult, operation.mcpParams);

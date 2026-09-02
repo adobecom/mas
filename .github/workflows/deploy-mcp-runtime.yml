@@ -44,6 +44,12 @@ jobs:
         env:
           AEM_BASE_URL: ${{ secrets.AEM_BASE_URL }}
           STUDIO_BASE_URL: ${{ secrets.STUDIO_BASE_URL }}
+          # aio app deploy substitutes every $VAR in app.config.yaml from the
+          # environment, and anything not exported here is deployed as an empty
+          # string. create-release-cards and get-product-detail both refuse to
+          # run without AOS_API_KEY, so omitting it shipped them pre-broken.
+          AOS_URL: ${{ secrets.AOS_URL }}
+          AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
         run: aio app deploy --all
 
       - name: Verify deployment

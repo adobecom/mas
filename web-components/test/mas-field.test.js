@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/mas-field.js';
+import '../src/checkout-link.js';
 import {
     checkoutOptionsProvider,
     priceOptionsProvider,
@@ -262,6 +263,7 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a).to.exist;
         expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.isCheckoutLink).to.be.true;
     });
 });
 
@@ -345,6 +347,7 @@ describe('mas-field – label-keyed fields (customFields[label])', () => {
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a).to.exist;
         expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.isCheckoutLink).to.be.true;
     });
 });
 
@@ -363,6 +366,7 @@ describe('mas-field – copy/description-style fields upgrade checkout links', (
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a).to.exist;
         expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.isCheckoutLink).to.be.true;
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
     });
 
@@ -394,6 +398,7 @@ describe('mas-field – copy/description-style fields upgrade checkout links', (
             const a = el.querySelector('[data-role="mas-field-content"] a');
             expect(a).to.exist;
             expect(a.getAttribute('is')).to.equal('checkout-link');
+            expect(a.isCheckoutLink).to.be.true;
         }).to.not.throw();
 
         sandbox.restore();

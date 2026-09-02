@@ -321,31 +321,42 @@ class MasField extends HTMLElement {
     }
 
     /**
+     * Creates a checkout-link element via the real service-backed factory when
+     * available, falling back to a manually upgraded anchor (still a genuine
+     * customized built-in, just without service-resolved checkout options)
+     * when the checkout service hasn't registered yet.
+     */
+    #createCheckoutLinkElement(dataset, innerHTML) {
+        const CheckoutLink = customElements.get('checkout-link');
+        return (
+            CheckoutLink?.createCheckoutLink(dataset, innerHTML) ??
+            (() => {
+                const el = document.createElement('a', {
+                    is: 'checkout-link',
+                });
+                el.setAttribute('is', 'checkout-link');
+                el.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+                return el;
+            })()
+        );
+    }
+
+    /**
      * Upgrades any data-wcs-osi anchors left in the container by a raw HTML
      * assignment into real checkout-link elements. Needed because customized
      * built-ins only get constructed when `is=` is present at parse time, and
      * stored fragment HTML for non-ctas fields never carries that attribute.
      */
     #upgradeCheckoutLinks(container) {
-        const CheckoutLink = customElements.get('checkout-link');
         for (const link of container.querySelectorAll(
             'a[data-wcs-osi]:not([is])',
         )) {
-            const button =
-                CheckoutLink?.createCheckoutLink(
-                    link.dataset,
-                    link.innerHTML,
-                ) ??
-                (() => {
-                    const el = document.createElement('a', {
-                        is: 'checkout-link',
-                    });
-                    el.setAttribute('is', 'checkout-link');
-                    el.innerHTML = `<span style="pointer-events: none;">${link.innerHTML}</span>`;
-                    return el;
-                })();
+            const button = this.#createCheckoutLinkElement(
+                link.dataset,
+                link.innerHTML,
+            );
             for (const { name, value } of link.attributes) {
-                if (name === 'is') continue;
+                if (['is', 'href'].includes(name)) continue;
                 button.setAttribute(name, value);
             }
             link.replaceWith(button);
@@ -386,14 +397,10 @@ class MasField extends HTMLElement {
         const isAccent = styleMatch.startsWith('accent');
         const isLinkStyle = styleMatch.includes('-link');
 
-        const CheckoutLink = customElements.get('checkout-link');
-        const button =
-            CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
-            (() => {
-                const el = document.createElement('a', { is: 'checkout-link' });
-                el.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
-                return el;
-            })();
+        const button = this.#createCheckoutLinkElement(
+            link.dataset,
+            link.textContent,
+        );
 
         for (const { name, value } of link.attributes) {
             if (['class', 'is', 'href'].includes(name)) continue;

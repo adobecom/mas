@@ -65,7 +65,6 @@ const RAW_STOPWORDS = [
     'about',
     'tell',
     'please',
-    'help',
     'there',
     'this',
     'that',
@@ -77,11 +76,10 @@ const RAW_STOPWORDS = [
     'use',
     'used',
     'using',
-    'work',
-    'working',
     'want',
     'need',
-    'get',
+    'work',
+    'working',
     'also',
     'just',
     'like',
@@ -100,6 +98,25 @@ const RAW_STOPWORDS = [
     'again',
 ];
 
+/**
+ * "help" and "get" were on this list and are content words in THIS corpus, not
+ * filler: "help" heads 8 sections (idf 2.04) and "get" is the single most
+ * discriminative term measured (df 1, idf 4.32). Stopping them reduced
+ * "Where do I get help?" to no query terms at all, so it retrieved nothing
+ * while being, verbatim, the section heading of troubleshooting.md.
+ *
+ * "work" was removed with them and put back. It scores like a topic (df 12,
+ * heads 5 sections) but reads like one only by accident: headline terms carry
+ * 3x weight, so as a query term it drags any "...how does X work?" heading to
+ * the top. It sent "how do collections work" to a promo-exceptions chunk and
+ * "how does the offer selector work" from OST to OSI. It is a framing verb.
+ *
+ * Deriving the whole list from the corpus instead was tried and is wrong: in a
+ * small corpus an auxiliary like "does" looks rare enough to pass any idf
+ * test, and promoting it to a content word breaks queries that worked. Closed
+ * class function words are filler however they score, so the list stays hand
+ * written and entries come off it one at a time, with evidence.
+ */
 const STOPWORDS = new Set(RAW_STOPWORDS.map((word) => normalize(word)));
 
 /**

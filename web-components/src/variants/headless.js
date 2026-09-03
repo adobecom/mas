@@ -72,7 +72,7 @@ export class Headless extends VariantLayout {
                     ({ slot, label }) => html`
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
-                            <span class="headless-value">
+                            <span class="headless-value" data-slot="${slot}">
                                 <slot name="${slot}"></slot>
                             </span>
                         </div>

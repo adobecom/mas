@@ -12,6 +12,13 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
+/** Variants whose CTAs are authored via the 3-option headless picker (see merch-card-editor.js's HEADLESS_STYLE_CTA_VARIANTS). */
+const HEADLESS_STYLE_CTA_VARIANTS = new Set([
+    'headless',
+    'marquee',
+    'banner-blade',
+]);
+const HEADLESS_CTA_VARIANT_LABELS = { STRONG: 'Primary', EM: 'Secondary' };
 
 /**
  * Normalizes variant names for consistency.
@@ -474,18 +481,57 @@ export function processFeatures(fields, merchCard, mapping) {
     processFeaturesLinks(merchCard, mapping);
 }
 
-function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
+/**
+ * Upgrades a headless CTA anchor into a real checkout-link (resolving its commitment
+ * step/modal options) without adding a button-style class, mirroring mas-field.js's
+ * #buildCtaButton. Needed because the "-link" style bypass below normally just reuses the
+ * raw, un-upgraded anchor - fine for a plain link, but a headless Primary/Secondary CTA is
+ * still a real checkout CTA and must resolve through CheckoutLink to get its options.
+ */
+function createHeadlessCheckoutElement(linkElement) {
+    const CheckoutLink = customElements.get('checkout-link');
+    const button =
+        CheckoutLink?.createCheckoutLink(
+            linkElement.dataset,
+            linkElement.innerHTML,
+        ) ?? linkElement;
+    if (button === linkElement) return button;
+    for (const attr of linkElement.attributes) {
+        if (['class', 'is', 'href'].includes(attr.name)) continue;
+        button.setAttribute(attr.name, attr.value);
+    }
+    return button;
+}
+
+function transformLinkToButton(
+    linkElement,
+    merchCard,
+    aemFragmentMapping,
+    isCtaField = false,
+) {
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));
     const originalClassName = linkElement.className || '';
-    const checkoutLinkStyle =
-        CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent';
-    const isAccent = checkoutLinkStyle.includes('accent');
-    const isPrimary = checkoutLinkStyle.includes('primary');
-    const isSecondary = checkoutLinkStyle.includes('secondary');
-    const isOutline = checkoutLinkStyle.includes('-outline');
-    const isLinkStyle = checkoutLinkStyle.includes('-link');
+    const parentTag = linkElement.parentElement?.tagName;
+    // Headless CTAs authored via the 3-option picker never carry a button-style class, and
+    // MAS must not add one either (see rte-field.js's #marksForHeadlessVariant) - only the
+    // real <strong>/<em> wrapper is preserved, unstyled, below. Scoped to the ctas field on a
+    // headless-family card so other fields/variants (which may legitimately have no class and
+    // rely on the accent default) are unaffected.
+    const isHeadlessCta =
+        isCtaField &&
+        !originalClassName &&
+        HEADLESS_STYLE_CTA_VARIANTS.has(merchCard.variant);
+    const checkoutLinkStyle = originalClassName
+        ? (CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent')
+        : 'accent';
+    const isAccent = !isHeadlessCta && checkoutLinkStyle.includes('accent');
+    const isPrimary = !isHeadlessCta && checkoutLinkStyle.includes('primary');
+    const isSecondary =
+        !isHeadlessCta && checkoutLinkStyle.includes('secondary');
+    const isOutline = !isHeadlessCta && checkoutLinkStyle.includes('-outline');
+    const isLinkStyle = isHeadlessCta || checkoutLinkStyle.includes('-link');
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
@@ -502,7 +548,10 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
-        newButtonElement = linkElement;
+        newButtonElement =
+            isHeadlessCta && isCheckoutLink
+                ? createHeadlessCheckoutElement(linkElement)
+                : linkElement;
     } else {
         let variant;
         if (isAccent) {
@@ -529,6 +578,22 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
                       variant,
                       isCheckoutLink,
                   );
+    }
+
+    if (isHeadlessCta) {
+        let ctaElement = newButtonElement;
+        if (parentTag === 'STRONG' || parentTag === 'EM') {
+            const wrapper = document.createElement(parentTag.toLowerCase());
+            wrapper.append(newButtonElement);
+            ctaElement = wrapper;
+        }
+        const label = document.createElement('span');
+        label.className = 'headless-cta-variant-label';
+        label.textContent = HEADLESS_CTA_VARIANT_LABELS[parentTag] ?? 'Link';
+        const item = document.createElement('span');
+        item.className = 'headless-cta-item';
+        item.append(ctaElement, label);
+        return item;
     }
     return newButtonElement;
 }
@@ -896,7 +961,7 @@ export function processCTAs(
         const ctas = (
             filteredLinks.length > 0 ? filteredLinks : allCtaLinks
         ).map((cta) =>
-            transformLinkToButton(cta, merchCard, aemFragmentMapping),
+            transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
         );
 
         footer.textContent = '';

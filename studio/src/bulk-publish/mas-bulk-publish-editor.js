@@ -32,7 +32,7 @@ import {
     DELETE_SVG,
     REVERT_SVG,
 } from './bulk-publish-icons.js';
-import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+import { generateLinkToUse, showToast, normalizeKey } from '../utils.js';
 import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
@@ -104,6 +104,8 @@ class MasBulkPublishEditor extends LitElement {
     #currentProjectId = null;
     #projectStoreController = new ReactiveController(this, []);
     #subscribedProject = null;
+
+    saveSnapshotFn = null;
 
     constructor() {
         super();
@@ -177,7 +179,7 @@ class MasBulkPublishEditor extends LitElement {
                         try {
                             const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
                             const fragment = new Fragment(rawFragment);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             return {
                                 url: path,
                                 fragmentId: fragment.id,
@@ -592,6 +594,20 @@ class MasBulkPublishEditor extends LitElement {
         this.#discardResolve = null;
     }
 
+    async #recordSnapshotAfterSave(project) {
+        const { saveSnapshot } = await import('./bulk-publish-store.js');
+        try {
+            await saveSnapshot({
+                project,
+                token: this.token,
+                ioBaseUrl: this.ioBaseUrl,
+                saveSnapshotFn: this.saveSnapshotFn,
+            });
+        } catch (err) {
+            console.error('Failed to record snapshot after save:', err);
+        }
+    }
+
     async saveBulkProject() {
         await this.#withPendingAction(QUICK_ACTION.SAVE, async () => {
             this.ensureSurface();
@@ -614,6 +630,8 @@ class MasBulkPublishEditor extends LitElement {
                     Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
+                    const createdProject = Store.bulkPublishProjects.inEdit.get();
+                    await this.#recordSnapshotAfterSave(createdProject);
                 } else {
                     const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
@@ -636,6 +654,7 @@ class MasBulkPublishEditor extends LitElement {
                     if (!saved) return;
                     this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');
+                    await this.#recordSnapshotAfterSave(this.project);
                 }
             } catch (err) {
                 console.error('Failed to save bulk publish project:', err);
@@ -707,7 +726,7 @@ class MasBulkPublishEditor extends LitElement {
                     ? await this.repository.getFragmentById(item.fragmentId)
                     : await this.repository.aem.sites.cf.fragments.getByPath(item.path);
                 const fragment = new Fragment(rawFragment);
-                const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                 return {
                     ...item,
                     fragmentId: fragment.id || item.fragmentId,
@@ -760,7 +779,7 @@ class MasBulkPublishEditor extends LitElement {
                             duplicateCount++;
                         } else {
                             existingIds.add(fragment.id);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             results[i] = {
                                 url: raw,
                                 fragmentId: fragment.id,

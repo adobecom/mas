@@ -49,6 +49,7 @@
             import '../../../web-components/dist/mas.js';
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
+            import { EVENT_OST_SELECT } from '../../src/constants.js';
 
             import {
                 createFromTemplate,
@@ -574,7 +575,7 @@
                         // public handleOpenOfferSelector entry point.
                         const dispatchOstSelect = (attributes) => {
                             document.dispatchEvent(
-                                new CustomEvent('ost-select', { detail: attributes, bubbles: true, composed: true }),
+                                new CustomEvent(EVENT_OST_SELECT, { detail: attributes, bubbles: true, composed: true }),
                             );
                         };
 
@@ -704,6 +705,58 @@
                             expect(rte.value).to.include('data-wcs-osi="osi-edit"');
                         });
 
+                        it('inserts a price into a field with no link node in schema (e.g. Badge) without throwing', async function () {
+                            const rte = await createFromTemplate('rte-no-link', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'inline-price',
+                                'data-wcs-osi': 'osi-badge-discount',
+                                'data-template': 'discount',
+                            });
+                            await delay(50);
+
+                            const prices = rte.shadowRoot.querySelectorAll('.ProseMirror span[is="inline-price"]');
+                            expect(prices.length).to.equal(1);
+                            expect(prices[0].getAttribute('data-wcs-osi')).to.equal('osi-badge-discount');
+                        });
+
+                        it('ignores a raw "ost-select" DOM event that is not the studio-transformed placeholder event', async function () {
+                            const rte = await createFromTemplate('rte-no-link', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            const beforeValue = rte.value;
+                            document.dispatchEvent(
+                                new CustomEvent('ost-select', {
+                                    detail: {
+                                        osi: 'osi-raw',
+                                        type: 'discount',
+                                        offer: {},
+                                        options: {},
+                                        promoOverride: null,
+                                        country: 'US',
+                                    },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await delay(50);
+
+                            expect(rte.value).to.equal(beforeValue);
+                        });
+
                         it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {
                             const rteA = await createFromTemplate('rte', this.test.title + '-A');
                             const rteB = await createFromTemplate('rte', this.test.title + '-B');
@@ -786,6 +839,9 @@
         </template>
         <template id="rte-ctas">
             <rte-field id="ctas" link><p>Text only</p></rte-field>
+        </template>
+        <template id="rte-no-link">
+            <rte-field hide-format-buttons><p>Badge text</p></rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>

@@ -81,3 +81,28 @@ describe('ai-chat/arrangement code injection', () => {
         expect(withResolvedArrangementCode(operation, history)).to.deep.equal(operation);
     });
 });
+
+describe('ai-chat/arrangement code injection — envelope shape', () => {
+    let withResolvedArrangementCode;
+
+    before(async () => {
+        ({ withResolvedArrangementCode } = await import('../../src/ai-chat/operations-handler.js'));
+    });
+
+    it('fills an envelope-built lookup too, since that path skips handleOperation', () => {
+        // buildEnvelopeResponseBody produces the same shape from envelope.slots.
+        const envelopeBody = {
+            type: 'mcp_operation',
+            mcpTool: 'get_offer_by_id',
+            mcpParams: { offerId: 'F5B3D59867BC5B6020EFA0763C3AE92A' },
+            message: 'Resolving offer...',
+            confirmationRequired: false,
+        };
+        const history = [{ role: 'user', content: 'Selected product: Adobe Firefly Standard (arrangement_code: PA-1930)' }];
+
+        const filled = withResolvedArrangementCode(envelopeBody, history);
+
+        expect(filled.mcpParams.arrangementCode).to.equal('PA-1930');
+        expect(filled.message, 'the rest of the body survives').to.equal('Resolving offer...');
+    });
+});

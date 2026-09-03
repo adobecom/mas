@@ -979,7 +979,10 @@ async function main(params) {
             }
 
             if (!handedOff) {
-                const envelopeBody = buildEnvelopeResponseBody(finalEnvelope);
+                // The envelope path builds its own operation and never reaches
+                // handleOperation, so it needs the same product fill-in: an
+                // offer lookup without the arrangement code is a scan.
+                const envelopeBody = withResolvedArrangementCode(buildEnvelopeResponseBody(finalEnvelope), conversationHistory);
                 return {
                     statusCode: 200,
                     headers: {

@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import Store from '../../src/store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
+    pruneOrphanedGroupedVariationSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
@@ -304,6 +305,40 @@ describe('promotion-editor-utils', () => {
 
         it('returns unique lowercase surface keys', () => {
             expect(parsePromotionSurfacesFieldValues(['NALA, sandbox', 'nala'])).to.deep.equal(['nala', 'sandbox']);
+        });
+    });
+
+    describe('pruneOrphanedGroupedVariationSelection', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/parent-card';
+        const groupedPath = '/content/dam/mas/sandbox/en_US/parent-card/pzn/edu';
+        const otherCardPath = '/content/dam/mas/sandbox/en_US/other-card';
+
+        it('drops a grouped variation whose parent is no longer selected', async () => {
+            const selectedCards = [groupedPath, otherCardPath];
+            const resolveParentPath = async (path) => (path === groupedPath ? parentPath : null);
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal([otherCardPath]);
+        });
+
+        it('keeps a grouped variation whose parent is still selected', async () => {
+            const selectedCards = [parentPath, groupedPath];
+            const resolveParentPath = async (path) => (path === groupedPath ? parentPath : null);
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal(selectedCards);
+        });
+
+        it('keeps a grouped variation whose parent could not be resolved', async () => {
+            const selectedCards = [groupedPath];
+            const resolveParentPath = async () => null;
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal(selectedCards);
+        });
+
+        it('returns the same array unchanged when there are no grouped-variation paths', async () => {
+            const selectedCards = [parentPath, otherCardPath];
+            const resolveParentPath = async () => null;
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.equal(selectedCards);
         });
     });
 

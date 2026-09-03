@@ -50,7 +50,7 @@
                         Store.selection.set(['frag-a']);
                         await panel.updateComplete;
 
-                        const btn = panel.shadowRoot.querySelector('sp-action-button[label="Copy cards links"]');
+                        const btn = panel.shadowRoot.querySelector('sp-action-button[label="Copy Studio Link(s)"]');
                         expect(btn).to.exist;
                         btn.click();
                         expect(handler.calledOnce).to.be.true;
@@ -65,7 +65,7 @@
                         Store.selection.set(['frag-b']);
                         await panel.updateComplete;
 
-                        expect(panel.shadowRoot.querySelector('sp-action-button[label="Copy cards links"]')).to.not.exist;
+                        expect(panel.shadowRoot.querySelector('sp-action-button[label="Copy Studio Link(s)"]')).to.not.exist;
                     });
                 });
             });

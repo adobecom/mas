@@ -443,8 +443,8 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
             expect(
                 Store.promotions.list.data.hasMeta('listFetched'),
-                'non-abort failure should still mark listFetched to avoid retry loops',
-            ).to.be.true;
+                'a failed load must not be stamped as fetched, so a later probe retries instead of silently reading an empty store',
+            ).to.be.false;
         });
 
         it('loadPromotions ignores AbortError: no processError call, no listFetched stamp, so a superseded caller retries instead of reading a stale empty store', async () => {
@@ -458,6 +458,30 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.processError.called).to.be.false;
             expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
             expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadPromotions rethrows the network failure when called with { rethrow: true }', async () => {
+            const repository = createFullRepository();
+            repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
+            sandbox.stub(repository, 'processError');
+
+            try {
+                await repository.loadPromotions({ rethrow: true });
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('network');
+            }
+        });
+
+        it('loadPromotions with { rethrow: true } still swallows AbortError', async () => {
+            const repository = createFullRepository();
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            repository.searchFragmentList = sandbox.stub().rejects(abortError);
+            sandbox.stub(repository, 'processError');
+
+            await repository.loadPromotions({ rethrow: true });
+            expect(repository.processError.called).to.be.false;
         });
 
         it('loadAllCollections bails without fetching when no store is provided', async () => {
@@ -1536,6 +1560,7 @@ describe('MasRepository dictionary helpers', () => {
 
                 const mockPromoProject = {
                     tags: [{ id: 'mas:promotion/summer-sale' }],
+                    getFieldValues: (name) => (name === 'fragments' ? [fragmentPath] : undefined),
                 };
                 const { default: Store } = await import('../src/store.js');
                 Store.promotions.list.data.set([{ get: () => mockPromoProject }]);
@@ -4073,6 +4098,7 @@ describe('MasRepository dictionary helpers', () => {
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
             sandbox.stub(Events.fragmentDeleted, 'emit');
 
             const result = await repository.deleteFragmentWithVariations(fragment);
@@ -4102,6 +4128,7 @@ describe('MasRepository dictionary helpers', () => {
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
 
@@ -4132,6 +4159,7 @@ describe('MasRepository dictionary helpers', () => {
             });
             repository.operation = { set: sandbox.stub() };
             sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
             sandbox.stub(Events.fragmentDeleted, 'emit');
             sandbox.stub(repository, 'processError');
             const errorSpy = sandbox.stub(console, 'error');
@@ -4140,6 +4168,53 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(result.success).to.be.false;
             expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
+        });
+
+        it('discovers and force-deletes promo variations even though they are absent from the variations field', async () => {
+            const repository = createRepository();
+            const fragment = new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                fields: [],
+            });
+            const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/nbbdsa/mili-compare';
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves({ id: 'parent-id', fields: [] }),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([promoVariationPath]);
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: promoVariationPath })).to.be.true;
+        });
+
+        it('propagates the error when probing promo variations throws, instead of silently returning no paths', async () => {
+            const repository = createRepository();
+            const fragment = new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                fields: [],
+            });
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            sandbox.stub(repository, 'loadPromotions').rejects(new Error('network error'));
+
+            try {
+                await repository.getPromoVariationPaths(fragment);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('network error');
+            }
         });
     });
 

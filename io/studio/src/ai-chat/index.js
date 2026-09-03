@@ -1562,7 +1562,7 @@ function logShadowValidation(foundryResponse, params) {
         console.log(
             JSON.stringify({
                 phase: 'shadow-validation',
-                req: params?.requestId ?? null,
+                req: resolveRequestId(params),
                 ok: validation.ok,
                 reason: validation.reason ?? null,
                 intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
@@ -1570,7 +1570,7 @@ function logShadowValidation(foundryResponse, params) {
         );
         return validation;
     } catch (shadowErr) {
-        console.log(JSON.stringify({ phase: 'shadow-validation', req: params?.requestId ?? null, error: shadowErr.message }));
+        console.log(JSON.stringify({ phase: 'shadow-validation', req: resolveRequestId(params), error: shadowErr.message }));
         return null;
     }
 }
@@ -1583,13 +1583,25 @@ function logShadowValidation(foundryResponse, params) {
  * @param {string[]} errors - Validation errors from validateAIConfig
  * @returns {string} - Corrective prompt to send as the next user turn
  */
+/**
+ * The id that identifies this turn in the logs.
+ *
+ * main derived this into a local and the logging helpers read params.requestId
+ * instead, so the usage and shadow-validation lines came back with req null and
+ * could not be tied to the turn that produced them. One definition, used by
+ * both, keeps every line correlatable.
+ */
+export function resolveRequestId(params) {
+    return params?.requestId ?? process.env.__OW_ACTIVATION_ID ?? null;
+}
+
 export function logUsageMetric(response, params, modelId) {
     const usage = response?.usage;
     if (!usage) return;
     console.log(
         JSON.stringify({
             phase: 'usage',
-            req: params?.requestId ?? null,
+            req: resolveRequestId(params),
             model: modelId ?? null,
             input_tokens: usage.input_tokens ?? 0,
             output_tokens: usage.output_tokens ?? 0,

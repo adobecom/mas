@@ -1363,6 +1363,7 @@ class MerchCardCollectionEditor extends LitElement {
                 </div>
                 <div class="form-row">
                     <sp-switch
+                        id="markStaged"
                         ?checked="${this.fragment.isStaged}"
                         @change="${this.#handleStaged}"
                     >

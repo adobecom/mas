@@ -141,8 +141,8 @@ export class Fragment {
     }
 
     get isStaged() {
-        if (this.model.path === COLLECTION_MODEL_PATH) {
-            return this.tags.some((tag) => tag.id === STAGED.TAG);
+        if (this.model?.path === COLLECTION_MODEL_PATH) {
+            return this.tags?.some((tag) => tag.id === STAGED.TAG);
         }
         
         const tags = this.getField('variation_tags')?.values || this.getField('tags')?.values || [];

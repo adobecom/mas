@@ -380,7 +380,7 @@
                         await editor.updateComplete;
 
                         editor.shadowRoot
-                            .querySelector('sp-switch:not(#hide-cards)')
+                            .querySelector('sp-switch:not(#hide-cards):not(#markStaged)')
                             .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 
                         const locReadyCall = updateFieldSpy.getCalls().find((c) => c.args[0] === 'locReady');

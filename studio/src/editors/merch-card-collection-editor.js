@@ -1362,11 +1362,7 @@ class MerchCardCollectionEditor extends LitElement {
                     ></mas-mnemonic-field>
                 </div>
                 <div class="form-row">
-                    <sp-switch
-                        id="markStaged"
-                        ?checked="${this.fragment.isStaged}"
-                        @change="${this.#handleStaged}"
-                    >
+                    <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}">
                         Staged?
                     </sp-switch>
                 </div>

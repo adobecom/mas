@@ -109,3 +109,48 @@ describe('MasChat does not replay steps the user already answered', () => {
         expect(reResolved.calledWith(PRODUCT_CODE)).to.equal(true);
     });
 });
+
+describe('MasChat does not re-ask about a trial already chosen', () => {
+    let el;
+    let storageSandbox;
+    let sent;
+
+    beforeEach(async () => {
+        storageSandbox = useIsolatedChatSessionStorage();
+        el = document.createElement('mas-chat');
+        document.body.appendChild(el);
+        await el.updateComplete;
+        sinon.stub(el, 'resolveReleaseProductByArrangementCode').resolves();
+        sent = sinon.stub(el, 'handleSendMessage').resolves();
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        el.remove();
+        storageSandbox.restore();
+    });
+
+    it('says the trial is settled when OST returned both slots', async () => {
+        // plans-base-and-trial mode fills both in one session, so asking again
+        // is asking for something the user already gave.
+        el.selectedReleaseTrialOsi = 'trial-osi-abc';
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        const detail = sent.firstCall.args[0].detail;
+        expect(detail.message).to.include('do not ask whether one is wanted');
+        expect(detail.context.trialOsi).to.equal('trial-osi-abc');
+    });
+
+    it('forbids prose that tells the user to open a tool they cannot open', async () => {
+        el.selectedReleaseTrialOsi = null;
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        const detail = sent.firstCall.args[0].detail;
+        expect(detail.message).to.include('emit open_ost');
+        expect(detail.message).to.include('no control to click');
+        expect(detail.context.trialOsi, 'nothing to carry when none was picked').to.equal(undefined);
+    });
+});

@@ -2123,6 +2123,9 @@ export class MasChat extends LitElement {
             // Returning here without a turn leaves the user looking at
             // "Resolving offer..." with nothing after it.
             const offer = operationResult?.rawResult?.offer || {};
+            // OST's plans-base-and-trial mode returns both slots at once, so a
+            // trial can already be settled before the flow ever asks about one.
+            const hasTrial = Boolean(this.selectedReleaseTrialOsi);
             await this.handleSendMessage({
                 detail: {
                     // Do not restate the offer id here. "Selected offer: <id>"
@@ -2131,14 +2134,21 @@ export class MasChat extends LitElement {
                     // twice. The offer travels in context; this turn only says
                     // what is already settled and what comes next.
                     message:
-                        'The offer has been resolved and recorded. The product and offering type are already ' +
-                        'settled — do not look the offer up again and do not ask for either again. ' +
-                        'Proceed to Step 6 (Confirmation Summary).',
+                        `The offer has been resolved and recorded. The product and offering type are already ` +
+                        `settled — do not look the offer up again and do not ask for either again. ${
+                            hasTrial
+                                ? 'A free-trial offer was picked in the same OST session as the base offer, so the ' +
+                                  'trial is settled too — do not ask whether one is wanted. '
+                                : 'If a free-trial offer is still needed, emit open_ost so the tool actually opens. ' +
+                                  'Never tell the user in prose to open the Offer Selector Tool: that renders as ' +
+                                  'text with no control to click and the flow dead-ends. '
+                        }Proceed to Step 6 (Confirmation Summary).`,
                     context: {
                         hidden: true,
                         selectedProduct: this.selectedReleaseProduct,
                         offer,
                         ...(this.selectedReleaseOsi ? { osi: this.selectedReleaseOsi } : {}),
+                        ...(hasTrial ? { trialOsi: this.selectedReleaseTrialOsi } : {}),
                     },
                 },
             });

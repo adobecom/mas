@@ -2110,6 +2110,17 @@ export class MasChat extends LitElement {
             return;
         }
 
+        // The offer is new information; the product may not be. When it is the
+        // one chosen at Step 2, looking it up again re-renders "Found your
+        // product:" and the product path then tells the model to proceed to
+        // Step 4, asking for an offering type the user answered at Step 4.
+        // Only the offer-first entry, where nothing is selected yet, needs the
+        // product resolved from the offer.
+        const selected = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
+        if (selected && String(selected).toLowerCase() === String(arrangementCode).toLowerCase()) {
+            return;
+        }
+
         await this.resolveReleaseProductByArrangementCode(arrangementCode);
     }
 

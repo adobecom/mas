@@ -481,6 +481,23 @@ describe('processCTAs - headless CTA variant labels', async () => {
         });
     });
 
+    it('resolves a headless checkout CTA to a real checkout-link, preserving its commitment step/modal options and data-key', async () => {
+        merchCard.variant = 'marquee';
+        const fields = {
+            ctas: '<strong><a href="#" data-key="cta1" data-wcs-osi="abm" data-checkout-workflow-step="segmentation" data-modal="true">Free trial</a></strong>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const link = footer.querySelector('a[data-wcs-osi]');
+        expect(link.getAttribute('data-key')).to.equal('cta1');
+        expect(link.masElement).to.exist;
+        await link.onceSettled();
+        expect(link.options.checkoutWorkflowStep).to.equal('segmentation');
+        expect(link.options.modal).to.be.ok;
+    });
+
     it('does not label CTAs that carry an authored style class, even on a headless card', async () => {
         merchCard.variant = 'headless';
         const fields = { ctas: '<a href="#" class="accent">Buy now</a>' };

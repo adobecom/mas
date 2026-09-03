@@ -48,6 +48,7 @@ export function resolveHeadlessDisplayVariant(storedVariant) {
  *  CTAs with no real <strong>/<em> wrapper (see variation-utils.js#parseCtas). */
 export function getCtaEmphasis(className) {
     if (!className) return null;
+    if (className.includes('accent')) return 'bold';
     if (className.includes('primary') && !className.includes('-link')) return 'bold';
     if (className.includes('secondary') && !className.includes('-link')) return 'italic';
     return null;

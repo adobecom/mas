@@ -67,6 +67,10 @@ describe('link-variant-utils', () => {
             expect(getCtaEmphasis('primary')).to.equal('bold');
         });
 
+        it('returns bold for an accent className', () => {
+            expect(getCtaEmphasis('accent')).to.equal('bold');
+        });
+
         it('returns italic for a secondary (non-link) className', () => {
             expect(getCtaEmphasis('secondary')).to.equal('italic');
         });

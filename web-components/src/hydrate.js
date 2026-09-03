@@ -481,6 +481,28 @@ export function processFeatures(fields, merchCard, mapping) {
     processFeaturesLinks(merchCard, mapping);
 }
 
+/**
+ * Upgrades a headless CTA anchor into a real checkout-link (resolving its commitment
+ * step/modal options) without adding a button-style class, mirroring mas-field.js's
+ * #buildCtaButton. Needed because the "-link" style bypass below normally just reuses the
+ * raw, un-upgraded anchor - fine for a plain link, but a headless Primary/Secondary CTA is
+ * still a real checkout CTA and must resolve through CheckoutLink to get its options.
+ */
+function createHeadlessCheckoutElement(linkElement) {
+    const CheckoutLink = customElements.get('checkout-link');
+    const button =
+        CheckoutLink?.createCheckoutLink(
+            linkElement.dataset,
+            linkElement.innerHTML,
+        ) ?? linkElement;
+    if (button === linkElement) return button;
+    for (const attr of linkElement.attributes) {
+        if (['class', 'is', 'href'].includes(attr.name)) continue;
+        button.setAttribute(attr.name, attr.value);
+    }
+    return button;
+}
+
 function transformLinkToButton(
     linkElement,
     merchCard,
@@ -526,7 +548,10 @@ function transformLinkToButton(
             aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
-        newButtonElement = linkElement;
+        newButtonElement =
+            isHeadlessCta && isCheckoutLink
+                ? createHeadlessCheckoutElement(linkElement)
+                : linkElement;
     } else {
         let variant;
         if (isAccent) {

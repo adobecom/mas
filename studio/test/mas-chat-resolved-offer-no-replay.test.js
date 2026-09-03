@@ -25,6 +25,7 @@ describe('MasChat does not replay steps the user already answered', () => {
     let el;
     let storageSandbox;
     let reResolved;
+    let sent;
 
     beforeEach(async () => {
         storageSandbox = useIsolatedChatSessionStorage();
@@ -32,6 +33,7 @@ describe('MasChat does not replay steps the user already answered', () => {
         document.body.appendChild(el);
         await el.updateComplete;
         reResolved = sinon.stub(el, 'resolveReleaseProductByArrangementCode').resolves();
+        sent = sinon.stub(el, 'handleSendMessage').resolves();
     });
 
     afterEach(() => {
@@ -58,6 +60,20 @@ describe('MasChat does not replay steps the user already answered', () => {
 
         const productRenders = el.messages.filter((m) => String(m.content).includes('Found your product:'));
         expect(productRenders, 'the product is shown once, from Step 2').to.have.lengthOf(1);
+    });
+
+    it('carries the flow forward instead of stopping dead', async () => {
+        // The first version of this guard only skipped the lookup, which left
+        // the user staring at "Resolving offer..." with nothing after it.
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE };
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        expect(sent.calledOnce, 'a turn must advance the flow').to.equal(true);
+        const detail = sent.firstCall.args[0].detail;
+        expect(detail.message).to.include('Proceed to Step 6');
+        expect(detail.message).to.include('do not ask for either again');
+        expect(detail.context.hidden, 'the nudge is not shown to the user').to.equal(true);
     });
 
     it('ignores case when comparing the arrangement code', async () => {

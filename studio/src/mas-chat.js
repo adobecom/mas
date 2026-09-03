@@ -2118,6 +2118,25 @@ export class MasChat extends LitElement {
         // product resolved from the offer.
         const selected = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
         if (selected && String(selected).toLowerCase() === String(arrangementCode).toLowerCase()) {
+            // Carry the flow forward rather than just stopping: the offer is
+            // the new information and the confirmation is what comes next.
+            // Returning here without a turn leaves the user looking at
+            // "Resolving offer..." with nothing after it.
+            const offer = operationResult?.rawResult?.offer || {};
+            await this.handleSendMessage({
+                detail: {
+                    message:
+                        `Selected offer: ${offer.offer_id || ''} for the product already chosen ` +
+                        `(arrangement_code: ${arrangementCode}). The product and offering type are already ` +
+                        `settled — do not ask for either again. Proceed to Step 6 (Confirmation Summary).`,
+                    context: {
+                        hidden: true,
+                        selectedProduct: this.selectedReleaseProduct,
+                        offer,
+                        ...(this.selectedReleaseOsi ? { osi: this.selectedReleaseOsi } : {}),
+                    },
+                },
+            });
             return;
         }
 

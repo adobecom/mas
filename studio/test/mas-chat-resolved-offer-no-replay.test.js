@@ -19,7 +19,10 @@ import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js
  * the path was never reached.
  */
 const PRODUCT_CODE = 'PA-1930';
-const resolvedOffer = { success: true, rawResult: { offer: { product_arrangement_code: PRODUCT_CODE } } };
+const resolvedOffer = {
+    success: true,
+    rawResult: { offer: { offer_id: 'F5B3D59867BC5B6020EFA0763C3AE92A', product_arrangement_code: PRODUCT_CODE } },
+};
 
 describe('MasChat does not replay steps the user already answered', () => {
     let el;
@@ -73,6 +76,12 @@ describe('MasChat does not replay steps the user already answered', () => {
         const detail = sent.firstCall.args[0].detail;
         expect(detail.message).to.include('Proceed to Step 6');
         expect(detail.message).to.include('do not ask for either again');
+        // Restating the id made the model resolve the offer a second time and
+        // render "Resolving offer..." twice. It travels in context instead.
+        expect(detail.message, 'the offer id must not read as a new selection').to.not.include('F5B3');
+        expect(detail.context.offer.offer_id, 'but the offer itself still reaches the model').to.equal(
+            'F5B3D59867BC5B6020EFA0763C3AE92A',
+        );
         expect(detail.context.hidden, 'the nudge is not shown to the user').to.equal(true);
     });
 

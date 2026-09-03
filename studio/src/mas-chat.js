@@ -2125,10 +2125,15 @@ export class MasChat extends LitElement {
             const offer = operationResult?.rawResult?.offer || {};
             await this.handleSendMessage({
                 detail: {
+                    // Do not restate the offer id here. "Selected offer: <id>"
+                    // reads as a fresh selection and the model resolves it a
+                    // second time, which is why "Resolving offer..." appeared
+                    // twice. The offer travels in context; this turn only says
+                    // what is already settled and what comes next.
                     message:
-                        `Selected offer: ${offer.offer_id || ''} for the product already chosen ` +
-                        `(arrangement_code: ${arrangementCode}). The product and offering type are already ` +
-                        `settled — do not ask for either again. Proceed to Step 6 (Confirmation Summary).`,
+                        'The offer has been resolved and recorded. The product and offering type are already ' +
+                        'settled — do not look the offer up again and do not ask for either again. ' +
+                        'Proceed to Step 6 (Confirmation Summary).',
                     context: {
                         hidden: true,
                         selectedProduct: this.selectedReleaseProduct,

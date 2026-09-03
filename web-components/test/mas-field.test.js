@@ -943,6 +943,28 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options.displayPlanType).to.equal(false);
     });
 
+    it('merges the fragment price literals into options.literals', () => {
+        const masField = document.createElement('mas-field');
+        const fragment = document.createElement('aem-fragment');
+        Object.defineProperty(fragment, 'data', {
+            configurable: true,
+            value: {
+                priceLiterals: {
+                    planTypeLabel:
+                        '{planType, select, ABM {Annual, billed monthly} M2M {Monthly} other {}}',
+                },
+            },
+        });
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'legal';
+        masField.append(fragment, inline);
+        document.body.append(masField);
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.literals.planTypeLabel).to.contain('M2M {Monthly}');
+    });
+
     it('defaults displayPlanType to false for legal when the setting is absent', () => {
         const masField = document.createElement('mas-field');
         masField.append(document.createElement('aem-fragment'));

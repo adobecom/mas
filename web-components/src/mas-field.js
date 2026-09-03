@@ -89,6 +89,15 @@ export function priceOptionsProvider(element, options) {
     options[FF_DEFAULTS] = true;
     options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
 
+    // Apply the fragment's resolved price literals (e.g. the locale's plan-type
+    // label), mirroring merch-card — otherwise labels fall back to the built-in
+    // defaults and locale-specific plan types render empty.
+    const priceLiterals = masField?.aemFragment?.data?.priceLiterals;
+    if (priceLiterals) {
+        options.literals ??= {};
+        Object.assign(options.literals, priceLiterals);
+    }
+
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
         options.displayTax = false;

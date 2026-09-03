@@ -1191,7 +1191,7 @@ describe('MasPromotionsItemsTable', () => {
                 tags: [],
                 offerData: null,
             };
-            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]));
+            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]), Store.promotions);
 
             const cardWithGroupedVariation = {
                 ...cardFragment,

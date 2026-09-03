@@ -255,6 +255,46 @@ export function flowIdField(payload) {
     return typeof flowId === 'string' && flowId ? { flowId } : {};
 }
 
+/**
+ * A guided step that gives the user nothing to do.
+ *
+ * The model repeatedly describes an action instead of taking it — "Let me look
+ * that up first", "open the Offer Selector Tool and pick one" — which arrives
+ * as a guided_step carrying only a sentence. There is no operation to run and
+ * no control to press, so the flow stops there. emit_guided_step requires only
+ * flowId and message, so this is schema-valid, and asking the model not to do
+ * it has failed three times.
+ *
+ * A button group with neither options nor an input hint counts as nothing: it
+ * renders as a label with no way to answer it.
+ */
+export function isDeadEndGuidedStep(parsed) {
+    if (parsed?.type !== 'guided_step') return false;
+    if (parsed.productCards?.length) return false;
+    const group = parsed.buttonGroup;
+    if (group && (group.options?.length || group.inputHint)) return false;
+    return true;
+}
+
+/**
+ * Last resort when a dead end survives the retry: keep what the model said and
+ * attach a control, so a narrated step becomes an answerable one rather than
+ * the end of the conversation.
+ */
+export function withDeadEndRecovery(parsed) {
+    if (!isDeadEndGuidedStep(parsed)) return parsed;
+    return {
+        ...parsed,
+        buttonGroup: {
+            label: 'Continue',
+            options: [
+                { label: 'Continue', value: 'release_continue' },
+                { label: 'Cancel', value: 'release_cancel' },
+            ],
+        },
+    };
+}
+
 export function parseAIResponse(responseText) {
     const cardConfig = extractJSON(responseText);
     const conversationalText = extractConversationalText(responseText);

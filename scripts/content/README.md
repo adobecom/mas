@@ -121,6 +121,12 @@ with exit `1` rather than silently disabling the flag.
 Assumes flat (non-nested) `data-extra-options` JSON, which is all the Studio UI
 can author; a nested `{…{…}…}` value would not be matched.
 
+The escape logic mirrors the IO corrector (`fixDataExtraOptionsInValue` in
+`io/www/src/fragment/transformers/corrector.js`) for the corruption this script
+targets, but parity is not exact: this script also scans the `cta` field (the
+corrector only handles `ctas`), and it does not perform the corrector's global
+`&quot;` un-escape pass — it only escapes unescaped inner quotes.
+
 Exit codes: `0` all good; `1` bad usage; `2` one or more PUTs failed (the
 failed fragment ids/paths are printed and excluded from the report).
 

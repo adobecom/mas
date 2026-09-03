@@ -795,6 +795,7 @@ describe('wcs OSI substitution', function () {
         context.promoScopeById = { 'frag-1': scope({ 'OSI-A': 'SUB-A', 'OSI-B': 'SUB-B' }) };
         fetchStub
             .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-A%2CSUB-B')))
+
             .returns(createResponse(200, stubbedOffer('substituted')));
 
         context = await wcs.process(context);
@@ -812,12 +813,72 @@ describe('wcs OSI substitution', function () {
         context.promoScopeById = { 'frag-1': scope({ 'OSI-A': 'SUB-A' }) };
         fetchStub
             .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-A%2COSI-B')))
+
             .returns(createResponse(200, stubbedOffer('substituted')));
 
         context = await wcs.process(context);
 
         expect(context.body.fields.prices).to.include('data-wcs-osi="SUB-A,OSI-B"');
         expect(context.body.wcs.prod).to.have.property('SUB-A,OSI-B-us-mult');
+    });
+
+    it('sets fields.replacedOsi when an HTML element OSI is substituted via promo scope', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: { prices: '<span data-wcs-osi="BASE-OSI"></span>' },
+        };
+        context.promoScopeById = { 'frag-1': scope({ 'BASE-OSI': 'SUB-OSI' }) };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.replacedOsi).to.equal('BASE-OSI');
+    });
+
+    it('sets fields.replacedOsi when fields.osi is substituted via promo scope', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: { osi: 'FIELD-OSI', prices: '<span data-wcs-osi="FIELD-OSI"></span>' },
+        };
+        context.promoScopeById = { 'frag-1': scope({ 'FIELD-OSI': 'SUB-FIELD-OSI' }) };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-FIELD-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.replacedOsi).to.equal('FIELD-OSI');
+    });
+
+    it('does not set fields.replacedOsi when no substitution occurs', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: { osi: 'ORIG-OSI', prices: '<span data-wcs-osi="ORIG-OSI"></span>' },
+        };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=ORIG-OSI')))
+            .returns(createResponse(200, stubbedOffer('original')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.replacedOsi).to.be.undefined;
+    });
+
+    it('deduplicates fields.replacedOsi when same OSI appears in both HTML and fields.osi', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: { osi: 'SAME-OSI', prices: '<span data-wcs-osi="SAME-OSI"></span>' },
+        };
+        context.promoScopeById = { 'frag-1': scope({ 'SAME-OSI': 'SUB-OSI' }) };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.replacedOsi).to.equal('SAME-OSI');
     });
 });
 

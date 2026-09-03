@@ -285,7 +285,24 @@ function updateOffers(context, offerMap = {}) {
             );
         }
         if (fields && hasSubstitutions) {
+            const originalOwnOsi = fields.osi;
             substituteOwnOsi(fields, substituteMap);
+            const replacedSet = new Set();
+            for (const { osi, rawOsi } of elements) {
+                if (osi !== rawOsi) {
+                    const rawParts = rawOsi.split(',');
+                    const osiParts = osi.split(',');
+                    rawParts.forEach((part, i) => {
+                        if (part !== osiParts[i]) replacedSet.add(part);
+                    });
+                }
+            }
+            if (originalOwnOsi != null && fields.osi !== originalOwnOsi) {
+                replacedSet.add(originalOwnOsi);
+            }
+            if (replacedSet.size > 0) {
+                fields.replacedOsi = [...replacedSet].join(',');
+            }
         }
         for (const { osi, promotionCode } of elements) masElements.push({ osi, promotionCode });
     }

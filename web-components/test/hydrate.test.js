@@ -1045,6 +1045,64 @@ describe('MerchCard data-promotion-code attribute', () => {
     });
 });
 
+describe('MerchCard data-locked-osi attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-locked-osi attribute when lockedOsi is assigned', () => {
+        card.lockedOsi = 'LOCKED-OSI-123';
+        expect(card.getAttribute('data-locked-osi')).to.equal('LOCKED-OSI-123');
+    });
+
+    it('does not have data-locked-osi attribute when lockedOsi is not set', () => {
+        expect(card.hasAttribute('data-locked-osi')).to.be.false;
+    });
+
+    it('removes data-locked-osi attribute when lockedOsi is cleared', () => {
+        card.lockedOsi = 'LOCKED-OSI-123';
+        card.lockedOsi = undefined;
+        expect(card.hasAttribute('data-locked-osi')).to.be.false;
+    });
+});
+
+describe('MerchCard data-replaced-osi attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-replaced-osi attribute when replacedOsi is assigned', () => {
+        card.replacedOsi = 'ORIG-OSI-456';
+        expect(card.getAttribute('data-replaced-osi')).to.equal('ORIG-OSI-456');
+    });
+
+    it('does not have data-replaced-osi attribute when replacedOsi is not set', () => {
+        expect(card.hasAttribute('data-replaced-osi')).to.be.false;
+    });
+
+    it('removes data-replaced-osi attribute when replacedOsi is cleared', () => {
+        card.replacedOsi = 'ORIG-OSI-456';
+        card.replacedOsi = undefined;
+        expect(card.hasAttribute('data-replaced-osi')).to.be.false;
+    });
+});
+
 describe('processDescription', async () => {
     let merchCard;
     let aemFragmentMapping;

@@ -1553,6 +1553,22 @@ function logParseFailure(requestId, mode, rawText, { retried, recovered }) {
     );
 }
 
+/**
+ * Separate "this turn was not an envelope" from "an envelope failed to
+ * validate".
+ *
+ * Guided payloads carry a type and no intent, so the validator declines them
+ * with intent-missing — that is the guard which stops a coerced ASK_USER
+ * envelope hijacking a guided reply, and it fires on every healthy guided turn.
+ * Logging that as ok:false buried the failures that do matter. Query
+ * outcome=invalid for those.
+ */
+export function shadowValidationOutcome(validation) {
+    if (!validation) return null;
+    if (validation.ok) return 'valid';
+    return validation.reason === 'intent-missing' ? 'not-an-envelope' : 'invalid';
+}
+
 function logShadowValidation(foundryResponse, params) {
     try {
         const message = foundryResponse?.message;
@@ -1564,6 +1580,7 @@ function logShadowValidation(foundryResponse, params) {
                 phase: 'shadow-validation',
                 req: resolveRequestId(params),
                 ok: validation.ok,
+                outcome: shadowValidationOutcome(validation),
                 reason: validation.reason ?? null,
                 intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
             }),

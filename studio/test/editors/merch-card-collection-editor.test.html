@@ -47,7 +47,7 @@
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
+            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from '../../src/constants.js';
             import Store from '../../src/store.js';
 
             runTests(async () => {
@@ -65,6 +65,26 @@
                         document.querySelector('main sp-theme').appendChild(editor);
                         await editor.updateComplete;
                         expect(editor).to.exist;
+                        editor.remove();
+                    });
+                    it('should mark collection staged', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const collectionFragment = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then(
+                            (res) => res.json(),
+                        );
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionFragment));
+                        document.querySelector('main sp-theme').appendChild(editor);
+                        await editor.updateComplete;
+                        expect(editor).to.exist;
+
+                        editor.shadowRoot
+                            .querySelector('sp-switch#markStaged')
+                            .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const tags = editor.fragmentStore.get().fields.find((field) => field.name === 'tags')?.values[0];
+                        expect(tags).to.equal(STAGED.TAG);
+
                         editor.remove();
                     });
                 });

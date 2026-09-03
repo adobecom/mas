@@ -203,6 +203,14 @@
                                 { name: 'size', values: ['wide'] },
                                 { name: 'cardName', values: ['Test Card'] },
                                 { name: 'tags', values: [STAGED.TAG] },
+                                { name: 'variations', values: ['/abc'] },
+                            ],
+                            references: [
+                                {
+                                    id: 'abc',
+                                    path: '/abc',
+                                    fields: [{ name: 'tags', values: [STAGED.TAG] }],
+                                },
                             ],
                         });
                         const el = document.createElement('mas-fragment-editor');
@@ -210,13 +218,19 @@
                         el.publishFragment();
 
                         await delay(100);
-                        const dialog = document.body.querySelector('mas-publish-staged-dialog');
+                        const dialog = document.body.querySelector('mas-publish-dialog');
+                        dialog.confirm();
+
+                        await delay(100);
+                        const dialogStaged = document.body.querySelector('mas-publish-staged-dialog');
 
                         let cancelled = false;
-                        dialog.addEventListener('staged-cancelled', () => {
-                            cancelled = true;
-                        });
-                        dialog.cancel();
+                        if (dialogStaged) {
+                            dialogStaged.addEventListener('staged-cancelled', () => {
+                                cancelled = true;
+                            });
+                            dialogStaged.cancel();
+                        }
                         await delay(100);
                         expect(cancelled).to.be.true;
                     });

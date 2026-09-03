@@ -38,9 +38,14 @@ function hasValidPreRecordedSnapshot(entries) {
 // Primary entries take precedence; secondary entries whose fragmentId is not already covered are appended.
 function mergeCascadedEntries(primaryEntries, secondaryEntries) {
     if (!secondaryEntries.length) return primaryEntries;
+    if (!primaryEntries.length) return secondaryEntries;
     const primaryIds = new Set(primaryEntries.map((e) => JSON.parse(e).fragmentId));
     const cascaded = secondaryEntries.filter((e) => !primaryIds.has(JSON.parse(e).fragmentId));
     return [...primaryEntries, ...cascaded];
+}
+
+function formatSnapshotError(prefix, failures) {
+    return failures.length > 0 ? `${prefix}:\n${failures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
 }
 
 function terminalStatus(result) {
@@ -114,8 +119,7 @@ async function runWorker(input, deps = {}) {
         // Cascaded fragments discovered by createSnapshot are not in the pre-recorded set,
         // so append them (using their freshly created Pre-bulk-publish versionIds) as revert targets.
         snapshotEntries = mergeCascadedEntries(existingSnapshots, snapEntries);
-        snapshotError =
-            snapFailures.length > 0 ? `CREATE_SNAPSHOT:\n${snapFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+        snapshotError = formatSnapshotError('CREATE_SNAPSHOT', snapFailures);
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(snapshotEntries),
@@ -136,11 +140,12 @@ async function runWorker(input, deps = {}) {
         // Same merge: top-level entries come from recordSnapshot (green/null versionIds),
         // cascaded entries come from createSnapshot (Pre-bulk-publish versionIds).
         snapshotEntries = mergeCascadedEntries(fresh, snapEntries);
-        const recordError =
-            recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
-        const createError =
-            snapFailures.length > 0 ? `CREATE_SNAPSHOT:\n${snapFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
-        snapshotError = [recordError, createError].filter(Boolean).join('\n');
+        snapshotError = [
+            formatSnapshotError('SAVE_SNAPSHOT', recordFailures),
+            formatSnapshotError('CREATE_SNAPSHOT', snapFailures),
+        ]
+            .filter(Boolean)
+            .join('\n');
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(snapshotEntries),

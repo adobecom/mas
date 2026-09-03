@@ -23,7 +23,7 @@ import {
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
 import { parseAIResponse, validateCollectionConfig, extractJSON, flowIdField } from './response-parser.js';
-import { handleOperation } from './operations-handler.js';
+import { handleOperation, withResolvedArrangementCode } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
@@ -1077,7 +1077,11 @@ async function main(params) {
         const shadowValidation = logShadowValidation(response, params);
         const envelopePayload = shadowValidation?.ok ? { envelope: shadowValidation.envelope } : {};
 
-        const operationResult = handleOperation(response.message, enrichedContext);
+        let operationResult = handleOperation(response.message, enrichedContext);
+        // An offer lookup without the product is a scan, not a lookup. The
+        // conversation already names the product by this point, so fill it in
+        // rather than depending on the model to have remembered.
+        operationResult = withResolvedArrangementCode(operationResult, conversationHistory);
 
         if (operationResult) {
             if (operationResult.type === 'mcp_operation') {

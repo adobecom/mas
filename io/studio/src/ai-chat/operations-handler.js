@@ -387,3 +387,37 @@ export function handleOperation(responseText, enrichedContext) {
     const message = extractOperationMessage(responseText);
     return processOperation(operation, message);
 }
+
+/**
+ * The product arrangement code the conversation has already settled on.
+ *
+ * AOS does not filter by offer id, so get_offer_by_id is only a real lookup
+ * when it carries the product. The guided prompt asks the model to send it and
+ * the model does not reliably do so, which surfaces as "was not in the
+ * unfiltered results" on an offer the user just picked. By the time an offer is
+ * being resolved the conversation already names the product, so read it from
+ * there instead of depending on the model to remember.
+ *
+ * Scans newest first: a user who changes product mid-flow must not be resolved
+ * against the earlier one.
+ */
+export function resolveArrangementCodeFromHistory(conversationHistory) {
+    if (!Array.isArray(conversationHistory)) return null;
+    const pattern = /arrangement_code["']?\s*[:=]\s*["']?([A-Za-z0-9_-]+)/i;
+    for (let i = conversationHistory.length - 1; i >= 0; i -= 1) {
+        const content = conversationHistory[i]?.content;
+        if (typeof content !== 'string') continue;
+        const match = content.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+/** Fill in the arrangement code for an offer lookup that left it out. */
+export function withResolvedArrangementCode(operation, conversationHistory) {
+    if (operation?.mcpTool !== 'get_offer_by_id') return operation;
+    if (operation.mcpParams?.arrangementCode) return operation;
+    const arrangementCode = resolveArrangementCodeFromHistory(conversationHistory);
+    if (!arrangementCode) return operation;
+    return { ...operation, mcpParams: { ...operation.mcpParams, arrangementCode } };
+}

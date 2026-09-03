@@ -8,11 +8,10 @@ const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
 // Built-in placeholders resolved for every fragment on top of the Odin dictionary. Each key maps to a
-// fixed value; add entries here to expose new system placeholders. `data-legal-case` opts the marker
-// into sentence-boundary casing, applied client-side by the price provider.
+// fixed value; add entries here to expose new system placeholders.
 export const SYSTEM_PLACEHOLDERS = {
     'plan-type-text':
-        '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\" data-legal-case></span>',
+        '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\"></span>',
 };
 
 const TRANSFORMER_NAME = 'replace';

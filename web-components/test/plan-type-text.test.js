@@ -20,7 +20,7 @@ const tokenCard = (before) => {
     const card = document.createElement('merch-card');
     card.innerHTML =
         '<span is="inline-price" data-template="price" data-wcs-osi="ABC"></span>' +
-        `<p>${before}<span is="inline-price" data-template="legal" data-placeholder="plan-type-text" data-legal-case></span></p>`;
+        `<p>${before}<span is="inline-price" data-template="legal" data-placeholder="plan-type-text"></span></p>`;
     document.body.append(card);
     return card.querySelector('[data-placeholder="plan-type-text"]');
 };
@@ -70,33 +70,6 @@ describe('planTypeTextOptionsProvider', () => {
         planTypeTextOptionsProvider(tokenCard('flexible, '), options);
         expect(options.planTypeCase).to.equal('lower');
     });
-
-    it('does not set casing when data-legal-case is absent', () => {
-        const card = document.createElement('merch-card');
-        card.innerHTML =
-            '<span is="inline-price" data-template="price" data-wcs-osi="ABC"></span>' +
-            '<p>plan is <span is="inline-price" data-template="legal" data-placeholder="plan-type-text"></span></p>';
-        document.body.append(card);
-        const token = card.querySelector('[data-placeholder="plan-type-text"]');
-        const options = {};
-        planTypeTextOptionsProvider(token, options);
-        expect(options.planTypeCase).to.equal(undefined);
-        expect(options.displayPlanType).to.equal(true);
-    });
-
-    it('applies casing to any legal price with data-legal-case, without plan-type-only forcing', () => {
-        const card = document.createElement('merch-card');
-        card.innerHTML =
-            '<span is="inline-price" data-template="price" data-wcs-osi="ABC"></span>' +
-            '<p>value is <span is="inline-price" data-template="legal" data-legal-case data-wcs-osi="XYZ"></span></p>';
-        document.body.append(card);
-        const token = card.querySelector('[data-legal-case]');
-        const options = {};
-        planTypeTextOptionsProvider(token, options);
-        expect(options.planTypeCase).to.equal('lower');
-        expect(options.wcsOsi).to.equal(undefined);
-        expect(options.displayPlanType).to.equal(undefined);
-    });
 });
 
 describe('planTypeCaseFor (sentence-boundary casing)', () => {
@@ -126,5 +99,11 @@ describe('precedingChar', () => {
     it('returns empty string when nothing precedes', () => {
         const token = tokenCard('');
         expect(precedingChar(token)).to.equal('');
+    });
+});
+
+describe('marker styles', () => {
+    it('self-injects the plan-type-text stylesheet on import', () => {
+        expect(document.querySelector('style[data-plan-type-text]')).to.exist;
     });
 });

@@ -120,10 +120,31 @@ function detectVariantFromMessage(message, context) {
  * Note: CORS headers are handled automatically by OpenWhisk gateway for web actions
  * @returns {Object} - Response headers
  */
-function getResponseHeaders() {
+export function getResponseHeaders() {
     return {
         'Content-Type': 'application/json',
+        // The activation id is the key to a turn's whole server-side trace, and
+        // the browser cannot read it off the response unless CORS says so.
+        'Access-Control-Expose-Headers': 'x-openwhisk-activation-id',
     };
+}
+
+/**
+ * Put the activation id in the body so a user report can be traced.
+ *
+ * Every log line this action writes carries `req`, which is the activation id,
+ * so one id retrieves the entire trace of a turn. Until now the id only reached
+ * the caller when the response failed to parse — never for a response that
+ * parsed and was simply wrong, which is what gets reported. An id the user can
+ * quote is the difference between reading the trace and reconstructing the turn
+ * from a screenshot.
+ */
+export function attachRequestId(result, requestId) {
+    if (!requestId || !result?.body || typeof result.body !== 'object' || Array.isArray(result.body)) {
+        return result;
+    }
+    if (result.body.requestId) return result;
+    return { ...result, body: { ...result.body, requestId } };
 }
 
 /**
@@ -1906,4 +1927,10 @@ async function determineSystemPromptWithMetaAsync({ intentHint, conversationHist
     return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
 }
 
-export { main };
+/** Every response carries the activation id; main returns from many places. */
+async function mainWithRequestId(params) {
+    const result = await main(params);
+    return attachRequestId(result, params?.requestId ?? process.env.__OW_ACTIVATION_ID ?? null);
+}
+
+export { mainWithRequestId as main };

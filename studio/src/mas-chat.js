@@ -1306,7 +1306,16 @@ export class MasChat extends LitElement {
         }
 
         try {
-            return await response.json();
+            const body = await response.json();
+            // A report is only traceable if the id is visible somewhere. Every
+            // server log line for the turn carries this same value, so quoting
+            // it retrieves the whole trace. The header is the fallback for a
+            // response the action could not shape.
+            this.lastRequestId = body?.requestId || response.headers.get('x-openwhisk-activation-id') || null;
+            if (this.lastRequestId) {
+                console.info(`[mas-chat] requestId ${this.lastRequestId}`);
+            }
+            return body;
         } catch (error) {
             logError('AI response body was not valid JSON', error);
             throw new Error(

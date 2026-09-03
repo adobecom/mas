@@ -10624,7 +10624,7 @@ merch-card[variant="mini"] span.renewal-text {
                         </div>
                     `)}
             </div>
-        `}};g(ri,"variantStyle",Pt("faq"));P();var Xh={cardName:{attribute:"name"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},nf=[{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],ii=class extends C{constructor(r){super(r)}getGlobalCSS(){return Lt}renderLayout(){return f`
+        `}};g(ri,"variantStyle",Pt("faq"));P();var Xh={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},nf=[{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],ii=class extends C{constructor(r){super(r)}getGlobalCSS(){return Lt}renderLayout(){return f`
             <div class="headless">
                 ${nf.map(({slot:r,label:e})=>f`
                         <div class="headless-row">

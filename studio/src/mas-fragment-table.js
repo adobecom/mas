@@ -179,11 +179,7 @@ class MasFragmentTable extends LitElement {
     }
 
     get isStaged() {
-        const tags =
-            this.fragmentStore.value.getField('variation_tags')?.values ||
-            this.fragmentStore.value.getField('tags')?.values ||
-            [];
-        return tags.includes(STAGED.TAG);
+        return this.fragmentStore.value.isStaged;
     }
 
     get isVariationSelected() {

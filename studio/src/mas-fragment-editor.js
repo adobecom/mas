@@ -12,7 +12,6 @@ import {
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
     TAG_PROMOTION_PREFIX,
-    STAGED,
 } from './constants.js';
 import router from './router.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
@@ -1632,10 +1631,10 @@ export default class MasFragmentEditor extends LitElement {
 
                 const anyStaged =
                     this.fragment.isStaged ||
-                    refs.variations.some((variation) => {
+                    [...refs.variations, ...refs.cards].some((variation) => {
                         if (!result.selectedIds.includes(variation.id)) return false;
-                        const tags = variation.fields?.find((f) => f.name === 'tags')?.values || [];
-                        return tags.includes(STAGED.TAG);
+                        const variationObj = new Fragment(variation);
+                        return variationObj.isStaged;
                     });
                 if (anyStaged) {
                     const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');

@@ -31,6 +31,7 @@ class MasPublishStagedDialog extends LitElement {
                 cancel-label="Cancel"
                 confirm-label="Publish"
                 underlay
+                size="m"
                 no-divider
                 @confirm=${this.confirm}
                 @cancel=${this.cancel}

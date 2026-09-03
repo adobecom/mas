@@ -135,8 +135,9 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
     const previewData = structuredClone(sourceFragment);
     const tags = sourceFragment.fields?.find((f) => f.name === 'tags');
     if (tags) {
-        tags.name = 'variation_tags';
-        previewData.fields.push({ ...tags });
+        const variationTags = structuredClone(tags);
+        variationTags.name = 'variation_tags';
+        previewData.fields.push(variationTags);
     }
 
     parentFragment.fields?.forEach((parentField) => {

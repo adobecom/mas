@@ -719,6 +719,20 @@ export default class EditorPanel extends LitElement {
                 const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
                 const result = await MasPublishDialog.show(refs);
                 if (!result.confirmed) return;
+
+                const anyStaged =
+                    this.fragment.isStaged ||
+                    [...refs.variations, ...refs.cards].some((variation) => {
+                        if (!result.selectedIds.includes(variation.id)) return false;
+                        const variationObj = new Fragment(variation);
+                        return variationObj.isStaged;
+                    });
+                if (anyStaged) {
+                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                    const resultStaged = await MasPublishStagedDialog.show(true);
+                    if (!resultStaged.confirmed) return;
+                }                
+
                 await this.repository.publishFragment(this.fragment, {
                     selectedRefIds: result.selectedIds,
                     allSelected: result.allSelected,

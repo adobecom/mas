@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, PAGE_NAMES, STAGED, CARD_MODEL_PATH } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES, STAGED } from './constants.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
@@ -162,11 +162,8 @@ class MasSelectionPanel extends LitElement {
         const anyStaged = [...hydratedFragments, ...allCards, ...allVariations].some((fragment) => {
             let staged = false;
             if (!staged && fragmentIds.includes(fragment.id)) {
-                fragment.fields.forEach((field) => {
-                    if (field.name === 'tags' && field.values.includes(STAGED.TAG)) {
-                        staged = true;
-                    }
-                });
+                const fragmentObj = new Fragment(fragment);
+                if (fragmentObj.isStaged) staged = true;
             }
             return staged;
         });
@@ -188,28 +185,30 @@ class MasSelectionPanel extends LitElement {
             return;
         }
 
-        const saved = [];
+        const savedIds = [];
+        const savedFragments = [];
         await Promise.all(
             this.selection.map(async (id) => {
                 const data = await this.repository.aem.sites.cf.fragments.getById(id);
                 const fragment = new Fragment(data);
-                if (fragment.isStaged || fragment.model.path !== CARD_MODEL_PATH) return;
+                if (fragment.isStaged) return;
                 const oldTags = fragment.getFieldValues('tags') || [];
                 const tags = [...oldTags];
                 tags.push(STAGED.TAG);
                 fragment.updateField('tags', tags);
-                this.repository.aem.sites.cf.fragments.save(fragment);
-                saved.push(id);
+                savedFragments[id] = await this.repository.aem.sites.cf.fragments.save(fragment);
+                savedIds.push(id);
             }),
         );
 
         Store.fragments.list.data.set((prev) => {
             return [...prev].map((fragmentStore) => {
                 const fragment = fragmentStore.get();
-                if (saved.includes(fragment?.id)) {
+                if (savedIds.includes(fragment?.id)) {
                     const tags = fragment.getFieldValues('tags') || [];
                     tags.push(STAGED.TAG);
                     fragment.updateField('tags', tags);
+                    fragment.tags = savedFragments[fragment.id]?.tags || fragment.tags;
                 }
                 return fragmentStore;
             });

@@ -1,21 +1,676 @@
-var Xi=Object.defineProperty;var Ki=e=>{throw TypeError(e)};var sc=(e,r,t)=>r in e?Xi(e,r,{enumerable:!0,configurable:!0,writable:!0,value:t}):e[r]=t;var cc=(e,r)=>{for(var t in r)Xi(e,t,{get:r[t],enumerable:!0})};var g=(e,r,t)=>sc(e,typeof r!="symbol"?r+"":r,t),pa=(e,r,t)=>r.has(e)||Ki("Cannot "+t);var v=(e,r,t)=>(pa(e,r,"read from private field"),t?t.call(e):r.get(e)),S=(e,r,t)=>r.has(e)?Ki("Cannot add the same private member more than once"):r instanceof WeakSet?r.add(e):r.set(e,t),E=(e,r,t,a)=>(pa(e,r,"write to private field"),a?a.call(e,t):r.set(e,t),t),H=(e,r,t)=>(pa(e,r,"access private method"),t);import{html as Ne,LitElement as Ks,css as Qs,unsafeCSS as Xs,nothing as xe}from"./lit-all.min.js";var z="(max-width: 767px)",X="(max-width: 1199px)",R="(min-width: 768px)",L="(min-width: 1200px)",ee="(min-width: 1600px)",Ht="(min-width: 1280px)",Qi={matchMobile:window.matchMedia(z),matchDesktop:window.matchMedia(`${L} and (not ${ee})`),matchDesktopOrUp:window.matchMedia(L),matchLargeDesktop:window.matchMedia(ee),get isMobile(){return this.matchMobile.matches},get isDesktop(){return this.matchDesktop.matches},get isDesktopOrUp(){return this.matchDesktopOrUp.matches}},A=Qi;function Er(){return Qi.isDesktop}var Ft=class{constructor(r,t){this.key=Symbol("match-media-key"),this.matches=!1,this.host=r,this.host.addController(this),this.media=window.matchMedia(t),this.matches=this.media.matches,this.onChange=this.onChange.bind(this),r.addController(this)}hostConnected(){var r;(r=this.media)==null||r.addEventListener("change",this.onChange)}hostDisconnected(){var r;(r=this.media)==null||r.removeEventListener("change",this.onChange)}onChange(r){this.matches!==r.matches&&(this.matches=r.matches,this.host.requestUpdate(this.key,!this.matches))}};var Zi="hashchange";function lc(e=window.location.hash){let r=[],t=e.replace(/^#/,"").split("&");for(let a of t){let[i,n=""]=a.split("=");i&&r.push([i,decodeURIComponent(n.replace(/\+/g," "))])}return Object.fromEntries(r)}function Bt(e){let r=new URLSearchParams(window.location.hash.slice(1));Object.entries(e).forEach(([i,n])=>{n?r.set(i,n):r.delete(i)}),r.sort();let t=r.toString();if(t===window.location.hash)return;let a=window.scrollY||document.documentElement.scrollTop;window.location.hash=t,window.scrollTo(0,a)}function Ji(e){let r=()=>{if(window.location.hash&&!window.location.hash.includes("="))return;let t=lc(window.location.hash);e(t)};return r(),window.addEventListener(Zi,r),()=>{window.removeEventListener(Zi,r)}}var Ha={};cc(Ha,{CLASS_NAME_FAILED:()=>Ea,CLASS_NAME_HIDDEN:()=>hc,CLASS_NAME_PENDING:()=>Sa,CLASS_NAME_RESOLVED:()=>Aa,CheckoutWorkflow:()=>Tc,CheckoutWorkflowStep:()=>ie,Commitment:()=>qe,ERROR_MESSAGE_BAD_REQUEST:()=>Ca,ERROR_MESSAGE_MISSING_LITERALS_URL:()=>Sc,ERROR_MESSAGE_OFFER_NOT_FOUND:()=>Ta,EVENT_AEM_ERROR:()=>ya,EVENT_AEM_LOAD:()=>ba,EVENT_COMPARE_CHART_REHYDRATE:()=>wc,EVENT_EXPANDED_GROUPS_CHANGE:()=>Ec,EVENT_MAS_ERROR:()=>wa,EVENT_MAS_READY:()=>Cr,EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE:()=>bc,EVENT_MERCH_CARD_ACTION_MENU_TOGGLE:()=>ga,EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED:()=>me,EVENT_MERCH_CARD_COLLECTION_SHOWMORE:()=>va,EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED:()=>Ut,EVENT_MERCH_CARD_COLLECTION_SORT:()=>fa,EVENT_MERCH_CARD_QUANTITY_CHANGE:()=>Ar,EVENT_MERCH_OFFER_READY:()=>uc,EVENT_MERCH_OFFER_SELECT_READY:()=>gc,EVENT_MERCH_QUANTITY_SELECTOR_CHANGE:()=>ae,EVENT_MERCH_SEARCH_CHANGE:()=>yc,EVENT_MERCH_SIDENAV_SELECT:()=>xa,EVENT_MERCH_STOCK_CHANGE:()=>vc,EVENT_MERCH_STORAGE_CHANGE:()=>xc,EVENT_OFFER_SELECTED:()=>fc,EVENT_TYPE_FAILED:()=>ka,EVENT_TYPE_READY:()=>Sr,EVENT_TYPE_RESOLVED:()=>ue,Env:()=>be,FF_ANNUAL_PRICE:()=>st,FF_DEFAULTS:()=>ke,HEADER_X_REQUEST_ID:()=>$t,LOG_NAMESPACE:()=>_a,Landscape:()=>Ie,MARK_DURATION_SUFFIX:()=>za,MARK_START_SUFFIX:()=>Ia,MERCH_CARD_LOAD_TIMEOUT:()=>ma,MODAL_TYPE_3_IN_1:()=>Ve,NAMESPACE:()=>dc,PARAM_AOS_API_KEY:()=>Ac,PARAM_ENV:()=>Pa,PARAM_LANDSCAPE:()=>Ma,PARAM_MAS_PREVIEW:()=>La,PARAM_WCS_API_KEY:()=>Cc,PLACEHOLDER_PLAN_TYPE_TEXT:()=>Pc,PROVIDER_ENVIRONMENT:()=>Oa,SELECTOR_MAS_CHECKOUT_LINK:()=>en,SELECTOR_MAS_ELEMENT:()=>ua,SELECTOR_MAS_INLINE_PRICE:()=>V,SELECTOR_MAS_SP_BUTTON:()=>mc,SELECTOR_MAS_UPT_LINK:()=>tn,SORT_ORDER:()=>fe,STATE_FAILED:()=>ge,STATE_PENDING:()=>Oe,STATE_RESOLVED:()=>Te,SUPPORTED_COUNTRIES:()=>Da,TAG_NAME_SERVICE:()=>pc,TEMPLATE_PRICE:()=>kc,TEMPLATE_PRICE_ANNUAL:()=>Lc,TEMPLATE_PRICE_LEGAL:()=>te,TEMPLATE_PRICE_STRIKETHROUGH:()=>_c,TRIAL_ANALYTICS_IDS:()=>rn,Term:()=>he,WCS_PROD_URL:()=>Ra,WCS_STAGE_URL:()=>Na});var qe=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),he=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"}),dc="merch",ma=2e4,hc="hidden",Sr="wcms:commerce:ready",pc="mas-commerce-service",V='span[is="inline-price"][data-wcs-osi]',en='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',mc="sp-button[data-wcs-osi]",tn='a[is="upt-link"]',ua=`${V},${en},${tn}`,rn=new Set(["free-trial","start-free-trial","seven-day-trial","fourteen-day-trial","thirty-day-trial"]),uc="merch-offer:ready",gc="merch-offer-select:ready",ga="merch-card:action-menu-toggle",fc="merch-offer:selected",vc="merch-stock:change",xc="merch-storage:change",ae="merch-quantity-selector:change",Ar="merch-card-quantity:change",bc="merch-modal:addon-and-quantity-update",yc="merch-search:change",fa="merch-card-collection:sort",me="merch-card-collection:literals-changed",Ut="merch-card-collection:sidenav-attached",va="merch-card-collection:showmore",xa="merch-sidenav:select",ba="aem:load",ya="aem:error",Cr="mas:ready",wa="mas:error",wc="mas-compare-chart:rehydrate",Ec="expanded-groups-change",Ea="placeholder-failed",Sa="placeholder-pending",Aa="placeholder-resolved",Ca="Bad WCS request",Ta="Commerce offer not found",Sc="Literals URL not provided",ka="mas:failed",ue="mas:resolved",_a="mas/commerce",La="mas.preview",Pa="commerce.env",Ma="commerce.landscape",Ac="commerce.aosKey",Cc="commerce.wcsKey",Ra="https://www.adobe.com/web_commerce_artifact",Na="https://www.stage.adobe.com/web_commerce_artifact_stage",ge="failed",Oe="pending",Te="resolved",Ie={DRAFT:"DRAFT",PUBLISHED:"PUBLISHED"},$t="X-Request-Id",ie=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"}),Tc="UCv3",be=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"}),Oa={PRODUCTION:"PRODUCTION"},Ve={TWP:"twp",D2P:"d2p",CRM:"crm"},Ia=":start",za=":duration",kc="price",_c="price-strikethrough",Lc="annual",te="legal",Pc="plan-type-text",ke="mas-ff-defaults",st="mas-ff-annual-price",fe={alphabetical:"alphabetical",authored:"authored"},Da=["AE","AM","AR","AT","AU","AZ","BB","BD","BE","BG","BH","BO","BR","BS","BY","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GB","GE","GH","GR","GT","HK","HN","HR","HU","ID","IE","IL","IN","IQ","IS","IT","JM","JO","JP","KE","KG","KR","KW","KZ","LA","LB","LK","LT","LU","LV","MA","MD","MO","MT","MU","MX","MY","NG","NI","NL","NO","NP","NZ","OM","PA","PE","PH","PK","PL","PR","PT","PY","QA","RO","RS","RU","SA","SE","SG","SI","SK","SV","TH","TJ","TM","TN","TR","TT","TW","TZ","UA","US","UY","UZ","VE","VN","YE","ZA"];var Mc="mas-commerce-service";function an(e,r){let t;return function(){let a=this,i=arguments;clearTimeout(t),t=setTimeout(()=>e.apply(a,i),r)}}var Gt=(e,r)=>e?.querySelector(`[slot="${r}"]`)?.textContent?.trim();function ye(e,r={},t=null,a=null){let i=a?document.createElement(e,{is:a}):document.createElement(e);t instanceof HTMLElement?i.appendChild(t):i.innerHTML=t;for(let[n,o]of Object.entries(r))i.setAttribute(n,o);return i}function Tr(e){return`startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`}function Fa(){return window.matchMedia("(max-width: 1024px)").matches}function qt(){return document.getElementsByTagName(Mc)?.[0]}function Vt(e){let r=window.getComputedStyle(e);return e.offsetHeight+parseFloat(r.marginTop)+parseFloat(r.marginBottom)}var Rc=["adobe.com","adobeioruntime.net","aem.live","aem.page"],Nc=["localhost","127.0.0.1"];function nn(e){try{let r=new URL(e);return Nc.includes(r.hostname)?r.protocol==="http:"||r.protocol==="https:":r.protocol!=="https:"?!1:Rc.some(t=>r.hostname===t||r.hostname.endsWith(`.${t}`))}catch{return!1}}import{html as kr,nothing as Oc}from"./lit-all.min.js";var ct,jt=class jt{constructor(r){g(this,"card");S(this,ct);this.card=r,this.insertVariantStyle()}getContainer(){return E(this,ct,v(this,ct)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),v(this,ct)}insertVariantStyle(){let r=this.constructor.name;if(!jt.styleMap[r]){jt.styleMap[r]=!0;let t=document.createElement("style");t.innerHTML=this.getGlobalCSS(),document.head.appendChild(t)}}updateCardElementMinHeight(r,t){if(!r||this.card.heightSync===!1)return;let a=`--consonant-merch-card-${this.card.variant}-${t}-height`,i=Math.max(0,parseInt(window.getComputedStyle(r).height)||0),n=this.getContainer(),o=parseInt(n.style.getPropertyValue(a))||0;i>o&&n.style.setProperty(a,`${i}px`)}syncRowHeights(r){if(this.card.heightSync===!1)return;let t=this.getContainer();if(!t)return;let a=this.card.variant,i=Array.from(t.querySelectorAll(`merch-card[variant="${a}"]`)).filter(o=>o.variantLayout?.card?.heightSync!==!1);if(i.length===0)return;for(let{name:o}of r){let s=`--consonant-merch-card-${a}-${o}-height`;t.style.getPropertyValue(s)&&t.style.removeProperty(s)}let n=new Map;for(let o of i){let s=o.getBoundingClientRect();if(s.width<=2)continue;let c=Math.round(s.top),l=n.get(c);l||(l=[],n.set(c,l)),l.push(o)}for(let o of n.values())for(let{name:s,getElement:c}of r){let l=`--consonant-merch-card-${a}-${s}-height`,d=o.map(h=>h.style.getPropertyValue(l)),m=0,p=o.map(h=>{h.style.removeProperty(l);let u=c(h);if(!u)return u;let f=Math.max(0,parseInt(window.getComputedStyle(u).height)||0);return f>m&&(m=f),u});o.forEach((h,u)=>{p[u]?.tagName!=="HR"&&(m>0?h.style.setProperty(l,`${m}px`):d[u]&&h.style.setProperty(l,d[u]))})}}get legalDisplayDot(){return!0}get badge(){let r;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(r=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),kr`
+var __defProp = Object.defineProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+
+// src/merch-card-collection.js
+import { html as html24, LitElement, css as css19, unsafeCSS as unsafeCSS6, nothing as nothing10 } from "./lit-all.min.js";
+
+// src/media.js
+var MOBILE_LANDSCAPE = "(max-width: 767px)";
+var TABLET_DOWN = "(max-width: 1199px)";
+var TABLET_UP = "(min-width: 768px)";
+var DESKTOP_UP = "(min-width: 1200px)";
+var LARGE_DESKTOP = "(min-width: 1600px)";
+var C2_DESKTOP_UP = "(min-width: 1280px)";
+var Media = {
+  matchMobile: window.matchMedia(MOBILE_LANDSCAPE),
+  matchDesktop: window.matchMedia(`${DESKTOP_UP} and (not ${LARGE_DESKTOP})`),
+  matchDesktopOrUp: window.matchMedia(DESKTOP_UP),
+  matchLargeDesktop: window.matchMedia(LARGE_DESKTOP),
+  get isMobile() {
+    return this.matchMobile.matches;
+  },
+  get isDesktop() {
+    return this.matchDesktop.matches;
+  },
+  get isDesktopOrUp() {
+    return this.matchDesktopOrUp.matches;
+  }
+};
+var media_default = Media;
+function isDesktop() {
+  return Media.isDesktop;
+}
+
+// ../../../../web-components/node_modules/@spectrum-web-components/reactive-controllers/src/MatchMedia.js
+var MatchMediaController = class {
+  constructor(e, t) {
+    this.key = /* @__PURE__ */ Symbol("match-media-key");
+    this.matches = false;
+    this.host = e, this.host.addController(this), this.media = window.matchMedia(t), this.matches = this.media.matches, this.onChange = this.onChange.bind(this), e.addController(this);
+  }
+  hostConnected() {
+    var e;
+    (e = this.media) == null || e.addEventListener("change", this.onChange);
+  }
+  hostDisconnected() {
+    var e;
+    (e = this.media) == null || e.removeEventListener("change", this.onChange);
+  }
+  onChange(e) {
+    this.matches !== e.matches && (this.matches = e.matches, this.host.requestUpdate(this.key, !this.matches));
+  }
+};
+
+// src/deeplink.js
+var EVENT_HASHCHANGE = "hashchange";
+function parseState(hash = window.location.hash) {
+  const result = [];
+  const keyValuePairs = hash.replace(/^#/, "").split("&");
+  for (const pair of keyValuePairs) {
+    const [key, value = ""] = pair.split("=");
+    if (key) {
+      result.push([key, decodeURIComponent(value.replace(/\+/g, " "))]);
+    }
+  }
+  return Object.fromEntries(result);
+}
+function pushState(state) {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  Object.entries(state).forEach(([key, value2]) => {
+    if (value2) {
+      hash.set(key, value2);
+    } else {
+      hash.delete(key);
+    }
+  });
+  hash.sort();
+  const value = hash.toString();
+  if (value === window.location.hash) return;
+  const lastScrollTop = window.scrollY || document.documentElement.scrollTop;
+  window.location.hash = value;
+  window.scrollTo(0, lastScrollTop);
+}
+function deeplink(callback) {
+  const handler = () => {
+    if (window.location.hash && !window.location.hash.includes("=")) return;
+    const state = parseState(window.location.hash);
+    callback(state);
+  };
+  handler();
+  window.addEventListener(EVENT_HASHCHANGE, handler);
+  return () => {
+    window.removeEventListener(EVENT_HASHCHANGE, handler);
+  };
+}
+
+// src/constants.js
+var constants_exports = {};
+__export(constants_exports, {
+  CLASS_NAME_FAILED: () => CLASS_NAME_FAILED,
+  CLASS_NAME_HIDDEN: () => CLASS_NAME_HIDDEN,
+  CLASS_NAME_PENDING: () => CLASS_NAME_PENDING,
+  CLASS_NAME_RESOLVED: () => CLASS_NAME_RESOLVED,
+  CheckoutWorkflow: () => CheckoutWorkflow,
+  CheckoutWorkflowStep: () => CheckoutWorkflowStep,
+  Commitment: () => Commitment,
+  ERROR_MESSAGE_BAD_REQUEST: () => ERROR_MESSAGE_BAD_REQUEST,
+  ERROR_MESSAGE_MISSING_LITERALS_URL: () => ERROR_MESSAGE_MISSING_LITERALS_URL,
+  ERROR_MESSAGE_OFFER_NOT_FOUND: () => ERROR_MESSAGE_OFFER_NOT_FOUND,
+  EVENT_AEM_ERROR: () => EVENT_AEM_ERROR,
+  EVENT_AEM_LOAD: () => EVENT_AEM_LOAD,
+  EVENT_COMPARE_CHART_REHYDRATE: () => EVENT_COMPARE_CHART_REHYDRATE,
+  EVENT_EXPANDED_GROUPS_CHANGE: () => EVENT_EXPANDED_GROUPS_CHANGE,
+  EVENT_MAS_ERROR: () => EVENT_MAS_ERROR,
+  EVENT_MAS_READY: () => EVENT_MAS_READY,
+  EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE: () => EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+  EVENT_MERCH_CARD_ACTION_MENU_TOGGLE: () => EVENT_MERCH_CARD_ACTION_MENU_TOGGLE,
+  EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED: () => EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+  EVENT_MERCH_CARD_COLLECTION_SHOWMORE: () => EVENT_MERCH_CARD_COLLECTION_SHOWMORE,
+  EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED: () => EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+  EVENT_MERCH_CARD_COLLECTION_SORT: () => EVENT_MERCH_CARD_COLLECTION_SORT,
+  EVENT_MERCH_CARD_QUANTITY_CHANGE: () => EVENT_MERCH_CARD_QUANTITY_CHANGE,
+  EVENT_MERCH_OFFER_READY: () => EVENT_MERCH_OFFER_READY,
+  EVENT_MERCH_OFFER_SELECT_READY: () => EVENT_MERCH_OFFER_SELECT_READY,
+  EVENT_MERCH_QUANTITY_SELECTOR_CHANGE: () => EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+  EVENT_MERCH_SEARCH_CHANGE: () => EVENT_MERCH_SEARCH_CHANGE,
+  EVENT_MERCH_SIDENAV_SELECT: () => EVENT_MERCH_SIDENAV_SELECT,
+  EVENT_MERCH_STOCK_CHANGE: () => EVENT_MERCH_STOCK_CHANGE,
+  EVENT_MERCH_STORAGE_CHANGE: () => EVENT_MERCH_STORAGE_CHANGE,
+  EVENT_OFFER_SELECTED: () => EVENT_OFFER_SELECTED,
+  EVENT_TYPE_FAILED: () => EVENT_TYPE_FAILED,
+  EVENT_TYPE_READY: () => EVENT_TYPE_READY,
+  EVENT_TYPE_RESOLVED: () => EVENT_TYPE_RESOLVED,
+  Env: () => Env,
+  FF_ANNUAL_PRICE: () => FF_ANNUAL_PRICE,
+  FF_DEFAULTS: () => FF_DEFAULTS,
+  HEADER_X_REQUEST_ID: () => HEADER_X_REQUEST_ID,
+  LOG_NAMESPACE: () => LOG_NAMESPACE,
+  Landscape: () => Landscape,
+  MARK_DURATION_SUFFIX: () => MARK_DURATION_SUFFIX,
+  MARK_START_SUFFIX: () => MARK_START_SUFFIX,
+  MERCH_CARD_LOAD_TIMEOUT: () => MERCH_CARD_LOAD_TIMEOUT,
+  MODAL_TYPE_3_IN_1: () => MODAL_TYPE_3_IN_1,
+  NAMESPACE: () => NAMESPACE,
+  PARAM_AOS_API_KEY: () => PARAM_AOS_API_KEY,
+  PARAM_ENV: () => PARAM_ENV,
+  PARAM_LANDSCAPE: () => PARAM_LANDSCAPE,
+  PARAM_MAS_PREVIEW: () => PARAM_MAS_PREVIEW,
+  PARAM_WCS_API_KEY: () => PARAM_WCS_API_KEY,
+  PLACEHOLDER_PLAN_TYPE_TEXT: () => PLACEHOLDER_PLAN_TYPE_TEXT,
+  PROVIDER_ENVIRONMENT: () => PROVIDER_ENVIRONMENT,
+  SELECTOR_MAS_CHECKOUT_LINK: () => SELECTOR_MAS_CHECKOUT_LINK,
+  SELECTOR_MAS_ELEMENT: () => SELECTOR_MAS_ELEMENT,
+  SELECTOR_MAS_INLINE_PRICE: () => SELECTOR_MAS_INLINE_PRICE,
+  SELECTOR_MAS_SP_BUTTON: () => SELECTOR_MAS_SP_BUTTON,
+  SELECTOR_MAS_UPT_LINK: () => SELECTOR_MAS_UPT_LINK,
+  SORT_ORDER: () => SORT_ORDER,
+  STATE_FAILED: () => STATE_FAILED,
+  STATE_PENDING: () => STATE_PENDING,
+  STATE_RESOLVED: () => STATE_RESOLVED,
+  SUPPORTED_COUNTRIES: () => SUPPORTED_COUNTRIES,
+  TAG_NAME_SERVICE: () => TAG_NAME_SERVICE,
+  TEMPLATE_PRICE: () => TEMPLATE_PRICE,
+  TEMPLATE_PRICE_ANNUAL: () => TEMPLATE_PRICE_ANNUAL,
+  TEMPLATE_PRICE_LEGAL: () => TEMPLATE_PRICE_LEGAL,
+  TEMPLATE_PRICE_STRIKETHROUGH: () => TEMPLATE_PRICE_STRIKETHROUGH,
+  TRIAL_ANALYTICS_IDS: () => TRIAL_ANALYTICS_IDS,
+  Term: () => Term,
+  WCS_PROD_URL: () => WCS_PROD_URL,
+  WCS_STAGE_URL: () => WCS_STAGE_URL
+});
+var Commitment = Object.freeze({
+  MONTH: "MONTH",
+  YEAR: "YEAR",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  PERPETUAL: "PERPETUAL",
+  TERM_LICENSE: "TERM_LICENSE",
+  ACCESS_PASS: "ACCESS_PASS",
+  THREE_MONTHS: "THREE_MONTHS",
+  SIX_MONTHS: "SIX_MONTHS"
+});
+var Term = Object.freeze({
+  ANNUAL: "ANNUAL",
+  MONTHLY: "MONTHLY",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  P1D: "P1D",
+  P1Y: "P1Y",
+  P3Y: "P3Y",
+  P10Y: "P10Y",
+  P15Y: "P15Y",
+  P3D: "P3D",
+  P7D: "P7D",
+  P30D: "P30D",
+  HALF_YEARLY: "HALF_YEARLY",
+  QUARTERLY: "QUARTERLY"
+});
+var NAMESPACE = "merch";
+var MERCH_CARD_LOAD_TIMEOUT = 2e4;
+var CLASS_NAME_HIDDEN = "hidden";
+var EVENT_TYPE_READY = "wcms:commerce:ready";
+var TAG_NAME_SERVICE = "mas-commerce-service";
+var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
+var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
+var SELECTOR_MAS_SP_BUTTON = "sp-button[data-wcs-osi]";
+var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
+var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
+var TRIAL_ANALYTICS_IDS = /* @__PURE__ */ new Set([
+  "free-trial",
+  "start-free-trial",
+  "seven-day-trial",
+  "fourteen-day-trial",
+  "thirty-day-trial"
+]);
+var EVENT_MERCH_OFFER_READY = "merch-offer:ready";
+var EVENT_MERCH_OFFER_SELECT_READY = "merch-offer-select:ready";
+var EVENT_MERCH_CARD_ACTION_MENU_TOGGLE = "merch-card:action-menu-toggle";
+var EVENT_OFFER_SELECTED = "merch-offer:selected";
+var EVENT_MERCH_STOCK_CHANGE = "merch-stock:change";
+var EVENT_MERCH_STORAGE_CHANGE = "merch-storage:change";
+var EVENT_MERCH_QUANTITY_SELECTOR_CHANGE = "merch-quantity-selector:change";
+var EVENT_MERCH_CARD_QUANTITY_CHANGE = "merch-card-quantity:change";
+var EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE = "merch-modal:addon-and-quantity-update";
+var EVENT_MERCH_SEARCH_CHANGE = "merch-search:change";
+var EVENT_MERCH_CARD_COLLECTION_SORT = "merch-card-collection:sort";
+var EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED = "merch-card-collection:literals-changed";
+var EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED = "merch-card-collection:sidenav-attached";
+var EVENT_MERCH_CARD_COLLECTION_SHOWMORE = "merch-card-collection:showmore";
+var EVENT_MERCH_SIDENAV_SELECT = "merch-sidenav:select";
+var EVENT_AEM_LOAD = "aem:load";
+var EVENT_AEM_ERROR = "aem:error";
+var EVENT_MAS_READY = "mas:ready";
+var EVENT_MAS_ERROR = "mas:error";
+var EVENT_COMPARE_CHART_REHYDRATE = "mas-compare-chart:rehydrate";
+var EVENT_EXPANDED_GROUPS_CHANGE = "expanded-groups-change";
+var CLASS_NAME_FAILED = "placeholder-failed";
+var CLASS_NAME_PENDING = "placeholder-pending";
+var CLASS_NAME_RESOLVED = "placeholder-resolved";
+var ERROR_MESSAGE_BAD_REQUEST = "Bad WCS request";
+var ERROR_MESSAGE_OFFER_NOT_FOUND = "Commerce offer not found";
+var ERROR_MESSAGE_MISSING_LITERALS_URL = "Literals URL not provided";
+var EVENT_TYPE_FAILED = "mas:failed";
+var EVENT_TYPE_RESOLVED = "mas:resolved";
+var LOG_NAMESPACE = "mas/commerce";
+var PARAM_MAS_PREVIEW = "mas.preview";
+var PARAM_ENV = "commerce.env";
+var PARAM_LANDSCAPE = "commerce.landscape";
+var PARAM_AOS_API_KEY = "commerce.aosKey";
+var PARAM_WCS_API_KEY = "commerce.wcsKey";
+var WCS_PROD_URL = "https://www.adobe.com/web_commerce_artifact";
+var WCS_STAGE_URL = "https://www.stage.adobe.com/web_commerce_artifact_stage";
+var STATE_FAILED = "failed";
+var STATE_PENDING = "pending";
+var STATE_RESOLVED = "resolved";
+var Landscape = {
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED"
+};
+var HEADER_X_REQUEST_ID = "X-Request-Id";
+var CheckoutWorkflowStep = Object.freeze({
+  SEGMENTATION: "segmentation",
+  BUNDLE: "bundle",
+  COMMITMENT: "commitment",
+  RECOMMENDATION: "recommendation",
+  EMAIL: "email",
+  PAYMENT: "payment",
+  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
+  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
+});
+var CheckoutWorkflow = "UCv3";
+var Env = Object.freeze({
+  STAGE: "STAGE",
+  PRODUCTION: "PRODUCTION",
+  LOCAL: "LOCAL"
+});
+var PROVIDER_ENVIRONMENT = {
+  PRODUCTION: "PRODUCTION"
+};
+var MODAL_TYPE_3_IN_1 = {
+  TWP: "twp",
+  D2P: "d2p",
+  CRM: "crm"
+};
+var MARK_START_SUFFIX = ":start";
+var MARK_DURATION_SUFFIX = ":duration";
+var TEMPLATE_PRICE = "price";
+var TEMPLATE_PRICE_STRIKETHROUGH = "price-strikethrough";
+var TEMPLATE_PRICE_ANNUAL = "annual";
+var TEMPLATE_PRICE_LEGAL = "legal";
+var PLACEHOLDER_PLAN_TYPE_TEXT = "plan-type-text";
+var FF_DEFAULTS = "mas-ff-defaults";
+var FF_ANNUAL_PRICE = "mas-ff-annual-price";
+var SORT_ORDER = {
+  alphabetical: "alphabetical",
+  authored: "authored"
+};
+var SUPPORTED_COUNTRIES = [
+  "AE",
+  "AM",
+  "AR",
+  "AT",
+  "AU",
+  "AZ",
+  "BB",
+  "BD",
+  "BE",
+  "BG",
+  "BH",
+  "BO",
+  "BR",
+  "BS",
+  "BY",
+  "CA",
+  "CH",
+  "CL",
+  "CN",
+  "CO",
+  "CR",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "DO",
+  "DZ",
+  "EC",
+  "EE",
+  "EG",
+  "ES",
+  "FI",
+  "FR",
+  "GB",
+  "GE",
+  "GH",
+  "GR",
+  "GT",
+  "HK",
+  "HN",
+  "HR",
+  "HU",
+  "ID",
+  "IE",
+  "IL",
+  "IN",
+  "IQ",
+  "IS",
+  "IT",
+  "JM",
+  "JO",
+  "JP",
+  "KE",
+  "KG",
+  "KR",
+  "KW",
+  "KZ",
+  "LA",
+  "LB",
+  "LK",
+  "LT",
+  "LU",
+  "LV",
+  "MA",
+  "MD",
+  "MO",
+  "MT",
+  "MU",
+  "MX",
+  "MY",
+  "NG",
+  "NI",
+  "NL",
+  "NO",
+  "NP",
+  "NZ",
+  "OM",
+  "PA",
+  "PE",
+  "PH",
+  "PK",
+  "PL",
+  "PR",
+  "PT",
+  "PY",
+  "QA",
+  "RO",
+  "RS",
+  "RU",
+  "SA",
+  "SE",
+  "SG",
+  "SI",
+  "SK",
+  "SV",
+  "TH",
+  "TJ",
+  "TM",
+  "TN",
+  "TR",
+  "TT",
+  "TW",
+  "TZ",
+  "UA",
+  "US",
+  "UY",
+  "UZ",
+  "VE",
+  "VN",
+  "YE",
+  "ZA"
+];
+
+// src/utils.js
+var MAS_COMMERCE_SERVICE = "mas-commerce-service";
+function debounce(func, delay) {
+  let debounceTimer;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+  };
+}
+var getSlotText = (element, name) => element?.querySelector(`[slot="${name}"]`)?.textContent?.trim();
+function createTag(tag, attributes = {}, content = null, is = null) {
+  const element = is ? document.createElement(tag, { is }) : document.createElement(tag);
+  if (content instanceof HTMLElement) {
+    element.appendChild(content);
+  } else {
+    element.innerHTML = content;
+  }
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, value);
+  }
+  return element;
+}
+function printMeasure(measure) {
+  return `startTime:${measure.startTime.toFixed(2)}|duration:${measure.duration.toFixed(2)}`;
+}
+function isMobileOrTablet() {
+  return window.matchMedia("(max-width: 1024px)").matches;
+}
+function getService() {
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
+}
+function getOuterHeight(element) {
+  const style = window.getComputedStyle(element);
+  return element.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+}
+var MAS_IO_ALLOWED_HOSTS = [
+  "adobe.com",
+  "adobeioruntime.net",
+  "aem.live",
+  "aem.page"
+];
+var MAS_IO_LOCAL_HOSTS = ["localhost", "127.0.0.1"];
+function isAllowedMasIOUrl(urlString) {
+  try {
+    const url = new URL(urlString);
+    if (MAS_IO_LOCAL_HOSTS.includes(url.hostname)) {
+      return url.protocol === "http:" || url.protocol === "https:";
+    }
+    if (url.protocol !== "https:") return false;
+    return MAS_IO_ALLOWED_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// src/variants/variant-layout.js
+import { html, nothing } from "./lit-all.min.js";
+var _container;
+var _VariantLayout = class _VariantLayout {
+  constructor(card) {
+    __publicField(this, "card");
+    __privateAdd(this, _container);
+    this.card = card;
+    this.insertVariantStyle();
+  }
+  getContainer() {
+    __privateSet(this, _container, __privateGet(this, _container) ?? this.card.closest(
+      'merch-card-collection, [class*="-merch-cards"]'
+    ) ?? this.card.parentElement);
+    return __privateGet(this, _container);
+  }
+  insertVariantStyle() {
+    const styleKey = this.constructor.name;
+    if (!_VariantLayout.styleMap[styleKey]) {
+      _VariantLayout.styleMap[styleKey] = true;
+      const styles = document.createElement("style");
+      styles.innerHTML = this.getGlobalCSS();
+      document.head.appendChild(styles);
+    }
+  }
+  updateCardElementMinHeight(el, name) {
+    if (!el || this.card.heightSync === false) return;
+    const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
+    const height = Math.max(
+      0,
+      parseInt(window.getComputedStyle(el).height) || 0
+    );
+    const container = this.getContainer();
+    const maxMinHeight = parseInt(
+      container.style.getPropertyValue(elMinHeightPropertyName)
+    ) || 0;
+    if (height > maxMinHeight) {
+      container.style.setProperty(elMinHeightPropertyName, `${height}px`);
+    }
+  }
+  syncRowHeights(entries) {
+    if (this.card.heightSync === false) return;
+    const container = this.getContainer();
+    if (!container) return;
+    const variant = this.card.variant;
+    const cards = Array.from(
+      container.querySelectorAll(`merch-card[variant="${variant}"]`)
+    ).filter((c) => c.variantLayout?.card?.heightSync !== false);
+    if (cards.length === 0) return;
+    for (const { name } of entries) {
+      const prop = `--consonant-merch-card-${variant}-${name}-height`;
+      if (container.style.getPropertyValue(prop)) {
+        container.style.removeProperty(prop);
+      }
+    }
+    const rows = /* @__PURE__ */ new Map();
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      if (rect.width <= 2) continue;
+      const rowKey = Math.round(rect.top);
+      let row = rows.get(rowKey);
+      if (!row) {
+        row = [];
+        rows.set(rowKey, row);
+      }
+      row.push(card);
+    }
+    for (const rowCards of rows.values()) {
+      for (const { name, getElement } of entries) {
+        const prop = `--consonant-merch-card-${variant}-${name}-height`;
+        const previous = rowCards.map(
+          (card) => card.style.getPropertyValue(prop)
+        );
+        let max = 0;
+        const elements = rowCards.map((card) => {
+          card.style.removeProperty(prop);
+          const el = getElement(card);
+          if (!el) return el;
+          const height = Math.max(
+            0,
+            parseInt(window.getComputedStyle(el).height) || 0
+          );
+          if (height > max) max = height;
+          return el;
+        });
+        rowCards.forEach((card, index) => {
+          if (elements[index]?.tagName === "HR") return;
+          if (max > 0) {
+            card.style.setProperty(prop, `${max}px`);
+          } else if (previous[index]) {
+            card.style.setProperty(prop, previous[index]);
+          }
+        });
+      }
+    }
+  }
+  get legalDisplayDot() {
+    return true;
+  }
+  get badge() {
+    let additionalStyles;
+    if (!this.card.badgeBackgroundColor || !this.card.badgeColor || !this.card.badgeText) {
+      return;
+    }
+    if (this.evergreen) {
+      additionalStyles = `border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`;
+    }
+    return html`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
                 style="background-color: ${this.card.badgeBackgroundColor};
                 color: ${this.card.badgeColor};
-                ${r}"
+                ${additionalStyles}"
             >
                 ${this.card.badgeText}
             </div>
-        `}get cardImage(){return kr` <div class="image">
+        `;
+  }
+  get cardImage() {
+    return html` <div class="image">
             <slot name="bg-image"></slot>
             ${this.badge}
-        </div>`}getGlobalCSS(){return""}get theme(){return document.querySelector("sp-theme")}get evergreen(){return this.card.classList.contains("intro-pricing")}get promoBottom(){return this.card.classList.contains("promo-bottom")}get headingSelector(){return'[slot="heading-xs"]'}get secureLabel(){return this.card.secureLabel?kr`<span class="secure-transaction-label"
+        </div>`;
+  }
+  /* c8 ignore next 3 */
+  getGlobalCSS() {
+    return "";
+  }
+  /* c8 ignore next 3 */
+  get theme() {
+    return document.querySelector("sp-theme");
+  }
+  get evergreen() {
+    return this.card.classList.contains("intro-pricing");
+  }
+  get promoBottom() {
+    return this.card.classList.contains("promo-bottom");
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  get secureLabel() {
+    return this.card.secureLabel ? html`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
-              >`:Oc}get secureLabelFooter(){return kr`<footer>
+              >` : nothing;
+  }
+  get secureLabelFooter() {
+    return html`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length>0)){let r=Promise.allSettled(this.card.prices.map(i=>i.onceSettled?.()||Promise.resolve())),t,a=new Promise(i=>{t=setTimeout(i,ma)});await Promise.race([r,a]),clearTimeout(t)}}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return _r(this.card.variant)}};ct=new WeakMap,g(jt,"styleMap",{});var w=jt;import{html as Ba,css as Ic}from"./lit-all.min.js";var on=`
+        </footer>`;
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    await this.card.updateComplete;
+    if (this.card.prices?.length > 0) {
+      const settle = Promise.allSettled(
+        this.card.prices.map(
+          (price2) => price2.onceSettled?.() || Promise.resolve()
+        )
+      );
+      let timeoutId;
+      const timeout = new Promise((resolve) => {
+        timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+      });
+      await Promise.race([settle, timeout]);
+      clearTimeout(timeoutId);
+    }
+  }
+  connectedCallbackHook() {
+  }
+  disconnectedCallbackHook() {
+  }
+  syncHeights() {
+  }
+  /* c8 ignore next 3 */
+  renderLayout() {
+  }
+  get aemFragmentMapping() {
+    return getFragmentMapping(this.card.variant);
+  }
+};
+_container = new WeakMap();
+__publicField(_VariantLayout, "styleMap", {});
+var VariantLayout = _VariantLayout;
+
+// src/variants/catalog.js
+import { html as html2, css } from "./lit-all.min.js";
+
+// src/variants/catalog.css.js
+var CSS = `
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -76,19 +731,19 @@ merch-card-collection-header.catalog {
     --merch-card-collection-header-search-max-width: 244px;
 }
 
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-columns: min-content auto;
     }
 }
 
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-column-gap: 16px;
     }
 }
 
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-catalog-width: 300px;
     }
@@ -163,12 +818,134 @@ merch-card[variant="catalog"] .payment-details {
 merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   font-size: 15px;
   font-weight: 700;
-}`;var sn={cardName:{attribute:"name"},badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},shortDescription:{tag:"div",slot:"action-menu-content",attributes:{tabindex:"0"}},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},lt=class extends w{constructor(t){super(t);g(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(ga,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});g(this,"toggleActionMenu",t=>{!this.actionMenuContentSlot||!t||t.type!=="click"&&t.code!=="Space"&&t.code!=="Enter"||(t.preventDefault(),t.stopPropagation(),this.setMenuVisibility(!this.isMenuOpen()))});g(this,"toggleActionMenuFromCard",t=>{let a=t?.type==="mouseleave"?!0:void 0;this.card.blur(),this.setIconVisibility(!1),this.actionMenuContentSlot&&t?.type==="mouseleave"&&this.setMenuVisibility(!1)});g(this,"showActionMenuOnHover",()=>{this.actionMenu&&this.setIconVisibility(!0)});g(this,"hideActionMenu",()=>{this.setMenuVisibility(!1),this.setIconVisibility(!1)});g(this,"hideActionMenuOnBlur",t=>{t.relatedTarget===this.actionMenu||this.actionMenu?.contains(t.relatedTarget)||this.slottedContent?.contains(t.relatedTarget)||(this.isMenuOpen()&&this.setMenuVisibility(!1),this.card.contains(t.relatedTarget)||this.setIconVisibility(!1))});g(this,"handleCardFocusOut",t=>{t.relatedTarget===this.actionMenu||this.actionMenu?.contains(t.relatedTarget)||t.relatedTarget===this.card||(this.slottedContent&&(t.target===this.slottedContent||this.slottedContent.contains(t.target))&&(this.slottedContent.contains(t.relatedTarget)||this.setMenuVisibility(!1)),!this.card.contains(t.relatedTarget)&&!this.isMenuOpen()&&this.setIconVisibility(!1))});g(this,"handleKeyDown",t=>{(t.key==="Escape"||t.key==="Esc")&&(t.preventDefault(),this.hideActionMenu(),this.actionMenu?.focus())})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}get slottedContent(){return this.card.querySelector('[slot="action-menu-content"]')}setIconVisibility(t){if(this.slottedContent){if(Fa()&&this.card.actionMenu)return;this.actionMenu?.classList.toggle("invisible",!t),this.actionMenu?.classList.toggle("always-visible",t)}}setMenuVisibility(t){this.actionMenuContentSlot?.classList.toggle("hidden",!t),this.setAriaExpanded(this.actionMenu,t.toString()),t&&(this.dispatchActionMenuToggle(),setTimeout(()=>{let a=this.slottedContent?.querySelector("a");a&&a.focus()},0))}isMenuOpen(){return!this.actionMenuContentSlot?.classList.contains("hidden")}renderLayout(){return Ba` <div class="body">
+}`;
+
+// src/variants/catalog.js
+var CATALOG_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  badge: true,
+  ctas: { slot: "footer", size: "m" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  prices: { tag: "h3", slot: "heading-xs" },
+  shortDescription: {
+    tag: "div",
+    slot: "action-menu-content",
+    attributes: { tabindex: "0" }
+  },
+  size: ["wide", "super-wide"],
+  title: { tag: "h3", slot: "heading-xs" }
+};
+var Catalog = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "dispatchActionMenuToggle", () => {
+      this.card.dispatchEvent(
+        new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
+          bubbles: true,
+          composed: true,
+          detail: {
+            card: this.card.name,
+            type: "action-menu"
+          }
+        })
+      );
+    });
+    __publicField(this, "toggleActionMenu", (e) => {
+      if (!this.actionMenuContentSlot || !e || e.type !== "click" && e.code !== "Space" && e.code !== "Enter")
+        return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.setMenuVisibility(!this.isMenuOpen());
+    });
+    __publicField(this, "toggleActionMenuFromCard", (e) => {
+      const retract = e?.type === "mouseleave" ? true : void 0;
+      this.card.blur();
+      this.setIconVisibility(false);
+      if (!this.actionMenuContentSlot) return;
+      if (e?.type === "mouseleave") {
+        this.setMenuVisibility(false);
+      }
+    });
+    __publicField(this, "showActionMenuOnHover", () => {
+      if (!this.actionMenu) return;
+      this.setIconVisibility(true);
+    });
+    __publicField(this, "hideActionMenu", () => {
+      this.setMenuVisibility(false);
+      this.setIconVisibility(false);
+    });
+    __publicField(this, "hideActionMenuOnBlur", (e) => {
+      if (e.relatedTarget === this.actionMenu || this.actionMenu?.contains(e.relatedTarget))
+        return;
+      if (this.slottedContent?.contains(e.relatedTarget)) return;
+      if (this.isMenuOpen()) {
+        this.setMenuVisibility(false);
+      }
+      if (!this.card.contains(e.relatedTarget)) {
+        this.setIconVisibility(false);
+      }
+    });
+    __publicField(this, "handleCardFocusOut", (e) => {
+      if (e.relatedTarget === this.actionMenu || this.actionMenu?.contains(e.relatedTarget) || e.relatedTarget === this.card) {
+        return;
+      }
+      if (this.slottedContent && (e.target === this.slottedContent || this.slottedContent.contains(e.target))) {
+        if (!this.slottedContent.contains(e.relatedTarget)) {
+          this.setMenuVisibility(false);
+        }
+      }
+      if (!this.card.contains(e.relatedTarget) && !this.isMenuOpen()) {
+        this.setIconVisibility(false);
+      }
+    });
+    __publicField(this, "handleKeyDown", (e) => {
+      if (e.key === "Escape" || e.key === "Esc") {
+        e.preventDefault();
+        this.hideActionMenu();
+        this.actionMenu?.focus();
+      }
+    });
+  }
+  get actionMenu() {
+    return this.card.shadowRoot.querySelector(".action-menu");
+  }
+  get actionMenuContentSlot() {
+    return this.card.shadowRoot.querySelector(
+      'slot[name="action-menu-content"]'
+    );
+  }
+  get slottedContent() {
+    return this.card.querySelector('[slot="action-menu-content"]');
+  }
+  setIconVisibility(visible) {
+    if (this.slottedContent) {
+      if (isMobileOrTablet() && this.card.actionMenu) return;
+      this.actionMenu?.classList.toggle("invisible", !visible);
+      this.actionMenu?.classList.toggle("always-visible", visible);
+    }
+  }
+  setMenuVisibility(open) {
+    this.actionMenuContentSlot?.classList.toggle("hidden", !open);
+    this.setAriaExpanded(this.actionMenu, open.toString());
+    if (open) {
+      this.dispatchActionMenuToggle();
+      setTimeout(() => {
+        const firstLink = this.slottedContent?.querySelector("a");
+        if (firstLink) firstLink.focus();
+      }, 0);
+    }
+  }
+  isMenuOpen() {
+    return !this.actionMenuContentSlot?.classList.contains("hidden");
+  }
+  renderLayout() {
+    return html2` <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${this.slottedContent?Fa()&&this.card.actionMenu?"always-visible":"invisible":"hidden"}"
+                ${this.slottedContent ? isMobileOrTablet() && this.card.actionMenu ? "always-visible" : "invisible" : "hidden"}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
                         @focus="${this.showActionMenuOnHover}"
@@ -184,20 +961,46 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                 <slot
                     name="action-menu-content"
                     class="action-menu-content
-            ${this.card.actionMenuContent?"":"hidden"}"
+            ${!this.card.actionMenuContent ? "hidden" : ""}"
                     >${this.card.actionMenuContent}
                 </slot>
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":Ba`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`}
+                ${!this.promoBottom ? html2`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?Ba`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom ? html2`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}getGlobalCSS(){return on}setAriaExpanded(t,a){t.setAttribute("aria-expanded",a)}connectedCallbackHook(){this.card.addEventListener("mouseenter",this.showActionMenuOnHover),this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.addEventListener("focusin",this.showActionMenuOnHover),this.card.addEventListener("focusout",this.handleCardFocusOut),this.card.addEventListener("keydown",this.handleKeyDown)}disconnectedCallbackHook(){this.card.removeEventListener("mouseenter",this.showActionMenuOnHover),this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.removeEventListener("focusin",this.showActionMenuOnHover),this.card.removeEventListener("focusout",this.handleCardFocusOut),this.card.removeEventListener("keydown",this.handleKeyDown)}};g(lt,"variantStyle",Ic`
+            <slot></slot>`;
+  }
+  getGlobalCSS() {
+    return CSS;
+  }
+  setAriaExpanded(element, value) {
+    element.setAttribute("aria-expanded", value);
+  }
+  connectedCallbackHook() {
+    this.card.addEventListener("mouseenter", this.showActionMenuOnHover);
+    this.card.addEventListener("mouseleave", this.toggleActionMenuFromCard);
+    this.card.addEventListener("focusin", this.showActionMenuOnHover);
+    this.card.addEventListener("focusout", this.handleCardFocusOut);
+    this.card.addEventListener("keydown", this.handleKeyDown);
+  }
+  disconnectedCallbackHook() {
+    this.card.removeEventListener("mouseenter", this.showActionMenuOnHover);
+    this.card.removeEventListener(
+      "mouseleave",
+      this.toggleActionMenuFromCard
+    );
+    this.card.removeEventListener("focusin", this.showActionMenuOnHover);
+    this.card.removeEventListener("focusout", this.handleCardFocusOut);
+    this.card.removeEventListener("keydown", this.handleKeyDown);
+  }
+};
+__publicField(Catalog, "variantStyle", css`
         :host([variant='catalog']) {
             min-height: 330px;
             width: var(--consonant-merch-card-catalog-width);
@@ -220,7 +1023,13 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
             right: initial;
             left: 16px;
         }
-    `);import{html as Wt,css as zc}from"./lit-all.min.js";var cn=`
+    `);
+
+// src/variants/image.js
+import { html as html3, css as css2 } from "./lit-all.min.js";
+
+// src/variants/image.css.js
+var CSS2 = `
 :root {
   --consonant-merch-card-image-width: 300px;
   --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
@@ -259,7 +1068,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   margin: 0 auto;
 }
 
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image,
@@ -270,7 +1079,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 }
 
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-image-width: 378px;
   }
@@ -285,7 +1094,52 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
       grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-image-width));
   }
 }
-`;var ln={cardName:{attribute:"name"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},badgeIcon:!0,borderColor:{attribute:"border-color"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},backgroundImage:{tag:"div",slot:"bg-image"}},je=class extends w{constructor(r){super(r)}getGlobalCSS(){return cn}renderLayout(){return Wt`<div class="image">
+`;
+
+// src/variants/image.js
+var IMAGE_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "spectrum-yellow-300-plans"
+  },
+  badgeIcon: true,
+  borderColor: { attribute: "border-color" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  ctas: { slot: "footer", size: "m" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  prices: { tag: "h3", slot: "heading-xs" },
+  promoText: { tag: "p", slot: "promo-text" },
+  size: ["wide", "super-wide"],
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "body-xxs" },
+  backgroundImage: { tag: "div", slot: "bg-image" }
+};
+var Image = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS2;
+  }
+  renderLayout() {
+    return html3`<div class="image">
                 <slot name="bg-image"></slot>
                 <slot name="badge"></slot>
             </div>
@@ -293,21 +1147,24 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?Wt`<slot name="body-xs"></slot
-                          ><slot name="promo-text"></slot>`:Wt`<slot name="promo-text"></slot
+                ${this.promoBottom ? html3`<slot name="body-xs"></slot
+                          ><slot name="promo-text"></slot>` : html3`<slot name="promo-text"></slot
                           ><slot name="body-xs"></slot>`}
             </div>
-            ${this.evergreen?Wt`
+            ${this.evergreen ? html3`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card.detailBg}"
+                          style="background: ${this.card["detailBg"]}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `:Wt`
+                  ` : html3`
                       <hr />
                       ${this.secureLabelFooter}
-                  `}`}};g(je,"variantStyle",zc`
+                  `}`;
+  }
+};
+__publicField(Image, "variantStyle", css2`
         :host([variant='image']) {
             min-height: 330px;
             width: var(--consonant-merch-card-image-width);
@@ -329,7 +1186,13 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
             left: 0px;
             right: initial;
         }
-    `);import{html as hn}from"./lit-all.min.js";var dn=`
+    `);
+
+// src/variants/inline-heading.js
+import { html as html4 } from "./lit-all.min.js";
+
+// src/variants/inline-heading.css.js
+var CSS3 = `
 :root {
   --consonant-merch-card-inline-heading-width: 300px;
 }
@@ -354,7 +1217,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   display: contents;
 }
 
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
   .four-merch-cards.inline-heading,
@@ -365,7 +1228,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 }
 
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-inline-heading-width: 378px;
   }
@@ -378,13 +1241,24 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 }
 
-@media screen and ${ee} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.inline-heading,
   .four-merch-cards:has(merch-card[variant="inline-heading"]) {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
-`;var Lr=class extends w{constructor(r){super(r)}getGlobalCSS(){return dn}renderLayout(){return hn` ${this.badge}
+`;
+
+// src/variants/inline-heading.js
+var InlineHeading = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS3;
+  }
+  renderLayout() {
+    return html4` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -392,7 +1266,15 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.card.customHr?"":hn`<hr />`} ${this.secureLabelFooter}`}};import{html as ze,css as Dc,unsafeCSS as mn}from"./lit-all.min.js";var pn=`
+            ${!this.card.customHr ? html4`<hr />` : ""} ${this.secureLabelFooter}`;
+  }
+};
+
+// src/variants/mini-compare-chart.js
+import { html as html5, css as css3, unsafeCSS } from "./lit-all.min.js";
+
+// src/variants/mini-compare-chart.css.js
+var CSS4 = `
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;
@@ -967,7 +1849,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* mini compare mobile */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -1024,7 +1906,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${X} {
+@media screen and ${TABLET_DOWN} {
   merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -1076,7 +1958,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     padding: 6px 18px 4px;
   }
 }
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -1123,7 +2005,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 378px;
     --consonant-merch-card-mini-compare-chart-wide-width: 484px;
@@ -1155,7 +2037,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${ee} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.mini-compare-chart,
   .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
       grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-width));
@@ -1230,14 +2112,636 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(7) {
 merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var Hc=32,un={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},shortDescription:{tag:"div",slot:"body-xxs"},description:{tag:"div",slot:"body-m"},mnemonics:{size:"l"},quantitySelect:{tag:"div",slot:"quantity-select"},callout:{tag:"div",slot:"callout-content"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],whatsIncludedDividerColor:{attribute:"whats-included-divider-color"},allowedWhatsIncludedDividerColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"footer-rows"},ctas:{slot:"footer",size:"l"},style:"consonant"},dt=class extends w{constructor(t){super(t);g(this,"getRowMinHeightPropertyName",t=>`--consonant-merch-card-footer-row-${t}-min-height`);g(this,"getMiniCompareFooter",()=>{let t=this.card.secureLabel?ze`<slot name="secure-transaction-label">
+`;
+
+// src/variants/mini-compare-chart.js
+var FOOTER_ROW_MIN_HEIGHT = 32;
+var MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  prices: { tag: "p", slot: "heading-m-price" },
+  promoText: { tag: "div", slot: "promo-text" },
+  shortDescription: { tag: "div", slot: "body-xxs" },
+  description: { tag: "div", slot: "body-m" },
+  mnemonics: { size: "l" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  callout: { tag: "div", slot: "callout-content" },
+  addon: true,
+  secureLabel: true,
+  planType: true,
+  badgeIcon: true,
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  whatsIncludedDividerColor: { attribute: "whats-included-divider-color" },
+  allowedWhatsIncludedDividerColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  borderColor: { attribute: "border-color" },
+  size: ["wide", "super-wide"],
+  whatsIncluded: { tag: "div", slot: "footer-rows" },
+  ctas: { slot: "footer", size: "l" },
+  style: "consonant"
+};
+var MiniCompareChart = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "getRowMinHeightPropertyName", (index) => `--consonant-merch-card-footer-row-${index}-min-height`);
+    __publicField(this, "getMiniCompareFooter", () => {
+      const secureLabel = this.card.secureLabel ? html5`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
-              >`:ze`<slot name="secure-transaction-label"></slot>`;return this.isNewVariant?ze`<footer>
-                ${t}
+              >` : html5`<slot name="secure-transaction-label"></slot>`;
+      if (this.isNewVariant) {
+        return html5`<footer>
+                ${secureLabel}
                 <p class="action-area"><slot name="footer"></slot></p>
-            </footer>`:ze`<footer>${t}<slot name="footer"></slot></footer>`});this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){if(this.card.addEventListener(ae,this.updatePriceQuantity),this.legalAdjusted&&!this.legalObserver){let t=this.card.querySelector('[is="inline-price"][data-template="legal"]');t?(this.legalResolvedHandler=()=>this.adjustShortDescription(),t.addEventListener(ue,this.legalResolvedHandler),this.legalElement=t,this.legalObserver=new MutationObserver(()=>this.adjustShortDescription()),this.legalObserver.observe(t,{childList:!0,subtree:!0}),this.adjustShortDescription()):this.legalAdjusted=!1}this.visibilityObserver=new IntersectionObserver(([t])=>{t.boundingClientRect.height!==0&&t.isIntersecting&&(A.isMobile||requestAnimationFrame(()=>{let a=this.getContainer();if(!a)return;a.querySelectorAll('merch-card[variant="mini-compare-chart"]').forEach(n=>n.variantLayout?.syncHeights?.())}),this.visibilityObserver.disconnect())}),this.visibilityObserver.observe(this.card)}disconnectedCallbackHook(){if(this.card.removeEventListener(ae,this.updatePriceQuantity),this.visibilityObserver?.disconnect(),this.legalObserver?.disconnect(),this.legalObserver=null,this.legalElement&&this.legalResolvedHandler&&(this.legalElement.removeEventListener(ue,this.legalResolvedHandler),this.legalResolvedHandler=null,this.legalElement=null),this.calloutListenersAdded){document.removeEventListener("touchstart",this.handleCalloutTouch),document.removeEventListener("mouseover",this.handleCalloutMouse);let t=this.card.querySelector('[slot="callout-content"] .icon-button');t?.removeEventListener("focusin",this.handleCalloutFocusin),t?.removeEventListener("focusout",this.handleCalloutFocusout),t?.removeEventListener("keydown",this.handleCalloutKeydown),this.calloutListenersAdded=!1}}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}priceOptionsProvider(t,a){if(this.isNewVariant){if(t.dataset.template===te){a.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(a.displayPerUnit=!1)}}getGlobalCSS(){return pn}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let t=["heading-m","heading-xs","subtitle","body-m","heading-m-price","body-xxs","price-commitment","quantity-select","offers","promo-text","callout-content","addon"];this.card.classList.contains("bullet-list")&&t.push("footer-rows"),t.forEach(i=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${i}"]`),i)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let t;if(this.isNewVariant){let a=this.card.querySelector("merch-whats-included");if(!a)return;t=[...a.querySelectorAll('[slot="content"] merch-mnemonic-list')]}else{let a=this.card.querySelector('[slot="footer-rows"] ul');if(!a||!a.children)return;t=[...a.children]}t.length&&t.forEach((a,i)=>{let n=Math.max(Hc,parseFloat(window.getComputedStyle(a).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(i+1)))||0;n>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(i+1),`${n}px`)})}removeEmptyRows(){this.isNewVariant?this.card.querySelectorAll('merch-whats-included [slot="content"] merch-mnemonic-list').forEach(a=>{if(a.hasAttribute("data-placeholder"))return;let i=a.querySelector('[slot="icon"]'),n=!!i?.querySelector(".sp-icon")||!!i?.querySelector('merch-icon[src]:not([src=""]), img[src]:not([src=""])'),s=a.querySelector('[slot="description"]')?.textContent?.replace(/\u00a0/g," ")?.trim()??"";!n&&!s&&a.remove()}):this.card.querySelectorAll(".footer-row-cell").forEach(a=>{if(a.hasAttribute("data-placeholder"))return;let i=a.querySelector(".footer-row-cell-description");i&&!i.textContent.trim()&&a.remove()})}padFooterRows(){let t=this.getContainer();if(!t)return;let a=t.querySelectorAll('merch-card[variant="mini-compare-chart"]');if(this.isNewVariant){let i=0;if(a.forEach(l=>{let d=l.querySelector("merch-whats-included");if(!d)return;let m=d.querySelectorAll('[slot="content"] merch-mnemonic-list:not([data-placeholder])');i=Math.max(i,m.length)}),i===0)return;let n=this.card.querySelector("merch-whats-included");if(!n)return;let o=n.querySelector('[slot="content"]');if(!o)return;o.querySelectorAll("merch-mnemonic-list[data-placeholder]").forEach(l=>l.remove());let s=o.querySelectorAll("merch-mnemonic-list").length,c=i-s;for(let l=0;l<c;l++){let d=document.createElement("merch-mnemonic-list");d.setAttribute("data-placeholder","");let m=document.createElement("div");m.setAttribute("slot","icon");let p=document.createElement("div");p.setAttribute("slot","description"),d.append(m,p),o.appendChild(d)}}else{let i=0;if(a.forEach(c=>{let l=c.querySelector('[slot="footer-rows"] ul');if(!l)return;let d=l.querySelectorAll("li.footer-row-cell:not([data-placeholder])");i=Math.max(i,d.length)}),i===0)return;let n=this.card.querySelector('[slot="footer-rows"] ul');if(!n)return;n.querySelectorAll("li.footer-row-cell[data-placeholder]").forEach(c=>c.remove());let o=n.querySelectorAll("li.footer-row-cell").length,s=i-o;for(let c=0;c<s;c++){let l=document.createElement("li");l.className="footer-row-cell",l.setAttribute("data-placeholder",""),n.appendChild(l)}}}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${V}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot?.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}get isNewVariant(){return!!this.card.querySelector("merch-whats-included")}toggleAddon(t){let a=this.mainPrice,i=this.headingMPriceSlot;if(!a&&i){let n=t?.getAttribute("plan-type"),o=null;if(t&&n&&(o=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),t.checked){if(o){let s=ye("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},o.innerHTML);this.card.appendChild(s)}}else{let s=ye("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}showTooltip(t){t.classList.remove("hide-tooltip"),t.setAttribute("aria-expanded","true")}hideTooltip(t){t.classList.add("hide-tooltip"),t.setAttribute("aria-expanded","false")}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');if(!t||this.calloutListenersAdded)return;let a=t.title||t.dataset.tooltip;if(!a)return;t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"));let i=t.parentElement;if(i&&i.tagName==="P"){let n=document.createElement("div"),o=document.createElement("div");o.className="callout-row";let s=document.createElement("div");for(s.className="callout-text";i.firstChild&&i.firstChild!==t;)s.appendChild(i.firstChild);o.appendChild(s),o.appendChild(t),n.appendChild(o),i.replaceWith(n)}t.setAttribute("role","button"),t.setAttribute("tabindex","0"),t.setAttribute("aria-label",a),t.setAttribute("aria-expanded","false"),this.hideTooltip(t),this.handleCalloutTouch=n=>{n.target!==t?this.hideTooltip(t):t.classList.contains("hide-tooltip")?this.showTooltip(t):this.hideTooltip(t)},this.handleCalloutMouse=n=>{n.target!==t?this.hideTooltip(t):this.showTooltip(t)},this.handleCalloutFocusin=()=>{this.showTooltip(t)},this.handleCalloutFocusout=()=>{this.hideTooltip(t)},this.handleCalloutKeydown=n=>{n.key==="Escape"&&(this.hideTooltip(t),t.blur())},document.addEventListener("touchstart",this.handleCalloutTouch),document.addEventListener("mouseover",this.handleCalloutMouse),t.addEventListener("focusin",this.handleCalloutFocusin),t.addEventListener("focusout",this.handleCalloutFocusout),t.addEventListener("keydown",this.handleCalloutKeydown),this.calloutListenersAdded=!0}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let a=this.mainPrice,i=this.card.planType;if(a&&(await a.onceSettled?.(),i=a.value?.[0]?.planType),!i)return;t.planType=i,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}async adjustLegal(){if(this.legalAdjusted||this.legalAdjusting)return;this.legalAdjusting=!0;let t;try{await this.card.updateComplete,await customElements.whenDefined("inline-price");let a=this.mainPrice;if(!a||(await a.onceSettled(),!a?.options))return;t=a.cloneNode(!0),a.options.displayPerUnit&&(a.dataset.displayPerUnit="false"),a.options.displayTax&&(a.dataset.displayTax="false"),a.options.displayPlanType&&(a.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),this.legalResolvedHandler||(this.legalResolvedHandler=()=>this.adjustShortDescription(),t.addEventListener(ue,this.legalResolvedHandler),this.legalElement=t),a.parentNode.insertBefore(t,a.nextSibling),this.legalAdjusted=!0,await t.onceSettled(),this.legalObserver=new MutationObserver(()=>this.adjustShortDescription()),this.legalObserver.observe(t,{childList:!0,subtree:!0})}catch{t?.parentNode&&(t.parentNode.removeChild(t),this.legalAdjusted=!1,this.legalResolvedHandler=null,this.legalElement=null)}finally{this.legalAdjusting=!1}}getOrCreateFallbackPlanType(){let t=this.headingMPriceSlot;if(!t)return null;let a=t.querySelector(".price-legal[data-fallback]");if(!a){a=document.createElement("span"),a.className="price price-legal",a.dataset.fallback="true";let i=document.createElement("span");i.className="price-plan-type disabled",a.appendChild(i),t.appendChild(a)}return a.querySelector(".price-plan-type")}adjustShortDescription(){let a=this.card.querySelector('[is="inline-price"][data-template="legal"]')?.querySelector(".price-plan-type"),i=this.headingMPriceSlot?.querySelector(".price-legal[data-fallback]"),n=i?.querySelector(".price-plan-type");if(a&&n){let l=n.querySelector("em");l&&!a.querySelector("em")&&a.appendChild(l),i.remove()}let o=this.card.querySelector('[slot="body-xxs"]');if(o){let l=o.textContent?.trim(),d=!!o.querySelector(".icon-button");(l||d)&&(this.shortDescriptionHTML=o.innerHTML,o.remove())}if(!this.shortDescriptionHTML)return;let s=a??this.getOrCreateFallbackPlanType();if(!s||s.querySelector("em"))return;let c=document.createElement("em");c.innerHTML=` ${this.shortDescriptionHTML}`,s.appendChild(c)}renderLayout(){return this.isNewVariant?ze` <div class="top-section${this.badge?" badge":""}">
+            </footer>`;
+      }
+      return html5`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
+    });
+    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+  }
+  connectedCallbackHook() {
+    this.card.addEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    if (this.legalAdjusted && !this.legalObserver) {
+      const legal2 = this.card.querySelector(
+        '[is="inline-price"][data-template="legal"]'
+      );
+      if (legal2) {
+        this.legalResolvedHandler = () => this.adjustShortDescription();
+        legal2.addEventListener(
+          EVENT_TYPE_RESOLVED,
+          this.legalResolvedHandler
+        );
+        this.legalElement = legal2;
+        this.legalObserver = new MutationObserver(
+          () => this.adjustShortDescription()
+        );
+        this.legalObserver.observe(legal2, {
+          childList: true,
+          subtree: true
+        });
+        this.adjustShortDescription();
+      } else {
+        this.legalAdjusted = false;
+      }
+    }
+    this.visibilityObserver = new IntersectionObserver(([entry]) => {
+      if (entry.boundingClientRect.height === 0) return;
+      if (!entry.isIntersecting) return;
+      if (!media_default.isMobile) {
+        requestAnimationFrame(() => {
+          const container = this.getContainer();
+          if (!container) return;
+          const cards = container.querySelectorAll(
+            'merch-card[variant="mini-compare-chart"]'
+          );
+          cards.forEach(
+            (card) => card.variantLayout?.syncHeights?.()
+          );
+        });
+      }
+      this.visibilityObserver.disconnect();
+    });
+    this.visibilityObserver.observe(this.card);
+  }
+  disconnectedCallbackHook() {
+    this.card.removeEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    this.visibilityObserver?.disconnect();
+    this.legalObserver?.disconnect();
+    this.legalObserver = null;
+    if (this.legalElement && this.legalResolvedHandler) {
+      this.legalElement.removeEventListener(
+        EVENT_TYPE_RESOLVED,
+        this.legalResolvedHandler
+      );
+      this.legalResolvedHandler = null;
+      this.legalElement = null;
+    }
+    if (this.calloutListenersAdded) {
+      document.removeEventListener("touchstart", this.handleCalloutTouch);
+      document.removeEventListener("mouseover", this.handleCalloutMouse);
+      const tooltipIcon = this.card.querySelector(
+        '[slot="callout-content"] .icon-button'
+      );
+      tooltipIcon?.removeEventListener(
+        "focusin",
+        this.handleCalloutFocusin
+      );
+      tooltipIcon?.removeEventListener(
+        "focusout",
+        this.handleCalloutFocusout
+      );
+      tooltipIcon?.removeEventListener(
+        "keydown",
+        this.handleCalloutKeydown
+      );
+      this.calloutListenersAdded = false;
+    }
+  }
+  updatePriceQuantity({ detail }) {
+    if (!this.mainPrice || !detail?.option) return;
+    this.mainPrice.dataset.quantity = detail.option;
+  }
+  priceOptionsProvider(element, options) {
+    if (!this.isNewVariant) return;
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+      options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+      return;
+    }
+    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
+      options.displayPerUnit = false;
+    }
+  }
+  getGlobalCSS() {
+    return CSS4;
+  }
+  adjustMiniCompareBodySlots() {
+    if (this.card.getBoundingClientRect().width <= 2) return;
+    this.updateCardElementMinHeight(
+      this.card.shadowRoot.querySelector(".top-section"),
+      "top-section"
+    );
+    const slots = [
+      "heading-m",
+      "heading-xs",
+      "subtitle",
+      "body-m",
+      "heading-m-price",
+      "body-xxs",
+      "price-commitment",
+      "quantity-select",
+      "offers",
+      "promo-text",
+      "callout-content",
+      "addon"
+    ];
+    if (this.card.classList.contains("bullet-list")) {
+      slots.push("footer-rows");
+    }
+    slots.forEach(
+      (slot) => this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
+        slot
+      )
+    );
+    this.updateCardElementMinHeight(
+      this.card.shadowRoot.querySelector("footer"),
+      "footer"
+    );
+    const badge = this.card.shadowRoot.querySelector(
+      ".mini-compare-chart-badge"
+    );
+    if (badge?.textContent !== "") {
+      this.getContainer().style.setProperty(
+        "--consonant-merch-card-mini-compare-chart-top-section-mobile-height",
+        "32px"
+      );
+    }
+  }
+  adjustMiniCompareFooterRows() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    let rows;
+    if (this.isNewVariant) {
+      const whatsIncluded = this.card.querySelector(
+        "merch-whats-included"
+      );
+      if (!whatsIncluded) return;
+      rows = [
+        ...whatsIncluded.querySelectorAll(
+          '[slot="content"] merch-mnemonic-list'
+        )
+      ];
+    } else {
+      const footerRows = this.card.querySelector(
+        '[slot="footer-rows"] ul'
+      );
+      if (!footerRows || !footerRows.children) return;
+      rows = [...footerRows.children];
+    }
+    if (!rows.length) return;
+    rows.forEach((el, index) => {
+      const height = Math.max(
+        FOOTER_ROW_MIN_HEIGHT,
+        parseFloat(window.getComputedStyle(el).height) || 0
+      );
+      const maxMinHeight = parseFloat(
+        this.getContainer().style.getPropertyValue(
+          this.getRowMinHeightPropertyName(index + 1)
+        )
+      ) || 0;
+      if (height > maxMinHeight) {
+        this.getContainer().style.setProperty(
+          this.getRowMinHeightPropertyName(index + 1),
+          `${height}px`
+        );
+      }
+    });
+  }
+  removeEmptyRows() {
+    if (this.isNewVariant) {
+      const rows = this.card.querySelectorAll(
+        'merch-whats-included [slot="content"] merch-mnemonic-list'
+      );
+      rows.forEach((row) => {
+        if (row.hasAttribute("data-placeholder")) return;
+        const iconSlot = row.querySelector('[slot="icon"]');
+        const hasIcon = !!iconSlot?.querySelector(".sp-icon") || !!iconSlot?.querySelector(
+          'merch-icon[src]:not([src=""]), img[src]:not([src=""])'
+        );
+        const description = row.querySelector('[slot="description"]');
+        const text = description?.textContent?.replace(/\u00a0/g, " ")?.trim() ?? "";
+        if (!hasIcon && !text) row.remove();
+      });
+    } else {
+      const footerRows = this.card.querySelectorAll(".footer-row-cell");
+      footerRows.forEach((row) => {
+        if (row.hasAttribute("data-placeholder")) return;
+        const rowDescription = row.querySelector(
+          ".footer-row-cell-description"
+        );
+        if (rowDescription) {
+          const isEmpty = !rowDescription.textContent.trim();
+          if (isEmpty) {
+            row.remove();
+          }
+        }
+      });
+    }
+  }
+  padFooterRows() {
+    const container = this.getContainer();
+    if (!container) return;
+    const allCards = container.querySelectorAll(
+      'merch-card[variant="mini-compare-chart"]'
+    );
+    if (this.isNewVariant) {
+      let maxRows = 0;
+      allCards.forEach((card) => {
+        const whatsIncluded2 = card.querySelector(
+          "merch-whats-included"
+        );
+        if (!whatsIncluded2) return;
+        const realRows = whatsIncluded2.querySelectorAll(
+          '[slot="content"] merch-mnemonic-list:not([data-placeholder])'
+        );
+        maxRows = Math.max(maxRows, realRows.length);
+      });
+      if (maxRows === 0) return;
+      const whatsIncluded = this.card.querySelector(
+        "merch-whats-included"
+      );
+      if (!whatsIncluded) return;
+      const contentSlot = whatsIncluded.querySelector('[slot="content"]');
+      if (!contentSlot) return;
+      contentSlot.querySelectorAll("merch-mnemonic-list[data-placeholder]").forEach((el) => el.remove());
+      const currentRows = contentSlot.querySelectorAll(
+        "merch-mnemonic-list"
+      ).length;
+      const needed = maxRows - currentRows;
+      for (let i = 0; i < needed; i++) {
+        const empty = document.createElement("merch-mnemonic-list");
+        empty.setAttribute("data-placeholder", "");
+        const iconSlot = document.createElement("div");
+        iconSlot.setAttribute("slot", "icon");
+        const desc = document.createElement("div");
+        desc.setAttribute("slot", "description");
+        empty.append(iconSlot, desc);
+        contentSlot.appendChild(empty);
+      }
+    } else {
+      let maxRows = 0;
+      allCards.forEach((card) => {
+        const ul2 = card.querySelector('[slot="footer-rows"] ul');
+        if (!ul2) return;
+        const realRows = ul2.querySelectorAll(
+          "li.footer-row-cell:not([data-placeholder])"
+        );
+        maxRows = Math.max(maxRows, realRows.length);
+      });
+      if (maxRows === 0) return;
+      const ul = this.card.querySelector('[slot="footer-rows"] ul');
+      if (!ul) return;
+      ul.querySelectorAll("li.footer-row-cell[data-placeholder]").forEach(
+        (el) => el.remove()
+      );
+      const currentRows = ul.querySelectorAll("li.footer-row-cell").length;
+      const needed = maxRows - currentRows;
+      for (let i = 0; i < needed; i++) {
+        const empty = document.createElement("li");
+        empty.className = "footer-row-cell";
+        empty.setAttribute("data-placeholder", "");
+        ul.appendChild(empty);
+      }
+    }
+  }
+  get mainPrice() {
+    const price2 = this.card.querySelector(
+      `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  get headingMPriceSlot() {
+    return this.card.shadowRoot?.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0];
+  }
+  get isNewVariant() {
+    return !!this.card.querySelector("merch-whats-included");
+  }
+  toggleAddon(merchAddon) {
+    const mainPrice = this.mainPrice;
+    const headingMPriceSlot = this.headingMPriceSlot;
+    if (!mainPrice && headingMPriceSlot) {
+      const planType = merchAddon?.getAttribute("plan-type");
+      let visibleSpan = null;
+      if (merchAddon && planType) {
+        const matchingP = merchAddon.querySelector(
+          `p[data-plan-type="${planType}"]`
+        );
+        visibleSpan = matchingP?.querySelector(
+          'span[is="inline-price"]'
+        );
+      }
+      this.card.querySelectorAll('p[slot="heading-m-price"]').forEach((p) => p.remove());
+      if (merchAddon.checked) {
+        if (visibleSpan) {
+          const replacementP = createTag(
+            "p",
+            {
+              class: "addon-heading-m-price-addon",
+              slot: "heading-m-price"
+            },
+            visibleSpan.innerHTML
+          );
+          this.card.appendChild(replacementP);
+        }
+      } else {
+        const freeP = createTag(
+          "p",
+          {
+            class: "card-heading",
+            id: "free",
+            slot: "heading-m-price"
+          },
+          "Free"
+        );
+        this.card.appendChild(freeP);
+      }
+    }
+  }
+  showTooltip(tooltipIcon) {
+    tooltipIcon.classList.remove("hide-tooltip");
+    tooltipIcon.setAttribute("aria-expanded", "true");
+  }
+  hideTooltip(tooltipIcon) {
+    tooltipIcon.classList.add("hide-tooltip");
+    tooltipIcon.setAttribute("aria-expanded", "false");
+  }
+  adjustCallout() {
+    const tooltipIcon = this.card.querySelector(
+      '[slot="callout-content"] .icon-button'
+    );
+    if (!tooltipIcon) return;
+    if (this.calloutListenersAdded) return;
+    const tooltipText = tooltipIcon.title || tooltipIcon.dataset.tooltip;
+    if (!tooltipText) return;
+    if (tooltipIcon.title) {
+      tooltipIcon.dataset.tooltip = tooltipIcon.title;
+      tooltipIcon.removeAttribute("title");
+    }
+    const pElement = tooltipIcon.parentElement;
+    if (pElement && pElement.tagName === "P") {
+      const outerDiv = document.createElement("div");
+      const calloutRow = document.createElement("div");
+      calloutRow.className = "callout-row";
+      const textWrapper = document.createElement("div");
+      textWrapper.className = "callout-text";
+      while (pElement.firstChild && pElement.firstChild !== tooltipIcon) {
+        textWrapper.appendChild(pElement.firstChild);
+      }
+      calloutRow.appendChild(textWrapper);
+      calloutRow.appendChild(tooltipIcon);
+      outerDiv.appendChild(calloutRow);
+      pElement.replaceWith(outerDiv);
+    }
+    tooltipIcon.setAttribute("role", "button");
+    tooltipIcon.setAttribute("tabindex", "0");
+    tooltipIcon.setAttribute("aria-label", tooltipText);
+    tooltipIcon.setAttribute("aria-expanded", "false");
+    this.hideTooltip(tooltipIcon);
+    this.handleCalloutTouch = (event) => {
+      if (event.target !== tooltipIcon) {
+        this.hideTooltip(tooltipIcon);
+      } else {
+        const isHidden = tooltipIcon.classList.contains("hide-tooltip");
+        if (isHidden) {
+          this.showTooltip(tooltipIcon);
+        } else {
+          this.hideTooltip(tooltipIcon);
+        }
+      }
+    };
+    this.handleCalloutMouse = (event) => {
+      if (event.target !== tooltipIcon) {
+        this.hideTooltip(tooltipIcon);
+      } else {
+        this.showTooltip(tooltipIcon);
+      }
+    };
+    this.handleCalloutFocusin = () => {
+      this.showTooltip(tooltipIcon);
+    };
+    this.handleCalloutFocusout = () => {
+      this.hideTooltip(tooltipIcon);
+    };
+    this.handleCalloutKeydown = (event) => {
+      if (event.key === "Escape") {
+        this.hideTooltip(tooltipIcon);
+        tooltipIcon.blur();
+      }
+    };
+    document.addEventListener("touchstart", this.handleCalloutTouch);
+    document.addEventListener("mouseover", this.handleCalloutMouse);
+    tooltipIcon.addEventListener("focusin", this.handleCalloutFocusin);
+    tooltipIcon.addEventListener("focusout", this.handleCalloutFocusout);
+    tooltipIcon.addEventListener("keydown", this.handleCalloutKeydown);
+    this.calloutListenersAdded = true;
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    const price2 = this.mainPrice;
+    let planType = this.card.planType;
+    if (price2) {
+      await price2.onceSettled?.();
+      planType = price2.value?.[0]?.planType;
+    }
+    if (!planType) return;
+    addon.planType = planType;
+    const addonWithPlanType = this.card.querySelector(
+      "merch-addon[plan-type]"
+    );
+    addonWithPlanType?.updateComplete.then(() => {
+      this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="addon"]`),
+        "addon"
+      );
+    });
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted || this.legalAdjusting) return;
+    this.legalAdjusting = true;
+    let legal2;
+    try {
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const headingPrice = this.mainPrice;
+      if (!headingPrice) return;
+      await headingPrice.onceSettled();
+      if (!headingPrice?.options) return;
+      legal2 = headingPrice.cloneNode(true);
+      if (headingPrice.options.displayPerUnit)
+        headingPrice.dataset.displayPerUnit = "false";
+      if (headingPrice.options.displayTax)
+        headingPrice.dataset.displayTax = "false";
+      if (headingPrice.options.displayPlanType)
+        headingPrice.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      if (!this.legalResolvedHandler) {
+        this.legalResolvedHandler = () => this.adjustShortDescription();
+        legal2.addEventListener(
+          EVENT_TYPE_RESOLVED,
+          this.legalResolvedHandler
+        );
+        this.legalElement = legal2;
+      }
+      headingPrice.parentNode.insertBefore(
+        legal2,
+        headingPrice.nextSibling
+      );
+      this.legalAdjusted = true;
+      await legal2.onceSettled();
+      this.legalObserver = new MutationObserver(
+        () => this.adjustShortDescription()
+      );
+      this.legalObserver.observe(legal2, {
+        childList: true,
+        subtree: true
+      });
+    } catch {
+      if (legal2?.parentNode) {
+        legal2.parentNode.removeChild(legal2);
+        this.legalAdjusted = false;
+        this.legalResolvedHandler = null;
+        this.legalElement = null;
+      }
+    } finally {
+      this.legalAdjusting = false;
+    }
+  }
+  // When there's no resolved legal price to carry the plan-type span
+  // (e.g. price failed to resolve, or there's no price at all), build a
+  // minimal stand-in with the same classes so the short description
+  // still renders in the usual plan-type/legal position and styling.
+  getOrCreateFallbackPlanType() {
+    const headingMPriceSlot = this.headingMPriceSlot;
+    if (!headingMPriceSlot) return null;
+    let fallbackLegal = headingMPriceSlot.querySelector(
+      ".price-legal[data-fallback]"
+    );
+    if (!fallbackLegal) {
+      fallbackLegal = document.createElement("span");
+      fallbackLegal.className = "price price-legal";
+      fallbackLegal.dataset.fallback = "true";
+      const planType = document.createElement("span");
+      planType.className = "price-plan-type disabled";
+      fallbackLegal.appendChild(planType);
+      headingMPriceSlot.appendChild(fallbackLegal);
+    }
+    return fallbackLegal.querySelector(".price-plan-type");
+  }
+  adjustShortDescription() {
+    const legalPrice = this.card.querySelector(
+      '[is="inline-price"][data-template="legal"]'
+    );
+    const realPlanType = legalPrice?.querySelector(".price-plan-type");
+    const fallbackLegal = this.headingMPriceSlot?.querySelector(
+      ".price-legal[data-fallback]"
+    );
+    const fallbackPlanType = fallbackLegal?.querySelector(".price-plan-type");
+    if (realPlanType && fallbackPlanType) {
+      const fallbackEm = fallbackPlanType.querySelector("em");
+      if (fallbackEm && !realPlanType.querySelector("em")) {
+        realPlanType.appendChild(fallbackEm);
+      }
+      fallbackLegal.remove();
+    }
+    const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
+    if (bodyXxs) {
+      const text = bodyXxs.textContent?.trim();
+      const hasIconButton = !!bodyXxs.querySelector(".icon-button");
+      if (text || hasIconButton) {
+        this.shortDescriptionHTML = bodyXxs.innerHTML;
+        bodyXxs.remove();
+      }
+    }
+    if (!this.shortDescriptionHTML) return;
+    const planType = realPlanType ?? this.getOrCreateFallbackPlanType();
+    if (!planType) return;
+    if (planType.querySelector("em")) return;
+    const em = document.createElement("em");
+    em.innerHTML = ` ${this.shortDescriptionHTML}`;
+    planType.appendChild(em);
+  }
+  renderLayout() {
+    if (!this.isNewVariant) {
+      return html5` <div class="top-section${this.badge ? " badge" : ""}">
+                    <slot name="icons"></slot> ${this.badge}
+                </div>
+                <slot name="heading-m"></slot>
+                ${this.card.classList.contains("bullet-list") ? html5`<slot name="heading-m-price"></slot>
+                          <slot name="price-commitment"></slot>
+                          <slot name="body-xxs"></slot>
+                          <slot name="promo-text"></slot>
+                          <slot name="body-m"></slot>
+                          <slot name="offers"></slot>` : html5`<slot name="body-m"></slot>
+                          <slot name="heading-m-price"></slot>
+                          <slot name="body-xxs"></slot>
+                          <slot name="price-commitment"></slot>
+                          <slot name="offers"></slot>
+                          <slot name="promo-text"></slot> `}
+                <slot name="callout-content"></slot>
+                <slot name="addon"></slot>
+                ${this.getMiniCompareFooter()}
+                <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
+    }
+    return html5` <div class="top-section${this.badge ? " badge" : ""}">
                 <slot name="icons"></slot> ${this.badge}
                 <slot name="badge"></slot>
             </div>
@@ -1254,25 +2758,53 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
             <slot name="callout-content"></slot>
             <slot name="addon"></slot>
             ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`:ze` <div class="top-section${this.badge?" badge":""}">
-                    <slot name="icons"></slot> ${this.badge}
-                </div>
-                <slot name="heading-m"></slot>
-                ${this.card.classList.contains("bullet-list")?ze`<slot name="heading-m-price"></slot>
-                          <slot name="price-commitment"></slot>
-                          <slot name="body-xxs"></slot>
-                          <slot name="promo-text"></slot>
-                          <slot name="body-m"></slot>
-                          <slot name="offers"></slot>`:ze`<slot name="body-m"></slot>
-                          <slot name="heading-m-price"></slot>
-                          <slot name="body-xxs"></slot>
-                          <slot name="price-commitment"></slot>
-                          <slot name="offers"></slot>
-                          <slot name="promo-text"></slot> `}
-                <slot name="callout-content"></slot>
-                <slot name="addon"></slot>
-                ${this.getMiniCompareFooter()}
-                <slot name="footer-rows"><slot name="body-s"></slot></slot>`}syncHeights(){this.card.getBoundingClientRect().width<=2||(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}async postCardUpdateHook(){if(await super.postCardUpdateHook(),this.isNewVariant&&(this.legalAdjusted||await this.adjustLegal(),this.adjustShortDescription(),this.adjustCallout()),await this.adjustAddon(),this.isNewVariant&&this.removeEmptyRows(),A.isMobile)this.isNewVariant||this.removeEmptyRows();else{this.padFooterRows();let t=this.getContainer();if(!t)return;let a=t.style.getPropertyValue("--consonant-merch-card-footer-row-1-min-height");requestAnimationFrame(a?()=>{this.syncHeights()}:()=>{t.querySelectorAll('merch-card[variant="mini-compare-chart"]').forEach(n=>n.variantLayout?.syncHeights?.())})}}};g(dt,"variantStyle",Dc`
+            <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
+  }
+  syncHeights() {
+    if (this.card.getBoundingClientRect().width <= 2) return;
+    this.adjustMiniCompareBodySlots();
+    this.adjustMiniCompareFooterRows();
+  }
+  async postCardUpdateHook() {
+    await super.postCardUpdateHook();
+    if (this.isNewVariant) {
+      if (!this.legalAdjusted) {
+        await this.adjustLegal();
+      }
+      this.adjustShortDescription();
+      this.adjustCallout();
+    }
+    await this.adjustAddon();
+    if (this.isNewVariant) {
+      this.removeEmptyRows();
+    }
+    if (!media_default.isMobile) {
+      this.padFooterRows();
+      const container = this.getContainer();
+      if (!container) return;
+      const hasExistingVars = container.style.getPropertyValue(
+        "--consonant-merch-card-footer-row-1-min-height"
+      );
+      if (!hasExistingVars) {
+        requestAnimationFrame(() => {
+          const cards = container.querySelectorAll(
+            'merch-card[variant="mini-compare-chart"]'
+          );
+          cards.forEach(
+            (card) => card.variantLayout?.syncHeights?.()
+          );
+        });
+      } else {
+        requestAnimationFrame(() => {
+          this.syncHeights();
+        });
+      }
+    } else if (!this.isNewVariant) {
+      this.removeEmptyRows();
+    }
+  }
+};
+__publicField(MiniCompareChart, "variantStyle", css3`
         :host([variant='mini-compare-chart']) {
             max-width: var(
                 --consonant-merch-card-mini-compare-chart-wide-width,
@@ -1363,7 +2895,7 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
             color: #505050;
         }
 
-        @media screen and ${mn(X)} {
+        @media screen and ${unsafeCSS(TABLET_DOWN)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart'])
                 footer {
@@ -1373,7 +2905,7 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
             }
         }
 
-        @media screen and ${mn(L)} {
+        @media screen and ${unsafeCSS(DESKTOP_UP)} {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)
@@ -1565,7 +3097,13 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
             background-color: #eb1000;
             color: #ffffff;
         }
-    `);import{html as Pr,css as Fc,unsafeCSS as Ua,nothing as Bc}from"./lit-all.min.js";var gn=`
+    `);
+
+// src/variants/mini-compare-chart-mweb.js
+import { html as html6, css as css4, unsafeCSS as unsafeCSS2, nothing as nothing2 } from "./lit-all.min.js";
+
+// src/variants/mini-compare-chart-mweb.css.js
+var CSS5 = `
   :root {
     --list-checked-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' width='20' height='20'%3E%3Cpath fill='%23222222' d='M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z'%3E%3C/path%3E%3C/svg%3E");
     --merch-card-collection-card-width: var(--consonant-merch-card-mini-compare-chart-mweb-width);
@@ -2086,7 +3624,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 }
 
 /* mini compare mobile */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-mini-compare-chart-mweb-width: 302px;
     --consonant-merch-card-mini-compare-chart-mweb-wide-width: 302px;
@@ -2143,7 +3681,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   }
 }
 
-@media screen and ${X} {
+@media screen and ${TABLET_DOWN} {
   merch-card[variant="mini-compare-chart-mweb"] [slot="heading-xs"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -2179,7 +3717,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 }
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-mweb-width: 302px;
     --consonant-merch-card-mini-compare-chart-mweb-wide-width: 302px;
@@ -2222,7 +3760,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 }
 
 /* desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-mweb-width: 378px;
     --consonant-merch-card-mini-compare-chart-mweb-wide-width: 484px;
@@ -2254,7 +3792,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   }
 }
 
-@media screen and ${ee} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.mini-compare-chart-mweb,
   .four-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]) {
     grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-mweb-width));
@@ -2297,7 +3835,67 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var Uc=32,$c=0,Gc=()=>`mweb-list-${$c+=1}`,qc=["heading-xs","subtitle","heading-m-price","promo-text","body-m","body-xs"],Vc=8,fn={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},shortDescription:{tag:"div",slot:"body-m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],ctas:{slot:"footer",size:"l"},style:"consonant"},we,We,pt,mt,ut,De,$a,Ga,ht=class extends w{constructor(t){super(t);S(this,De);S(this,we);S(this,We);S(this,pt);S(this,mt,0);S(this,ut);g(this,"getRowMinHeightPropertyName",t=>`--consonant-merch-card-footer-row-${t}-min-height`);g(this,"getMiniCompareFooter",()=>Pr` <footer>
+`;
+
+// src/variants/mini-compare-chart-mweb.js
+var FOOTER_ROW_MIN_HEIGHT2 = 32;
+var listIdCounter = 0;
+var nextListId = () => `mweb-list-${listIdCounter += 1}`;
+var SYNCED_HEIGHT_NAMES = [
+  "heading-xs",
+  "subtitle",
+  "heading-m-price",
+  "promo-text",
+  "body-m",
+  "body-xs"
+];
+var MAX_FOOTER_ROWS = 8;
+var MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  prices: { tag: "p", slot: "heading-m-price" },
+  promoText: { tag: "div", slot: "promo-text" },
+  shortDescription: { tag: "div", slot: "body-m" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  secureLabel: true,
+  planType: true,
+  badgeIcon: true,
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  borderColor: { attribute: "border-color" },
+  size: ["wide", "super-wide"],
+  ctas: { slot: "footer", size: "l" },
+  style: "consonant"
+};
+var _syncObserver, _resizeObserver, _resizeTimer, _lastWidth, _toggleEls, _MiniCompareChartMweb_instances, siblingCards_fn, syncSiblingsWhenSettled_fn;
+var MiniCompareChartMweb = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __privateAdd(this, _MiniCompareChartMweb_instances);
+    __privateAdd(this, _syncObserver);
+    __privateAdd(this, _resizeObserver);
+    __privateAdd(this, _resizeTimer);
+    __privateAdd(this, _lastWidth, 0);
+    __privateAdd(this, _toggleEls);
+    __publicField(this, "getRowMinHeightPropertyName", (index) => `--consonant-merch-card-footer-row-${index}-min-height`);
+    __publicField(this, "getMiniCompareFooter", () => {
+      return html6` <footer>
             <slot name="secure-transaction-label">
                 <span class="secure-transaction-label-text"
                     >${this.secureLabel}</span
@@ -2306,10 +3904,216 @@ merch-card .footer-row-cell:nth-child(8) {
             <p class="action-area">
                 <slot name="footer"></slot>
             </p>
-        </footer>`);g(this,"getMiniCompareFooterRows",()=>Pr` <div class="footer-rows-container">
+        </footer>`;
+    });
+    __publicField(this, "getMiniCompareFooterRows", () => {
+      return html6` <div class="footer-rows-container">
             <slot name="body-xs"></slot>
             <slot name="footer-rows"></slot>
-        </div>`);this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(ae,this.updatePriceQuantity),E(this,mt,this.card.getBoundingClientRect().width),E(this,We,new ResizeObserver(()=>{let t=this.card.getBoundingClientRect().width;t!==v(this,mt)&&(E(this,mt,t),clearTimeout(v(this,pt)),E(this,pt,setTimeout(()=>this.reconcileBreakpoint(),150)))})),v(this,We).observe(this.card)}disconnectedCallbackHook(){this.card.removeEventListener(ae,this.updatePriceQuantity),clearTimeout(v(this,pt)),v(this,We)?.disconnect(),E(this,We,null),v(this,we)?.disconnect(),E(this,we,null)}reconcileBreakpoint(){A.isMobile?(this.resetSyncedHeights(),this.removeEmptyRows()):H(this,De,Ga).call(this)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}syncHeights(){if(A.isMobile)return;if(this.card.getBoundingClientRect().width<=2){v(this,we)||(E(this,we,new ResizeObserver(()=>{this.card.getBoundingClientRect().width>2&&(v(this,we)?.disconnect(),E(this,we,null),this.syncHeights())})),v(this,we).observe(this.card));return}let t=["heading-xs","subtitle","heading-m-price","promo-text","body-m","body-xs"];this.syncRowHeights(t.map(a=>({name:a,getElement:i=>i.querySelector(`[slot="${a}"]`)}))),this.adjustMiniCompareFooterRows()}priceOptionsProvider(t,a){if(t.dataset.template===te){a.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(a.displayPerUnit=!1)}getGlobalCSS(){return gn}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.querySelector('[slot="footer-rows"] ul');!t||!t.children||[...t.children].forEach((a,i)=>{let n=Math.max(Uc,parseFloat(window.getComputedStyle(a).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(i+1)))||0;n>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(i+1),`${n}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(a=>{let i=a.querySelector(".footer-row-cell-description");i&&!i.textContent.trim()&&a.remove()})}setupToggle(){let t=this.card.querySelector('[slot="body-xs"]'),a=t?.querySelector("p"),i=t?.querySelector("ul");if(!a||!i||t.querySelector(".footer-rows-title"))return;let n=a.textContent.trim(),o=this.card.querySelector("h3")?.id,s=o?`${o}-list`:Gc();i.id=s,i.classList.add("checkmark-copy-container");let c=ye("h4",{class:"footer-rows-title"},n),l=ye("button",{class:"toggle-icon","aria-label":n,"aria-expanded":"false","aria-controls":s});E(this,ut,{toggleBtn:l,listEl:i}),c.append(l),c.addEventListener("click",()=>{A.isMobile&&this.setListOpen(!this.isListOpen)}),a.replaceWith(c)}get isListOpen(){return v(this,ut)?.listEl.classList.contains("open")??!1}setListOpen(t){let{toggleBtn:a,listEl:i}=v(this,ut);i.classList.toggle("open",t),a.classList.toggle("expanded",t),a.setAttribute("aria-expanded",String(t))}get legalDisplayDot(){return!1}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${V}[data-template="price"]`)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),t.parentNode.insertBefore(a,t.nextSibling),await a.onceSettled()}catch{}}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?Bc:Pr`<slot name="icons"></slot>`}renderLayout(){return Pr`
+        </div>`;
+    });
+    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+  }
+  connectedCallbackHook() {
+    this.card.addEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    __privateSet(this, _lastWidth, this.card.getBoundingClientRect().width);
+    __privateSet(this, _resizeObserver, new ResizeObserver(() => {
+      const width = this.card.getBoundingClientRect().width;
+      if (width === __privateGet(this, _lastWidth)) return;
+      __privateSet(this, _lastWidth, width);
+      clearTimeout(__privateGet(this, _resizeTimer));
+      __privateSet(this, _resizeTimer, setTimeout(
+        () => this.reconcileBreakpoint(),
+        150
+      ));
+    }));
+    __privateGet(this, _resizeObserver).observe(this.card);
+  }
+  disconnectedCallbackHook() {
+    this.card.removeEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    clearTimeout(__privateGet(this, _resizeTimer));
+    __privateGet(this, _resizeObserver)?.disconnect();
+    __privateSet(this, _resizeObserver, null);
+    __privateGet(this, _syncObserver)?.disconnect();
+    __privateSet(this, _syncObserver, null);
+  }
+  reconcileBreakpoint() {
+    if (media_default.isMobile) {
+      this.resetSyncedHeights();
+      this.removeEmptyRows();
+    } else {
+      __privateMethod(this, _MiniCompareChartMweb_instances, syncSiblingsWhenSettled_fn).call(this);
+    }
+  }
+  updatePriceQuantity({ detail }) {
+    if (!this.mainPrice || !detail?.option) return;
+    this.mainPrice.dataset.quantity = detail.option;
+  }
+  syncHeights() {
+    if (media_default.isMobile) return;
+    if (this.card.getBoundingClientRect().width <= 2) {
+      if (!__privateGet(this, _syncObserver)) {
+        __privateSet(this, _syncObserver, new ResizeObserver(() => {
+          if (this.card.getBoundingClientRect().width > 2) {
+            __privateGet(this, _syncObserver)?.disconnect();
+            __privateSet(this, _syncObserver, null);
+            this.syncHeights();
+          }
+        }));
+        __privateGet(this, _syncObserver).observe(this.card);
+      }
+      return;
+    }
+    const slots = [
+      "heading-xs",
+      "subtitle",
+      "heading-m-price",
+      "promo-text",
+      "body-m",
+      "body-xs"
+    ];
+    this.syncRowHeights(
+      slots.map((slot) => ({
+        name: slot,
+        getElement: (card) => card.querySelector(`[slot="${slot}"]`)
+      }))
+    );
+    this.adjustMiniCompareFooterRows();
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+      options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+      return;
+    }
+    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
+      options.displayPerUnit = false;
+    }
+  }
+  getGlobalCSS() {
+    return CSS5;
+  }
+  adjustMiniCompareFooterRows() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    const footerRows = this.card.querySelector('[slot="footer-rows"] ul');
+    if (!footerRows || !footerRows.children) return;
+    [...footerRows.children].forEach((el, index) => {
+      const height = Math.max(
+        FOOTER_ROW_MIN_HEIGHT2,
+        parseFloat(window.getComputedStyle(el).height) || 0
+      );
+      const maxMinHeight = parseFloat(
+        this.getContainer().style.getPropertyValue(
+          this.getRowMinHeightPropertyName(index + 1)
+        )
+      ) || 0;
+      if (height > maxMinHeight) {
+        this.getContainer().style.setProperty(
+          this.getRowMinHeightPropertyName(index + 1),
+          `${height}px`
+        );
+      }
+    });
+  }
+  removeEmptyRows() {
+    const footerRows = this.card.querySelectorAll(".footer-row-cell");
+    footerRows.forEach((row) => {
+      const rowDescription = row.querySelector(
+        ".footer-row-cell-description"
+      );
+      if (rowDescription) {
+        const isEmpty = !rowDescription.textContent.trim();
+        if (isEmpty) {
+          row.remove();
+        }
+      }
+    });
+  }
+  setupToggle() {
+    const bodyXs = this.card.querySelector('[slot="body-xs"]');
+    const titleEl = bodyXs?.querySelector("p");
+    const listEl = bodyXs?.querySelector("ul");
+    if (!titleEl || !listEl) return;
+    if (bodyXs.querySelector(".footer-rows-title")) return;
+    const titleText = titleEl.textContent.trim();
+    const heading = this.card.querySelector("h3")?.id;
+    const listId = heading ? `${heading}-list` : nextListId();
+    listEl.id = listId;
+    listEl.classList.add("checkmark-copy-container");
+    const titleDiv = createTag(
+      "h4",
+      { class: "footer-rows-title" },
+      titleText
+    );
+    const toggleBtn = createTag("button", {
+      class: "toggle-icon",
+      "aria-label": titleText,
+      "aria-expanded": "false",
+      "aria-controls": listId
+    });
+    __privateSet(this, _toggleEls, { toggleBtn, listEl });
+    titleDiv.append(toggleBtn);
+    titleDiv.addEventListener("click", () => {
+      if (media_default.isMobile) this.setListOpen(!this.isListOpen);
+    });
+    titleEl.replaceWith(titleDiv);
+  }
+  get isListOpen() {
+    return __privateGet(this, _toggleEls)?.listEl.classList.contains("open") ?? false;
+  }
+  // One definition of "open" for the mobile click handler.
+  setListOpen(isOpen) {
+    const { toggleBtn, listEl } = __privateGet(this, _toggleEls);
+    listEl.classList.toggle("open", isOpen);
+    toggleBtn.classList.toggle("expanded", isOpen);
+    toggleBtn.setAttribute("aria-expanded", String(isOpen));
+  }
+  get legalDisplayDot() {
+    return false;
+  }
+  get mainPrice() {
+    return this.card.querySelector(
+      `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const headingPrice = this.mainPrice;
+      if (!headingPrice) return;
+      const legal2 = headingPrice.cloneNode(true);
+      await headingPrice.onceSettled();
+      if (!headingPrice?.options) return;
+      if (headingPrice.options.displayPerUnit)
+        headingPrice.dataset.displayPerUnit = "false";
+      if (headingPrice.options.displayTax)
+        headingPrice.dataset.displayTax = "false";
+      if (headingPrice.options.displayPlanType)
+        headingPrice.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      headingPrice.parentNode.insertBefore(
+        legal2,
+        headingPrice.nextSibling
+      );
+      await legal2.onceSettled();
+    } catch {
+    }
+  }
+  get icons() {
+    if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute("id"))
+      return nothing2;
+    return html6`<slot name="icons"></slot>`;
+  }
+  renderLayout() {
+    return html6`
             ${this.badge}
             <div class="body">
                 <div class="body-main">
@@ -2326,7 +4130,63 @@ merch-card .footer-row-cell:nth-child(8) {
                 ${this.getMiniCompareFooter()}
             </div>
             ${this.getMiniCompareFooterRows()}
-        `}async postCardUpdateHook(){this.legalAdjusted||await this.adjustLegal(),this.setupToggle(),A.isMobile&&this.removeEmptyRows(),await super.postCardUpdateHook(),A.isMobile||await H(this,De,Ga).call(this)}resetSyncedHeights(){let t=this.getContainer();if(!t)return;let a=this.card.variant,i=H(this,De,$a).call(this,t);for(let n of qc){let o=`--consonant-merch-card-${a}-${n}-height`;t.style.removeProperty(o),i.forEach(s=>s.style.removeProperty(o))}for(let n=1;n<=Vc;n+=1)t.style.removeProperty(this.getRowMinHeightPropertyName(n))}};we=new WeakMap,We=new WeakMap,pt=new WeakMap,mt=new WeakMap,ut=new WeakMap,De=new WeakSet,$a=function(t){return t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)},Ga=async function(){let t=this.getContainer();if(!t)return;let a=Array.from(H(this,De,$a).call(this,t));this.card===a[0]&&(await Promise.all(a.map(i=>i.updateComplete)),await new Promise(i=>setTimeout(i,100)),requestAnimationFrame(()=>{this.resetSyncedHeights(),this.syncHeights()}))},g(ht,"variantStyle",Fc`
+        `;
+  }
+  async postCardUpdateHook() {
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+    }
+    this.setupToggle();
+    if (media_default.isMobile) {
+      this.removeEmptyRows();
+    }
+    await super.postCardUpdateHook();
+    if (!media_default.isMobile) {
+      await __privateMethod(this, _MiniCompareChartMweb_instances, syncSiblingsWhenSettled_fn).call(this);
+    }
+  }
+  resetSyncedHeights() {
+    const container = this.getContainer();
+    if (!container) return;
+    const variant = this.card.variant;
+    const cards = __privateMethod(this, _MiniCompareChartMweb_instances, siblingCards_fn).call(this, container);
+    for (const name of SYNCED_HEIGHT_NAMES) {
+      const prop = `--consonant-merch-card-${variant}-${name}-height`;
+      container.style.removeProperty(prop);
+      cards.forEach((card) => card.style.removeProperty(prop));
+    }
+    for (let index = 1; index <= MAX_FOOTER_ROWS; index += 1) {
+      container.style.removeProperty(
+        this.getRowMinHeightPropertyName(index)
+      );
+    }
+  }
+};
+_syncObserver = new WeakMap();
+_resizeObserver = new WeakMap();
+_resizeTimer = new WeakMap();
+_lastWidth = new WeakMap();
+_toggleEls = new WeakMap();
+_MiniCompareChartMweb_instances = new WeakSet();
+// All sibling cards of this variant inside the given container.
+siblingCards_fn = function(container) {
+  return container.querySelectorAll(
+    `merch-card[variant="${this.card.variant}"]`
+  );
+};
+syncSiblingsWhenSettled_fn = async function() {
+  const container = this.getContainer();
+  if (!container) return;
+  const cards = Array.from(__privateMethod(this, _MiniCompareChartMweb_instances, siblingCards_fn).call(this, container));
+  if (this.card !== cards[0]) return;
+  await Promise.all(cards.map((card) => card.updateComplete));
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  requestAnimationFrame(() => {
+    this.resetSyncedHeights();
+    this.syncHeights();
+  });
+};
+__publicField(MiniCompareChartMweb, "variantStyle", css4`
         :host([variant='mini-compare-chart-mweb'])
             .body-main
             > .price-wrapping {
@@ -2405,7 +4265,7 @@ merch-card .footer-row-cell:nth-child(8) {
             padding-inline-start: var(--consonant-merch-spacing-xs);
         }
 
-        @media screen and ${Ua(X)} {
+        @media screen and ${unsafeCSS2(TABLET_DOWN)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart-mweb'])
                 footer {
@@ -2415,13 +4275,13 @@ merch-card .footer-row-cell:nth-child(8) {
             }
         }
 
-        @media screen and ${Ua(L)} {
+        @media screen and ${unsafeCSS2(DESKTOP_UP)} {
             :host([variant='mini-compare-chart-mweb']) footer {
                 padding: 0;
             }
         }
 
-        @media screen and ${Ua(R)} {
+        @media screen and ${unsafeCSS2(TABLET_UP)} {
             :host([variant='mini-compare-chart-mweb'])
                 .price-wrapping
                 > slot[name='subtitle'] {
@@ -2648,7 +4508,13 @@ merch-card .footer-row-cell:nth-child(8) {
             gap: var(--consonant-merch-spacing-xxs);
             margin: unset;
         }
-    `);import{html as Yt,css as jc,nothing as Mr}from"./lit-all.min.js";var vn=`
+    `);
+
+// src/variants/plans.js
+import { html as html7, css as css5, nothing as nothing3 } from "./lit-all.min.js";
+
+// src/variants/plans.css.js
+var CSS6 = `
 :root {
     --consonant-merch-card-plans-width: 302px;
     --consonant-merch-card-plans-students-width: 302px;
@@ -3052,7 +4918,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Mobile */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -3073,7 +4939,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
     :root {
         --consonant-merch-card-plans-students-width: 486px;
     }
@@ -3083,7 +4949,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     }
 }
 
-@media screen and ${X} {
+@media screen and ${TABLET_DOWN} {
     .plans-team .columns .row-1 {
         grid-template-columns: min-content;
     }
@@ -3101,7 +4967,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-plans-width: 276px;
         --consonant-merch-card-plans-students-width: 484px;
@@ -3149,7 +5015,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Large desktop */
-@media screen and ${ee} {
+@media screen and ${LARGE_DESKTOP} {
     .columns .four-merch-cards.plans {
         grid-template-columns: repeat(2, var(--consonant-merch-card-plans-width));
     }
@@ -3158,11 +5024,340 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         --merch-sidenav-collection-gap: 54px;
     }
 }
-`;var Rr={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},xn={...(function(){let{whatsIncluded:e,size:r,...t}=Rr;return t})(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},bn={...(function(){let{subtitle:e,whatsIncluded:r,size:t,quantitySelect:a,...i}=Rr;return i})()},Ee,Se,ne=class extends w{constructor(t){super(t);S(this,Ee);S(this,Se);this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(t,a){t.dataset.template===te&&(a.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return vn}adjustSlotPlacement(t,a,i){let n=this.card.shadowRoot,o=n.querySelector("footer"),s=this.card.getAttribute("size");if(!s)return;let c=n.querySelector(`footer slot[name="${t}"]`),l=n.querySelector(`.body slot[name="${t}"]`),d=n.querySelector(".body");if(s.includes("wide")||(o?.classList.remove("wide-footer"),c&&c.remove()),!!a.includes(s)){if(o?.classList.toggle("wide-footer",A.isDesktopOrUp),!i&&c){if(l)c.remove();else{let m=d.querySelector(`[data-placeholder-for="${t}"]`);m?m.replaceWith(c):d.appendChild(c)}return}if(i&&l){let m=document.createElement("div");if(m.setAttribute("data-placeholder-for",t),m.classList.add("slot-placeholder"),!c){let p=l.cloneNode(!0);o.prepend(p)}l.replaceWith(m)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],A.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],A.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');t&&t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip"),document.addEventListener("touchstart",a=>{a.preventDefault(),a.target!==t?t.classList.add("hide-tooltip"):a.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",a=>{a.preventDefault(),a.target!==t?t.classList.add("hide-tooltip"):a.target.classList.remove("hide-tooltip")}))}syncHeights(){if(this.card.getBoundingClientRect().width<=2){v(this,Ee)||(E(this,Ee,new ResizeObserver(()=>{this.card.getBoundingClientRect().width>2&&(v(this,Ee)?.disconnect(),E(this,Ee,null),this.syncHeights())})),v(this,Ee).observe(this.card));return}let t=["heading-xs","subtitle","heading-m","promo-text","body-xs"];this.syncRowHeights(t.map(a=>({name:a,getElement:i=>i.querySelector(`[slot="${a}"]`)})))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let a=this.card.querySelector('[slot="body-xs"]');if(!a)return;let i=a.querySelector("ul");if(!i)return;let n=i.previousElementSibling,o=document.createElement("div");o.classList.add("spacer"),a.insertBefore(o,n);let s=new IntersectionObserver(([c])=>{if(c.boundingClientRect.height===0)return;let l=0,d=this.card.querySelector('[slot="heading-s"]');d&&(l+=Vt(d));let m=this.card.querySelector('[slot="subtitle"]');m&&(l+=Vt(m));let p=this.card.querySelector('[slot="heading-m"]');p&&(l+=8+Vt(p));for(let u of a.childNodes){if(u.classList.contains("spacer"))break;l+=Vt(u)}let h=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");l>(parseFloat(h)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${l}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${l}px`),s.disconnect()});s.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists()),await super.postCardUpdateHook(),window.matchMedia("(min-width: 768px)").matches&&this.card===this.card.parentElement.firstElementChild&&requestAnimationFrame(()=>{this.syncHeights()})}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM?.querySelector(`${V}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?Yt`<div class="divider"></div>`:Mr}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=[],a=this.card.querySelector(`[slot="heading-m"] ${V}[data-template="price"]`);a&&t.push(a);let i=t.map(async n=>{let o=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),o.setAttribute("data-template","legal"),n.parentNode.insertBefore(o,n.nextSibling),await o.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let a=this.mainPrice;if(!a)return;await a.onceSettled?.();let i=a.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?Yt`<label id="stock-checkbox">
+`;
+
+// src/variants/plans.js
+var PLANS_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  prices: { tag: "p", slot: "heading-m" },
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  callout: { tag: "div", slot: "callout-content" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  addon: true,
+  secureLabel: true,
+  planType: true,
+  badgeIcon: true,
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans",
+    "gradient-purple-blue"
+  ],
+  borderColor: { attribute: "border-color" },
+  size: ["wide", "super-wide"],
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant",
+  perUnitLabel: { tag: "span", slot: "per-unit-label" }
+};
+var PLANS_EDUCATION_AEM_FRAGMENT_MAPPING = {
+  ...(function() {
+    const { whatsIncluded, size, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  })(),
+  title: { tag: "h3", slot: "heading-s" },
+  secureLabel: false
+};
+var PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
+  ...(function() {
+    const { subtitle, whatsIncluded, size, quantitySelect, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  })()
+};
+var _syncObserver2, _resizeFrame;
+var Plans = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __privateAdd(this, _syncObserver2);
+    __privateAdd(this, _resizeFrame);
+    this.adaptForMedia = this.adaptForMedia.bind(this);
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+  }
+  getGlobalCSS() {
+    return CSS6;
+  }
+  /**
+   * Moves a slot to its proper place (body or footer) depending on card size and screen size
+   * @param {string} name
+   * @param {string[]} sizes
+   * @param {boolean} shouldBeInFooter
+   * @returns
+   */
+  adjustSlotPlacement(name, sizes, shouldBeInFooter) {
+    const shadowRoot = this.card.shadowRoot;
+    const footer = shadowRoot.querySelector("footer");
+    const size = this.card.getAttribute("size");
+    if (!size) return;
+    const slotInFooter = shadowRoot.querySelector(
+      `footer slot[name="${name}"]`
+    );
+    const slotInBody = shadowRoot.querySelector(
+      `.body slot[name="${name}"]`
+    );
+    const body = shadowRoot.querySelector(".body");
+    if (!size.includes("wide")) {
+      footer?.classList.remove("wide-footer");
+      if (slotInFooter) slotInFooter.remove();
+    }
+    if (!sizes.includes(size)) return;
+    footer?.classList.toggle("wide-footer", media_default.isDesktopOrUp);
+    if (!shouldBeInFooter && slotInFooter) {
+      if (slotInBody) slotInFooter.remove();
+      else {
+        const bodyPlaceholder = body.querySelector(
+          `[data-placeholder-for="${name}"]`
+        );
+        if (bodyPlaceholder) bodyPlaceholder.replaceWith(slotInFooter);
+        else body.appendChild(slotInFooter);
+      }
+      return;
+    }
+    if (shouldBeInFooter && slotInBody) {
+      const bodyPlaceholder = document.createElement("div");
+      bodyPlaceholder.setAttribute("data-placeholder-for", name);
+      bodyPlaceholder.classList.add("slot-placeholder");
+      if (!slotInFooter) {
+        const slotInBodyClone = slotInBody.cloneNode(true);
+        footer.prepend(slotInBodyClone);
+      }
+      slotInBody.replaceWith(bodyPlaceholder);
+    }
+  }
+  adaptForMedia() {
+    if (!this.card.closest(
+      "merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns"
+    )) {
+      this.card.removeAttribute("size");
+      return;
+    }
+    this.adjustSlotPlacement("addon", ["super-wide"], media_default.isDesktopOrUp);
+    this.adjustSlotPlacement(
+      "callout-content",
+      ["super-wide"],
+      media_default.isDesktopOrUp
+    );
+  }
+  adjustCallout() {
+    const tooltipIcon = this.card.querySelector(
+      '[slot="callout-content"] .icon-button'
+    );
+    if (tooltipIcon && tooltipIcon.title) {
+      tooltipIcon.dataset.tooltip = tooltipIcon.title;
+      tooltipIcon.removeAttribute("title");
+      tooltipIcon.classList.add("hide-tooltip");
+      document.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        if (event.target !== tooltipIcon) {
+          tooltipIcon.classList.add("hide-tooltip");
+        } else {
+          event.target.classList.toggle("hide-tooltip");
+        }
+      });
+      document.addEventListener("mouseover", (event) => {
+        event.preventDefault();
+        if (event.target !== tooltipIcon) {
+          tooltipIcon.classList.add("hide-tooltip");
+        } else {
+          event.target.classList.remove("hide-tooltip");
+        }
+      });
+    }
+  }
+  syncHeights() {
+    if (this.card.getBoundingClientRect().width <= 2) {
+      if (!__privateGet(this, _syncObserver2)) {
+        __privateSet(this, _syncObserver2, new ResizeObserver(() => {
+          if (this.card.getBoundingClientRect().width > 2) {
+            __privateGet(this, _syncObserver2)?.disconnect();
+            __privateSet(this, _syncObserver2, null);
+            this.syncHeights();
+          }
+        }));
+        __privateGet(this, _syncObserver2).observe(this.card);
+      }
+      return;
+    }
+    const slots = [
+      "heading-xs",
+      "subtitle",
+      "heading-m",
+      "promo-text",
+      "body-xs"
+    ];
+    this.syncRowHeights(
+      slots.map((slot) => ({
+        name: slot,
+        getElement: (card) => card.querySelector(`[slot="${slot}"]`)
+      }))
+    );
+  }
+  async adjustEduLists() {
+    if (this.card.variant !== "plans-education") return;
+    const existingSpacer = this.card.querySelector(".spacer");
+    if (existingSpacer) return;
+    const body = this.card.querySelector('[slot="body-xs"]');
+    if (!body) return;
+    const list = body.querySelector("ul");
+    if (!list) return;
+    const listHeader = list.previousElementSibling;
+    const spacer = document.createElement("div");
+    spacer.classList.add("spacer");
+    body.insertBefore(spacer, listHeader);
+    const intersectionObs = new IntersectionObserver(([entry]) => {
+      if (entry.boundingClientRect.height === 0) return;
+      let offset = 0;
+      const heading = this.card.querySelector('[slot="heading-s"]');
+      if (heading) offset += getOuterHeight(heading);
+      const subtitle = this.card.querySelector('[slot="subtitle"]');
+      if (subtitle) offset += getOuterHeight(subtitle);
+      const price2 = this.card.querySelector('[slot="heading-m"]');
+      if (price2) offset += 8 + getOuterHeight(price2);
+      for (const child of body.childNodes) {
+        if (child.classList.contains("spacer")) break;
+        offset += getOuterHeight(child);
+      }
+      const maxOffset = this.card.parentElement.style.getPropertyValue(
+        "--merch-card-plans-edu-list-max-offset"
+      );
+      if (offset > (parseFloat(maxOffset) || 0)) {
+        this.card.parentElement.style.setProperty(
+          "--merch-card-plans-edu-list-max-offset",
+          `${offset}px`
+        );
+      }
+      this.card.style.setProperty(
+        "--merch-card-plans-edu-list-offset",
+        `${offset}px`
+      );
+      intersectionObs.disconnect();
+    });
+    intersectionObs.observe(this.card);
+  }
+  async postCardUpdateHook() {
+    this.adaptForMedia();
+    this.adjustAddon();
+    this.adjustCallout();
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+      await this.adjustEduLists();
+    }
+    await super.postCardUpdateHook();
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      if (this.card === this.card.parentElement.firstElementChild) {
+        requestAnimationFrame(() => {
+          this.syncHeights();
+        });
+      }
+    }
+  }
+  get headingM() {
+    return this.card.querySelector('[slot="heading-m"]');
+  }
+  get mainPrice() {
+    const price2 = this.headingM?.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  get divider() {
+    return this.card.variant === "plans-education" ? html7`<div class="divider"></div>` : nothing3;
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const prices = [];
+      const headingPrice = this.card.querySelector(
+        `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+      );
+      if (headingPrice) prices.push(headingPrice);
+      const legalPromises = prices.map(async (price2) => {
+        const legal2 = price2.cloneNode(true);
+        await price2.onceSettled();
+        if (!price2?.options) return;
+        if (price2.options.displayPerUnit)
+          price2.dataset.displayPerUnit = "false";
+        if (price2.options.displayTax)
+          price2.dataset.displayTax = "false";
+        if (price2.options.displayPlanType)
+          price2.dataset.displayPlanType = "false";
+        legal2.setAttribute("data-template", "legal");
+        price2.parentNode.insertBefore(legal2, price2.nextSibling);
+        await legal2.onceSettled();
+      });
+      await Promise.all(legalPromises);
+    } catch {
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    addon.setAttribute("custom-checkbox", "");
+    const price2 = this.mainPrice;
+    if (!price2) return;
+    await price2.onceSettled?.();
+    const planType = price2.value?.[0]?.planType;
+    if (!planType) return;
+    addon.planType = planType;
+  }
+  get stockCheckbox() {
+    return this.card.checkboxLabel ? html7`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`:Mr}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?Mr:Yt`<slot name="icons"></slot>`}resizeHandler(){v(this,Se)&&cancelAnimationFrame(v(this,Se)),E(this,Se,requestAnimationFrame(()=>{E(this,Se,null),window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()}))}connectedCallbackHook(){A.matchMobile.addEventListener("change",this.adaptForMedia),A.matchDesktopOrUp.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){A.matchMobile.removeEventListener("change",this.adaptForMedia),A.matchDesktopOrUp.removeEventListener("change",this.adaptForMedia),v(this,Ee)?.disconnect(),E(this,Ee,null),v(this,Se)&&(cancelAnimationFrame(v(this,Se)),E(this,Se,null))}renderLayout(){return Yt` ${this.badge}
+            </label>` : nothing3;
+  }
+  get icons() {
+    if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute("id"))
+      return nothing3;
+    return html7`<slot name="icons"></slot>`;
+  }
+  resizeHandler() {
+    if (__privateGet(this, _resizeFrame)) cancelAnimationFrame(__privateGet(this, _resizeFrame));
+    __privateSet(this, _resizeFrame, requestAnimationFrame(() => {
+      __privateSet(this, _resizeFrame, null);
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        this.syncHeights();
+      }
+    }));
+  }
+  connectedCallbackHook() {
+    media_default.matchMobile.addEventListener("change", this.adaptForMedia);
+    media_default.matchDesktopOrUp.addEventListener("change", this.adaptForMedia);
+  }
+  disconnectedCallbackHook() {
+    media_default.matchMobile.removeEventListener("change", this.adaptForMedia);
+    media_default.matchDesktopOrUp.removeEventListener(
+      "change",
+      this.adaptForMedia
+    );
+    __privateGet(this, _syncObserver2)?.disconnect();
+    __privateSet(this, _syncObserver2, null);
+    if (__privateGet(this, _resizeFrame)) {
+      cancelAnimationFrame(__privateGet(this, _resizeFrame));
+      __privateSet(this, _resizeFrame, null);
+    }
+  }
+  renderLayout() {
+    return html7` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -3183,7 +5378,12 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
                 <slot name="badge"></slot>
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}};Ee=new WeakMap,Se=new WeakMap,g(ne,"variantStyle",jc`
+            <slot></slot>`;
+  }
+};
+_syncObserver2 = new WeakMap();
+_resizeFrame = new WeakMap();
+__publicField(Plans, "variantStyle", css5`
         :host([variant^='plans']) {
             min-height: 273px;
             --merch-card-plans-min-width: 244px;
@@ -3294,7 +5494,70 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `),g(ne,"collectionOptions",{customHeaderArea:t=>t.sidenav?Yt`<slot name="resultsText"></slot>`:Mr,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let a=()=>{let i=t.querySelectorAll("merch-card");for(let o of i)o.hasAttribute("data-size")&&(o.setAttribute("size",o.getAttribute("data-size")),o.removeAttribute("data-size"));if(!A.isDesktop)return;let n=0;for(let o of i){if(o.style.display==="none")continue;let s=o.getAttribute("size"),c=s==="wide"?2:s==="super-wide"?3:1;c===2&&n%3===2&&(o.setAttribute("data-size",s),o.removeAttribute("size"),c=1),n+=c}};A.matchDesktop.addEventListener("change",a),t.addEventListener(me,a),t.onUnmount.push(()=>{A.matchDesktop.removeEventListener("change",a),t.removeEventListener(me,a)})}});import{html as _e,css as Wc,unsafeCSS as wn,nothing as Nr}from"./lit-all.min.js";var yn=`
+    `);
+__publicField(Plans, "collectionOptions", {
+  customHeaderArea: (collection) => {
+    if (!collection.sidenav) return nothing3;
+    return html7`<slot name="resultsText"></slot>`;
+  },
+  headerVisibility: {
+    search: false,
+    sort: false,
+    result: ["mobile", "tablet"],
+    custom: ["desktop"]
+  },
+  onSidenavAttached: (collection) => {
+    const minifyOverflowingWideCards = () => {
+      const merchCards = collection.querySelectorAll("merch-card");
+      for (const merchCard of merchCards) {
+        if (merchCard.hasAttribute("data-size")) {
+          merchCard.setAttribute(
+            "size",
+            merchCard.getAttribute("data-size")
+          );
+          merchCard.removeAttribute("data-size");
+        }
+      }
+      if (!media_default.isDesktop) return;
+      let columns = 0;
+      for (const merchCard of merchCards) {
+        if (merchCard.style.display === "none") continue;
+        const size = merchCard.getAttribute("size");
+        let columnCount = size === "wide" ? 2 : size === "super-wide" ? 3 : 1;
+        if (columnCount === 2 && columns % 3 === 2) {
+          merchCard.setAttribute("data-size", size);
+          merchCard.removeAttribute("size");
+          columnCount = 1;
+        }
+        columns += columnCount;
+      }
+    };
+    media_default.matchDesktop.addEventListener(
+      "change",
+      minifyOverflowingWideCards
+    );
+    collection.addEventListener(
+      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+      minifyOverflowingWideCards
+    );
+    collection.onUnmount.push(() => {
+      media_default.matchDesktop.removeEventListener(
+        "change",
+        minifyOverflowingWideCards
+      );
+      collection.removeEventListener(
+        EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+        minifyOverflowingWideCards
+      );
+    });
+  }
+});
+
+// src/variants/plans-v2.js
+import { html as html8, css as css6, unsafeCSS as unsafeCSS3, nothing as nothing4 } from "./lit-all.min.js";
+
+// src/variants/plans-v2.css.js
+var CSS7 = `
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;
@@ -3491,7 +5754,7 @@ merch-card[variant="plans-v2"] [slot="heading-xs"] {
 }
 
 /* Mobile-specific heading-xs styles */
-@media ${z} {
+@media ${MOBILE_LANDSCAPE} {
     merch-card[variant="plans-v2"] [slot="heading-xs"] {
         font-size: 28px;
         font-weight: 800;
@@ -3530,7 +5793,7 @@ merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant
 }
 
 /* Mobile-specific wide card subtitle styles */
-@media ${z} {
+@media ${MOBILE_LANDSCAPE} {
     merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
         font-size: 28px;
         font-weight: 900;
@@ -3743,7 +6006,7 @@ merch-card[variant="plans-v2"] .help-text {
     margin-top: var(--consonant-merch-spacing-xxs);
 }
 
-@media screen and ${z}, ${X} {
+@media screen and ${MOBILE_LANDSCAPE}, ${TABLET_DOWN} {
     :root {
         --consonant-merch-card-plans-v2-width: 100%;
     }
@@ -3754,7 +6017,7 @@ merch-card[variant="plans-v2"] .help-text {
     }
 }
 
-@media screen and ${R}, ${L}, ${ee} {
+@media screen and ${TABLET_UP}, ${DESKTOP_UP}, ${LARGE_DESKTOP} {
     :root {
         --consonant-merch-card-plans-v2-width: 276px;
     }
@@ -3868,7 +6131,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Mobile */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -3888,7 +6151,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Tablet */
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
     :root {
         --consonant-merch-card-plans-v2-width: 360px;
     }
@@ -3904,7 +6167,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-plans-v2-width: 276px;
     }
@@ -3924,43 +6187,382 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Large Desktop */
-@media screen and ${ee} {
+@media screen and ${LARGE_DESKTOP} {
 .columns .four-merch-cards.plans:has(merch-card[variant="plans-v2"]) {
     grid-template-columns: repeat(2, var(--consonant-merch-card-plans-v2-width));
   }
 
 }
-`;var En={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},shortDescription:{tag:"p",slot:"short-description"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},He=class extends w{constructor(r){super(r),this.adaptForMedia=this.adaptForMedia.bind(this),this.toggleShortDescription=this.toggleShortDescription.bind(this),this.shortDescriptionExpanded=!1,this.syncScheduled=!1}priceOptionsProvider(r,t){if(r.dataset.template===te){t.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(r.dataset.template==="strikethrough"||r.dataset.template==="price")&&(t.displayPerUnit=!1)}getGlobalCSS(){return yn}adjustSlotPlacement(r,t,a){let{shadowRoot:i}=this.card,n=i.querySelector("footer"),o=i.querySelector(".body"),s=this.card.getAttribute("size");if(!s)return;let c=i.querySelector(`footer slot[name="${r}"]`),l=i.querySelector(`.body slot[name="${r}"]`);if(s.includes("wide")||(n?.classList.remove("wide-footer"),c?.remove()),!!t.includes(s)){if(n?.classList.toggle("wide-footer",A.isDesktopOrUp),!a&&c){if(l)c.remove();else{let d=o.querySelector(`[data-placeholder-for="${r}"]`);d?d.replaceWith(c):o.appendChild(c)}return}if(a&&l){let d=document.createElement("div");d.setAttribute("data-placeholder-for",r),d.classList.add("slot-placeholder"),c||n.prepend(l.cloneNode(!0)),l.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"))return this.card.hasAttribute("size"),void 0;this.adjustSlotPlacement("heading-m",["wide"],!0),this.adjustSlotPlacement("addon",["super-wide"],A.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],A.isDesktopOrUp)}adjustCallout(){let r=this.card.querySelector('[slot="callout-content"] .icon-button');if(!r?.title)return;r.dataset.tooltip=r.title,r.removeAttribute("title"),r.classList.add("hide-tooltip");let t=a=>{a===r?r.classList.toggle("hide-tooltip"):r.classList.add("hide-tooltip")};document.addEventListener("touchstart",a=>{a.preventDefault(),t(a.target)}),document.addEventListener("mouseover",a=>{a.preventDefault(),a.target!==r?r.classList.add("hide-tooltip"):r.classList.remove("hide-tooltip")})}async postCardUpdateHook(){this.card.isConnected&&(this.adaptForMedia(),this.adjustAddon(),this.adjustCallout(),this.updateShortDescriptionVisibility(),this.hasShortDescription?this.card.setAttribute("has-short-description",""):this.card.removeAttribute("has-short-description"),this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook(),window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()}))}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${V}[data-template="price"]`)}syncHeights(){this.card.getBoundingClientRect().width<=2||this.syncRowHeights([{name:"body",getElement:r=>r.shadowRoot?.querySelector(".body")},{name:"footer",getElement:r=>r.shadowRoot?.querySelector("footer")},{name:"short-description",getElement:r=>r.querySelector('[slot="short-description"]')}])}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.mainPrice;if(!r)return;let t=r.cloneNode(!0);if(await r.onceSettled(),!r?.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),r.parentNode.insertBefore(t,r.nextSibling),await t.onceSettled()}catch{}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;r.setAttribute("custom-checkbox","");let t=this.mainPrice;if(!t)return;await t.onceSettled?.();let a=t.value?.[0]?.planType;a&&(r.planType=a)}get stockCheckbox(){return this.card.checkboxLabel?_e`<label id="stock-checkbox">
+`;
+
+// src/variants/plans-v2.js
+var PLANS_V2_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  prices: { tag: "p", slot: "heading-m" },
+  shortDescription: { tag: "p", slot: "short-description" },
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  callout: { tag: "div", slot: "callout-content" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  addon: true,
+  secureLabel: true,
+  planType: true,
+  badgeIcon: true,
+  badge: { tag: "div", slot: "badge", default: "spectrum-red-700-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans",
+    "spectrum-red-700-plans",
+    "gradient-purple-blue"
+  ],
+  borderColor: { attribute: "border-color" },
+  size: ["wide", "super-wide"],
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant",
+  perUnitLabel: { tag: "span", slot: "per-unit-label" }
+};
+var PlansV2 = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    this.adaptForMedia = this.adaptForMedia.bind(this);
+    this.toggleShortDescription = this.toggleShortDescription.bind(this);
+    this.shortDescriptionExpanded = false;
+    this.syncScheduled = false;
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+      options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+      return;
+    }
+    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
+      options.displayPerUnit = false;
+    }
+  }
+  getGlobalCSS() {
+    return CSS7;
+  }
+  adjustSlotPlacement(name, sizes, shouldBeInFooter) {
+    const { shadowRoot } = this.card;
+    const footer = shadowRoot.querySelector("footer");
+    const body = shadowRoot.querySelector(".body");
+    const size = this.card.getAttribute("size");
+    if (!size) return;
+    const slotInFooter = shadowRoot.querySelector(
+      `footer slot[name="${name}"]`
+    );
+    const slotInBody = shadowRoot.querySelector(
+      `.body slot[name="${name}"]`
+    );
+    if (!size.includes("wide")) {
+      footer?.classList.remove("wide-footer");
+      slotInFooter?.remove();
+    }
+    if (!sizes.includes(size)) return;
+    footer?.classList.toggle("wide-footer", media_default.isDesktopOrUp);
+    if (!shouldBeInFooter && slotInFooter) {
+      if (slotInBody) {
+        slotInFooter.remove();
+      } else {
+        const bodyPlaceholder = body.querySelector(
+          `[data-placeholder-for="${name}"]`
+        );
+        if (bodyPlaceholder) {
+          bodyPlaceholder.replaceWith(slotInFooter);
+        } else {
+          body.appendChild(slotInFooter);
+        }
+      }
+      return;
+    }
+    if (shouldBeInFooter && slotInBody) {
+      const bodyPlaceholder = document.createElement("div");
+      bodyPlaceholder.setAttribute("data-placeholder-for", name);
+      bodyPlaceholder.classList.add("slot-placeholder");
+      if (!slotInFooter) {
+        footer.prepend(slotInBody.cloneNode(true));
+      }
+      slotInBody.replaceWith(bodyPlaceholder);
+    }
+  }
+  adaptForMedia() {
+    const isInCollection = this.card.closest(
+      "merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"
+    );
+    if (!isInCollection) {
+      if (!this.card.hasAttribute("size")) {
+        return;
+      }
+      return;
+    }
+    this.adjustSlotPlacement("heading-m", ["wide"], true);
+    this.adjustSlotPlacement("addon", ["super-wide"], media_default.isDesktopOrUp);
+    this.adjustSlotPlacement(
+      "callout-content",
+      ["super-wide"],
+      media_default.isDesktopOrUp
+    );
+  }
+  adjustCallout() {
+    const tooltipIcon = this.card.querySelector(
+      '[slot="callout-content"] .icon-button'
+    );
+    if (!tooltipIcon?.title) return;
+    tooltipIcon.dataset.tooltip = tooltipIcon.title;
+    tooltipIcon.removeAttribute("title");
+    tooltipIcon.classList.add("hide-tooltip");
+    const hideTooltipExcept = (target) => {
+      if (target === tooltipIcon) {
+        tooltipIcon.classList.toggle("hide-tooltip");
+      } else {
+        tooltipIcon.classList.add("hide-tooltip");
+      }
+    };
+    document.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      hideTooltipExcept(e.target);
+    });
+    document.addEventListener("mouseover", (e) => {
+      e.preventDefault();
+      if (e.target !== tooltipIcon) {
+        tooltipIcon.classList.add("hide-tooltip");
+      } else {
+        tooltipIcon.classList.remove("hide-tooltip");
+      }
+    });
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    this.adaptForMedia();
+    this.adjustAddon();
+    this.adjustCallout();
+    this.updateShortDescriptionVisibility();
+    if (this.hasShortDescription) {
+      this.card.setAttribute("has-short-description", "");
+    } else {
+      this.card.removeAttribute("has-short-description");
+    }
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+    }
+    await super.postCardUpdateHook();
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      requestAnimationFrame(() => {
+        this.syncHeights();
+      });
+    }
+  }
+  get mainPrice() {
+    return this.card.querySelector(
+      `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+  }
+  syncHeights() {
+    if (this.card.getBoundingClientRect().width <= 2) return;
+    this.syncRowHeights([
+      {
+        name: "body",
+        getElement: (card) => card.shadowRoot?.querySelector(".body")
+      },
+      {
+        name: "footer",
+        getElement: (card) => card.shadowRoot?.querySelector("footer")
+      },
+      {
+        name: "short-description",
+        getElement: (card) => card.querySelector('[slot="short-description"]')
+      }
+    ]);
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const headingPrice = this.mainPrice;
+      if (!headingPrice) return;
+      const legal2 = headingPrice.cloneNode(true);
+      await headingPrice.onceSettled();
+      if (!headingPrice?.options) return;
+      if (headingPrice.options.displayPerUnit)
+        headingPrice.dataset.displayPerUnit = "false";
+      if (headingPrice.options.displayTax)
+        headingPrice.dataset.displayTax = "false";
+      if (headingPrice.options.displayPlanType)
+        headingPrice.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      headingPrice.parentNode.insertBefore(
+        legal2,
+        headingPrice.nextSibling
+      );
+      await legal2.onceSettled();
+    } catch {
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    addon.setAttribute("custom-checkbox", "");
+    const price2 = this.mainPrice;
+    if (!price2) return;
+    await price2.onceSettled?.();
+    const planType = price2.value?.[0]?.planType;
+    if (planType) addon.planType = planType;
+  }
+  get stockCheckbox() {
+    return this.card.checkboxLabel ? html8`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`:Nr}get hasShortDescription(){return!!this.card.querySelector('[slot="short-description"]')}get shortDescriptionLabel(){let r=this.card.querySelector('[slot="short-description"]'),t=r.querySelector("strong, b");if(t?.textContent?.trim())return t.textContent.trim();let a=r.querySelector("h1, h2, h3, h4, h5, h6, p");return a?.textContent?.trim()?a.textContent.trim():r.textContent?.trim().split(`
-`)[0].trim()}updateShortDescriptionVisibility(){let r=this.card.querySelector('[slot="short-description"]');if(!r)return;let t=r.querySelector("strong, b, p");t&&(A.isMobile?t.style.display="none":t.style.display="")}toggleShortDescription(){this.shortDescriptionExpanded=!this.shortDescriptionExpanded,this.card.requestUpdate()}get shortDescriptionToggle(){return this.hasShortDescription?A.isMobile?_e`
+            </label>` : nothing4;
+  }
+  get hasShortDescription() {
+    return !!this.card.querySelector('[slot="short-description"]');
+  }
+  get shortDescriptionLabel() {
+    const shortDescElement = this.card.querySelector(
+      '[slot="short-description"]'
+    );
+    const boldElement = shortDescElement.querySelector("strong, b");
+    if (boldElement?.textContent?.trim()) {
+      return boldElement.textContent.trim();
+    }
+    const headingOrPara = shortDescElement.querySelector(
+      "h1, h2, h3, h4, h5, h6, p"
+    );
+    if (headingOrPara?.textContent?.trim()) {
+      return headingOrPara.textContent.trim();
+    }
+    const firstLine = shortDescElement.textContent?.trim().split("\n")[0].trim();
+    return firstLine;
+  }
+  updateShortDescriptionVisibility() {
+    const shortDescElement = this.card.querySelector(
+      '[slot="short-description"]'
+    );
+    if (!shortDescElement) return;
+    const firstElement = shortDescElement.querySelector("strong, b, p");
+    if (!firstElement) return;
+    if (!media_default.isMobile) {
+      firstElement.style.display = "";
+    } else {
+      firstElement.style.display = "none";
+    }
+  }
+  toggleShortDescription() {
+    this.shortDescriptionExpanded = !this.shortDescriptionExpanded;
+    this.card.requestUpdate();
+  }
+  get shortDescriptionToggle() {
+    if (!this.hasShortDescription) return nothing4;
+    if (!media_default.isMobile) {
+      return html8`
+                <div class="short-description-content desktop">
+                    <slot name="short-description"></slot>
+                </div>
+            `;
+    }
+    return html8`
             <div class="short-description-divider"></div>
             <div
-                class="short-description-toggle ${this.shortDescriptionExpanded?"expanded":""}"
+                class="short-description-toggle ${this.shortDescriptionExpanded ? "expanded" : ""}"
                 @click=${this.toggleShortDescription}
             >
                 <span class="toggle-label">${this.shortDescriptionLabel}</span>
                 <span
-                    class="toggle-icon ${this.shortDescriptionExpanded?"expanded":""}"
+                    class="toggle-icon ${this.shortDescriptionExpanded ? "expanded" : ""}"
                 ></span>
             </div>
             <div
-                class="short-description-content ${this.shortDescriptionExpanded?"expanded":""}"
+                class="short-description-content ${this.shortDescriptionExpanded ? "expanded" : ""}"
             >
                 <slot name="short-description"></slot>
             </div>
-        `:_e`
-                <div class="short-description-content desktop">
-                    <slot name="short-description"></slot>
-                </div>
-            `:Nr}get icons(){return this.card.querySelector('[slot="icons"]')||this.card.getAttribute("id")?_e`<slot name="icons"></slot>`:Nr}get secureLabelFooter(){return _e`<footer>
+        `;
+  }
+  get icons() {
+    return this.card.querySelector('[slot="icons"]') || this.card.getAttribute("id") ? html8`<slot name="icons"></slot>` : nothing4;
+  }
+  get secureLabelFooter() {
+    return html8`<footer>
             ${this.secureLabel}<slot name="quantity-select"></slot
             ><slot name="footer"></slot>
-        </footer>`}connectedCallbackHook(){this.handleMediaChange=()=>{this.adaptForMedia(),this.updateShortDescriptionVisibility(),this.card.requestUpdate(),window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()})},A.matchMobile.addEventListener("change",this.handleMediaChange),A.matchDesktopOrUp.addEventListener("change",this.handleMediaChange),this.handleResize=()=>{this._resizeFrame&&cancelAnimationFrame(this._resizeFrame),this._resizeFrame=requestAnimationFrame(()=>{this._resizeFrame=null,window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()})},window.addEventListener("resize",this.handleResize),this.visibilityObserver=new IntersectionObserver(([r])=>{r.boundingClientRect.height!==0&&r.isIntersecting&&(window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()}),this.visibilityObserver.disconnect())}),this.visibilityObserver.observe(this.card)}disconnectedCallbackHook(){A.matchMobile.removeEventListener("change",this.handleMediaChange),A.matchDesktopOrUp.removeEventListener("change",this.handleMediaChange),this.handleResize&&(window.removeEventListener("resize",this.handleResize),this.handleResize=null),this._resizeFrame&&(cancelAnimationFrame(this._resizeFrame),this._resizeFrame=null),this.visibilityObserver?.disconnect()}renderLayout(){let t=this.card.getAttribute("size")==="wide";return _e` ${this.badge}
+        </footer>`;
+  }
+  connectedCallbackHook() {
+    this.handleMediaChange = () => {
+      this.adaptForMedia();
+      this.updateShortDescriptionVisibility();
+      this.card.requestUpdate();
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        requestAnimationFrame(() => {
+          this.syncHeights();
+        });
+      }
+    };
+    media_default.matchMobile.addEventListener("change", this.handleMediaChange);
+    media_default.matchDesktopOrUp.addEventListener(
+      "change",
+      this.handleMediaChange
+    );
+    this.handleResize = () => {
+      if (this._resizeFrame) cancelAnimationFrame(this._resizeFrame);
+      this._resizeFrame = requestAnimationFrame(() => {
+        this._resizeFrame = null;
+        if (window.matchMedia("(min-width: 768px)").matches) {
+          this.syncHeights();
+        }
+      });
+    };
+    window.addEventListener("resize", this.handleResize);
+    this.visibilityObserver = new IntersectionObserver(([entry]) => {
+      if (entry.boundingClientRect.height === 0) return;
+      if (!entry.isIntersecting) return;
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        requestAnimationFrame(() => {
+          this.syncHeights();
+        });
+      }
+      this.visibilityObserver.disconnect();
+    });
+    this.visibilityObserver.observe(this.card);
+  }
+  disconnectedCallbackHook() {
+    media_default.matchMobile.removeEventListener("change", this.handleMediaChange);
+    media_default.matchDesktopOrUp.removeEventListener(
+      "change",
+      this.handleMediaChange
+    );
+    if (this.handleResize) {
+      window.removeEventListener("resize", this.handleResize);
+      this.handleResize = null;
+    }
+    if (this._resizeFrame) {
+      cancelAnimationFrame(this._resizeFrame);
+      this._resizeFrame = null;
+    }
+    this.visibilityObserver?.disconnect();
+  }
+  renderLayout() {
+    const size = this.card.getAttribute("size");
+    const isWide = size === "wide";
+    return html8` ${this.badge}
             <div class="body">
-                ${t?_e`
+                ${isWide ? html8`
                           <div class="heading-wrapper wide">
                               ${this.icons}
                               <slot name="heading-xs"></slot>
@@ -3972,7 +6574,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
                           <slot name="badge"></slot>
                           <div class="price-divider"></div>
                           <slot name="heading-m"></slot>
-                      `:_e`
+                      ` : html8`
                           <div class="heading-wrapper">
                               ${this.icons}
                               <div class="heading-xs-wrapper">
@@ -3988,7 +6590,10 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
                       `}
             </div>
             ${this.secureLabelFooter} ${this.shortDescriptionToggle}
-            <slot></slot>`}};g(He,"variantStyle",Wc`
+            <slot></slot>`;
+  }
+};
+__publicField(PlansV2, "variantStyle", css6`
         :host([variant='plans-v2']) {
             display: flex;
             flex-direction: column;
@@ -4477,7 +7082,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             margin-right: 0;
         }
 
-        @media ${wn(z)}, ${wn(X)} {
+        @media ${unsafeCSS3(MOBILE_LANDSCAPE)}, ${unsafeCSS3(TABLET_DOWN)} {
             :host([variant='plans-v2']) {
                 --merch-card-plans-v2-padding: 26px 16px;
             }
@@ -4544,7 +7149,70 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             .toggle-label {
             color: #292929;
         }
-    `),g(He,"collectionOptions",{customHeaderArea:r=>r.sidenav?_e`<slot name="resultsText"></slot>`:Nr,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:r=>{let t=()=>{let a=r.querySelectorAll("merch-card");if(a.forEach(n=>{n.hasAttribute("data-size")&&(n.setAttribute("size",n.getAttribute("data-size")),n.removeAttribute("data-size"))}),!A.isDesktop)return;let i=0;a.forEach(n=>{if(n.style.display==="none")return;let o=n.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&i%3===2&&(n.setAttribute("data-size",o),n.removeAttribute("size"),s=1),i+=s})};A.matchDesktop.addEventListener("change",t),r.addEventListener(me,t),r.onUnmount.push(()=>{A.matchDesktop.removeEventListener("change",t),r.removeEventListener(me,t)})}});import{html as Le,css as Yc,nothing as gt,unsafeCSS as Xt}from"./lit-all.min.js";var Sn=`
+    `);
+__publicField(PlansV2, "collectionOptions", {
+  customHeaderArea: (collection) => {
+    if (!collection.sidenav) return nothing4;
+    return html8`<slot name="resultsText"></slot>`;
+  },
+  headerVisibility: {
+    search: false,
+    sort: false,
+    result: ["mobile", "tablet"],
+    custom: ["desktop"]
+  },
+  onSidenavAttached: (collection) => {
+    const minifyOverflowingWideCards = () => {
+      const merchCards = collection.querySelectorAll("merch-card");
+      merchCards.forEach((merchCard) => {
+        if (merchCard.hasAttribute("data-size")) {
+          merchCard.setAttribute(
+            "size",
+            merchCard.getAttribute("data-size")
+          );
+          merchCard.removeAttribute("data-size");
+        }
+      });
+      if (!media_default.isDesktop) return;
+      let columns = 0;
+      merchCards.forEach((merchCard) => {
+        if (merchCard.style.display === "none") return;
+        const size = merchCard.getAttribute("size");
+        let columnCount = size === "wide" ? 2 : size === "super-wide" ? 3 : 1;
+        if (columnCount === 2 && columns % 3 === 2) {
+          merchCard.setAttribute("data-size", size);
+          merchCard.removeAttribute("size");
+          columnCount = 1;
+        }
+        columns += columnCount;
+      });
+    };
+    media_default.matchDesktop.addEventListener(
+      "change",
+      minifyOverflowingWideCards
+    );
+    collection.addEventListener(
+      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+      minifyOverflowingWideCards
+    );
+    collection.onUnmount.push(() => {
+      media_default.matchDesktop.removeEventListener(
+        "change",
+        minifyOverflowingWideCards
+      );
+      collection.removeEventListener(
+        EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+        minifyOverflowingWideCards
+      );
+    });
+  }
+});
+
+// src/variants/pro.js
+import { html as html9, css as css7, nothing as nothing5, unsafeCSS as unsafeCSS4 } from "./lit-all.min.js";
+
+// src/variants/pro.css.js
+var CSS8 = `
 :root {
     --consonant-merch-card-pro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
     --consonant-merch-card-pro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;
@@ -4755,7 +7423,7 @@ merch-card[variant="pro"][size='edu'] [slot="heading-xs"] {
     line-height: 20px;
 }
 
-@media screen and ${Ht} {
+@media screen and ${C2_DESKTOP_UP} {
     merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
         font-size: 36px;
         line-height: 32px;
@@ -5195,14 +7863,14 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 .container.one-merch-card {
     padding-inline: var(--grid-padding);
 }
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
     merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         max-width: 720px;
     }
 }
 
-@media screen and ${Ht} {
+@media screen and ${C2_DESKTOP_UP} {
     merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         max-width: 1192px;
@@ -5228,7 +7896,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
     /* Mobile (320\u2013767px): the default track caps cards at 394px, leaving side
        margins wider than the 24px gutter. Collapse to a single 1fr track and
        drop the card cap so cards fill the available width. */
@@ -5252,25 +7920,550 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-`;var[Wp,Yp,An,Cn,Tn,kn]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var Ir="pro",qa=`--consonant-merch-card-${Ir}-top-card-height`,Or=[{prop:`--consonant-merch-card-${Ir}-mnemonic-height`,selector:".mnemonic"},{prop:`--consonant-merch-card-${Ir}-name-description-height`,selector:".name-description"}],_n=`--consonant-merch-card-${Ir}-strike-reserve`,Va='[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])',Xc="(min-width: 768px)",Ln={cardName:{attribute:"name"},subtitle:{tag:"p",slot:"subtitle"},title:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"s"},size:["wide","edu"],prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},perUnitLabel:{tag:"span",slot:"per-unit-label"},callout:{tag:"div",slot:"callout-content",editorLabel:"License callout"},quantitySelect:{tag:"div",slot:"quantity-select"},shortDescription:{tag:"div",slot:"legal-text"},secureLabel:!0,planType:!0,addon:!0,ctas:{slot:"footer",size:"m"},whatsIncluded:{tag:"div",slot:"whats-included"},eduDisclaimer:{tag:"div",slot:"edu-disclaimer"},backgroundColor:{attribute:"background-color",editorLabel:"Theme",specialValues:{Light:"light",Dark:"dark"}},borderColor:{attribute:"border-color",specialValues:{Black:"black"},hideTransparent:!0,disableWhenBackgroundColor:"dark"},allowedBorderColors:[],style:"consonant"},Pe,Ye,Jt,er,Y,Pn,Kt,Mn,Qt,ja,zr,Dr=class Dr extends w{constructor(t){super(t);S(this,Y);g(this,"expanded",!1);g(this,"licenseOpen",!1);g(this,"licenseQty",null);g(this,"licenseHighlightedIndex",0);S(this,Pe,null);S(this,Ye,null);S(this,Jt,()=>this.resyncOnReflow());g(this,"lastSyncKey",null);S(this,er,({detail:t})=>{let a=t?.quantity==null?null:String(t.quantity);a==null||a===this.licenseQty||this.licenseOptions?.includes(a)&&(this.licenseQty=a,this.card.requestUpdate())});g(this,"toggleExpanded",t=>{t.preventDefault();let a=!this.expanded;for(let i of H(this,Y,Pn).call(this)){let n=i.variantLayout;n instanceof Dr&&(n.expanded=a,i._proExpanded=a,i.requestUpdate())}});g(this,"toggleLicensePopover",t=>{t.preventDefault(),t.stopPropagation(),this.licenseOpen?H(this,Y,ja).call(this):H(this,Y,Qt).call(this),this.card.requestUpdate()});S(this,zr,t=>{let a=this.licenseOptions;if(!a?.length)return;let i=a.length-1;switch(t.key){case Cn:t.preventDefault(),this.licenseOpen?this.licenseHighlightedIndex=(this.licenseHighlightedIndex+1)%a.length:H(this,Y,Qt).call(this);break;case An:t.preventDefault(),this.licenseOpen?this.licenseHighlightedIndex=(this.licenseHighlightedIndex-1+a.length)%a.length:H(this,Y,Qt).call(this);break;case"Home":if(!this.licenseOpen)return;t.preventDefault(),this.licenseHighlightedIndex=0;break;case"End":if(!this.licenseOpen)return;t.preventDefault(),this.licenseHighlightedIndex=i;break;case Tn:case" ":if(t.preventDefault(),this.licenseOpen){this.selectLicenseQty(a[this.licenseHighlightedIndex]);return}H(this,Y,Qt).call(this);break;case"Escape":if(!this.licenseOpen)return;t.preventDefault(),H(this,Y,ja).call(this);break;case kn:this.licenseOpen&&this.selectLicenseQty(a[this.licenseHighlightedIndex]);return;default:return}this.card.requestUpdate()});g(this,"selectLicenseQty",t=>{this.licenseQty=t,this.licenseOpen=!1,H(this,Y,Kt).call(this);let a=this.quantitySelectEl;a&&(a.selectedValue=Number(t),a.dispatchEvent(new CustomEvent(ae,{detail:{option:Number(t)},bubbles:!0}))),this.card.requestUpdate()});this.updatePriceQuantity=this.updatePriceQuantity.bind(this),this.expanded=t._proExpanded??!1}getGlobalCSS(){return Sn}priceOptionsProvider(t,a){t.dataset.template===te&&(a.displayPlanType=this.card?.settings?.displayPlanType??!1)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),a.dataset.displayPerUnit="false",t.parentNode.insertBefore(a,t.nextSibling),await a.onceSettled(),this.legalResolvedHandler||(this.legalResolvedHandler=()=>this.adjustShortDescription(),a.addEventListener(ue,this.legalResolvedHandler)),this.adjustShortDescription()}catch{}}adjustShortDescription(){let t=this.card.querySelector('[slot="legal-text"]')?.textContent?.trim();if(!t)return;let a=this.card.querySelector('[slot="heading-m"] [data-template="legal"]'),i=a?.querySelector(".price-plan-type");if(!i)return;i.textContent=t;let n=a.querySelector(".price-tax-inclusivity:not(.disabled)");n?.textContent&&!/\s$/.test(n.textContent)&&(n.textContent+=". ")}get hasWhatsIncluded(){return!!this.card.querySelector('[slot="whats-included"]')}get hasEduDisclaimer(){return!this.card?.settings?.hideEduDisclaimer}get whatsIncludedToggleLabel(){return this.card.querySelector('[slot="whats-included"] .whats-included-label')?.textContent.trim()||"See what's included:"}get hasCallout(){return!!this.card.querySelector('[slot="callout-content"]')}get hasQuantitySelect(){let t=this.quantitySelectEl;return t?!!t.getAttribute("title")||parseInt(t.getAttribute("min"),10)>0||parseInt(t.getAttribute("step"),10)>0:!1}get hasAddOn(){return!!this.card.querySelector('[slot="addon"]')}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${V}[data-template="price"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let a=this.mainPrice;if(!a)return;await a.onceSettled?.();let i=a.value?.[0]?.planType;i&&(t.planType=i)}async postCardUpdateHook(){this.adjustEduWhatsIncluded(),await this.adjustAddon(),this.legalAdjusted||await this.adjustLegal(),this.adjustShortDescription(),await super.postCardUpdateHook(),window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()}adjustEduWhatsIncluded(){if(this.card.size!=="edu")return;let t=this.card.querySelector('[slot="whats-included"]');if(!t||t.querySelector(".whats-included-title"))return;let a=t.querySelector(".whats-included-label");if(!a)return;let i=document.createElement("h4");i.className="whats-included-title",i.innerHTML=a.innerHTML,a.replaceWith(i);let{whatsIncludedLabel:n,eduDisclaimer:o}=this.card.placeholders??{},s=document.createElement("p");if(s.className="whats-included-label",s.textContent=n??"",i.after(s),t.querySelectorAll(".section h4:not(.whats-included-title)").forEach(c=>{let l=document.createElement("p");l.innerHTML=c.innerHTML,c.replaceWith(l)}),o){let c=document.createElement("div");c.className="whats-included-disclaimer",c.innerHTML=o,t.append(c)}}async waitForContentFonts(){let t=[this.card.querySelector('[slot="heading-xs"]'),this.card.querySelector('[slot="body-xs"]')].filter(Boolean);document.fonts?.load&&await Promise.all(t.map(a=>{let i=window.getComputedStyle(a),n=`${i.fontWeight} ${i.fontSize} ${i.fontFamily}`;return document.fonts.load(n,a.textContent).catch(()=>null)})),await document.fonts?.ready}async syncHeights(){if(this.card.heightSync===!1){this.clearSyncedHeights(this.card);return}await this.waitForContentFonts(),await new Promise(c=>requestAnimationFrame(c)),await new Promise(c=>requestAnimationFrame(c));let t=this.getContainer();if(!t||this.card.getBoundingClientRect().width<=2)return;let a=this.card.variant,i=qa,n=[...t.querySelectorAll(`merch-card[variant="${a}"]`)].filter(c=>c.getBoundingClientRect().width>2&&c.variantLayout?.card?.heightSync!==!1);if(!window.matchMedia(Xc).matches){n.forEach(c=>this.clearSyncedHeights(c));return}let o=new Map;for(let c of n){let l=o.get(c.offsetTop)??[];l.push(c),o.set(c.offsetTop,l)}let s=(c,l)=>c.reduce((d,m)=>{let p=l(m);return p?Math.max(d,parseInt(getComputedStyle(p).height)||0):d},0);for(let c of o.values()){if(c.forEach(p=>this.clearSyncedHeights(p)),c.length<2)continue;let l=c.map(p=>p.querySelector(Va)&&parseInt(getComputedStyle(p.querySelector(Va)).height)||0),d=Math.max(0,...l);d>0&&c.forEach((p,h)=>{let u=d-l[h];u>0&&p.style.setProperty(_n,`${u}px`)});for(let p of Or){let h=s(c,u=>u.shadowRoot?.querySelector(p.selector));h>0&&c.forEach(u=>u.style.setProperty(p.prop,`${h}px`))}let m=s(c,p=>p.shadowRoot?.querySelector(".top-card"));m>0&&c.forEach(p=>p.style.setProperty(i,`${m}px`))}}clearSyncedHeights(t){t.style.removeProperty(qa),t.style.removeProperty(_n),Or.forEach(a=>t.style.removeProperty(a.prop))}resyncOnReflow(){let t=this.card.getBoundingClientRect().width;if(t<=2)return;let a=(n,o=this.card)=>Math.round(o?.querySelector(n)?.getBoundingClientRect().height||0),i=[Math.round(t),a('[slot="body-xs"]'),a(Va),a('[slot="heading-m"] span[is="inline-price"]'),a('[slot="heading-m"] :is(.price-legal, [data-template="legal"])'),a(".license-zone",this.card.shadowRoot),a(".add-on",this.card.shadowRoot)].join(":");i!==this.lastSyncKey&&(this.lastSyncKey=i,this.syncHeights())}connectedCallbackHook(){if(!this.card||(this.card.addEventListener(Ar,v(this,er)),this.card.addEventListener(ae,this.updatePriceQuantity),this.card.addEventListener(ue,v(this,Jt)),typeof ResizeObserver>"u"))return;E(this,Ye,new ResizeObserver(()=>this.resyncOnReflow())),v(this,Ye).observe(this.card);let t=this.card.querySelector('[slot="body-xs"]');t&&v(this,Ye).observe(t)}disconnectedCallbackHook(){this.card?.removeEventListener(ae,this.updatePriceQuantity),this.card?.removeEventListener(ue,v(this,Jt)),H(this,Y,Kt).call(this),v(this,Ye)?.disconnect(),this.card?.removeEventListener(Ar,v(this,er))}get quantitySelectEl(){return this.card.querySelector("merch-quantity-select")}get licenseOptions(){let t=this.quantitySelectEl;if(!t)return null;let a=parseInt(t.getAttribute("min"),10),i=parseInt(t.getAttribute("max"),10),n=parseInt(t.getAttribute("step"),10)||1;if(Number.isNaN(a)||Number.isNaN(i)||i<a||n<1)return null;let o=[];for(let s=a;s<=i;s+=n)o.push(String(s));return o}licenseLabel(t){let a=this.quantitySelectEl?.getAttribute("title")||"License",[i,n]=a.split("|").map(o=>o.trim());return Number(t)===1?i:n||i}get hasLicenseSelector(){return(this.licenseOptions?.length??0)>0}get currentLicenseValue(){let t=this.licenseOptions;if(!t?.length)return null;if(this.licenseQty!=null)return this.licenseQty;let a=this.quantitySelectEl?.getAttribute("default-value");return a!=null&&t.includes(a)?a:t[0]}renderLicenseSelector(){if(!this.hasLicenseSelector)return Le`<slot name="quantity-select"></slot>`;let t=this.licenseOptions,a=this.currentLicenseValue,i=!!this.licenseOpen,n=this.licenseLabel(Number(a));return Le`
-            <div class="license-select" ?data-open=${i}>
+`;
+
+// src/focus.js
+var [ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, ENTER, TAB] = [
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Enter",
+  "Tab"
+];
+
+// src/variants/pro.js
+var VARIANT = "pro";
+var TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
+var SYNCED_BANDS = [
+  {
+    prop: `--consonant-merch-card-${VARIANT}-mnemonic-height`,
+    selector: ".mnemonic"
+  },
+  {
+    prop: `--consonant-merch-card-${VARIANT}-name-description-height`,
+    selector: ".name-description"
+  }
+];
+var STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
+var STRIKE_SELECTOR = '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
+var SYNC_MIN_WIDTH = "(min-width: 768px)";
+var PRO_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  title: { tag: "h3", slot: "heading-xs" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "s" },
+  size: ["wide", "edu"],
+  prices: { tag: "p", slot: "heading-m" },
+  promoText: { tag: "p", slot: "promo-text" },
+  perUnitLabel: { tag: "span", slot: "per-unit-label" },
+  callout: {
+    tag: "div",
+    slot: "callout-content",
+    editorLabel: "License callout"
+  },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  shortDescription: { tag: "div", slot: "legal-text" },
+  secureLabel: true,
+  planType: true,
+  addon: true,
+  ctas: { slot: "footer", size: "m" },
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  eduDisclaimer: { tag: "div", slot: "edu-disclaimer" },
+  backgroundColor: {
+    attribute: "background-color",
+    editorLabel: "Theme",
+    specialValues: { Light: "light", Dark: "dark" }
+  },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: { Black: "black" },
+    // editor: only Default + Black, and disabled when Theme = Dark
+    hideTransparent: true,
+    disableWhenBackgroundColor: "dark"
+  },
+  allowedBorderColors: [],
+  style: "consonant"
+};
+var _licenseDocListenerBound, _sizeObserver, _onPriceResolved, _onModalQuantityChange, _Pro_instances, rowCards_fn, removeLicenseDocListener_fn, currentLicenseIndex_fn, openLicensePopover_fn, closeLicensePopover_fn, _handleLicenseKeydown;
+var _Pro = class _Pro extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __privateAdd(this, _Pro_instances);
+    __publicField(this, "expanded", false);
+    __publicField(this, "licenseOpen", false);
+    __publicField(this, "licenseQty", null);
+    // Active-descendant highlight; focus stays on the trigger (combobox model).
+    __publicField(this, "licenseHighlightedIndex", 0);
+    __privateAdd(this, _licenseDocListenerBound, null);
+    __privateAdd(this, _sizeObserver, null);
+    __privateAdd(this, _onPriceResolved, () => this.resyncOnReflow());
+    __publicField(this, "lastSyncKey", null);
+    __privateAdd(this, _onModalQuantityChange, ({ detail }) => {
+      const next = detail?.quantity == null ? null : String(detail.quantity);
+      if (next == null || next === this.licenseQty) return;
+      if (!this.licenseOptions?.includes(next)) return;
+      this.licenseQty = next;
+      this.card.requestUpdate();
+    });
+    __publicField(this, "toggleExpanded", (e) => {
+      e.preventDefault();
+      const expanded = !this.expanded;
+      for (const card of __privateMethod(this, _Pro_instances, rowCards_fn).call(this)) {
+        const layout = card.variantLayout;
+        if (!(layout instanceof _Pro)) continue;
+        layout.expanded = expanded;
+        card._proExpanded = expanded;
+        card.requestUpdate();
+      }
+    });
+    __publicField(this, "toggleLicensePopover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.licenseOpen) {
+        __privateMethod(this, _Pro_instances, closeLicensePopover_fn).call(this);
+      } else {
+        __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
+      }
+      this.card.requestUpdate();
+    });
+    // Select-only combobox keys (ARIA APG): arrows/Home/End move the
+    // active-descendant highlight, Enter/Space commit, Escape closes, Tab commits
+    // and lets focus advance. Focus stays on the trigger throughout.
+    __privateAdd(this, _handleLicenseKeydown, (e) => {
+      const opts = this.licenseOptions;
+      if (!opts?.length) return;
+      const last = opts.length - 1;
+      switch (e.key) {
+        case ARROW_DOWN:
+          e.preventDefault();
+          if (this.licenseOpen) {
+            this.licenseHighlightedIndex = (this.licenseHighlightedIndex + 1) % opts.length;
+          } else {
+            __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
+          }
+          break;
+        case ARROW_UP:
+          e.preventDefault();
+          if (this.licenseOpen) {
+            this.licenseHighlightedIndex = (this.licenseHighlightedIndex - 1 + opts.length) % opts.length;
+          } else {
+            __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
+          }
+          break;
+        case "Home":
+          if (!this.licenseOpen) return;
+          e.preventDefault();
+          this.licenseHighlightedIndex = 0;
+          break;
+        case "End":
+          if (!this.licenseOpen) return;
+          e.preventDefault();
+          this.licenseHighlightedIndex = last;
+          break;
+        case ENTER:
+        case " ":
+          e.preventDefault();
+          if (this.licenseOpen) {
+            this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
+            return;
+          }
+          __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
+          break;
+        case "Escape":
+          if (!this.licenseOpen) return;
+          e.preventDefault();
+          __privateMethod(this, _Pro_instances, closeLicensePopover_fn).call(this);
+          break;
+        case TAB:
+          if (this.licenseOpen) {
+            this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
+          }
+          return;
+        default:
+          return;
+      }
+      this.card.requestUpdate();
+    });
+    __publicField(this, "selectLicenseQty", (value) => {
+      this.licenseQty = value;
+      this.licenseOpen = false;
+      __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
+      const qs = this.quantitySelectEl;
+      if (qs) {
+        qs.selectedValue = Number(value);
+        qs.dispatchEvent(
+          new CustomEvent(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, {
+            detail: { option: Number(value) },
+            bubbles: true
+          })
+        );
+      }
+      this.card.requestUpdate();
+    });
+    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+    this.expanded = card._proExpanded ?? false;
+  }
+  getGlobalCSS() {
+    return CSS8;
+  }
+  // Forwards the Show Plan type setting to the legal-template price (which
+  // renders the plan type line). Same pattern as plans/plans-v2.
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+  }
+  // Clones the main price into a legal-template sibling (as plans/plans-v2) so
+  // tax/plan-type render on the clone, off the main price.
+  async adjustLegal() {
+    if (this.legalAdjusted) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const headingPrice = this.mainPrice;
+      if (!headingPrice) return;
+      const legal2 = headingPrice.cloneNode(true);
+      await headingPrice.onceSettled();
+      if (!headingPrice?.options) return;
+      if (headingPrice.options.displayTax)
+        headingPrice.dataset.displayTax = "false";
+      if (headingPrice.options.displayPlanType)
+        headingPrice.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      legal2.dataset.displayPerUnit = "false";
+      headingPrice.parentNode.insertBefore(
+        legal2,
+        headingPrice.nextSibling
+      );
+      await legal2.onceSettled();
+      if (!this.legalResolvedHandler) {
+        this.legalResolvedHandler = () => this.adjustShortDescription();
+        legal2.addEventListener(
+          EVENT_TYPE_RESOLVED,
+          this.legalResolvedHandler
+        );
+      }
+      this.adjustShortDescription();
+    } catch {
+    }
+  }
+  // Authored Short Description replaces the derived plan type wording. Read
+  // [slot="legal-text"] in place (never detached): the shadow has no matching
+  // slot so it won't render, and merch-card swaps in a fresh layout per render.
+  adjustShortDescription() {
+    const text = this.card.querySelector('[slot="legal-text"]')?.textContent?.trim();
+    if (!text) return;
+    const legalPrice = this.card.querySelector(
+      '[slot="heading-m"] [data-template="legal"]'
+    );
+    const planType = legalPrice?.querySelector(".price-plan-type");
+    if (!planType) return;
+    planType.textContent = text;
+    const tax = legalPrice.querySelector(
+      ".price-tax-inclusivity:not(.disabled)"
+    );
+    if (tax?.textContent && !/\s$/.test(tax.textContent)) {
+      tax.textContent += ". ";
+    }
+  }
+  get hasWhatsIncluded() {
+    return !!this.card.querySelector('[slot="whats-included"]');
+  }
+  get hasEduDisclaimer() {
+    return !this.card?.settings?.hideEduDisclaimer;
+  }
+  get whatsIncludedToggleLabel() {
+    return this.card.querySelector('[slot="whats-included"] .whats-included-label')?.textContent.trim() || "See what's included:";
+  }
+  get hasCallout() {
+    return !!this.card.querySelector('[slot="callout-content"]');
+  }
+  get hasQuantitySelect() {
+    const qs = this.quantitySelectEl;
+    if (!qs) return false;
+    return !!qs.getAttribute("title") || parseInt(qs.getAttribute("min"), 10) > 0 || parseInt(qs.getAttribute("step"), 10) > 0;
+  }
+  get hasAddOn() {
+    return !!this.card.querySelector('[slot="addon"]');
+  }
+  get mainPrice() {
+    return this.card.querySelector(
+      `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+  }
+  // Push the selected license quantity onto the main price so WCS re-prices
+  // (volume promo). Mirrors mini-compare-chart — the card previously only
+  // dispatched the event for checkout-link wiring, leaving the price at qty 1.
+  updatePriceQuantity({ detail }) {
+    if (!this.mainPrice || !detail?.option) return;
+    this.mainPrice.dataset.quantity = detail.option;
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    addon.setAttribute("custom-checkbox", "");
+    const price2 = this.mainPrice;
+    if (!price2) return;
+    await price2.onceSettled?.();
+    const planType = price2.value?.[0]?.planType;
+    if (planType) addon.planType = planType;
+  }
+  async postCardUpdateHook() {
+    this.adjustEduWhatsIncluded();
+    await this.adjustAddon();
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+    }
+    this.adjustShortDescription();
+    await super.postCardUpdateHook();
+    if (window.matchMedia("(min-width: 768px)").matches) this.syncHeights();
+  }
+  // pro/edu only: the authored whats-included leading paragraph is the panel
+  // title; promote it and inject the server-resolved (already localized)
+  // sub-label + disclaimer strings published on the card's `placeholders` map
+  // (settings.js -> replace transformer -> here). Idempotent via the
+  // `.whats-included-title` guard so re-renders don't double-apply.
+  adjustEduWhatsIncluded() {
+    if (this.card.size !== "edu") return;
+    const slot = this.card.querySelector('[slot="whats-included"]');
+    if (!slot || slot.querySelector(".whats-included-title")) return;
+    const authoredTitle = slot.querySelector(".whats-included-label");
+    if (!authoredTitle) return;
+    const title = document.createElement("h4");
+    title.className = "whats-included-title";
+    title.innerHTML = authoredTitle.innerHTML;
+    authoredTitle.replaceWith(title);
+    const { whatsIncludedLabel, eduDisclaimer } = this.card.placeholders ?? {};
+    const label = document.createElement("p");
+    label.className = "whats-included-label";
+    label.textContent = whatsIncludedLabel ?? "";
+    title.after(label);
+    slot.querySelectorAll(".section h4:not(.whats-included-title)").forEach(
+      (h4) => {
+        const row = document.createElement("p");
+        row.innerHTML = h4.innerHTML;
+        h4.replaceWith(row);
+      }
+    );
+    if (eduDisclaimer) {
+      const disclaimer = document.createElement("div");
+      disclaimer.className = "whats-included-disclaimer";
+      disclaimer.innerHTML = eduDisclaimer;
+      slot.append(disclaimer);
+    }
+  }
+  // Heading/description reflow when the Adobe Clean fonts load, so wait for
+  // them before measuring. Same shape as full-pricing-express.waitForTitleFont.
+  async waitForContentFonts() {
+    const els = [
+      this.card.querySelector('[slot="heading-xs"]'),
+      this.card.querySelector('[slot="body-xs"]')
+    ].filter(Boolean);
+    if (document.fonts?.load) {
+      await Promise.all(
+        els.map((el) => {
+          const s = window.getComputedStyle(el);
+          const font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+          return document.fonts.load(font, el.textContent).catch(() => null);
+        })
+      );
+    }
+    await document.fonts?.ready;
+  }
+  // Publish each row's tallest white-card height as min-height so prices/CTAs
+  // line up. Group by offsetTop, not rect.top: the tab entrance animation
+  // transforms the painted tops mid-flight, which would split a row.
+  async syncHeights() {
+    if (this.card.heightSync === false) {
+      this.clearSyncedHeights(this.card);
+      return;
+    }
+    await this.waitForContentFonts();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const container = this.getContainer();
+    if (!container || this.card.getBoundingClientRect().width <= 2) return;
+    const variant = this.card.variant;
+    const prop = TOP_CARD_HEIGHT_PROP;
+    const cards = [
+      ...container.querySelectorAll(`merch-card[variant="${variant}"]`)
+    ].filter(
+      (card) => card.getBoundingClientRect().width > 2 && card.variantLayout?.card?.heightSync !== false
+    );
+    if (!window.matchMedia(SYNC_MIN_WIDTH).matches) {
+      cards.forEach((card) => this.clearSyncedHeights(card));
+      return;
+    }
+    const rows = /* @__PURE__ */ new Map();
+    for (const card of cards) {
+      const row = rows.get(card.offsetTop) ?? [];
+      row.push(card);
+      rows.set(card.offsetTop, row);
+    }
+    const maxHeight = (row, getElement) => row.reduce((max, card) => {
+      const el = getElement(card);
+      return el ? Math.max(max, parseInt(getComputedStyle(el).height) || 0) : max;
+    }, 0);
+    for (const row of rows.values()) {
+      row.forEach((card) => this.clearSyncedHeights(card));
+      if (row.length < 2) continue;
+      const strikes = row.map(
+        (card) => card.querySelector(STRIKE_SELECTOR) ? parseInt(
+          getComputedStyle(card.querySelector(STRIKE_SELECTOR)).height
+        ) || 0 : 0
+      );
+      const tallestStrike = Math.max(0, ...strikes);
+      if (tallestStrike > 0)
+        row.forEach((card, i) => {
+          const shortfall = tallestStrike - strikes[i];
+          if (shortfall > 0)
+            card.style.setProperty(
+              STRIKE_RESERVE_PROP,
+              `${shortfall}px`
+            );
+        });
+      for (const band of SYNCED_BANDS) {
+        const max2 = maxHeight(
+          row,
+          (card) => card.shadowRoot?.querySelector(band.selector)
+        );
+        if (max2 > 0)
+          row.forEach(
+            (card) => card.style.setProperty(band.prop, `${max2}px`)
+          );
+      }
+      const max = maxHeight(
+        row,
+        (card) => card.shadowRoot?.querySelector(".top-card")
+      );
+      if (max > 0)
+        row.forEach((card) => card.style.setProperty(prop, `${max}px`));
+    }
+  }
+  clearSyncedHeights(card) {
+    card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
+    card.style.removeProperty(STRIKE_RESERVE_PROP);
+    SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
+  }
+  // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
+  // A late price resolution adds the struck and legal rows after the first pass.
+  resyncOnReflow() {
+    const width = this.card.getBoundingClientRect().width;
+    if (width <= 2) return;
+    const height = (selector, root = this.card) => Math.round(
+      root?.querySelector(selector)?.getBoundingClientRect().height || 0
+    );
+    const key = [
+      Math.round(width),
+      height('[slot="body-xs"]'),
+      height(STRIKE_SELECTOR),
+      height('[slot="heading-m"] span[is="inline-price"]'),
+      height(
+        '[slot="heading-m"] :is(.price-legal, [data-template="legal"])'
+      ),
+      height(".license-zone", this.card.shadowRoot),
+      height(".add-on", this.card.shadowRoot)
+    ].join(":");
+    if (key === this.lastSyncKey) return;
+    this.lastSyncKey = key;
+    this.syncHeights();
+  }
+  connectedCallbackHook() {
+    if (!this.card) return;
+    this.card.addEventListener(
+      EVENT_MERCH_CARD_QUANTITY_CHANGE,
+      __privateGet(this, _onModalQuantityChange)
+    );
+    this.card.addEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    this.card.addEventListener(EVENT_TYPE_RESOLVED, __privateGet(this, _onPriceResolved));
+    if (typeof ResizeObserver === "undefined") return;
+    __privateSet(this, _sizeObserver, new ResizeObserver(() => this.resyncOnReflow()));
+    __privateGet(this, _sizeObserver).observe(this.card);
+    const desc = this.card.querySelector('[slot="body-xs"]');
+    if (desc) __privateGet(this, _sizeObserver).observe(desc);
+  }
+  disconnectedCallbackHook() {
+    this.card?.removeEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    this.card?.removeEventListener(
+      EVENT_TYPE_RESOLVED,
+      __privateGet(this, _onPriceResolved)
+    );
+    __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
+    __privateGet(this, _sizeObserver)?.disconnect();
+    this.card?.removeEventListener(
+      EVENT_MERCH_CARD_QUANTITY_CHANGE,
+      __privateGet(this, _onModalQuantityChange)
+    );
+  }
+  get quantitySelectEl() {
+    return this.card.querySelector("merch-quantity-select");
+  }
+  get licenseOptions() {
+    const qs = this.quantitySelectEl;
+    if (!qs) return null;
+    const min = parseInt(qs.getAttribute("min"), 10);
+    const max = parseInt(qs.getAttribute("max"), 10);
+    const step = parseInt(qs.getAttribute("step"), 10) || 1;
+    if (Number.isNaN(min) || Number.isNaN(max) || max < min || step < 1)
+      return null;
+    const opts = [];
+    for (let v = min; v <= max; v += step) opts.push(String(v));
+    return opts;
+  }
+  // Plural label from the authored "singular|plural" title (two dictionary
+  // placeholders, resolved per locale). No "|" → unchanged for every quantity;
+  // pluralization is never derived in code (appending "s" breaks most locales).
+  licenseLabel(count) {
+    const title = this.quantitySelectEl?.getAttribute("title") || "License";
+    const [singular, plural] = title.split("|").map((s) => s.trim());
+    return Number(count) === 1 ? singular : plural || singular;
+  }
+  get hasLicenseSelector() {
+    return (this.licenseOptions?.length ?? 0) > 0;
+  }
+  get currentLicenseValue() {
+    const opts = this.licenseOptions;
+    if (!opts?.length) return null;
+    if (this.licenseQty != null) return this.licenseQty;
+    const def = this.quantitySelectEl?.getAttribute("default-value");
+    return def != null && opts.includes(def) ? def : opts[0];
+  }
+  renderLicenseSelector() {
+    if (!this.hasLicenseSelector) {
+      return html9`<slot name="quantity-select"></slot>`;
+    }
+    const opts = this.licenseOptions;
+    const current = this.currentLicenseValue;
+    const open = !!this.licenseOpen;
+    const label = this.licenseLabel(Number(current));
+    return html9`
+            <div class="license-select" ?data-open=${open}>
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
-                    aria-expanded=${i?"true":"false"}
+                    aria-expanded=${open ? "true" : "false"}
                     aria-controls="license-popover"
                     aria-labelledby="license-select-label"
-                    aria-activedescendant=${i?`license-option-${this.licenseHighlightedIndex}`:gt}
+                    aria-activedescendant=${open ? `license-option-${this.licenseHighlightedIndex}` : nothing5}
                     @click=${this.toggleLicensePopover}
-                    @keydown=${v(this,zr)}
+                    @keydown=${__privateGet(this, _handleLicenseKeydown)}
                 >
                     <span class="license-select-trigger-text">
-                        <span class="license-select-value">${a}</span>
+                        <span class="license-select-value">${current}</span>
                         <span
                             class="license-select-label"
                             id="license-select-label"
-                            >${n}</span
+                            >${label}</span
                         >
                     </span>
                     <span
@@ -5285,7 +8478,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                     aria-labelledby="license-select-label"
                     aria-multiselectable="false"
                     tabindex="-1"
-                    ?hidden=${!i}
+                    ?hidden=${!open}
                 >
                     <li
                         class="license-select-popover-header"
@@ -5293,8 +8486,8 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                         @click=${this.toggleLicensePopover}
                     >
                         <span class="license-select-trigger-text">
-                            <span class="license-select-value">${a}</span>
-                            <span class="license-select-label">${n}</span>
+                            <span class="license-select-value">${current}</span>
+                            <span class="license-select-label">${label}</span>
                         </span>
                         <span
                             class="license-select-chevron"
@@ -5302,21 +8495,30 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                             style="transform: rotate(180deg);"
                         ></span>
                     </li>
-                    ${t.map((o,s)=>Le`
+                    ${opts.map(
+      (opt, index) => html9`
                             <li
-                                class="license-select-option ${s===this.licenseHighlightedIndex?"highlighted":""}${o===a?" selected":""}"
-                                id="license-option-${s}"
+                                class="license-select-option ${index === this.licenseHighlightedIndex ? "highlighted" : ""}${opt === current ? " selected" : ""}"
+                                id="license-option-${index}"
                                 role="option"
-                                aria-selected=${o===a?"true":"false"}
-                                @click=${()=>this.selectLicenseQty(o)}
-                                @mouseenter=${()=>{this.licenseHighlightedIndex=s,this.card.requestUpdate()}}
+                                aria-selected=${opt === current ? "true" : "false"}
+                                @click=${() => this.selectLicenseQty(opt)}
+                                @mouseenter=${() => {
+        this.licenseHighlightedIndex = index;
+        this.card.requestUpdate();
+      }}
                             >
-                                ${o}
+                                ${opt}
                             </li>
-                        `)}
+                        `
+    )}
                 </ul>
             </div>
-        `}renderLayout(){let t=!!this.expanded;return Le`
+        `;
+  }
+  renderLayout() {
+    const expanded = !!this.expanded;
+    return html9`
             <div class="top-card">
                 <div class="mnemonic">
                     <slot name="icons"></slot>
@@ -5333,25 +8535,25 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                     </div>
                     <slot name="promo-text"></slot>
                 </div>
-                ${this.hasLicenseSelector||this.hasCallout||this.hasQuantitySelect?Le`<div class="license-zone">
+                ${this.hasLicenseSelector || this.hasCallout || this.hasQuantitySelect ? html9`<div class="license-zone">
                           ${this.renderLicenseSelector()}
-                          ${this.hasCallout?Le`<div class="callout">
+                          ${this.hasCallout ? html9`<div class="callout">
                                     <slot name="callout-content"></slot>
-                                </div>`:gt}
-                      </div>`:gt}
-                ${this.hasAddOn?Le`<div class="add-on">
+                                </div>` : nothing5}
+                      </div>` : nothing5}
+                ${this.hasAddOn ? html9`<div class="add-on">
                           <slot name="addon"></slot>
-                      </div>`:gt}
+                      </div>` : nothing5}
                 <footer>
                     <slot name="footer"></slot>
                 </footer>
                 ${this.secureLabel}
             </div>
-            ${this.hasWhatsIncluded?Le`
+            ${this.hasWhatsIncluded ? html9`
                       <button
                           class="whats-included-toggle"
                           type="button"
-                          aria-expanded=${t?"true":"false"}
+                          aria-expanded=${expanded ? "true" : "false"}
                           aria-controls="features-zone"
                           @click=${this.toggleExpanded}
                       >
@@ -5366,16 +8568,71 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                       <div
                           id="features-zone"
                           class="features-zone"
-                          ?hidden=${!t}
+                          ?hidden=${!expanded}
                       >
                           <slot name="whats-included"></slot>
                       </div>
-                  `:gt}
-            ${this.hasEduDisclaimer?Le`<div class="edu-disclaimer">
+                  ` : nothing5}
+            ${this.hasEduDisclaimer ? html9`<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
-                  </div>`:gt}
+                  </div>` : nothing5}
             <slot></slot>
-        `}};Pe=new WeakMap,Ye=new WeakMap,Jt=new WeakMap,er=new WeakMap,Y=new WeakSet,Pn=function(){let t=this.card.offsetTop,a=Array.from(this.getContainer()?.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)??[]).filter(i=>i.getBoundingClientRect().width>2&&i.offsetTop===t);return a.length?a:[this.card]},Kt=function(){v(this,Pe)&&(document.removeEventListener("mousedown",v(this,Pe)),E(this,Pe,null))},Mn=function(){let t=this.licenseOptions?.indexOf(this.currentLicenseValue);return t>0?t:0},Qt=function(){this.licenseOpen=!0,this.licenseHighlightedIndex=H(this,Y,Mn).call(this),v(this,Pe)||(E(this,Pe,t=>{t.composedPath().includes(this.card)||(this.licenseOpen=!1,this.card.requestUpdate(),H(this,Y,Kt).call(this))}),document.addEventListener("mousedown",v(this,Pe)))},ja=function(){this.licenseOpen=!1,H(this,Y,Kt).call(this)},zr=new WeakMap,g(Dr,"variantStyle",Yc`
+        `;
+  }
+};
+_licenseDocListenerBound = new WeakMap();
+_sizeObserver = new WeakMap();
+_onPriceResolved = new WeakMap();
+_onModalQuantityChange = new WeakMap();
+_Pro_instances = new WeakSet();
+// Cards sharing this card's row (same offsetTop, as syncHeights groups them);
+// stacked single-column cards land on different rows and stay independent.
+rowCards_fn = function() {
+  const top = this.card.offsetTop;
+  const cards = Array.from(
+    this.getContainer()?.querySelectorAll(
+      `merch-card[variant="${this.card.variant}"]`
+    ) ?? []
+  ).filter(
+    (card) => card.getBoundingClientRect().width > 2 && card.offsetTop === top
+  );
+  return cards.length ? cards : [this.card];
+};
+removeLicenseDocListener_fn = function() {
+  if (!__privateGet(this, _licenseDocListenerBound)) return;
+  document.removeEventListener(
+    "mousedown",
+    __privateGet(this, _licenseDocListenerBound)
+  );
+  __privateSet(this, _licenseDocListenerBound, null);
+};
+currentLicenseIndex_fn = function() {
+  const idx = this.licenseOptions?.indexOf(this.currentLicenseValue);
+  return idx > 0 ? idx : 0;
+};
+openLicensePopover_fn = function() {
+  this.licenseOpen = true;
+  this.licenseHighlightedIndex = __privateMethod(this, _Pro_instances, currentLicenseIndex_fn).call(this);
+  if (!__privateGet(this, _licenseDocListenerBound)) {
+    __privateSet(this, _licenseDocListenerBound, (evt) => {
+      if (!evt.composedPath().includes(this.card)) {
+        this.licenseOpen = false;
+        this.card.requestUpdate();
+        __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
+      }
+    });
+    document.addEventListener(
+      "mousedown",
+      __privateGet(this, _licenseDocListenerBound)
+    );
+  }
+};
+closeLicensePopover_fn = function() {
+  this.licenseOpen = false;
+  __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
+};
+_handleLicenseKeydown = new WeakMap();
+__publicField(_Pro, "variantStyle", css7`
         :host([variant='pro']) {
             display: flex;
             flex-direction: column;
@@ -5444,14 +8701,14 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                publishes the row's max .top-card height here as min-height so
                shorter cards match; content-box, so the height maps straight. */
             flex: 0 0 auto;
-            min-height: var(${Xt(qa)}, auto);
+            min-height: var(${unsafeCSS4(TOP_CARD_HEIGHT_PROP)}, auto);
         }
 
         :host([variant='pro']) .mnemonic {
             display: flex;
             align-items: center;
             gap: 12px;
-            min-height: var(${Xt(Or[0].prop)}, auto);
+            min-height: var(${unsafeCSS4(SYNCED_BANDS[0].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='icons']) {
@@ -5477,7 +8734,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             /* Hold the row's tallest description so the price starts at the same
                height everywhere. The slack goes to the footer margin, not here. */
             flex: 0 0 auto;
-            min-height: var(${Xt(Or[1].prop)}, auto);
+            min-height: var(${unsafeCSS4(SYNCED_BANDS[1].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='heading-xs']) {
@@ -5867,7 +9124,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
-        @media screen and ${Xt(Ht)} {
+        @media screen and ${unsafeCSS4(C2_DESKTOP_UP)} {
             :host([variant='pro']) .whats-included-toggle {
                 display: none;
             }
@@ -5890,7 +9147,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             margin: unset;
         }
 
-        @media screen and ${Xt(R)} {
+        @media screen and ${unsafeCSS4(TABLET_UP)} {
             :host([variant='pro'][size='edu']) {
                 flex-direction: row;
                 gap: 8px;
@@ -5920,7 +9177,14 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                 flex: 0 0 auto;
             }
         }
-    `);var Zt=Dr;import{html as Wa,css as Kc}from"./lit-all.min.js";var Rn=`
+    `);
+var Pro = _Pro;
+
+// src/variants/product.js
+import { html as html10, css as css8 } from "./lit-all.min.js";
+
+// src/variants/product.css.js
+var CSS9 = `
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -6048,7 +9312,7 @@ merch-card-collection.product merch-card {
 }
 
 /* Tablet */
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
     .two-merch-cards.product,
     .three-merch-cards.product,
     .four-merch-cards.product,
@@ -6060,7 +9324,7 @@ merch-card-collection.product merch-card {
 }
 
 /* desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-product-width: 378px;
   }
@@ -6149,7 +9413,7 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
     display: block;
 }
 
-@media screen and ${X} {
+@media screen and ${TABLET_DOWN} {
     merch-card[variant="product"] .merch-short-description {
         display: inline-block;
     }
@@ -6178,15 +9442,94 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
     }
 }
 
-`;var Nn={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},shortDescription:{tag:"div",slot:"short-description"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},secureLabel:!0,planType:!0,addon:!0,addonBackground:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"color-yellow-300-variation"},allowedBadgeColors:["color-yellow-300-variation","color-gray-300-variation","color-gray-700-variation","color-green-900-variation","gradient-purple-blue"],allowedBorderColors:["color-yellow-300-variation","color-gray-300-variation","color-green-900-variation","gradient-purple-blue"],borderColor:{attribute:"border-color"},whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Ae,ft=class extends w{constructor(t){super(t);S(this,Ae);this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return Rn}priceOptionsProvider(t,a){t.dataset.template===te&&(a.displayPlanType=this.card?.settings?.displayPlanType??!1,(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(a.displayPerUnit=!1))}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(a=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${a}"]`),a))}renderLayout(){return Wa` ${this.badge}
+`;
+
+// src/variants/product.js
+var PRODUCT_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  prices: { tag: "p", slot: "heading-xs" },
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  shortDescription: { tag: "div", slot: "short-description" },
+  mnemonics: { size: "l" },
+  callout: { tag: "div", slot: "callout-content" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  secureLabel: true,
+  planType: true,
+  addon: true,
+  addonBackground: true,
+  badgeIcon: true,
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "color-yellow-300-variation"
+  },
+  allowedBadgeColors: [
+    "color-yellow-300-variation",
+    "color-gray-300-variation",
+    "color-gray-700-variation",
+    "color-green-900-variation",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "color-yellow-300-variation",
+    "color-gray-300-variation",
+    "color-green-900-variation",
+    "gradient-purple-blue"
+  ],
+  borderColor: { attribute: "border-color" },
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant",
+  perUnitLabel: { tag: "span", slot: "per-unit-label" }
+};
+var _resizeFrame2;
+var Product = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __privateAdd(this, _resizeFrame2);
+    this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
+    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+  }
+  getGlobalCSS() {
+    return CSS9;
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
+      options.displayPerUnit = false;
+    }
+  }
+  adjustProductBodySlots() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    const slots = [
+      "heading-xs",
+      "body-xxs",
+      "body-xs",
+      "promo-text",
+      "callout-content",
+      "addon",
+      "body-lower"
+    ];
+    slots.forEach(
+      (slot) => this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
+        slot
+      )
+    );
+  }
+  renderLayout() {
+    return html10` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
-                ${this.promoBottom?"":Wa`<slot name="promo-text"></slot>`}
+                ${!this.promoBottom ? html10`<slot name="promo-text"></slot>` : ""}
                 <slot name="body-xs"></slot>
                 <slot name="short-description"></slot>
                 <slot name="addon"></slot>
-                ${this.promoBottom?Wa`<slot name="promo-text"></slot>`:""}
+                ${this.promoBottom ? html10`<slot name="promo-text"></slot>` : ""}
                 <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="quantity-select"></slot>
@@ -6194,7 +9537,185 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
                 <slot name="badge"></slot>
             </div>
             <hr />
-            ${this.secureLabelFooter}`}connectedCallbackHook(){this.handleResize=()=>{v(this,Ae)&&cancelAnimationFrame(v(this,Ae)),E(this,Ae,requestAnimationFrame(()=>{E(this,Ae,null),this.postCardUpdateHook()}))},this.adjustShortDescriptionBound=this.adjustShortDescription.bind(this),window.addEventListener("resize",this.handleResize),this.card.addEventListener(ae,this.updatePriceQuantity),this.card.addEventListener(Cr,this.adjustShortDescriptionBound)}disconnectedCallbackHook(){this.handleResize&&(window.removeEventListener("resize",this.handleResize),this.handleResize=null),v(this,Ae)&&(cancelAnimationFrame(v(this,Ae)),E(this,Ae,null)),this.card.removeEventListener(ae,this.updatePriceQuantity),this.card.removeEventListener(Cr,this.adjustShortDescriptionBound)}adjustShortDescription(){let t=this.card.querySelector('[slot="short-description"]');if(!t?.textContent?.trim())return;let a=this.card.querySelector('span[data-template="legal"]');if(!a)return;this.card.querySelector(".merch-short-description")?.remove();let i=document.createElement("span");i.className="merch-short-description",i.innerHTML=t.innerHTML,i.querySelectorAll("p").forEach(n=>n.replaceWith(...n.childNodes)),i.querySelectorAll(".icon-button").forEach(n=>{n.dataset.eventsWired||(n.dataset.eventsWired="1",["mouseenter","focus"].forEach(o=>n.addEventListener(o,()=>n.classList.add("tooltip-visible"))),["mouseleave","blur"].forEach(o=>n.addEventListener(o,()=>n.classList.remove("tooltip-visible"))),n.addEventListener("keydown",o=>{o.key==="Escape"&&n.classList.remove("tooltip-visible")}))}),a.after(i),t.hidden=!0}async postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),A.isMobile||this.adjustProductBodySlots(),this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),a.dataset.displayPerUnit="false",t.dataset.template==="optical"&&(a.dataset.displayPlanType="false"),t.closest('[slot="heading-xs"]').appendChild(a),await a.onceSettled()}catch{}}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){let t=`[slot="heading-xs"] ${V}`;return this.card.querySelector(`${t}[data-template="price"], ${t}[data-template="optical"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}toggleAddon(t){let a=this.mainPrice,i=this.headingXSSlot;if(!a&&i){let n=t?.getAttribute("plan-type"),o=null;if(t&&n&&(o=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(s=>s.remove()),t.checked){if(o){let s=ye("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},o.innerHTML);this.card.appendChild(s)}}else{let s=ye("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let a=this.mainPrice,i=this.card.planType;a&&(await a.onceSettled?.(),i=a.value?.[0]?.planType),i&&(t.planType=i)}};Ae=new WeakMap,g(ft,"variantStyle",Kc`
+            ${this.secureLabelFooter}`;
+  }
+  connectedCallbackHook() {
+    this.handleResize = () => {
+      if (__privateGet(this, _resizeFrame2)) cancelAnimationFrame(__privateGet(this, _resizeFrame2));
+      __privateSet(this, _resizeFrame2, requestAnimationFrame(() => {
+        __privateSet(this, _resizeFrame2, null);
+        this.postCardUpdateHook();
+      }));
+    };
+    this.adjustShortDescriptionBound = this.adjustShortDescription.bind(this);
+    window.addEventListener("resize", this.handleResize);
+    this.card.addEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    this.card.addEventListener(
+      EVENT_MAS_READY,
+      this.adjustShortDescriptionBound
+    );
+  }
+  disconnectedCallbackHook() {
+    if (this.handleResize) {
+      window.removeEventListener("resize", this.handleResize);
+      this.handleResize = null;
+    }
+    if (__privateGet(this, _resizeFrame2)) {
+      cancelAnimationFrame(__privateGet(this, _resizeFrame2));
+      __privateSet(this, _resizeFrame2, null);
+    }
+    this.card.removeEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.updatePriceQuantity
+    );
+    this.card.removeEventListener(
+      EVENT_MAS_READY,
+      this.adjustShortDescriptionBound
+    );
+  }
+  adjustShortDescription() {
+    const shortDescEl = this.card.querySelector(
+      '[slot="short-description"]'
+    );
+    if (!shortDescEl?.textContent?.trim()) return;
+    const legalPrice = this.card.querySelector(
+      'span[data-template="legal"]'
+    );
+    if (!legalPrice) return;
+    this.card.querySelector(".merch-short-description")?.remove();
+    const span = document.createElement("span");
+    span.className = "merch-short-description";
+    span.innerHTML = shortDescEl.innerHTML;
+    span.querySelectorAll("p").forEach(
+      (p) => p.replaceWith(...p.childNodes)
+    );
+    span.querySelectorAll(".icon-button").forEach((btn) => {
+      if (btn.dataset.eventsWired) return;
+      btn.dataset.eventsWired = "1";
+      ["mouseenter", "focus"].forEach(
+        (evt) => btn.addEventListener(
+          evt,
+          () => btn.classList.add("tooltip-visible")
+        )
+      );
+      ["mouseleave", "blur"].forEach(
+        (evt) => btn.addEventListener(
+          evt,
+          () => btn.classList.remove("tooltip-visible")
+        )
+      );
+      btn.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") btn.classList.remove("tooltip-visible");
+      });
+    });
+    legalPrice.after(span);
+    shortDescEl.hidden = true;
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    this.adjustAddon();
+    if (!media_default.isMobile) {
+      this.adjustProductBodySlots();
+    }
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+    }
+    await super.postCardUpdateHook();
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted || !this.card.id) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const headingPrice = this.mainPrice;
+      if (!headingPrice) return;
+      const legal2 = headingPrice.cloneNode(true);
+      await headingPrice.onceSettled();
+      if (!headingPrice?.options) return;
+      if (headingPrice.options.displayTax)
+        headingPrice.dataset.displayTax = "false";
+      if (headingPrice.options.displayPlanType)
+        headingPrice.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      legal2.dataset.displayPerUnit = "false";
+      if (headingPrice.dataset.template === "optical") {
+        legal2.dataset.displayPlanType = "false";
+      }
+      headingPrice.closest('[slot="heading-xs"]').appendChild(legal2);
+      await legal2.onceSettled();
+    } catch {
+    }
+  }
+  get headingXSSlot() {
+    return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0];
+  }
+  get mainPrice() {
+    const slot = `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}`;
+    return this.card.querySelector(
+      `${slot}[data-template="price"], ${slot}[data-template="optical"]`
+    );
+  }
+  updatePriceQuantity({ detail }) {
+    if (!this.mainPrice || !detail?.option) return;
+    this.mainPrice.dataset.quantity = detail.option;
+  }
+  toggleAddon(merchAddon) {
+    const mainPrice = this.mainPrice;
+    const headingXSSlot = this.headingXSSlot;
+    if (!mainPrice && headingXSSlot) {
+      const planType = merchAddon?.getAttribute("plan-type");
+      let visibleSpan = null;
+      if (merchAddon && planType) {
+        const matchingP = merchAddon.querySelector(
+          `p[data-plan-type="${planType}"]`
+        );
+        visibleSpan = matchingP?.querySelector(
+          'span[is="inline-price"]'
+        );
+      }
+      this.card.querySelectorAll('p[slot="heading-xs"]').forEach((p) => p.remove());
+      if (merchAddon.checked) {
+        if (visibleSpan) {
+          const replacementP = createTag(
+            "p",
+            {
+              class: "addon-heading-xs-price-addon",
+              slot: "heading-xs"
+            },
+            visibleSpan.innerHTML
+          );
+          this.card.appendChild(replacementP);
+        }
+      } else {
+        const freeP = createTag(
+          "p",
+          { class: "card-heading", id: "free", slot: "heading-xs" },
+          "Free"
+        );
+        this.card.appendChild(freeP);
+      }
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    const price2 = this.mainPrice;
+    let planType = this.card.planType;
+    if (price2) {
+      await price2.onceSettled?.();
+      planType = price2.value?.[0]?.planType;
+    }
+    if (!planType) return;
+    addon.planType = planType;
+  }
+};
+_resizeFrame2 = new WeakMap();
+__publicField(Product, "variantStyle", css8`
         :host([variant='product']) {
             background:
                 linear-gradient(white, white) padding-box,
@@ -6246,7 +9767,189 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
             color: rgb(80, 80, 80);
             line-height: var(--consonant-merch-card-detail-xs-line-height);
         }
-    `);import{html as Ya,css as Qc}from"./lit-all.min.js";var On=`
+    `);
+
+// src/variants/brand-concierge-product.js
+import { html as html11, css as css9 } from "./lit-all.min.js";
+
+// src/variants/brand-concierge-product.css.js
+var CSS10 = `
+merch-card[variant="brand-concierge-product"] {
+    width: 100%;
+    min-width: 248px;
+    max-width: 378px;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="badge"] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 16px;
+}
+
+merch-card[variant="brand-concierge-product"] merch-badge {
+    --merch-badge-border-radius: 7px;
+    padding: 7px 10px;
+    border: none;
+    font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+    font-weight: 500;
+    line-height: 18px;
+    inset-inline-start: 0;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="heading-s"] {
+    font-weight: 700;
+    color: var(--merch-color-grey-80);
+}
+
+merch-card[variant="brand-concierge-product"] [slot="heading-xs"] {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="heading-xs"] span.price-strikethrough {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+    font-weight: 400;
+    color: var(--ah-gray-500);
+}
+
+merch-card[variant="brand-concierge-product"] [slot="heading-xs"] span.price:not(.price-strikethrough):not(.price-legal) {
+    font-size: var(--consonant-merch-card-heading-xs-font-size);
+    line-height: var(--consonant-merch-card-heading-xs-line-height);
+    font-weight: 700;
+    color: var(--consonant-merch-card-heading-xxxs-color);
+}
+
+merch-card[variant="brand-concierge-product"] [slot="heading-xs"] span[is="inline-price"][data-template="legal"] {
+    display: block;
+    width: 100%;
+    font-size: var(--consonant-merch-card-body-xxs-font-size);
+    line-height: var(--consonant-merch-card-body-xxs-line-height);
+    font-weight: 400;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="heading-xs"] .price-legal {
+    color: var(--merch-color-grey-80);
+}
+
+merch-card[variant="brand-concierge-product"] [slot="body-xs"],
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] {
+    color: var(--merch-color-grey-80);
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+    font-weight: 400;
+    min-height: 0;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a {
+    color: #3b63fb;
+}
+
+merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--secondary,
+merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--secondary {
+    color: inherit;
+}
+`;
+
+// src/variants/brand-concierge-product.js
+var BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  mnemonics: { size: "l" },
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans",
+    "gradient-purple-blue"
+  ],
+  title: { tag: "h3", slot: "heading-s" },
+  prices: { tag: "p", slot: "heading-xs" },
+  planType: true,
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant"
+};
+var BrandConciergeProduct = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS10;
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted || !this.card.id) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const price2 = this.card.querySelector(
+        `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+      );
+      if (!price2) return;
+      const legal2 = price2.cloneNode(true);
+      await price2.onceSettled();
+      if (!price2.options) return;
+      if (price2.options.displayPerUnit)
+        price2.dataset.displayPerUnit = "false";
+      if (price2.options.displayTax) price2.dataset.displayTax = "false";
+      if (price2.options.displayPlanType)
+        price2.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      price2.parentNode.insertBefore(legal2, price2.nextSibling);
+      await legal2.onceSettled();
+    } catch {
+    }
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    if (!this.legalAdjusted) await this.adjustLegal();
+    await super.postCardUpdateHook();
+  }
+  renderLayout() {
+    return html11` ${this.badge}
+            <div class="body">
+                <slot name="icons"></slot>
+                <slot name="badge"></slot>
+                <slot name="heading-s"></slot>
+                <slot name="heading-xs"></slot>
+                <slot name="promo-text"></slot>
+                <slot name="body-xs"></slot>
+            </div>
+            <footer><slot name="footer"></slot></footer>
+            <slot></slot>`;
+  }
+};
+__publicField(BrandConciergeProduct, "variantStyle", css9`
+        :host([variant='brand-concierge-product']) {
+            font-weight: 400;
+            background:
+                linear-gradient(white, white) padding-box,
+                var(--consonant-merch-card-border-color, #dadada) border-box;
+            border: 1px solid transparent;
+        }
+
+        :host([variant='brand-concierge-product']) .body {
+            padding: 16px;
+            gap: 8px;
+        }
+
+        :host([variant='brand-concierge-product']) footer {
+            padding: 0px 16px 16px;
+            gap: 8px;
+        }
+    `);
+
+// src/variants/segment.js
+import { html as html12, css as css10 } from "./lit-all.min.js";
+
+// src/variants/segment.css.js
+var CSS11 = `
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -6303,13 +10006,13 @@ merch-card[variant="segment"] {
 }
 
 /* Mobile */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
 }
 
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -6325,7 +10028,7 @@ merch-card[variant="segment"] {
 }
 
 /* desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -6389,21 +10092,113 @@ merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;
 }
-`;var In={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},planType:!0,secureLabel:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"color-red-700-variation"},allowedBadgeColors:["color-yellow-300-variation","color-gray-300-variation","color-gray-700-variation","color-green-900-variation","color-red-700-variation","gradient-purple-blue"],allowedBorderColors:["color-yellow-300-variation","color-gray-300-variation","color-green-900-variation","color-red-700-variation","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},vt=class extends w{constructor(r){super(r)}priceOptionsProvider(r,t){r.dataset.template===te&&(t.displayPlanType=this.card?.settings?.displayPlanType??!1,(r.dataset.template==="strikethrough"||r.dataset.template==="price")&&(t.displayPerUnit=!1))}getGlobalCSS(){return On}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${V}[data-template="price"]`)}async postCardUpdateHook(){this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook()}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.mainPrice;if(!r)return;let t=r.cloneNode(!0);if(await r.onceSettled(),!r?.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),r.parentNode.insertBefore(t,r.nextSibling),await t.onceSettled()}catch{}}renderLayout(){return Ya`
+`;
+
+// src/variants/segment.js
+var SEGMENT_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  prices: { tag: "p", slot: "heading-xs" },
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  callout: { tag: "div", slot: "callout-content" },
+  planType: true,
+  secureLabel: true,
+  badgeIcon: true,
+  badge: { tag: "div", slot: "badge", default: "color-red-700-variation" },
+  allowedBadgeColors: [
+    "color-yellow-300-variation",
+    "color-gray-300-variation",
+    "color-gray-700-variation",
+    "color-green-900-variation",
+    "color-red-700-variation",
+    "gradient-purple-blue"
+  ],
+  allowedBorderColors: [
+    "color-yellow-300-variation",
+    "color-gray-300-variation",
+    "color-green-900-variation",
+    "color-red-700-variation",
+    "gradient-purple-blue"
+  ],
+  borderColor: { attribute: "border-color" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant",
+  perUnitLabel: { tag: "span", slot: "per-unit-label" }
+};
+var Segment = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
+      options.displayPerUnit = false;
+    }
+  }
+  getGlobalCSS() {
+    return CSS11;
+  }
+  get badgeElement() {
+    return this.card.querySelector('[slot="badge"]');
+  }
+  get mainPrice() {
+    return this.card.querySelector(
+      `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+  }
+  async postCardUpdateHook() {
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+    }
+    await super.postCardUpdateHook();
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted || !this.card.id) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const headingPrice = this.mainPrice;
+      if (!headingPrice) return;
+      const legal2 = headingPrice.cloneNode(true);
+      await headingPrice.onceSettled();
+      if (!headingPrice?.options) return;
+      if (headingPrice.options.displayPerUnit)
+        headingPrice.dataset.displayPerUnit = "false";
+      if (headingPrice.options.displayTax)
+        headingPrice.dataset.displayTax = "false";
+      if (headingPrice.options.displayPlanType)
+        headingPrice.dataset.displayPlanType = "false";
+      legal2.setAttribute("data-template", "legal");
+      headingPrice.parentNode.insertBefore(
+        legal2,
+        headingPrice.nextSibling
+      );
+      await legal2.onceSettled();
+    } catch {
+    }
+  }
+  renderLayout() {
+    return html12`
             ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":Ya`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`}
+                ${!this.promoBottom ? html12`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?Ya`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom ? html12`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="badge"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}
-        `}};g(vt,"variantStyle",Qc`
+        `;
+  }
+};
+__publicField(Segment, "variantStyle", css10`
         :host([variant='segment']) {
             min-height: 214px;
             background:
@@ -6414,7 +10209,13 @@ merch-card-collection.segment merch-card {
         :host([variant='segment']) ::slotted(h3[slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);import{html as Zc,css as Jc}from"./lit-all.min.js";var zn=`
+    `);
+
+// src/variants/media.js
+import { html as html13, css as css11 } from "./lit-all.min.js";
+
+// src/variants/media.css.js
+var CSS12 = `
 
     merch-card[variant='media'] {
         border: 0;
@@ -6527,7 +10328,35 @@ merch-card-collection.segment merch-card {
         width: 700px;
     }
 
-`;var Dn={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},backgroundImage:{tag:"div",slot:"bg-image"},style:"consonant"},xt=class extends w{constructor(r){super(r)}getGlobalCSS(){return zn}removeFocusFromModalClose(){let r=this.card.closest(".dialog-modal");r&&r.querySelector(".dialog-close")?.blur()}async postCardUpdateHook(){this.removeFocusFromModalClose(),await super.postCardUpdateHook()}renderLayout(){return Zc`
+`;
+
+// src/variants/media.js
+var MEDIA_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "body-xxs" },
+  description: { tag: "div", slot: "body-xs" },
+  ctas: { slot: "footer", size: "m" },
+  backgroundImage: { tag: "div", slot: "bg-image" },
+  style: "consonant"
+};
+var Media2 = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS12;
+  }
+  removeFocusFromModalClose() {
+    const modal = this.card.closest(".dialog-modal");
+    if (modal) modal.querySelector(".dialog-close")?.blur();
+  }
+  async postCardUpdateHook() {
+    this.removeFocusFromModalClose();
+    await super.postCardUpdateHook();
+  }
+  renderLayout() {
+    return html13`
             <div class="media-row">
                 <div class="text">
                     <slot name="body-xxs"></slot>
@@ -6539,7 +10368,10 @@ merch-card-collection.segment merch-card {
                     <slot name="bg-image"></slot>
                 </div>
             </div>
-        `}};g(xt,"variantStyle",Jc`
+        `;
+  }
+};
+__publicField(Media2, "variantStyle", css11`
         :host([variant='media']) .media-row {
             display: flex;
             gap: 24px;
@@ -6568,7 +10400,13 @@ merch-card-collection.segment merch-card {
                 gap: 40px;
             }
         }
-    `);import{html as Xa,css as el}from"./lit-all.min.js";var Hn=`
+    `);
+
+// src/variants/special-offer.js
+import { html as html14, css as css12 } from "./lit-all.min.js";
+
+// src/variants/special-offer.css.js
+var CSS13 = `
 :root {
   --consonant-merch-card-special-offers-width: 302px;
 	--merch-card-collection-card-width: var(--consonant-merch-card-special-offers-width);
@@ -6622,13 +10460,13 @@ merch-card[variant="special-offers"] .price-plan-type {
   display: contents;
 }
 
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
 }
 
-@media screen and ${R} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
@@ -6644,7 +10482,7 @@ merch-card[variant="special-offers"] .price-plan-type {
 }
 
 /* desktop */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers,
   .three-merch-cards:has(merch-card[variant="special-offers"]),
@@ -6653,13 +10491,76 @@ merch-card[variant="special-offers"] .price-plan-type {
   }
 }
 
-@media screen and ${ee} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.special-offers,
   .four-merch-cards:has(merch-card[variant="special-offers"]) {
     grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;var Fn={cardName:{attribute:"name"},backgroundImage:{tag:"div",slot:"bg-image"},subtitle:{tag:"p",slot:"detail-m"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs-price"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"},planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-special-offers"},allowedBadgeColors:["spectrum-yellow-300-special-offers","spectrum-gray-300-special-offers","spectrum-green-900-special-offers"],allowedBorderColors:["spectrum-yellow-300-special-offers","spectrum-gray-300-special-offers","spectrum-green-900-special-offers"],borderColor:{attribute:"border-color"}},bt=class extends w{constructor(t){super(t);g(this,"legal")}get headingSelector(){return'[slot="detail-m"]'}getGlobalCSS(){return Hn}priceOptionsProvider(t,a){a.displayPlanType=this.card?.settings?.displayPlanType??!1}async postCardUpdateHook(){await super.postCardUpdateHook(),this.adjustLegal()}adjustLegal(){if(this.legal!==void 0)return;let t=this.card.querySelector(`${V}[data-template="price"]`);if(!t)return;let a=t.cloneNode(!0);this.legal=a,t.dataset.displayPlanType="false",a.dataset.template="legal",a.dataset.displayPerUnit="false",a.setAttribute("slot","legal"),this.card.appendChild(a)}renderLayout(){return Xa`${this.cardImage}
+`;
+
+// src/variants/special-offer.js
+var SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  backgroundImage: { tag: "div", slot: "bg-image" },
+  subtitle: { tag: "p", slot: "detail-m" },
+  title: { tag: "h3", slot: "heading-xs" },
+  prices: { tag: "p", slot: "heading-xs-price" },
+  description: { tag: "div", slot: "body-xs" },
+  ctas: { slot: "footer", size: "l" },
+  planType: true,
+  badgeIcon: true,
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "spectrum-yellow-300-special-offers"
+  },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-special-offers",
+    "spectrum-gray-300-special-offers",
+    "spectrum-green-900-special-offers"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-special-offers",
+    "spectrum-gray-300-special-offers",
+    "spectrum-green-900-special-offers"
+  ],
+  borderColor: { attribute: "border-color" }
+};
+var SpecialOffer = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "legal");
+  }
+  get headingSelector() {
+    return '[slot="detail-m"]';
+  }
+  getGlobalCSS() {
+    return CSS13;
+  }
+  priceOptionsProvider(element, options) {
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+  }
+  async postCardUpdateHook() {
+    await super.postCardUpdateHook();
+    this.adjustLegal();
+  }
+  adjustLegal() {
+    if (this.legal !== void 0) return;
+    const price2 = this.card.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    if (!price2) return;
+    const legal2 = price2.cloneNode(true);
+    this.legal = legal2;
+    price2.dataset.displayPlanType = "false";
+    legal2.dataset.template = "legal";
+    legal2.dataset.displayPerUnit = "false";
+    legal2.setAttribute("slot", "legal");
+    this.card.appendChild(legal2);
+  }
+  renderLayout() {
+    return html14`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
@@ -6668,18 +10569,21 @@ merch-card[variant="special-offers"] .price-plan-type {
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>
-            ${this.evergreen?Xa`
+            ${this.evergreen ? html14`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card.detailBg}"
+                          style="background: ${this.card["detailBg"]}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `:Xa`
+                  ` : html14`
                       <hr />
                       ${this.secureLabelFooter}
                   `}
-            <slot></slot>`}};g(bt,"variantStyle",el`
+            <slot></slot>`;
+  }
+};
+__publicField(SpecialOffer, "variantStyle", css12`
         :host([variant='special-offers']) {
             min-height: 439px;
             background:
@@ -6713,7 +10617,13 @@ merch-card[variant="special-offers"] .price-plan-type {
         ) {
             border-color: var(--spectrum-green-900-special-offers);
         }
-    `);import{html as Un,css as tl}from"./lit-all.min.js";var Bn=`
+    `);
+
+// src/variants/simplified-pricing-express.js
+import { html as html15, css as css13, nothing as nothing6 } from "./lit-all.min.js";
+
+// src/variants/simplified-pricing-express.css.js
+var CSS14 = `
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -6757,7 +10667,7 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
 }
 
 /* Desktop - 3 columns */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
     merch-card-collection.simplified-pricing-express {
         grid-template-columns: repeat(3, 1fr);
         max-width: calc(3 * var(--merch-card-simplified-pricing-express-width) + 32px);
@@ -7004,7 +10914,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Fix leftmost tooltip cutoff on mobile */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:first-child mas-mnemonic:first-child {
     --tooltip-left-offset: 0;
   }
@@ -7013,7 +10923,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 /* Tooltip containers - overflow handled by Shadow DOM */
 
 /* Mobile styles */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   .collection-container.simplified-pricing-express {
     grid-template-columns: 1fr;
     width: 100%;
@@ -7055,7 +10965,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Collapse/expand styles for mobile only */
-@media screen and ${z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   /* Base transition for smooth animation */
   merch-card[variant="simplified-pricing-express"] {
     transition: max-height 0.5s ease-out;
@@ -7109,7 +11019,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Tablet styles - responsive full width with padding */
-@media screen and ${R} and ${X} {
+@media screen and ${TABLET_UP} and ${TABLET_DOWN} {
   .collection-container.simplified-pricing-express {
     display: block;
     width: 100%;
@@ -7147,7 +11057,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
 }
 
 /* Small font size button styles for desktop when button text is too long */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
   merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
   merch-card[variant="simplified-pricing-express"] [slot="cta"] button.small-font-size-button,
   merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
@@ -7156,20 +11066,220 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
       font-size: var(--merch-card-simplified-pricing-express-body-xs-font-size, 14px);
   }
 }
-`;var Ka={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},callout:{tag:"div",slot:"callout-content",editorLabel:"Price description"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},yt=class extends w{getGlobalCSS(){return Bn}get aemFragmentMapping(){return Ka}get headingSelector(){return'[slot="heading-xs"]'}get badge(){let r=this.card.querySelector('[slot="badge"]');return Un`<div
+`;
+
+// src/variants/simplified-pricing-express.js
+var SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
+  title: {
+    tag: "h3",
+    slot: "heading-xs",
+    maxCount: 250,
+    withSuffix: true
+  },
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "spectrum-blue-400"
+  },
+  allowedBadgeColors: [
+    "spectrum-blue-400",
+    "spectrum-gray-300",
+    "spectrum-yellow-300",
+    "gradient-purple-blue",
+    "gradient-firefly-spectrum"
+  ],
+  description: {
+    tag: "div",
+    slot: "body-xs",
+    maxCount: 2e3,
+    withSuffix: false
+  },
+  prices: {
+    tag: "div",
+    slot: "price"
+  },
+  callout: {
+    tag: "div",
+    slot: "callout-content",
+    editorLabel: "Price description"
+  },
+  ctas: {
+    slot: "cta",
+    size: "XL"
+  },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gray: "var(--spectrum-gray-300)",
+      blue: "var(--spectrum-blue-400)",
+      "gradient-purple-blue": "linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)",
+      "gradient-firefly-spectrum": "linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"
+    }
+  },
+  disabledAttributes: [
+    "badgeColor",
+    "badgeBorderColor",
+    "trialBadgeColor",
+    "trialBadgeBorderColor"
+  ],
+  supportsDefaultChild: true
+};
+var SimplifiedPricingExpress = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS14;
+  }
+  get aemFragmentMapping() {
+    return SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING;
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  get badge() {
+    const badgeElement = this.card.querySelector('[slot="badge"]');
+    return html15`<div
             class="badge-wrapper"
-            style="${r?"":"visibility: hidden"}"
+            style="${badgeElement ? "" : "visibility: hidden"}"
         >
             <slot name="badge"></slot>
-        </div>`}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.shadowRoot;if(!r)return;["header","price-container","cta"].forEach(i=>this.updateCardElementMinHeight(r.querySelector(`.${i}`),i));let t=this.card.querySelector('[slot="body-xs"]');t&&this.updateCardElementMinHeight(t,"description");let a=this.card.querySelector('[slot="body-xs"] p:has(mas-mnemonic)');a&&this.updateCardElementMinHeight(a,"icons")}async postCardUpdateHook(){if(!this.card.isConnected)return;await super.postCardUpdateHook();let r=this.getContainer();if(!r)return;let t=r.querySelectorAll(`merch-card[variant="${this.card.variant}"]`),a=34;t.forEach(i=>{i.classList.remove("small-font-size-button"),i.querySelectorAll('[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]').forEach(o=>{let s=o.textContent.trim().length>a;o.classList.toggle("small-font-size-button",s)})}),A.isDesktopOrUp&&t.forEach(i=>i.variantLayout?.syncHeights?.())}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!Er()&&this.card.setAttribute("data-expanded","true"),this.observeVisibility())}resyncSiblings(){let r=this.getContainer();r&&r.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(t=>t.variantLayout?.syncHeights?.())}observeVisibility(){typeof ResizeObserver>"u"||(this.lastSyncedWidth=0,this.sizeObserver=new ResizeObserver(()=>{let r=this.card.getBoundingClientRect().width;r<=2||r===this.lastSyncedWidth||(this.lastSyncedWidth=r,this.resyncSiblings())}),this.sizeObserver.observe(this.card))}setupAccordion(){let r=this.card;if(!r)return;let t=()=>{if(Er())r.removeAttribute("data-expanded");else{let i=r.hasAttribute("data-default-card");r.setAttribute("data-expanded",i?"true":"false")}};t();let a=window.matchMedia(z);this.mediaQueryListener=()=>{t()},a.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(z).removeEventListener("change",this.mediaQueryListener),this.sizeObserver?.disconnect(),this.sizeObserver=null}handleChevronClick(r){r.preventDefault(),r.stopPropagation(),this.toggleExpanded()}handleCardClick(r){r.target.closest('.chevron-button, mas-mnemonic, button, a, [role="button"]')||(r.preventDefault(),this.toggleExpanded())}toggleExpanded(){let r=this.card;if(!r||Er())return;let i=r.getAttribute("data-expanded")==="true"?"false":"true";r.setAttribute("data-expanded",i)}renderLayout(){return Un`
+        </div>`;
+  }
+  syncHeights() {
+    if (this.card.getBoundingClientRect().width === 0) {
+      return;
+    }
+    const shadow = this.card.shadowRoot;
+    if (!shadow) return;
+    ["header", "price-container", "cta"].forEach(
+      (className) => this.updateCardElementMinHeight(
+        shadow.querySelector(`.${className}`),
+        className
+      )
+    );
+    const descriptionSlot = this.card.querySelector('[slot="body-xs"]');
+    if (descriptionSlot) {
+      this.updateCardElementMinHeight(descriptionSlot, "description");
+    }
+    const iconRow = this.card.querySelector(
+      '[slot="body-xs"] p:has(mas-mnemonic)'
+    );
+    if (iconRow) {
+      this.updateCardElementMinHeight(iconRow, "icons");
+    }
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    await super.postCardUpdateHook();
+    const container = this.getContainer();
+    if (!container) return;
+    const cards = container.querySelectorAll(
+      `merch-card[variant="${this.card.variant}"]`
+    );
+    const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
+    cards.forEach((card) => {
+      card.classList.remove("small-font-size-button");
+      const ctas = card.querySelectorAll(
+        '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]'
+      );
+      ctas.forEach((cta) => {
+        const isLong = cta.textContent.trim().length > CTA_LONG_TEXT_CHAR_THRESHOLD;
+        cta.classList.toggle("small-font-size-button", isLong);
+      });
+    });
+    if (media_default.isDesktopOrUp) {
+      cards.forEach((card) => card.variantLayout?.syncHeights?.());
+    }
+  }
+  connectedCallbackHook() {
+    if (!this.card || this.card.failed) {
+      return;
+    }
+    this.setupAccordion();
+    if (this.card?.hasAttribute("data-default-card") && !isDesktop()) {
+      this.card.setAttribute("data-expanded", "true");
+    }
+    this.observeVisibility();
+  }
+  resyncSiblings() {
+    const container = this.getContainer();
+    if (!container) return;
+    container.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach((card) => card.variantLayout?.syncHeights?.());
+  }
+  observeVisibility() {
+    if (typeof ResizeObserver === "undefined") return;
+    this.lastSyncedWidth = 0;
+    this.sizeObserver = new ResizeObserver(() => {
+      const width = this.card.getBoundingClientRect().width;
+      if (width <= 2 || width === this.lastSyncedWidth) return;
+      this.lastSyncedWidth = width;
+      this.resyncSiblings();
+    });
+    this.sizeObserver.observe(this.card);
+  }
+  setupAccordion() {
+    const merchCard = this.card;
+    if (!merchCard) {
+      return;
+    }
+    const updateExpandedState = () => {
+      if (!isDesktop()) {
+        const isDefaultCard = merchCard.hasAttribute("data-default-card");
+        merchCard.setAttribute(
+          "data-expanded",
+          isDefaultCard ? "true" : "false"
+        );
+      } else {
+        merchCard.removeAttribute("data-expanded");
+      }
+    };
+    updateExpandedState();
+    const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
+    this.mediaQueryListener = () => {
+      updateExpandedState();
+    };
+    mediaQuery.addEventListener("change", this.mediaQueryListener);
+  }
+  disconnectedCallbackHook() {
+    if (this.mediaQueryListener) {
+      const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
+      mediaQuery.removeEventListener("change", this.mediaQueryListener);
+    }
+    this.sizeObserver?.disconnect();
+    this.sizeObserver = null;
+  }
+  handleChevronClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.toggleExpanded();
+  }
+  handleCardClick(e) {
+    if (e.target.closest(
+      '.chevron-button, mas-mnemonic, button, a, [role="button"]'
+    )) {
+      return;
+    }
+    e.preventDefault();
+    this.toggleExpanded();
+  }
+  toggleExpanded() {
+    const merchCard = this.card;
+    if (!merchCard || isDesktop()) {
+      return;
+    }
+    const currentExpanded = merchCard.getAttribute("data-expanded");
+    const isExpanded = currentExpanded === "true";
+    const newExpanded = !isExpanded ? "true" : "false";
+    merchCard.setAttribute("data-expanded", newExpanded);
+  }
+  renderLayout() {
+    return html15`
             ${this.badge}
-            <div class="card-content" @click=${r=>this.handleCardClick(r)}>
+            <div class="card-content" @click=${(e) => this.handleCardClick(e)}>
                 <div class="header">
                     <slot name="heading-xs"></slot>
                     <slot name="trial-badge"></slot>
                     <button
                         class="chevron-button"
-                        @click=${r=>this.handleChevronClick(r)}
+                        @click=${(e) => this.handleChevronClick(e)}
                     >
                         <svg
                             class="chevron-icon"
@@ -7198,7 +11308,10 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 </div>
             </div>
             <slot></slot>
-        `}};g(yt,"variantStyle",tl`
+        `;
+  }
+};
+__publicField(SimplifiedPricingExpress, "variantStyle", css13`
         :host([variant='simplified-pricing-express']) {
             --merch-card-simplified-pricing-express-width: 365px;
             --merch-card-simplified-pricing-express-padding: 24px;
@@ -7608,7 +11721,13 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 max-height: 1000px;
             }
         }
-    `);import{html as Gn,css as rl}from"./lit-all.min.js";var $n=`
+    `);
+
+// src/variants/full-pricing-express.js
+import { html as html16, css as css14, nothing as nothing7 } from "./lit-all.min.js";
+
+// src/variants/full-pricing-express.css.js
+var CSS15 = `
 :root {
     --merch-card-full-pricing-express-width: 378px;
     --merch-card-full-pricing-express-mobile-width: 365px;
@@ -7669,7 +11788,7 @@ merch-card-collection.full-pricing-express {
 }
 
 /* Desktop small - 2 columns */
-@media screen and ${L} and (max-width: 1399px) {
+@media screen and ${DESKTOP_UP} and (max-width: 1399px) {
     merch-card-collection.full-pricing-express {
         grid-template-columns: repeat(2, 1fr);
         max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
@@ -8068,7 +12187,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectr
 }
 
 /* Small font size button styles for desktop when button text is too long */
-@media screen and ${L} {
+@media screen and ${DESKTOP_UP} {
     merch-card[variant="full-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
     merch-card[variant="full-pricing-express"] [slot="cta"] button.small-font-size-button,
     merch-card[variant="full-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
@@ -8247,12 +12366,181 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
         min-height: var(--consonant-merch-card-full-pricing-express-description-row-11-height);
     }
 }
-`;var Qa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},callout:{tag:"div",slot:"callout-content",editorLabel:"Price description"},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"xs"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},showAllSpectrumColors:!0,multiWhatsIncluded:"true",disabledAttributes:[]},tr=class tr extends w{getGlobalCSS(){return $n}get aemFragmentMapping(){return Qa}get headingSelector(){return'[slot="heading-xs"]'}get badge(){let r=this.card.querySelector('[slot="badge"]');return Gn`<div
+`;
+
+// src/variants/full-pricing-express.js
+var FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
+  title: {
+    tag: "h3",
+    slot: "heading-xs",
+    maxCount: 250,
+    withSuffix: true
+  },
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "spectrum-blue-400"
+  },
+  allowedBadgeColors: [
+    "spectrum-blue-400",
+    "spectrum-gray-300",
+    "spectrum-yellow-300",
+    "gradient-purple-blue",
+    "gradient-firefly-spectrum"
+  ],
+  description: {
+    tag: "div",
+    slot: "body-s",
+    maxCount: 2e3,
+    withSuffix: false
+  },
+  shortDescription: {
+    tag: "div",
+    slot: "short-description",
+    maxCount: 3e3,
+    withSuffix: false
+  },
+  callout: {
+    tag: "div",
+    slot: "callout-content",
+    editorLabel: "Price description"
+  },
+  prices: {
+    tag: "div",
+    slot: "price"
+  },
+  trialBadge: {
+    tag: "div",
+    slot: "trial-badge"
+  },
+  ctas: {
+    slot: "cta",
+    size: "XL"
+  },
+  mnemonics: {
+    size: "xs"
+  },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gray: "var(--spectrum-gray-300)",
+      blue: "var(--spectrum-blue-400)",
+      "gradient-purple-blue": "linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)",
+      "gradient-firefly-spectrum": "linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"
+    }
+  },
+  showAllSpectrumColors: true,
+  multiWhatsIncluded: "true",
+  disabledAttributes: []
+};
+var _FullPricingExpress = class _FullPricingExpress extends VariantLayout {
+  getGlobalCSS() {
+    return CSS15;
+  }
+  get aemFragmentMapping() {
+    return FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING;
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  get badge() {
+    const badgeElement = this.card.querySelector('[slot="badge"]');
+    return html16`<div
             class="badge-wrapper"
-            style="${r?"":"visibility: hidden"}"
+            style="${badgeElement ? "" : "visibility: hidden"}"
         >
             <slot name="badge"></slot>
-        </div>`}async waitForTitleFont(){let r=this.card.querySelector(this.headingSelector);if(r&&document.fonts?.load){let t=window.getComputedStyle(r),a=`${t.fontWeight} ${t.fontSize} ${t.fontFamily}`;await document.fonts.load(a,r.textContent).catch(()=>null)}await document.fonts.ready}async syncHeights(){if(await this.waitForTitleFont(),await new Promise(s=>requestAnimationFrame(s)),await new Promise(s=>requestAnimationFrame(s)),this.card.getBoundingClientRect().width<=2)return;let r=tr.SYNCED_SECTIONS.map(s=>({name:s,getElement:c=>c.shadowRoot?.querySelector(`.${s}`)})),t=this.getContainer(),a=t?t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`):[this.card],i='[slot="body-s"] > *',n=Math.max(0,...Array.from(a,s=>s.querySelectorAll(i).length)),o=Array.from({length:n},(s,c)=>({name:`description-row-${c}`,getElement:l=>l.querySelectorAll(i)[c]}));this.syncRowHeights([...r,...o])}async postCardUpdateHook(){if(!this.card.isConnected)return;await super.postCardUpdateHook();let r=this.getContainer();if(r){let t=r.querySelectorAll(`merch-card[variant="${this.card.variant}"]`),a=49;t.forEach(i=>{i.classList.remove("small-font-size-button"),i.querySelectorAll('[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]').forEach(o=>{let s=o.textContent.trim().length>a;o.classList.toggle("small-font-size-button",s)})})}window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()}resyncOnReflow(){let r=this.card.getBoundingClientRect().width;if(r<=2)return;let t=this.card.querySelector(this.headingSelector),a=t?Math.round(t.getBoundingClientRect().height):0,i=`${Math.round(r)}:${a}`;i!==this.lastSyncedKey&&(this.lastSyncedKey=i,this.syncHeights())}connectedCallbackHook(){if(!this.card||typeof ResizeObserver>"u")return;this.lastSyncedKey="",this.sizeObserver=new ResizeObserver(()=>this.resyncOnReflow()),this.sizeObserver.observe(this.card);let r=this.card.querySelector(this.headingSelector);r&&this.sizeObserver.observe(r)}disconnectedCallbackHook(){this.sizeObserver?.disconnect(),this.sizeObserver=null}renderLayout(){return Gn`
+        </div>`;
+  }
+  async waitForTitleFont() {
+    const title = this.card.querySelector(this.headingSelector);
+    if (title && document.fonts?.load) {
+      const style = window.getComputedStyle(title);
+      const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      await document.fonts.load(font, title.textContent).catch(() => null);
+    }
+    await document.fonts.ready;
+  }
+  async syncHeights() {
+    await this.waitForTitleFont();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    if (this.card.getBoundingClientRect().width <= 2) return;
+    const sectionEntries = _FullPricingExpress.SYNCED_SECTIONS.map(
+      (name) => ({
+        name,
+        getElement: (card) => card.shadowRoot?.querySelector(`.${name}`)
+      })
+    );
+    const container = this.getContainer();
+    const cards = container ? container.querySelectorAll(
+      `merch-card[variant="${this.card.variant}"]`
+    ) : [this.card];
+    const descriptionRowSelector = '[slot="body-s"] > *';
+    const descriptionRows = Math.max(
+      0,
+      ...Array.from(
+        cards,
+        (card) => card.querySelectorAll(descriptionRowSelector).length
+      )
+    );
+    const rowEntries = Array.from(
+      { length: descriptionRows },
+      (_, index) => ({
+        name: `description-row-${index}`,
+        getElement: (card) => card.querySelectorAll(descriptionRowSelector)[index]
+      })
+    );
+    this.syncRowHeights([...sectionEntries, ...rowEntries]);
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    await super.postCardUpdateHook();
+    const container = this.getContainer();
+    if (container) {
+      const cards = container.querySelectorAll(
+        `merch-card[variant="${this.card.variant}"]`
+      );
+      const CTA_LONG_TEXT_CHAR_THRESHOLD = 49;
+      cards.forEach((card) => {
+        card.classList.remove("small-font-size-button");
+        const ctas = card.querySelectorAll(
+          '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]'
+        );
+        ctas.forEach((cta) => {
+          const isLong = cta.textContent.trim().length > CTA_LONG_TEXT_CHAR_THRESHOLD;
+          cta.classList.toggle("small-font-size-button", isLong);
+        });
+      });
+    }
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      this.syncHeights();
+    }
+  }
+  resyncOnReflow() {
+    const width = this.card.getBoundingClientRect().width;
+    if (width <= 2) return;
+    const title = this.card.querySelector(this.headingSelector);
+    const titleHeight = title ? Math.round(title.getBoundingClientRect().height) : 0;
+    const key = `${Math.round(width)}:${titleHeight}`;
+    if (key === this.lastSyncedKey) return;
+    this.lastSyncedKey = key;
+    this.syncHeights();
+  }
+  connectedCallbackHook() {
+    if (!this.card || typeof ResizeObserver === "undefined") return;
+    this.lastSyncedKey = "";
+    this.sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
+    this.sizeObserver.observe(this.card);
+    const title = this.card.querySelector(this.headingSelector);
+    if (title) this.sizeObserver.observe(title);
+  }
+  disconnectedCallbackHook() {
+    this.sizeObserver?.disconnect();
+    this.sizeObserver = null;
+  }
+  renderLayout() {
+    return html16`
             ${this.badge}
             <div class="card-content">
                 <div class="header">
@@ -8277,7 +12565,16 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
                 </div>
             </div>
             <slot></slot>
-        `}};g(tr,"SYNCED_SECTIONS",["header","short-description","price-container","cta"]),g(tr,"variantStyle",rl`
+        `;
+  }
+};
+__publicField(_FullPricingExpress, "SYNCED_SECTIONS", [
+  "header",
+  "short-description",
+  "price-container",
+  "cta"
+]);
+__publicField(_FullPricingExpress, "variantStyle", css14`
         :host([variant='full-pricing-express']) {
             /* CSS Variables */
             --merch-card-full-pricing-express-width: 437px;
@@ -8591,8 +12888,19 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
                 );
             }
         }
-    `);var rr=tr;import{html as ar,nothing as qn}from"./lit-all.min.js";import{css as al,unsafeCSS as il}from"./lit-all.min.js";var nl=["headless","marquee","faq","banner-blade"],wt=(e,r="")=>nl.map(t=>`merch-card[variant='${t}'] [slot='${e}']${r}`).join(`,
-`),Fe=`
+    `);
+var FullPricingExpress = _FullPricingExpress;
+
+// src/variants/headless.js
+import { html as html17, nothing as nothing8 } from "./lit-all.min.js";
+
+// src/variants/headless.css.js
+import { css as css15, unsafeCSS as unsafeCSS5 } from "./lit-all.min.js";
+var HEADLESS_FAMILY_VARIANTS = ["headless", "marquee", "faq", "banner-blade"];
+var familySelector = (slot, suffix2 = "") => HEADLESS_FAMILY_VARIANTS.map(
+  (variant) => `merch-card[variant='${variant}'] [slot='${slot}']${suffix2}`
+).join(",\n");
+var CSS16 = `
 /* Headless variant: minimal container for label/value rows */
 .headless {
     display: flex;
@@ -8604,99 +12912,173 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
    callout background box) from global.css.js so every row renders as plain text,
    matching the untouched body-xs/short-description rows. Applies to every variant
    in HEADLESS_FAMILY_VARIANTS above. */
-${wt("heading-xs")},
-${wt("promo-text")} {
+${familySelector("heading-xs")},
+${familySelector("promo-text")} {
     color: var(--consonant-merch-card-body-xs-color);
     font-weight: 400;
     font-size: var(--consonant-merch-card-body-xs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
 }
-${wt("callout-content")} {
+${familySelector("callout-content")} {
     display: block;
     margin: 0;
     gap: 0;
 }
-${wt("callout-content"," > p")},
-${wt("callout-content"," > div")},
-${wt("callout-content"," > div > div")} {
+${familySelector("callout-content", " > p")},
+${familySelector("callout-content", " > div")},
+${familySelector("callout-content", " > div > div")} {
     background: transparent;
     padding: 0;
     border-radius: 0;
     width: auto;
 }
-`;function Be(e){let r=il(e);return al`
-        :host([variant='${r}']) {
+`;
+function headlessRowStyle(variantName) {
+  const variant = unsafeCSS5(variantName);
+  return css15`
+        :host([variant='${variant}']) {
             border: none;
             background: transparent;
             box-shadow: none;
         }
-        :host([variant='${r}']) .headless {
+        :host([variant='${variant}']) .headless {
             display: flex;
             flex-direction: column;
             padding: var(--consonant-merch-spacing-xs, 8px);
         }
-        :host([variant='${r}']) .headless-row {
+        :host([variant='${variant}']) .headless-row {
             display: flex;
             gap: var(--consonant-merch-spacing-xs, 8px);
             padding: var(--consonant-merch-spacing-xxs, 4px) 0;
         }
-        :host([variant='${r}']) .headless-label {
+        :host([variant='${variant}']) .headless-label {
             flex-shrink: 0;
             font-weight: 600;
             min-width: 8em;
         }
-        :host([variant='${r}']) .headless-value {
+        :host([variant='${variant}']) .headless-value {
             flex: 1;
         }
-        :host([variant='${r}']) .headless-value::slotted(*) {
+        :host([variant='${variant}']) .headless-value::slotted(*) {
             display: inline;
         }
-        :host([variant='${r}']) .headless-section {
+        :host([variant='${variant}']) .headless-section {
             font-size: 0.75em;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--spectrum-gray-600);
             padding-top: 4px;
         }
-    `}var Vn={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},cardTitle:{tag:"p",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},promoText:{tag:"p",slot:"promo-text"},shortDescription:{tag:"p",slot:"short-description"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},whatsIncluded:{tag:"div",slot:"whats-included"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},badge:{tag:"div",slot:"badge"},trialBadge:{tag:"div",slot:"trial-badge"},prices:{tag:"p",slot:"prices"},backgroundImage:{tag:"div",slot:"bg-image"},ctas:{slot:"footer",size:"m"},addon:!0,secureLabel:!0,borderColor:{attribute:"border-color"},backgroundColor:{attribute:"background-color"},size:[],mnemonics:{size:"m"},customFields:{tag:"div",slot:"custom-fields"}},ol=[{slot:"bg-image",label:"Background Image"},{slot:"badge",label:"Badge"},{slot:"icons",label:"Mnemonic icon"},{slot:"heading-xs",label:"Title"},{slot:"body-xxs",label:"Subtitle"},{slot:"body-xs",label:"Product description"},{slot:"promo-text",label:"Promo Text"},{slot:"callout-content",label:"Callout text"},{slot:"short-description",label:"Short Description"},{slot:"trial-badge",label:"Trial Badge"},{slot:"prices",label:"Product price"},{slot:"quantity-select",label:"Quantity select"},{slot:"addon",label:"Addon"},{slot:"whats-included",label:"What's included"},{slot:"addon-confirmation",label:"Addon confirmation"},{slot:"footer",label:"CTAs"}],Et=class extends w{constructor(r){super(r)}getGlobalCSS(){return Fe}renderLayout(){let r=[...this.card.querySelectorAll('[slot^="custom-field-"]')];return ar`
+    `;
+}
+
+// src/variants/headless.js
+var HEADLESS_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "p", slot: "heading-xs" },
+  cardTitle: { tag: "p", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "body-xxs" },
+  description: { tag: "div", slot: "body-xs" },
+  promoText: { tag: "p", slot: "promo-text" },
+  shortDescription: { tag: "p", slot: "short-description" },
+  callout: { tag: "div", slot: "callout-content" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  addonConfirmation: { tag: "div", slot: "addon-confirmation" },
+  badge: { tag: "div", slot: "badge" },
+  trialBadge: { tag: "div", slot: "trial-badge" },
+  prices: { tag: "p", slot: "prices" },
+  backgroundImage: { tag: "div", slot: "bg-image" },
+  ctas: { slot: "footer", size: "m" },
+  addon: true,
+  secureLabel: true,
+  borderColor: { attribute: "border-color" },
+  backgroundColor: { attribute: "background-color" },
+  size: [],
+  mnemonics: { size: "m" },
+  customFields: { tag: "div", slot: "custom-fields" }
+};
+var HEADLESS_FIELDS = [
+  { slot: "bg-image", label: "Background Image" },
+  { slot: "badge", label: "Badge" },
+  { slot: "icons", label: "Mnemonic icon" },
+  { slot: "heading-xs", label: "Title" },
+  { slot: "body-xxs", label: "Subtitle" },
+  { slot: "body-xs", label: "Product description" },
+  { slot: "promo-text", label: "Promo Text" },
+  { slot: "callout-content", label: "Callout text" },
+  { slot: "short-description", label: "Short Description" },
+  { slot: "trial-badge", label: "Trial Badge" },
+  { slot: "prices", label: "Product price" },
+  { slot: "quantity-select", label: "Quantity select" },
+  { slot: "addon", label: "Addon" },
+  { slot: "whats-included", label: "What's included" },
+  { slot: "addon-confirmation", label: "Addon confirmation" },
+  { slot: "footer", label: "CTAs" }
+];
+var Headless = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS16;
+  }
+  renderLayout() {
+    const customFieldEls = [
+      ...this.card.querySelectorAll('[slot^="custom-field-"]')
+    ];
+    return html17`
             <div class="headless">
-                ${ol.map(({slot:t,label:a})=>ar`
+                ${HEADLESS_FIELDS.map(
+      ({ slot, label }) => html17`
                         <div class="headless-row">
-                            <span class="headless-label">${a}</span>
+                            <span class="headless-label">${label}</span>
                             <span class="headless-value">
-                                <slot name="${t}"></slot>
+                                <slot name="${slot}"></slot>
                             </span>
                         </div>
-                    `)}
-                ${r.length?ar`
+                    `
+    )}
+                ${customFieldEls.length ? html17`
                           <div class="headless-row">
                               <span class="headless-label headless-section">
                                   Custom fields
                               </span>
                           </div>
-                          ${r.map((t,a)=>ar`
+                          ${customFieldEls.map(
+      (el, i) => html17`
                                   <div class="headless-row">
                                       <span class="headless-label">
-                                          ${t.dataset.label||`Custom field ${a+1}`}
+                                          ${el.dataset.label || `Custom field ${i + 1}`}
                                       </span>
                                       <span class="headless-value">
                                           <slot
-                                              name="${t.getAttribute("slot")}"
+                                              name="${el.getAttribute("slot")}"
                                           ></slot>
                                       </span>
                                   </div>
-                              `)}
-                      `:qn}
-                ${this.card.secureLabel?ar`
+                              `
+    )}
+                      ` : nothing8}
+                ${this.card.secureLabel ? html17`
                           <div class="headless-row">
                               <span class="headless-label">Secure label</span>
                               <span class="headless-value">
                                   ${this.secureLabel}
                               </span>
                           </div>
-                      `:qn}
+                      ` : nothing8}
             </div>
-        `}};g(Et,"variantStyle",Be("headless"));import{css as sl,html as cl}from"./lit-all.min.js";var jn=`
+        `;
+  }
+};
+__publicField(Headless, "variantStyle", headlessRowStyle("headless"));
+
+// src/variants/mini.js
+import { css as css16, html as html18 } from "./lit-all.min.js";
+
+// src/variants/mini.css.js
+var CSS17 = `
 merch-card[variant="mini"] {
   color: var(--spectrum-body-color);
   width: 400px;
@@ -8729,7 +13111,60 @@ merch-card[variant="mini"] span.promo-duration-text,
 merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
-`;var Wn={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},St=class extends w{constructor(){super(...arguments);g(this,"legal")}async postCardUpdateHook(){await super.postCardUpdateHook(),this.adjustLegal()}getGlobalCSS(){return jn}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(t,a){a.literals={...a.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},a.space=!0,a.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let t=this.card.querySelector(`${V}[data-template="price"]`);if(!t)return;let a=t.cloneNode(!0);this.legal=a,t.dataset.displayTax="false",t.dataset.displayPerUnit="false",a.dataset.template="legal",a.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,a.setAttribute("slot","legal"),this.card.appendChild(a)}renderLayout(){return cl`
+`;
+
+// src/variants/mini.js
+var MINI_AEM_FRAGMENT_MAPPING = {
+  title: { tag: "p", slot: "title" },
+  prices: { tag: "p", slot: "prices" },
+  description: {
+    tag: "p",
+    slot: "description"
+  },
+  planType: true,
+  ctas: { slot: "ctas", size: "S" }
+};
+var Mini = class extends VariantLayout {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "legal");
+  }
+  async postCardUpdateHook() {
+    await super.postCardUpdateHook();
+    this.adjustLegal();
+  }
+  getGlobalCSS() {
+    return CSS17;
+  }
+  get headingSelector() {
+    return '[slot="title"]';
+  }
+  priceOptionsProvider(element, options) {
+    options.literals = {
+      ...options.literals,
+      strikethroughAriaLabel: "",
+      alternativePriceAriaLabel: ""
+    };
+    options.space = true;
+    options.displayAnnual = this.card.settings?.displayAnnual ?? false;
+  }
+  adjustLegal() {
+    if (this.legal !== void 0) return;
+    const price2 = this.card.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    if (!price2) return;
+    const legal2 = price2.cloneNode(true);
+    this.legal = legal2;
+    price2.dataset.displayTax = "false";
+    price2.dataset.displayPerUnit = "false";
+    legal2.dataset.template = "legal";
+    legal2.dataset.displayPlanType = this.card?.settings?.displayPlanType ?? true;
+    legal2.setAttribute("slot", "legal");
+    this.card.appendChild(legal2);
+  }
+  renderLayout() {
+    return html18`
             ${this.badge}
             <div class="body">
                 <slot name="title"></slot>
@@ -8738,14 +13173,23 @@ merch-card[variant="mini"] span.renewal-text {
                 <slot name="description"></slot>
                 <slot name="ctas"></slot>
             </div>
-        `}};g(St,"variantStyle",sl`
+        `;
+  }
+};
+__publicField(Mini, "variantStyle", css16`
         :host([variant='mini']) {
             min-width: 209px;
             min-height: 103px;
             background-color: var(--spectrum-background-base-color);
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
-    `);import{html as ll,css as dl}from"./lit-all.min.js";var Yn=`
+    `);
+
+// src/variants/compare-chart-column.js
+import { html as html19, css as css17 } from "./lit-all.min.js";
+
+// src/variants/compare-chart-column.css.js
+var CSS18 = `
     merch-card[variant='compare-chart-column'] {
         --compare-chart-cell-border-color: var(--spectrum-gray-300, #d3d3d3) !important;
         --compare-chart-cell-bg: #fff !important;
@@ -8778,7 +13222,54 @@ merch-card[variant="mini"] span.renewal-text {
         min-height: auto !important;
         padding-block: 0 !important;
     }
-`;var Za={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},hl=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],Hr,Xn,At=class extends w{constructor(t){super(t);S(this,Hr);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return Yn}get aemFragmentMapping(){return Za}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,H(this,Hr,Xn).call(this))}renderLayout(){return ll`
+`;
+
+// src/variants/compare-chart-column.js
+var COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
+  mnemonics: { size: "l" },
+  title: { tag: "h3", slot: "header", maxCount: 100 },
+  prices: { tag: "p", slot: "price" },
+  description: { tag: "div", slot: "detail", maxCount: 1e3 },
+  ctas: { slot: "cta", size: "M" },
+  features: { tag: "div", slot: "features", unwrap: true }
+};
+var HEIGHT_SYNC_TARGETS = [
+  { key: "header", selector: ".seg-header" },
+  { key: "price", selector: ".seg-price" },
+  { key: "detail", selector: ".seg-detail" },
+  { key: "cta", selector: ".seg-cta" }
+];
+var _CompareChartColumn_instances, adjustSlotHeights_fn;
+var CompareChartColumn = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __privateAdd(this, _CompareChartColumn_instances);
+    this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
+  }
+  getGlobalCSS() {
+    return CSS18;
+  }
+  get aemFragmentMapping() {
+    return COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING;
+  }
+  /** Comparison table host for stamping shared min-height custom properties
+   * (override default container: merch-card-collection / *-merch-cards / parent). */
+  getContainer() {
+    return this.card.closest("mas-compare-chart") ?? this.card.parentElement;
+  }
+  connectedCallbackHook() {
+    window.addEventListener("resize", this.postCardUpdateHook);
+  }
+  disconnectedCallbackHook() {
+    window.removeEventListener("resize", this.postCardUpdateHook);
+  }
+  async postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    await this.card.updateComplete;
+    __privateMethod(this, _CompareChartColumn_instances, adjustSlotHeights_fn).call(this);
+  }
+  renderLayout() {
+    return html19`
             <div class="card">
                 <div class="seg seg-header">
                     <slot name="icons"></slot>
@@ -8796,7 +13287,18 @@ merch-card[variant="mini"] span.renewal-text {
                 <slot name="cta"></slot>
             </div>
             <slot></slot>
-        `}};Hr=new WeakSet,Xn=function(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.shadowRoot;hl.forEach(({key:a,selector:i})=>this.updateCardElementMinHeight(t.querySelector(i),a))},g(At,"variantStyle",dl`
+        `;
+  }
+};
+_CompareChartColumn_instances = new WeakSet();
+adjustSlotHeights_fn = function() {
+  if (this.card.getBoundingClientRect().width === 0) return;
+  const root = this.card.shadowRoot;
+  HEIGHT_SYNC_TARGETS.forEach(
+    ({ key, selector }) => this.updateCardElementMinHeight(root.querySelector(selector), key)
+  );
+};
+__publicField(CompareChartColumn, "variantStyle", css17`
         :host([variant='compare-chart-column']) {
             --compare-chart-card-padding: 12px;
             --compare-chart-seg-radius: 4px;
@@ -8917,7 +13419,13 @@ merch-card[variant="mini"] span.renewal-text {
         :host([variant='compare-chart-column']) .seg-cta {
             min-height: var(--consonant-merch-card-compare-chart-cta-height);
         }
-    `);import{html as pl,css as ml}from"./lit-all.min.js";var Kn=`
+    `);
+
+// src/variants/fries.js
+import { html as html20, css as css18 } from "./lit-all.min.js";
+
+// src/variants/fries.css.js
+var CSS19 = `
     merch-card[variant='fries'] {
         background-color: var(
             --merch-card-custom-background-color,
@@ -9095,7 +13603,46 @@ merch-card[variant="mini"] span.renewal-text {
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;var Ja={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300","gradient-purple-blue":"var(--gradient-purple-blue)","gradient-firefly-spectrum":"var(--gradient-firefly-spectrum)"}}},Ct=class extends w{getGlobalCSS(){return Kn}get aemFragmentMapping(){return Ja}renderLayout(){return pl`
+`;
+
+// src/variants/fries.js
+var FRIES_AEM_FRAGMENT_MAPPING = {
+  mnemonics: { size: "s" },
+  title: { tag: "h3", slot: "heading-xxs", maxCount: 250, withSuffix: true },
+  description: {
+    tag: "div",
+    slot: "body-s",
+    maxCount: 2e3,
+    withSuffix: false
+  },
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300" },
+  trialBadge: {
+    tag: "div",
+    slot: "trial-badge",
+    default: "spectrum-green-800"
+  },
+  prices: { tag: "p", slot: "price" },
+  ctas: { slot: "cta", size: "M" },
+  addonConfirmation: { tag: "div", slot: "addon-confirmation" },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gray: "--spectrum-gray-300",
+      "gradient-purple-blue": "var(--gradient-purple-blue)",
+      "gradient-firefly-spectrum": "var(--gradient-firefly-spectrum)"
+    }
+  }
+};
+var FriesCard = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS19;
+  }
+  get aemFragmentMapping() {
+    return FRIES_AEM_FRAGMENT_MAPPING;
+  }
+  renderLayout() {
+    return html20`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -9114,7 +13661,10 @@ merch-card[variant="mini"] span.renewal-text {
                 </div>
             </div>
             <slot></slot>
-        `}};g(Ct,"variantStyle",ml`
+        `;
+  }
+};
+__publicField(FriesCard, "variantStyle", css18`
         :host([variant='fries']) {
             --merch-card-fries-max-width: 620px;
             --merch-card-fries-padding: 24px;
@@ -9207,63 +13757,7722 @@ merch-card[variant="mini"] span.renewal-text {
                 --gradient-firefly-spectrum
             );
         }
-    `);import{html as ei,nothing as ul}from"./lit-all.min.js";var Qn={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},shortDescription:{tag:"p",slot:"short-description"},prices:{tag:"p",slot:"prices"},ctas:{slot:"footer",size:"m"}},gl=[{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Product description"},{slot:"short-description",label:"Short Description"},{slot:"prices",label:"Product price"},{slot:"footer",label:"CTAs"}],Tt=class extends w{constructor(r){super(r)}getGlobalCSS(){return Fe}renderLayout(){return ei`
+    `);
+
+// src/variants/marquee.js
+import { html as html21, nothing as nothing9 } from "./lit-all.min.js";
+var MARQUEE_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "p", slot: "heading-xs" },
+  description: { tag: "div", slot: "body-xs" },
+  shortDescription: { tag: "p", slot: "short-description" },
+  prices: { tag: "p", slot: "prices" },
+  ctas: { slot: "footer", size: "m" }
+};
+var MARQUEE_FIELDS = [
+  { slot: "heading-xs", label: "Title" },
+  { slot: "body-xs", label: "Product description" },
+  { slot: "short-description", label: "Short Description" },
+  { slot: "prices", label: "Product price" },
+  { slot: "footer", label: "CTAs" }
+];
+var Marquee = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS16;
+  }
+  renderLayout() {
+    return html21`
             <div class="headless">
-                ${gl.map(({slot:r,label:t})=>ei`
+                ${MARQUEE_FIELDS.map(
+      ({ slot, label }) => html21`
                         <div class="headless-row">
-                            <span class="headless-label">${t}</span>
+                            <span class="headless-label">${label}</span>
                             <span class="headless-value">
-                                <slot name="${r}"></slot>
+                                <slot name="${slot}"></slot>
                             </span>
                         </div>
-                    `)}
-                ${this.card.secureLabel?ei`
+                    `
+    )}
+                ${this.card.secureLabel ? html21`
                           <div class="headless-row">
                               <span class="headless-label">Secure label</span>
                               <span class="headless-value">
                                   ${this.secureLabel}
                               </span>
                           </div>
-                      `:ul}
+                      ` : nothing9}
             </div>
-        `}};g(Tt,"variantStyle",Be("marquee"));import{html as Zn}from"./lit-all.min.js";var Jn={cardName:{attribute:"name"},prices:{tag:"p",slot:"prices"},description:{tag:"div",slot:"body-xs",editorLabel:"FAQ answer 1"},shortDescription:{tag:"p",slot:"short-description",editorLabel:"FAQ answer 2"},callout:{tag:"div",slot:"callout-content",editorLabel:"FAQ answer 3"}},fl=[{slot:"prices",label:"Product price"},{slot:"body-xs",label:"FAQ answer 1"},{slot:"short-description",label:"FAQ answer 2"},{slot:"callout-content",label:"FAQ answer 3"}],kt=class extends w{constructor(r){super(r)}getGlobalCSS(){return Fe}renderLayout(){return Zn`
+        `;
+  }
+};
+__publicField(Marquee, "variantStyle", headlessRowStyle("marquee"));
+
+// src/variants/faq.js
+import { html as html22 } from "./lit-all.min.js";
+var FAQ_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  prices: { tag: "p", slot: "prices" },
+  description: {
+    tag: "div",
+    slot: "body-xs",
+    editorLabel: "FAQ answer 1"
+  },
+  shortDescription: {
+    tag: "p",
+    slot: "short-description",
+    editorLabel: "FAQ answer 2"
+  },
+  callout: {
+    tag: "div",
+    slot: "callout-content",
+    editorLabel: "FAQ answer 3"
+  }
+};
+var FAQ_FIELDS = [
+  { slot: "prices", label: "Product price" },
+  { slot: "body-xs", label: "FAQ answer 1" },
+  { slot: "short-description", label: "FAQ answer 2" },
+  { slot: "callout-content", label: "FAQ answer 3" }
+];
+var Faq = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS16;
+  }
+  renderLayout() {
+    return html22`
             <div class="headless">
-                ${fl.map(({slot:r,label:t})=>Zn`
+                ${FAQ_FIELDS.map(
+      ({ slot, label }) => html22`
                         <div class="headless-row">
-                            <span class="headless-label">${t}</span>
+                            <span class="headless-label">${label}</span>
                             <span class="headless-value">
-                                <slot name="${r}"></slot>
+                                <slot name="${slot}"></slot>
                             </span>
                         </div>
-                    `)}
+                    `
+    )}
             </div>
-        `}};g(kt,"variantStyle",Be("faq"));import{html as eo}from"./lit-all.min.js";var to={cardName:{attribute:"name"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},vl=[{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],_t=class extends w{constructor(r){super(r)}getGlobalCSS(){return Fe}renderLayout(){return eo`
+        `;
+  }
+};
+__publicField(Faq, "variantStyle", headlessRowStyle("faq"));
+
+// src/variants/banner-blade.js
+import { html as html23 } from "./lit-all.min.js";
+var BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  description: { tag: "div", slot: "body-xs" },
+  ctas: { slot: "footer", size: "m" }
+};
+var BANNER_BLADE_FIELDS = [
+  { slot: "body-xs", label: "Description" },
+  { slot: "footer", label: "CTAs" }
+];
+var BannerBlade = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS16;
+  }
+  renderLayout() {
+    return html23`
             <div class="headless">
-                ${vl.map(({slot:r,label:t})=>eo`
+                ${BANNER_BLADE_FIELDS.map(
+      ({ slot, label }) => html23`
                         <div class="headless-row">
-                            <span class="headless-label">${t}</span>
+                            <span class="headless-label">${label}</span>
                             <span class="headless-value">
-                                <slot name="${r}"></slot>
+                                <slot name="${slot}"></slot>
                             </span>
                         </div>
-                    `)}
+                    `
+    )}
             </div>
-        `}};g(_t,"variantStyle",Be("banner-blade"));var ro=new Map;var $=(e,r,t=null,a=null,i)=>{ro.set(e,{class:r,fragmentMapping:t,style:a,collectionOptions:i})};$("catalog",lt,sn,lt.variantStyle);$("image",je);$("inline-heading",Lr);$("mini-compare-chart",dt,un,dt.variantStyle);$("mini-compare-chart-mweb",ht,fn,ht.variantStyle);$("plans",ne,Rr,ne.variantStyle,ne.collectionOptions);$("plans-students",ne,bn,ne.variantStyle,ne.collectionOptions);$("plans-education",ne,xn,ne.variantStyle,ne.collectionOptions);$("plans-v2",He,En,He.variantStyle,He.collectionOptions);$("pro",Zt,Ln,Zt.variantStyle);$("product",ft,Nn,ft.variantStyle);$("segment",vt,In,vt.variantStyle);$("media",xt,Dn,xt.variantStyle);$("headless",Et,Vn,Et.variantStyle);$("special-offers",bt,Fn,bt.variantStyle);$("simplified-pricing-express",yt,Ka,yt.variantStyle);$("full-pricing-express",rr,Qa,rr.variantStyle);$("mini",St,Wn,St.variantStyle);$("image",je,ln,je.variantStyle);$("compare-chart-column",At,Za,At.variantStyle);$("fries",Ct,Ja,Ct.variantStyle);$("marquee",Tt,Qn,Tt.variantStyle);$("faq",kt,Jn,kt.variantStyle);$("banner-blade",_t,to,_t.variantStyle);function _r(e){return ro.get(e)?.fragmentMapping}var ao="tacocat.js";var ti=(e,r)=>String(e??"").toLowerCase()==String(r??"").toLowerCase(),io=e=>`${e??""}`.replace(/[&<>'"]/g,r=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[r]??r)??"";function F(e,r={},{metadata:t=!0,search:a=!0,storage:i=!0}={}){let n;if(a&&n==null){let o=new URLSearchParams(window.location.search),s=Lt(a)?a:e;n=o.get(s)}if(i&&n==null){let o=Lt(i)?i:e;n=window.sessionStorage.getItem(o)??window.localStorage.getItem(o)}if(t&&n==null){let o=bl(Lt(t)?t:e);n=document.documentElement.querySelector(`meta[name="${o}"]`)?.content}return n??r[e]}var xl=e=>typeof e=="boolean",Fr=e=>typeof e=="function",Br=e=>typeof e=="number",no=e=>e!=null&&typeof e=="object";var Lt=e=>typeof e=="string",oo=e=>Lt(e)&&e,Pt=e=>Br(e)&&Number.isFinite(e)&&e>0;function Ur(e,r=t=>t==null||t===""){return e!=null&&Object.entries(e).forEach(([t,a])=>{r(a)&&delete e[t]}),e}function C(e,r){if(xl(e))return e;let t=String(e);return t==="1"||t==="true"?!0:t==="0"||t==="false"?!1:r}function ir(e,r,t){let a=Object.values(r);return a.find(i=>ti(i,e))??t??a[0]}function bl(e=""){return String(e).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(r,t,a)=>`${t}-${a}`).replace(/\W+/gu,"-").toLowerCase()}function so(e,r=1){return Br(e)||(e=Number.parseInt(e,10)),!Number.isNaN(e)&&e>0&&Number.isFinite(e)?e:r}var yl=Date.now(),ri=()=>`(+${Date.now()-yl}ms)`,$r=new Set,wl=C(F("tacocat.debug",{},{metadata:!1}),!1);function co(e){let r=`[${ao}/${e}]`,t=(o,s,...c)=>o?!0:(i(s,...c),!1),a=wl?(o,...s)=>{console.debug(`${r} ${o}`,...s,ri())}:()=>{},i=(o,...s)=>{let c=`${r} ${o}`;$r.forEach(([l])=>l(c,...s))};return{assert:t,debug:a,error:i,warn:(o,...s)=>{let c=`${r} ${o}`;$r.forEach(([,l])=>l(c,...s))}}}function El(e,r){let t=[e,r];return $r.add(t),()=>{$r.delete(t)}}El((e,...r)=>{console.error(e,...r,ri())},(e,...r)=>{console.warn(e,...r,ri())});var Sl="no promo",lo="promo-tag",Al="yellow",Cl="neutral",Tl=(e,r,t)=>{let a=n=>n||Sl,i=t?` (was "${a(r)}")`:"";return`${a(e)}${i}`},Gr="cancel-context",qr=(e,r)=>{let t=e===Gr,a=!t&&e?.length>0,i=(a||t)&&(r&&r!=e||!r&&!t),n=i&&a||!i&&!!r,o=n?e||r:void 0;return{effectivePromoCode:o,overridenPromoCode:e,className:n?lo:`${lo} no-promo`,text:Tl(o,r,i),variant:n?Al:Cl,isOverriden:i}};var ai;(function(e){e.BASE="BASE",e.TRIAL="TRIAL",e.PROMOTION="PROMOTION"})(ai||(ai={}));var le;(function(e){e.MONTH="MONTH",e.YEAR="YEAR",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.PERPETUAL="PERPETUAL",e.TERM_LICENSE="TERM_LICENSE",e.ACCESS_PASS="ACCESS_PASS",e.THREE_MONTHS="THREE_MONTHS",e.SIX_MONTHS="SIX_MONTHS"})(le||(le={}));var pe;(function(e){e.ANNUAL="ANNUAL",e.MONTHLY="MONTHLY",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.P1D="P1D",e.P1Y="P1Y",e.P3Y="P3Y",e.P10Y="P10Y",e.P15Y="P15Y",e.P3D="P3D",e.P7D="P7D",e.P30D="P30D",e.HALF_YEARLY="HALF_YEARLY",e.QUARTERLY="QUARTERLY"})(pe||(pe={}));var ii;(function(e){e.INDIVIDUAL="INDIVIDUAL",e.TEAM="TEAM",e.ENTERPRISE="ENTERPRISE"})(ii||(ii={}));var ni;(function(e){e.COM="COM",e.EDU="EDU",e.GOV="GOV"})(ni||(ni={}));var oi;(function(e){e.DIRECT="DIRECT",e.INDIRECT="INDIRECT"})(oi||(oi={}));var si;(function(e){e.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",e.ETLA="ETLA",e.RETAIL="RETAIL",e.VIP="VIP",e.VIPMP="VIPMP",e.FREE="FREE"})(si||(si={}));var ci="ABM",li="PUF",di="M2M",hi="PERPETUAL",pi="P3Y",kl="TAX_INCLUSIVE_DETAILS",_l="TAX_EXCLUSIVE",ho={ABM:ci,PUF:li,M2M:di,PERPETUAL:hi,P3Y:pi},vg={[ci]:{commitment:le.YEAR,term:pe.MONTHLY},[li]:{commitment:le.YEAR,term:pe.ANNUAL},[di]:{commitment:le.MONTH,term:pe.MONTHLY},[hi]:{commitment:le.PERPETUAL,term:void 0},[pi]:{commitment:le.THREE_MONTHS,term:pe.P3Y}},po="Value is not an offer",Vr=e=>{if(typeof e!="object")return po;let{commitment:r,term:t}=e,a=Ll(r,t);return{...e,planType:a}};var Ll=(e,r)=>{switch(e){case void 0:return po;case"":return"";case le.YEAR:return r===pe.MONTHLY?ci:r===pe.ANNUAL?li:"";case le.MONTH:return r===pe.MONTHLY?di:"";case le.PERPETUAL:return hi;case le.TERM_LICENSE:return r===pe.P3Y?pi:"";default:return""}};function mo(e){let{priceDetails:r}=e,{price:t,priceWithoutDiscount:a,priceWithoutTax:i,priceWithoutDiscountAndTax:n,taxDisplay:o}=r;if(o!==kl)return e;let s={...e,priceDetails:{...r,price:i??t,priceWithoutDiscount:n??a,taxDisplay:_l}};return s.offerType==="TRIAL"&&s.priceDetails.price===0&&(s.priceDetails.price=s.priceDetails.priceWithoutDiscount),s}var Xe={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,severity:"e",tags:"acom",isProdDomain:!1},uo=1e3;function Pl(e){return e instanceof Error||typeof e?.originatingRequest=="string"}function go(e){if(e==null)return;let r=typeof e;if(r==="function")return e.name?`function ${e.name}`:"function";if(r==="object"){if(e instanceof Error)return e.message;if(typeof e.originatingRequest=="string"){let{message:a,originatingRequest:i,status:n}=e;return[a,n,i].filter(Boolean).join(" ")}let t=e[Symbol.toStringTag]??Object.getPrototypeOf(e).constructor.name;if(!Xe.serializableTypes.includes(t))return t}return e}function Ml(e,r){if(!Xe.ignoredProperties.includes(e))return go(r)}var mi={append(e){if(e.level!=="error")return;let{message:r,params:t}=e,a=[],i=[],n=r;t.forEach(l=>{l!=null&&(Pl(l)?a:i).push(l)}),a.length&&(n+=` ${a.map(go).join(" ")}`);let{pathname:o,search:s}=window.location,c=`${Xe.delimiter}page=${o}${s}`;c.length>uo&&(c=`${c.slice(0,uo)}<trunc>`),n+=c,i.length&&(n+=`${Xe.delimiter}facts=`,n+=JSON.stringify(i,Ml)),window.lana?.log(n,Xe)}};function jr(e){Object.assign(Xe,Object.fromEntries(Object.entries(e).filter(([r,t])=>r in Xe&&t!==""&&t!==null&&t!==void 0&&!Number.isNaN(t))))}var fo={LOCAL:"local",PROD:"prod",STAGE:"stage"},ui={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},gi=new Set,fi=new Set,vo=new Map,xo={append({level:e,message:r,params:t,timestamp:a,source:i}){console[e](`${a}ms [${i}] %c${r}`,"font-weight: bold;",...t)}},bo={filter:({level:e})=>e!==ui.DEBUG},Rl={filter:()=>!1};function Nl(e,r,t,a,i){return{level:e,message:r,namespace:t,get params(){return a.length===1&&Fr(a[0])&&(a=a[0](),Array.isArray(a)||(a=[a])),a},source:i,timestamp:performance.now().toFixed(3)}}function Ol(e){[...fi].every(r=>r(e))&&gi.forEach(r=>r(e))}function yo(e){let r=(vo.get(e)??0)+1;vo.set(e,r);let t=`${e} #${r}`,a={id:t,namespace:e,module:i=>yo(`${a.namespace}/${i}`),updateConfig:jr};return Object.values(ui).forEach(i=>{a[i]=(n,...o)=>Ol(Nl(i,n,e,o,t))}),Object.seal(a)}function Wr(...e){e.forEach(r=>{let{append:t,filter:a}=r;Fr(a)&&fi.add(a),Fr(t)&&gi.add(t)})}function Il(e={}){let{name:r}=e,t=C(F("commerce.debug",{search:!0,storage:!0}),r===fo.LOCAL);return Wr(t?xo:bo),r===fo.PROD&&Wr(mi),oe}function zl(){gi.clear(),fi.clear()}var oe={...yo(_a),Level:ui,Plugins:{consoleAppender:xo,debugFilter:bo,quietFilter:Rl,lanaAppender:mi},init:Il,reset:zl,use:Wr};var Dl="mas-commerce-service",Hl=oe.module("utilities"),Fl={requestId:$t,etag:"Etag",lastModified:"Last-Modified",serverTiming:"server-timing"};function nr(e,{country:r,forceTaxExclusive:t}){let a;if(e.length<2)a=e;else{let i=r==="GB"?"EN":"MULT";e.sort((n,o)=>n.language===i?-1:o.language===i?1:0),e.sort((n,o)=>!n.term&&o.term?-1:n.term&&!o.term?1:0),a=[e[0]]}return t&&(a=a.map(mo)),a}var wo=(e,r)=>{let t=e.reduce((a,i)=>a+(r(i)||0),0);return t>0?Math.round(t*100)/100:void 0};function vi(e){if(!e||e.length===0)return null;if(e.length===1)return e[0];let[r,...t]=e;for(let s of t){let c=[["commitment","commitment types"],["term","terms"],["priceDetails.formatString","currency formats"]];for(let[l,d]of c){let m=l.includes(".")?r.priceDetails?.formatString:r[l],p=l.includes(".")?s.priceDetails?.formatString:s[l];p!==m&&Hl.warn(`Offers have different ${d}, summing may produce unexpected results`,{expected:m,actual:p})}}let a=[["price",s=>s.priceDetails?.price],["priceWithoutDiscount",s=>s.priceDetails?.priceWithoutDiscount],["priceWithoutTax",s=>s.priceDetails?.priceWithoutTax],["priceWithoutDiscountAndTax",s=>s.priceDetails?.priceWithoutDiscountAndTax]],i={};for(let[s,c]of a){let l=wo(e,c);l!==void 0&&(i[s]=l)}let n=e.some(s=>s.priceDetails?.annualized),o;if(n){let s=[["annualizedPrice",c=>c.priceDetails?.annualized?.annualizedPrice],["annualizedPriceWithoutTax",c=>c.priceDetails?.annualized?.annualizedPriceWithoutTax],["annualizedPriceWithoutDiscount",c=>c.priceDetails?.annualized?.annualizedPriceWithoutDiscount],["annualizedPriceWithoutDiscountAndTax",c=>c.priceDetails?.annualized?.annualizedPriceWithoutDiscountAndTax]];o={};for(let[c,l]of s){let d=wo(e,l);d!==void 0&&(o[c]=d)}}return{...r,offerSelectorIds:e.flatMap(s=>s.offerSelectorIds||[]),priceDetails:{...r.priceDetails,...i,...o&&{annualized:o}}}}var Yr=e=>window.setTimeout(e);function Mt(e,r=1){if(e==null)return[r];let t=(Array.isArray(e)?e:String(e).split(",")).map(so).filter(Pt);return t.length||(t=[r]),t}function Xr(e){return e==null?[]:(Array.isArray(e)?e:String(e).split(",")).filter(oo)}function se(){return document.getElementsByTagName(Dl)?.[0]}function Eo(e){let r={};if(!e?.headers)return r;let t=e.headers;for(let[a,i]of Object.entries(Fl)){let n=t.get(i);n&&(n=n.replace(/[,;]/g,"|"),n=n.replace(/[| ]+/g,"|"),r[a]=n)}return r}var Rt=class e extends Error{constructor(r,t,a){if(super(r,{cause:a}),this.name="MasError",t.response){let i=t.response.headers?.get($t);i&&(t.requestId=i),t.response.status&&(t.status=t.response.status,t.statusText=t.response.statusText),t.response.url&&(t.url=t.response.url)}delete t.response,this.context=t,Error.captureStackTrace&&Error.captureStackTrace(this,e)}toString(){let r=Object.entries(this.context||{}).map(([a,i])=>`${a}: ${JSON.stringify(i)}`).join(", "),t=`${this.name}: ${this.message}`;return r&&(t+=` (${r})`),this.cause&&(t+=`
-Caused by: ${this.cause}`),t}};var Bl={[ge]:Ea,[Oe]:Sa,[Te]:Aa},Ul={[ge]:ka,[Te]:ue},or,Ue=class{constructor(r){S(this,or);g(this,"changes",new Map);g(this,"connected",!1);g(this,"error");g(this,"log");g(this,"options");g(this,"promises",[]);g(this,"state",Oe);g(this,"timer",null);g(this,"value");g(this,"version",0);g(this,"wrapperElement");this.wrapperElement=r,this.log=oe.module("mas-element")}update(){[ge,Oe,Te].forEach(r=>{this.wrapperElement.classList.toggle(Bl[r],r===this.state)})}notify(){(this.state===Te||this.state===ge)&&(this.state===Te?this.promises.forEach(({resolve:t})=>t(this.wrapperElement)):this.state===ge&&this.promises.forEach(({reject:t})=>t(this.error)),this.promises=[]);let r=this.error;this.error instanceof Rt&&(r={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(Ul[this.state],{bubbles:!0,composed:!0,detail:r}))}attributeChangedCallback(r,t,a){this.changes.set(r,a),this.requestUpdate()}connectedCallback(){E(this,or,se()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:r,promises:t,state:a}=this;return Te===a?Promise.resolve(this.wrapperElement):ge===a?Promise.reject(r):new Promise((i,n)=>{t.push({resolve:i,reject:n})})}toggleResolved(r,t,a){return r!==this.version?!1:(a!==void 0&&(this.options=a),this.state=Te,this.value=t,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:t}),Yr(()=>this.notify()),!0)}toggleFailed(r,t,a){if(r!==this.version)return!1;a!==void 0&&(this.options=a),this.error=t,this.state=ge,this.update();let i=this.wrapperElement.getAttribute("is");return this.log?.error(`${i}: Failed to render: ${t.message}`,{element:this.wrapperElement,...t.context,...v(this,or)?.duration}),Yr(()=>this.notify()),!0}togglePending(r){return this.version++,r&&(this.options=r),this.state=Oe,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(r=!1){if(!this.wrapperElement.isConnected||!se()||this.timer)return;let{error:t,options:a,state:i,value:n,version:o}=this;this.state=Oe,this.timer=Yr(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||r)try{await this.wrapperElement.render?.()===!1&&this.state===Oe&&this.version===o&&(this.state=i,this.error=t,this.value=n,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,a)}})}};or=new WeakMap;function So(e={}){return Object.entries(e).forEach(([r,t])=>{(t==null||t===""||t?.length===0)&&delete e[r]}),e}function Kr(e,r={}){let{tag:t,is:a}=e,i=document.createElement(t,{is:a});return i.setAttribute("is",a),Object.assign(i.dataset,So(r)),i}function Ao(e,r={}){return e instanceof HTMLElement?(Object.assign(e.dataset,So(r)),e):null}function $l(e){return`https://${e==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var Ze,Ke=class Ke extends HTMLAnchorElement{constructor(){super();g(this,"masElement",new Ue(this));S(this,Ze);this.setAttribute("is",Ke.is)}get isUptLink(){return!0}initializeWcsData(t,a){this.setAttribute("data-wcs-osi",t),a&&this.setAttribute("data-promotion-code",a)}attributeChangedCallback(t,a,i){this.masElement.attributeChangedCallback(t,a,i)}connectedCallback(){this.masElement.connectedCallback(),E(this,Ze,qt()),v(this,Ze)&&(this.log=v(this,Ze).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),E(this,Ze,void 0)}requestUpdate(t=!1){this.masElement.requestUpdate(t)}onceSettled(){return this.masElement.onceSettled()}async render(){let t=qt();if(!t)return!1;this.dataset.imsCountry||t.imsCountryPromise.then(o=>{o&&(this.dataset.imsCountry=o)});let a=t.collectCheckoutOptions({},this);if(!a.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let i=this.masElement.togglePending(a),n=t.resolveOfferSelectors(a);try{let[[o]]=await Promise.all(n),{country:s,language:c,env:l}=a,d=`locale=${c}_${s}&country=${s}&offer_id=${o.offerId}`,m=this.getAttribute("data-promotion-code");m&&(d+=`&promotion_code=${encodeURIComponent(m)}`),this.href=`${$l(l)}?${d}`,this.masElement.toggleResolved(i,o,a)}catch(o){let s=new Error(`Could not resolve offer selectors for id: ${a.wcsOsi}.`,o.message);return this.masElement.toggleFailed(i,s,a),!1}}static createFrom(t){let a=new Ke;for(let i of t.attributes)i.name!=="is"&&(i.name==="class"&&i.value.includes("upt-link")?a.setAttribute("class",i.value.replace("upt-link","").trim()):a.setAttribute(i.name,i.value));return a.innerHTML=t.innerHTML,a.setAttribute("tabindex",0),a}};Ze=new WeakMap,g(Ke,"is","upt-link"),g(Ke,"tag","a"),g(Ke,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var Qe=Ke;window.customElements.get(Qe.is)||window.customElements.define(Qe.is,Qe,{extends:Qe.tag});function Co(e){return e&&(e==="bizpro"&&(e="pro"),e==="pro"||e.startsWith("plans")?"plans":e)}var Gl="p_draft_landscape",ql="/store/",Vl=new Map([["countrySpecific","cs"],["customerSegment","cs"],["quantity","q"],["authCode","code"],["checkoutPromoCode","apc"],["rurl","rUrl"],["curl","cUrl"],["ctxrturl","ctxRtUrl"],["country","co"],["language","lang"],["clientId","cli"],["context","ctx"],["productArrangementCode","pa"],["addonProductArrangementCode","ao"],["offerType","ot"],["marketSegment","ms"]]),xi=new Set(["af","ai","ao","apc","appctxid","cli","co","cs","csm","ctx","ctxRtUrl","DCWATC","dp","fr","gsp","ijt","lang","lo","mal","ms","mv","mv2","nglwfdata","ot","otac","pa","pcid","promoid","q","rf","sc","scl","sdid","sid","spint","svar","th","thm","trackingid","usid","workflowid","context.guid","so.ca","so.su","so.tr","so.va"]),jl=["env","workflowStep","clientId","country"],Wl=["/tw/","/hk_zh/"];function Yl(e){let r=e??"";return Wl.some(t=>r.startsWith(t))}function Xl(){if(typeof window>"u")return!1;let e=[window.location.pathname];try{window.parent!==window&&e.push(window.parent.location.pathname)}catch{}return e.some(Yl)}function bi(e){if(!Xl())return e instanceof URL?e.toString():String(e);let r;try{r=e instanceof URL?e:new URL(e)}catch{return String(e)}r.searchParams.set("lang","zh-Hant");for(let t of[...r.searchParams.keys()])/^items\[\d+]\[lang]$/.test(t)&&r.searchParams.set(t,"zh-Hant");return r.toString()}var To=new Set(["gid","gtoken","notifauditid","cohortid","productname","sdid","attimer","gcsrc","gcprog","gcprogcat","gcpagetype","mv","mv2"]),ko=e=>Vl.get(e)??e;function Qr(e,r,t){for(let[a,i]of Object.entries(e)){let n=ko(a);i!=null&&t.has(n)&&r.set(n,i)}}function Kl(e){return e===Oa.PRODUCTION?"https://commerce.adobe.com":"https://commerce-stg.adobe.com"}function Ql(e,r){for(let t in e){let a=e[t];for(let[i,n]of Object.entries(a)){if(n==null)continue;let o=ko(i);r.set(`items[${t}][${o}]`,n)}}}function Zl({url:e,modal:r,is3in1:t}){if(!t||!e?.searchParams)return e;e.searchParams.set("rtc","t"),e.searchParams.set("lo","sl");let a=e.searchParams.get("af");return e.searchParams.set("af",[a,"uc_new_user_iframe","uc_new_system_close"].filter(Boolean).join(",")),e.searchParams.get("cli")!=="doc_cloud"&&e.searchParams.set("cli",r===Ve.CRM?"creative":"mini_plans"),e}function Jl(e){let r=e.indexOf("?");return r===-1?e:e.slice(0,r)}function ed(e){let r=new URLSearchParams(window.location.search),t={};To.forEach(a=>{let i=r.get(a);i!==null&&(t[a]=Jl(i))}),Object.keys(t).length>0&&Qr(t,e.searchParams,To)}function _o(e){td(e);let{env:r,items:t,workflowStep:a,marketSegment:i,customerSegment:n,offerType:o,productArrangementCode:s,landscape:c,modal:l,is3in1:d,preselectPlan:m,...p}=e,h=new URL(Kl(r));if(h.pathname=`${ql}${a}`,a!==ie.SEGMENTATION&&a!==ie.CHANGE_PLAN_TEAM_PLANS&&Ql(t,h.searchParams),Qr({...p},h.searchParams,xi),ed(h),c===Ie.DRAFT&&Qr({af:Gl},h.searchParams,xi),a===ie.SEGMENTATION){let u={marketSegment:i,offerType:o,customerSegment:n,productArrangementCode:s,quantity:t?.[0]?.quantity,addonProductArrangementCode:s?t?.find(f=>f.productArrangementCode!==s)?.productArrangementCode:t?.[1]?.productArrangementCode};m?.toLowerCase()==="edu"?h.searchParams.set("ms","EDU"):m?.toLowerCase()==="team"&&h.searchParams.set("cs","TEAM"),Qr(u,h.searchParams,xi),h.searchParams.get("ot")==="PROMOTION"&&h.searchParams.delete("ot"),h=Zl({url:h,modal:l,is3in1:d})}return bi(h)}function td(e){for(let r of jl)if(!e[r])throw new Error(`Argument "checkoutData" is not valid, missing: ${r}`);if(e.workflowStep!==ie.SEGMENTATION&&e.workflowStep!==ie.CHANGE_PLAN_TEAM_PLANS&&!e.items)throw new Error('Argument "checkoutData" is not valid, missing: items');return!0}var rd=/[0-9\-+#]/,ad=/[^\d\-+#]/g;function Lo(e){return e.search(rd)}function id(e="#.##"){let r={},t=e.length,a=Lo(e);r.prefix=a>0?e.substring(0,a):"";let i=Lo(e.split("").reverse().join("")),n=t-i,o=e.substring(n,n+1),s=n+(o==="."||o===","?1:0);r.suffix=i>0?e.substring(s,t):"",r.mask=e.substring(a,s),r.maskHasNegativeSign=r.mask.charAt(0)==="-",r.maskHasPositiveSign=r.mask.charAt(0)==="+";let c=r.mask.match(ad);return r.decimal=c&&c[c.length-1]||".",r.separator=c&&c[1]&&c[0]||",",c=r.mask.split(r.decimal),r.integer=c[0],r.fraction=c[1],r}function nd(e,r,t){let a=!1,i={value:e};e<0&&(a=!0,i.value=-i.value),i.sign=a?"-":"",i.value=Number(i.value).toFixed(r.fraction&&r.fraction.length),i.value=Number(i.value).toString();let n=r.fraction&&r.fraction.lastIndexOf("0"),[o="0",s=""]=i.value.split(".");return(!s||s&&s.length<=n)&&(s=n<0?"":(+`0.${s}`).toFixed(n+1).replace("0.","")),i.integer=o,i.fraction=s,od(i,r),(i.result==="0"||i.result==="")&&(a=!1,i.sign=""),!a&&r.maskHasPositiveSign?i.sign="+":a&&r.maskHasPositiveSign?i.sign="-":a&&(i.sign=t&&t.enforceMaskSign&&!r.maskHasNegativeSign?"":"-"),i}function od(e,r){e.result="";let t=r.integer.split(r.separator),a=t.join(""),i=a&&a.indexOf("0");if(i>-1)for(;e.integer.length<a.length-i;)e.integer=`0${e.integer}`;else Number(e.integer)===0&&(e.integer="");let n=t[1]&&t[t.length-1].length;if(n){let o=e.integer.length,s=o%n;for(let c=0;c<o;c++)e.result+=e.integer.charAt(c),!((c-s+1)%n)&&c<o-n&&(e.result+=r.separator)}else e.result=e.integer;return e.result+=r.fraction&&e.fraction?r.decimal+e.fraction:"",e}function sd(e,r,t={}){if(!e||isNaN(Number(r)))return r;let a=id(e),i=nd(r,a,t);return a.prefix+i.sign+i.result+a.suffix}var Po=sd;var Mo=".",cd=",",No=/^\s+/,Oo=/\s+$/,Ro="&nbsp;",yi=e=>e*12,et=(e,r,t=1)=>{if(!e)return!1;let{start:a,end:i,displaySummary:{amount:n,duration:o,minProductQuantity:s=1,outcomeType:c}={}}=e;if(!(n&&o&&c)||t<s)return!1;let l=r?new Date(r):new Date;if(!a||!i)return!1;let d=new Date(a),m=new Date(i);return l>=d&&l<=m},Je={MONTH:"MONTH",YEAR:"YEAR"},ld={[he.ANNUAL]:12,[he.MONTHLY]:1,[he.THREE_YEARS]:36,[he.TWO_YEARS]:24},wi=(e,r)=>({accept:e,round:r}),dd=[wi(({divisor:e,price:r})=>r%e==0,({divisor:e,price:r})=>r/e),wi(({usePrecision:e})=>e,({divisor:e,price:r})=>Math.round(r/e*100)/100),wi(()=>!0,({divisor:e,price:r})=>Math.ceil(Math.floor(r*100/e)/100))],Ei={[qe.YEAR]:{[he.MONTHLY]:Je.MONTH,[he.ANNUAL]:Je.YEAR},[qe.MONTH]:{[he.MONTHLY]:Je.MONTH}},hd=(e,r)=>e.indexOf(`'${r}'`)===0,pd=(e,r=!0)=>{let t=e.replace(/'.*?'/,"").trim(),a=zo(t);return!!a?r||(t=t.replace(/[,\.]0+/,a)):t=t.replace(/\s?(#.*0)(?!\s)?/,`$&${ud(e)}`),t},md=e=>{let r=gd(e),t=hd(e,r),a=e.replace(/'.*?'/,""),i=No.test(a)||Oo.test(a);return{currencySymbol:r,isCurrencyFirst:t,hasCurrencySpace:i}},Io=e=>e.replace(No,Ro).replace(Oo,Ro),ud=e=>e.match(/#(.?)#/)?.[1]===Mo?cd:Mo,gd=e=>e.match(/'(.*?)'/)?.[1]??"",zo=e=>e.match(/0(.?)0/)?.[1]??"";function Nt({formatString:e,price:r,usePrecision:t,isIndianPrice:a=!1},i,n=o=>o){let{currencySymbol:o,isCurrencyFirst:s,hasCurrencySpace:c}=md(e),l=t?zo(e):"",d=pd(e,t),m=t?2:0,p=n(r,{currencySymbol:o}),h=a?p.toLocaleString("hi-IN",{minimumFractionDigits:m,maximumFractionDigits:m}):Po(d,p),u=t?h.lastIndexOf(l):h.length,f=h.substring(0,u),x=h.substring(u+1);return{accessiblePrice:e.replace(/'.*?'/,"SYMBOL").replace(/#.*0/,h).replace(/SYMBOL/,o),currencySymbol:o,decimals:x,decimalsDelimiter:l,hasCurrencySpace:c,integer:f,isCurrencyFirst:s,recurrenceTerm:i}}var Do=e=>{let{commitment:r,term:t,usePrecision:a}=e,i=ld[t]??1;return Nt(e,i>1?Je.MONTH:Ei[r]?.[t],n=>{let o={divisor:i,price:n,usePrecision:a},{round:s}=dd.find(({accept:c})=>c(o));if(!s)throw new Error(`Missing rounding rule for: ${JSON.stringify(o)}`);return s(o)})},Ho=({commitment:e,term:r,...t})=>Nt(t,Ei[e]?.[r]),Fo=e=>{let{commitment:r,instant:t,price:a,originalPrice:i,priceWithoutDiscount:n,promotion:o,quantity:s=1,term:c}=e;if(r===qe.YEAR&&c===he.MONTHLY){if(!o)return Nt(e,Je.YEAR,yi);let{displaySummary:{outcomeType:l,duration:d}={}}=o;switch(l){case"PERCENTAGE_DISCOUNT":if(et(o,t,s)){let m=parseInt(d.replace("P","").replace("M",""));if(isNaN(m))return yi(a);let p=i*m,h=n*(12-m),u=Math.round((p+h)*100)/100;return Nt({...e,price:u},Je.YEAR)}default:return Nt(e,Je.YEAR,()=>yi(n??a))}}return Nt(e,Ei[r]?.[c])};var Bo="download",Uo="upgrade",$o={e:"EDU",t:"TEAM"};function Go(e,r={},t=""){let a=se();if(!a)return null;let{checkoutMarketSegment:i,checkoutWorkflow:n,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:m,quantity:p,wcsOsi:h,extraOptions:u,analyticsId:f}=a.collectCheckoutOptions(r),x=Kr(e,{checkoutMarketSegment:i,checkoutWorkflow:n,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:r.promotionCode===Gr?Gr:m,quantity:p,wcsOsi:h,extraOptions:u,analyticsId:f});return t&&(x.innerHTML=`<span style="pointer-events: none;">${t}</span>`),x}function qo(e){return class extends e{constructor(){super(...arguments);g(this,"checkoutActionHandler");g(this,"masElement",new Ue(this))}attributeChangedCallback(a,i,n){this.masElement.attributeChangedCallback(a,i,n)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.clickHandler)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.clickHandler)}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get marketSegment(){let a=this.options?.ms??this.value?.[0].marketSegments?.[0];return $o[a]??a}get customerSegment(){let a=this.options?.cs??this.value?.[0]?.customerSegment;return $o[a]??a}get is3in1Modal(){return Object.values(Ve).includes(this.getAttribute("data-modal"))}get isOpen3in1Modal(){let a=document.querySelector("meta[name=mas-ff-3in1]");return this.is3in1Modal&&(!a||a.content!=="off")}requestUpdate(a=!1){return this.masElement.requestUpdate(a)}static get observedAttributes(){return["data-checkout-workflow","data-checkout-workflow-step","data-extra-options","data-ims-country","data-perpetual","data-promotion-code","data-quantity","data-template","data-wcs-osi","data-entitlement","data-upgrade","data-modal"]}async render(a={}){let i=se();if(!i)return!1;this.dataset.imsCountry||i.imsCountryPromise.then(h=>{h&&(this.dataset.imsCountry=h)}),a.imsCountry=null;let n=i.collectCheckoutOptions(a,this);if(!n.wcsOsi.length)return!1;let o;try{o=JSON.parse(n.extraOptions??"{}")}catch(h){this.masElement.log?.error("cannot parse exta checkout options",h)}let s=this.masElement.togglePending(n);this.setCheckoutUrl("");let c=i.resolveOfferSelectors(n),l=await Promise.all(c);l=l.map(h=>nr(h,n));let d=l.flat().find(h=>h.promotion);!et(d?.promotion,d?.promotion?.displaySummary?.instant,n.quantity[0])&&n.promotionCode&&delete n.promotionCode,n.country=this.dataset.imsCountry||n.country;let p=await i.buildCheckoutAction?.(l.flat(),{...o,...n},this);return this.renderOffers(l.flat(),n,{},p,s)}renderOffers(a,i,n={},o=void 0,s=void 0){let c=se();if(!c)return!1;if(i={...JSON.parse(this.dataset.extraOptions??"{}"),...i,...n},s??(s=this.masElement.togglePending(i)),this.checkoutActionHandler&&(this.checkoutActionHandler=void 0),o){this.classList.remove(Bo,Uo),this.masElement.toggleResolved(s,a,i);let{url:d,text:m,className:p,handler:h}=o;d&&this.setCheckoutUrl(bi(d)),m&&(this.firstElementChild.innerHTML=m),p&&this.classList.add(...p.split(" ")),h&&(this.setCheckoutUrl("#"),this.checkoutActionHandler=h.bind(this))}if(a.length){if(this.masElement.toggleResolved(s,a,i)){if(!this.classList.contains(Bo)&&!this.classList.contains(Uo)){let d=c.buildCheckoutURL(a,i);this.setCheckoutUrl(i.modal==="true"?"#":d)}return!0}}else{let d=new Error(`Not provided: ${i?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(s,d,i))return this.setCheckoutUrl("#"),!0}}setCheckoutUrl(){}clickHandler(a){}updateOptions(a={}){let i=se();if(!i)return!1;let{checkoutMarketSegment:n,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:m,promotionCode:p,quantity:h,wcsOsi:u}=i.collectCheckoutOptions(a);return Ao(this,{checkoutMarketSegment:n,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:m,promotionCode:p,quantity:h,wcsOsi:u}),!0}}}var sr=class sr extends qo(HTMLAnchorElement){static createCheckoutLink(r={},t=""){return Go(sr,r,t)}setCheckoutUrl(r){this.setAttribute("href",r)}get isCheckoutLink(){return!0}clickHandler(r){if(this.checkoutActionHandler){this.checkoutActionHandler?.(r);return}}};g(sr,"is","checkout-link"),g(sr,"tag","a");var Me=sr;window.customElements.get(Me.is)||window.customElements.define(Me.is,Me,{extends:Me.tag});var N=Object.freeze({checkoutClientId:"adobe_com",checkoutWorkflowStep:ie.EMAIL,country:"US",displayOldPrice:!0,displayPerUnit:!1,displayRecurrence:!0,displayTax:!1,displayPlanType:!1,env:be.PRODUCTION,forceTaxExclusive:!1,language:"en",entitlement:!1,extraOptions:{},modal:!1,promotionCode:"",quantity:1,alternativePrice:!1,wcsApiKey:"wcms-commerce-ims-ro-user-milo",wcsURL:"https://www.adobe.com/web_commerce_artifact",landscape:Ie.PUBLISHED});function Vo({settings:e,providers:r}){function t(n,o){let{checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:m,quantity:p,preselectPlan:h,env:u}=e,f={checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:m,quantity:p,preselectPlan:h,env:u};if(o)for(let nt of r.checkout)nt(o,f);let{checkoutMarketSegment:x,checkoutWorkflowStep:y=c,imsCountry:k,country:b=k??l,language:_=d,quantity:D=p,entitlement:I,upgrade:G,modal:W,perpetual:J,promotionCode:Q=m,wcsOsi:U,extraOptions:O,...re}=Object.assign(f,o?.dataset??{},n??{}),de=ir(y,ie,N.checkoutWorkflowStep);return f=Ur({...re,extraOptions:O,checkoutClientId:s,checkoutMarketSegment:x,country:b,quantity:Mt(D,N.quantity),checkoutWorkflowStep:de,language:_,entitlement:C(I),upgrade:C(G),modal:W,perpetual:C(J),promotionCode:qr(Q).effectivePromoCode,wcsOsi:Xr(U),preselectPlan:h}),f}function a(n,o){if(!Array.isArray(n)||!n.length||!o)return"";let{env:s,landscape:c}=e,{checkoutClientId:l,checkoutMarketSegment:d,checkoutWorkflowStep:m,country:p,promotionCode:h,quantity:u,preselectPlan:f,ms:x,cs:y,...k}=t(o),b=document.querySelector("meta[name=mas-ff-3in1]"),_=Object.values(Ve).includes(o.modal)&&(!b||b.content!=="off"),D=window.frameElement||_?"if":"fp",[{productArrangementCode:I,marketSegments:[G],customerSegment:W,offerType:J}]=n,Q=x??G??d,U=y??W;f?.toLowerCase()==="edu"?Q="EDU":f?.toLowerCase()==="team"&&(U="TEAM");let O={is3in1:_,checkoutPromoCode:h,clientId:l,context:D,country:p,env:s,items:[],marketSegment:Q,customerSegment:U,offerType:J,productArrangementCode:I,workflowStep:m,landscape:c,...k},re=u[0]>1?u[0]:void 0;if(n.length===1){let{offerId:de}=n[0];O.items.push({id:de,quantity:re})}else O.items.push(...n.map(({offerId:de,productArrangementCode:nt})=>({id:de,quantity:re,..._?{productArrangementCode:nt}:{}})));return _o(O)}let{createCheckoutLink:i}=Me;return{CheckoutLink:Me,CheckoutWorkflowStep:ie,buildCheckoutURL:a,collectCheckoutOptions:t,createCheckoutLink:i}}var fd="ims_country_code";function vd(){if(typeof document>"u")return null;let e=document.cookie.match(new RegExp(`(?:^|;\\s*)${fd}=([^;]*)`));if(!e)return null;let r;try{r=decodeURIComponent(e[1])}catch{return null}return r.trim().toUpperCase()||null}function xd({interval:e=200,maxAttempts:r=25}={}){let t=oe.module("ims");return new Promise(a=>{t.debug("Waiting for IMS to be ready");let i=0;function n(){window.adobeIMS?.initialized?a():++i>r?(t.debug("Timeout"),a()):setTimeout(n,e)}n()})}function bd(e){return e.then(()=>window.adobeIMS?.isSignedInUser()??!1)}function yd(){let e=vd();return e&&oe.module("ims").debug("Got user country from cookie:",e),Promise.resolve(e)}function jo(){let e=xd();return{imsReadyPromise:e,imsSignedInPromise:bd(e),imsCountryPromise:yd()}}var Wo=window.masPriceLiterals;function Yo(e){if(Array.isArray(Wo)){let r;switch(e.locale){case"id_ID":r="in";break;case"zh_TW":r="zh-hant";break;case"zh_HK":r="zh-hant";break;default:r=e.language}let t=i=>Wo.find(n=>ti(n.lang,i)),a=t(r)??t(N.language);if(a)return Object.freeze(a)}return{}}var Si=function(e,r){return Si=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,a){t.__proto__=a}||function(t,a){for(var i in a)Object.prototype.hasOwnProperty.call(a,i)&&(t[i]=a[i])},Si(e,r)};function cr(e,r){if(typeof r!="function"&&r!==null)throw new TypeError("Class extends value "+String(r)+" is not a constructor or null");Si(e,r);function t(){this.constructor=e}e.prototype=r===null?Object.create(r):(t.prototype=r.prototype,new t)}var P=function(){return P=Object.assign||function(r){for(var t,a=1,i=arguments.length;a<i;a++){t=arguments[a];for(var n in t)Object.prototype.hasOwnProperty.call(t,n)&&(r[n]=t[n])}return r},P.apply(this,arguments)};function Zr(e,r,t){if(t||arguments.length===2)for(var a=0,i=r.length,n;a<i;a++)(n||!(a in r))&&(n||(n=Array.prototype.slice.call(r,0,a)),n[a]=r[a]);return e.concat(n||Array.prototype.slice.call(r))}var T;(function(e){e[e.EXPECT_ARGUMENT_CLOSING_BRACE=1]="EXPECT_ARGUMENT_CLOSING_BRACE",e[e.EMPTY_ARGUMENT=2]="EMPTY_ARGUMENT",e[e.MALFORMED_ARGUMENT=3]="MALFORMED_ARGUMENT",e[e.EXPECT_ARGUMENT_TYPE=4]="EXPECT_ARGUMENT_TYPE",e[e.INVALID_ARGUMENT_TYPE=5]="INVALID_ARGUMENT_TYPE",e[e.EXPECT_ARGUMENT_STYLE=6]="EXPECT_ARGUMENT_STYLE",e[e.INVALID_NUMBER_SKELETON=7]="INVALID_NUMBER_SKELETON",e[e.INVALID_DATE_TIME_SKELETON=8]="INVALID_DATE_TIME_SKELETON",e[e.EXPECT_NUMBER_SKELETON=9]="EXPECT_NUMBER_SKELETON",e[e.EXPECT_DATE_TIME_SKELETON=10]="EXPECT_DATE_TIME_SKELETON",e[e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE=11]="UNCLOSED_QUOTE_IN_ARGUMENT_STYLE",e[e.EXPECT_SELECT_ARGUMENT_OPTIONS=12]="EXPECT_SELECT_ARGUMENT_OPTIONS",e[e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE=13]="EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE=14]="INVALID_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR=15]="EXPECT_SELECT_ARGUMENT_SELECTOR",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR=16]="EXPECT_PLURAL_ARGUMENT_SELECTOR",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT=17]="EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT=18]="EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT",e[e.INVALID_PLURAL_ARGUMENT_SELECTOR=19]="INVALID_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR=20]="DUPLICATE_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_SELECT_ARGUMENT_SELECTOR=21]="DUPLICATE_SELECT_ARGUMENT_SELECTOR",e[e.MISSING_OTHER_CLAUSE=22]="MISSING_OTHER_CLAUSE",e[e.INVALID_TAG=23]="INVALID_TAG",e[e.INVALID_TAG_NAME=25]="INVALID_TAG_NAME",e[e.UNMATCHED_CLOSING_TAG=26]="UNMATCHED_CLOSING_TAG",e[e.UNCLOSED_TAG=27]="UNCLOSED_TAG"})(T||(T={}));var B;(function(e){e[e.literal=0]="literal",e[e.argument=1]="argument",e[e.number=2]="number",e[e.date=3]="date",e[e.time=4]="time",e[e.select=5]="select",e[e.plural=6]="plural",e[e.pound=7]="pound",e[e.tag=8]="tag"})(B||(B={}));var tt;(function(e){e[e.number=0]="number",e[e.dateTime=1]="dateTime"})(tt||(tt={}));function Ai(e){return e.type===B.literal}function Xo(e){return e.type===B.argument}function Jr(e){return e.type===B.number}function ea(e){return e.type===B.date}function ta(e){return e.type===B.time}function ra(e){return e.type===B.select}function aa(e){return e.type===B.plural}function Ko(e){return e.type===B.pound}function ia(e){return e.type===B.tag}function na(e){return!!(e&&typeof e=="object"&&e.type===tt.number)}function lr(e){return!!(e&&typeof e=="object"&&e.type===tt.dateTime)}var Ci=/[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;var wd=/(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;function Qo(e){var r={};return e.replace(wd,function(t){var a=t.length;switch(t[0]){case"G":r.era=a===4?"long":a===5?"narrow":"short";break;case"y":r.year=a===2?"2-digit":"numeric";break;case"Y":case"u":case"U":case"r":throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");case"q":case"Q":throw new RangeError("`q/Q` (quarter) patterns are not supported");case"M":case"L":r.month=["numeric","2-digit","short","long","narrow"][a-1];break;case"w":case"W":throw new RangeError("`w/W` (week) patterns are not supported");case"d":r.day=["numeric","2-digit"][a-1];break;case"D":case"F":case"g":throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");case"E":r.weekday=a===4?"short":a===5?"narrow":"short";break;case"e":if(a<4)throw new RangeError("`e..eee` (weekday) patterns are not supported");r.weekday=["short","long","narrow","short"][a-4];break;case"c":if(a<4)throw new RangeError("`c..ccc` (weekday) patterns are not supported");r.weekday=["short","long","narrow","short"][a-4];break;case"a":r.hour12=!0;break;case"b":case"B":throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");case"h":r.hourCycle="h12",r.hour=["numeric","2-digit"][a-1];break;case"H":r.hourCycle="h23",r.hour=["numeric","2-digit"][a-1];break;case"K":r.hourCycle="h11",r.hour=["numeric","2-digit"][a-1];break;case"k":r.hourCycle="h24",r.hour=["numeric","2-digit"][a-1];break;case"j":case"J":case"C":throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");case"m":r.minute=["numeric","2-digit"][a-1];break;case"s":r.second=["numeric","2-digit"][a-1];break;case"S":case"A":throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");case"z":r.timeZoneName=a<4?"short":"long";break;case"Z":case"O":case"v":case"V":case"X":case"x":throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead")}return""}),r}var Zo=/[\t-\r \x85\u200E\u200F\u2028\u2029]/i;function rs(e){if(e.length===0)throw new Error("Number skeleton cannot be empty");for(var r=e.split(Zo).filter(function(p){return p.length>0}),t=[],a=0,i=r;a<i.length;a++){var n=i[a],o=n.split("/");if(o.length===0)throw new Error("Invalid number skeleton");for(var s=o[0],c=o.slice(1),l=0,d=c;l<d.length;l++){var m=d[l];if(m.length===0)throw new Error("Invalid number skeleton")}t.push({stem:s,options:c})}return t}function Ed(e){return e.replace(/^(.*?)-/,"")}var Jo=/^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,as=/^(@+)?(\+|#+)?[rs]?$/g,Sd=/(\*)(0+)|(#+)(0+)|(0+)/g,is=/^(0+)$/;function es(e){var r={};return e[e.length-1]==="r"?r.roundingPriority="morePrecision":e[e.length-1]==="s"&&(r.roundingPriority="lessPrecision"),e.replace(as,function(t,a,i){return typeof i!="string"?(r.minimumSignificantDigits=a.length,r.maximumSignificantDigits=a.length):i==="+"?r.minimumSignificantDigits=a.length:a[0]==="#"?r.maximumSignificantDigits=a.length:(r.minimumSignificantDigits=a.length,r.maximumSignificantDigits=a.length+(typeof i=="string"?i.length:0)),""}),r}function ns(e){switch(e){case"sign-auto":return{signDisplay:"auto"};case"sign-accounting":case"()":return{currencySign:"accounting"};case"sign-always":case"+!":return{signDisplay:"always"};case"sign-accounting-always":case"()!":return{signDisplay:"always",currencySign:"accounting"};case"sign-except-zero":case"+?":return{signDisplay:"exceptZero"};case"sign-accounting-except-zero":case"()?":return{signDisplay:"exceptZero",currencySign:"accounting"};case"sign-never":case"+_":return{signDisplay:"never"}}}function Ad(e){var r;if(e[0]==="E"&&e[1]==="E"?(r={notation:"engineering"},e=e.slice(2)):e[0]==="E"&&(r={notation:"scientific"},e=e.slice(1)),r){var t=e.slice(0,2);if(t==="+!"?(r.signDisplay="always",e=e.slice(2)):t==="+?"&&(r.signDisplay="exceptZero",e=e.slice(2)),!is.test(e))throw new Error("Malformed concise eng/scientific notation");r.minimumIntegerDigits=e.length}return r}function ts(e){var r={},t=ns(e);return t||r}function os(e){for(var r={},t=0,a=e;t<a.length;t++){var i=a[t];switch(i.stem){case"percent":case"%":r.style="percent";continue;case"%x100":r.style="percent",r.scale=100;continue;case"currency":r.style="currency",r.currency=i.options[0];continue;case"group-off":case",_":r.useGrouping=!1;continue;case"precision-integer":case".":r.maximumFractionDigits=0;continue;case"measure-unit":case"unit":r.style="unit",r.unit=Ed(i.options[0]);continue;case"compact-short":case"K":r.notation="compact",r.compactDisplay="short";continue;case"compact-long":case"KK":r.notation="compact",r.compactDisplay="long";continue;case"scientific":r=P(P(P({},r),{notation:"scientific"}),i.options.reduce(function(c,l){return P(P({},c),ts(l))},{}));continue;case"engineering":r=P(P(P({},r),{notation:"engineering"}),i.options.reduce(function(c,l){return P(P({},c),ts(l))},{}));continue;case"notation-simple":r.notation="standard";continue;case"unit-width-narrow":r.currencyDisplay="narrowSymbol",r.unitDisplay="narrow";continue;case"unit-width-short":r.currencyDisplay="code",r.unitDisplay="short";continue;case"unit-width-full-name":r.currencyDisplay="name",r.unitDisplay="long";continue;case"unit-width-iso-code":r.currencyDisplay="symbol";continue;case"scale":r.scale=parseFloat(i.options[0]);continue;case"integer-width":if(i.options.length>1)throw new RangeError("integer-width stems only accept a single optional option");i.options[0].replace(Sd,function(c,l,d,m,p,h){if(l)r.minimumIntegerDigits=d.length;else{if(m&&p)throw new Error("We currently do not support maximum integer digits");if(h)throw new Error("We currently do not support exact integer digits")}return""});continue}if(is.test(i.stem)){r.minimumIntegerDigits=i.stem.length;continue}if(Jo.test(i.stem)){if(i.options.length>1)throw new RangeError("Fraction-precision stems only accept a single optional option");i.stem.replace(Jo,function(c,l,d,m,p,h){return d==="*"?r.minimumFractionDigits=l.length:m&&m[0]==="#"?r.maximumFractionDigits=m.length:p&&h?(r.minimumFractionDigits=p.length,r.maximumFractionDigits=p.length+h.length):(r.minimumFractionDigits=l.length,r.maximumFractionDigits=l.length),""});var n=i.options[0];n==="w"?r=P(P({},r),{trailingZeroDisplay:"stripIfInteger"}):n&&(r=P(P({},r),es(n)));continue}if(as.test(i.stem)){r=P(P({},r),es(i.stem));continue}var o=ns(i.stem);o&&(r=P(P({},r),o));var s=Ad(i.stem);s&&(r=P(P({},r),s))}return r}var dr={AX:["H"],BQ:["H"],CP:["H"],CZ:["H"],DK:["H"],FI:["H"],ID:["H"],IS:["H"],ML:["H"],NE:["H"],RU:["H"],SE:["H"],SJ:["H"],SK:["H"],AS:["h","H"],BT:["h","H"],DJ:["h","H"],ER:["h","H"],GH:["h","H"],IN:["h","H"],LS:["h","H"],PG:["h","H"],PW:["h","H"],SO:["h","H"],TO:["h","H"],VU:["h","H"],WS:["h","H"],"001":["H","h"],AL:["h","H","hB"],TD:["h","H","hB"],"ca-ES":["H","h","hB"],CF:["H","h","hB"],CM:["H","h","hB"],"fr-CA":["H","h","hB"],"gl-ES":["H","h","hB"],"it-CH":["H","h","hB"],"it-IT":["H","h","hB"],LU:["H","h","hB"],NP:["H","h","hB"],PF:["H","h","hB"],SC:["H","h","hB"],SM:["H","h","hB"],SN:["H","h","hB"],TF:["H","h","hB"],VA:["H","h","hB"],CY:["h","H","hb","hB"],GR:["h","H","hb","hB"],CO:["h","H","hB","hb"],DO:["h","H","hB","hb"],KP:["h","H","hB","hb"],KR:["h","H","hB","hb"],NA:["h","H","hB","hb"],PA:["h","H","hB","hb"],PR:["h","H","hB","hb"],VE:["h","H","hB","hb"],AC:["H","h","hb","hB"],AI:["H","h","hb","hB"],BW:["H","h","hb","hB"],BZ:["H","h","hb","hB"],CC:["H","h","hb","hB"],CK:["H","h","hb","hB"],CX:["H","h","hb","hB"],DG:["H","h","hb","hB"],FK:["H","h","hb","hB"],GB:["H","h","hb","hB"],GG:["H","h","hb","hB"],GI:["H","h","hb","hB"],IE:["H","h","hb","hB"],IM:["H","h","hb","hB"],IO:["H","h","hb","hB"],JE:["H","h","hb","hB"],LT:["H","h","hb","hB"],MK:["H","h","hb","hB"],MN:["H","h","hb","hB"],MS:["H","h","hb","hB"],NF:["H","h","hb","hB"],NG:["H","h","hb","hB"],NR:["H","h","hb","hB"],NU:["H","h","hb","hB"],PN:["H","h","hb","hB"],SH:["H","h","hb","hB"],SX:["H","h","hb","hB"],TA:["H","h","hb","hB"],ZA:["H","h","hb","hB"],"af-ZA":["H","h","hB","hb"],AR:["H","h","hB","hb"],CL:["H","h","hB","hb"],CR:["H","h","hB","hb"],CU:["H","h","hB","hb"],EA:["H","h","hB","hb"],"es-BO":["H","h","hB","hb"],"es-BR":["H","h","hB","hb"],"es-EC":["H","h","hB","hb"],"es-ES":["H","h","hB","hb"],"es-GQ":["H","h","hB","hb"],"es-PE":["H","h","hB","hb"],GT:["H","h","hB","hb"],HN:["H","h","hB","hb"],IC:["H","h","hB","hb"],KG:["H","h","hB","hb"],KM:["H","h","hB","hb"],LK:["H","h","hB","hb"],MA:["H","h","hB","hb"],MX:["H","h","hB","hb"],NI:["H","h","hB","hb"],PY:["H","h","hB","hb"],SV:["H","h","hB","hb"],UY:["H","h","hB","hb"],JP:["H","h","K"],AD:["H","hB"],AM:["H","hB"],AO:["H","hB"],AT:["H","hB"],AW:["H","hB"],BE:["H","hB"],BF:["H","hB"],BJ:["H","hB"],BL:["H","hB"],BR:["H","hB"],CG:["H","hB"],CI:["H","hB"],CV:["H","hB"],DE:["H","hB"],EE:["H","hB"],FR:["H","hB"],GA:["H","hB"],GF:["H","hB"],GN:["H","hB"],GP:["H","hB"],GW:["H","hB"],HR:["H","hB"],IL:["H","hB"],IT:["H","hB"],KZ:["H","hB"],MC:["H","hB"],MD:["H","hB"],MF:["H","hB"],MQ:["H","hB"],MZ:["H","hB"],NC:["H","hB"],NL:["H","hB"],PM:["H","hB"],PT:["H","hB"],RE:["H","hB"],RO:["H","hB"],SI:["H","hB"],SR:["H","hB"],ST:["H","hB"],TG:["H","hB"],TR:["H","hB"],WF:["H","hB"],YT:["H","hB"],BD:["h","hB","H"],PK:["h","hB","H"],AZ:["H","hB","h"],BA:["H","hB","h"],BG:["H","hB","h"],CH:["H","hB","h"],GE:["H","hB","h"],LI:["H","hB","h"],ME:["H","hB","h"],RS:["H","hB","h"],UA:["H","hB","h"],UZ:["H","hB","h"],XK:["H","hB","h"],AG:["h","hb","H","hB"],AU:["h","hb","H","hB"],BB:["h","hb","H","hB"],BM:["h","hb","H","hB"],BS:["h","hb","H","hB"],CA:["h","hb","H","hB"],DM:["h","hb","H","hB"],"en-001":["h","hb","H","hB"],FJ:["h","hb","H","hB"],FM:["h","hb","H","hB"],GD:["h","hb","H","hB"],GM:["h","hb","H","hB"],GU:["h","hb","H","hB"],GY:["h","hb","H","hB"],JM:["h","hb","H","hB"],KI:["h","hb","H","hB"],KN:["h","hb","H","hB"],KY:["h","hb","H","hB"],LC:["h","hb","H","hB"],LR:["h","hb","H","hB"],MH:["h","hb","H","hB"],MP:["h","hb","H","hB"],MW:["h","hb","H","hB"],NZ:["h","hb","H","hB"],SB:["h","hb","H","hB"],SG:["h","hb","H","hB"],SL:["h","hb","H","hB"],SS:["h","hb","H","hB"],SZ:["h","hb","H","hB"],TC:["h","hb","H","hB"],TT:["h","hb","H","hB"],UM:["h","hb","H","hB"],US:["h","hb","H","hB"],VC:["h","hb","H","hB"],VG:["h","hb","H","hB"],VI:["h","hb","H","hB"],ZM:["h","hb","H","hB"],BO:["H","hB","h","hb"],EC:["H","hB","h","hb"],ES:["H","hB","h","hb"],GQ:["H","hB","h","hb"],PE:["H","hB","h","hb"],AE:["h","hB","hb","H"],"ar-001":["h","hB","hb","H"],BH:["h","hB","hb","H"],DZ:["h","hB","hb","H"],EG:["h","hB","hb","H"],EH:["h","hB","hb","H"],HK:["h","hB","hb","H"],IQ:["h","hB","hb","H"],JO:["h","hB","hb","H"],KW:["h","hB","hb","H"],LB:["h","hB","hb","H"],LY:["h","hB","hb","H"],MO:["h","hB","hb","H"],MR:["h","hB","hb","H"],OM:["h","hB","hb","H"],PH:["h","hB","hb","H"],PS:["h","hB","hb","H"],QA:["h","hB","hb","H"],SA:["h","hB","hb","H"],SD:["h","hB","hb","H"],SY:["h","hB","hb","H"],TN:["h","hB","hb","H"],YE:["h","hB","hb","H"],AF:["H","hb","hB","h"],LA:["H","hb","hB","h"],CN:["H","hB","hb","h"],LV:["H","hB","hb","h"],TL:["H","hB","hb","h"],"zu-ZA":["H","hB","hb","h"],CD:["hB","H"],IR:["hB","H"],"hi-IN":["hB","h","H"],"kn-IN":["hB","h","H"],"ml-IN":["hB","h","H"],"te-IN":["hB","h","H"],KH:["hB","h","H","hb"],"ta-IN":["hB","h","hb","H"],BN:["hb","hB","h","H"],MY:["hb","hB","h","H"],ET:["hB","hb","h","H"],"gu-IN":["hB","hb","h","H"],"mr-IN":["hB","hb","h","H"],"pa-IN":["hB","hb","h","H"],TW:["hB","hb","h","H"],KE:["hB","hb","H","h"],MM:["hB","hb","H","h"],TZ:["hB","hb","H","h"],UG:["hB","hb","H","h"]};function ss(e,r){for(var t="",a=0;a<e.length;a++){var i=e.charAt(a);if(i==="j"){for(var n=0;a+1<e.length&&e.charAt(a+1)===i;)n++,a++;var o=1+(n&1),s=n<2?1:3+(n>>1),c="a",l=Cd(r);for((l=="H"||l=="k")&&(s=0);s-- >0;)t+=c;for(;o-- >0;)t=l+t}else i==="J"?t+="H":t+=i}return t}function Cd(e){var r=e.hourCycle;if(r===void 0&&e.hourCycles&&e.hourCycles.length&&(r=e.hourCycles[0]),r)switch(r){case"h24":return"k";case"h23":return"H";case"h12":return"h";case"h11":return"K";default:throw new Error("Invalid hourCycle")}var t=e.language,a;t!=="root"&&(a=e.maximize().region);var i=dr[a||""]||dr[t||""]||dr["".concat(t,"-001")]||dr["001"];return i[0]}var Ti,Td=new RegExp("^".concat(Ci.source,"*")),kd=new RegExp("".concat(Ci.source,"*$"));function M(e,r){return{start:e,end:r}}var _d=!!String.prototype.startsWith,Ld=!!String.fromCodePoint,Pd=!!Object.fromEntries,Md=!!String.prototype.codePointAt,Rd=!!String.prototype.trimStart,Nd=!!String.prototype.trimEnd,Od=!!Number.isSafeInteger,Id=Od?Number.isSafeInteger:function(e){return typeof e=="number"&&isFinite(e)&&Math.floor(e)===e&&Math.abs(e)<=9007199254740991},_i=!0;try{cs=ps("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),_i=((Ti=cs.exec("a"))===null||Ti===void 0?void 0:Ti[0])==="a"}catch{_i=!1}var cs,ls=_d?function(r,t,a){return r.startsWith(t,a)}:function(r,t,a){return r.slice(a,a+t.length)===t},Li=Ld?String.fromCodePoint:function(){for(var r=[],t=0;t<arguments.length;t++)r[t]=arguments[t];for(var a="",i=r.length,n=0,o;i>n;){if(o=r[n++],o>1114111)throw RangeError(o+" is not a valid code point");a+=o<65536?String.fromCharCode(o):String.fromCharCode(((o-=65536)>>10)+55296,o%1024+56320)}return a},ds=Pd?Object.fromEntries:function(r){for(var t={},a=0,i=r;a<i.length;a++){var n=i[a],o=n[0],s=n[1];t[o]=s}return t},hs=Md?function(r,t){return r.codePointAt(t)}:function(r,t){var a=r.length;if(!(t<0||t>=a)){var i=r.charCodeAt(t),n;return i<55296||i>56319||t+1===a||(n=r.charCodeAt(t+1))<56320||n>57343?i:(i-55296<<10)+(n-56320)+65536}},zd=Rd?function(r){return r.trimStart()}:function(r){return r.replace(Td,"")},Dd=Nd?function(r){return r.trimEnd()}:function(r){return r.replace(kd,"")};function ps(e,r){return new RegExp(e,r)}var Pi;_i?(ki=ps("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Pi=function(r,t){var a;ki.lastIndex=t;var i=ki.exec(r);return(a=i[1])!==null&&a!==void 0?a:""}):Pi=function(r,t){for(var a=[];;){var i=hs(r,t);if(i===void 0||us(i)||Bd(i))break;a.push(i),t+=i>=65536?2:1}return Li.apply(void 0,a)};var ki,ms=(function(){function e(r,t){t===void 0&&(t={}),this.message=r,this.position={offset:0,line:1,column:1},this.ignoreTag=!!t.ignoreTag,this.locale=t.locale,this.requiresOtherClause=!!t.requiresOtherClause,this.shouldParseSkeletons=!!t.shouldParseSkeletons}return e.prototype.parse=function(){if(this.offset()!==0)throw Error("parser can only be used once");return this.parseMessage(0,"",!1)},e.prototype.parseMessage=function(r,t,a){for(var i=[];!this.isEOF();){var n=this.char();if(n===123){var o=this.parseArgument(r,a);if(o.err)return o;i.push(o.val)}else{if(n===125&&r>0)break;if(n===35&&(t==="plural"||t==="selectordinal")){var s=this.clonePosition();this.bump(),i.push({type:B.pound,location:M(s,this.clonePosition())})}else if(n===60&&!this.ignoreTag&&this.peek()===47){if(a)break;return this.error(T.UNMATCHED_CLOSING_TAG,M(this.clonePosition(),this.clonePosition()))}else if(n===60&&!this.ignoreTag&&Mi(this.peek()||0)){var o=this.parseTag(r,t);if(o.err)return o;i.push(o.val)}else{var o=this.parseLiteral(r,t);if(o.err)return o;i.push(o.val)}}}return{val:i,err:null}},e.prototype.parseTag=function(r,t){var a=this.clonePosition();this.bump();var i=this.parseTagName();if(this.bumpSpace(),this.bumpIf("/>"))return{val:{type:B.literal,value:"<".concat(i,"/>"),location:M(a,this.clonePosition())},err:null};if(this.bumpIf(">")){var n=this.parseMessage(r+1,t,!0);if(n.err)return n;var o=n.val,s=this.clonePosition();if(this.bumpIf("</")){if(this.isEOF()||!Mi(this.char()))return this.error(T.INVALID_TAG,M(s,this.clonePosition()));var c=this.clonePosition(),l=this.parseTagName();return i!==l?this.error(T.UNMATCHED_CLOSING_TAG,M(c,this.clonePosition())):(this.bumpSpace(),this.bumpIf(">")?{val:{type:B.tag,value:i,children:o,location:M(a,this.clonePosition())},err:null}:this.error(T.INVALID_TAG,M(s,this.clonePosition())))}else return this.error(T.UNCLOSED_TAG,M(a,this.clonePosition()))}else return this.error(T.INVALID_TAG,M(a,this.clonePosition()))},e.prototype.parseTagName=function(){var r=this.offset();for(this.bump();!this.isEOF()&&Fd(this.char());)this.bump();return this.message.slice(r,this.offset())},e.prototype.parseLiteral=function(r,t){for(var a=this.clonePosition(),i="";;){var n=this.tryParseQuote(t);if(n){i+=n;continue}var o=this.tryParseUnquoted(r,t);if(o){i+=o;continue}var s=this.tryParseLeftAngleBracket();if(s){i+=s;continue}break}var c=M(a,this.clonePosition());return{val:{type:B.literal,value:i,location:c},err:null}},e.prototype.tryParseLeftAngleBracket=function(){return!this.isEOF()&&this.char()===60&&(this.ignoreTag||!Hd(this.peek()||0))?(this.bump(),"<"):null},e.prototype.tryParseQuote=function(r){if(this.isEOF()||this.char()!==39)return null;switch(this.peek()){case 39:return this.bump(),this.bump(),"'";case 123:case 60:case 62:case 125:break;case 35:if(r==="plural"||r==="selectordinal")break;return null;default:return null}this.bump();var t=[this.char()];for(this.bump();!this.isEOF();){var a=this.char();if(a===39)if(this.peek()===39)t.push(39),this.bump();else{this.bump();break}else t.push(a);this.bump()}return Li.apply(void 0,t)},e.prototype.tryParseUnquoted=function(r,t){if(this.isEOF())return null;var a=this.char();return a===60||a===123||a===35&&(t==="plural"||t==="selectordinal")||a===125&&r>0?null:(this.bump(),Li(a))},e.prototype.parseArgument=function(r,t){var a=this.clonePosition();if(this.bump(),this.bumpSpace(),this.isEOF())return this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,M(a,this.clonePosition()));if(this.char()===125)return this.bump(),this.error(T.EMPTY_ARGUMENT,M(a,this.clonePosition()));var i=this.parseIdentifierIfPossible().value;if(!i)return this.error(T.MALFORMED_ARGUMENT,M(a,this.clonePosition()));if(this.bumpSpace(),this.isEOF())return this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,M(a,this.clonePosition()));switch(this.char()){case 125:return this.bump(),{val:{type:B.argument,value:i,location:M(a,this.clonePosition())},err:null};case 44:return this.bump(),this.bumpSpace(),this.isEOF()?this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,M(a,this.clonePosition())):this.parseArgumentOptions(r,t,i,a);default:return this.error(T.MALFORMED_ARGUMENT,M(a,this.clonePosition()))}},e.prototype.parseIdentifierIfPossible=function(){var r=this.clonePosition(),t=this.offset(),a=Pi(this.message,t),i=t+a.length;this.bumpTo(i);var n=this.clonePosition(),o=M(r,n);return{value:a,location:o}},e.prototype.parseArgumentOptions=function(r,t,a,i){var n,o=this.clonePosition(),s=this.parseIdentifierIfPossible().value,c=this.clonePosition();switch(s){case"":return this.error(T.EXPECT_ARGUMENT_TYPE,M(o,c));case"number":case"date":case"time":{this.bumpSpace();var l=null;if(this.bumpIf(",")){this.bumpSpace();var d=this.clonePosition(),m=this.parseSimpleArgStyleIfPossible();if(m.err)return m;var p=Dd(m.val);if(p.length===0)return this.error(T.EXPECT_ARGUMENT_STYLE,M(this.clonePosition(),this.clonePosition()));var h=M(d,this.clonePosition());l={style:p,styleLocation:h}}var u=this.tryParseArgumentClose(i);if(u.err)return u;var f=M(i,this.clonePosition());if(l&&ls(l?.style,"::",0)){var x=zd(l.style.slice(2));if(s==="number"){var m=this.parseNumberSkeletonFromString(x,l.styleLocation);return m.err?m:{val:{type:B.number,value:a,location:f,style:m.val},err:null}}else{if(x.length===0)return this.error(T.EXPECT_DATE_TIME_SKELETON,f);var y=x;this.locale&&(y=ss(x,this.locale));var p={type:tt.dateTime,pattern:y,location:l.styleLocation,parsedOptions:this.shouldParseSkeletons?Qo(y):{}},k=s==="date"?B.date:B.time;return{val:{type:k,value:a,location:f,style:p},err:null}}}return{val:{type:s==="number"?B.number:s==="date"?B.date:B.time,value:a,location:f,style:(n=l?.style)!==null&&n!==void 0?n:null},err:null}}case"plural":case"selectordinal":case"select":{var b=this.clonePosition();if(this.bumpSpace(),!this.bumpIf(","))return this.error(T.EXPECT_SELECT_ARGUMENT_OPTIONS,M(b,P({},b)));this.bumpSpace();var _=this.parseIdentifierIfPossible(),D=0;if(s!=="select"&&_.value==="offset"){if(!this.bumpIf(":"))return this.error(T.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,M(this.clonePosition(),this.clonePosition()));this.bumpSpace();var m=this.tryParseDecimalInteger(T.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,T.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);if(m.err)return m;this.bumpSpace(),_=this.parseIdentifierIfPossible(),D=m.val}var I=this.tryParsePluralOrSelectOptions(r,s,t,_);if(I.err)return I;var u=this.tryParseArgumentClose(i);if(u.err)return u;var G=M(i,this.clonePosition());return s==="select"?{val:{type:B.select,value:a,options:ds(I.val),location:G},err:null}:{val:{type:B.plural,value:a,options:ds(I.val),offset:D,pluralType:s==="plural"?"cardinal":"ordinal",location:G},err:null}}default:return this.error(T.INVALID_ARGUMENT_TYPE,M(o,c))}},e.prototype.tryParseArgumentClose=function(r){return this.isEOF()||this.char()!==125?this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,M(r,this.clonePosition())):(this.bump(),{val:!0,err:null})},e.prototype.parseSimpleArgStyleIfPossible=function(){for(var r=0,t=this.clonePosition();!this.isEOF();){var a=this.char();switch(a){case 39:{this.bump();var i=this.clonePosition();if(!this.bumpUntil("'"))return this.error(T.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,M(i,this.clonePosition()));this.bump();break}case 123:{r+=1,this.bump();break}case 125:{if(r>0)r-=1;else return{val:this.message.slice(t.offset,this.offset()),err:null};break}default:this.bump();break}}return{val:this.message.slice(t.offset,this.offset()),err:null}},e.prototype.parseNumberSkeletonFromString=function(r,t){var a=[];try{a=rs(r)}catch{return this.error(T.INVALID_NUMBER_SKELETON,t)}return{val:{type:tt.number,tokens:a,location:t,parsedOptions:this.shouldParseSkeletons?os(a):{}},err:null}},e.prototype.tryParsePluralOrSelectOptions=function(r,t,a,i){for(var n,o=!1,s=[],c=new Set,l=i.value,d=i.location;;){if(l.length===0){var m=this.clonePosition();if(t!=="select"&&this.bumpIf("=")){var p=this.tryParseDecimalInteger(T.EXPECT_PLURAL_ARGUMENT_SELECTOR,T.INVALID_PLURAL_ARGUMENT_SELECTOR);if(p.err)return p;d=M(m,this.clonePosition()),l=this.message.slice(m.offset,this.offset())}else break}if(c.has(l))return this.error(t==="select"?T.DUPLICATE_SELECT_ARGUMENT_SELECTOR:T.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,d);l==="other"&&(o=!0),this.bumpSpace();var h=this.clonePosition();if(!this.bumpIf("{"))return this.error(t==="select"?T.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT:T.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,M(this.clonePosition(),this.clonePosition()));var u=this.parseMessage(r+1,t,a);if(u.err)return u;var f=this.tryParseArgumentClose(h);if(f.err)return f;s.push([l,{value:u.val,location:M(h,this.clonePosition())}]),c.add(l),this.bumpSpace(),n=this.parseIdentifierIfPossible(),l=n.value,d=n.location}return s.length===0?this.error(t==="select"?T.EXPECT_SELECT_ARGUMENT_SELECTOR:T.EXPECT_PLURAL_ARGUMENT_SELECTOR,M(this.clonePosition(),this.clonePosition())):this.requiresOtherClause&&!o?this.error(T.MISSING_OTHER_CLAUSE,M(this.clonePosition(),this.clonePosition())):{val:s,err:null}},e.prototype.tryParseDecimalInteger=function(r,t){var a=1,i=this.clonePosition();this.bumpIf("+")||this.bumpIf("-")&&(a=-1);for(var n=!1,o=0;!this.isEOF();){var s=this.char();if(s>=48&&s<=57)n=!0,o=o*10+(s-48),this.bump();else break}var c=M(i,this.clonePosition());return n?(o*=a,Id(o)?{val:o,err:null}:this.error(t,c)):this.error(r,c)},e.prototype.offset=function(){return this.position.offset},e.prototype.isEOF=function(){return this.offset()===this.message.length},e.prototype.clonePosition=function(){return{offset:this.position.offset,line:this.position.line,column:this.position.column}},e.prototype.char=function(){var r=this.position.offset;if(r>=this.message.length)throw Error("out of bound");var t=hs(this.message,r);if(t===void 0)throw Error("Offset ".concat(r," is at invalid UTF-16 code unit boundary"));return t},e.prototype.error=function(r,t){return{val:null,err:{kind:r,message:this.message,location:t}}},e.prototype.bump=function(){if(!this.isEOF()){var r=this.char();r===10?(this.position.line+=1,this.position.column=1,this.position.offset+=1):(this.position.column+=1,this.position.offset+=r<65536?1:2)}},e.prototype.bumpIf=function(r){if(ls(this.message,r,this.offset())){for(var t=0;t<r.length;t++)this.bump();return!0}return!1},e.prototype.bumpUntil=function(r){var t=this.offset(),a=this.message.indexOf(r,t);return a>=0?(this.bumpTo(a),!0):(this.bumpTo(this.message.length),!1)},e.prototype.bumpTo=function(r){if(this.offset()>r)throw Error("targetOffset ".concat(r," must be greater than or equal to the current offset ").concat(this.offset()));for(r=Math.min(r,this.message.length);;){var t=this.offset();if(t===r)break;if(t>r)throw Error("targetOffset ".concat(r," is at invalid UTF-16 code unit boundary"));if(this.bump(),this.isEOF())break}},e.prototype.bumpSpace=function(){for(;!this.isEOF()&&us(this.char());)this.bump()},e.prototype.peek=function(){if(this.isEOF())return null;var r=this.char(),t=this.offset(),a=this.message.charCodeAt(t+(r>=65536?2:1));return a??null},e})();function Mi(e){return e>=97&&e<=122||e>=65&&e<=90}function Hd(e){return Mi(e)||e===47}function Fd(e){return e===45||e===46||e>=48&&e<=57||e===95||e>=97&&e<=122||e>=65&&e<=90||e==183||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8255&&e<=8256||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}function us(e){return e>=9&&e<=13||e===32||e===133||e>=8206&&e<=8207||e===8232||e===8233}function Bd(e){return e>=33&&e<=35||e===36||e>=37&&e<=39||e===40||e===41||e===42||e===43||e===44||e===45||e>=46&&e<=47||e>=58&&e<=59||e>=60&&e<=62||e>=63&&e<=64||e===91||e===92||e===93||e===94||e===96||e===123||e===124||e===125||e===126||e===161||e>=162&&e<=165||e===166||e===167||e===169||e===171||e===172||e===174||e===176||e===177||e===182||e===187||e===191||e===215||e===247||e>=8208&&e<=8213||e>=8214&&e<=8215||e===8216||e===8217||e===8218||e>=8219&&e<=8220||e===8221||e===8222||e===8223||e>=8224&&e<=8231||e>=8240&&e<=8248||e===8249||e===8250||e>=8251&&e<=8254||e>=8257&&e<=8259||e===8260||e===8261||e===8262||e>=8263&&e<=8273||e===8274||e===8275||e>=8277&&e<=8286||e>=8592&&e<=8596||e>=8597&&e<=8601||e>=8602&&e<=8603||e>=8604&&e<=8607||e===8608||e>=8609&&e<=8610||e===8611||e>=8612&&e<=8613||e===8614||e>=8615&&e<=8621||e===8622||e>=8623&&e<=8653||e>=8654&&e<=8655||e>=8656&&e<=8657||e===8658||e===8659||e===8660||e>=8661&&e<=8691||e>=8692&&e<=8959||e>=8960&&e<=8967||e===8968||e===8969||e===8970||e===8971||e>=8972&&e<=8991||e>=8992&&e<=8993||e>=8994&&e<=9e3||e===9001||e===9002||e>=9003&&e<=9083||e===9084||e>=9085&&e<=9114||e>=9115&&e<=9139||e>=9140&&e<=9179||e>=9180&&e<=9185||e>=9186&&e<=9254||e>=9255&&e<=9279||e>=9280&&e<=9290||e>=9291&&e<=9311||e>=9472&&e<=9654||e===9655||e>=9656&&e<=9664||e===9665||e>=9666&&e<=9719||e>=9720&&e<=9727||e>=9728&&e<=9838||e===9839||e>=9840&&e<=10087||e===10088||e===10089||e===10090||e===10091||e===10092||e===10093||e===10094||e===10095||e===10096||e===10097||e===10098||e===10099||e===10100||e===10101||e>=10132&&e<=10175||e>=10176&&e<=10180||e===10181||e===10182||e>=10183&&e<=10213||e===10214||e===10215||e===10216||e===10217||e===10218||e===10219||e===10220||e===10221||e===10222||e===10223||e>=10224&&e<=10239||e>=10240&&e<=10495||e>=10496&&e<=10626||e===10627||e===10628||e===10629||e===10630||e===10631||e===10632||e===10633||e===10634||e===10635||e===10636||e===10637||e===10638||e===10639||e===10640||e===10641||e===10642||e===10643||e===10644||e===10645||e===10646||e===10647||e===10648||e>=10649&&e<=10711||e===10712||e===10713||e===10714||e===10715||e>=10716&&e<=10747||e===10748||e===10749||e>=10750&&e<=11007||e>=11008&&e<=11055||e>=11056&&e<=11076||e>=11077&&e<=11078||e>=11079&&e<=11084||e>=11085&&e<=11123||e>=11124&&e<=11125||e>=11126&&e<=11157||e===11158||e>=11159&&e<=11263||e>=11776&&e<=11777||e===11778||e===11779||e===11780||e===11781||e>=11782&&e<=11784||e===11785||e===11786||e===11787||e===11788||e===11789||e>=11790&&e<=11798||e===11799||e>=11800&&e<=11801||e===11802||e===11803||e===11804||e===11805||e>=11806&&e<=11807||e===11808||e===11809||e===11810||e===11811||e===11812||e===11813||e===11814||e===11815||e===11816||e===11817||e>=11818&&e<=11822||e===11823||e>=11824&&e<=11833||e>=11834&&e<=11835||e>=11836&&e<=11839||e===11840||e===11841||e===11842||e>=11843&&e<=11855||e>=11856&&e<=11857||e===11858||e>=11859&&e<=11903||e>=12289&&e<=12291||e===12296||e===12297||e===12298||e===12299||e===12300||e===12301||e===12302||e===12303||e===12304||e===12305||e>=12306&&e<=12307||e===12308||e===12309||e===12310||e===12311||e===12312||e===12313||e===12314||e===12315||e===12316||e===12317||e>=12318&&e<=12319||e===12320||e===12336||e===64830||e===64831||e>=65093&&e<=65094}function Ri(e){e.forEach(function(r){if(delete r.location,ra(r)||aa(r))for(var t in r.options)delete r.options[t].location,Ri(r.options[t].value);else Jr(r)&&na(r.style)||(ea(r)||ta(r))&&lr(r.style)?delete r.style.location:ia(r)&&Ri(r.children)})}function gs(e,r){r===void 0&&(r={}),r=P({shouldParseSkeletons:!0,requiresOtherClause:!0},r);var t=new ms(e,r).parse();if(t.err){var a=SyntaxError(T[t.err.kind]);throw a.location=t.err.location,a.originalMessage=t.err.message,a}return r?.captureLocation||Ri(t.val),t.val}function hr(e,r){var t=r&&r.cache?r.cache:jd,a=r&&r.serializer?r.serializer:Vd,i=r&&r.strategy?r.strategy:$d;return i(e,{cache:t,serializer:a})}function Ud(e){return e==null||typeof e=="number"||typeof e=="boolean"}function fs(e,r,t,a){var i=Ud(a)?a:t(a),n=r.get(i);return typeof n>"u"&&(n=e.call(this,a),r.set(i,n)),n}function vs(e,r,t){var a=Array.prototype.slice.call(arguments,3),i=t(a),n=r.get(i);return typeof n>"u"&&(n=e.apply(this,a),r.set(i,n)),n}function Ni(e,r,t,a,i){return t.bind(r,e,a,i)}function $d(e,r){var t=e.length===1?fs:vs;return Ni(e,this,t,r.cache.create(),r.serializer)}function Gd(e,r){return Ni(e,this,vs,r.cache.create(),r.serializer)}function qd(e,r){return Ni(e,this,fs,r.cache.create(),r.serializer)}var Vd=function(){return JSON.stringify(arguments)};function Oi(){this.cache=Object.create(null)}Oi.prototype.get=function(e){return this.cache[e]};Oi.prototype.set=function(e,r){this.cache[e]=r};var jd={create:function(){return new Oi}},oa={variadic:Gd,monadic:qd};var rt;(function(e){e.MISSING_VALUE="MISSING_VALUE",e.INVALID_VALUE="INVALID_VALUE",e.MISSING_INTL_API="MISSING_INTL_API"})(rt||(rt={}));var pr=(function(e){cr(r,e);function r(t,a,i){var n=e.call(this,t)||this;return n.code=a,n.originalMessage=i,n}return r.prototype.toString=function(){return"[formatjs Error: ".concat(this.code,"] ").concat(this.message)},r})(Error);var Ii=(function(e){cr(r,e);function r(t,a,i,n){return e.call(this,'Invalid values for "'.concat(t,'": "').concat(a,'". Options are "').concat(Object.keys(i).join('", "'),'"'),rt.INVALID_VALUE,n)||this}return r})(pr);var xs=(function(e){cr(r,e);function r(t,a,i){return e.call(this,'Value for "'.concat(t,'" must be of type ').concat(a),rt.INVALID_VALUE,i)||this}return r})(pr);var bs=(function(e){cr(r,e);function r(t,a){return e.call(this,'The intl string context variable "'.concat(t,'" was not provided to the string "').concat(a,'"'),rt.MISSING_VALUE,a)||this}return r})(pr);var Z;(function(e){e[e.literal=0]="literal",e[e.object=1]="object"})(Z||(Z={}));function Wd(e){return e.length<2?e:e.reduce(function(r,t){var a=r[r.length-1];return!a||a.type!==Z.literal||t.type!==Z.literal?r.push(t):a.value+=t.value,r},[])}function Yd(e){return typeof e=="function"}function mr(e,r,t,a,i,n,o){if(e.length===1&&Ai(e[0]))return[{type:Z.literal,value:e[0].value}];for(var s=[],c=0,l=e;c<l.length;c++){var d=l[c];if(Ai(d)){s.push({type:Z.literal,value:d.value});continue}if(Ko(d)){typeof n=="number"&&s.push({type:Z.literal,value:t.getNumberFormat(r).format(n)});continue}var m=d.value;if(!(i&&m in i))throw new bs(m,o);var p=i[m];if(Xo(d)){(!p||typeof p=="string"||typeof p=="number")&&(p=typeof p=="string"||typeof p=="number"?String(p):""),s.push({type:typeof p=="string"?Z.literal:Z.object,value:p});continue}if(ea(d)){var h=typeof d.style=="string"?a.date[d.style]:lr(d.style)?d.style.parsedOptions:void 0;s.push({type:Z.literal,value:t.getDateTimeFormat(r,h).format(p)});continue}if(ta(d)){var h=typeof d.style=="string"?a.time[d.style]:lr(d.style)?d.style.parsedOptions:a.time.medium;s.push({type:Z.literal,value:t.getDateTimeFormat(r,h).format(p)});continue}if(Jr(d)){var h=typeof d.style=="string"?a.number[d.style]:na(d.style)?d.style.parsedOptions:void 0;h&&h.scale&&(p=p*(h.scale||1)),s.push({type:Z.literal,value:t.getNumberFormat(r,h).format(p)});continue}if(ia(d)){var u=d.children,f=d.value,x=i[f];if(!Yd(x))throw new xs(f,"function",o);var y=mr(u,r,t,a,i,n),k=x(y.map(function(D){return D.value}));Array.isArray(k)||(k=[k]),s.push.apply(s,k.map(function(D){return{type:typeof D=="string"?Z.literal:Z.object,value:D}}))}if(ra(d)){var b=d.options[p]||d.options.other;if(!b)throw new Ii(d.value,p,Object.keys(d.options),o);s.push.apply(s,mr(b.value,r,t,a,i));continue}if(aa(d)){var b=d.options["=".concat(p)];if(!b){if(!Intl.PluralRules)throw new pr(`Intl.PluralRules is not available in this environment.
-Try polyfilling it using "@formatjs/intl-pluralrules"
-`,rt.MISSING_INTL_API,o);var _=t.getPluralRules(r,{type:d.pluralType}).select(p-(d.offset||0));b=d.options[_]||d.options.other}if(!b)throw new Ii(d.value,p,Object.keys(d.options),o);s.push.apply(s,mr(b.value,r,t,a,i,p-(d.offset||0)));continue}}return Wd(s)}function Xd(e,r){return r?P(P(P({},e||{}),r||{}),Object.keys(e).reduce(function(t,a){return t[a]=P(P({},e[a]),r[a]||{}),t},{})):e}function Kd(e,r){return r?Object.keys(e).reduce(function(t,a){return t[a]=Xd(e[a],r[a]),t},P({},e)):e}function zi(e){return{create:function(){return{get:function(r){return e[r]},set:function(r,t){e[r]=t}}}}}function Qd(e){return e===void 0&&(e={number:{},dateTime:{},pluralRules:{}}),{getNumberFormat:hr(function(){for(var r,t=[],a=0;a<arguments.length;a++)t[a]=arguments[a];return new((r=Intl.NumberFormat).bind.apply(r,Zr([void 0],t,!1)))},{cache:zi(e.number),strategy:oa.variadic}),getDateTimeFormat:hr(function(){for(var r,t=[],a=0;a<arguments.length;a++)t[a]=arguments[a];return new((r=Intl.DateTimeFormat).bind.apply(r,Zr([void 0],t,!1)))},{cache:zi(e.dateTime),strategy:oa.variadic}),getPluralRules:hr(function(){for(var r,t=[],a=0;a<arguments.length;a++)t[a]=arguments[a];return new((r=Intl.PluralRules).bind.apply(r,Zr([void 0],t,!1)))},{cache:zi(e.pluralRules),strategy:oa.variadic})}}var ys=(function(){function e(r,t,a,i){var n=this;if(t===void 0&&(t=e.defaultLocale),this.formatterCache={number:{},dateTime:{},pluralRules:{}},this.format=function(o){var s=n.formatToParts(o);if(s.length===1)return s[0].value;var c=s.reduce(function(l,d){return!l.length||d.type!==Z.literal||typeof l[l.length-1]!="string"?l.push(d.value):l[l.length-1]+=d.value,l},[]);return c.length<=1?c[0]||"":c},this.formatToParts=function(o){return mr(n.ast,n.locales,n.formatters,n.formats,o,void 0,n.message)},this.resolvedOptions=function(){return{locale:n.resolvedLocale.toString()}},this.getAst=function(){return n.ast},this.locales=t,this.resolvedLocale=e.resolveLocale(t),typeof r=="string"){if(this.message=r,!e.__parse)throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");this.ast=e.__parse(r,{ignoreTag:i?.ignoreTag,locale:this.resolvedLocale})}else this.ast=r;if(!Array.isArray(this.ast))throw new TypeError("A message must be provided as a String or AST.");this.formats=Kd(e.formats,a),this.formatters=i&&i.formatters||Qd(this.formatterCache)}return Object.defineProperty(e,"defaultLocale",{get:function(){return e.memoizedDefaultLocale||(e.memoizedDefaultLocale=new Intl.NumberFormat().resolvedOptions().locale),e.memoizedDefaultLocale},enumerable:!1,configurable:!0}),e.memoizedDefaultLocale=null,e.resolveLocale=function(r){var t=Intl.NumberFormat.supportedLocalesOf(r);return t.length>0?new Intl.Locale(t[0]):new Intl.Locale(typeof r=="string"?r:r[0])},e.__parse=gs,e.formats={number:{integer:{maximumFractionDigits:0},currency:{style:"currency"},percent:{style:"percent"}},date:{short:{month:"numeric",day:"numeric",year:"2-digit"},medium:{month:"short",day:"numeric",year:"numeric"},long:{month:"long",day:"numeric",year:"numeric"},full:{weekday:"long",month:"long",day:"numeric",year:"numeric"}},time:{short:{hour:"numeric",minute:"numeric"},medium:{hour:"numeric",minute:"numeric",second:"numeric"},long:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"},full:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"}}},e})();var ws=ys;var ur={recurrenceLabel:"{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",recurrenceAriaLabel:"{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",perUnitLabel:"{perUnit, select, LICENSE {per license} other {}}",perUnitAriaLabel:"{perUnit, select, LICENSE {per license} other {}}",freeLabel:"Free",freeAriaLabel:"Free",taxExclusiveLabel:"{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",taxInclusiveLabel:"{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",alternativePriceAriaLabel:"Alternatively at",strikethroughAriaLabel:"Regularly at",planTypeLabel:"{planType, select, ABM {Annual, billed monthly} other {}}",discountLabel:"{discount}%"},Zd=co("ConsonantTemplates/price"),Jd=/<\/?[^>]+(>|$)/g,q={container:"price",containerOptical:"price-optical",containerStrikethrough:"price-strikethrough",containerPromoStrikethrough:"price-promo-strikethrough",containerAlternative:"price-alternative",containerAnnual:"price-annual",containerAnnualPrefix:"price-annual-prefix",containerAnnualSuffix:"price-annual-suffix",disabled:"disabled",currencySpace:"price-currency-space",currencySymbol:"price-currency-symbol",decimals:"price-decimals",decimalsDelimiter:"price-decimals-delimiter",integer:"price-integer",recurrence:"price-recurrence",taxInclusivity:"price-tax-inclusivity",unitType:"price-unit-type"},Ce={perUnitLabel:"perUnitLabel",perUnitAriaLabel:"perUnitAriaLabel",recurrenceLabel:"recurrenceLabel",recurrenceAriaLabel:"recurrenceAriaLabel",taxExclusiveLabel:"taxExclusiveLabel",taxInclusiveLabel:"taxInclusiveLabel",strikethroughAriaLabel:"strikethroughAriaLabel",alternativePriceAriaLabel:"alternativePriceAriaLabel"},Di="TAX_EXCLUSIVE",eh=e=>no(e)?Object.entries(e).filter(([,r])=>Lt(r)||Br(r)||r===!0).reduce((r,[t,a])=>`${r} ${t}${a===!0?"":`="${io(a)}"`}`,""):"",j=(e,r,t,a=!1)=>`<span class="${e}${r?"":` ${q.disabled}`}"${eh(t)}>${a?Io(r):r??""}</span>`;function th(e){e=e.replaceAll("</a>","&lt;/a&gt;");let r=/<a [^>]+(>|$)/g;return e.match(r)?.forEach(a=>{let i=a.replace("<a ","&lt;a ").replace(">","&gt;");e=e.replaceAll(a,i)}),e}function rh(e){e=e.replaceAll("&lt;/a&gt;","</a>");let r=/&lt;a (?!&gt;)(.*?)(&gt;|$)/g;return e.match(r)?.forEach(a=>{let i=a.replace("&lt;a ","<a ").replace("&gt;",">");e=e.replaceAll(a,i)}),e}function ve(e,r,t,a){let i=e[t];if(i==null)return"";let n=i.includes("<"),o=i.includes("<a ");try{i=o?th(i):i,i=n?i.replace(Jd,""):i;let s=new ws(i,r).format(a);return o?rh(s):s}catch{return Zd.error("Failed to format literal:",i),""}}function ah(e,{accessibleLabel:r,altAccessibleLabel:t,currencySymbol:a,decimals:i,decimalsDelimiter:n,hasCurrencySpace:o,integer:s,isCurrencyFirst:c,recurrenceLabel:l,perUnitLabel:d,taxInclusivityLabel:m},p={}){let h=j(q.currencySymbol,a),u=j(q.currencySpace,o?"&nbsp;":""),f="";return r?f=`<sr-only class="strikethrough-aria-label">${r}</sr-only>`:t&&(f=`<sr-only class="alt-aria-label">${t}</sr-only>`),c&&(f+=h+u),f+=j(q.integer,s),f+=j(q.decimalsDelimiter,n),f+=j(q.decimals,i),c||(f+=u+h),f+=j(q.recurrence,l,null,!0),f+=j(q.unitType,d,null,!0),f+=j(q.taxInclusivity,m,!0),j(e,f,{...p})}var K=({isAlternativePrice:e=!1,displayOptical:r=!1,displayStrikethrough:t=!1,displayPromoStrikethrough:a=!1,displayAnnual:i=!1,instant:n=void 0}={})=>({country:o,displayFormatted:s=!0,displayRecurrence:c=!0,displayPerUnit:l=!1,displayTax:d=!1,language:m,literals:p={},quantity:h=1,space:u=!1,isPromoApplied:f=!1}={},{commitment:x,offerSelectorIds:y,formatString:k,price:b,priceWithoutDiscount:_,taxDisplay:D,taxTerm:I,term:G,usePrecision:W,promotion:J}={},Q={})=>{Object.entries({country:o,formatString:k,language:m,price:b}).forEach(([nc,oc])=>{if(oc==null)throw new Error(`Argument "${nc}" is missing for osi ${y?.toString()}, country ${o}, language ${m}`)});let U={...ur,...p},O=`${m.toLowerCase()}-${o.toUpperCase()}`,re;J&&!f&&_?re=e||a?b:_:t&&_?re=_:re=b;let de=r?Do:Ho;i&&(de=Fo);let{accessiblePrice:nt,recurrenceTerm:Vi,...ji}=de({commitment:x,formatString:k,instant:n,isIndianPrice:o==="IN",originalPrice:b,priceWithoutDiscount:_,price:r?b:re,promotion:J,quantity:h,term:G,usePrecision:W}),la="",da="",ha="";C(c)&&Vi&&(ha=ve(U,O,Ce.recurrenceLabel,{recurrenceTerm:Vi}));let yr="";C(l)&&(u&&(yr+=" "),yr+=ve(U,O,Ce.perUnitLabel,{perUnit:"LICENSE"}));let wr="";C(d)&&I&&(u&&(wr+=" "),wr+=ve(U,O,D===Di?Ce.taxExclusiveLabel:Ce.taxInclusiveLabel,{taxTerm:I})),t&&(la=ve(U,O,Ce.strikethroughAriaLabel,{strikethroughPrice:la})),e&&(da=ve(U,O,Ce.alternativePriceAriaLabel,{alternativePrice:da}));let Ge=q.container;if(r&&(Ge+=` ${q.containerOptical}`),t&&(Ge+=` ${q.containerStrikethrough}`),a&&(Ge+=` ${q.containerPromoStrikethrough}`),e&&(Ge+=` ${q.containerAlternative}`),i&&(Ge+=` ${q.containerAnnual}`),C(s))return ah(Ge,{...ji,accessibleLabel:la,altAccessibleLabel:da,recurrenceLabel:ha,perUnitLabel:yr,taxInclusivityLabel:wr},Q);let{currencySymbol:Wi,decimals:ec,decimalsDelimiter:tc,hasCurrencySpace:Yi,integer:rc,isCurrencyFirst:ac}=ji,ot=[rc,tc,ec];ac?(ot.unshift(Yi?"\xA0":""),ot.unshift(Wi)):(ot.push(Yi?"\xA0":""),ot.push(Wi)),ot.push(ha,yr,wr);let ic=ot.join("");return j(Ge,ic,Q)},Es=()=>(e,r,t)=>{let a=et(r.promotion,r.promotion?.displaySummary?.instant,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),n=(e.displayOldPrice===void 0||C(e.displayOldPrice))&&r.priceWithoutDiscount&&r.priceWithoutDiscount!=r.price&&(!r.promotion||a);return`${n?`${K({displayStrikethrough:!0})({isPromoApplied:a,...e,displayPerUnit:!1,displayTax:!1},r,t)}${e.wrapClauses?" ":"&nbsp;"}`:""}${K({isAlternativePrice:n})({isPromoApplied:a,...e},r,t)}`},Ss=()=>(e,r,t)=>{let{instant:a}=e;try{a||(a=new URLSearchParams(document.location.search).get("instant")),a&&(a=new Date(a))}catch{a=void 0}let i=et(r.promotion,a,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),n={...e,displayTax:!1,displayPerUnit:!1,isPromoApplied:i};if(!i)return K()(e,{...r,price:r.priceWithoutDiscount},t)+j(q.containerAnnualPrefix," (")+K({displayAnnual:!0,instant:a})(n,{...r,price:r.priceWithoutDiscount},t)+j(q.containerAnnualSuffix,")");let s=(e.displayOldPrice===void 0||C(e.displayOldPrice))&&r.priceWithoutDiscount&&r.priceWithoutDiscount!=r.price;return`${s?`${K({displayStrikethrough:!0})(n,r,t)}${e.wrapClauses?" ":"&nbsp;"}`:""}${K({isAlternativePrice:s})({isPromoApplied:i,...e},r,t)}${j(q.containerAnnualPrefix," (")}${K({displayAnnual:!0,instant:a})(n,r,t)}${j(q.containerAnnualSuffix,")")}`},As=()=>(e,r,t)=>{let a={...e,displayTax:!1,displayPerUnit:!1};return`${K({isAlternativePrice:e.displayOldPrice})(e,r,t)}${j(q.containerAnnualPrefix," (")}${K({displayAnnual:!0})(a,r,t)}${j(q.containerAnnualSuffix,")")}`};var gr={...q,containerLegal:"price-legal",planType:"price-plan-type"},sa={...Ce,planTypeLabel:"planTypeLabel"};function ih(e,{perUnitLabel:r,taxInclusivityLabel:t,planTypeLabel:a},i={},n=!0){let o="";return o+=j(gr.unitType,r,null,!0),t&&a&&n&&(t+=t.endsWith(".")?" ":". "),o+=j(gr.taxInclusivity,t,!0),o+=j(gr.planType,a,null),j(e,o,{...i})}var Cs=({country:e,displayPerUnit:r=!1,displayTax:t=!1,displayPlanType:a=!1,displayDot:i=!0,planTypeCase:n,language:o,literals:s={}}={},{taxDisplay:c,taxTerm:l,planType:d}={},m={})=>{let p={...ur,...s},h=`${o.toLowerCase()}-${e.toUpperCase()}`,u="";C(r)&&(u=ve(p,h,sa.perUnitLabel,{perUnit:"LICENSE"}));let f="";e==="US"&&o==="en"&&(t=!1),C(t)&&l&&(f=ve(p,h,c===Di?sa.taxExclusiveLabel:sa.taxInclusiveLabel,{taxTerm:l}));let x="";C(a)&&d&&(x=ve(p,h,sa.planTypeLabel,{planType:d})),x&&n&&(x=(n==="lower"?x[0].toLowerCase():x[0].toUpperCase())+x.slice(1));let y=gr.container;return y+=` ${gr.containerLegal}`,ih(y,{perUnitLabel:u,taxInclusivityLabel:f,planTypeLabel:x},m,i)};var Ts=K(),ks=Es(),_s=K({displayOptical:!0}),Ls=K({displayStrikethrough:!0}),Ps=K({displayPromoStrikethrough:!0}),Ms=K({displayAnnual:!0}),Rs=K({displayOptical:!0,isAlternativePrice:!0}),Ns=K({isAlternativePrice:!0}),Os=As(),Is=Ss(),zs=Cs;var nh={...Ce,discountLabel:"discountLabel"},oh=(e,r)=>{if(!r&&Pt(e))return 0;if(!(!Pt(e)||!Pt(r)))return Math.floor((r-e)/r*100)},Ds=()=>(e,r)=>{let{country:t,language:a,literals:i={}}=e??{},{price:n,priceWithoutDiscount:o}=r,s=oh(n,o);if(s===void 0)return'<span class="no-discount"></span>';let c={...ur,...i},l=a&&t?`${a.toLowerCase()}-${t.toUpperCase()}`:"en-US";return`<span class="discount">${ve(c,l,nh.discountLabel,{discount:s,remainingPercent:100-s})}</span>`};var Hs=Ds();var Fs="INDIVIDUAL_COM",Fi="TEAM_COM",Bs="INDIVIDUAL_EDU",Bi="TEAM_EDU",sh=["AT_de","AU_en","BE_en","BE_fr","BE_nl","BG_bg","CH_de","CH_fr","CH_it","CZ_cs","CO_es","DE_de","DK_da","EE_et","EG_ar","EG_en","ES_es","FI_fi","FR_fr","GB_en","GR_el","GR_en","HU_hu","ID_en","ID_id","ID_in","IE_en","IN_en","IN_hi","IT_it","JP_ja","KR_ko","LU_de","LU_en","LU_fr","LT_lt","LV_lv","MY_en","MY_ms","MU_en","NL_nl","NG_en","NO_nb","NZ_en","PE_es","PL_pl","PT_pt","RO_ro","SE_sv","SI_sl","SK_sk","SG_en","TH_en","TH_th","TR_tr","UA_uk","ZA_en","SA_ar","SA_en","MX_es","CL_es","PE_es","PH_en","PH_fil","VN_vi","VN_en","TW_zh"],ch={[Fs]:[],[Fi]:[],[Bs]:[],[Bi]:[]},lh={MU_en:[!0,!0,!0,!0],NG_en:[!1,!1,!1,!1],AU_en:[!1,!1,!1,!1],JP_ja:[!1,!1,!1,!1],NZ_en:[!1,!1,!1,!1],TH_en:[!1,!1,!1,!1],TH_th:[!1,!1,!1,!1],ZA_en:[!1,!1,!1,!1],PE_es:[!1,!1,!1,!1]},dh=[Fs,Fi,Bs,Bi],hh=e=>[Fi,Bi].includes(e);function Hi(e,r,t,a){if(e[r])return e[r];let i=`${r}_${t}`;if(e[i])return e[i];let n;if(a)n=e.find(o=>o.startsWith(`${r}_`));else{let o=Object.keys(e).find(s=>s.startsWith(`${r}_`));n=o?e[o]:null}return n}var ph=(e,r,t,a)=>{let i=`${t}_${a}`,n=Hi(lh,e,r,!1);if(n){let o=dh.indexOf(i);return n[o]}return hh(i)},mh=(e,r,t,a)=>{if(Hi(sh,e,r,!0))return!0;let i=ch[`${t}_${a}`];return i?Hi(i,e,r,!0)?!0:N.displayTax:N.displayTax},Ui=async(e,r,t,a)=>{let i=mh(e,r,t,a);return{displayTax:i,forceTaxExclusive:i?ph(e,r,t,a):N.forceTaxExclusive}},fr=class fr extends HTMLSpanElement{constructor(){super();g(this,"masElement",new Ue(this));this.handleClick=this.handleClick.bind(this)}static get observedAttributes(){return["data-display-old-price","data-display-per-unit","data-display-recurrence","data-display-tax","data-display-plan-type","data-display-annual","data-perpetual","data-promotion-code","data-force-tax-exclusive","data-template","data-wcs-osi","data-quantity"]}static createInlinePrice(t){let a=se();if(!a)return null;let{displayOldPrice:i,displayPerUnit:n,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:m,promotionCode:p,quantity:h,alternativePrice:u,template:f,wcsOsi:x}=a.collectPriceOptions(t);return Kr(fr,{displayOldPrice:i,displayPerUnit:n,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:m,promotionCode:p,quantity:h,alternativePrice:u,template:f,wcsOsi:x})}get isInlinePrice(){return!0}attributeChangedCallback(t,a,i){this.masElement.attributeChangedCallback(t,a,i)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.handleClick)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.handleClick)}handleClick(t){t.target!==this&&(t.stopImmediatePropagation(),this.dispatchEvent(new MouseEvent("click",{bubbles:!0,cancelable:!0,view:window})))}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get isFailed(){return this.masElement.state===ge}requestUpdate(t=!1){return this.masElement.requestUpdate(t)}async render(t={}){if(!this.isConnected)return!1;let a=se();if(!a)return!1;let i=a.collectPriceOptions(t,this),n={...a.settings,...i};if(!n.wcsOsi.length)return!1;try{let o=this.masElement.togglePending({});this.innerHTML="";let s=a.resolveOfferSelectors(n),c=await Promise.all(s),l=c.map(h=>{let u=nr(h,n);return u?.length?u[0]:null});if(l.some(h=>!h))throw new Error(`Failed to select offers for: ${n.wcsOsi}`);let d=l,m=vi(l);if(a.featureFlags[ke]||n[ke]){if(i.displayPerUnit===void 0&&(n.displayPerUnit=m.customerSegment!=="INDIVIDUAL"),i.displayTax===void 0||i.forceTaxExclusive===void 0){let{country:h,language:u}=n,[f=""]=m.marketSegments,x=await Ui(h,u,m.customerSegment,f);i.displayTax===void 0&&(n.displayTax=x?.displayTax||n.displayTax),i.forceTaxExclusive===void 0&&(n.forceTaxExclusive=x?.forceTaxExclusive||n.forceTaxExclusive),n.forceTaxExclusive&&(d=c.map(y=>{let k=nr(y,n);return k?.length?k[0]:null}))}}else i.displayOldPrice===void 0&&(n.displayOldPrice=!0);if(a.featureFlags[st]&&n.displayAnnual!==!1&&(n.displayAnnual=!0),n.template==="discount"&&d.length===2){let[h,u]=d,f={...h,priceDetails:{...h.priceDetails,priceWithoutDiscount:u.priceDetails?.price}};return this.renderOffers([f],n,o)}let p=vi(d);return this.renderOffers([p],n,o)}catch(o){throw this.innerHTML="",o}}renderOffers(t,a,i=void 0){if(!this.isConnected)return;let n=se();if(!n)return!1;if(i??(i=this.masElement.togglePending()),t.length){if(this.masElement.toggleResolved(i,t,a)){this.innerHTML=n.buildPriceHTML(t,this.options);let o=this.closest("p, h3, div");if(!o||!o.querySelector('span[data-template="strikethrough"]')||o.querySelector(".alt-aria-label"))return!0;let s=o?.querySelectorAll('span[is="inline-price"]');return s.length>1&&s.length===o.querySelectorAll('span[data-template="strikethrough"]').length*2&&s.forEach(c=>{c.dataset.template!=="strikethrough"&&c.options&&!c.options.alternativePrice&&!c.isFailed&&(c.options.alternativePrice=!0,c.innerHTML=n.buildPriceHTML(t,c.options))}),!0}}else{let o=new Error(`Not provided: ${this.options?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(i,o,this.options))return this.innerHTML="",!0}return!1}};g(fr,"is","inline-price"),g(fr,"tag","span");var Re=fr;window.customElements.get(Re.is)||window.customElements.define(Re.is,Re,{extends:Re.tag});function Us({literals:e,providers:r,settings:t}){function a(o,s=null){let c={country:t.country,language:t.language,locale:t.locale,literals:{...e.price}};if(s&&r?.price)for(let I of r.price)I(s,c);let{displayOldPrice:l,displayPerUnit:d,displayRecurrence:m,displayTax:p,displayPlanType:h,forceTaxExclusive:u,perpetual:f,displayAnnual:x,promotionCode:y,quantity:k,alternativePrice:b,wcsOsi:_,...D}=Object.assign(c,s?.dataset??{},o??{});return c=Ur(Object.assign({...c,...D,displayOldPrice:C(l),displayPerUnit:C(d),displayRecurrence:C(m),displayTax:C(p),displayPlanType:C(h),forceTaxExclusive:C(u),perpetual:C(f),displayAnnual:C(x),promotionCode:qr(y).effectivePromoCode,quantity:Mt(k,N.quantity),alternativePrice:C(b),wcsOsi:Xr(_)})),c}function i(o,s){if(!Array.isArray(o)||!o.length||!s)return"";let{template:c}=s,l;switch(c){case"discount":l=Hs;break;case"strikethrough":l=Ls;break;case"promo-strikethrough":l=Ps;break;case"annual":l=Ms;break;case"legal":l=zs;break;default:s.template==="optical"&&s.alternativePrice?l=Rs:s.template==="optical"?l=_s:s.displayAnnual&&o[0].planType==="ABM"?l=s.promotionCode&&o[0].promotion?Is:Os:s.alternativePrice?l=Ns:l=s.promotionCode&&o[0].promotion?ks:Ts}let[d]=o;return d={...d,...d.priceDetails},l({...t,...s},d)}let n=Re.createInlinePrice;return{InlinePrice:Re,buildPriceHTML:i,collectPriceOptions:a,createInlinePrice:n}}function uh({locale:e=void 0,country:r=void 0,language:t=void 0}={}){return t??(t=e?.split("_")?.[0]||N.language),r??(r=e?.split("_")?.[1]||N.country),r==="PR"&&(r="US"),e??(e=`${t}_${r}`),{locale:e,country:r,language:t}}function $s(e={},r){let t=r.featureFlags[ke],{commerce:a={}}=e,i=be.PRODUCTION,n=Ra,o=F("checkoutClientId",a)??N.checkoutClientId,s=ir(F("checkoutWorkflowStep",a),ie,N.checkoutWorkflowStep),c=C(F("displayOldPrice",a),N.displayOldPrice),l=N.displayPerUnit,d=C(F("displayRecurrence",a),N.displayRecurrence),m=C(F("displayTax",a),N.displayTax),p=C(F("displayPlanType",a),N.displayPlanType),h=C(F("entitlement",a),N.entitlement),u=C(F("modal",a),N.modal),f=C(F("forceTaxExclusive",a),N.forceTaxExclusive),x=F("promotionCode",a)??N.promotionCode,y=Mt(F("quantity",a)),k=F("wcsApiKey",a)??N.wcsApiKey,b=a?.env==="stage",_=Ie.PUBLISHED;["true",""].includes(a.allowOverride)&&(b=(F(Pa,a,{metadata:!1})?.toLowerCase()??a?.env)==="stage",_=ir(F(Ma,a),Ie,_)),b&&(i=be.STAGE,n=Na);let I=F(La)??e.preview,G=typeof I<"u"&&I!=="off"&&I!=="false",W={};G&&(W={preview:G});let J=F("mas-io-url")??e.masIOUrl,Q=nn(J)?J:`https://www${i===be.STAGE?".stage":""}.adobe.com/mas/io`,U=F("preselect-plan")??void 0,O=F("instant")??e.instant;return{...uh(e),...W,displayOldPrice:c,checkoutClientId:o,checkoutWorkflowStep:s,displayPerUnit:l,displayRecurrence:d,displayTax:m,displayPlanType:p,entitlement:h,extraOptions:N.extraOptions,modal:u,env:i,forceTaxExclusive:f,promotionCode:x,quantity:y,alternativePrice:N.alternativePrice,wcsApiKey:k,wcsURL:n,landscape:_,masIOUrl:Q,...U&&{preselectPlan:U},...O&&{instant:O}}}async function Gs(e,r={},t=2,a=100){let i;for(let n=0;n<=t;n++)try{let o=await fetch(e,r);return o.retryCount=n,o}catch(o){if(i=o,i.retryCount=n,n>t)break;await new Promise(s=>setTimeout(s,a*(n+1)))}throw i}var $i="wcs";function qs({settings:e}){let r=oe.module($i),{env:t,wcsApiKey:a}=e,i=new Map,n=new Map,o,s=new Map;async function c(u,f,x=!0){let y=se(),k=Ta;r.debug("Fetching:",u);let b="",_;if(u.offerSelectorIds.length>1)throw new Error("Multiple OSIs are not supported anymore");let D=new Map(f),[I]=u.offerSelectorIds,G=Date.now()+Math.random().toString(36).substring(2,7),W=`${$i}:${I}:${G}${Ia}`,J=`${$i}:${I}:${G}${za}`,Q;try{if(performance.mark(W),b=new URL(e.wcsURL),b.searchParams.set("offer_selector_ids",I),b.searchParams.set("country",u.country),b.searchParams.set("locale",u.locale),b.searchParams.set("landscape",t===be.STAGE?"ALL":e.landscape),b.searchParams.set("api_key",a),u.language&&b.searchParams.set("language",u.language),u.promotionCode&&b.searchParams.set("promotion_code",u.promotionCode),u.currency&&b.searchParams.set("currency",u.currency),_=await Gs(b.toString(),{credentials:"omit"}),_.ok){let U=[];try{let O=await _.json();r.debug("Fetched:",u,O),U=O.resolvedOffers??[]}catch(O){r.error(`Error parsing JSON: ${O.message}`,{...O.context,...y?.duration})}U=U.map(Vr),f.forEach(({resolve:O},re)=>{let de=U.filter(({offerSelectorIds:nt})=>nt.includes(re)).flat();de.length&&(D.delete(re),f.delete(re),O(de))})}else k=Ca}catch(U){k=`Network error: ${U.message}`}finally{Q=performance.measure(J,W),performance.clearMarks(W),performance.clearMeasures(J)}if(x&&f.size){r.debug("Missing:",{offerSelectorIds:[...f.keys()]});let U=Eo(_);f.forEach(O=>{O.reject(new Rt(k,{...u,...U,response:_,measure:Tr(Q),...y?.duration}))})}}function l(){clearTimeout(o);let u=[...n.values()];n.clear(),u.forEach(({options:f,promises:x})=>c(f,x))}function d(u){if(!u||typeof u!="object")throw new TypeError("Cache must be a Map or similar object");let f=t===be.STAGE?"stage":"prod",x=u[f];if(!x||typeof x!="object"){r.warn(`No cache found for environment: ${t}`);return}for(let[y,k]of Object.entries(x))i.set(y,Promise.resolve(k.map(Vr)));r.debug(`Prefilled WCS cache with ${x.size} entries`)}function m(){let u=i.size;s=new Map(i),i.clear(),r.debug(`Moved ${u} cache entries to stale cache`)}function p(u,f,x){let y=u!=="GB"&&!x?"MULT":"en",k=Da.includes(u)?u:N.country;return{validCountry:k,validLanguage:y,locale:`${f}_${k}`}}function h({country:u,language:f,perpetual:x=!1,promotionCode:y="",wcsOsi:k=[]}){let{validCountry:b,validLanguage:_,locale:D}=p(u,f,x),I=[b,_,y].filter(G=>G).join("-").toLowerCase();return k.map(G=>{let W=`${G}-${I}`;if(i.has(W))return i.get(W);let J=new Promise((Q,U)=>{let O=n.get(I);O||(O={options:{country:b,locale:D,..._==="MULT"&&{language:_},offerSelectorIds:[]},promises:new Map},n.set(I,O)),y&&(O.options.promotionCode=y),O.options.offerSelectorIds.push(G),O.promises.set(G,{resolve:Q,reject:U}),l()}).catch(Q=>{if(s.has(W))return s.get(W);throw Q});return i.set(W,J),J})}return{Commitment:qe,PlanType:ho,Term:he,applyPlanType:Vr,resolveOfferSelectors:h,flushWcsCacheInternal:m,prefillWcsCache:d,normalizeCountryLanguageAndLocale:p}}var Vs="mas-commerce-service",js="mas-commerce-service:start",Ws="mas-commerce-service:ready",vr,Ot,at,Ys,qi,Gi=class extends HTMLElement{constructor(){super(...arguments);S(this,at);S(this,vr);S(this,Ot);g(this,"lastLoggingTime",0)}async registerCheckoutAction(t){typeof t=="function"&&(this.buildCheckoutAction=async(a,i,n)=>{let o=await t?.(a,i,this.imsSignedInPromise,n);return o||null})}get featureFlags(){return v(this,Ot)||E(this,Ot,{[ke]:H(this,at,qi).call(this,ke),[st]:H(this,at,qi).call(this,st)}),v(this,Ot)}activate(){let t=v(this,at,Ys),a=$s(t,this);jr(t.lana);let i=oe.init(t.hostEnv).module("service");i.debug("Activating:",t);let o={price:Yo(a)},s={checkout:new Set,price:new Set},c={literals:o,providers:s,settings:a};Object.defineProperties(this,Object.getOwnPropertyDescriptors({...Vo(c),...jo(c),...Us(c),...qs(c),...Ha,Log:oe,resolvePriceTaxFlags:Ui,get defaults(){return N},get log(){return oe},get providers(){return{checkout(d){return s.checkout.add(d),()=>s.checkout.delete(d)},price(d){return s.price.add(d),()=>s.price.delete(d)},has:d=>s.price.has(d)||s.checkout.has(d)}},get settings(){return a}})),i.debug("Activated:",{literals:o,settings:a});let l=new CustomEvent(Sr,{bubbles:!0,cancelable:!1,detail:this});performance.mark(Ws),E(this,vr,performance.measure(Ws,js)),this.dispatchEvent(l),setTimeout(()=>{this.logFailedRequests()},1e4)}connectedCallback(){performance.mark(js),this.activate()}flushWcsCache(){this.flushWcsCacheInternal(),this.log.debug("Flushed WCS cache")}isPreview(){let t=this.getAttribute("preview");return t!=null&&["true","on",!0].includes(t)}refreshOffers(){this.flushWcsCacheInternal(),document.querySelectorAll(ua).forEach(t=>t.requestUpdate(!0)),this.log.debug("Refreshed WCS offers"),this.logFailedRequests()}refreshFragments(){this.flushWcsCacheInternal(),customElements.get("aem-fragment")?.cache.clear(),document.querySelectorAll("aem-fragment").forEach(t=>t.refresh(!1)),this.log.debug("Refreshed AEM fragments"),this.logFailedRequests()}get duration(){return{"mas-commerce-service:measure":Tr(v(this,vr))}}logFailedRequests(){let t=[...performance.getEntriesByType("resource")].filter(({startTime:i})=>i>this.lastLoggingTime).filter(({transferSize:i,duration:n,responseStatus:o})=>i===0&&n===0&&o<200||o>=400),a=Array.from(new Map(t.map(i=>[i.name,i])).values());if(a.some(({name:i})=>/(\/fragment\?|web_commerce_artifact)/.test(i))){let i=a.map(({name:n})=>n);this.log.error("Failed requests:",{failedUrls:i,...this.duration})}this.lastLoggingTime=performance.now().toFixed(3)}};vr=new WeakMap,Ot=new WeakMap,at=new WeakSet,Ys=function(){let t=this.getAttribute("env")??"prod",a={commerce:{env:t},hostEnv:{name:t},lana:{tags:this.getAttribute("lana-tags"),sampleRate:parseInt(this.getAttribute("lana-sample-rate")??1,10),isProdDomain:t==="prod"},masIOUrl:this.getAttribute("mas-io-url")};return["locale","country","language","preview","instant"].forEach(i=>{let n=this.getAttribute(i);n&&(a[i]=n)}),["checkout-workflow-step","force-tax-exclusive","checkout-client-id","allow-override","wcs-api-key"].forEach(i=>{let n=this.getAttribute(i);if(n!=null){let o=i.replace(/-([a-z])/g,s=>s[1].toUpperCase());a.commerce[o]=n}}),a},qi=function(t){return["on","true",!0].includes(this.getAttribute(`data-${t}`)||F(t))};window.customElements.get(Vs)||window.customElements.define(Vs,Gi);var Zs="merch-card-collection",gh=3e4,fh={catalog:["four-merch-cards"],plans:["four-merch-cards"],plansTwoColumns:["two-merch-cards"],plansThreeColumns:["three-merch-cards"],product:["four-merch-cards"],productTwoColumns:["two-merch-cards"],productThreeColumns:["three-merch-cards"],segment:["four-merch-cards"],segmentTwoColumns:["two-merch-cards"],segmentThreeColumns:["three-merch-cards"],"special-offers":["three-merch-cards"],image:["three-merch-cards"],"mini-compare-chart":["three-merch-cards"],"mini-compare-chartTwoColumns":["two-merch-cards"],"mini-compare-chart-mweb":["three-merch-cards"],"mini-compare-chart-mwebTwoColumns":["two-merch-cards"]},vh={plans:!0},xh=(e,{filter:r})=>e.filter(t=>t?.filters&&t?.filters.hasOwnProperty(r)),bh=(e,{types:r})=>r?(r=r.split(","),e.filter(t=>r.some(a=>t.types.includes(a)))):e,yh=e=>e.sort((r,t)=>(r.title??"").localeCompare(t.title??"","en",{sensitivity:"base"})),wh=(e,{filter:r})=>e.sort((t,a)=>a.filters[r]?.order==null||isNaN(a.filters[r]?.order)?-1:t.filters[r]?.order==null||isNaN(t.filters[r]?.order)?1:t.filters[r].order-a.filters[r].order),Eh=(e,{search:r})=>r?.length?(r=r.toLowerCase(),e.filter(t=>(t.title??"").toLowerCase().includes(r))):e,$e,zt,it,br,ca,Js,It=class extends Ks{constructor(){super();S(this,ca);S(this,$e,{});S(this,zt);S(this,it);S(this,br);this.id=null,this.filter="all",this.hasMore=!1,this.resultCount=void 0,this.displayResult=!1,this.data=null,this.variant=null,this.hydrating=!1,this.hydrationReady=null,this.literalsHandlerAttached=!1,this.onUnmount=[],this.resizeHandlerDebounced=an(this.resizeHandler.bind(this),300)}resizeHandler(){this.firstChild?.variantLayout?.resizeHandler?.()}render(){return Ne` <slot></slot>
-            ${this.footer}`}checkReady(){if(!this.querySelector("aem-fragment"))return Promise.resolve(!0);let a=new Promise(i=>setTimeout(()=>i(!1),gh));return Promise.race([this.hydrationReady,a])}updated(t){if(!this.querySelector("merch-card"))return;let a=window.scrollY||document.documentElement.scrollTop,i=[...this.children].filter(l=>l.tagName==="MERCH-CARD"&&!l.failed);if(i.length===0)return;t.has("singleApp")&&this.singleApp&&i.forEach(l=>{l.updateFilters(l.name===this.singleApp)});let n=this.sort===fe.alphabetical?yh:wh,s=[xh,bh,Eh,n].reduce((l,d)=>d(l,this),i).map((l,d)=>[l,d]);if(this.resultCount=s.length,this.page&&this.limit){let l=this.page*this.limit;this.hasMore=s.length>l,s=s.filter(([,d])=>d<l)}let c=new Map(s.reverse());for(let l of c.keys())this.prepend(l);i.forEach(l=>{c.has(l)?(l.size=l.filters[this.filter]?.size,l.style.removeProperty("display"),l.requestUpdate()):(l.style.display="none",l.size=void 0)}),window.scrollTo(0,a),this.updateComplete.then(()=>{this.dispatchLiteralsChanged(),this.sidenav&&!this.literalsHandlerAttached&&(this.sidenav.addEventListener(xa,()=>{this.dispatchLiteralsChanged()}),this.literalsHandlerAttached=!0)})}dispatchLiteralsChanged(){this.dispatchEvent(new CustomEvent(me,{detail:{resultCount:this.resultCount,searchTerm:this.search,filter:this.sidenav?.filters?.selectedText}}))}buildOverrideMap(){E(this,$e,{}),this.overrides?.split(",").forEach(t=>{let[a,i]=t?.split(":");a&&i&&(v(this,$e)[a]=i)})}connectedCallback(){super.connectedCallback(),E(this,zt,qt()),v(this,zt)&&E(this,it,v(this,zt).Log.module(Zs)),E(this,br,customElements.get("merch-card")),this.buildOverrideMap(),this.init(),window.addEventListener("resize",this.resizeHandlerDebounced)}async init(){await this.hydrate(),this.sidenav=this.parentElement.querySelector("merch-sidenav"),this.filtered?(this.filter=this.filtered,this.page=1):this.startDeeplink(),this.initializePlaceholders()}disconnectedCallback(){super.disconnectedCallback(),this.stopDeeplink?.();for(let t of this.onUnmount)t();window.removeEventListener("resize",this.resizeHandlerDebounced)}initializeHeader(){let t=document.createElement("merch-card-collection-header");t.collection=this,t.classList.add(this.variant),this.parentElement.insertBefore(t,this),this.header=t,this.querySelectorAll("[placeholder]").forEach(i=>{let n=i.getAttribute("slot");this.header.placeholderKeys.includes(n)&&this.header.append(i)})}initializePlaceholders(){let t=this.data?.placeholders||{};!t.searchText&&this.data?.sidenavSettings?.searchText&&(t.searchText=this.data.sidenavSettings.searchText);for(let a of Object.keys(t)){let i=t[a],n=i.includes("<p>")?"div":"p",o=document.createElement(n);o.setAttribute("slot",a),o.setAttribute("placeholder",""),o.innerHTML=i,this.append(o)}}attachSidenav(t,a=!0){if(!t)return;a&&this.parentElement.prepend(t),this.sidenav=t,this.sidenav.variant=this.variant,this.sidenav.classList.add(this.variant),vh[this.variant]&&this.sidenav.setAttribute("autoclose",""),this.initializeHeader(),this.dispatchEvent(new CustomEvent(Ut));let i=v(this,br)?.getCollectionOptions(this.variant)?.onSidenavAttached;i&&i(this)}async hydrate(){if(this.hydrating)return!1;let t=this.querySelector("aem-fragment");if(!t)return;this.id=t.getAttribute("fragment"),this.hydrating=!0;let a;this.hydrationReady=new Promise(s=>{a=s});let i=this;function n(s){let c;return s.fields?.checkboxGroups?c=s.fields.checkboxGroups:s.fields?.tagFilters&&(c=[{title:s.fields?.tagFiltersTitle,label:"types",deeplink:"types",checkboxes:s.fields.tagFilters.map(l=>{let d=l.split("/").pop(),m=s.settings?.tagLabels?.[d]||d;return m=m.startsWith("coll-tag-filter")?d.charAt(0).toUpperCase()+d.slice(1):m,{name:d,label:m}})}]),{searchText:s.fields?.searchText,tagFilters:c,linksTitle:s.fields?.linksTitle,link:s.fields?.link,linkText:s.fields?.linkText,linkIcon:s.fields?.linkIcon}}function o(s,c){let l={cards:[],hierarchy:[],placeholders:s.placeholders,sidenavSettings:n(s)};function d(m,p){for(let h of p){if(h.fieldName==="variations")continue;if(h.fieldName==="cards"){if(l.cards.findIndex(b=>b.id===h.identifier)!==-1)continue;if(!s.references[h.identifier]?.value){v(i,it)?.error(`Reference not found for card: ${h.identifier}`);continue}l.cards.push(s.references[h.identifier].value);continue}let u=s.references[h.identifier]?.value,f=h.referencesTree,x=c[h.identifier];if(x){let b=document.querySelector(`aem-fragment[fragment="${x}"]`)?.rawData;if(b?.fields)u=b,f=b.referencesTree,s.references={...s.references,...b.references};else{v(i,it)?.error(`Override fragment ${x} not found or invalid:`);continue}}if(!u?.fields)continue;let{fields:y}=u,k={label:y.label||"",icon:y.icon,iconLight:y.iconLight,queryLabel:y.queryLabel,cards:y.cards?y.cards.map(b=>c[b]||b):[],collections:[]};y.defaultchild&&(k.defaultchild=c[y.defaultchild]||y.defaultchild),m.push(k),d(k.collections,f)}}return d(l.hierarchy,s.referencesTree),l.hierarchy.length===0&&(i.filtered="all"),l}t.addEventListener(ya,s=>{H(this,ca,Js).call(this,"Error loading AEM fragment",s.detail),this.hydrating=!1,t.remove()}),t.addEventListener(ba,async s=>{this.limit=27,this.data=o(s.detail,v(this,$e)),s.detail.variationId&&this.setAttribute("variation-id",s.detail.variationId);let{cards:c,hierarchy:l}=this.data,d=l.length===0&&s.detail.fields?.defaultchild?v(this,$e)[s.detail.fields.defaultchild]||s.detail.fields.defaultchild:null;t.cache.add(...c);let m=(u,f)=>{for(let x of u)if(x.defaultchild===f||x.collections&&m(x.collections,f))return!0;return!1};for(let u of c){let b=function(D){for(let I of D){let G=I.cards.indexOf(x);if(G===-1)continue;let W=I.queryLabel??I?.label?.toLowerCase()??"";f.filters[W]={order:G+1,size:u.fields.size},b(I.collections)}},f=document.createElement("merch-card"),x=v(this,$e)[u.id]||u.id;f.setAttribute("consonant",""),f.setAttribute("style","");let y=u.fields.tags?.filter(D=>D.startsWith("mas:types/")).map(D=>D.split("/")[1]).join(",");y&&f.setAttribute("types",y),_r(u.fields.variant)?.supportsDefaultChild&&(d?x===d:m(l,x))&&f.setAttribute("data-default-card","true"),b(l);let _=document.createElement("aem-fragment");_.setAttribute("fragment",x),f.append(_),Object.keys(f.filters).length===0&&(f.filters={all:{order:c.indexOf(u)+1,size:u.fields.size}}),this.append(f)}let p="",h=Co(c[0]?.fields?.variant);this.variant=h,h==="plans"&&(c.length===2||c.length===3)&&!c.some(u=>u.fields?.size?.includes("wide"))||(h==="segment"||h==="product")&&(c.length===2||c.length===3)?p=c.length===2?"TwoColumns":"ThreeColumns":(h==="mini-compare-chart"||h==="mini-compare-chart-mweb")&&c.length<=2&&(p=c.length===1?"":"TwoColumns"),h&&this.classList.add("merch-card-collection",h,...fh[`${h}${p}`]||[]),this.displayResult=!0,this.hydrating=!1,t.remove(),a(!0)}),await this.hydrationReady}get footer(){if(!this.filtered)return Ne`<div id="footer">
+        `;
+  }
+};
+__publicField(BannerBlade, "variantStyle", headlessRowStyle("banner-blade"));
+
+// src/variants/variants.js
+var variantRegistry = /* @__PURE__ */ new Map();
+var registerVariant = (name, variantClass, fragmentMapping = null, style = null, collectionOptions) => {
+  variantRegistry.set(name, {
+    class: variantClass,
+    fragmentMapping,
+    style,
+    collectionOptions
+  });
+};
+registerVariant(
+  "catalog",
+  Catalog,
+  CATALOG_AEM_FRAGMENT_MAPPING,
+  Catalog.variantStyle
+);
+registerVariant("image", Image);
+registerVariant("inline-heading", InlineHeading);
+registerVariant(
+  "mini-compare-chart",
+  MiniCompareChart,
+  MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+  MiniCompareChart.variantStyle
+);
+registerVariant(
+  "mini-compare-chart-mweb",
+  MiniCompareChartMweb,
+  MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING,
+  MiniCompareChartMweb.variantStyle
+);
+registerVariant(
+  "plans",
+  Plans,
+  PLANS_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-students",
+  Plans,
+  PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-education",
+  Plans,
+  PLANS_EDUCATION_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-v2",
+  PlansV2,
+  PLANS_V2_AEM_FRAGMENT_MAPPING,
+  PlansV2.variantStyle,
+  PlansV2.collectionOptions
+);
+registerVariant(
+  "pro",
+  Pro,
+  PRO_AEM_FRAGMENT_MAPPING,
+  Pro.variantStyle
+  // No collectionOptions (unlike the plans* variants): those only drive
+  // sidenav-collection behavior (header visibility, results text, wide-card
+  // resize) and pro collections render without a sidenav.
+);
+registerVariant(
+  "product",
+  Product,
+  PRODUCT_AEM_FRAGMENT_MAPPING,
+  Product.variantStyle
+);
+registerVariant(
+  "brand-concierge-product",
+  BrandConciergeProduct,
+  BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING,
+  BrandConciergeProduct.variantStyle
+);
+registerVariant(
+  "segment",
+  Segment,
+  SEGMENT_AEM_FRAGMENT_MAPPING,
+  Segment.variantStyle
+);
+registerVariant("media", Media2, MEDIA_AEM_FRAGMENT_MAPPING, Media2.variantStyle);
+registerVariant(
+  "headless",
+  Headless,
+  HEADLESS_AEM_FRAGMENT_MAPPING,
+  Headless.variantStyle
+);
+registerVariant(
+  "special-offers",
+  SpecialOffer,
+  SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
+  SpecialOffer.variantStyle
+);
+registerVariant(
+  "simplified-pricing-express",
+  SimplifiedPricingExpress,
+  SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+  SimplifiedPricingExpress.variantStyle
+);
+registerVariant(
+  "full-pricing-express",
+  FullPricingExpress,
+  FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+  FullPricingExpress.variantStyle
+);
+registerVariant("mini", Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
+registerVariant("image", Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
+registerVariant(
+  "compare-chart-column",
+  CompareChartColumn,
+  COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+  CompareChartColumn.variantStyle
+);
+registerVariant(
+  "fries",
+  FriesCard,
+  FRIES_AEM_FRAGMENT_MAPPING,
+  FriesCard.variantStyle
+);
+registerVariant(
+  "marquee",
+  Marquee,
+  MARQUEE_AEM_FRAGMENT_MAPPING,
+  Marquee.variantStyle
+);
+registerVariant("faq", Faq, FAQ_AEM_FRAGMENT_MAPPING, Faq.variantStyle);
+registerVariant(
+  "banner-blade",
+  BannerBlade,
+  BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+  BannerBlade.variantStyle
+);
+function getFragmentMapping(variant) {
+  return variantRegistry.get(variant)?.fragmentMapping;
+}
+
+// ../../../../node_modules/@dexter/tacocat-core/src/utilities.js
+var namespace = "tacocat.js";
+var equalsCaseInsensitive = (value1, value2) => String(value1 ?? "").toLowerCase() == String(value2 ?? "").toLowerCase();
+var escapeHtml = (html25) => `${html25 ?? ""}`.replace(
+  /[&<>'"]/g,
+  (tag) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  })[tag] ?? tag
+) ?? "";
+function getParameter(key, defaults = {}, { metadata = true, search = true, storage = true } = {}) {
+  let param;
+  if (search && param == null) {
+    const params = new URLSearchParams(window.location.search);
+    const searchKey = isString(search) ? search : key;
+    param = params.get(searchKey);
+  }
+  if (storage && param == null) {
+    const storageKey = isString(storage) ? storage : key;
+    param = window.sessionStorage.getItem(storageKey) ?? window.localStorage.getItem(storageKey);
+  }
+  if (metadata && param == null) {
+    const metadataKey = toKebabCase(isString(metadata) ? metadata : key);
+    const element = document.documentElement.querySelector(
+      `meta[name="${metadataKey}"]`
+    );
+    param = element?.content;
+  }
+  return param == null ? defaults[key] : param;
+}
+var isBoolean = (value) => typeof value === "boolean";
+var isFunction = (value) => typeof value === "function";
+var isNumber = (value) => typeof value === "number";
+var isObject = (value) => value != null && typeof value === "object";
+var isString = (value) => typeof value === "string";
+var isNotEmptyString = (value) => isString(value) && value;
+var isPositiveFiniteNumber = (value) => isNumber(value) && Number.isFinite(value) && value > 0;
+function omitProperties(target, test = (value) => value == null || value === "") {
+  if (target != null) {
+    Object.entries(target).forEach(([key, value]) => {
+      if (test(value)) delete target[key];
+    });
+  }
+  return target;
+}
+function toBoolean(value, defaultValue) {
+  if (isBoolean(value)) return value;
+  const string = String(value);
+  if (string === "1" || string === "true") return true;
+  if (string === "0" || string === "false") return false;
+  return defaultValue;
+}
+function toEnumeration(value, enumeration, defaultValue) {
+  const values = Object.values(enumeration);
+  return values.find((candidate) => equalsCaseInsensitive(candidate, value)) ?? defaultValue ?? values[0];
+}
+function toKebabCase(value = "") {
+  return String(value).replace(
+    /(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,
+    (_, p1, p2) => `${p1}-${p2}`
+  ).replace(/\W+/gu, "-").toLowerCase();
+}
+function toPositiveFiniteInteger(value, defaultValue = 1) {
+  if (!isNumber(value)) {
+    value = Number.parseInt(value, 10);
+  }
+  if (!Number.isNaN(value) && value > 0 && Number.isFinite(value)) {
+    return value;
+  }
+  return defaultValue;
+}
+
+// ../../../../node_modules/@dexter/tacocat-core/src/log.js
+var epoch = Date.now();
+var suffix = () => `(+${Date.now() - epoch}ms)`;
+var loggers = /* @__PURE__ */ new Set();
+var isDebugEnabled = toBoolean(
+  getParameter("tacocat.debug", {}, { metadata: false }),
+  false
+);
+function createLog(source) {
+  const prefix = `[${namespace}/${source}]`;
+  const assert = (condition, message, ...args) => {
+    if (!condition) {
+      error(message, ...args);
+      return false;
+    }
+    return true;
+  };
+  const debug = isDebugEnabled ? (message, ...args) => {
+    console.debug(`${prefix} ${message}`, ...args, suffix());
+  } : () => {
+  };
+  const error = (message, ...args) => {
+    const prefixedMessage = `${prefix} ${message}`;
+    loggers.forEach(
+      ([errorLogger]) => errorLogger(prefixedMessage, ...args)
+    );
+  };
+  const warn = (message, ...args) => {
+    const prefixedMessage = `${prefix} ${message}`;
+    loggers.forEach(
+      ([, warnLogger]) => warnLogger(prefixedMessage, ...args)
+    );
+  };
+  return { assert, debug, error, warn };
+}
+function registerLogger(errorLogger, warnLogger) {
+  const logger = [errorLogger, warnLogger];
+  loggers.add(logger);
+  return () => {
+    loggers.delete(logger);
+  };
+}
+registerLogger(
+  (message, ...args) => {
+    console.error(message, ...args, suffix());
+  },
+  (message, ...args) => {
+    console.warn(message, ...args, suffix());
+  }
+);
+
+// ../../../../node_modules/@dexter/tacocat-core/src/promotion.js
+var NO_PROMO_TEXT = "no promo";
+var CLASS = "promo-tag";
+var PROMO_VARIANT = "yellow";
+var NOPROMO_VARIANT = "neutral";
+var fullPromoText = (promo, old, isOverriden) => {
+  const promoText = (promo2) => promo2 || NO_PROMO_TEXT;
+  const suffix2 = isOverriden ? ` (was "${promoText(old)}")` : "";
+  return `${promoText(promo)}${suffix2}`;
+};
+var PROMO_CONTEXT_CANCEL_VALUE = "cancel-context";
+var computePromoStatus = (overriden, configured) => {
+  const localPromoUnset = overriden === PROMO_CONTEXT_CANCEL_VALUE;
+  const localPromoSet = !localPromoUnset && overriden?.length > 0;
+  const isOverriden = (localPromoSet || localPromoUnset) && //in case configured equals override, we consider no override
+  (configured && configured != overriden || //in case it does not have been configured, if overriden to cancel,
+  // we consider no override
+  !configured && !localPromoUnset);
+  const isPromo = isOverriden && localPromoSet || !isOverriden && !!configured;
+  const effectivePromoCode = isPromo ? overriden || configured : void 0;
+  return {
+    effectivePromoCode,
+    overridenPromoCode: overriden,
+    className: isPromo ? CLASS : `${CLASS} no-promo`,
+    text: fullPromoText(effectivePromoCode, configured, isOverriden),
+    variant: isPromo ? PROMO_VARIANT : NOPROMO_VARIANT,
+    isOverriden
+  };
+};
+
+// ../../../../node_modules/@pandora/data-models-odm/esm/businessDimensions.js
+var OfferType;
+(function(OfferType2) {
+  OfferType2["BASE"] = "BASE";
+  OfferType2["TRIAL"] = "TRIAL";
+  OfferType2["PROMOTION"] = "PROMOTION";
+})(OfferType || (OfferType = {}));
+var Commitment2;
+(function(Commitment3) {
+  Commitment3["MONTH"] = "MONTH";
+  Commitment3["YEAR"] = "YEAR";
+  Commitment3["TWO_YEARS"] = "TWO_YEARS";
+  Commitment3["THREE_YEARS"] = "THREE_YEARS";
+  Commitment3["PERPETUAL"] = "PERPETUAL";
+  Commitment3["TERM_LICENSE"] = "TERM_LICENSE";
+  Commitment3["ACCESS_PASS"] = "ACCESS_PASS";
+  Commitment3["THREE_MONTHS"] = "THREE_MONTHS";
+  Commitment3["SIX_MONTHS"] = "SIX_MONTHS";
+})(Commitment2 || (Commitment2 = {}));
+var Term2;
+(function(Term3) {
+  Term3["ANNUAL"] = "ANNUAL";
+  Term3["MONTHLY"] = "MONTHLY";
+  Term3["TWO_YEARS"] = "TWO_YEARS";
+  Term3["THREE_YEARS"] = "THREE_YEARS";
+  Term3["P1D"] = "P1D";
+  Term3["P1Y"] = "P1Y";
+  Term3["P3Y"] = "P3Y";
+  Term3["P10Y"] = "P10Y";
+  Term3["P15Y"] = "P15Y";
+  Term3["P3D"] = "P3D";
+  Term3["P7D"] = "P7D";
+  Term3["P30D"] = "P30D";
+  Term3["HALF_YEARLY"] = "HALF_YEARLY";
+  Term3["QUARTERLY"] = "QUARTERLY";
+})(Term2 || (Term2 = {}));
+var CustomerSegment;
+(function(CustomerSegment2) {
+  CustomerSegment2["INDIVIDUAL"] = "INDIVIDUAL";
+  CustomerSegment2["TEAM"] = "TEAM";
+  CustomerSegment2["ENTERPRISE"] = "ENTERPRISE";
+})(CustomerSegment || (CustomerSegment = {}));
+var MarketSegment;
+(function(MarketSegment2) {
+  MarketSegment2["COM"] = "COM";
+  MarketSegment2["EDU"] = "EDU";
+  MarketSegment2["GOV"] = "GOV";
+})(MarketSegment || (MarketSegment = {}));
+var SalesChannel;
+(function(SalesChannel2) {
+  SalesChannel2["DIRECT"] = "DIRECT";
+  SalesChannel2["INDIRECT"] = "INDIRECT";
+})(SalesChannel || (SalesChannel = {}));
+var BuyingProgram;
+(function(BuyingProgram2) {
+  BuyingProgram2["ENTERPRISE_PRODUCT"] = "ENTERPRISE_PRODUCT";
+  BuyingProgram2["ETLA"] = "ETLA";
+  BuyingProgram2["RETAIL"] = "RETAIL";
+  BuyingProgram2["VIP"] = "VIP";
+  BuyingProgram2["VIPMP"] = "VIPMP";
+  BuyingProgram2["FREE"] = "FREE";
+})(BuyingProgram || (BuyingProgram = {}));
+
+// ../../../../node_modules/@dexter/tacocat-core/src/wcsUtils.js
+var ABM = "ABM";
+var PUF = "PUF";
+var M2M = "M2M";
+var PERPETUAL = "PERPETUAL";
+var P3Y = "P3Y";
+var TAX_INCLUSIVE_DETAILS = "TAX_INCLUSIVE_DETAILS";
+var TAX_EXCLUSIVE = "TAX_EXCLUSIVE";
+var PlanType = {
+  ABM,
+  PUF,
+  M2M,
+  PERPETUAL,
+  P3Y
+};
+var planTypes = {
+  [ABM]: { commitment: Commitment2.YEAR, term: Term2.MONTHLY },
+  [PUF]: { commitment: Commitment2.YEAR, term: Term2.ANNUAL },
+  [M2M]: { commitment: Commitment2.MONTH, term: Term2.MONTHLY },
+  [PERPETUAL]: { commitment: Commitment2.PERPETUAL, term: void 0 },
+  [P3Y]: { commitment: Commitment2.THREE_MONTHS, term: Term2.P3Y }
+};
+var errorValueNotOffer = "Value is not an offer";
+var applyPlanType = (offer) => {
+  if (typeof offer !== "object") return errorValueNotOffer;
+  const { commitment, term } = offer;
+  const planType = getPlanType(commitment, term);
+  return { ...offer, planType };
+};
+var getPlanType = (commitment, term) => {
+  switch (commitment) {
+    case void 0:
+      return errorValueNotOffer;
+    case "":
+      return "";
+    case Commitment2.YEAR:
+      return term === Term2.MONTHLY ? ABM : term === Term2.ANNUAL ? PUF : "";
+    case Commitment2.MONTH:
+      return term === Term2.MONTHLY ? M2M : "";
+    case Commitment2.PERPETUAL:
+      return PERPETUAL;
+    case Commitment2.TERM_LICENSE:
+      return term === Term2.P3Y ? P3Y : "";
+    default:
+      return "";
+  }
+};
+function forceTaxExclusivePrice(offer) {
+  const { priceDetails } = offer;
+  const {
+    price: price2,
+    priceWithoutDiscount,
+    priceWithoutTax,
+    priceWithoutDiscountAndTax,
+    taxDisplay
+  } = priceDetails;
+  if (taxDisplay !== TAX_INCLUSIVE_DETAILS) return offer;
+  const amendedOffer = {
+    ...offer,
+    priceDetails: {
+      ...priceDetails,
+      price: priceWithoutTax ?? price2,
+      priceWithoutDiscount: priceWithoutDiscountAndTax ?? priceWithoutDiscount,
+      taxDisplay: TAX_EXCLUSIVE
+    }
+  };
+  if (amendedOffer.offerType === "TRIAL" && amendedOffer.priceDetails.price === 0) {
+    amendedOffer.priceDetails.price = amendedOffer.priceDetails.priceWithoutDiscount;
+  }
+  return amendedOffer;
+}
+
+// src/lana.js
+var config = {
+  clientId: "merch-at-scale",
+  delimiter: "\xB6",
+  ignoredProperties: ["analytics", "literals", "element"],
+  serializableTypes: ["Array", "Object"],
+  sampleRate: 1,
+  severity: "e",
+  tags: "acom",
+  isProdDomain: false
+};
+var PAGE_LIMIT = 1e3;
+function isError(value) {
+  return value instanceof Error || typeof value?.originatingRequest === "string";
+}
+function serializeValue(value) {
+  if (value == null) return void 0;
+  const type = typeof value;
+  if (type === "function") {
+    return value.name ? `function ${value.name}` : "function";
+  }
+  if (type === "object") {
+    if (value instanceof Error) return value.message;
+    if (typeof value.originatingRequest === "string") {
+      const { message, originatingRequest, status } = value;
+      return [message, status, originatingRequest].filter(Boolean).join(" ");
+    }
+    const objectType = value[Symbol.toStringTag] ?? Object.getPrototypeOf(value).constructor.name;
+    if (!config.serializableTypes.includes(objectType)) return objectType;
+  }
+  return value;
+}
+function serializeParam(key, value) {
+  if (config.ignoredProperties.includes(key)) return void 0;
+  return serializeValue(value);
+}
+var lanaAppender = {
+  append(entry) {
+    if (entry.level !== "error") return;
+    const { message, params } = entry;
+    const errors = [];
+    const values = [];
+    let payload = message;
+    params.forEach((param) => {
+      if (param != null) {
+        (isError(param) ? errors : values).push(param);
+      }
+    });
+    if (errors.length) {
+      payload += ` ${errors.map(serializeValue).join(" ")}`;
+    }
+    const { pathname, search } = window.location;
+    let page = `${config.delimiter}page=${pathname}${search}`;
+    if (page.length > PAGE_LIMIT) {
+      page = `${page.slice(0, PAGE_LIMIT)}<trunc>`;
+    }
+    payload += page;
+    if (values.length) {
+      payload += `${config.delimiter}facts=`;
+      payload += JSON.stringify(values, serializeParam);
+    }
+    window.lana?.log(payload, config);
+  }
+};
+function updateConfig(newConfig) {
+  Object.assign(
+    config,
+    Object.fromEntries(
+      Object.entries(newConfig).filter(
+        ([key, value]) => key in config && value !== "" && value !== null && value !== void 0 && !Number.isNaN(value)
+        // Correctly exclude NaN
+      )
+    )
+  );
+}
+
+// src/log.js
+var HostEnv = {
+  LOCAL: "local",
+  PROD: "prod",
+  STAGE: "stage"
+};
+var LogLevels = {
+  DEBUG: "debug",
+  ERROR: "error",
+  INFO: "info",
+  WARN: "warn"
+};
+var appenders = /* @__PURE__ */ new Set();
+var filters = /* @__PURE__ */ new Set();
+var loggerIndexes = /* @__PURE__ */ new Map();
+var consoleAppender = {
+  append({ level, message, params, timestamp, source }) {
+    console[level](
+      `${timestamp}ms [${source}] %c${message}`,
+      "font-weight: bold;",
+      ...params
+    );
+  }
+};
+var debugFilter = { filter: ({ level }) => level !== LogLevels.DEBUG };
+var quietFilter = { filter: () => false };
+function createEntry(level, message, namespace2, params, source) {
+  return {
+    level,
+    message,
+    namespace: namespace2,
+    get params() {
+      if (params.length === 1 && isFunction(params[0])) {
+        params = params[0]();
+        if (!Array.isArray(params)) params = [params];
+      }
+      return params;
+    },
+    source,
+    timestamp: performance.now().toFixed(3)
+  };
+}
+function handleEntry(entry) {
+  if ([...filters].every((filter) => filter(entry))) {
+    appenders.forEach((appender) => appender(entry));
+  }
+}
+function createLog2(namespace2) {
+  const index = (loggerIndexes.get(namespace2) ?? 0) + 1;
+  loggerIndexes.set(namespace2, index);
+  const id = `${namespace2} #${index}`;
+  const log3 = {
+    id,
+    namespace: namespace2,
+    module: (name) => createLog2(`${log3.namespace}/${name}`),
+    updateConfig
+  };
+  Object.values(LogLevels).forEach((level) => {
+    log3[level] = (message, ...params) => handleEntry(createEntry(level, message, namespace2, params, id));
+  });
+  return Object.seal(log3);
+}
+function use(...plugins) {
+  plugins.forEach((plugin) => {
+    const { append, filter } = plugin;
+    if (isFunction(filter)) filters.add(filter);
+    if (isFunction(append)) appenders.add(append);
+  });
+}
+function init(env = {}) {
+  const { name } = env;
+  const debug = toBoolean(
+    getParameter("commerce.debug", { search: true, storage: true }),
+    name === HostEnv.LOCAL
+  );
+  if (debug) use(consoleAppender);
+  else use(debugFilter);
+  if (name === HostEnv.PROD) use(lanaAppender);
+  return Log;
+}
+function reset() {
+  appenders.clear();
+  filters.clear();
+}
+var Log = {
+  ...createLog2(LOG_NAMESPACE),
+  Level: LogLevels,
+  Plugins: { consoleAppender, debugFilter, quietFilter, lanaAppender },
+  init,
+  reset,
+  use
+};
+
+// src/utilities.js
+var MAS_COMMERCE_SERVICE2 = "mas-commerce-service";
+var log = Log.module("utilities");
+var FETCH_INFO_HEADERS = {
+  requestId: HEADER_X_REQUEST_ID,
+  etag: "Etag",
+  lastModified: "Last-Modified",
+  serverTiming: "server-timing"
+};
+function selectOffers(offers, { country, forceTaxExclusive }) {
+  let selected;
+  if (offers.length < 2) selected = offers;
+  else {
+    const language = country === "GB" ? "EN" : "MULT";
+    offers.sort(
+      (a, b) => a.language === language ? -1 : b.language === language ? 1 : 0
+    );
+    offers.sort((a, b) => {
+      if (!a.term && b.term) return -1;
+      if (a.term && !b.term) return 1;
+      return 0;
+    });
+    selected = [offers[0]];
+  }
+  if (forceTaxExclusive) {
+    selected = selected.map(forceTaxExclusivePrice);
+  }
+  return selected;
+}
+var sumField = (offers, getter) => {
+  const sum = offers.reduce((acc, offer) => acc + (getter(offer) || 0), 0);
+  return sum > 0 ? Math.round(sum * 100) / 100 : void 0;
+};
+function sumOffers(offers) {
+  if (!offers || offers.length === 0) return null;
+  if (offers.length === 1) return offers[0];
+  const [firstOffer, ...restOffers] = offers;
+  for (const offer of restOffers) {
+    const checks = [
+      ["commitment", "commitment types"],
+      ["term", "terms"],
+      ["priceDetails.formatString", "currency formats"]
+    ];
+    for (const [path, label] of checks) {
+      const expected = path.includes(".") ? firstOffer.priceDetails?.formatString : firstOffer[path];
+      const actual = path.includes(".") ? offer.priceDetails?.formatString : offer[path];
+      if (actual !== expected) {
+        log.warn(
+          `Offers have different ${label}, summing may produce unexpected results`,
+          { expected, actual }
+        );
+      }
+    }
+  }
+  const priceFields = [
+    ["price", (o) => o.priceDetails?.price],
+    ["priceWithoutDiscount", (o) => o.priceDetails?.priceWithoutDiscount],
+    ["priceWithoutTax", (o) => o.priceDetails?.priceWithoutTax],
+    [
+      "priceWithoutDiscountAndTax",
+      (o) => o.priceDetails?.priceWithoutDiscountAndTax
+    ]
+  ];
+  const summedPrices = {};
+  for (const [key, getter] of priceFields) {
+    const sum = sumField(offers, getter);
+    if (sum !== void 0) summedPrices[key] = sum;
+  }
+  const hasAnnualized = offers.some((o) => o.priceDetails?.annualized);
+  let annualized;
+  if (hasAnnualized) {
+    const annualizedFields = [
+      [
+        "annualizedPrice",
+        (o) => o.priceDetails?.annualized?.annualizedPrice
+      ],
+      [
+        "annualizedPriceWithoutTax",
+        (o) => o.priceDetails?.annualized?.annualizedPriceWithoutTax
+      ],
+      [
+        "annualizedPriceWithoutDiscount",
+        (o) => o.priceDetails?.annualized?.annualizedPriceWithoutDiscount
+      ],
+      [
+        "annualizedPriceWithoutDiscountAndTax",
+        (o) => o.priceDetails?.annualized?.annualizedPriceWithoutDiscountAndTax
+      ]
+    ];
+    annualized = {};
+    for (const [key, getter] of annualizedFields) {
+      const sum = sumField(offers, getter);
+      if (sum !== void 0) annualized[key] = sum;
+    }
+  }
+  return {
+    ...firstOffer,
+    offerSelectorIds: offers.flatMap((o) => o.offerSelectorIds || []),
+    priceDetails: {
+      ...firstOffer.priceDetails,
+      ...summedPrices,
+      ...annualized && { annualized }
+    }
+  };
+}
+var setImmediate = (getConfig) => window.setTimeout(getConfig);
+function toQuantity(value, defaultValue = 1) {
+  if (value == null) return [defaultValue];
+  let quantity = (Array.isArray(value) ? value : String(value).split(",")).map(toPositiveFiniteInteger).filter(isPositiveFiniteNumber);
+  if (!quantity.length) quantity = [defaultValue];
+  return quantity;
+}
+function toOfferSelectorIds(value) {
+  if (value == null) return [];
+  const ids = Array.isArray(value) ? value : String(value).split(",");
+  return ids.filter(isNotEmptyString);
+}
+function getService2() {
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE2)?.[0];
+}
+function getLogHeaders(response) {
+  const logHeaders = {};
+  if (!response?.headers) return logHeaders;
+  const headers = response.headers;
+  for (const [key, value] of Object.entries(FETCH_INFO_HEADERS)) {
+    let headerValue = headers.get(value);
+    if (headerValue) {
+      headerValue = headerValue.replace(/[,;]/g, "|");
+      headerValue = headerValue.replace(/[| ]+/g, "|");
+      logHeaders[key] = headerValue;
+    }
+  }
+  return logHeaders;
+}
+
+// src/mas-error.js
+var MasError = class _MasError extends Error {
+  /**
+   * Creates a new MasError instance
+   * @param {string} message - The error message
+   * @param {Object} context - Additional context information about the error
+   * @param {unknown} cause - The original error that caused this error
+   */
+  constructor(message, context, cause) {
+    super(message, { cause });
+    this.name = "MasError";
+    if (context.response) {
+      const requestId = context.response.headers?.get(HEADER_X_REQUEST_ID);
+      if (requestId) {
+        context.requestId = requestId;
+      }
+      if (context.response.status) {
+        context.status = context.response.status;
+        context.statusText = context.response.statusText;
+      }
+      if (context.response.url) {
+        context.url = context.response.url;
+      }
+    }
+    delete context.response;
+    this.context = context;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, _MasError);
+    }
+  }
+  /**
+   * Returns a string representation of the error including context
+   * @returns {string} String representation of the error
+   */
+  toString() {
+    const contextStr = Object.entries(this.context || {}).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ");
+    let errorString = `${this.name}: ${this.message}`;
+    if (contextStr) {
+      errorString += ` (${contextStr})`;
+    }
+    if (this.cause) {
+      errorString += `
+Caused by: ${this.cause}`;
+    }
+    return errorString;
+  }
+};
+
+// src/mas-element.js
+var StateClassName = {
+  [STATE_FAILED]: CLASS_NAME_FAILED,
+  [STATE_PENDING]: CLASS_NAME_PENDING,
+  [STATE_RESOLVED]: CLASS_NAME_RESOLVED
+};
+var StateEventType = {
+  [STATE_FAILED]: EVENT_TYPE_FAILED,
+  [STATE_RESOLVED]: EVENT_TYPE_RESOLVED
+};
+var _service;
+var MasElement = class {
+  constructor(wrapperElement) {
+    __privateAdd(this, _service);
+    __publicField(this, "changes", /* @__PURE__ */ new Map());
+    __publicField(this, "connected", false);
+    __publicField(this, "error");
+    __publicField(this, "log");
+    __publicField(this, "options");
+    __publicField(this, "promises", []);
+    __publicField(this, "state", STATE_PENDING);
+    __publicField(this, "timer", null);
+    __publicField(this, "value");
+    __publicField(this, "version", 0);
+    __publicField(this, "wrapperElement");
+    this.wrapperElement = wrapperElement;
+    this.log = Log.module("mas-element");
+  }
+  update() {
+    [STATE_FAILED, STATE_PENDING, STATE_RESOLVED].forEach((state) => {
+      this.wrapperElement.classList.toggle(
+        StateClassName[state],
+        state === this.state
+      );
+    });
+  }
+  notify() {
+    if (this.state === STATE_RESOLVED || this.state === STATE_FAILED) {
+      if (this.state === STATE_RESOLVED) {
+        this.promises.forEach(
+          ({ resolve }) => resolve(this.wrapperElement)
+        );
+      } else if (this.state === STATE_FAILED) {
+        this.promises.forEach(({ reject }) => reject(this.error));
+      }
+      this.promises = [];
+    }
+    let detail = this.error;
+    if (this.error instanceof MasError) {
+      detail = {
+        message: this.error.message,
+        ...this.error.context
+      };
+    }
+    this.wrapperElement.dispatchEvent(
+      new CustomEvent(StateEventType[this.state], {
+        bubbles: true,
+        composed: true,
+        detail
+      })
+    );
+  }
+  /**
+   * Adds name/value of the updated attribute to the `changes` map,
+   * requests placeholder update.
+   */
+  attributeChangedCallback(name, _, value) {
+    this.changes.set(name, value);
+    this.requestUpdate();
+  }
+  /**
+   * Triggers when this component is connected to DOM.
+   * Subscribes to the `ready` event of the commerce service,
+   * requests placeholder update.
+   */
+  connectedCallback() {
+    __privateSet(this, _service, getService2());
+    this.requestUpdate(true);
+  }
+  /**
+   * Triggers when this component is disconnected from DOM.
+   * Runs and then erases all disposers.
+   */
+  disconnectedCallback() {
+    if (this.connected) {
+      this.connected = false;
+      this.log?.debug("Disconnected:", { element: this.wrapperElement });
+    }
+  }
+  /**
+   * Returns a promise resolving to this placeholder
+   * when its value is resolved or rejected.
+   * If placeholder is not pending for completion of an async operation
+   * the returned promise is already resolved or rejected.
+   */
+  onceSettled() {
+    const { error, promises, state } = this;
+    if (STATE_RESOLVED === state)
+      return Promise.resolve(this.wrapperElement);
+    if (STATE_FAILED === state) return Promise.reject(error);
+    return new Promise((resolve, reject) => {
+      promises.push({ resolve, reject });
+    });
+  }
+  /**
+   * Sets component state to "RESOLVED".
+   * Updates its class list and stored value, notifies observers and fires "RESOLVED" event.
+   */
+  toggleResolved(version, value, options) {
+    if (version !== this.version) return false;
+    if (options !== void 0) this.options = options;
+    this.state = STATE_RESOLVED;
+    this.value = value;
+    this.update();
+    this.log?.debug("Resolved:", { element: this.wrapperElement, value });
+    setImmediate(() => this.notify());
+    return true;
+  }
+  /**
+   * Sets component state to "FAILED".
+   * Updates its class list and stored error, notifies observers and fires "FAILED" event.
+   */
+  toggleFailed(version, error, options) {
+    if (version !== this.version) return false;
+    if (options !== void 0) this.options = options;
+    this.error = error;
+    this.state = STATE_FAILED;
+    this.update();
+    const wcName = this.wrapperElement.getAttribute("is");
+    this.log?.error(`${wcName}: Failed to render: ${error.message}`, {
+      element: this.wrapperElement,
+      ...error.context,
+      ...__privateGet(this, _service)?.duration
+    });
+    setImmediate(() => this.notify());
+    return true;
+  }
+  /**
+   * Sets component state to "PENDING".
+   * Increments its version, updates CSS classes, notifies observers and fires "PENDING" event.
+   */
+  togglePending(options) {
+    this.version++;
+    if (options) this.options = options;
+    this.state = STATE_PENDING;
+    this.update();
+    this.log?.debug("Pending:", {
+      osi: this.wrapperElement?.options?.wcsOsi
+    });
+    return this.version;
+  }
+  /**
+   * Queues task to update this component.
+   * Skips rendering if update is not forced and no changes were accumulated since the previous update.
+   * Calls `render` method to perform the update.
+   * Restores previous state of the component if the `render` method returned `false`.
+   */
+  requestUpdate(force = false) {
+    if (!this.wrapperElement.isConnected || !getService2()) return;
+    if (this.timer) return;
+    const { error, options, state, value, version } = this;
+    this.state = STATE_PENDING;
+    this.timer = setImmediate(async () => {
+      this.timer = null;
+      let changes = null;
+      if (this.changes.size) {
+        changes = Object.fromEntries(this.changes.entries());
+        this.changes.clear();
+      }
+      if (this.connected) {
+        this.log?.debug("Updated:", {
+          element: this.wrapperElement,
+          changes
+        });
+      } else {
+        this.connected = true;
+        this.log?.debug("Connected:", {
+          element: this.wrapperElement,
+          changes
+        });
+      }
+      if (changes || force) {
+        try {
+          const result = await this.wrapperElement.render?.();
+          if (result === false && this.state === STATE_PENDING && this.version === version) {
+            this.state = state;
+            this.error = error;
+            this.value = value;
+            this.update();
+            this.notify();
+          }
+        } catch (error2) {
+          this.toggleFailed(this.version, error2, options);
+        }
+      }
+    });
+  }
+};
+_service = new WeakMap();
+function cleanupDataset(dataset = {}) {
+  Object.entries(dataset).forEach(([key, value]) => {
+    const remove = value == null || value === "" || value?.length === 0;
+    if (remove) delete dataset[key];
+  });
+  return dataset;
+}
+function createMasElement(Class, dataset = {}) {
+  const { tag, is } = Class;
+  const element = document.createElement(tag, { is });
+  element.setAttribute("is", is);
+  Object.assign(element.dataset, cleanupDataset(dataset));
+  return element;
+}
+function updateMasElement(element, dataset = {}) {
+  if (element instanceof HTMLElement) {
+    Object.assign(element.dataset, cleanupDataset(dataset));
+    return element;
+  }
+  return null;
+}
+
+// src/upt-link.js
+function getPromoTermsUrl(env) {
+  const host = env === "PRODUCTION" ? "www.adobe.com" : "www.stage.adobe.com";
+  return `https://${host}/offers/promo-terms.html`;
+}
+var _service2;
+var _UptLink = class _UptLink extends HTMLAnchorElement {
+  constructor() {
+    super();
+    __publicField(this, "masElement", new MasElement(this));
+    __privateAdd(this, _service2);
+    this.setAttribute("is", _UptLink.is);
+  }
+  get isUptLink() {
+    return true;
+  }
+  /**
+   * @param {string} osi
+   * @param {string} promotionCode
+   */
+  initializeWcsData(osi, promotionCode) {
+    this.setAttribute("data-wcs-osi", osi);
+    if (promotionCode)
+      this.setAttribute("data-promotion-code", promotionCode);
+  }
+  attributeChangedCallback(name, oldValue, value) {
+    this.masElement.attributeChangedCallback(name, oldValue, value);
+  }
+  connectedCallback() {
+    this.masElement.connectedCallback();
+    __privateSet(this, _service2, getService());
+    if (__privateGet(this, _service2)) {
+      this.log = __privateGet(this, _service2).log.module("upt-link");
+    }
+  }
+  disconnectedCallback() {
+    this.masElement.disconnectedCallback();
+    __privateSet(this, _service2, void 0);
+  }
+  requestUpdate(force = false) {
+    this.masElement.requestUpdate(force);
+  }
+  onceSettled() {
+    return this.masElement.onceSettled();
+  }
+  async render() {
+    const service = getService();
+    if (!service) return false;
+    if (!this.dataset.imsCountry) {
+      service.imsCountryPromise.then((countryCode) => {
+        if (countryCode) this.dataset.imsCountry = countryCode;
+      });
+    }
+    const options = service.collectCheckoutOptions({}, this);
+    if (!options.wcsOsi) {
+      this.log.error(`Missing 'data-wcs-osi' attribute on upt-link.`);
+      return false;
+    }
+    const version = this.masElement.togglePending(options);
+    const promises = service.resolveOfferSelectors(options);
+    try {
+      const [[offer]] = await Promise.all(promises);
+      const { country, language, env } = options;
+      let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
+      const promotionCode = this.getAttribute("data-promotion-code");
+      if (promotionCode)
+        params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
+      this.href = `${getPromoTermsUrl(env)}?${params}`;
+      this.masElement.toggleResolved(version, offer, options);
+    } catch (error) {
+      const masError = new Error(
+        `Could not resolve offer selectors for id: ${options.wcsOsi}.`,
+        error.message
+      );
+      this.masElement.toggleFailed(version, masError, options);
+      return false;
+    }
+  }
+  /**
+   * @param {HTMLElement} element
+   */
+  static createFrom(element) {
+    const uptLink = new _UptLink();
+    for (const attribute of element.attributes) {
+      if (attribute.name === "is") continue;
+      if (attribute.name === "class" && attribute.value.includes("upt-link"))
+        uptLink.setAttribute(
+          "class",
+          attribute.value.replace("upt-link", "").trim()
+        );
+      else uptLink.setAttribute(attribute.name, attribute.value);
+    }
+    uptLink.innerHTML = element.innerHTML;
+    uptLink.setAttribute("tabindex", 0);
+    return uptLink;
+  }
+};
+_service2 = new WeakMap();
+__publicField(_UptLink, "is", "upt-link");
+__publicField(_UptLink, "tag", "a");
+__publicField(_UptLink, "observedAttributes", [
+  "data-wcs-osi",
+  "data-promotion-code",
+  "data-ims-country"
+]);
+var UptLink = _UptLink;
+if (!window.customElements.get(UptLink.is)) {
+  window.customElements.define(UptLink.is, UptLink, {
+    extends: UptLink.tag
+  });
+}
+
+// src/hydrate.js
+function normalizeVariant(variant) {
+  if (!variant) return variant;
+  if (variant === "bizpro") variant = "pro";
+  if (variant === "pro") return "plans";
+  if (variant.startsWith("plans")) return "plans";
+  return variant;
+}
+
+// src/buildCheckoutUrl.js
+var AF_DRAFT_LANDSCAPE = "p_draft_landscape";
+var UCV3_PREFIX = "/store/";
+var PARAMETERS = /* @__PURE__ */ new Map([
+  ["countrySpecific", "cs"],
+  ["customerSegment", "cs"],
+  ["quantity", "q"],
+  ["authCode", "code"],
+  ["checkoutPromoCode", "apc"],
+  ["rurl", "rUrl"],
+  ["curl", "cUrl"],
+  ["ctxrturl", "ctxRtUrl"],
+  ["country", "co"],
+  ["language", "lang"],
+  ["clientId", "cli"],
+  ["context", "ctx"],
+  ["productArrangementCode", "pa"],
+  ["addonProductArrangementCode", "ao"],
+  ["offerType", "ot"],
+  ["marketSegment", "ms"]
+]);
+var ALLOWED_KEYS = /* @__PURE__ */ new Set([
+  "af",
+  "ai",
+  "ao",
+  "apc",
+  "appctxid",
+  "cli",
+  "co",
+  "cs",
+  "csm",
+  "ctx",
+  "ctxRtUrl",
+  "DCWATC",
+  "dp",
+  // Enable digital payments for iframe context
+  "fr",
+  // represents the commerce app redirecting to UC
+  "gsp",
+  "ijt",
+  "lang",
+  "lo",
+  "mal",
+  "ms",
+  "mv",
+  "mv2",
+  "nglwfdata",
+  "ot",
+  "otac",
+  "pa",
+  "pcid",
+  // Unified Paywall configuration ID for analytics
+  "promoid",
+  "q",
+  "rf",
+  "sc",
+  "scl",
+  "sdid",
+  "sid",
+  // x-adobe-clientsession
+  "spint",
+  "svar",
+  "th",
+  "thm",
+  "trackingid",
+  "usid",
+  "workflowid",
+  "context.guid",
+  "so.ca",
+  "so.su",
+  "so.tr",
+  "so.va"
+]);
+var REQUIRED_KEYS = ["env", "workflowStep", "clientId", "country"];
+var ZH_HANT_PRODUCTS_PATH = ["/tw/", "/hk_zh/"];
+function pathnameRequiresZhHantLang(pathname) {
+  const pathnameOrEmpty = pathname ?? "";
+  return ZH_HANT_PRODUCTS_PATH.some(
+    (prefix) => pathnameOrEmpty.startsWith(prefix)
+  );
+}
+function shouldApplyZhHantCheckoutLang() {
+  if (typeof window === "undefined") return false;
+  const paths = [window.location.pathname];
+  try {
+    if (window.parent !== window)
+      paths.push(window.parent.location.pathname);
+  } catch {
+  }
+  return paths.some(pathnameRequiresZhHantLang);
+}
+function applyPageLocaleToCheckoutUrl(url) {
+  if (!shouldApplyZhHantCheckoutLang()) {
+    return url instanceof URL ? url.toString() : String(url);
+  }
+  let checkoutUrl;
+  try {
+    checkoutUrl = url instanceof URL ? url : new URL(url);
+  } catch {
+    return String(url);
+  }
+  checkoutUrl.searchParams.set("lang", "zh-Hant");
+  for (const paramName of [...checkoutUrl.searchParams.keys()]) {
+    if (/^items\[\d+]\[lang]$/.test(paramName)) {
+      checkoutUrl.searchParams.set(paramName, "zh-Hant");
+    }
+  }
+  return checkoutUrl.toString();
+}
+var ALLOWED_URL_PARAMS = /* @__PURE__ */ new Set([
+  "gid",
+  "gtoken",
+  "notifauditid",
+  "cohortid",
+  "productname",
+  "sdid",
+  "attimer",
+  "gcsrc",
+  "gcprog",
+  "gcprogcat",
+  "gcpagetype",
+  "mv",
+  "mv2"
+]);
+var mapParameterName = (field) => PARAMETERS.get(field) ?? field;
+function addParameters(inputParameters, resultParameters, allowedKeys) {
+  for (const [key, value] of Object.entries(inputParameters)) {
+    const mappedKey = mapParameterName(key);
+    if (value != null && allowedKeys.has(mappedKey)) {
+      resultParameters.set(mappedKey, value);
+    }
+  }
+}
+function getHostName(env) {
+  switch (env) {
+    case PROVIDER_ENVIRONMENT.PRODUCTION:
+      return "https://commerce.adobe.com";
+    default:
+      return "https://commerce-stg.adobe.com";
+  }
+}
+function setItemsParameter(items, parameters) {
+  for (const idx in items) {
+    const item = items[idx];
+    for (const [key, value] of Object.entries(item)) {
+      if (value == null) continue;
+      const parameterName = mapParameterName(key);
+      parameters.set(`items[${idx}][${parameterName}]`, value);
+    }
+  }
+}
+function add3in1Parameters({ url, modal, is3in1 }) {
+  if (!is3in1 || !url?.searchParams) return url;
+  url.searchParams.set("rtc", "t");
+  url.searchParams.set("lo", "sl");
+  const existingAf = url.searchParams.get("af");
+  url.searchParams.set(
+    "af",
+    [existingAf, "uc_new_user_iframe", "uc_new_system_close"].filter(Boolean).join(",")
+  );
+  if (url.searchParams.get("cli") !== "doc_cloud") {
+    url.searchParams.set(
+      "cli",
+      modal === MODAL_TYPE_3_IN_1.CRM ? "creative" : "mini_plans"
+    );
+  }
+  return url;
+}
+function sanitizePageUrlParamValue(value) {
+  const qIndex = value.indexOf("?");
+  return qIndex === -1 ? value : value.slice(0, qIndex);
+}
+function addParamsFromPageUrl(url) {
+  const pageSearchParams = new URLSearchParams(window.location.search);
+  const nonCommerceParameters = {};
+  ALLOWED_URL_PARAMS.forEach((param) => {
+    const value = pageSearchParams.get(param);
+    if (value !== null) {
+      nonCommerceParameters[param] = sanitizePageUrlParamValue(value);
+    }
+  });
+  if (Object.keys(nonCommerceParameters).length > 0) {
+    addParameters(
+      nonCommerceParameters,
+      url.searchParams,
+      ALLOWED_URL_PARAMS
+    );
+  }
+}
+function buildCheckoutUrl(checkoutData) {
+  validateCheckoutData(checkoutData);
+  const {
+    env,
+    items,
+    workflowStep,
+    marketSegment,
+    customerSegment,
+    offerType,
+    productArrangementCode,
+    landscape,
+    modal,
+    is3in1,
+    preselectPlan,
+    ...rest
+  } = checkoutData;
+  let url = new URL(getHostName(env));
+  url.pathname = `${UCV3_PREFIX}${workflowStep}`;
+  if (workflowStep !== CheckoutWorkflowStep.SEGMENTATION && workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS) {
+    setItemsParameter(items, url.searchParams);
+  }
+  addParameters({ ...rest }, url.searchParams, ALLOWED_KEYS);
+  addParamsFromPageUrl(url);
+  if (landscape === Landscape.DRAFT) {
+    addParameters(
+      { af: AF_DRAFT_LANDSCAPE },
+      url.searchParams,
+      ALLOWED_KEYS
+    );
+  }
+  if (workflowStep === CheckoutWorkflowStep.SEGMENTATION) {
+    const segmentationParameters = {
+      marketSegment,
+      offerType,
+      customerSegment,
+      productArrangementCode,
+      quantity: items?.[0]?.quantity,
+      addonProductArrangementCode: productArrangementCode ? items?.find(
+        (item) => item.productArrangementCode !== productArrangementCode
+      )?.productArrangementCode : items?.[1]?.productArrangementCode
+    };
+    if (preselectPlan?.toLowerCase() === "edu") {
+      url.searchParams.set("ms", "EDU");
+    } else if (preselectPlan?.toLowerCase() === "team") {
+      url.searchParams.set("cs", "TEAM");
+    }
+    addParameters(segmentationParameters, url.searchParams, ALLOWED_KEYS);
+    if (url.searchParams.get("ot") === "PROMOTION")
+      url.searchParams.delete("ot");
+    url = add3in1Parameters({
+      url,
+      modal,
+      is3in1
+    });
+  }
+  return applyPageLocaleToCheckoutUrl(url);
+}
+function validateCheckoutData(checkoutData) {
+  for (const key of REQUIRED_KEYS) {
+    if (!checkoutData[key]) {
+      throw new Error(
+        `Argument "checkoutData" is not valid, missing: ${key}`
+      );
+    }
+  }
+  if (checkoutData.workflowStep !== CheckoutWorkflowStep.SEGMENTATION && checkoutData.workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS && !checkoutData.items) {
+    throw new Error('Argument "checkoutData" is not valid, missing: items');
+  }
+  return true;
+}
+
+// src/price/numberFormat.js
+var maskRegex = /[0-9\-+#]/;
+var notMaskRegex = /[^\d\-+#]/g;
+function getIndex(mask) {
+  return mask.search(maskRegex);
+}
+function processMask(mask = "#.##") {
+  const maskObj = {};
+  const len = mask.length;
+  const start = getIndex(mask);
+  maskObj.prefix = start > 0 ? mask.substring(0, start) : "";
+  const end = getIndex(mask.split("").reverse().join(""));
+  const offset = len - end;
+  const substr = mask.substring(offset, offset + 1);
+  const indx = offset + (substr === "." || substr === "," ? 1 : 0);
+  maskObj.suffix = end > 0 ? mask.substring(indx, len) : "";
+  maskObj.mask = mask.substring(start, indx);
+  maskObj.maskHasNegativeSign = maskObj.mask.charAt(0) === "-";
+  maskObj.maskHasPositiveSign = maskObj.mask.charAt(0) === "+";
+  let result = maskObj.mask.match(notMaskRegex);
+  maskObj.decimal = result && result[result.length - 1] || ".";
+  maskObj.separator = result && result[1] && result[0] || ",";
+  result = maskObj.mask.split(maskObj.decimal);
+  maskObj.integer = result[0];
+  maskObj.fraction = result[1];
+  return maskObj;
+}
+function processValue(value, maskObj, options) {
+  let isNegative = false;
+  const valObj = {
+    value
+  };
+  if (value < 0) {
+    isNegative = true;
+    valObj.value = -valObj.value;
+  }
+  valObj.sign = isNegative ? "-" : "";
+  valObj.value = Number(valObj.value).toFixed(
+    maskObj.fraction && maskObj.fraction.length
+  );
+  valObj.value = Number(valObj.value).toString();
+  const posTrailZero = maskObj.fraction && maskObj.fraction.lastIndexOf("0");
+  let [valInteger = "0", valFraction = ""] = valObj.value.split(".");
+  if (!valFraction || valFraction && valFraction.length <= posTrailZero) {
+    valFraction = posTrailZero < 0 ? "" : Number(`0.${valFraction}`).toFixed(posTrailZero + 1).replace("0.", "");
+  }
+  valObj.integer = valInteger;
+  valObj.fraction = valFraction;
+  addSeparators(valObj, maskObj);
+  if (valObj.result === "0" || valObj.result === "") {
+    isNegative = false;
+    valObj.sign = "";
+  }
+  if (!isNegative && maskObj.maskHasPositiveSign) {
+    valObj.sign = "+";
+  } else if (isNegative && maskObj.maskHasPositiveSign) {
+    valObj.sign = "-";
+  } else if (isNegative) {
+    valObj.sign = options && options.enforceMaskSign && !maskObj.maskHasNegativeSign ? "" : "-";
+  }
+  return valObj;
+}
+function addSeparators(valObj, maskObj) {
+  valObj.result = "";
+  const szSep = maskObj.integer.split(maskObj.separator);
+  const maskInteger = szSep.join("");
+  const posLeadZero = maskInteger && maskInteger.indexOf("0");
+  if (posLeadZero > -1) {
+    while (valObj.integer.length < maskInteger.length - posLeadZero) {
+      valObj.integer = `0${valObj.integer}`;
+    }
+  } else if (Number(valObj.integer) === 0) {
+    valObj.integer = "";
+  }
+  const posSeparator = szSep[1] && szSep[szSep.length - 1].length;
+  if (posSeparator) {
+    const len = valObj.integer.length;
+    const offset = len % posSeparator;
+    for (let indx = 0; indx < len; indx++) {
+      valObj.result += valObj.integer.charAt(indx);
+      if (!((indx - offset + 1) % posSeparator) && indx < len - posSeparator) {
+        valObj.result += maskObj.separator;
+      }
+    }
+  } else {
+    valObj.result = valObj.integer;
+  }
+  valObj.result += maskObj.fraction && valObj.fraction ? maskObj.decimal + valObj.fraction : "";
+  return valObj;
+}
+function formatNumber(mask, value, options = {}) {
+  if (!mask || isNaN(Number(value))) {
+    return value;
+  }
+  const maskObj = processMask(mask);
+  const valObj = processValue(value, maskObj, options);
+  return maskObj.prefix + valObj.sign + valObj.result + maskObj.suffix;
+}
+var numberFormat_default = formatNumber;
+
+// src/price/utilities.js
+var DECIMAL_POINT = ".";
+var DECIMAL_COMMA = ",";
+var SPACE_START_PATTERN = /^\s+/;
+var SPACE_END_PATTERN = /\s+$/;
+var NBSP = "&nbsp;";
+var getAnnualPrice = (price2) => price2 * 12;
+var isPromotionActive = (promotion, instant, quantity = 1) => {
+  if (!promotion) return false;
+  const {
+    start,
+    end,
+    displaySummary: {
+      amount,
+      duration,
+      minProductQuantity = 1,
+      outcomeType
+    } = {}
+  } = promotion;
+  if (!(amount && duration && outcomeType)) {
+    return false;
+  }
+  if (quantity < minProductQuantity) {
+    return false;
+  }
+  const now = instant ? new Date(instant) : /* @__PURE__ */ new Date();
+  if (!start || !end) {
+    return false;
+  }
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  return now >= startDate && now <= endDate;
+};
+var RecurrenceTerm = {
+  MONTH: "MONTH",
+  YEAR: "YEAR"
+};
+var opticalPriceDivisors = {
+  [Term.ANNUAL]: 12,
+  [Term.MONTHLY]: 1,
+  [Term.THREE_YEARS]: 36,
+  [Term.TWO_YEARS]: 24
+};
+var opticalPriceRoundingRule = (accept, round) => ({ accept, round });
+var opticalPriceRoundingRules = [
+  opticalPriceRoundingRule(
+    // optical price for the term is a multiple of the initial price
+    ({ divisor, price: price2 }) => price2 % divisor == 0,
+    ({ divisor, price: price2 }) => price2 / divisor
+  ),
+  opticalPriceRoundingRule(
+    // round optical price up to 2 decimals
+    ({ usePrecision }) => usePrecision,
+    ({ divisor, price: price2 }) => Math.round(price2 / divisor * 100) / 100
+  ),
+  opticalPriceRoundingRule(
+    // round optical price up to integer
+    () => true,
+    ({ divisor, price: price2 }) => Math.ceil(Math.floor(price2 * 100 / divisor) / 100)
+  )
+];
+var recurrenceTerms = {
+  [Commitment.YEAR]: {
+    [Term.MONTHLY]: RecurrenceTerm.MONTH,
+    [Term.ANNUAL]: RecurrenceTerm.YEAR
+  },
+  [Commitment.MONTH]: {
+    [Term.MONTHLY]: RecurrenceTerm.MONTH
+  }
+};
+var currencyIsFirstChar = (formatString, currencySymbol) => formatString.indexOf(`'${currencySymbol}'`) === 0;
+var extractNumberMask = (formatString, usePrecision = true) => {
+  let numberMask = formatString.replace(/'.*?'/, "").trim();
+  const decimalsDelimiter = findDecimalsDelimiter(numberMask);
+  const hasDecimalDelimiter = !!decimalsDelimiter;
+  if (!hasDecimalDelimiter) {
+    numberMask = numberMask.replace(
+      /\s?(#.*0)(?!\s)?/,
+      `$&${getPossibleDecimalsDelimiter(formatString)}`
+    );
+  } else if (!usePrecision) {
+    numberMask = numberMask.replace(/[,\.]0+/, decimalsDelimiter);
+  }
+  return numberMask;
+};
+var getCurrencySymbolDetails = (formatString) => {
+  const currencySymbol = findCurrencySymbol(formatString);
+  const isCurrencyFirst = currencyIsFirstChar(formatString, currencySymbol);
+  const formatStringWithoutSymbol = formatString.replace(/'.*?'/, "");
+  const hasCurrencySpace = SPACE_START_PATTERN.test(formatStringWithoutSymbol) || SPACE_END_PATTERN.test(formatStringWithoutSymbol);
+  return { currencySymbol, isCurrencyFirst, hasCurrencySpace };
+};
+var makeSpacesAroundNonBreaking = (text) => {
+  return text.replace(SPACE_START_PATTERN, NBSP).replace(SPACE_END_PATTERN, NBSP);
+};
+var getPossibleDecimalsDelimiter = (formatString) => formatString.match(/#(.?)#/)?.[1] === DECIMAL_POINT ? DECIMAL_COMMA : DECIMAL_POINT;
+var findCurrencySymbol = (formatString) => formatString.match(/'(.*?)'/)?.[1] ?? "";
+var findDecimalsDelimiter = (formatString) => formatString.match(/0(.?)0/)?.[1] ?? "";
+function formatPrice({ formatString, price: price2, usePrecision, isIndianPrice = false }, recurrenceTerm, transformPrice = (formattedPrice) => formattedPrice) {
+  const { currencySymbol, isCurrencyFirst, hasCurrencySpace } = getCurrencySymbolDetails(formatString);
+  const decimalsDelimiter = usePrecision ? findDecimalsDelimiter(formatString) : "";
+  const numberMask = extractNumberMask(formatString, usePrecision);
+  const fractionDigits = usePrecision ? 2 : 0;
+  const transformedPrice = transformPrice(price2, { currencySymbol });
+  const formattedPrice = isIndianPrice ? transformedPrice.toLocaleString("hi-IN", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
+  }) : numberFormat_default(numberMask, transformedPrice);
+  const decimalIndex = usePrecision ? formattedPrice.lastIndexOf(decimalsDelimiter) : formattedPrice.length;
+  const integer = formattedPrice.substring(0, decimalIndex);
+  const decimals = formattedPrice.substring(decimalIndex + 1);
+  const accessiblePrice = formatString.replace(/'.*?'/, "SYMBOL").replace(/#.*0/, formattedPrice).replace(/SYMBOL/, currencySymbol);
+  return {
+    accessiblePrice,
+    currencySymbol,
+    decimals,
+    decimalsDelimiter,
+    hasCurrencySpace,
+    integer,
+    isCurrencyFirst,
+    recurrenceTerm
+  };
+}
+var formatOpticalPrice = (data) => {
+  const { commitment, term, usePrecision } = data;
+  const divisor = opticalPriceDivisors[term] ?? 1;
+  return formatPrice(
+    data,
+    divisor > 1 ? RecurrenceTerm.MONTH : recurrenceTerms[commitment]?.[term],
+    (price2) => {
+      const priceData = {
+        divisor,
+        price: price2,
+        usePrecision
+      };
+      const { round } = opticalPriceRoundingRules.find(
+        ({ accept }) => accept(priceData)
+      );
+      if (!round)
+        throw new Error(
+          `Missing rounding rule for: ${JSON.stringify(priceData)}`
+        );
+      return round(priceData);
+    }
+  );
+};
+var formatRegularPrice = ({ commitment, term, ...data }) => formatPrice(data, recurrenceTerms[commitment]?.[term]);
+var formatAnnualPrice = (data) => {
+  const {
+    commitment,
+    instant,
+    price: price2,
+    originalPrice,
+    priceWithoutDiscount,
+    promotion,
+    quantity = 1,
+    term
+  } = data;
+  if (commitment === Commitment.YEAR && term === Term.MONTHLY) {
+    if (!promotion) {
+      return formatPrice(data, RecurrenceTerm.YEAR, getAnnualPrice);
+    }
+    const { displaySummary: { outcomeType, duration } = {} } = promotion;
+    switch (outcomeType) {
+      case "PERCENTAGE_DISCOUNT": {
+        if (isPromotionActive(promotion, instant, quantity)) {
+          const durationInMonths = parseInt(
+            duration.replace("P", "").replace("M", "")
+          );
+          if (isNaN(durationInMonths)) return getAnnualPrice(price2);
+          const discountPrice = originalPrice * durationInMonths;
+          const regularPrice = priceWithoutDiscount * (12 - durationInMonths);
+          const totalPrice = Math.round((discountPrice + regularPrice) * 100) / 100;
+          return formatPrice(
+            { ...data, price: totalPrice },
+            RecurrenceTerm.YEAR
+          );
+        }
+      }
+      default:
+        return formatPrice(
+          data,
+          RecurrenceTerm.YEAR,
+          () => getAnnualPrice(priceWithoutDiscount ?? price2)
+        );
+    }
+  }
+  return formatPrice(data, recurrenceTerms[commitment]?.[term]);
+};
+
+// src/checkout-mixin.js
+var CLASS_NAME_DOWNLOAD = "download";
+var CLASS_NAME_UPGRADE = "upgrade";
+var CHECKOUT_PARAM_VALUE_MAPPING = {
+  e: "EDU",
+  t: "TEAM"
+};
+function createCheckoutElement(Class, options = {}, innerHTML = "") {
+  const service = getService2();
+  if (!service) return null;
+  const {
+    checkoutMarketSegment,
+    checkoutWorkflow,
+    checkoutWorkflowStep,
+    entitlement,
+    upgrade,
+    modal,
+    perpetual,
+    promotionCode,
+    quantity,
+    wcsOsi,
+    extraOptions,
+    analyticsId
+  } = service.collectCheckoutOptions(options);
+  const element = createMasElement(Class, {
+    checkoutMarketSegment,
+    checkoutWorkflow,
+    checkoutWorkflowStep,
+    entitlement,
+    upgrade,
+    modal,
+    perpetual,
+    promotionCode: options.promotionCode === PROMO_CONTEXT_CANCEL_VALUE ? PROMO_CONTEXT_CANCEL_VALUE : promotionCode,
+    quantity,
+    wcsOsi,
+    extraOptions,
+    analyticsId
+  });
+  if (innerHTML)
+    element.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+  return element;
+}
+function CheckoutMixin(Base) {
+  return class CheckoutBase extends Base {
+    constructor() {
+      super(...arguments);
+      /* c8 ignore next 1 */
+      __publicField(this, "checkoutActionHandler");
+      __publicField(this, "masElement", new MasElement(this));
+    }
+    attributeChangedCallback(name, oldValue, value) {
+      this.masElement.attributeChangedCallback(name, oldValue, value);
+    }
+    connectedCallback() {
+      this.masElement.connectedCallback();
+      this.addEventListener("click", this.clickHandler);
+    }
+    disconnectedCallback() {
+      this.masElement.disconnectedCallback();
+      this.removeEventListener("click", this.clickHandler);
+    }
+    onceSettled() {
+      return this.masElement.onceSettled();
+    }
+    get value() {
+      return this.masElement.value;
+    }
+    get options() {
+      return this.masElement.options;
+    }
+    get marketSegment() {
+      const value = this.options?.ms ?? this.value?.[0].marketSegments?.[0];
+      return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+    }
+    get customerSegment() {
+      const value = this.options?.cs ?? this.value?.[0]?.customerSegment;
+      return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+    }
+    get is3in1Modal() {
+      return Object.values(MODAL_TYPE_3_IN_1).includes(
+        this.getAttribute("data-modal")
+      );
+    }
+    get isOpen3in1Modal() {
+      const masFF3in1 = document.querySelector("meta[name=mas-ff-3in1]");
+      return this.is3in1Modal && (!masFF3in1 || masFF3in1.content !== "off");
+    }
+    requestUpdate(force = false) {
+      return this.masElement.requestUpdate(force);
+    }
+    static get observedAttributes() {
+      return [
+        "data-checkout-workflow",
+        "data-checkout-workflow-step",
+        "data-extra-options",
+        "data-ims-country",
+        "data-perpetual",
+        "data-promotion-code",
+        "data-quantity",
+        "data-template",
+        "data-wcs-osi",
+        "data-entitlement",
+        "data-upgrade",
+        "data-modal"
+      ];
+    }
+    async render(overrides = {}) {
+      const service = getService2();
+      if (!service) return false;
+      if (!this.dataset.imsCountry) {
+        service.imsCountryPromise.then((countryCode) => {
+          if (countryCode) this.dataset.imsCountry = countryCode;
+        });
+      }
+      overrides.imsCountry = null;
+      const options = service.collectCheckoutOptions(overrides, this);
+      if (!options.wcsOsi.length) return false;
+      let extraOptions;
+      try {
+        extraOptions = JSON.parse(options.extraOptions ?? "{}");
+      } catch (e) {
+        this.masElement.log?.error(
+          "cannot parse exta checkout options",
+          e
+        );
+      }
+      const version = this.masElement.togglePending(options);
+      this.setCheckoutUrl("");
+      const promises = service.resolveOfferSelectors(options);
+      let offers = await Promise.all(promises);
+      offers = offers.map((offer) => selectOffers(offer, options));
+      const offerWithPromo = offers.flat().find((offer) => offer.promotion);
+      const isPromoActive = isPromotionActive(
+        offerWithPromo?.promotion,
+        offerWithPromo?.promotion?.displaySummary?.instant,
+        options.quantity[0]
+      );
+      if (!isPromoActive && options.promotionCode) {
+        delete options.promotionCode;
+      }
+      options.country = this.dataset.imsCountry || options.country;
+      const checkoutAction = await service.buildCheckoutAction?.(
+        offers.flat(),
+        { ...extraOptions, ...options },
+        this
+      );
+      return this.renderOffers(
+        offers.flat(),
+        options,
+        {},
+        checkoutAction,
+        version
+      );
+    }
+    /**
+     * Renders checkout link href for provided offers into this component.
+     * @param {Commerce.Wcs.Offer[]} offers
+     * @param {Commerce.Checkout.Options} options
+     * @param {Commerce.Checkout.AnyOptions} overrides
+     * @param {Commerce.Checkout.CheckoutAction} checkoutAction
+     * @param {number} version
+     */
+    renderOffers(offers, options, overrides = {}, checkoutAction = void 0, version = void 0) {
+      const service = getService2();
+      if (!service) return false;
+      const extraOptions = JSON.parse(this.dataset.extraOptions ?? "{}");
+      options = { ...extraOptions, ...options, ...overrides };
+      version ?? (version = this.masElement.togglePending(options));
+      if (this.checkoutActionHandler) {
+        this.checkoutActionHandler = void 0;
+      }
+      if (checkoutAction) {
+        this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
+        this.masElement.toggleResolved(version, offers, options);
+        const { url, text, className, handler } = checkoutAction;
+        if (url) {
+          this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
+        }
+        if (text) this.firstElementChild.innerHTML = text;
+        if (className) this.classList.add(...className.split(" "));
+        if (handler) {
+          this.setCheckoutUrl("#");
+          this.checkoutActionHandler = handler.bind(this);
+        }
+      }
+      if (offers.length) {
+        if (this.masElement.toggleResolved(version, offers, options)) {
+          if (!this.classList.contains(CLASS_NAME_DOWNLOAD) && !this.classList.contains(CLASS_NAME_UPGRADE)) {
+            const url = service.buildCheckoutURL(offers, options);
+            this.setCheckoutUrl(
+              options.modal === "true" ? "#" : url
+            );
+          }
+          return true;
+        }
+      } else {
+        const error = new Error(
+          `Not provided: ${options?.wcsOsi ?? "-"}`
+        );
+        if (this.masElement.toggleFailed(version, error, options)) {
+          this.setCheckoutUrl("#");
+          return true;
+        }
+      }
+    }
+    setCheckoutUrl() {
+    }
+    clickHandler(e) {
+    }
+    updateOptions(options = {}) {
+      const service = getService2();
+      if (!service) return false;
+      const {
+        checkoutMarketSegment,
+        checkoutWorkflow,
+        checkoutWorkflowStep,
+        entitlement,
+        upgrade,
+        modal,
+        perpetual,
+        promotionCode,
+        quantity,
+        wcsOsi
+      } = service.collectCheckoutOptions(options);
+      updateMasElement(this, {
+        checkoutMarketSegment,
+        checkoutWorkflow,
+        checkoutWorkflowStep,
+        entitlement,
+        upgrade,
+        modal,
+        perpetual,
+        promotionCode,
+        quantity,
+        wcsOsi
+      });
+      return true;
+    }
+  };
+}
+
+// src/checkout-link.js
+var _CheckoutLink = class _CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
+  static createCheckoutLink(options = {}, innerHTML = "") {
+    return createCheckoutElement(_CheckoutLink, options, innerHTML);
+  }
+  setCheckoutUrl(value) {
+    this.setAttribute("href", value);
+  }
+  get isCheckoutLink() {
+    return true;
+  }
+  clickHandler(e) {
+    if (this.checkoutActionHandler) {
+      this.checkoutActionHandler?.(e);
+      return;
+    }
+  }
+};
+__publicField(_CheckoutLink, "is", "checkout-link");
+__publicField(_CheckoutLink, "tag", "a");
+var CheckoutLink = _CheckoutLink;
+if (!window.customElements.get(CheckoutLink.is)) {
+  window.customElements.define(CheckoutLink.is, CheckoutLink, {
+    extends: CheckoutLink.tag
+  });
+}
+
+// src/defaults.js
+var Defaults = Object.freeze({
+  checkoutClientId: "adobe_com",
+  checkoutWorkflowStep: CheckoutWorkflowStep.EMAIL,
+  country: "US",
+  displayOldPrice: true,
+  displayPerUnit: false,
+  displayRecurrence: true,
+  displayTax: false,
+  displayPlanType: false,
+  env: Env.PRODUCTION,
+  forceTaxExclusive: false,
+  language: "en",
+  entitlement: false,
+  extraOptions: {},
+  modal: false,
+  promotionCode: "",
+  quantity: 1,
+  alternativePrice: false,
+  wcsApiKey: "wcms-commerce-ims-ro-user-milo",
+  wcsURL: "https://www.adobe.com/web_commerce_artifact",
+  landscape: Landscape.PUBLISHED
+});
+
+// src/checkout.js
+function Checkout({ settings, providers }) {
+  function collectCheckoutOptions(overrides, placeholder) {
+    const {
+      checkoutClientId,
+      checkoutWorkflowStep: defaultWorkflowStep,
+      country: defaultCountry,
+      language: defaultLanguage,
+      promotionCode: defaultPromotionCode,
+      quantity: defaultQuantity,
+      preselectPlan,
+      env
+    } = settings;
+    let options = {
+      checkoutClientId,
+      checkoutWorkflowStep: defaultWorkflowStep,
+      country: defaultCountry,
+      language: defaultLanguage,
+      promotionCode: defaultPromotionCode,
+      quantity: defaultQuantity,
+      preselectPlan,
+      env
+    };
+    if (placeholder) {
+      for (const provider of providers.checkout) {
+        provider(placeholder, options);
+      }
+    }
+    const {
+      checkoutMarketSegment,
+      checkoutWorkflowStep = defaultWorkflowStep,
+      imsCountry: imsCountry2,
+      country = imsCountry2 ?? defaultCountry,
+      language = defaultLanguage,
+      quantity = defaultQuantity,
+      entitlement,
+      upgrade,
+      modal,
+      perpetual,
+      promotionCode = defaultPromotionCode,
+      wcsOsi,
+      extraOptions,
+      ...rest
+    } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
+    const workflowStep = toEnumeration(
+      checkoutWorkflowStep,
+      CheckoutWorkflowStep,
+      Defaults.checkoutWorkflowStep
+    );
+    options = omitProperties({
+      ...rest,
+      extraOptions,
+      checkoutClientId,
+      checkoutMarketSegment,
+      country,
+      quantity: toQuantity(quantity, Defaults.quantity),
+      checkoutWorkflowStep: workflowStep,
+      language,
+      entitlement: toBoolean(entitlement),
+      upgrade: toBoolean(upgrade),
+      modal,
+      perpetual: toBoolean(perpetual),
+      promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
+      wcsOsi: toOfferSelectorIds(wcsOsi),
+      preselectPlan
+    });
+    return options;
+  }
+  function buildCheckoutURL(offers, options) {
+    if (!Array.isArray(offers) || !offers.length || !options) {
+      return "";
+    }
+    const { env, landscape } = settings;
+    const {
+      checkoutClientId: clientId,
+      checkoutMarketSegment,
+      checkoutWorkflowStep: workflowStep,
+      country,
+      promotionCode: checkoutPromoCode,
+      quantity: optionsQuantity,
+      preselectPlan,
+      ms,
+      cs,
+      ...rest
+    } = collectCheckoutOptions(options);
+    const masFF3in1 = document.querySelector("meta[name=mas-ff-3in1]");
+    const is3in1 = Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) && (!masFF3in1 || masFF3in1.content !== "off");
+    const context = window.frameElement || is3in1 ? "if" : "fp";
+    const [
+      {
+        productArrangementCode,
+        marketSegments: [offerMarketSegment],
+        customerSegment: offerCustomerSegment,
+        offerType
+      }
+    ] = offers;
+    let marketSegment = ms ?? offerMarketSegment ?? checkoutMarketSegment;
+    let customerSegment = cs ?? offerCustomerSegment;
+    if (preselectPlan?.toLowerCase() === "edu") {
+      marketSegment = "EDU";
+    } else if (preselectPlan?.toLowerCase() === "team") {
+      customerSegment = "TEAM";
+    }
+    const data = {
+      is3in1,
+      checkoutPromoCode,
+      clientId,
+      context,
+      country,
+      env,
+      items: [],
+      marketSegment,
+      customerSegment,
+      offerType,
+      productArrangementCode,
+      workflowStep,
+      landscape,
+      ...rest
+    };
+    const quantity = optionsQuantity[0] > 1 ? optionsQuantity[0] : void 0;
+    if (offers.length === 1) {
+      const { offerId } = offers[0];
+      data.items.push({ id: offerId, quantity });
+    } else {
+      data.items.push(
+        ...offers.map(({ offerId, productArrangementCode: productArrangementCode2 }) => ({
+          id: offerId,
+          quantity,
+          ...is3in1 ? { productArrangementCode: productArrangementCode2 } : {}
+        }))
+      );
+    }
+    return buildCheckoutUrl(data);
+  }
+  const { createCheckoutLink } = CheckoutLink;
+  return {
+    CheckoutLink,
+    CheckoutWorkflowStep,
+    buildCheckoutURL,
+    collectCheckoutOptions,
+    createCheckoutLink
+  };
+}
+
+// src/ims.js
+var IMS_COUNTRY_COOKIE = "ims_country_code";
+function getImsCountryCookie() {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${IMS_COUNTRY_COOKIE}=([^;]*)`)
+  );
+  if (!match) return null;
+  let country;
+  try {
+    country = decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+  return country.trim().toUpperCase() || null;
+}
+function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
+  const log3 = Log.module("ims");
+  return new Promise((resolve) => {
+    log3.debug("Waiting for IMS to be ready");
+    let count = 0;
+    function poll() {
+      if (window.adobeIMS?.initialized) {
+        resolve();
+      } else if (++count > maxAttempts) {
+        log3.debug("Timeout");
+        resolve();
+      } else {
+        setTimeout(poll, interval);
+      }
+    }
+    poll();
+  });
+}
+function imsSignedIn(imsReadyPromise) {
+  return imsReadyPromise.then(
+    () => window.adobeIMS?.isSignedInUser() ?? false
+  );
+}
+function imsCountry() {
+  const country = getImsCountryCookie();
+  if (country)
+    Log.module("ims").debug("Got user country from cookie:", country);
+  return Promise.resolve(country);
+}
+function Ims() {
+  const imsReadyPromise = imsReady();
+  return {
+    imsReadyPromise,
+    imsSignedInPromise: imsSignedIn(imsReadyPromise),
+    imsCountryPromise: imsCountry()
+  };
+}
+
+// src/literals.js
+var priceLiterals = window.masPriceLiterals;
+function getPriceLiterals(settings) {
+  if (Array.isArray(priceLiterals)) {
+    let lang;
+    switch (settings.locale) {
+      case "id_ID":
+        lang = "in";
+        break;
+      case "zh_TW":
+        lang = "zh-hant";
+        break;
+      case "zh_HK":
+        lang = "zh-hant";
+        break;
+      default:
+        lang = settings.language;
+    }
+    const find = (language) => priceLiterals.find(
+      (candidate) => equalsCaseInsensitive(candidate.lang, language)
+    );
+    const literals = find(lang) ?? find(Defaults.language);
+    if (literals) return Object.freeze(literals);
+  }
+  return {};
+}
+
+// ../../../../node_modules/tslib/tslib.es6.mjs
+var extendStatics = function(d, b) {
+  extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (Object.prototype.hasOwnProperty.call(b2, p)) d2[p] = b2[p];
+  };
+  return extendStatics(d, b);
+};
+function __extends(d, b) {
+  if (typeof b !== "function" && b !== null)
+    throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+  extendStatics(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+var __assign = function() {
+  __assign = Object.assign || function __assign2(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+    }
+    return t;
+  };
+  return __assign.apply(this, arguments);
+};
+function __spreadArray(to, from, pack) {
+  if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+    if (ar || !(i in from)) {
+      if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+      ar[i] = from[i];
+    }
+  }
+  return to.concat(ar || Array.prototype.slice.call(from));
+}
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/error.js
+var ErrorKind;
+(function(ErrorKind2) {
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_CLOSING_BRACE"] = 1] = "EXPECT_ARGUMENT_CLOSING_BRACE";
+  ErrorKind2[ErrorKind2["EMPTY_ARGUMENT"] = 2] = "EMPTY_ARGUMENT";
+  ErrorKind2[ErrorKind2["MALFORMED_ARGUMENT"] = 3] = "MALFORMED_ARGUMENT";
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_TYPE"] = 4] = "EXPECT_ARGUMENT_TYPE";
+  ErrorKind2[ErrorKind2["INVALID_ARGUMENT_TYPE"] = 5] = "INVALID_ARGUMENT_TYPE";
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_STYLE"] = 6] = "EXPECT_ARGUMENT_STYLE";
+  ErrorKind2[ErrorKind2["INVALID_NUMBER_SKELETON"] = 7] = "INVALID_NUMBER_SKELETON";
+  ErrorKind2[ErrorKind2["INVALID_DATE_TIME_SKELETON"] = 8] = "INVALID_DATE_TIME_SKELETON";
+  ErrorKind2[ErrorKind2["EXPECT_NUMBER_SKELETON"] = 9] = "EXPECT_NUMBER_SKELETON";
+  ErrorKind2[ErrorKind2["EXPECT_DATE_TIME_SKELETON"] = 10] = "EXPECT_DATE_TIME_SKELETON";
+  ErrorKind2[ErrorKind2["UNCLOSED_QUOTE_IN_ARGUMENT_STYLE"] = 11] = "UNCLOSED_QUOTE_IN_ARGUMENT_STYLE";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_OPTIONS"] = 12] = "EXPECT_SELECT_ARGUMENT_OPTIONS";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE"] = 13] = "EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE";
+  ErrorKind2[ErrorKind2["INVALID_PLURAL_ARGUMENT_OFFSET_VALUE"] = 14] = "INVALID_PLURAL_ARGUMENT_OFFSET_VALUE";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_SELECTOR"] = 15] = "EXPECT_SELECT_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_SELECTOR"] = 16] = "EXPECT_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT"] = 17] = "EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT"] = 18] = "EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT";
+  ErrorKind2[ErrorKind2["INVALID_PLURAL_ARGUMENT_SELECTOR"] = 19] = "INVALID_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["DUPLICATE_PLURAL_ARGUMENT_SELECTOR"] = 20] = "DUPLICATE_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["DUPLICATE_SELECT_ARGUMENT_SELECTOR"] = 21] = "DUPLICATE_SELECT_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["MISSING_OTHER_CLAUSE"] = 22] = "MISSING_OTHER_CLAUSE";
+  ErrorKind2[ErrorKind2["INVALID_TAG"] = 23] = "INVALID_TAG";
+  ErrorKind2[ErrorKind2["INVALID_TAG_NAME"] = 25] = "INVALID_TAG_NAME";
+  ErrorKind2[ErrorKind2["UNMATCHED_CLOSING_TAG"] = 26] = "UNMATCHED_CLOSING_TAG";
+  ErrorKind2[ErrorKind2["UNCLOSED_TAG"] = 27] = "UNCLOSED_TAG";
+})(ErrorKind || (ErrorKind = {}));
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/types.js
+var TYPE;
+(function(TYPE2) {
+  TYPE2[TYPE2["literal"] = 0] = "literal";
+  TYPE2[TYPE2["argument"] = 1] = "argument";
+  TYPE2[TYPE2["number"] = 2] = "number";
+  TYPE2[TYPE2["date"] = 3] = "date";
+  TYPE2[TYPE2["time"] = 4] = "time";
+  TYPE2[TYPE2["select"] = 5] = "select";
+  TYPE2[TYPE2["plural"] = 6] = "plural";
+  TYPE2[TYPE2["pound"] = 7] = "pound";
+  TYPE2[TYPE2["tag"] = 8] = "tag";
+})(TYPE || (TYPE = {}));
+var SKELETON_TYPE;
+(function(SKELETON_TYPE2) {
+  SKELETON_TYPE2[SKELETON_TYPE2["number"] = 0] = "number";
+  SKELETON_TYPE2[SKELETON_TYPE2["dateTime"] = 1] = "dateTime";
+})(SKELETON_TYPE || (SKELETON_TYPE = {}));
+function isLiteralElement(el) {
+  return el.type === TYPE.literal;
+}
+function isArgumentElement(el) {
+  return el.type === TYPE.argument;
+}
+function isNumberElement(el) {
+  return el.type === TYPE.number;
+}
+function isDateElement(el) {
+  return el.type === TYPE.date;
+}
+function isTimeElement(el) {
+  return el.type === TYPE.time;
+}
+function isSelectElement(el) {
+  return el.type === TYPE.select;
+}
+function isPluralElement(el) {
+  return el.type === TYPE.plural;
+}
+function isPoundElement(el) {
+  return el.type === TYPE.pound;
+}
+function isTagElement(el) {
+  return el.type === TYPE.tag;
+}
+function isNumberSkeleton(el) {
+  return !!(el && typeof el === "object" && el.type === SKELETON_TYPE.number);
+}
+function isDateTimeSkeleton(el) {
+  return !!(el && typeof el === "object" && el.type === SKELETON_TYPE.dateTime);
+}
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js
+var SPACE_SEPARATOR_REGEX = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
+
+// ../../../../node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js
+var DATE_TIME_REGEX = /(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;
+function parseDateTimeSkeleton(skeleton) {
+  var result = {};
+  skeleton.replace(DATE_TIME_REGEX, function(match) {
+    var len = match.length;
+    switch (match[0]) {
+      // Era
+      case "G":
+        result.era = len === 4 ? "long" : len === 5 ? "narrow" : "short";
+        break;
+      // Year
+      case "y":
+        result.year = len === 2 ? "2-digit" : "numeric";
+        break;
+      case "Y":
+      case "u":
+      case "U":
+      case "r":
+        throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");
+      // Quarter
+      case "q":
+      case "Q":
+        throw new RangeError("`q/Q` (quarter) patterns are not supported");
+      // Month
+      case "M":
+      case "L":
+        result.month = ["numeric", "2-digit", "short", "long", "narrow"][len - 1];
+        break;
+      // Week
+      case "w":
+      case "W":
+        throw new RangeError("`w/W` (week) patterns are not supported");
+      case "d":
+        result.day = ["numeric", "2-digit"][len - 1];
+        break;
+      case "D":
+      case "F":
+      case "g":
+        throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");
+      // Weekday
+      case "E":
+        result.weekday = len === 4 ? "short" : len === 5 ? "narrow" : "short";
+        break;
+      case "e":
+        if (len < 4) {
+          throw new RangeError("`e..eee` (weekday) patterns are not supported");
+        }
+        result.weekday = ["short", "long", "narrow", "short"][len - 4];
+        break;
+      case "c":
+        if (len < 4) {
+          throw new RangeError("`c..ccc` (weekday) patterns are not supported");
+        }
+        result.weekday = ["short", "long", "narrow", "short"][len - 4];
+        break;
+      // Period
+      case "a":
+        result.hour12 = true;
+        break;
+      case "b":
+      // am, pm, noon, midnight
+      case "B":
+        throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");
+      // Hour
+      case "h":
+        result.hourCycle = "h12";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "H":
+        result.hourCycle = "h23";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "K":
+        result.hourCycle = "h11";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "k":
+        result.hourCycle = "h24";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "j":
+      case "J":
+      case "C":
+        throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");
+      // Minute
+      case "m":
+        result.minute = ["numeric", "2-digit"][len - 1];
+        break;
+      // Second
+      case "s":
+        result.second = ["numeric", "2-digit"][len - 1];
+        break;
+      case "S":
+      case "A":
+        throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");
+      // Zone
+      case "z":
+        result.timeZoneName = len < 4 ? "short" : "long";
+        break;
+      case "Z":
+      // 1..3, 4, 5: The ISO8601 varios formats
+      case "O":
+      // 1, 4: miliseconds in day short, long
+      case "v":
+      // 1, 4: generic non-location format
+      case "V":
+      // 1, 2, 3, 4: time zone ID or city
+      case "X":
+      // 1, 2, 3, 4: The ISO8601 varios formats
+      case "x":
+        throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead");
+    }
+    return "";
+  });
+  return result;
+}
+
+// ../../../../node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js
+var WHITE_SPACE_REGEX = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
+
+// ../../../../node_modules/@formatjs/icu-skeleton-parser/lib/number.js
+function parseNumberSkeletonFromString(skeleton) {
+  if (skeleton.length === 0) {
+    throw new Error("Number skeleton cannot be empty");
+  }
+  var stringTokens = skeleton.split(WHITE_SPACE_REGEX).filter(function(x) {
+    return x.length > 0;
+  });
+  var tokens = [];
+  for (var _i = 0, stringTokens_1 = stringTokens; _i < stringTokens_1.length; _i++) {
+    var stringToken = stringTokens_1[_i];
+    var stemAndOptions = stringToken.split("/");
+    if (stemAndOptions.length === 0) {
+      throw new Error("Invalid number skeleton");
+    }
+    var stem = stemAndOptions[0], options = stemAndOptions.slice(1);
+    for (var _a2 = 0, options_1 = options; _a2 < options_1.length; _a2++) {
+      var option = options_1[_a2];
+      if (option.length === 0) {
+        throw new Error("Invalid number skeleton");
+      }
+    }
+    tokens.push({ stem, options });
+  }
+  return tokens;
+}
+function icuUnitToEcma(unit) {
+  return unit.replace(/^(.*?)-/, "");
+}
+var FRACTION_PRECISION_REGEX = /^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g;
+var SIGNIFICANT_PRECISION_REGEX = /^(@+)?(\+|#+)?[rs]?$/g;
+var INTEGER_WIDTH_REGEX = /(\*)(0+)|(#+)(0+)|(0+)/g;
+var CONCISE_INTEGER_WIDTH_REGEX = /^(0+)$/;
+function parseSignificantPrecision(str) {
+  var result = {};
+  if (str[str.length - 1] === "r") {
+    result.roundingPriority = "morePrecision";
+  } else if (str[str.length - 1] === "s") {
+    result.roundingPriority = "lessPrecision";
+  }
+  str.replace(SIGNIFICANT_PRECISION_REGEX, function(_, g1, g2) {
+    if (typeof g2 !== "string") {
+      result.minimumSignificantDigits = g1.length;
+      result.maximumSignificantDigits = g1.length;
+    } else if (g2 === "+") {
+      result.minimumSignificantDigits = g1.length;
+    } else if (g1[0] === "#") {
+      result.maximumSignificantDigits = g1.length;
+    } else {
+      result.minimumSignificantDigits = g1.length;
+      result.maximumSignificantDigits = g1.length + (typeof g2 === "string" ? g2.length : 0);
+    }
+    return "";
+  });
+  return result;
+}
+function parseSign(str) {
+  switch (str) {
+    case "sign-auto":
+      return {
+        signDisplay: "auto"
+      };
+    case "sign-accounting":
+    case "()":
+      return {
+        currencySign: "accounting"
+      };
+    case "sign-always":
+    case "+!":
+      return {
+        signDisplay: "always"
+      };
+    case "sign-accounting-always":
+    case "()!":
+      return {
+        signDisplay: "always",
+        currencySign: "accounting"
+      };
+    case "sign-except-zero":
+    case "+?":
+      return {
+        signDisplay: "exceptZero"
+      };
+    case "sign-accounting-except-zero":
+    case "()?":
+      return {
+        signDisplay: "exceptZero",
+        currencySign: "accounting"
+      };
+    case "sign-never":
+    case "+_":
+      return {
+        signDisplay: "never"
+      };
+  }
+}
+function parseConciseScientificAndEngineeringStem(stem) {
+  var result;
+  if (stem[0] === "E" && stem[1] === "E") {
+    result = {
+      notation: "engineering"
+    };
+    stem = stem.slice(2);
+  } else if (stem[0] === "E") {
+    result = {
+      notation: "scientific"
+    };
+    stem = stem.slice(1);
+  }
+  if (result) {
+    var signDisplay = stem.slice(0, 2);
+    if (signDisplay === "+!") {
+      result.signDisplay = "always";
+      stem = stem.slice(2);
+    } else if (signDisplay === "+?") {
+      result.signDisplay = "exceptZero";
+      stem = stem.slice(2);
+    }
+    if (!CONCISE_INTEGER_WIDTH_REGEX.test(stem)) {
+      throw new Error("Malformed concise eng/scientific notation");
+    }
+    result.minimumIntegerDigits = stem.length;
+  }
+  return result;
+}
+function parseNotationOptions(opt) {
+  var result = {};
+  var signOpts = parseSign(opt);
+  if (signOpts) {
+    return signOpts;
+  }
+  return result;
+}
+function parseNumberSkeleton(tokens) {
+  var result = {};
+  for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
+    var token = tokens_1[_i];
+    switch (token.stem) {
+      case "percent":
+      case "%":
+        result.style = "percent";
+        continue;
+      case "%x100":
+        result.style = "percent";
+        result.scale = 100;
+        continue;
+      case "currency":
+        result.style = "currency";
+        result.currency = token.options[0];
+        continue;
+      case "group-off":
+      case ",_":
+        result.useGrouping = false;
+        continue;
+      case "precision-integer":
+      case ".":
+        result.maximumFractionDigits = 0;
+        continue;
+      case "measure-unit":
+      case "unit":
+        result.style = "unit";
+        result.unit = icuUnitToEcma(token.options[0]);
+        continue;
+      case "compact-short":
+      case "K":
+        result.notation = "compact";
+        result.compactDisplay = "short";
+        continue;
+      case "compact-long":
+      case "KK":
+        result.notation = "compact";
+        result.compactDisplay = "long";
+        continue;
+      case "scientific":
+        result = __assign(__assign(__assign({}, result), { notation: "scientific" }), token.options.reduce(function(all, opt2) {
+          return __assign(__assign({}, all), parseNotationOptions(opt2));
+        }, {}));
+        continue;
+      case "engineering":
+        result = __assign(__assign(__assign({}, result), { notation: "engineering" }), token.options.reduce(function(all, opt2) {
+          return __assign(__assign({}, all), parseNotationOptions(opt2));
+        }, {}));
+        continue;
+      case "notation-simple":
+        result.notation = "standard";
+        continue;
+      // https://github.com/unicode-org/icu/blob/master/icu4c/source/i18n/unicode/unumberformatter.h
+      case "unit-width-narrow":
+        result.currencyDisplay = "narrowSymbol";
+        result.unitDisplay = "narrow";
+        continue;
+      case "unit-width-short":
+        result.currencyDisplay = "code";
+        result.unitDisplay = "short";
+        continue;
+      case "unit-width-full-name":
+        result.currencyDisplay = "name";
+        result.unitDisplay = "long";
+        continue;
+      case "unit-width-iso-code":
+        result.currencyDisplay = "symbol";
+        continue;
+      case "scale":
+        result.scale = parseFloat(token.options[0]);
+        continue;
+      // https://unicode-org.github.io/icu/userguide/format_parse/numbers/skeletons.html#integer-width
+      case "integer-width":
+        if (token.options.length > 1) {
+          throw new RangeError("integer-width stems only accept a single optional option");
+        }
+        token.options[0].replace(INTEGER_WIDTH_REGEX, function(_, g1, g2, g3, g4, g5) {
+          if (g1) {
+            result.minimumIntegerDigits = g2.length;
+          } else if (g3 && g4) {
+            throw new Error("We currently do not support maximum integer digits");
+          } else if (g5) {
+            throw new Error("We currently do not support exact integer digits");
+          }
+          return "";
+        });
+        continue;
+    }
+    if (CONCISE_INTEGER_WIDTH_REGEX.test(token.stem)) {
+      result.minimumIntegerDigits = token.stem.length;
+      continue;
+    }
+    if (FRACTION_PRECISION_REGEX.test(token.stem)) {
+      if (token.options.length > 1) {
+        throw new RangeError("Fraction-precision stems only accept a single optional option");
+      }
+      token.stem.replace(FRACTION_PRECISION_REGEX, function(_, g1, g2, g3, g4, g5) {
+        if (g2 === "*") {
+          result.minimumFractionDigits = g1.length;
+        } else if (g3 && g3[0] === "#") {
+          result.maximumFractionDigits = g3.length;
+        } else if (g4 && g5) {
+          result.minimumFractionDigits = g4.length;
+          result.maximumFractionDigits = g4.length + g5.length;
+        } else {
+          result.minimumFractionDigits = g1.length;
+          result.maximumFractionDigits = g1.length;
+        }
+        return "";
+      });
+      var opt = token.options[0];
+      if (opt === "w") {
+        result = __assign(__assign({}, result), { trailingZeroDisplay: "stripIfInteger" });
+      } else if (opt) {
+        result = __assign(__assign({}, result), parseSignificantPrecision(opt));
+      }
+      continue;
+    }
+    if (SIGNIFICANT_PRECISION_REGEX.test(token.stem)) {
+      result = __assign(__assign({}, result), parseSignificantPrecision(token.stem));
+      continue;
+    }
+    var signOpts = parseSign(token.stem);
+    if (signOpts) {
+      result = __assign(__assign({}, result), signOpts);
+    }
+    var conciseScientificAndEngineeringOpts = parseConciseScientificAndEngineeringStem(token.stem);
+    if (conciseScientificAndEngineeringOpts) {
+      result = __assign(__assign({}, result), conciseScientificAndEngineeringOpts);
+    }
+  }
+  return result;
+}
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js
+var timeData = {
+  "AX": [
+    "H"
+  ],
+  "BQ": [
+    "H"
+  ],
+  "CP": [
+    "H"
+  ],
+  "CZ": [
+    "H"
+  ],
+  "DK": [
+    "H"
+  ],
+  "FI": [
+    "H"
+  ],
+  "ID": [
+    "H"
+  ],
+  "IS": [
+    "H"
+  ],
+  "ML": [
+    "H"
+  ],
+  "NE": [
+    "H"
+  ],
+  "RU": [
+    "H"
+  ],
+  "SE": [
+    "H"
+  ],
+  "SJ": [
+    "H"
+  ],
+  "SK": [
+    "H"
+  ],
+  "AS": [
+    "h",
+    "H"
+  ],
+  "BT": [
+    "h",
+    "H"
+  ],
+  "DJ": [
+    "h",
+    "H"
+  ],
+  "ER": [
+    "h",
+    "H"
+  ],
+  "GH": [
+    "h",
+    "H"
+  ],
+  "IN": [
+    "h",
+    "H"
+  ],
+  "LS": [
+    "h",
+    "H"
+  ],
+  "PG": [
+    "h",
+    "H"
+  ],
+  "PW": [
+    "h",
+    "H"
+  ],
+  "SO": [
+    "h",
+    "H"
+  ],
+  "TO": [
+    "h",
+    "H"
+  ],
+  "VU": [
+    "h",
+    "H"
+  ],
+  "WS": [
+    "h",
+    "H"
+  ],
+  "001": [
+    "H",
+    "h"
+  ],
+  "AL": [
+    "h",
+    "H",
+    "hB"
+  ],
+  "TD": [
+    "h",
+    "H",
+    "hB"
+  ],
+  "ca-ES": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CM": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "fr-CA": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "gl-ES": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "it-CH": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "it-IT": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "LU": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "NP": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "PF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SC": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SM": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SN": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "TF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "VA": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CY": [
+    "h",
+    "H",
+    "hb",
+    "hB"
+  ],
+  "GR": [
+    "h",
+    "H",
+    "hb",
+    "hB"
+  ],
+  "CO": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "DO": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "KP": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "KR": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "NA": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "PA": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "PR": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "VE": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "AC": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "AI": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "BW": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "BZ": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CC": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CX": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "DG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "FK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GB": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GI": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IE": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IM": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IO": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "JE": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "LT": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MN": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MS": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NF": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NR": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NU": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "PN": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "SH": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "SX": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "TA": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "ZA": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "af-ZA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "AR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CL": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CU": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "EA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-BO": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-BR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-EC": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-ES": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-GQ": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-PE": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "GT": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "HN": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "IC": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "KG": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "KM": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "LK": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "MA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "MX": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "NI": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "PY": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "SV": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "UY": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "JP": [
+    "H",
+    "h",
+    "K"
+  ],
+  "AD": [
+    "H",
+    "hB"
+  ],
+  "AM": [
+    "H",
+    "hB"
+  ],
+  "AO": [
+    "H",
+    "hB"
+  ],
+  "AT": [
+    "H",
+    "hB"
+  ],
+  "AW": [
+    "H",
+    "hB"
+  ],
+  "BE": [
+    "H",
+    "hB"
+  ],
+  "BF": [
+    "H",
+    "hB"
+  ],
+  "BJ": [
+    "H",
+    "hB"
+  ],
+  "BL": [
+    "H",
+    "hB"
+  ],
+  "BR": [
+    "H",
+    "hB"
+  ],
+  "CG": [
+    "H",
+    "hB"
+  ],
+  "CI": [
+    "H",
+    "hB"
+  ],
+  "CV": [
+    "H",
+    "hB"
+  ],
+  "DE": [
+    "H",
+    "hB"
+  ],
+  "EE": [
+    "H",
+    "hB"
+  ],
+  "FR": [
+    "H",
+    "hB"
+  ],
+  "GA": [
+    "H",
+    "hB"
+  ],
+  "GF": [
+    "H",
+    "hB"
+  ],
+  "GN": [
+    "H",
+    "hB"
+  ],
+  "GP": [
+    "H",
+    "hB"
+  ],
+  "GW": [
+    "H",
+    "hB"
+  ],
+  "HR": [
+    "H",
+    "hB"
+  ],
+  "IL": [
+    "H",
+    "hB"
+  ],
+  "IT": [
+    "H",
+    "hB"
+  ],
+  "KZ": [
+    "H",
+    "hB"
+  ],
+  "MC": [
+    "H",
+    "hB"
+  ],
+  "MD": [
+    "H",
+    "hB"
+  ],
+  "MF": [
+    "H",
+    "hB"
+  ],
+  "MQ": [
+    "H",
+    "hB"
+  ],
+  "MZ": [
+    "H",
+    "hB"
+  ],
+  "NC": [
+    "H",
+    "hB"
+  ],
+  "NL": [
+    "H",
+    "hB"
+  ],
+  "PM": [
+    "H",
+    "hB"
+  ],
+  "PT": [
+    "H",
+    "hB"
+  ],
+  "RE": [
+    "H",
+    "hB"
+  ],
+  "RO": [
+    "H",
+    "hB"
+  ],
+  "SI": [
+    "H",
+    "hB"
+  ],
+  "SR": [
+    "H",
+    "hB"
+  ],
+  "ST": [
+    "H",
+    "hB"
+  ],
+  "TG": [
+    "H",
+    "hB"
+  ],
+  "TR": [
+    "H",
+    "hB"
+  ],
+  "WF": [
+    "H",
+    "hB"
+  ],
+  "YT": [
+    "H",
+    "hB"
+  ],
+  "BD": [
+    "h",
+    "hB",
+    "H"
+  ],
+  "PK": [
+    "h",
+    "hB",
+    "H"
+  ],
+  "AZ": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "BA": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "BG": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "CH": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "GE": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "LI": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "ME": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "RS": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "UA": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "UZ": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "XK": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "AG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "AU": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BB": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BS": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "CA": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "DM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "en-001": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "FJ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "FM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GD": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GU": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GY": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "JM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KI": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KN": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KY": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "LC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "LR": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MH": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MP": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MW": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "NZ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SB": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SL": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SS": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SZ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "TC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "TT": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "UM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "US": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VI": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "ZM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BO": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "EC": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "ES": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "GQ": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "PE": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "AE": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "ar-001": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "BH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "DZ": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "EG": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "EH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "HK": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "IQ": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "JO": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "KW": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "LB": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "LY": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "MO": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "MR": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "OM": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "PH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "PS": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "QA": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SA": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SD": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SY": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "TN": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "YE": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "AF": [
+    "H",
+    "hb",
+    "hB",
+    "h"
+  ],
+  "LA": [
+    "H",
+    "hb",
+    "hB",
+    "h"
+  ],
+  "CN": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "LV": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "TL": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "zu-ZA": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "CD": [
+    "hB",
+    "H"
+  ],
+  "IR": [
+    "hB",
+    "H"
+  ],
+  "hi-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "kn-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "ml-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "te-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "KH": [
+    "hB",
+    "h",
+    "H",
+    "hb"
+  ],
+  "ta-IN": [
+    "hB",
+    "h",
+    "hb",
+    "H"
+  ],
+  "BN": [
+    "hb",
+    "hB",
+    "h",
+    "H"
+  ],
+  "MY": [
+    "hb",
+    "hB",
+    "h",
+    "H"
+  ],
+  "ET": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "gu-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "mr-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "pa-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "TW": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "KE": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "MM": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "TZ": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "UG": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ]
+};
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js
+function getBestPattern(skeleton, locale) {
+  var skeletonCopy = "";
+  for (var patternPos = 0; patternPos < skeleton.length; patternPos++) {
+    var patternChar = skeleton.charAt(patternPos);
+    if (patternChar === "j") {
+      var extraLength = 0;
+      while (patternPos + 1 < skeleton.length && skeleton.charAt(patternPos + 1) === patternChar) {
+        extraLength++;
+        patternPos++;
+      }
+      var hourLen = 1 + (extraLength & 1);
+      var dayPeriodLen = extraLength < 2 ? 1 : 3 + (extraLength >> 1);
+      var dayPeriodChar = "a";
+      var hourChar = getDefaultHourSymbolFromLocale(locale);
+      if (hourChar == "H" || hourChar == "k") {
+        dayPeriodLen = 0;
+      }
+      while (dayPeriodLen-- > 0) {
+        skeletonCopy += dayPeriodChar;
+      }
+      while (hourLen-- > 0) {
+        skeletonCopy = hourChar + skeletonCopy;
+      }
+    } else if (patternChar === "J") {
+      skeletonCopy += "H";
+    } else {
+      skeletonCopy += patternChar;
+    }
+  }
+  return skeletonCopy;
+}
+function getDefaultHourSymbolFromLocale(locale) {
+  var hourCycle = locale.hourCycle;
+  if (hourCycle === void 0 && // @ts-ignore hourCycle(s) is not identified yet
+  locale.hourCycles && // @ts-ignore
+  locale.hourCycles.length) {
+    hourCycle = locale.hourCycles[0];
+  }
+  if (hourCycle) {
+    switch (hourCycle) {
+      case "h24":
+        return "k";
+      case "h23":
+        return "H";
+      case "h12":
+        return "h";
+      case "h11":
+        return "K";
+      default:
+        throw new Error("Invalid hourCycle");
+    }
+  }
+  var languageTag = locale.language;
+  var regionTag;
+  if (languageTag !== "root") {
+    regionTag = locale.maximize().region;
+  }
+  var hourCycles = timeData[regionTag || ""] || timeData[languageTag || ""] || timeData["".concat(languageTag, "-001")] || timeData["001"];
+  return hourCycles[0];
+}
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/parser.js
+var _a;
+var SPACE_SEPARATOR_START_REGEX = new RegExp("^".concat(SPACE_SEPARATOR_REGEX.source, "*"));
+var SPACE_SEPARATOR_END_REGEX = new RegExp("".concat(SPACE_SEPARATOR_REGEX.source, "*$"));
+function createLocation(start, end) {
+  return { start, end };
+}
+var hasNativeStartsWith = !!String.prototype.startsWith;
+var hasNativeFromCodePoint = !!String.fromCodePoint;
+var hasNativeFromEntries = !!Object.fromEntries;
+var hasNativeCodePointAt = !!String.prototype.codePointAt;
+var hasTrimStart = !!String.prototype.trimStart;
+var hasTrimEnd = !!String.prototype.trimEnd;
+var hasNativeIsSafeInteger = !!Number.isSafeInteger;
+var isSafeInteger = hasNativeIsSafeInteger ? Number.isSafeInteger : function(n) {
+  return typeof n === "number" && isFinite(n) && Math.floor(n) === n && Math.abs(n) <= 9007199254740991;
+};
+var REGEX_SUPPORTS_U_AND_Y = true;
+try {
+  re = RE("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+  REGEX_SUPPORTS_U_AND_Y = ((_a = re.exec("a")) === null || _a === void 0 ? void 0 : _a[0]) === "a";
+} catch (_) {
+  REGEX_SUPPORTS_U_AND_Y = false;
+}
+var re;
+var startsWith = hasNativeStartsWith ? (
+  // Native
+  function startsWith2(s, search, position) {
+    return s.startsWith(search, position);
+  }
+) : (
+  // For IE11
+  function startsWith3(s, search, position) {
+    return s.slice(position, position + search.length) === search;
+  }
+);
+var fromCodePoint = hasNativeFromCodePoint ? String.fromCodePoint : (
+  // IE11
+  function fromCodePoint2() {
+    var codePoints = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      codePoints[_i] = arguments[_i];
+    }
+    var elements = "";
+    var length = codePoints.length;
+    var i = 0;
+    var code;
+    while (length > i) {
+      code = codePoints[i++];
+      if (code > 1114111)
+        throw RangeError(code + " is not a valid code point");
+      elements += code < 65536 ? String.fromCharCode(code) : String.fromCharCode(((code -= 65536) >> 10) + 55296, code % 1024 + 56320);
+    }
+    return elements;
+  }
+);
+var fromEntries = (
+  // native
+  hasNativeFromEntries ? Object.fromEntries : (
+    // Ponyfill
+    function fromEntries2(entries) {
+      var obj = {};
+      for (var _i = 0, entries_1 = entries; _i < entries_1.length; _i++) {
+        var _a2 = entries_1[_i], k = _a2[0], v = _a2[1];
+        obj[k] = v;
+      }
+      return obj;
+    }
+  )
+);
+var codePointAt = hasNativeCodePointAt ? (
+  // Native
+  function codePointAt2(s, index) {
+    return s.codePointAt(index);
+  }
+) : (
+  // IE 11
+  function codePointAt3(s, index) {
+    var size = s.length;
+    if (index < 0 || index >= size) {
+      return void 0;
+    }
+    var first = s.charCodeAt(index);
+    var second;
+    return first < 55296 || first > 56319 || index + 1 === size || (second = s.charCodeAt(index + 1)) < 56320 || second > 57343 ? first : (first - 55296 << 10) + (second - 56320) + 65536;
+  }
+);
+var trimStart = hasTrimStart ? (
+  // Native
+  function trimStart2(s) {
+    return s.trimStart();
+  }
+) : (
+  // Ponyfill
+  function trimStart3(s) {
+    return s.replace(SPACE_SEPARATOR_START_REGEX, "");
+  }
+);
+var trimEnd = hasTrimEnd ? (
+  // Native
+  function trimEnd2(s) {
+    return s.trimEnd();
+  }
+) : (
+  // Ponyfill
+  function trimEnd3(s) {
+    return s.replace(SPACE_SEPARATOR_END_REGEX, "");
+  }
+);
+function RE(s, flag) {
+  return new RegExp(s, flag);
+}
+var matchIdentifierAtIndex;
+if (REGEX_SUPPORTS_U_AND_Y) {
+  IDENTIFIER_PREFIX_RE_1 = RE("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+  matchIdentifierAtIndex = function matchIdentifierAtIndex2(s, index) {
+    var _a2;
+    IDENTIFIER_PREFIX_RE_1.lastIndex = index;
+    var match = IDENTIFIER_PREFIX_RE_1.exec(s);
+    return (_a2 = match[1]) !== null && _a2 !== void 0 ? _a2 : "";
+  };
+} else {
+  matchIdentifierAtIndex = function matchIdentifierAtIndex2(s, index) {
+    var match = [];
+    while (true) {
+      var c = codePointAt(s, index);
+      if (c === void 0 || _isWhiteSpace(c) || _isPatternSyntax(c)) {
+        break;
+      }
+      match.push(c);
+      index += c >= 65536 ? 2 : 1;
+    }
+    return fromCodePoint.apply(void 0, match);
+  };
+}
+var IDENTIFIER_PREFIX_RE_1;
+var Parser = (
+  /** @class */
+  (function() {
+    function Parser2(message, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      this.message = message;
+      this.position = { offset: 0, line: 1, column: 1 };
+      this.ignoreTag = !!options.ignoreTag;
+      this.locale = options.locale;
+      this.requiresOtherClause = !!options.requiresOtherClause;
+      this.shouldParseSkeletons = !!options.shouldParseSkeletons;
+    }
+    Parser2.prototype.parse = function() {
+      if (this.offset() !== 0) {
+        throw Error("parser can only be used once");
+      }
+      return this.parseMessage(0, "", false);
+    };
+    Parser2.prototype.parseMessage = function(nestingLevel, parentArgType, expectingCloseTag) {
+      var elements = [];
+      while (!this.isEOF()) {
+        var char = this.char();
+        if (char === 123) {
+          var result = this.parseArgument(nestingLevel, expectingCloseTag);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        } else if (char === 125 && nestingLevel > 0) {
+          break;
+        } else if (char === 35 && (parentArgType === "plural" || parentArgType === "selectordinal")) {
+          var position = this.clonePosition();
+          this.bump();
+          elements.push({
+            type: TYPE.pound,
+            location: createLocation(position, this.clonePosition())
+          });
+        } else if (char === 60 && !this.ignoreTag && this.peek() === 47) {
+          if (expectingCloseTag) {
+            break;
+          } else {
+            return this.error(ErrorKind.UNMATCHED_CLOSING_TAG, createLocation(this.clonePosition(), this.clonePosition()));
+          }
+        } else if (char === 60 && !this.ignoreTag && _isAlpha(this.peek() || 0)) {
+          var result = this.parseTag(nestingLevel, parentArgType);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        } else {
+          var result = this.parseLiteral(nestingLevel, parentArgType);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        }
+      }
+      return { val: elements, err: null };
+    };
+    Parser2.prototype.parseTag = function(nestingLevel, parentArgType) {
+      var startPosition = this.clonePosition();
+      this.bump();
+      var tagName = this.parseTagName();
+      this.bumpSpace();
+      if (this.bumpIf("/>")) {
+        return {
+          val: {
+            type: TYPE.literal,
+            value: "<".concat(tagName, "/>"),
+            location: createLocation(startPosition, this.clonePosition())
+          },
+          err: null
+        };
+      } else if (this.bumpIf(">")) {
+        var childrenResult = this.parseMessage(nestingLevel + 1, parentArgType, true);
+        if (childrenResult.err) {
+          return childrenResult;
+        }
+        var children = childrenResult.val;
+        var endTagStartPosition = this.clonePosition();
+        if (this.bumpIf("</")) {
+          if (this.isEOF() || !_isAlpha(this.char())) {
+            return this.error(ErrorKind.INVALID_TAG, createLocation(endTagStartPosition, this.clonePosition()));
+          }
+          var closingTagNameStartPosition = this.clonePosition();
+          var closingTagName = this.parseTagName();
+          if (tagName !== closingTagName) {
+            return this.error(ErrorKind.UNMATCHED_CLOSING_TAG, createLocation(closingTagNameStartPosition, this.clonePosition()));
+          }
+          this.bumpSpace();
+          if (!this.bumpIf(">")) {
+            return this.error(ErrorKind.INVALID_TAG, createLocation(endTagStartPosition, this.clonePosition()));
+          }
+          return {
+            val: {
+              type: TYPE.tag,
+              value: tagName,
+              children,
+              location: createLocation(startPosition, this.clonePosition())
+            },
+            err: null
+          };
+        } else {
+          return this.error(ErrorKind.UNCLOSED_TAG, createLocation(startPosition, this.clonePosition()));
+        }
+      } else {
+        return this.error(ErrorKind.INVALID_TAG, createLocation(startPosition, this.clonePosition()));
+      }
+    };
+    Parser2.prototype.parseTagName = function() {
+      var startOffset = this.offset();
+      this.bump();
+      while (!this.isEOF() && _isPotentialElementNameChar(this.char())) {
+        this.bump();
+      }
+      return this.message.slice(startOffset, this.offset());
+    };
+    Parser2.prototype.parseLiteral = function(nestingLevel, parentArgType) {
+      var start = this.clonePosition();
+      var value = "";
+      while (true) {
+        var parseQuoteResult = this.tryParseQuote(parentArgType);
+        if (parseQuoteResult) {
+          value += parseQuoteResult;
+          continue;
+        }
+        var parseUnquotedResult = this.tryParseUnquoted(nestingLevel, parentArgType);
+        if (parseUnquotedResult) {
+          value += parseUnquotedResult;
+          continue;
+        }
+        var parseLeftAngleResult = this.tryParseLeftAngleBracket();
+        if (parseLeftAngleResult) {
+          value += parseLeftAngleResult;
+          continue;
+        }
+        break;
+      }
+      var location = createLocation(start, this.clonePosition());
+      return {
+        val: { type: TYPE.literal, value, location },
+        err: null
+      };
+    };
+    Parser2.prototype.tryParseLeftAngleBracket = function() {
+      if (!this.isEOF() && this.char() === 60 && (this.ignoreTag || // If at the opening tag or closing tag position, bail.
+      !_isAlphaOrSlash(this.peek() || 0))) {
+        this.bump();
+        return "<";
+      }
+      return null;
+    };
+    Parser2.prototype.tryParseQuote = function(parentArgType) {
+      if (this.isEOF() || this.char() !== 39) {
+        return null;
+      }
+      switch (this.peek()) {
+        case 39:
+          this.bump();
+          this.bump();
+          return "'";
+        // '{', '<', '>', '}'
+        case 123:
+        case 60:
+        case 62:
+        case 125:
+          break;
+        case 35:
+          if (parentArgType === "plural" || parentArgType === "selectordinal") {
+            break;
+          }
+          return null;
+        default:
+          return null;
+      }
+      this.bump();
+      var codePoints = [this.char()];
+      this.bump();
+      while (!this.isEOF()) {
+        var ch = this.char();
+        if (ch === 39) {
+          if (this.peek() === 39) {
+            codePoints.push(39);
+            this.bump();
+          } else {
+            this.bump();
+            break;
+          }
+        } else {
+          codePoints.push(ch);
+        }
+        this.bump();
+      }
+      return fromCodePoint.apply(void 0, codePoints);
+    };
+    Parser2.prototype.tryParseUnquoted = function(nestingLevel, parentArgType) {
+      if (this.isEOF()) {
+        return null;
+      }
+      var ch = this.char();
+      if (ch === 60 || ch === 123 || ch === 35 && (parentArgType === "plural" || parentArgType === "selectordinal") || ch === 125 && nestingLevel > 0) {
+        return null;
+      } else {
+        this.bump();
+        return fromCodePoint(ch);
+      }
+    };
+    Parser2.prototype.parseArgument = function(nestingLevel, expectingCloseTag) {
+      var openingBracePosition = this.clonePosition();
+      this.bump();
+      this.bumpSpace();
+      if (this.isEOF()) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      if (this.char() === 125) {
+        this.bump();
+        return this.error(ErrorKind.EMPTY_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      var value = this.parseIdentifierIfPossible().value;
+      if (!value) {
+        return this.error(ErrorKind.MALFORMED_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      this.bumpSpace();
+      if (this.isEOF()) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      switch (this.char()) {
+        // Simple argument: `{name}`
+        case 125: {
+          this.bump();
+          return {
+            val: {
+              type: TYPE.argument,
+              // value does not include the opening and closing braces.
+              value,
+              location: createLocation(openingBracePosition, this.clonePosition())
+            },
+            err: null
+          };
+        }
+        // Argument with options: `{name, format, ...}`
+        case 44: {
+          this.bump();
+          this.bumpSpace();
+          if (this.isEOF()) {
+            return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+          }
+          return this.parseArgumentOptions(nestingLevel, expectingCloseTag, value, openingBracePosition);
+        }
+        default:
+          return this.error(ErrorKind.MALFORMED_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+    };
+    Parser2.prototype.parseIdentifierIfPossible = function() {
+      var startingPosition = this.clonePosition();
+      var startOffset = this.offset();
+      var value = matchIdentifierAtIndex(this.message, startOffset);
+      var endOffset = startOffset + value.length;
+      this.bumpTo(endOffset);
+      var endPosition = this.clonePosition();
+      var location = createLocation(startingPosition, endPosition);
+      return { value, location };
+    };
+    Parser2.prototype.parseArgumentOptions = function(nestingLevel, expectingCloseTag, value, openingBracePosition) {
+      var _a2;
+      var typeStartPosition = this.clonePosition();
+      var argType = this.parseIdentifierIfPossible().value;
+      var typeEndPosition = this.clonePosition();
+      switch (argType) {
+        case "":
+          return this.error(ErrorKind.EXPECT_ARGUMENT_TYPE, createLocation(typeStartPosition, typeEndPosition));
+        case "number":
+        case "date":
+        case "time": {
+          this.bumpSpace();
+          var styleAndLocation = null;
+          if (this.bumpIf(",")) {
+            this.bumpSpace();
+            var styleStartPosition = this.clonePosition();
+            var result = this.parseSimpleArgStyleIfPossible();
+            if (result.err) {
+              return result;
+            }
+            var style = trimEnd(result.val);
+            if (style.length === 0) {
+              return this.error(ErrorKind.EXPECT_ARGUMENT_STYLE, createLocation(this.clonePosition(), this.clonePosition()));
+            }
+            var styleLocation = createLocation(styleStartPosition, this.clonePosition());
+            styleAndLocation = { style, styleLocation };
+          }
+          var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+          if (argCloseResult.err) {
+            return argCloseResult;
+          }
+          var location_1 = createLocation(openingBracePosition, this.clonePosition());
+          if (styleAndLocation && startsWith(styleAndLocation === null || styleAndLocation === void 0 ? void 0 : styleAndLocation.style, "::", 0)) {
+            var skeleton = trimStart(styleAndLocation.style.slice(2));
+            if (argType === "number") {
+              var result = this.parseNumberSkeletonFromString(skeleton, styleAndLocation.styleLocation);
+              if (result.err) {
+                return result;
+              }
+              return {
+                val: { type: TYPE.number, value, location: location_1, style: result.val },
+                err: null
+              };
+            } else {
+              if (skeleton.length === 0) {
+                return this.error(ErrorKind.EXPECT_DATE_TIME_SKELETON, location_1);
+              }
+              var dateTimePattern = skeleton;
+              if (this.locale) {
+                dateTimePattern = getBestPattern(skeleton, this.locale);
+              }
+              var style = {
+                type: SKELETON_TYPE.dateTime,
+                pattern: dateTimePattern,
+                location: styleAndLocation.styleLocation,
+                parsedOptions: this.shouldParseSkeletons ? parseDateTimeSkeleton(dateTimePattern) : {}
+              };
+              var type = argType === "date" ? TYPE.date : TYPE.time;
+              return {
+                val: { type, value, location: location_1, style },
+                err: null
+              };
+            }
+          }
+          return {
+            val: {
+              type: argType === "number" ? TYPE.number : argType === "date" ? TYPE.date : TYPE.time,
+              value,
+              location: location_1,
+              style: (_a2 = styleAndLocation === null || styleAndLocation === void 0 ? void 0 : styleAndLocation.style) !== null && _a2 !== void 0 ? _a2 : null
+            },
+            err: null
+          };
+        }
+        case "plural":
+        case "selectordinal":
+        case "select": {
+          var typeEndPosition_1 = this.clonePosition();
+          this.bumpSpace();
+          if (!this.bumpIf(",")) {
+            return this.error(ErrorKind.EXPECT_SELECT_ARGUMENT_OPTIONS, createLocation(typeEndPosition_1, __assign({}, typeEndPosition_1)));
+          }
+          this.bumpSpace();
+          var identifierAndLocation = this.parseIdentifierIfPossible();
+          var pluralOffset = 0;
+          if (argType !== "select" && identifierAndLocation.value === "offset") {
+            if (!this.bumpIf(":")) {
+              return this.error(ErrorKind.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, createLocation(this.clonePosition(), this.clonePosition()));
+            }
+            this.bumpSpace();
+            var result = this.tryParseDecimalInteger(ErrorKind.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, ErrorKind.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);
+            if (result.err) {
+              return result;
+            }
+            this.bumpSpace();
+            identifierAndLocation = this.parseIdentifierIfPossible();
+            pluralOffset = result.val;
+          }
+          var optionsResult = this.tryParsePluralOrSelectOptions(nestingLevel, argType, expectingCloseTag, identifierAndLocation);
+          if (optionsResult.err) {
+            return optionsResult;
+          }
+          var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+          if (argCloseResult.err) {
+            return argCloseResult;
+          }
+          var location_2 = createLocation(openingBracePosition, this.clonePosition());
+          if (argType === "select") {
+            return {
+              val: {
+                type: TYPE.select,
+                value,
+                options: fromEntries(optionsResult.val),
+                location: location_2
+              },
+              err: null
+            };
+          } else {
+            return {
+              val: {
+                type: TYPE.plural,
+                value,
+                options: fromEntries(optionsResult.val),
+                offset: pluralOffset,
+                pluralType: argType === "plural" ? "cardinal" : "ordinal",
+                location: location_2
+              },
+              err: null
+            };
+          }
+        }
+        default:
+          return this.error(ErrorKind.INVALID_ARGUMENT_TYPE, createLocation(typeStartPosition, typeEndPosition));
+      }
+    };
+    Parser2.prototype.tryParseArgumentClose = function(openingBracePosition) {
+      if (this.isEOF() || this.char() !== 125) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      this.bump();
+      return { val: true, err: null };
+    };
+    Parser2.prototype.parseSimpleArgStyleIfPossible = function() {
+      var nestedBraces = 0;
+      var startPosition = this.clonePosition();
+      while (!this.isEOF()) {
+        var ch = this.char();
+        switch (ch) {
+          case 39: {
+            this.bump();
+            var apostrophePosition = this.clonePosition();
+            if (!this.bumpUntil("'")) {
+              return this.error(ErrorKind.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, createLocation(apostrophePosition, this.clonePosition()));
+            }
+            this.bump();
+            break;
+          }
+          case 123: {
+            nestedBraces += 1;
+            this.bump();
+            break;
+          }
+          case 125: {
+            if (nestedBraces > 0) {
+              nestedBraces -= 1;
+            } else {
+              return {
+                val: this.message.slice(startPosition.offset, this.offset()),
+                err: null
+              };
+            }
+            break;
+          }
+          default:
+            this.bump();
+            break;
+        }
+      }
+      return {
+        val: this.message.slice(startPosition.offset, this.offset()),
+        err: null
+      };
+    };
+    Parser2.prototype.parseNumberSkeletonFromString = function(skeleton, location) {
+      var tokens = [];
+      try {
+        tokens = parseNumberSkeletonFromString(skeleton);
+      } catch (e) {
+        return this.error(ErrorKind.INVALID_NUMBER_SKELETON, location);
+      }
+      return {
+        val: {
+          type: SKELETON_TYPE.number,
+          tokens,
+          location,
+          parsedOptions: this.shouldParseSkeletons ? parseNumberSkeleton(tokens) : {}
+        },
+        err: null
+      };
+    };
+    Parser2.prototype.tryParsePluralOrSelectOptions = function(nestingLevel, parentArgType, expectCloseTag, parsedFirstIdentifier) {
+      var _a2;
+      var hasOtherClause = false;
+      var options = [];
+      var parsedSelectors = /* @__PURE__ */ new Set();
+      var selector = parsedFirstIdentifier.value, selectorLocation = parsedFirstIdentifier.location;
+      while (true) {
+        if (selector.length === 0) {
+          var startPosition = this.clonePosition();
+          if (parentArgType !== "select" && this.bumpIf("=")) {
+            var result = this.tryParseDecimalInteger(ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR, ErrorKind.INVALID_PLURAL_ARGUMENT_SELECTOR);
+            if (result.err) {
+              return result;
+            }
+            selectorLocation = createLocation(startPosition, this.clonePosition());
+            selector = this.message.slice(startPosition.offset, this.offset());
+          } else {
+            break;
+          }
+        }
+        if (parsedSelectors.has(selector)) {
+          return this.error(parentArgType === "select" ? ErrorKind.DUPLICATE_SELECT_ARGUMENT_SELECTOR : ErrorKind.DUPLICATE_PLURAL_ARGUMENT_SELECTOR, selectorLocation);
+        }
+        if (selector === "other") {
+          hasOtherClause = true;
+        }
+        this.bumpSpace();
+        var openingBracePosition = this.clonePosition();
+        if (!this.bumpIf("{")) {
+          return this.error(parentArgType === "select" ? ErrorKind.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, createLocation(this.clonePosition(), this.clonePosition()));
+        }
+        var fragmentResult = this.parseMessage(nestingLevel + 1, parentArgType, expectCloseTag);
+        if (fragmentResult.err) {
+          return fragmentResult;
+        }
+        var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+        if (argCloseResult.err) {
+          return argCloseResult;
+        }
+        options.push([
+          selector,
+          {
+            value: fragmentResult.val,
+            location: createLocation(openingBracePosition, this.clonePosition())
+          }
+        ]);
+        parsedSelectors.add(selector);
+        this.bumpSpace();
+        _a2 = this.parseIdentifierIfPossible(), selector = _a2.value, selectorLocation = _a2.location;
+      }
+      if (options.length === 0) {
+        return this.error(parentArgType === "select" ? ErrorKind.EXPECT_SELECT_ARGUMENT_SELECTOR : ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR, createLocation(this.clonePosition(), this.clonePosition()));
+      }
+      if (this.requiresOtherClause && !hasOtherClause) {
+        return this.error(ErrorKind.MISSING_OTHER_CLAUSE, createLocation(this.clonePosition(), this.clonePosition()));
+      }
+      return { val: options, err: null };
+    };
+    Parser2.prototype.tryParseDecimalInteger = function(expectNumberError, invalidNumberError) {
+      var sign = 1;
+      var startingPosition = this.clonePosition();
+      if (this.bumpIf("+")) {
+      } else if (this.bumpIf("-")) {
+        sign = -1;
+      }
+      var hasDigits = false;
+      var decimal = 0;
+      while (!this.isEOF()) {
+        var ch = this.char();
+        if (ch >= 48 && ch <= 57) {
+          hasDigits = true;
+          decimal = decimal * 10 + (ch - 48);
+          this.bump();
+        } else {
+          break;
+        }
+      }
+      var location = createLocation(startingPosition, this.clonePosition());
+      if (!hasDigits) {
+        return this.error(expectNumberError, location);
+      }
+      decimal *= sign;
+      if (!isSafeInteger(decimal)) {
+        return this.error(invalidNumberError, location);
+      }
+      return { val: decimal, err: null };
+    };
+    Parser2.prototype.offset = function() {
+      return this.position.offset;
+    };
+    Parser2.prototype.isEOF = function() {
+      return this.offset() === this.message.length;
+    };
+    Parser2.prototype.clonePosition = function() {
+      return {
+        offset: this.position.offset,
+        line: this.position.line,
+        column: this.position.column
+      };
+    };
+    Parser2.prototype.char = function() {
+      var offset = this.position.offset;
+      if (offset >= this.message.length) {
+        throw Error("out of bound");
+      }
+      var code = codePointAt(this.message, offset);
+      if (code === void 0) {
+        throw Error("Offset ".concat(offset, " is at invalid UTF-16 code unit boundary"));
+      }
+      return code;
+    };
+    Parser2.prototype.error = function(kind, location) {
+      return {
+        val: null,
+        err: {
+          kind,
+          message: this.message,
+          location
+        }
+      };
+    };
+    Parser2.prototype.bump = function() {
+      if (this.isEOF()) {
+        return;
+      }
+      var code = this.char();
+      if (code === 10) {
+        this.position.line += 1;
+        this.position.column = 1;
+        this.position.offset += 1;
+      } else {
+        this.position.column += 1;
+        this.position.offset += code < 65536 ? 1 : 2;
+      }
+    };
+    Parser2.prototype.bumpIf = function(prefix) {
+      if (startsWith(this.message, prefix, this.offset())) {
+        for (var i = 0; i < prefix.length; i++) {
+          this.bump();
+        }
+        return true;
+      }
+      return false;
+    };
+    Parser2.prototype.bumpUntil = function(pattern) {
+      var currentOffset = this.offset();
+      var index = this.message.indexOf(pattern, currentOffset);
+      if (index >= 0) {
+        this.bumpTo(index);
+        return true;
+      } else {
+        this.bumpTo(this.message.length);
+        return false;
+      }
+    };
+    Parser2.prototype.bumpTo = function(targetOffset) {
+      if (this.offset() > targetOffset) {
+        throw Error("targetOffset ".concat(targetOffset, " must be greater than or equal to the current offset ").concat(this.offset()));
+      }
+      targetOffset = Math.min(targetOffset, this.message.length);
+      while (true) {
+        var offset = this.offset();
+        if (offset === targetOffset) {
+          break;
+        }
+        if (offset > targetOffset) {
+          throw Error("targetOffset ".concat(targetOffset, " is at invalid UTF-16 code unit boundary"));
+        }
+        this.bump();
+        if (this.isEOF()) {
+          break;
+        }
+      }
+    };
+    Parser2.prototype.bumpSpace = function() {
+      while (!this.isEOF() && _isWhiteSpace(this.char())) {
+        this.bump();
+      }
+    };
+    Parser2.prototype.peek = function() {
+      if (this.isEOF()) {
+        return null;
+      }
+      var code = this.char();
+      var offset = this.offset();
+      var nextCode = this.message.charCodeAt(offset + (code >= 65536 ? 2 : 1));
+      return nextCode !== null && nextCode !== void 0 ? nextCode : null;
+    };
+    return Parser2;
+  })()
+);
+function _isAlpha(codepoint) {
+  return codepoint >= 97 && codepoint <= 122 || codepoint >= 65 && codepoint <= 90;
+}
+function _isAlphaOrSlash(codepoint) {
+  return _isAlpha(codepoint) || codepoint === 47;
+}
+function _isPotentialElementNameChar(c) {
+  return c === 45 || c === 46 || c >= 48 && c <= 57 || c === 95 || c >= 97 && c <= 122 || c >= 65 && c <= 90 || c == 183 || c >= 192 && c <= 214 || c >= 216 && c <= 246 || c >= 248 && c <= 893 || c >= 895 && c <= 8191 || c >= 8204 && c <= 8205 || c >= 8255 && c <= 8256 || c >= 8304 && c <= 8591 || c >= 11264 && c <= 12271 || c >= 12289 && c <= 55295 || c >= 63744 && c <= 64975 || c >= 65008 && c <= 65533 || c >= 65536 && c <= 983039;
+}
+function _isWhiteSpace(c) {
+  return c >= 9 && c <= 13 || c === 32 || c === 133 || c >= 8206 && c <= 8207 || c === 8232 || c === 8233;
+}
+function _isPatternSyntax(c) {
+  return c >= 33 && c <= 35 || c === 36 || c >= 37 && c <= 39 || c === 40 || c === 41 || c === 42 || c === 43 || c === 44 || c === 45 || c >= 46 && c <= 47 || c >= 58 && c <= 59 || c >= 60 && c <= 62 || c >= 63 && c <= 64 || c === 91 || c === 92 || c === 93 || c === 94 || c === 96 || c === 123 || c === 124 || c === 125 || c === 126 || c === 161 || c >= 162 && c <= 165 || c === 166 || c === 167 || c === 169 || c === 171 || c === 172 || c === 174 || c === 176 || c === 177 || c === 182 || c === 187 || c === 191 || c === 215 || c === 247 || c >= 8208 && c <= 8213 || c >= 8214 && c <= 8215 || c === 8216 || c === 8217 || c === 8218 || c >= 8219 && c <= 8220 || c === 8221 || c === 8222 || c === 8223 || c >= 8224 && c <= 8231 || c >= 8240 && c <= 8248 || c === 8249 || c === 8250 || c >= 8251 && c <= 8254 || c >= 8257 && c <= 8259 || c === 8260 || c === 8261 || c === 8262 || c >= 8263 && c <= 8273 || c === 8274 || c === 8275 || c >= 8277 && c <= 8286 || c >= 8592 && c <= 8596 || c >= 8597 && c <= 8601 || c >= 8602 && c <= 8603 || c >= 8604 && c <= 8607 || c === 8608 || c >= 8609 && c <= 8610 || c === 8611 || c >= 8612 && c <= 8613 || c === 8614 || c >= 8615 && c <= 8621 || c === 8622 || c >= 8623 && c <= 8653 || c >= 8654 && c <= 8655 || c >= 8656 && c <= 8657 || c === 8658 || c === 8659 || c === 8660 || c >= 8661 && c <= 8691 || c >= 8692 && c <= 8959 || c >= 8960 && c <= 8967 || c === 8968 || c === 8969 || c === 8970 || c === 8971 || c >= 8972 && c <= 8991 || c >= 8992 && c <= 8993 || c >= 8994 && c <= 9e3 || c === 9001 || c === 9002 || c >= 9003 && c <= 9083 || c === 9084 || c >= 9085 && c <= 9114 || c >= 9115 && c <= 9139 || c >= 9140 && c <= 9179 || c >= 9180 && c <= 9185 || c >= 9186 && c <= 9254 || c >= 9255 && c <= 9279 || c >= 9280 && c <= 9290 || c >= 9291 && c <= 9311 || c >= 9472 && c <= 9654 || c === 9655 || c >= 9656 && c <= 9664 || c === 9665 || c >= 9666 && c <= 9719 || c >= 9720 && c <= 9727 || c >= 9728 && c <= 9838 || c === 9839 || c >= 9840 && c <= 10087 || c === 10088 || c === 10089 || c === 10090 || c === 10091 || c === 10092 || c === 10093 || c === 10094 || c === 10095 || c === 10096 || c === 10097 || c === 10098 || c === 10099 || c === 10100 || c === 10101 || c >= 10132 && c <= 10175 || c >= 10176 && c <= 10180 || c === 10181 || c === 10182 || c >= 10183 && c <= 10213 || c === 10214 || c === 10215 || c === 10216 || c === 10217 || c === 10218 || c === 10219 || c === 10220 || c === 10221 || c === 10222 || c === 10223 || c >= 10224 && c <= 10239 || c >= 10240 && c <= 10495 || c >= 10496 && c <= 10626 || c === 10627 || c === 10628 || c === 10629 || c === 10630 || c === 10631 || c === 10632 || c === 10633 || c === 10634 || c === 10635 || c === 10636 || c === 10637 || c === 10638 || c === 10639 || c === 10640 || c === 10641 || c === 10642 || c === 10643 || c === 10644 || c === 10645 || c === 10646 || c === 10647 || c === 10648 || c >= 10649 && c <= 10711 || c === 10712 || c === 10713 || c === 10714 || c === 10715 || c >= 10716 && c <= 10747 || c === 10748 || c === 10749 || c >= 10750 && c <= 11007 || c >= 11008 && c <= 11055 || c >= 11056 && c <= 11076 || c >= 11077 && c <= 11078 || c >= 11079 && c <= 11084 || c >= 11085 && c <= 11123 || c >= 11124 && c <= 11125 || c >= 11126 && c <= 11157 || c === 11158 || c >= 11159 && c <= 11263 || c >= 11776 && c <= 11777 || c === 11778 || c === 11779 || c === 11780 || c === 11781 || c >= 11782 && c <= 11784 || c === 11785 || c === 11786 || c === 11787 || c === 11788 || c === 11789 || c >= 11790 && c <= 11798 || c === 11799 || c >= 11800 && c <= 11801 || c === 11802 || c === 11803 || c === 11804 || c === 11805 || c >= 11806 && c <= 11807 || c === 11808 || c === 11809 || c === 11810 || c === 11811 || c === 11812 || c === 11813 || c === 11814 || c === 11815 || c === 11816 || c === 11817 || c >= 11818 && c <= 11822 || c === 11823 || c >= 11824 && c <= 11833 || c >= 11834 && c <= 11835 || c >= 11836 && c <= 11839 || c === 11840 || c === 11841 || c === 11842 || c >= 11843 && c <= 11855 || c >= 11856 && c <= 11857 || c === 11858 || c >= 11859 && c <= 11903 || c >= 12289 && c <= 12291 || c === 12296 || c === 12297 || c === 12298 || c === 12299 || c === 12300 || c === 12301 || c === 12302 || c === 12303 || c === 12304 || c === 12305 || c >= 12306 && c <= 12307 || c === 12308 || c === 12309 || c === 12310 || c === 12311 || c === 12312 || c === 12313 || c === 12314 || c === 12315 || c === 12316 || c === 12317 || c >= 12318 && c <= 12319 || c === 12320 || c === 12336 || c === 64830 || c === 64831 || c >= 65093 && c <= 65094;
+}
+
+// ../../../../node_modules/@formatjs/icu-messageformat-parser/lib/index.js
+function pruneLocation(els) {
+  els.forEach(function(el) {
+    delete el.location;
+    if (isSelectElement(el) || isPluralElement(el)) {
+      for (var k in el.options) {
+        delete el.options[k].location;
+        pruneLocation(el.options[k].value);
+      }
+    } else if (isNumberElement(el) && isNumberSkeleton(el.style)) {
+      delete el.style.location;
+    } else if ((isDateElement(el) || isTimeElement(el)) && isDateTimeSkeleton(el.style)) {
+      delete el.style.location;
+    } else if (isTagElement(el)) {
+      pruneLocation(el.children);
+    }
+  });
+}
+function parse(message, opts) {
+  if (opts === void 0) {
+    opts = {};
+  }
+  opts = __assign({ shouldParseSkeletons: true, requiresOtherClause: true }, opts);
+  var result = new Parser(message, opts).parse();
+  if (result.err) {
+    var error = SyntaxError(ErrorKind[result.err.kind]);
+    error.location = result.err.location;
+    error.originalMessage = result.err.message;
+    throw error;
+  }
+  if (!(opts === null || opts === void 0 ? void 0 : opts.captureLocation)) {
+    pruneLocation(result.val);
+  }
+  return result.val;
+}
+
+// ../../../../node_modules/@formatjs/fast-memoize/lib/index.js
+function memoize(fn, options) {
+  var cache = options && options.cache ? options.cache : cacheDefault;
+  var serializer = options && options.serializer ? options.serializer : serializerDefault;
+  var strategy = options && options.strategy ? options.strategy : strategyDefault;
+  return strategy(fn, {
+    cache,
+    serializer
+  });
+}
+function isPrimitive(value) {
+  return value == null || typeof value === "number" || typeof value === "boolean";
+}
+function monadic(fn, cache, serializer, arg) {
+  var cacheKey = isPrimitive(arg) ? arg : serializer(arg);
+  var computedValue = cache.get(cacheKey);
+  if (typeof computedValue === "undefined") {
+    computedValue = fn.call(this, arg);
+    cache.set(cacheKey, computedValue);
+  }
+  return computedValue;
+}
+function variadic(fn, cache, serializer) {
+  var args = Array.prototype.slice.call(arguments, 3);
+  var cacheKey = serializer(args);
+  var computedValue = cache.get(cacheKey);
+  if (typeof computedValue === "undefined") {
+    computedValue = fn.apply(this, args);
+    cache.set(cacheKey, computedValue);
+  }
+  return computedValue;
+}
+function assemble(fn, context, strategy, cache, serialize) {
+  return strategy.bind(context, fn, cache, serialize);
+}
+function strategyDefault(fn, options) {
+  var strategy = fn.length === 1 ? monadic : variadic;
+  return assemble(fn, this, strategy, options.cache.create(), options.serializer);
+}
+function strategyVariadic(fn, options) {
+  return assemble(fn, this, variadic, options.cache.create(), options.serializer);
+}
+function strategyMonadic(fn, options) {
+  return assemble(fn, this, monadic, options.cache.create(), options.serializer);
+}
+var serializerDefault = function() {
+  return JSON.stringify(arguments);
+};
+function ObjectWithoutPrototypeCache() {
+  this.cache = /* @__PURE__ */ Object.create(null);
+}
+ObjectWithoutPrototypeCache.prototype.get = function(key) {
+  return this.cache[key];
+};
+ObjectWithoutPrototypeCache.prototype.set = function(key, value) {
+  this.cache[key] = value;
+};
+var cacheDefault = {
+  create: function create() {
+    return new ObjectWithoutPrototypeCache();
+  }
+};
+var strategies = {
+  variadic: strategyVariadic,
+  monadic: strategyMonadic
+};
+
+// ../../../../node_modules/intl-messageformat/lib/src/error.js
+var ErrorCode;
+(function(ErrorCode2) {
+  ErrorCode2["MISSING_VALUE"] = "MISSING_VALUE";
+  ErrorCode2["INVALID_VALUE"] = "INVALID_VALUE";
+  ErrorCode2["MISSING_INTL_API"] = "MISSING_INTL_API";
+})(ErrorCode || (ErrorCode = {}));
+var FormatError = (
+  /** @class */
+  (function(_super) {
+    __extends(FormatError2, _super);
+    function FormatError2(msg, code, originalMessage) {
+      var _this = _super.call(this, msg) || this;
+      _this.code = code;
+      _this.originalMessage = originalMessage;
+      return _this;
+    }
+    FormatError2.prototype.toString = function() {
+      return "[formatjs Error: ".concat(this.code, "] ").concat(this.message);
+    };
+    return FormatError2;
+  })(Error)
+);
+var InvalidValueError = (
+  /** @class */
+  (function(_super) {
+    __extends(InvalidValueError2, _super);
+    function InvalidValueError2(variableId, value, options, originalMessage) {
+      return _super.call(this, 'Invalid values for "'.concat(variableId, '": "').concat(value, '". Options are "').concat(Object.keys(options).join('", "'), '"'), ErrorCode.INVALID_VALUE, originalMessage) || this;
+    }
+    return InvalidValueError2;
+  })(FormatError)
+);
+var InvalidValueTypeError = (
+  /** @class */
+  (function(_super) {
+    __extends(InvalidValueTypeError2, _super);
+    function InvalidValueTypeError2(value, type, originalMessage) {
+      return _super.call(this, 'Value for "'.concat(value, '" must be of type ').concat(type), ErrorCode.INVALID_VALUE, originalMessage) || this;
+    }
+    return InvalidValueTypeError2;
+  })(FormatError)
+);
+var MissingValueError = (
+  /** @class */
+  (function(_super) {
+    __extends(MissingValueError2, _super);
+    function MissingValueError2(variableId, originalMessage) {
+      return _super.call(this, 'The intl string context variable "'.concat(variableId, '" was not provided to the string "').concat(originalMessage, '"'), ErrorCode.MISSING_VALUE, originalMessage) || this;
+    }
+    return MissingValueError2;
+  })(FormatError)
+);
+
+// ../../../../node_modules/intl-messageformat/lib/src/formatters.js
+var PART_TYPE;
+(function(PART_TYPE2) {
+  PART_TYPE2[PART_TYPE2["literal"] = 0] = "literal";
+  PART_TYPE2[PART_TYPE2["object"] = 1] = "object";
+})(PART_TYPE || (PART_TYPE = {}));
+function mergeLiteral(parts) {
+  if (parts.length < 2) {
+    return parts;
+  }
+  return parts.reduce(function(all, part) {
+    var lastPart = all[all.length - 1];
+    if (!lastPart || lastPart.type !== PART_TYPE.literal || part.type !== PART_TYPE.literal) {
+      all.push(part);
+    } else {
+      lastPart.value += part.value;
+    }
+    return all;
+  }, []);
+}
+function isFormatXMLElementFn(el) {
+  return typeof el === "function";
+}
+function formatToParts(els, locales, formatters, formats, values, currentPluralValue, originalMessage) {
+  if (els.length === 1 && isLiteralElement(els[0])) {
+    return [
+      {
+        type: PART_TYPE.literal,
+        value: els[0].value
+      }
+    ];
+  }
+  var result = [];
+  for (var _i = 0, els_1 = els; _i < els_1.length; _i++) {
+    var el = els_1[_i];
+    if (isLiteralElement(el)) {
+      result.push({
+        type: PART_TYPE.literal,
+        value: el.value
+      });
+      continue;
+    }
+    if (isPoundElement(el)) {
+      if (typeof currentPluralValue === "number") {
+        result.push({
+          type: PART_TYPE.literal,
+          value: formatters.getNumberFormat(locales).format(currentPluralValue)
+        });
+      }
+      continue;
+    }
+    var varName = el.value;
+    if (!(values && varName in values)) {
+      throw new MissingValueError(varName, originalMessage);
+    }
+    var value = values[varName];
+    if (isArgumentElement(el)) {
+      if (!value || typeof value === "string" || typeof value === "number") {
+        value = typeof value === "string" || typeof value === "number" ? String(value) : "";
+      }
+      result.push({
+        type: typeof value === "string" ? PART_TYPE.literal : PART_TYPE.object,
+        value
+      });
+      continue;
+    }
+    if (isDateElement(el)) {
+      var style = typeof el.style === "string" ? formats.date[el.style] : isDateTimeSkeleton(el.style) ? el.style.parsedOptions : void 0;
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getDateTimeFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isTimeElement(el)) {
+      var style = typeof el.style === "string" ? formats.time[el.style] : isDateTimeSkeleton(el.style) ? el.style.parsedOptions : formats.time.medium;
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getDateTimeFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isNumberElement(el)) {
+      var style = typeof el.style === "string" ? formats.number[el.style] : isNumberSkeleton(el.style) ? el.style.parsedOptions : void 0;
+      if (style && style.scale) {
+        value = value * (style.scale || 1);
+      }
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getNumberFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isTagElement(el)) {
+      var children = el.children, value_1 = el.value;
+      var formatFn = values[value_1];
+      if (!isFormatXMLElementFn(formatFn)) {
+        throw new InvalidValueTypeError(value_1, "function", originalMessage);
+      }
+      var parts = formatToParts(children, locales, formatters, formats, values, currentPluralValue);
+      var chunks = formatFn(parts.map(function(p) {
+        return p.value;
+      }));
+      if (!Array.isArray(chunks)) {
+        chunks = [chunks];
+      }
+      result.push.apply(result, chunks.map(function(c) {
+        return {
+          type: typeof c === "string" ? PART_TYPE.literal : PART_TYPE.object,
+          value: c
+        };
+      }));
+    }
+    if (isSelectElement(el)) {
+      var opt = el.options[value] || el.options.other;
+      if (!opt) {
+        throw new InvalidValueError(el.value, value, Object.keys(el.options), originalMessage);
+      }
+      result.push.apply(result, formatToParts(opt.value, locales, formatters, formats, values));
+      continue;
+    }
+    if (isPluralElement(el)) {
+      var opt = el.options["=".concat(value)];
+      if (!opt) {
+        if (!Intl.PluralRules) {
+          throw new FormatError('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', ErrorCode.MISSING_INTL_API, originalMessage);
+        }
+        var rule = formatters.getPluralRules(locales, { type: el.pluralType }).select(value - (el.offset || 0));
+        opt = el.options[rule] || el.options.other;
+      }
+      if (!opt) {
+        throw new InvalidValueError(el.value, value, Object.keys(el.options), originalMessage);
+      }
+      result.push.apply(result, formatToParts(opt.value, locales, formatters, formats, values, value - (el.offset || 0)));
+      continue;
+    }
+  }
+  return mergeLiteral(result);
+}
+
+// ../../../../node_modules/intl-messageformat/lib/src/core.js
+function mergeConfig(c1, c2) {
+  if (!c2) {
+    return c1;
+  }
+  return __assign(__assign(__assign({}, c1 || {}), c2 || {}), Object.keys(c1).reduce(function(all, k) {
+    all[k] = __assign(__assign({}, c1[k]), c2[k] || {});
+    return all;
+  }, {}));
+}
+function mergeConfigs(defaultConfig, configs) {
+  if (!configs) {
+    return defaultConfig;
+  }
+  return Object.keys(defaultConfig).reduce(function(all, k) {
+    all[k] = mergeConfig(defaultConfig[k], configs[k]);
+    return all;
+  }, __assign({}, defaultConfig));
+}
+function createFastMemoizeCache(store) {
+  return {
+    create: function() {
+      return {
+        get: function(key) {
+          return store[key];
+        },
+        set: function(key, value) {
+          store[key] = value;
+        }
+      };
+    }
+  };
+}
+function createDefaultFormatters(cache) {
+  if (cache === void 0) {
+    cache = {
+      number: {},
+      dateTime: {},
+      pluralRules: {}
+    };
+  }
+  return {
+    getNumberFormat: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.NumberFormat).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache.number),
+      strategy: strategies.variadic
+    }),
+    getDateTimeFormat: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.DateTimeFormat).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache.dateTime),
+      strategy: strategies.variadic
+    }),
+    getPluralRules: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.PluralRules).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache.pluralRules),
+      strategy: strategies.variadic
+    })
+  };
+}
+var IntlMessageFormat = (
+  /** @class */
+  (function() {
+    function IntlMessageFormat2(message, locales, overrideFormats, opts) {
+      var _this = this;
+      if (locales === void 0) {
+        locales = IntlMessageFormat2.defaultLocale;
+      }
+      this.formatterCache = {
+        number: {},
+        dateTime: {},
+        pluralRules: {}
+      };
+      this.format = function(values) {
+        var parts = _this.formatToParts(values);
+        if (parts.length === 1) {
+          return parts[0].value;
+        }
+        var result = parts.reduce(function(all, part) {
+          if (!all.length || part.type !== PART_TYPE.literal || typeof all[all.length - 1] !== "string") {
+            all.push(part.value);
+          } else {
+            all[all.length - 1] += part.value;
+          }
+          return all;
+        }, []);
+        if (result.length <= 1) {
+          return result[0] || "";
+        }
+        return result;
+      };
+      this.formatToParts = function(values) {
+        return formatToParts(_this.ast, _this.locales, _this.formatters, _this.formats, values, void 0, _this.message);
+      };
+      this.resolvedOptions = function() {
+        return {
+          locale: _this.resolvedLocale.toString()
+        };
+      };
+      this.getAst = function() {
+        return _this.ast;
+      };
+      this.locales = locales;
+      this.resolvedLocale = IntlMessageFormat2.resolveLocale(locales);
+      if (typeof message === "string") {
+        this.message = message;
+        if (!IntlMessageFormat2.__parse) {
+          throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");
+        }
+        this.ast = IntlMessageFormat2.__parse(message, {
+          ignoreTag: opts === null || opts === void 0 ? void 0 : opts.ignoreTag,
+          locale: this.resolvedLocale
+        });
+      } else {
+        this.ast = message;
+      }
+      if (!Array.isArray(this.ast)) {
+        throw new TypeError("A message must be provided as a String or AST.");
+      }
+      this.formats = mergeConfigs(IntlMessageFormat2.formats, overrideFormats);
+      this.formatters = opts && opts.formatters || createDefaultFormatters(this.formatterCache);
+    }
+    Object.defineProperty(IntlMessageFormat2, "defaultLocale", {
+      get: function() {
+        if (!IntlMessageFormat2.memoizedDefaultLocale) {
+          IntlMessageFormat2.memoizedDefaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+        }
+        return IntlMessageFormat2.memoizedDefaultLocale;
+      },
+      enumerable: false,
+      configurable: true
+    });
+    IntlMessageFormat2.memoizedDefaultLocale = null;
+    IntlMessageFormat2.resolveLocale = function(locales) {
+      var supportedLocales = Intl.NumberFormat.supportedLocalesOf(locales);
+      if (supportedLocales.length > 0) {
+        return new Intl.Locale(supportedLocales[0]);
+      }
+      return new Intl.Locale(typeof locales === "string" ? locales : locales[0]);
+    };
+    IntlMessageFormat2.__parse = parse;
+    IntlMessageFormat2.formats = {
+      number: {
+        integer: {
+          maximumFractionDigits: 0
+        },
+        currency: {
+          style: "currency"
+        },
+        percent: {
+          style: "percent"
+        }
+      },
+      date: {
+        short: {
+          month: "numeric",
+          day: "numeric",
+          year: "2-digit"
+        },
+        medium: {
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        },
+        long: {
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        },
+        full: {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        }
+      },
+      time: {
+        short: {
+          hour: "numeric",
+          minute: "numeric"
+        },
+        medium: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric"
+        },
+        long: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+          timeZoneName: "short"
+        },
+        full: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+          timeZoneName: "short"
+        }
+      }
+    };
+    return IntlMessageFormat2;
+  })()
+);
+
+// ../../../../node_modules/intl-messageformat/lib/index.js
+var lib_default = IntlMessageFormat;
+
+// src/price/template.js
+var defaultLiterals = {
+  recurrenceLabel: "{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",
+  recurrenceAriaLabel: "{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",
+  perUnitLabel: "{perUnit, select, LICENSE {per license} other {}}",
+  perUnitAriaLabel: "{perUnit, select, LICENSE {per license} other {}}",
+  freeLabel: "Free",
+  freeAriaLabel: "Free",
+  taxExclusiveLabel: "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+  taxInclusiveLabel: "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+  alternativePriceAriaLabel: "Alternatively at",
+  strikethroughAriaLabel: "Regularly at",
+  planTypeLabel: "{planType, select, ABM {Annual, billed monthly} other {}}",
+  discountLabel: "{discount}%"
+};
+var log2 = createLog("ConsonantTemplates/price");
+var htmlPattern = /<\/?[^>]+(>|$)/g;
+var cssClassNames = {
+  container: "price",
+  containerOptical: "price-optical",
+  containerStrikethrough: "price-strikethrough",
+  containerPromoStrikethrough: "price-promo-strikethrough",
+  containerAlternative: "price-alternative",
+  containerAnnual: "price-annual",
+  containerAnnualPrefix: "price-annual-prefix",
+  containerAnnualSuffix: "price-annual-suffix",
+  disabled: "disabled",
+  currencySpace: "price-currency-space",
+  currencySymbol: "price-currency-symbol",
+  decimals: "price-decimals",
+  decimalsDelimiter: "price-decimals-delimiter",
+  integer: "price-integer",
+  recurrence: "price-recurrence",
+  taxInclusivity: "price-tax-inclusivity",
+  unitType: "price-unit-type"
+};
+var literalKeys = {
+  perUnitLabel: "perUnitLabel",
+  perUnitAriaLabel: "perUnitAriaLabel",
+  recurrenceLabel: "recurrenceLabel",
+  recurrenceAriaLabel: "recurrenceAriaLabel",
+  taxExclusiveLabel: "taxExclusiveLabel",
+  taxInclusiveLabel: "taxInclusiveLabel",
+  strikethroughAriaLabel: "strikethroughAriaLabel",
+  alternativePriceAriaLabel: "alternativePriceAriaLabel"
+};
+var WCS_TAX_DISPLAY_EXCLUSIVE = "TAX_EXCLUSIVE";
+var renderAttributes = (attributes) => isObject(attributes) ? Object.entries(attributes).filter(
+  ([, value]) => isString(value) || isNumber(value) || value === true
+).reduce(
+  (html25, [key, value]) => `${html25} ${key}${value === true ? "" : `="${escapeHtml(value)}"`}`,
+  ""
+) : "";
+var renderSpan = (cssClass, content, attributes, convertSpaces = false) => {
+  return `<span class="${cssClass}${content ? "" : ` ${cssClassNames.disabled}`}"${renderAttributes(attributes)}>${convertSpaces ? makeSpacesAroundNonBreaking(content) : content ?? ""}</span>`;
+};
+function encodeLinks(literal) {
+  literal = literal.replaceAll("</a>", "&lt;/a&gt;");
+  const regex = /<a [^>]+(>|$)/g;
+  const matches = literal.match(regex);
+  matches?.forEach((match) => {
+    const encodedMatch = match.replace("<a ", "&lt;a ").replace(">", "&gt;");
+    literal = literal.replaceAll(match, encodedMatch);
+  });
+  return literal;
+}
+function decodeLinks(literal) {
+  literal = literal.replaceAll("&lt;/a&gt;", "</a>");
+  const regex = /&lt;a (?!&gt;)(.*?)(&gt;|$)/g;
+  const matches = literal.match(regex);
+  matches?.forEach((match) => {
+    const encodedMatch = match.replace("&lt;a ", "<a ").replace("&gt;", ">");
+    literal = literal.replaceAll(match, encodedMatch);
+  });
+  return literal;
+}
+function formatLiteral(literals, locale, key, parameters) {
+  let literal = literals[key];
+  if (literal == void 0) {
+    return "";
+  }
+  const hasHtml = literal.includes("<");
+  const hasLinks = literal.includes("<a ");
+  try {
+    literal = hasLinks ? encodeLinks(literal) : literal;
+    literal = hasHtml ? literal.replace(htmlPattern, "") : literal;
+    const formattedLiteral = new lib_default(literal, locale).format(
+      parameters
+    );
+    return hasLinks ? decodeLinks(formattedLiteral) : formattedLiteral;
+  } catch {
+    log2.error("Failed to format literal:", literal);
+    return "";
+  }
+}
+function renderContainer(cssClass, {
+  accessibleLabel,
+  altAccessibleLabel,
+  currencySymbol,
+  decimals,
+  decimalsDelimiter,
+  hasCurrencySpace,
+  integer,
+  isCurrencyFirst,
+  recurrenceLabel,
+  perUnitLabel,
+  taxInclusivityLabel
+}, attributes = {}) {
+  const currencyMarkup = renderSpan(
+    cssClassNames.currencySymbol,
+    currencySymbol
+  );
+  const currencySpaceMarkup = renderSpan(
+    cssClassNames.currencySpace,
+    hasCurrencySpace ? "&nbsp;" : ""
+  );
+  let markup = "";
+  if (accessibleLabel)
+    markup = `<sr-only class="strikethrough-aria-label">${accessibleLabel}</sr-only>`;
+  else if (altAccessibleLabel)
+    markup = `<sr-only class="alt-aria-label">${altAccessibleLabel}</sr-only>`;
+  if (isCurrencyFirst) markup += currencyMarkup + currencySpaceMarkup;
+  markup += renderSpan(cssClassNames.integer, integer);
+  markup += renderSpan(cssClassNames.decimalsDelimiter, decimalsDelimiter);
+  markup += renderSpan(cssClassNames.decimals, decimals);
+  if (!isCurrencyFirst) markup += currencySpaceMarkup + currencyMarkup;
+  markup += renderSpan(cssClassNames.recurrence, recurrenceLabel, null, true);
+  markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
+  markup += renderSpan(
+    cssClassNames.taxInclusivity,
+    taxInclusivityLabel,
+    true
+  );
+  return renderSpan(cssClass, markup, {
+    ...attributes
+  });
+}
+var createPriceTemplate = ({
+  isAlternativePrice = false,
+  displayOptical = false,
+  displayStrikethrough = false,
+  displayPromoStrikethrough = false,
+  displayAnnual = false,
+  instant = void 0
+} = {}) => ({
+  country,
+  displayFormatted = true,
+  displayRecurrence = true,
+  displayPerUnit = false,
+  displayTax = false,
+  language,
+  literals: priceLiterals2 = {},
+  quantity = 1,
+  space = false,
+  // add a space between price literals
+  isPromoApplied = false
+} = {}, {
+  commitment,
+  offerSelectorIds,
+  formatString,
+  price: price2,
+  priceWithoutDiscount,
+  taxDisplay,
+  taxTerm,
+  term,
+  usePrecision,
+  promotion
+} = {}, attributes = {}) => {
+  Object.entries({
+    country,
+    formatString,
+    language,
+    price: price2
+  }).forEach(([key, value]) => {
+    if (value == null) {
+      throw new Error(
+        `Argument "${key}" is missing for osi ${offerSelectorIds?.toString()}, country ${country}, language ${language}`
+      );
+    }
+  });
+  const literals = {
+    ...defaultLiterals,
+    ...priceLiterals2
+  };
+  const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+  let displayPrice;
+  if (promotion && !isPromoApplied && priceWithoutDiscount) {
+    displayPrice = isAlternativePrice || displayPromoStrikethrough ? price2 : priceWithoutDiscount;
+  } else if (displayStrikethrough && priceWithoutDiscount) {
+    displayPrice = priceWithoutDiscount;
+  } else {
+    displayPrice = price2;
+  }
+  let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
+  if (displayAnnual) {
+    method = formatAnnualPrice;
+  }
+  const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
+    commitment,
+    formatString,
+    instant,
+    isIndianPrice: country === "IN",
+    originalPrice: price2,
+    priceWithoutDiscount,
+    price: displayOptical ? price2 : displayPrice,
+    promotion,
+    quantity,
+    term,
+    usePrecision
+  });
+  let accessibleLabel = "", altAccessibleLabel = "";
+  let recurrenceLabel = "";
+  if (toBoolean(displayRecurrence) && recurrenceTerm) {
+    recurrenceLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.recurrenceLabel,
+      {
+        recurrenceTerm
+      }
+    );
+  }
+  let perUnitLabel = "";
+  if (toBoolean(displayPerUnit)) {
+    if (space) {
+      perUnitLabel += " ";
+    }
+    perUnitLabel += formatLiteral(
+      literals,
+      locale,
+      literalKeys.perUnitLabel,
+      {
+        perUnit: "LICENSE"
+      }
+    );
+  }
+  let taxInclusivityLabel = "";
+  if (toBoolean(displayTax) && taxTerm) {
+    if (space) {
+      taxInclusivityLabel += " ";
+    }
+    taxInclusivityLabel += formatLiteral(
+      literals,
+      locale,
+      taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys.taxExclusiveLabel : literalKeys.taxInclusiveLabel,
+      { taxTerm }
+    );
+  }
+  if (displayStrikethrough) {
+    accessibleLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.strikethroughAriaLabel,
+      {
+        strikethroughPrice: accessibleLabel
+      }
+    );
+  }
+  if (isAlternativePrice) {
+    altAccessibleLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.alternativePriceAriaLabel,
+      {
+        alternativePrice: altAccessibleLabel
+      }
+    );
+  }
+  let cssClass = cssClassNames.container;
+  if (displayOptical) {
+    cssClass += ` ${cssClassNames.containerOptical}`;
+  }
+  if (displayStrikethrough) {
+    cssClass += ` ${cssClassNames.containerStrikethrough}`;
+  }
+  if (displayPromoStrikethrough) {
+    cssClass += ` ${cssClassNames.containerPromoStrikethrough}`;
+  }
+  if (isAlternativePrice) {
+    cssClass += ` ${cssClassNames.containerAlternative}`;
+  }
+  if (displayAnnual) {
+    cssClass += ` ${cssClassNames.containerAnnual}`;
+  }
+  if (toBoolean(displayFormatted)) {
+    return renderContainer(
+      cssClass,
+      {
+        ...formattedPrice,
+        accessibleLabel,
+        altAccessibleLabel,
+        recurrenceLabel,
+        perUnitLabel,
+        taxInclusivityLabel
+      },
+      attributes
+    );
+  }
+  const {
+    currencySymbol,
+    decimals,
+    decimalsDelimiter,
+    hasCurrencySpace,
+    integer,
+    isCurrencyFirst
+  } = formattedPrice;
+  const unformattedPrice = [integer, decimalsDelimiter, decimals];
+  if (isCurrencyFirst) {
+    unformattedPrice.unshift(hasCurrencySpace ? "\xA0" : "");
+    unformattedPrice.unshift(currencySymbol);
+  } else {
+    unformattedPrice.push(hasCurrencySpace ? "\xA0" : "");
+    unformattedPrice.push(currencySymbol);
+  }
+  unformattedPrice.push(
+    recurrenceLabel,
+    perUnitLabel,
+    taxInclusivityLabel
+  );
+  const content = unformattedPrice.join("");
+  return renderSpan(cssClass, content, attributes);
+};
+var createPromoPriceTemplate = () => (context, value, attributes) => {
+  const isPromoApplied = isPromotionActive(
+    value.promotion,
+    value.promotion?.displaySummary?.instant,
+    Array.isArray(context.quantity) ? context.quantity[0] : context.quantity
+  );
+  const displayOldPrice = context.displayOldPrice === void 0 || toBoolean(context.displayOldPrice);
+  const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price && (!value.promotion || isPromoApplied);
+  return `${shouldDisplayOldPrice ? `${createPriceTemplate({
+    displayStrikethrough: true
+  })(
+    {
+      isPromoApplied,
+      ...context,
+      displayPerUnit: false,
+      displayTax: false
+    },
+    value,
+    attributes
+  )}${context.wrapClauses ? " " : "&nbsp;"}` : ""}${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}`;
+};
+var createPromoPriceWithAnnualTemplate = () => (context, value, attributes) => {
+  let { instant } = context;
+  try {
+    if (!instant) {
+      instant = new URLSearchParams(document.location.search).get(
+        "instant"
+      );
+    }
+    if (instant) {
+      instant = new Date(instant);
+    }
+  } catch (e) {
+    instant = void 0;
+  }
+  const isPromoApplied = isPromotionActive(
+    value.promotion,
+    instant,
+    Array.isArray(context.quantity) ? context.quantity[0] : context.quantity
+  );
+  const ctxStAnnual = {
+    ...context,
+    displayTax: false,
+    displayPerUnit: false,
+    isPromoApplied
+  };
+  if (!isPromoApplied) {
+    return createPriceTemplate()(
+      context,
+      { ...value, price: value.priceWithoutDiscount },
+      attributes
+    ) + renderSpan(cssClassNames.containerAnnualPrefix, " (") + createPriceTemplate({
+      displayAnnual: true,
+      instant
+    })(
+      ctxStAnnual,
+      { ...value, price: value.priceWithoutDiscount },
+      attributes
+    ) + renderSpan(cssClassNames.containerAnnualSuffix, ")");
+  }
+  const displayOldPrice = context.displayOldPrice === void 0 || toBoolean(context.displayOldPrice);
+  const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price;
+  return `${shouldDisplayOldPrice ? `${createPriceTemplate({
+    displayStrikethrough: true
+  })(
+    ctxStAnnual,
+    value,
+    attributes
+  )}${context.wrapClauses ? " " : "&nbsp;"}` : ""}${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, " (")}${createPriceTemplate(
+    {
+      displayAnnual: true,
+      instant
+    }
+  )(
+    ctxStAnnual,
+    value,
+    attributes
+  )}${renderSpan(cssClassNames.containerAnnualSuffix, ")")}`;
+};
+var createPriceWithAnnualTemplate = () => (context, value, attributes) => {
+  const ctxAnnual = {
+    ...context,
+    displayTax: false,
+    displayPerUnit: false
+  };
+  return `${createPriceTemplate({ isAlternativePrice: context.displayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, " (")}${createPriceTemplate(
+    {
+      displayAnnual: true
+    }
+  )(
+    ctxAnnual,
+    value,
+    attributes
+  )}${renderSpan(cssClassNames.containerAnnualSuffix, ")")}`;
+};
+
+// src/price/legal.js
+var cssClassNames2 = {
+  ...cssClassNames,
+  containerLegal: "price-legal",
+  planType: "price-plan-type"
+};
+var literalKeys2 = {
+  ...literalKeys,
+  planTypeLabel: "planTypeLabel"
+};
+function renderContainer2(cssClass, { perUnitLabel, taxInclusivityLabel, planTypeLabel }, attributes = {}, displayDot = true) {
+  let markup = "";
+  markup += renderSpan(cssClassNames2.unitType, perUnitLabel, null, true);
+  if (taxInclusivityLabel && planTypeLabel && displayDot) {
+    taxInclusivityLabel += taxInclusivityLabel.endsWith(".") ? " " : ". ";
+  }
+  markup += renderSpan(
+    cssClassNames2.taxInclusivity,
+    taxInclusivityLabel,
+    true
+  );
+  markup += renderSpan(cssClassNames2.planType, planTypeLabel, null);
+  return renderSpan(cssClass, markup, {
+    ...attributes
+  });
+}
+var legalTemplate = ({
+  country,
+  displayPerUnit = false,
+  displayTax = false,
+  displayPlanType = false,
+  displayDot = true,
+  planTypeCase,
+  language,
+  literals: priceLiterals2 = {}
+} = {}, { taxDisplay, taxTerm, planType } = {}, attributes = {}) => {
+  const literals = {
+    ...defaultLiterals,
+    ...priceLiterals2
+  };
+  const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+  let perUnitLabel = "";
+  if (toBoolean(displayPerUnit)) {
+    perUnitLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys2.perUnitLabel,
+      {
+        perUnit: "LICENSE"
+      }
+    );
+  }
+  let taxInclusivityLabel = "";
+  if (country === "US" && language === "en") {
+    displayTax = false;
+  }
+  if (toBoolean(displayTax) && taxTerm) {
+    taxInclusivityLabel = formatLiteral(
+      literals,
+      locale,
+      taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys2.taxExclusiveLabel : literalKeys2.taxInclusiveLabel,
+      { taxTerm }
+    );
+  }
+  let planTypeLabel = "";
+  if (toBoolean(displayPlanType) && planType) {
+    planTypeLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys2.planTypeLabel,
+      {
+        planType
+      }
+    );
+  }
+  if (planTypeLabel && planTypeCase) {
+    planTypeLabel = (planTypeCase === "lower" ? planTypeLabel[0].toLowerCase() : planTypeLabel[0].toUpperCase()) + planTypeLabel.slice(1);
+  }
+  let cssClass = cssClassNames2.container;
+  cssClass += ` ${cssClassNames2.containerLegal}`;
+  return renderContainer2(
+    cssClass,
+    {
+      perUnitLabel,
+      taxInclusivityLabel,
+      planTypeLabel
+    },
+    attributes,
+    displayDot
+  );
+};
+
+// src/price/index.js
+var price = createPriceTemplate();
+var pricePromo = createPromoPriceTemplate();
+var priceOptical = createPriceTemplate({
+  displayOptical: true
+});
+var priceStrikethrough = createPriceTemplate({
+  displayStrikethrough: true
+});
+var pricePromoStrikethrough = createPriceTemplate({
+  displayPromoStrikethrough: true
+});
+var priceAnnual = createPriceTemplate({
+  displayAnnual: true
+});
+var priceOpticalAlternative = createPriceTemplate({
+  displayOptical: true,
+  isAlternativePrice: true
+});
+var priceAlternative = createPriceTemplate({
+  isAlternativePrice: true
+});
+var priceWithAnnual = createPriceWithAnnualTemplate();
+var pricePromoWithAnnual = createPromoPriceWithAnnualTemplate();
+var legal = legalTemplate;
+
+// src/discount/template.js
+var literalKeys3 = {
+  ...literalKeys,
+  discountLabel: "discountLabel"
+};
+var getDiscount = (price2, priceWithoutDiscount) => {
+  if (!priceWithoutDiscount && isPositiveFiniteNumber(price2)) return 0;
+  if (!isPositiveFiniteNumber(price2) || !isPositiveFiniteNumber(priceWithoutDiscount))
+    return;
+  return Math.floor(
+    (priceWithoutDiscount - price2) / priceWithoutDiscount * 100
+  );
+};
+var createDiscountTemplate = () => (context, value) => {
+  const { country, language, literals: contextLiterals = {} } = context ?? {};
+  const { price: price2, priceWithoutDiscount } = value;
+  const discount2 = getDiscount(price2, priceWithoutDiscount);
+  if (discount2 === void 0) {
+    return `<span class="no-discount"></span>`;
+  }
+  const literals = { ...defaultLiterals, ...contextLiterals };
+  const locale = language && country ? `${language.toLowerCase()}-${country.toUpperCase()}` : "en-US";
+  const text = formatLiteral(literals, locale, literalKeys3.discountLabel, {
+    discount: discount2,
+    remainingPercent: 100 - discount2
+  });
+  return `<span class="discount">${text}</span>`;
+};
+
+// src/discount/index.js
+var discount = createDiscountTemplate();
+
+// src/inline-price.js
+var INDIVIDUAL = "INDIVIDUAL_COM";
+var BUSINESS = "TEAM_COM";
+var STUDENT = "INDIVIDUAL_EDU";
+var UNIVERSITY = "TEAM_EDU";
+var DISPLAY_ALL_TAX_COUNTRIES = [
+  "AT_de",
+  "AU_en",
+  "BE_en",
+  "BE_fr",
+  "BE_nl",
+  "BG_bg",
+  "CH_de",
+  "CH_fr",
+  "CH_it",
+  "CZ_cs",
+  "CO_es",
+  "DE_de",
+  "DK_da",
+  "EE_et",
+  "EG_ar",
+  "EG_en",
+  "ES_es",
+  "FI_fi",
+  "FR_fr",
+  "GB_en",
+  "GR_el",
+  "GR_en",
+  "HU_hu",
+  "ID_en",
+  "ID_id",
+  "ID_in",
+  "IE_en",
+  "IN_en",
+  "IN_hi",
+  "IT_it",
+  "JP_ja",
+  "KR_ko",
+  "LU_de",
+  "LU_en",
+  "LU_fr",
+  "LT_lt",
+  "LV_lv",
+  "MY_en",
+  "MY_ms",
+  "MU_en",
+  "NL_nl",
+  "NG_en",
+  "NO_nb",
+  "NZ_en",
+  "PE_es",
+  "PL_pl",
+  "PT_pt",
+  "RO_ro",
+  "SE_sv",
+  "SI_sl",
+  "SK_sk",
+  "SG_en",
+  "TH_en",
+  "TH_th",
+  "TR_tr",
+  "UA_uk",
+  "ZA_en",
+  "SA_ar",
+  "SA_en",
+  "MX_es",
+  "CL_es",
+  "PE_es",
+  "PH_en",
+  "PH_fil",
+  "VN_vi",
+  "VN_en",
+  "TW_zh"
+];
+var DISPLAY_TAX_MAP = {
+  [INDIVIDUAL]: [],
+  [BUSINESS]: [],
+  [STUDENT]: [],
+  [UNIVERSITY]: []
+};
+var TAX_EXCLUDED_MAP = {
+  ["MU_en"]: [true, true, true, true],
+  ["NG_en"]: [false, false, false, false],
+  ["AU_en"]: [false, false, false, false],
+  ["JP_ja"]: [false, false, false, false],
+  ["NZ_en"]: [false, false, false, false],
+  ["TH_en"]: [false, false, false, false],
+  ["TH_th"]: [false, false, false, false],
+  ["ZA_en"]: [false, false, false, false],
+  ["PE_es"]: [false, false, false, false]
+};
+var TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
+var defaultTaxExcluded = (segment) => [BUSINESS, UNIVERSITY].includes(segment);
+function getTaxConfigFromMap(map, country, language, isArray) {
+  if (map[country]) return map[country];
+  const locale = `${country}_${language}`;
+  if (map[locale]) return map[locale];
+  let result;
+  if (isArray) {
+    result = map.find((item) => item.startsWith(`${country}_`));
+  } else {
+    const resultKey = Object.keys(map).find(
+      (key) => key.startsWith(`${country}_`)
+    );
+    result = resultKey ? map[resultKey] : null;
+  }
+  return result;
+}
+var resolveTaxExclusive = (country, language, customerSegment, marketSegment) => {
+  const segment = `${customerSegment}_${marketSegment}`;
+  const val = getTaxConfigFromMap(TAX_EXCLUDED_MAP, country, language, false);
+  if (val) {
+    const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
+    return val[index];
+  }
+  return defaultTaxExcluded(segment);
+};
+var resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, marketSegment) => {
+  if (getTaxConfigFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true))
+    return true;
+  const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
+  if (!segmentConfig) {
+    return Defaults.displayTax;
+  }
+  if (getTaxConfigFromMap(segmentConfig, country, language, true)) {
+    return true;
+  }
+  return Defaults.displayTax;
+};
+var resolvePriceTaxFlags = async (country, language, customerSegment, marketSegment) => {
+  const displayTax = resolveDisplayTaxForGeoAndSegment(
+    country,
+    language,
+    customerSegment,
+    marketSegment
+  );
+  return {
+    displayTax,
+    forceTaxExclusive: displayTax ? resolveTaxExclusive(
+      country,
+      language,
+      customerSegment,
+      marketSegment
+    ) : Defaults.forceTaxExclusive
+  };
+};
+var _InlinePrice = class _InlinePrice extends HTMLSpanElement {
+  constructor() {
+    super();
+    __publicField(this, "masElement", new MasElement(this));
+    this.handleClick = this.handleClick.bind(this);
+  }
+  static get observedAttributes() {
+    return [
+      "data-display-old-price",
+      "data-display-per-unit",
+      "data-display-recurrence",
+      "data-display-tax",
+      "data-display-plan-type",
+      "data-display-annual",
+      "data-perpetual",
+      "data-promotion-code",
+      "data-force-tax-exclusive",
+      "data-template",
+      "data-wcs-osi",
+      "data-quantity"
+    ];
+  }
+  static createInlinePrice(options) {
+    const service = getService2();
+    if (!service) return null;
+    const {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      displayAnnual,
+      forceTaxExclusive,
+      perpetual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      template,
+      wcsOsi
+    } = service.collectPriceOptions(options);
+    const element = createMasElement(_InlinePrice, {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      displayAnnual,
+      forceTaxExclusive,
+      perpetual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      template,
+      wcsOsi
+    });
+    return element;
+  }
+  get isInlinePrice() {
+    return true;
+  }
+  attributeChangedCallback(name, _, value) {
+    this.masElement.attributeChangedCallback(name, _, value);
+  }
+  connectedCallback() {
+    this.masElement.connectedCallback();
+    this.addEventListener("click", this.handleClick);
+  }
+  disconnectedCallback() {
+    this.masElement.disconnectedCallback();
+    this.removeEventListener("click", this.handleClick);
+  }
+  handleClick(event) {
+    if (event.target === this) return;
+    event.stopImmediatePropagation();
+    this.dispatchEvent(
+      new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      })
+    );
+  }
+  onceSettled() {
+    return this.masElement.onceSettled();
+  }
+  get value() {
+    return this.masElement.value;
+  }
+  get options() {
+    return this.masElement.options;
+  }
+  get isFailed() {
+    return this.masElement.state === STATE_FAILED;
+  }
+  requestUpdate(force = false) {
+    return this.masElement.requestUpdate(force);
+  }
+  /**
+   * Resolves associated osi via Wcs and renders price offer.
+   * @param {Record<string, any>} overrides
+   */
+  async render(overrides = {}) {
+    if (!this.isConnected) return false;
+    const service = getService2();
+    if (!service) return false;
+    const priceOptions = service.collectPriceOptions(overrides, this);
+    const options = {
+      ...service.settings,
+      ...priceOptions
+    };
+    if (!options.wcsOsi.length) return false;
+    try {
+      const version = this.masElement.togglePending({});
+      this.innerHTML = "";
+      const offerSelectorPromises = service.resolveOfferSelectors(options);
+      const resolvedOfferArrays = await Promise.all(
+        offerSelectorPromises
+      );
+      const selectedOffers = resolvedOfferArrays.map((offerArray) => {
+        const selected = selectOffers(offerArray, options);
+        return selected?.length ? selected[0] : null;
+      });
+      if (selectedOffers.some((offer2) => !offer2)) {
+        throw new Error(
+          `Failed to select offers for: ${options.wcsOsi}`
+        );
+      }
+      let offers = selectedOffers;
+      const offer = sumOffers(selectedOffers);
+      if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
+        if (priceOptions.displayPerUnit === void 0) {
+          options.displayPerUnit = offer.customerSegment !== "INDIVIDUAL";
+        }
+        if (priceOptions.displayTax === void 0 || priceOptions.forceTaxExclusive === void 0) {
+          const { country, language } = options;
+          const [marketSegment = ""] = offer.marketSegments;
+          const flags = await resolvePriceTaxFlags(
+            country,
+            language,
+            offer.customerSegment,
+            marketSegment
+          );
+          if (priceOptions.displayTax === void 0) {
+            options.displayTax = flags?.displayTax || options.displayTax;
+          }
+          if (priceOptions.forceTaxExclusive === void 0) {
+            options.forceTaxExclusive = flags?.forceTaxExclusive || options.forceTaxExclusive;
+          }
+          if (options.forceTaxExclusive) {
+            offers = resolvedOfferArrays.map((offerArray) => {
+              const selected = selectOffers(offerArray, options);
+              return selected?.length ? selected[0] : null;
+            });
+          }
+        }
+      } else {
+        if (priceOptions.displayOldPrice === void 0) {
+          options.displayOldPrice = true;
+        }
+      }
+      if (service.featureFlags[FF_ANNUAL_PRICE] && options.displayAnnual !== false) {
+        options.displayAnnual = true;
+      }
+      if (options.template === "discount" && offers.length === 2) {
+        const [discountedOffer, referenceOffer] = offers;
+        const crossOffer = {
+          ...discountedOffer,
+          priceDetails: {
+            ...discountedOffer.priceDetails,
+            priceWithoutDiscount: referenceOffer.priceDetails?.price
+          }
+        };
+        return this.renderOffers([crossOffer], options, version);
+      }
+      const finalOffer = sumOffers(offers);
+      return this.renderOffers([finalOffer], options, version);
+    } catch (error) {
+      this.innerHTML = "";
+      throw error;
+    }
+  }
+  // TODO: can be extended to accept array of offers and compute subtotal price
+  /**
+   * Renders price offer as HTML of this component
+   * using consonant price template functions
+   * @param {Offer[]} offers
+   * @param {Record<string, any>} options
+   * @param {number} version
+   */
+  renderOffers(offers, options, version = void 0) {
+    if (!this.isConnected) return;
+    const service = getService2();
+    if (!service) return false;
+    version ?? (version = this.masElement.togglePending());
+    if (offers.length) {
+      if (this.masElement.toggleResolved(version, offers, options)) {
+        this.innerHTML = service.buildPriceHTML(offers, this.options);
+        const parentEl = this.closest("p, h3, div");
+        if (!parentEl || !parentEl.querySelector(
+          'span[data-template="strikethrough"]'
+        ) || parentEl.querySelector(".alt-aria-label"))
+          return true;
+        const inlinePrices = parentEl?.querySelectorAll(
+          'span[is="inline-price"]'
+        );
+        if (inlinePrices.length > 1 && inlinePrices.length === parentEl.querySelectorAll(
+          'span[data-template="strikethrough"]'
+        ).length * 2) {
+          inlinePrices.forEach((price2) => {
+            if (price2.dataset.template !== "strikethrough" && price2.options && !price2.options.alternativePrice && !price2.isFailed) {
+              price2.options.alternativePrice = true;
+              price2.innerHTML = service.buildPriceHTML(
+                offers,
+                price2.options
+              );
+            }
+          });
+        }
+        return true;
+      }
+    } else {
+      const error = new Error(
+        `Not provided: ${this.options?.wcsOsi ?? "-"}`
+      );
+      if (this.masElement.toggleFailed(version, error, this.options)) {
+        this.innerHTML = "";
+        return true;
+      }
+    }
+    return false;
+  }
+};
+__publicField(_InlinePrice, "is", "inline-price");
+__publicField(_InlinePrice, "tag", "span");
+var InlinePrice = _InlinePrice;
+if (!window.customElements.get(InlinePrice.is)) {
+  window.customElements.define(InlinePrice.is, InlinePrice, {
+    extends: InlinePrice.tag
+  });
+}
+
+// src/price.js
+function Price({ literals, providers, settings }) {
+  function collectPriceOptions(overrides, placeholder = null) {
+    let options = {
+      country: settings.country,
+      language: settings.language,
+      locale: settings.locale,
+      literals: { ...literals.price }
+    };
+    if (placeholder && providers?.price) {
+      for (const provider of providers.price) {
+        provider(placeholder, options);
+      }
+    }
+    const {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      forceTaxExclusive,
+      perpetual,
+      displayAnnual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      wcsOsi,
+      ...rest
+    } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
+    options = omitProperties(
+      Object.assign({
+        ...options,
+        ...rest,
+        displayOldPrice: toBoolean(displayOldPrice),
+        displayPerUnit: toBoolean(displayPerUnit),
+        displayRecurrence: toBoolean(displayRecurrence),
+        displayTax: toBoolean(displayTax),
+        displayPlanType: toBoolean(displayPlanType),
+        forceTaxExclusive: toBoolean(forceTaxExclusive),
+        perpetual: toBoolean(perpetual),
+        displayAnnual: toBoolean(displayAnnual),
+        promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
+        quantity: toQuantity(quantity, Defaults.quantity),
+        alternativePrice: toBoolean(alternativePrice),
+        wcsOsi: toOfferSelectorIds(wcsOsi)
+      })
+    );
+    return options;
+  }
+  function buildPriceHTML(offers, options) {
+    if (!Array.isArray(offers) || !offers.length || !options) {
+      return "";
+    }
+    const { template } = options;
+    let method;
+    switch (template) {
+      // TODO: use price template name constants, export them from `consonant-templates`
+      case "discount":
+        method = discount;
+        break;
+      case "strikethrough":
+        method = priceStrikethrough;
+        break;
+      case "promo-strikethrough":
+        method = pricePromoStrikethrough;
+        break;
+      case "annual":
+        method = priceAnnual;
+        break;
+      case "legal":
+        method = legal;
+        break;
+      default:
+        if (options.template === "optical" && options.alternativePrice) {
+          method = priceOpticalAlternative;
+        } else if (options.template === "optical") {
+          method = priceOptical;
+        } else if (options.displayAnnual && offers[0].planType === "ABM") {
+          method = options.promotionCode && offers[0].promotion ? pricePromoWithAnnual : priceWithAnnual;
+        } else if (options.alternativePrice) {
+          method = priceAlternative;
+        } else {
+          method = options.promotionCode && offers[0].promotion ? pricePromo : price;
+        }
+    }
+    let [offer] = offers;
+    offer = { ...offer, ...offer.priceDetails };
+    return method({ ...settings, ...options }, offer);
+  }
+  const createInlinePrice = InlinePrice.createInlinePrice;
+  return {
+    InlinePrice,
+    buildPriceHTML,
+    collectPriceOptions,
+    createInlinePrice
+  };
+}
+
+// src/settings.js
+function getLocaleSettings({
+  locale = void 0,
+  country = void 0,
+  language = void 0
+} = {}) {
+  language ?? (language = locale?.split("_")?.[0] || Defaults.language);
+  country ?? (country = locale?.split("_")?.[1] || Defaults.country);
+  if (country === "PR") country = "US";
+  locale ?? (locale = `${language}_${country}`);
+  return { locale, country, language };
+}
+function getSettings(config2 = {}, service) {
+  const ffDefaults = service.featureFlags[FF_DEFAULTS];
+  const { commerce = {} } = config2;
+  let env = Env.PRODUCTION;
+  let wcsURL = WCS_PROD_URL;
+  const checkoutClientId = getParameter("checkoutClientId", commerce) ?? Defaults.checkoutClientId;
+  const checkoutWorkflowStep = toEnumeration(
+    getParameter("checkoutWorkflowStep", commerce),
+    CheckoutWorkflowStep,
+    Defaults.checkoutWorkflowStep
+  );
+  const displayOldPrice = toBoolean(
+    getParameter("displayOldPrice", commerce),
+    Defaults.displayOldPrice
+  );
+  const displayPerUnit = Defaults.displayPerUnit;
+  const displayRecurrence = toBoolean(
+    getParameter("displayRecurrence", commerce),
+    Defaults.displayRecurrence
+  );
+  const displayTax = toBoolean(
+    getParameter("displayTax", commerce),
+    Defaults.displayTax
+  );
+  const displayPlanType = toBoolean(
+    getParameter("displayPlanType", commerce),
+    Defaults.displayPlanType
+  );
+  const entitlement = toBoolean(
+    getParameter("entitlement", commerce),
+    Defaults.entitlement
+  );
+  const modal = toBoolean(getParameter("modal", commerce), Defaults.modal);
+  const forceTaxExclusive = toBoolean(
+    getParameter("forceTaxExclusive", commerce),
+    Defaults.forceTaxExclusive
+  );
+  const promotionCode = getParameter("promotionCode", commerce) ?? Defaults.promotionCode;
+  const quantity = toQuantity(getParameter("quantity", commerce));
+  const wcsApiKey = getParameter("wcsApiKey", commerce) ?? Defaults.wcsApiKey;
+  let isStage = commerce?.env === "stage";
+  let landscape = Landscape.PUBLISHED;
+  const allowOverride = ["true", ""].includes(commerce.allowOverride);
+  if (allowOverride) {
+    isStage = (getParameter(PARAM_ENV, commerce, {
+      metadata: false
+    })?.toLowerCase() ?? commerce?.env) === "stage";
+    landscape = toEnumeration(
+      getParameter(PARAM_LANDSCAPE, commerce),
+      Landscape,
+      landscape
+    );
+  }
+  if (isStage) {
+    env = Env.STAGE;
+    wcsURL = WCS_STAGE_URL;
+  }
+  const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config2.preview;
+  const preview = typeof previewParam != "undefined" && previewParam !== "off" && previewParam !== "false";
+  let previewSettings = {};
+  if (preview) previewSettings = { preview };
+  const masIOUrlParam = getParameter("mas-io-url") ?? config2.masIOUrl;
+  const masIOUrl = isAllowedMasIOUrl(masIOUrlParam) ? masIOUrlParam : `https://www${env === Env.STAGE ? ".stage" : ""}.adobe.com/mas/io`;
+  const preselectPlan = getParameter("preselect-plan") ?? void 0;
+  const instant = getParameter("instant") ?? config2.instant;
+  return {
+    ...getLocaleSettings(config2),
+    ...previewSettings,
+    displayOldPrice,
+    checkoutClientId,
+    checkoutWorkflowStep,
+    displayPerUnit,
+    displayRecurrence,
+    displayTax,
+    displayPlanType,
+    entitlement,
+    extraOptions: Defaults.extraOptions,
+    modal,
+    env,
+    forceTaxExclusive,
+    promotionCode,
+    quantity,
+    alternativePrice: Defaults.alternativePrice,
+    wcsApiKey,
+    wcsURL,
+    landscape,
+    masIOUrl,
+    ...preselectPlan && { preselectPlan },
+    // only add if defined
+    ...instant && { instant }
+  };
+}
+
+// src/utils/mas-fetch.js
+async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(resource, options);
+      response.retryCount = attempt;
+      return response;
+    } catch (error) {
+      lastError = error;
+      lastError.retryCount = attempt;
+      if (attempt > retries) break;
+      await new Promise(
+        (resolve) => setTimeout(resolve, baseDelay * (attempt + 1))
+      );
+    }
+  }
+  throw lastError;
+}
+
+// src/wcs.js
+var NAMESPACE2 = "wcs";
+function Wcs({ settings }) {
+  const log3 = Log.module(NAMESPACE2);
+  const { env, wcsApiKey: apiKey } = settings;
+  const cache = /* @__PURE__ */ new Map();
+  const queue = /* @__PURE__ */ new Map();
+  let timer;
+  let staleCache = /* @__PURE__ */ new Map();
+  async function resolveWcsOffers(options, promises, reject = true) {
+    const service = getService2();
+    let message = ERROR_MESSAGE_OFFER_NOT_FOUND;
+    log3.debug("Fetching:", options);
+    let url = "";
+    let response;
+    if (options.offerSelectorIds.length > 1)
+      throw new Error("Multiple OSIs are not supported anymore");
+    const unresolvedPromises = new Map(promises);
+    const [osi] = options.offerSelectorIds;
+    const uniqueId = Date.now() + Math.random().toString(36).substring(2, 7);
+    const startMark = `${NAMESPACE2}:${osi}:${uniqueId}${MARK_START_SUFFIX}`;
+    const measureName = `${NAMESPACE2}:${osi}:${uniqueId}${MARK_DURATION_SUFFIX}`;
+    let measure;
+    try {
+      performance.mark(startMark);
+      url = new URL(settings.wcsURL);
+      url.searchParams.set("offer_selector_ids", osi);
+      url.searchParams.set("country", options.country);
+      url.searchParams.set("locale", options.locale);
+      url.searchParams.set(
+        "landscape",
+        env === Env.STAGE ? "ALL" : settings.landscape
+      );
+      url.searchParams.set("api_key", apiKey);
+      if (options.language) {
+        url.searchParams.set("language", options.language);
+      }
+      if (options.promotionCode) {
+        url.searchParams.set("promotion_code", options.promotionCode);
+      }
+      if (options.currency) {
+        url.searchParams.set("currency", options.currency);
+      }
+      response = await masFetch(url.toString(), {
+        credentials: "omit"
+      });
+      if (response.ok) {
+        let offers = [];
+        try {
+          const data = await response.json();
+          log3.debug("Fetched:", options, data);
+          offers = data.resolvedOffers ?? [];
+        } catch (e) {
+          log3.error(`Error parsing JSON: ${e.message}`, {
+            ...e.context,
+            ...service?.duration
+          });
+        }
+        offers = offers.map(applyPlanType);
+        promises.forEach(({ resolve }, offerSelectorId) => {
+          const resolved = offers.filter(
+            ({ offerSelectorIds }) => offerSelectorIds.includes(offerSelectorId)
+          ).flat();
+          if (resolved.length) {
+            unresolvedPromises.delete(offerSelectorId);
+            promises.delete(offerSelectorId);
+            resolve(resolved);
+          }
+        });
+      } else {
+        message = ERROR_MESSAGE_BAD_REQUEST;
+      }
+    } catch (e) {
+      message = `Network error: ${e.message}`;
+    } finally {
+      measure = performance.measure(measureName, startMark);
+      performance.clearMarks(startMark);
+      performance.clearMeasures(measureName);
+    }
+    if (reject && promises.size) {
+      log3.debug("Missing:", { offerSelectorIds: [...promises.keys()] });
+      const headers = getLogHeaders(response);
+      promises.forEach((promise) => {
+        promise.reject(
+          new MasError(message, {
+            ...options,
+            ...headers,
+            response,
+            measure: printMeasure(measure),
+            ...service?.duration
+          })
+        );
+      });
+    }
+  }
+  function flushQueue() {
+    clearTimeout(timer);
+    const pending = [...queue.values()];
+    queue.clear();
+    pending.forEach(
+      ({ options, promises }) => resolveWcsOffers(options, promises)
+    );
+  }
+  function prefillWcsCache(preloadedCache) {
+    if (!preloadedCache || typeof preloadedCache !== "object") {
+      throw new TypeError("Cache must be a Map or similar object");
+    }
+    const envKey = env === Env.STAGE ? "stage" : "prod";
+    const envCache = preloadedCache[envKey];
+    if (!envCache || typeof envCache !== "object") {
+      log3.warn(`No cache found for environment: ${env}`);
+      return;
+    }
+    for (const [key, value] of Object.entries(envCache)) {
+      cache.set(key, Promise.resolve(value.map(applyPlanType)));
+    }
+    log3.debug(`Prefilled WCS cache with ${envCache.size} entries`);
+  }
+  function flushWcsCacheInternal() {
+    const size = cache.size;
+    staleCache = new Map(cache);
+    cache.clear();
+    log3.debug(`Moved ${size} cache entries to stale cache`);
+  }
+  function normalizeCountryLanguageAndLocale(country, language, perpetual) {
+    const validLanguage = country !== "GB" && !perpetual ? "MULT" : "en";
+    const validCountry = SUPPORTED_COUNTRIES.includes(country) ? country : Defaults.country;
+    return {
+      validCountry,
+      validLanguage,
+      locale: `${language}_${validCountry}`
+    };
+  }
+  function resolveOfferSelectors({
+    country,
+    language,
+    perpetual = false,
+    promotionCode = "",
+    wcsOsi = []
+  }) {
+    const { validCountry, validLanguage, locale } = normalizeCountryLanguageAndLocale(country, language, perpetual);
+    const groupKey = [validCountry, validLanguage, promotionCode].filter((val) => val).join("-").toLowerCase();
+    return wcsOsi.map((osi) => {
+      const cacheKey = `${osi}-${groupKey}`;
+      if (cache.has(cacheKey)) {
+        return cache.get(cacheKey);
+      }
+      const promiseWithFallback = new Promise((resolve, reject) => {
+        let group = queue.get(groupKey);
+        if (!group) {
+          const options = {
+            country: validCountry,
+            locale,
+            ...validLanguage === "MULT" && {
+              language: validLanguage
+            },
+            offerSelectorIds: []
+          };
+          const promises = /* @__PURE__ */ new Map();
+          group = { options, promises };
+          queue.set(groupKey, group);
+        }
+        if (promotionCode) {
+          group.options.promotionCode = promotionCode;
+        }
+        group.options.offerSelectorIds.push(osi);
+        group.promises.set(osi, {
+          resolve,
+          reject
+        });
+        flushQueue();
+      }).catch((error) => {
+        if (staleCache.has(cacheKey)) {
+          return staleCache.get(cacheKey);
+        }
+        throw error;
+      });
+      cache.set(cacheKey, promiseWithFallback);
+      return promiseWithFallback;
+    });
+  }
+  return {
+    Commitment,
+    PlanType,
+    Term,
+    applyPlanType,
+    resolveOfferSelectors,
+    flushWcsCacheInternal,
+    prefillWcsCache,
+    normalizeCountryLanguageAndLocale
+  };
+}
+
+// src/mas-commerce-service.js
+var TAG_NAME_SERVICE2 = "mas-commerce-service";
+var MARK_START = "mas-commerce-service:start";
+var MEASURE_READY = "mas-commerce-service:ready";
+var _measure, _featureFlags, _MasCommerceService_instances, config_get, getFeatureFlag_fn;
+var MasCommerceService = class extends HTMLElement {
+  constructor() {
+    super(...arguments);
+    __privateAdd(this, _MasCommerceService_instances);
+    __privateAdd(this, _measure);
+    __privateAdd(this, _featureFlags);
+    __publicField(this, "lastLoggingTime", 0);
+  }
+  async registerCheckoutAction(action) {
+    if (typeof action != "function") return;
+    this.buildCheckoutAction = async (offers, options, el) => {
+      const checkoutAction = await action?.(
+        offers,
+        options,
+        this.imsSignedInPromise,
+        el
+      );
+      if (checkoutAction) {
+        return checkoutAction;
+      }
+      return null;
+    };
+  }
+  get featureFlags() {
+    if (!__privateGet(this, _featureFlags)) {
+      __privateSet(this, _featureFlags, {
+        [FF_DEFAULTS]: __privateMethod(this, _MasCommerceService_instances, getFeatureFlag_fn).call(this, FF_DEFAULTS),
+        [FF_ANNUAL_PRICE]: __privateMethod(this, _MasCommerceService_instances, getFeatureFlag_fn).call(this, FF_ANNUAL_PRICE)
+      });
+    }
+    return __privateGet(this, _featureFlags);
+  }
+  activate() {
+    const config2 = __privateGet(this, _MasCommerceService_instances, config_get);
+    const settings = getSettings(config2, this);
+    updateConfig(config2.lana);
+    const log3 = Log.init(config2.hostEnv).module("service");
+    log3.debug("Activating:", config2);
+    const price2 = getPriceLiterals(settings);
+    const literals = { price: price2 };
+    const providers = {
+      checkout: /* @__PURE__ */ new Set(),
+      price: /* @__PURE__ */ new Set()
+    };
+    const startup = { literals, providers, settings };
+    Object.defineProperties(
+      this,
+      Object.getOwnPropertyDescriptors({
+        // Activate modules and expose their API as combined flat object
+        ...Checkout(startup),
+        ...Ims(startup),
+        ...Price(startup),
+        ...Wcs(startup),
+        ...constants_exports,
+        // Defined serviceweb  component API
+        Log,
+        resolvePriceTaxFlags,
+        get defaults() {
+          return Defaults;
+        },
+        get log() {
+          return Log;
+        },
+        /* c8 ignore next 11 */
+        get providers() {
+          return {
+            checkout(provider) {
+              providers.checkout.add(provider);
+              return () => providers.checkout.delete(provider);
+            },
+            price(provider) {
+              providers.price.add(provider);
+              return () => providers.price.delete(provider);
+            },
+            has: (providerFunction) => providers.price.has(providerFunction) || providers.checkout.has(providerFunction)
+          };
+        },
+        get settings() {
+          return settings;
+        }
+      })
+    );
+    log3.debug("Activated:", { literals, settings });
+    const event = new CustomEvent(EVENT_TYPE_READY, {
+      bubbles: true,
+      cancelable: false,
+      detail: this
+    });
+    performance.mark(MEASURE_READY);
+    __privateSet(this, _measure, performance.measure(MEASURE_READY, MARK_START));
+    this.dispatchEvent(event);
+    setTimeout(() => {
+      this.logFailedRequests();
+    }, 1e4);
+  }
+  connectedCallback() {
+    performance.mark(MARK_START);
+    this.activate();
+  }
+  flushWcsCache() {
+    this.flushWcsCacheInternal();
+    this.log.debug("Flushed WCS cache");
+  }
+  isPreview() {
+    const previewAttribute = this.getAttribute("preview");
+    return previewAttribute != null && ["true", "on", true].includes(previewAttribute);
+  }
+  refreshOffers() {
+    this.flushWcsCacheInternal();
+    document.querySelectorAll(SELECTOR_MAS_ELEMENT).forEach((el) => el.requestUpdate(true));
+    this.log.debug("Refreshed WCS offers");
+    this.logFailedRequests();
+  }
+  refreshFragments() {
+    this.flushWcsCacheInternal();
+    customElements.get("aem-fragment")?.cache.clear();
+    document.querySelectorAll("aem-fragment").forEach((el) => el.refresh(false));
+    this.log.debug("Refreshed AEM fragments");
+    this.logFailedRequests();
+  }
+  get duration() {
+    return {
+      "mas-commerce-service:measure": printMeasure(__privateGet(this, _measure))
+    };
+  }
+  /**
+   * Logs failed network requests related to AEM fragments and WCS commerce artifacts.
+   * Identifies failed resources by checking for zero transfer size, zero duration,
+   * response status less than 200, or response status greater than or equal to 400.
+   * Only logs errors if any of the failed resources are fragment or commerce artifact requests.
+   */
+  /* c8 ignore next 21 */
+  logFailedRequests() {
+    const failedResources = [...performance.getEntriesByType("resource")].filter(({ startTime }) => startTime > this.lastLoggingTime).filter(
+      ({ transferSize, duration, responseStatus }) => transferSize === 0 && duration === 0 && responseStatus < 200 || responseStatus >= 400
+    );
+    const uniqueFailedResources = Array.from(
+      new Map(
+        failedResources.map((resource) => [resource.name, resource])
+      ).values()
+    );
+    if (uniqueFailedResources.some(
+      ({ name }) => /(\/fragment\?|web_commerce_artifact)/.test(name)
+    )) {
+      const failedUrls = uniqueFailedResources.map(({ name }) => name);
+      this.log.error("Failed requests:", {
+        failedUrls,
+        ...this.duration
+      });
+    }
+    this.lastLoggingTime = performance.now().toFixed(3);
+  }
+};
+_measure = new WeakMap();
+_featureFlags = new WeakMap();
+_MasCommerceService_instances = new WeakSet();
+config_get = function() {
+  const env = this.getAttribute("env") ?? "prod";
+  const config2 = {
+    commerce: { env },
+    hostEnv: { name: env },
+    lana: {
+      tags: this.getAttribute("lana-tags"),
+      sampleRate: parseInt(
+        this.getAttribute("lana-sample-rate") ?? 1,
+        10
+      ),
+      isProdDomain: env === "prod"
+    },
+    masIOUrl: this.getAttribute("mas-io-url")
+  };
+  ["locale", "country", "language", "preview", "instant"].forEach(
+    (attribute) => {
+      const value = this.getAttribute(attribute);
+      if (value) {
+        config2[attribute] = value;
+      }
+    }
+  );
+  [
+    "checkout-workflow-step",
+    "force-tax-exclusive",
+    "checkout-client-id",
+    "allow-override",
+    "wcs-api-key"
+  ].forEach((attribute) => {
+    const value = this.getAttribute(attribute);
+    if (value != null) {
+      const camelCaseAttribute = attribute.replace(
+        /-([a-z])/g,
+        (g) => g[1].toUpperCase()
+      );
+      config2.commerce[camelCaseAttribute] = value;
+    }
+  });
+  return config2;
+};
+getFeatureFlag_fn = function(ff) {
+  return ["on", "true", true].includes(
+    this.getAttribute(`data-${ff}`) || getParameter(ff)
+  );
+};
+if (!window.customElements.get(TAG_NAME_SERVICE2)) {
+  window.customElements.define(TAG_NAME_SERVICE2, MasCommerceService);
+}
+
+// src/merch-card-collection.js
+var MERCH_CARD_COLLECTION = "merch-card-collection";
+var MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 3e4;
+var VARIANT_CLASSES = {
+  catalog: ["four-merch-cards"],
+  plans: ["four-merch-cards"],
+  plansTwoColumns: ["two-merch-cards"],
+  plansThreeColumns: ["three-merch-cards"],
+  product: ["four-merch-cards"],
+  productTwoColumns: ["two-merch-cards"],
+  productThreeColumns: ["three-merch-cards"],
+  segment: ["four-merch-cards"],
+  segmentTwoColumns: ["two-merch-cards"],
+  segmentThreeColumns: ["three-merch-cards"],
+  "special-offers": ["three-merch-cards"],
+  image: ["three-merch-cards"],
+  "mini-compare-chart": ["three-merch-cards"],
+  "mini-compare-chartTwoColumns": ["two-merch-cards"],
+  "mini-compare-chart-mweb": ["three-merch-cards"],
+  "mini-compare-chart-mwebTwoColumns": ["two-merch-cards"]
+};
+var SIDENAV_AUTOCLOSE = {
+  plans: true
+};
+var categoryFilter = (elements, { filter }) => elements.filter(
+  (element) => element?.filters && element?.filters.hasOwnProperty(filter)
+);
+var typeFilter = (elements, { types }) => {
+  if (!types) return elements;
+  types = types.split(",");
+  return elements.filter(
+    (element) => types.some((type) => element.types.includes(type))
+  );
+};
+var alphabeticalSorter = (elements) => elements.sort(
+  (a, b) => (a.title ?? "").localeCompare(b.title ?? "", "en", {
+    sensitivity: "base"
+  })
+);
+var authoredSorter = (elements, { filter }) => elements.sort((a, b) => {
+  if (b.filters[filter]?.order == void 0 || isNaN(b.filters[filter]?.order))
+    return -1;
+  if (a.filters[filter]?.order == void 0 || isNaN(a.filters[filter]?.order))
+    return 1;
+  return a.filters[filter].order - b.filters[filter].order;
+});
+var searcher = (elements, { search }) => {
+  if (search?.length) {
+    search = search.toLowerCase();
+    return elements.filter((element) => {
+      const haystack = (element.title ?? "").toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+  return elements;
+};
+var _overrideMap, _service3, _log, _merchCardElement, _MerchCardCollection_instances, fail_fn;
+var MerchCardCollection = class extends LitElement {
+  constructor() {
+    super();
+    __privateAdd(this, _MerchCardCollection_instances);
+    __privateAdd(this, _overrideMap, {});
+    __privateAdd(this, _service3);
+    __privateAdd(this, _log);
+    __privateAdd(this, _merchCardElement);
+    this.id = null;
+    this.filter = "all";
+    this.hasMore = false;
+    this.resultCount = void 0;
+    this.displayResult = false;
+    this.data = null;
+    this.variant = null;
+    this.hydrating = false;
+    this.hydrationReady = null;
+    this.literalsHandlerAttached = false;
+    this.onUnmount = [];
+    this.resizeHandlerDebounced = debounce(
+      this.resizeHandler.bind(this),
+      300
+    );
+  }
+  resizeHandler() {
+    this.firstChild?.variantLayout?.resizeHandler?.();
+  }
+  render() {
+    return html24` <slot></slot>
+            ${this.footer}`;
+  }
+  checkReady() {
+    const aemFragment = this.querySelector("aem-fragment");
+    if (!aemFragment) return Promise.resolve(true);
+    const timeoutPromise = new Promise(
+      (resolve) => setTimeout(
+        () => resolve(false),
+        MERCH_CARD_COLLECTION_LOAD_TIMEOUT
+      )
+    );
+    return Promise.race([this.hydrationReady, timeoutPromise]);
+  }
+  updated(changedProperties) {
+    if (!this.querySelector("merch-card")) return;
+    const lastScrollTop = window.scrollY || document.documentElement.scrollTop;
+    const children = [...this.children].filter(
+      (child) => child.tagName === "MERCH-CARD" && !child.failed
+    );
+    if (children.length === 0) return;
+    if (changedProperties.has("singleApp") && this.singleApp) {
+      children.forEach((card) => {
+        card.updateFilters(card.name === this.singleApp);
+      });
+    }
+    const sorter = this.sort === SORT_ORDER.alphabetical ? alphabeticalSorter : authoredSorter;
+    const reducers = [categoryFilter, typeFilter, searcher, sorter];
+    let result = reducers.reduce((elements, reducer) => reducer(elements, this), children).map((element, index) => [element, index]);
+    this.resultCount = result.length;
+    if (this.page && this.limit) {
+      const pageSize = this.page * this.limit;
+      this.hasMore = result.length > pageSize;
+      result = result.filter(([, index]) => index < pageSize);
+    }
+    const reduced = new Map(result.reverse());
+    for (const card of reduced.keys()) {
+      this.prepend(card);
+    }
+    children.forEach((child) => {
+      if (reduced.has(child)) {
+        child.size = child.filters[this.filter]?.size;
+        child.style.removeProperty("display");
+        child.requestUpdate();
+      } else {
+        child.style.display = "none";
+        child.size = void 0;
+      }
+    });
+    window.scrollTo(0, lastScrollTop);
+    this.updateComplete.then(() => {
+      this.dispatchLiteralsChanged();
+      if (this.sidenav && !this.literalsHandlerAttached) {
+        this.sidenav.addEventListener(
+          EVENT_MERCH_SIDENAV_SELECT,
+          () => {
+            this.dispatchLiteralsChanged();
+          }
+        );
+        this.literalsHandlerAttached = true;
+      }
+    });
+  }
+  dispatchLiteralsChanged() {
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, {
+        detail: {
+          resultCount: this.resultCount,
+          searchTerm: this.search,
+          filter: this.sidenav?.filters?.selectedText
+        }
+      })
+    );
+  }
+  buildOverrideMap() {
+    __privateSet(this, _overrideMap, {});
+    this.overrides?.split(",").forEach((token) => {
+      const [key, value] = token?.split(":");
+      if (key && value) {
+        __privateGet(this, _overrideMap)[key] = value;
+      }
+    });
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    __privateSet(this, _service3, getService());
+    if (__privateGet(this, _service3)) {
+      __privateSet(this, _log, __privateGet(this, _service3).Log.module(MERCH_CARD_COLLECTION));
+    }
+    __privateSet(this, _merchCardElement, customElements.get("merch-card"));
+    this.buildOverrideMap();
+    this.init();
+    window.addEventListener("resize", this.resizeHandlerDebounced);
+  }
+  async init() {
+    await this.hydrate();
+    this.sidenav = this.parentElement.querySelector("merch-sidenav");
+    if (this.filtered) {
+      this.filter = this.filtered;
+      this.page = 1;
+    } else {
+      this.startDeeplink();
+    }
+    this.initializePlaceholders();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopDeeplink?.();
+    for (const callback of this.onUnmount) callback();
+    window.removeEventListener("resize", this.resizeHandlerDebounced);
+  }
+  initializeHeader() {
+    const header = document.createElement("merch-card-collection-header");
+    header.collection = this;
+    header.classList.add(this.variant);
+    this.parentElement.insertBefore(header, this);
+    this.header = header;
+    const existingPlaceholders = this.querySelectorAll("[placeholder]");
+    existingPlaceholders.forEach((placeholder) => {
+      const key = placeholder.getAttribute("slot");
+      if (this.header.placeholderKeys.includes(key)) {
+        this.header.append(placeholder);
+      }
+    });
+  }
+  initializePlaceholders() {
+    const placeholders = this.data?.placeholders || {};
+    if (!placeholders.searchText && this.data?.sidenavSettings?.searchText) {
+      placeholders.searchText = this.data.sidenavSettings.searchText;
+    }
+    for (const key of Object.keys(placeholders)) {
+      const value = placeholders[key];
+      const tag = value.includes("<p>") ? "div" : "p";
+      const placeholder = document.createElement(tag);
+      placeholder.setAttribute("slot", key);
+      placeholder.setAttribute("placeholder", "");
+      placeholder.innerHTML = value;
+      this.append(placeholder);
+    }
+  }
+  attachSidenav(sidenav, append = true) {
+    if (!sidenav) return;
+    if (append) this.parentElement.prepend(sidenav);
+    this.sidenav = sidenav;
+    this.sidenav.variant = this.variant;
+    this.sidenav.classList.add(this.variant);
+    if (SIDENAV_AUTOCLOSE[this.variant])
+      this.sidenav.setAttribute("autoclose", "");
+    this.initializeHeader();
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED)
+    );
+    const onSidenavAttached = __privateGet(this, _merchCardElement)?.getCollectionOptions(
+      this.variant
+    )?.onSidenavAttached;
+    onSidenavAttached && onSidenavAttached(this);
+  }
+  async hydrate() {
+    if (this.hydrating) return false;
+    const aemFragment = this.querySelector("aem-fragment");
+    if (!aemFragment) return;
+    this.id = aemFragment.getAttribute("fragment");
+    this.hydrating = true;
+    let resolveHydration;
+    this.hydrationReady = new Promise((resolve) => {
+      resolveHydration = resolve;
+    });
+    const self = this;
+    function prepareSideNavSettings(fragment) {
+      let tagFilters;
+      if (fragment.fields?.checkboxGroups) {
+        tagFilters = fragment.fields.checkboxGroups;
+      } else if (fragment.fields?.tagFilters) {
+        tagFilters = [
+          {
+            title: fragment.fields?.tagFiltersTitle,
+            label: "types",
+            deeplink: "types",
+            checkboxes: fragment.fields.tagFilters.map((tag) => {
+              const parsedTag = tag.split("/").pop();
+              let tagLabel = fragment.settings?.tagLabels?.[parsedTag] || parsedTag;
+              tagLabel = tagLabel.startsWith("coll-tag-filter") ? parsedTag.charAt(0).toUpperCase() + parsedTag.slice(1) : tagLabel;
+              return { name: parsedTag, label: tagLabel };
+            })
+          }
+        ];
+      }
+      return {
+        searchText: fragment.fields?.searchText,
+        tagFilters,
+        linksTitle: fragment.fields?.linksTitle,
+        link: fragment.fields?.link,
+        linkText: fragment.fields?.linkText,
+        linkIcon: fragment.fields?.linkIcon
+      };
+    }
+    function normalizePayload(fragment, overrideMap) {
+      const payload = {
+        cards: [],
+        hierarchy: [],
+        placeholders: fragment.placeholders,
+        sidenavSettings: prepareSideNavSettings(fragment)
+      };
+      function traverseReferencesTree(root, references) {
+        for (const reference of references) {
+          if (reference.fieldName === "variations") continue;
+          if (reference.fieldName === "cards") {
+            if (payload.cards.findIndex(
+              (card) => card.id === reference.identifier
+            ) !== -1)
+              continue;
+            if (!fragment.references[reference.identifier]?.value) {
+              __privateGet(self, _log)?.error(
+                `Reference not found for card: ${reference.identifier}`
+              );
+              continue;
+            }
+            payload.cards.push(
+              fragment.references[reference.identifier].value
+            );
+            continue;
+          }
+          let value = fragment.references[reference.identifier]?.value;
+          let tree = reference.referencesTree;
+          const overrideId = overrideMap[reference.identifier];
+          if (overrideId) {
+            const data = document.querySelector(
+              `aem-fragment[fragment="${overrideId}"]`
+            )?.rawData;
+            if (data?.fields) {
+              value = data;
+              tree = data.referencesTree;
+              fragment.references = {
+                ...fragment.references,
+                ...data.references
+              };
+            } else {
+              __privateGet(self, _log)?.error(
+                `Override fragment ${overrideId} not found or invalid:`
+              );
+              continue;
+            }
+          }
+          if (!value?.fields) continue;
+          const { fields } = value;
+          const collection = {
+            label: fields.label || "",
+            icon: fields.icon,
+            iconLight: fields.iconLight,
+            queryLabel: fields.queryLabel,
+            cards: fields.cards ? fields.cards.map(
+              (cardId) => overrideMap[cardId] || cardId
+            ) : [],
+            collections: []
+          };
+          if (fields.defaultchild) {
+            collection.defaultchild = overrideMap[fields.defaultchild] || fields.defaultchild;
+          }
+          root.push(collection);
+          traverseReferencesTree(collection.collections, tree);
+        }
+      }
+      traverseReferencesTree(payload.hierarchy, fragment.referencesTree);
+      if (payload.hierarchy.length === 0) {
+        self.filtered = "all";
+      }
+      return payload;
+    }
+    aemFragment.addEventListener(EVENT_AEM_ERROR, (event) => {
+      __privateMethod(this, _MerchCardCollection_instances, fail_fn).call(this, "Error loading AEM fragment", event.detail);
+      this.hydrating = false;
+      aemFragment.remove();
+    });
+    aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
+      this.limit = 27;
+      this.data = normalizePayload(event.detail, __privateGet(this, _overrideMap));
+      if (event.detail.variationId) {
+        this.setAttribute("variation-id", event.detail.variationId);
+      }
+      const { cards, hierarchy } = this.data;
+      const rootDefaultChild = hierarchy.length === 0 && event.detail.fields?.defaultchild ? __privateGet(this, _overrideMap)[event.detail.fields.defaultchild] || event.detail.fields.defaultchild : null;
+      aemFragment.cache.add(...cards);
+      const checkDefaultChild = (collections, fragmentId) => {
+        for (const collection of collections) {
+          if (collection.defaultchild === fragmentId) return true;
+          if (collection.collections && checkDefaultChild(collection.collections, fragmentId))
+            return true;
+        }
+        return false;
+      };
+      for (const fragment of cards) {
+        let populateFilters = function(level) {
+          for (const node of level) {
+            const index = node.cards.indexOf(fragmentId);
+            if (index === -1) continue;
+            const name = node.queryLabel ?? node?.label?.toLowerCase() ?? "";
+            merchCard.filters[name] = {
+              order: index + 1,
+              size: fragment.fields.size
+            };
+            populateFilters(node.collections);
+          }
+        };
+        const merchCard = document.createElement("merch-card");
+        const fragmentId = __privateGet(this, _overrideMap)[fragment.id] || fragment.id;
+        merchCard.setAttribute("consonant", "");
+        merchCard.setAttribute("style", "");
+        const typesTags = fragment.fields.tags?.filter((tag) => tag.startsWith("mas:types/")).map((tag) => tag.split("/")[1]).join(",");
+        if (typesTags) merchCard.setAttribute("types", typesTags);
+        const variantMapping = getFragmentMapping(
+          fragment.fields.variant
+        );
+        if (variantMapping?.supportsDefaultChild) {
+          const isDefault = rootDefaultChild ? fragmentId === rootDefaultChild : checkDefaultChild(hierarchy, fragmentId);
+          if (isDefault) {
+            merchCard.setAttribute("data-default-card", "true");
+          }
+        }
+        populateFilters(hierarchy);
+        const mcAemFragment = document.createElement("aem-fragment");
+        mcAemFragment.setAttribute("fragment", fragmentId);
+        merchCard.append(mcAemFragment);
+        if (Object.keys(merchCard.filters).length === 0) {
+          merchCard.filters = {
+            all: {
+              order: cards.indexOf(fragment) + 1,
+              size: fragment.fields.size
+            }
+          };
+        }
+        this.append(merchCard);
+      }
+      let nmbOfColumns = "";
+      const variant = normalizeVariant(cards[0]?.fields?.variant);
+      this.variant = variant;
+      if (variant === "plans" && (cards.length === 2 || cards.length === 3) && !cards.some((card) => card.fields?.size?.includes("wide"))) {
+        nmbOfColumns = cards.length === 2 ? "TwoColumns" : "ThreeColumns";
+      } else if ((variant === "segment" || variant === "product") && (cards.length === 2 || cards.length === 3)) {
+        nmbOfColumns = cards.length === 2 ? "TwoColumns" : "ThreeColumns";
+      } else if ((variant === "mini-compare-chart" || variant === "mini-compare-chart-mweb") && cards.length <= 2) {
+        nmbOfColumns = cards.length === 1 ? "" : "TwoColumns";
+      }
+      if (variant) {
+        this.classList.add(
+          "merch-card-collection",
+          variant,
+          ...VARIANT_CLASSES[`${variant}${nmbOfColumns}`] || []
+        );
+      }
+      this.displayResult = true;
+      this.hydrating = false;
+      aemFragment.remove();
+      resolveHydration(true);
+    });
+    await this.hydrationReady;
+  }
+  get footer() {
+    if (this.filtered) return;
+    return html24`<div id="footer">
             <sp-theme color="light" scale="medium">
                 ${this.showMoreButton}
             </sp-theme>
-        </div>`}get showMoreButton(){if(this.hasMore)return Ne`<sp-button
+        </div>`;
+  }
+  get showMoreButton() {
+    if (!this.hasMore) return;
+    return html24`<sp-button
             variant="secondary"
             treatment="outline"
             style="order: 1000;"
             @click="${this.showMore}"
         >
             <slot name="showMoreText"></slot>
-        </sp-button>`}sortChanged(t){t.target.value===fe.authored?Bt({sort:void 0}):Bt({sort:t.target.value}),this.dispatchEvent(new CustomEvent(fa,{bubbles:!0,composed:!0,detail:{value:t.target.value}}))}async showMore(){this.dispatchEvent(new CustomEvent(va,{bubbles:!0,composed:!0}));let t=this.page+1;Bt({page:t}),this.page=t,await this.updateComplete}startDeeplink(){this.stopDeeplink=Ji(({category:t,filter:a,types:i,sort:n,search:o,single_app:s,page:c})=>{a=a||t,!this.filtered&&a&&a!==this.filter&&setTimeout(()=>{Bt({page:void 0}),this.page=1},1),this.filtered||(this.filter=a??this.filter),this.types=i??"",this.search=o??"",this.singleApp=s,this.sort=n,this.page=Number(c)||1})}openFilters(t){this.sidenav?.showModal(t)}};$e=new WeakMap,zt=new WeakMap,it=new WeakMap,br=new WeakMap,ca=new WeakSet,Js=function(t,a={},i=!0){v(this,it)?.error(`merch-card-collection: ${t}`,a),this.failed=!0,i&&this.dispatchEvent(new CustomEvent(wa,{detail:{...a,message:t},bubbles:!0,composed:!0}))},g(It,"properties",{id:{type:String,attribute:"id",reflect:!0},displayResult:{type:Boolean,attribute:"display-result"},filter:{type:String,attribute:"filter",reflect:!0},filtered:{type:String,attribute:"filtered",reflect:!0},hasMore:{type:Boolean},limit:{type:Number,attribute:"limit"},overrides:{type:String},page:{type:Number,attribute:"page",reflect:!0},resultCount:{type:Number},search:{type:String,attribute:"search",reflect:!0},sidenav:{type:Object},singleApp:{type:String,attribute:"single-app",reflect:!0},sort:{type:String,attribute:"sort",default:fe.authored,reflect:!0},types:{type:String,attribute:"types",reflect:!0}}),g(It,"styles",Qs`
+        </sp-button>`;
+  }
+  sortChanged(event) {
+    if (event.target.value === SORT_ORDER.authored) {
+      pushState({ sort: void 0 });
+    } else {
+      pushState({ sort: event.target.value });
+    }
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SORT, {
+        bubbles: true,
+        composed: true,
+        detail: {
+          value: event.target.value
+        }
+      })
+    );
+  }
+  async showMore() {
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SHOWMORE, {
+        bubbles: true,
+        composed: true
+      })
+    );
+    const page = this.page + 1;
+    pushState({ page });
+    this.page = page;
+    await this.updateComplete;
+  }
+  startDeeplink() {
+    this.stopDeeplink = deeplink(
+      ({ category, filter, types, sort, search, single_app, page }) => {
+        filter = filter || category;
+        if (!this.filtered && filter && filter !== this.filter) {
+          setTimeout(() => {
+            pushState({ page: void 0 });
+            this.page = 1;
+          }, 1);
+        }
+        if (!this.filtered) {
+          this.filter = filter ?? this.filter;
+        }
+        this.types = types ?? "";
+        this.search = search ?? "";
+        this.singleApp = single_app;
+        this.sort = sort;
+        this.page = Number(page) || 1;
+      }
+    );
+  }
+  openFilters(e) {
+    this.sidenav?.showModal(e);
+  }
+};
+_overrideMap = new WeakMap();
+_service3 = new WeakMap();
+_log = new WeakMap();
+_merchCardElement = new WeakMap();
+_MerchCardCollection_instances = new WeakSet();
+fail_fn = function(error, details = {}, dispatch = true) {
+  __privateGet(this, _log)?.error(`merch-card-collection: ${error}`, details);
+  this.failed = true;
+  if (!dispatch) return;
+  this.dispatchEvent(
+    new CustomEvent(EVENT_MAS_ERROR, {
+      detail: { ...details, message: error },
+      bubbles: true,
+      composed: true
+    })
+  );
+};
+__publicField(MerchCardCollection, "properties", {
+  id: { type: String, attribute: "id", reflect: true },
+  displayResult: { type: Boolean, attribute: "display-result" },
+  filter: { type: String, attribute: "filter", reflect: true },
+  filtered: { type: String, attribute: "filtered", reflect: true },
+  // freeze filter
+  hasMore: { type: Boolean },
+  limit: { type: Number, attribute: "limit" },
+  overrides: { type: String },
+  page: { type: Number, attribute: "page", reflect: true },
+  resultCount: {
+    type: Number
+  },
+  search: { type: String, attribute: "search", reflect: true },
+  sidenav: { type: Object },
+  singleApp: { type: String, attribute: "single-app", reflect: true },
+  sort: {
+    type: String,
+    attribute: "sort",
+    default: SORT_ORDER.authored,
+    reflect: true
+  },
+  types: { type: String, attribute: "types", reflect: true }
+});
+__publicField(MerchCardCollection, "styles", css19`
         #footer {
             grid-column: 1 / -1;
             justify-self: stretch;
@@ -9274,16 +21483,148 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         sp-theme {
             display: contents;
         }
-    `);It.SortOrder=fe;customElements.define(Zs,It);var Sh={filters:["noResultText","resultText","resultsText"],filtersMobile:["noResultText","resultMobileText","resultsMobileText"],search:["noSearchResultsText","searchResultText","searchResultsText"],searchMobile:["noSearchResultsMobileText","searchResultMobileText","searchResultsMobileText"]},Ah=(e,r,t)=>{e.querySelectorAll(`[data-placeholder="${r}"]`).forEach(i=>{i.innerText=t||""})},Ch={search:["mobile","tablet"],filter:["mobile","tablet"],sort:!0,result:!0,custom:!1},Th={catalog:"l"},ce,Dt,xr=class extends Ks{constructor(){super();S(this,ce);S(this,Dt);g(this,"tablet",new Ft(this,R));g(this,"desktop",new Ft(this,L));this.collection=null,E(this,ce,{search:!1,filter:!1,sort:!1,result:!1,custom:!1}),this.updateLiterals=this.updateLiterals.bind(this),this.handleSidenavAttached=this.handleSidenavAttached.bind(this)}connectedCallback(){super.connectedCallback(),this.collection?.addEventListener(me,this.updateLiterals),this.collection?.addEventListener(Ut,this.handleSidenavAttached),E(this,Dt,customElements.get("merch-card"))}disconnectedCallback(){super.disconnectedCallback(),this.collection?.removeEventListener(me,this.updateLiterals),this.collection?.removeEventListener(Ut,this.handleSidenavAttached)}willUpdate(){v(this,ce).search=this.getVisibility("search"),v(this,ce).filter=this.getVisibility("filter"),v(this,ce).sort=this.getVisibility("sort"),v(this,ce).result=this.getVisibility("result"),v(this,ce).custom=this.getVisibility("custom")}parseVisibilityOptions(t,a){if(!t||!Object.hasOwn(t,a))return null;let i=t[a];return i===!1?!1:i===!0?!0:i.includes(this.currentMedia)}getVisibility(t){let a=v(this,Dt)?.getCollectionOptions(this.collection?.variant)?.headerVisibility,i=this.parseVisibilityOptions(a,t);return i!==null?i:this.parseVisibilityOptions(Ch,t)}get sidenav(){return this.collection?.sidenav}get search(){return this.collection?.search}get resultCount(){return this.collection?.resultCount}get variant(){return this.collection?.variant}get isMobile(){return!this.isTablet&&!this.isDesktop}get isTablet(){return this.tablet.matches&&!this.desktop.matches}get isDesktop(){return this.desktop.matches}get currentMedia(){return this.isDesktop?"desktop":this.isTablet?"tablet":"mobile"}get searchAction(){if(!v(this,ce).search)return xe;let t=Gt(this,"searchText");return t?Ne`
+    `);
+MerchCardCollection.SortOrder = SORT_ORDER;
+customElements.define(MERCH_CARD_COLLECTION, MerchCardCollection);
+var RESULT_TEXT_SLOT_NAMES = {
+  // no search
+  filters: ["noResultText", "resultText", "resultsText"],
+  filtersMobile: ["noResultText", "resultMobileText", "resultsMobileText"],
+  // search on desktop
+  search: ["noSearchResultsText", "searchResultText", "searchResultsText"],
+  // search on mobile
+  searchMobile: [
+    "noSearchResultsMobileText",
+    "searchResultMobileText",
+    "searchResultsMobileText"
+  ]
+};
+var updatePlaceholders = (el, key, value) => {
+  const placeholders = el.querySelectorAll(`[data-placeholder="${key}"]`);
+  placeholders.forEach((placeholder) => {
+    placeholder.innerText = value || "";
+  });
+};
+var defaultVisibility = {
+  search: ["mobile", "tablet"],
+  filter: ["mobile", "tablet"],
+  sort: true,
+  result: true,
+  custom: false
+};
+var SEARCH_SIZE = {
+  catalog: "l"
+};
+var _visibility, _merchCardElement2;
+var MerchCardCollectionHeader = class extends LitElement {
+  constructor() {
+    super();
+    __privateAdd(this, _visibility);
+    __privateAdd(this, _merchCardElement2);
+    __publicField(this, "tablet", new MatchMediaController(this, TABLET_UP));
+    __publicField(this, "desktop", new MatchMediaController(this, DESKTOP_UP));
+    this.collection = null;
+    __privateSet(this, _visibility, {
+      search: false,
+      filter: false,
+      sort: false,
+      result: false,
+      custom: false
+    });
+    this.updateLiterals = this.updateLiterals.bind(this);
+    this.handleSidenavAttached = this.handleSidenavAttached.bind(this);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.collection?.addEventListener(
+      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+      this.updateLiterals
+    );
+    this.collection?.addEventListener(
+      EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+      this.handleSidenavAttached
+    );
+    __privateSet(this, _merchCardElement2, customElements.get("merch-card"));
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.collection?.removeEventListener(
+      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+      this.updateLiterals
+    );
+    this.collection?.removeEventListener(
+      EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+      this.handleSidenavAttached
+    );
+  }
+  willUpdate() {
+    __privateGet(this, _visibility).search = this.getVisibility("search");
+    __privateGet(this, _visibility).filter = this.getVisibility("filter");
+    __privateGet(this, _visibility).sort = this.getVisibility("sort");
+    __privateGet(this, _visibility).result = this.getVisibility("result");
+    __privateGet(this, _visibility).custom = this.getVisibility("custom");
+  }
+  parseVisibilityOptions(visibility, type) {
+    if (!visibility) return null;
+    if (!Object.hasOwn(visibility, type)) return null;
+    const typeVisibility = visibility[type];
+    if (typeVisibility === false) return false;
+    if (typeVisibility === true) return true;
+    return typeVisibility.includes(this.currentMedia);
+  }
+  getVisibility(type) {
+    const visibility = __privateGet(this, _merchCardElement2)?.getCollectionOptions(
+      this.collection?.variant
+    )?.headerVisibility;
+    const typeVisibility = this.parseVisibilityOptions(visibility, type);
+    if (typeVisibility !== null) return typeVisibility;
+    return this.parseVisibilityOptions(defaultVisibility, type);
+  }
+  get sidenav() {
+    return this.collection?.sidenav;
+  }
+  get search() {
+    return this.collection?.search;
+  }
+  get resultCount() {
+    return this.collection?.resultCount;
+  }
+  get variant() {
+    return this.collection?.variant;
+  }
+  get isMobile() {
+    return !this.isTablet && !this.isDesktop;
+  }
+  get isTablet() {
+    return this.tablet.matches && !this.desktop.matches;
+  }
+  get isDesktop() {
+    return this.desktop.matches;
+  }
+  get currentMedia() {
+    if (this.isDesktop) return "desktop";
+    if (this.isTablet) return "tablet";
+    return "mobile";
+  }
+  get searchAction() {
+    if (!__privateGet(this, _visibility).search) return nothing10;
+    const searchPlaceholder = getSlotText(this, "searchText");
+    if (!searchPlaceholder) return nothing10;
+    return html24`
             <merch-search deeplink="search" id="search">
                 <sp-search
                     id="search-bar"
-                    placeholder="${t}"
-                    .size=${Th[this.variant]}
-                    aria-label="${t}"
+                    placeholder="${searchPlaceholder}"
+                    .size=${SEARCH_SIZE[this.variant]}
+                    aria-label="${searchPlaceholder}"
                 ></sp-search>
             </merch-search>
-        `:xe}get filterAction(){return v(this,ce).filter?this.sidenav?Ne`
+        `;
+  }
+  get filterAction() {
+    if (!__privateGet(this, _visibility).filter) return nothing10;
+    if (!this.sidenav) return nothing10;
+    return html24`
             <sp-action-button
                 id="filter"
                 variant="secondary"
@@ -9291,41 +21632,113 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                 @click="${this.openFilters}"
                 ><slot name="filtersText"></slot
             ></sp-action-button>
-        `:xe:xe}get sortAction(){if(!v(this,ce).sort)return xe;let t=Gt(this,"sortText");if(!t)return;let a=Gt(this,"popularityText"),i=Gt(this,"alphabeticallyText");if(!(a&&i))return;let n=this.collection?.sort===fe.alphabetical;return Ne`
+        `;
+  }
+  get sortAction() {
+    if (!__privateGet(this, _visibility).sort) return nothing10;
+    const sortText = getSlotText(this, "sortText");
+    if (!sortText) return;
+    const popularityText = getSlotText(this, "popularityText");
+    const alphabeticallyText = getSlotText(this, "alphabeticallyText");
+    if (!(popularityText && alphabeticallyText)) return;
+    const alphabetical = this.collection?.sort === SORT_ORDER.alphabetical;
+    return html24`
             <sp-action-menu
                 id="sort"
                 size="m"
                 @change="${this.collection?.sortChanged}"
                 selects="single"
-                value="${n?fe.alphabetical:fe.authored}"
+                value="${alphabetical ? SORT_ORDER.alphabetical : SORT_ORDER.authored}"
             >
                 <span slot="label-only"
-                    >${t}:
-                    ${n?i:a}</span
+                    >${sortText}:
+                    ${alphabetical ? alphabeticallyText : popularityText}</span
                 >
-                <sp-menu-item value="${fe.authored}"
-                    >${a}</sp-menu-item
+                <sp-menu-item value="${SORT_ORDER.authored}"
+                    >${popularityText}</sp-menu-item
                 >
-                <sp-menu-item value="${fe.alphabetical}"
-                    >${i}</sp-menu-item
+                <sp-menu-item value="${SORT_ORDER.alphabetical}"
+                    >${alphabeticallyText}</sp-menu-item
                 >
             </sp-action-menu>
-        `}get resultSlotName(){let t=`${this.search?"search":"filters"}${this.isMobile||this.isTablet?"Mobile":""}`;return Sh[t][Math.min(this.resultCount,2)]}get resultLabel(){if(!v(this,ce).result)return xe;if(!this.sidenav)return xe;let t=this.search?"search":"filter",a=this.resultCount?this.resultCount===1?"single":"multiple":"none";return Ne` <div
+        `;
+  }
+  get resultSlotName() {
+    const slotType = `${this.search ? "search" : "filters"}${this.isMobile || this.isTablet ? "Mobile" : ""}`;
+    return RESULT_TEXT_SLOT_NAMES[slotType][Math.min(this.resultCount, 2)];
+  }
+  get resultLabel() {
+    if (!__privateGet(this, _visibility).result) return nothing10;
+    if (!this.sidenav) return nothing10;
+    const type = this.search ? "search" : "filter";
+    const quantity = !this.resultCount ? "none" : this.resultCount === 1 ? "single" : "multiple";
+    return html24` <div
             id="result"
             aria-live="polite"
-            type=${t}
-            quantity=${a}
+            type=${type}
+            quantity=${quantity}
         >
             <slot name="${this.resultSlotName}"></slot>
-        </div>`}get customArea(){if(!v(this,ce).custom)return xe;let t=v(this,Dt)?.getCollectionOptions(this.collection?.variant)?.customHeaderArea;if(!t)return xe;let a=t(this.collection);return!a||a===xe?xe:Ne`<div id="custom" role="heading" aria-level="2">
-            ${a}
-        </div>`}openFilters(t){this.sidenav.showModal(t)}updateLiterals(t){Object.keys(t.detail).forEach(a=>{Ah(this,a,t.detail[a])}),this.requestUpdate()}handleSidenavAttached(){this.requestUpdate()}render(){return Ne`
+        </div>`;
+  }
+  get customArea() {
+    if (!__privateGet(this, _visibility).custom) return nothing10;
+    const customHeaderAreaGetter = __privateGet(this, _merchCardElement2)?.getCollectionOptions(
+      this.collection?.variant
+    )?.customHeaderArea;
+    if (!customHeaderAreaGetter) return nothing10;
+    const customHeaderArea = customHeaderAreaGetter(this.collection);
+    if (!customHeaderArea || customHeaderArea === nothing10) return nothing10;
+    return html24`<div id="custom" role="heading" aria-level="2">
+            ${customHeaderArea}
+        </div>`;
+  }
+  // #region Handlers
+  openFilters(event) {
+    this.sidenav.showModal(event);
+  }
+  updateLiterals(event) {
+    Object.keys(event.detail).forEach((key) => {
+      updatePlaceholders(this, key, event.detail[key]);
+    });
+    this.requestUpdate();
+  }
+  handleSidenavAttached() {
+    this.requestUpdate();
+  }
+  render() {
+    return html24`
             <sp-theme color="light" scale="medium">
                 <div id="header">
                     ${this.searchAction}${this.filterAction}${this.sortAction}${this.resultLabel}${this.customArea}
                 </div>
             </sp-theme>
-        `}get placeholderKeys(){return["searchText","filtersText","sortText","popularityText","alphabeticallyText","noResultText","resultText","resultsText","resultMobileText","resultsMobileText","noSearchResultsText","searchResultText","searchResultsText","noSearchResultsMobileText","searchResultMobileText","searchResultsMobileText"]}};ce=new WeakMap,Dt=new WeakMap,g(xr,"styles",Qs`
+        `;
+  }
+  get placeholderKeys() {
+    return [
+      "searchText",
+      "filtersText",
+      "sortText",
+      "popularityText",
+      "alphabeticallyText",
+      "noResultText",
+      "resultText",
+      "resultsText",
+      "resultMobileText",
+      "resultsMobileText",
+      "noSearchResultsText",
+      "searchResultText",
+      "searchResultsText",
+      "noSearchResultsMobileText",
+      "searchResultMobileText",
+      "searchResultsMobileText"
+    ];
+  }
+};
+_visibility = new WeakMap();
+_merchCardElement2 = new WeakMap();
+__publicField(MerchCardCollectionHeader, "styles", css19`
         :host {
             --merch-card-collection-header-max-width: var(
                 --merch-card-collection-card-width
@@ -9424,7 +21837,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         }
 
         /* tablets */
-        @media screen and ${Xs(R)} {
+        @media screen and ${unsafeCSS6(TABLET_UP)} {
             :host {
                 --merch-card-collection-header-max-width: auto;
                 --merch-card-collection-header-columns: 1fr fit-content(100%)
@@ -9435,11 +21848,20 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         }
 
         /* Laptop */
-        @media screen and ${Xs(L)} {
+        @media screen and ${unsafeCSS6(DESKTOP_UP)} {
             :host {
                 --merch-card-collection-header-columns: 1fr fit-content(100%);
                 --merch-card-collection-header-areas: 'result sort';
                 --merch-card-collection-header-result-font-size: inherit;
             }
         }
-    `);customElements.define("merch-card-collection-header",xr);export{It as MerchCardCollection,xr as default};
+    `);
+customElements.define(
+  "merch-card-collection-header",
+  MerchCardCollectionHeader
+);
+export {
+  MerchCardCollection,
+  MerchCardCollectionHeader as default
+};
+//# sourceMappingURL=merch-card-collection.js.map

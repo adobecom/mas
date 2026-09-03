@@ -23,7 +23,7 @@ import {
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
 import { parseAIResponse, validateCollectionConfig, extractJSON, flowIdField } from './response-parser.js';
-import { handleOperation, withResolvedArrangementCode } from './operations-handler.js';
+import { handleOperation, withResolvedArrangementCode, resolveArrangementCodeFromHistory } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
@@ -772,6 +772,16 @@ async function main(params) {
                           }
                     : null;
             if (identifierBypass) {
+                // The client dispatches from envelope.slots, not from mcpParams,
+                // so the product has to be in the slots or it never reaches the
+                // lookup. Enrich before the envelope is built from them.
+                if (identifierBypass.intent === 'get_offer_by_id' && !identifierBypass.slots.arrangementCode) {
+                    const resolved = resolveArrangementCodeFromHistory(conversationHistory);
+                    if (resolved) {
+                        identifierBypass.slots = { ...identifierBypass.slots, arrangementCode: resolved };
+                        identifierBypass.mcpParams = { ...identifierBypass.mcpParams, arrangementCode: resolved };
+                    }
+                }
                 const envelope = buildDeterministicEnvelope(identifierBypass.intent, identifierBypass.slots);
                 if (bypassEnvelopeValid(envelope)) {
                     // This bypass answers without consulting the model, so it is
@@ -992,6 +1002,14 @@ async function main(params) {
                 // The envelope path builds its own operation and never reaches
                 // handleOperation, so it needs the same product fill-in: an
                 // offer lookup without the arrangement code is a scan.
+                if (
+                    finalEnvelope?.intent === 'get_offer_by_id' &&
+                    finalEnvelope.slots &&
+                    !finalEnvelope.slots.arrangementCode
+                ) {
+                    const resolved = resolveArrangementCodeFromHistory(conversationHistory);
+                    if (resolved) finalEnvelope.slots = { ...finalEnvelope.slots, arrangementCode: resolved };
+                }
                 const envelopeBody = withResolvedArrangementCode(buildEnvelopeResponseBody(finalEnvelope), conversationHistory);
                 return {
                     statusCode: 200,

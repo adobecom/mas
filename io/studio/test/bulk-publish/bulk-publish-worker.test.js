@@ -233,7 +233,14 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.getProjectLocales.returns([]);
 
         await worker.runWorker(
-            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true, includeVariations: true },
+            {
+                projectId: 'proj-1',
+                odinEndpoint: 'https://odin',
+                authToken: 't',
+                publishedBy: '',
+                includeCards: true,
+                includeVariations: true,
+            },
             deps,
         );
 
@@ -243,14 +250,33 @@ describe('bulk-publish-worker — runWorker', () => {
     });
 
     it('merges cascaded entries (not in pre-recorded) into snapshotEntries in pre-recorded branch', async () => {
-        const collEntry = JSON.stringify({ fragmentId: 'frag-coll', versionId: 'v-green', wasPublished: true, createdAt: '2026-01-01T00:00:00Z' });
-        const cardEntry = JSON.stringify({ fragmentId: 'frag-card', versionId: 'v-pre-bulk', wasPublished: false, createdAt: '2026-01-01T00:00:00Z' });
+        const collEntry = JSON.stringify({
+            fragmentId: 'frag-coll',
+            versionId: 'v-green',
+            wasPublished: true,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        const cardEntry = JSON.stringify({
+            fragmentId: 'frag-card',
+            versionId: 'v-pre-bulk',
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
         deps.getProjectSnapshots.returns([collEntry]);
-        deps.createSnapshot.resolves({ entries: [
-            // frag-coll is already in pre-recorded → should be skipped
-            JSON.stringify({ fragmentId: 'frag-coll', versionId: 'v-pre-bulk', wasPublished: true, createdAt: '2026-01-01T00:00:00Z' }),
-            cardEntry,
-        ], expandedPaths: ['/content/dam/coll', '/content/dam/card'], failures: [] });
+        deps.createSnapshot.resolves({
+            entries: [
+                // frag-coll is already in pre-recorded → should be skipped
+                JSON.stringify({
+                    fragmentId: 'frag-coll',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: true,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+                cardEntry,
+            ],
+            expandedPaths: ['/content/dam/coll', '/content/dam/card'],
+            failures: [],
+        });
         deps.publishResolved.resolves([]);
         deps.getProjectLocales.returns([]);
 
@@ -261,19 +287,38 @@ describe('bulk-publish-worker — runWorker', () => {
 
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
         expect(finalSnapshots).to.have.length(2);
-        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green');   // pre-recorded wins
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green'); // pre-recorded wins
         expect(JSON.parse(finalSnapshots[1]).fragmentId).to.equal('frag-card'); // cascaded appended
     });
 
     it('merges cascaded entries into snapshotEntries in fallback (no pre-recorded) branch', async () => {
-        const collEntry = JSON.stringify({ fragmentId: 'frag-coll', versionId: null, wasPublished: false, createdAt: '2026-01-01T00:00:00Z' });
-        const cardEntry = JSON.stringify({ fragmentId: 'frag-card', versionId: 'v-pre-bulk', wasPublished: false, createdAt: '2026-01-01T00:00:00Z' });
+        const collEntry = JSON.stringify({
+            fragmentId: 'frag-coll',
+            versionId: null,
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        const cardEntry = JSON.stringify({
+            fragmentId: 'frag-card',
+            versionId: 'v-pre-bulk',
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
         deps.getProjectSnapshots.returns([]);
         deps.recordSnapshot.resolves({ entries: [collEntry], failures: [] });
-        deps.createSnapshot.resolves({ entries: [
-            JSON.stringify({ fragmentId: 'frag-coll', versionId: 'v-pre-bulk', wasPublished: false, createdAt: '2026-01-01T00:00:00Z' }),
-            cardEntry,
-        ], expandedPaths: ['/content/dam/coll', '/content/dam/card'], failures: [] });
+        deps.createSnapshot.resolves({
+            entries: [
+                JSON.stringify({
+                    fragmentId: 'frag-coll',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: false,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+                cardEntry,
+            ],
+            expandedPaths: ['/content/dam/coll', '/content/dam/card'],
+            failures: [],
+        });
         deps.publishResolved.resolves([]);
         deps.getProjectLocales.returns([]);
 
@@ -284,18 +329,30 @@ describe('bulk-publish-worker — runWorker', () => {
 
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
         expect(finalSnapshots).to.have.length(2);
-        expect(JSON.parse(finalSnapshots[0]).versionId).to.be.null;            // record entry wins (null = new card)
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.be.null; // record entry wins (null = new card)
         expect(JSON.parse(finalSnapshots[1]).fragmentId).to.equal('frag-card'); // cascaded appended
     });
 
     it('publishes expanded paths from pre-recorded branch when includeCards is true', async () => {
         const collPath = '/content/dam/mas/acom/en_US/coll';
         const cardPath = '/content/dam/mas/acom/en_US/card-1';
-        const collEntry = JSON.stringify({ fragmentId: 'frag-coll', versionId: 'v-green', wasPublished: true, createdAt: '2026-01-01T00:00:00Z' });
+        const collEntry = JSON.stringify({
+            fragmentId: 'frag-coll',
+            versionId: 'v-green',
+            wasPublished: true,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
         deps.getProjectPaths.returns([collPath]);
         deps.getProjectSnapshots.returns([collEntry]);
         deps.createSnapshot.resolves({
-            entries: [JSON.stringify({ fragmentId: 'frag-coll', versionId: 'v-pre-bulk', wasPublished: true, createdAt: '2026-01-01T00:00:00Z' })],
+            entries: [
+                JSON.stringify({
+                    fragmentId: 'frag-coll',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: true,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+            ],
             expandedPaths: [collPath, cardPath],
             failures: [],
         });

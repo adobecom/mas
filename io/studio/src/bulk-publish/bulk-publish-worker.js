@@ -105,7 +105,11 @@ async function runWorker(input, deps = {}) {
         expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
     } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
-        const { expandedPaths: snapExpanded, entries: snapEntries, failures: snapFailures } = await snapshot({
+        const {
+            expandedPaths: snapExpanded,
+            entries: snapEntries,
+            failures: snapFailures,
+        } = await snapshot({
             paths,
             projectId,
             projectTitle: title,
@@ -127,7 +131,11 @@ async function runWorker(input, deps = {}) {
         });
     } else {
         const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
-        const { expandedPaths: snapExpanded, entries: snapEntries, failures: snapFailures } = await snapshot({
+        const {
+            expandedPaths: snapExpanded,
+            entries: snapEntries,
+            failures: snapFailures,
+        } = await snapshot({
             paths,
             projectId,
             projectTitle: title,

@@ -251,12 +251,11 @@ class MasBulkPublishEditor extends LitElement {
         newItems.forEach((item) => {
             refs.forEach((ref) => {
                 if (item.path === ref.path) {
-                    ref.fields.forEach((field) => {
-                        if (field.name === 'tags' && field.values.includes(STAGED.TAG)) {
-                            item.status = 'error';
-                            item.reason = STAGED.NAME;
-                        }
-                    });
+                    const fragment = new Fragment(ref);
+                    if (fragment.isStaged) {
+                        item.status = 'error';
+                        item.reason = STAGED.NAME;
+                    }
                 }
             });
         });

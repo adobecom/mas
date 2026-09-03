@@ -774,16 +774,26 @@ async function main(params) {
             if (identifierBypass) {
                 const envelope = buildDeterministicEnvelope(identifierBypass.intent, identifierBypass.slots);
                 if (bypassEnvelopeValid(envelope)) {
-                    return {
-                        statusCode: 200,
-                        headers: { ...getResponseHeaders() },
-                        body: {
-                            envelope,
+                    // This bypass answers without consulting the model, so it is
+                    // the one path that cannot be fixed by prompting. An offer
+                    // lookup still needs the product: AOS does not filter by
+                    // offer id. OST sends "Offer ID: <hex>", which lands here.
+                    const bypassBody = withResolvedArrangementCode(
+                        {
                             type: 'mcp_operation',
                             mcpTool: identifierBypass.intent,
                             mcpParams: identifierBypass.mcpParams,
                             message: identifierBypass.message,
                             confirmationRequired: false,
+                        },
+                        conversationHistory,
+                    );
+                    return {
+                        statusCode: 200,
+                        headers: { ...getResponseHeaders() },
+                        body: {
+                            envelope,
+                            ...bypassBody,
                             conversationHistory: [...conversationHistory, { role: 'user', content: message }],
                         },
                     };

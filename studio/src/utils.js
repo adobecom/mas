@@ -10,10 +10,13 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
+    PZN_FOLDER,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
+import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
+import { isPromoVariationPath } from './promotions/promotion-model.js';
 
 /**
  * @param {string} input
@@ -249,14 +252,14 @@ export function getFragmentPartsToUse(fragment, path) {
     return { fragmentParts, title };
 }
 
-export function generateCodeToUse(fragment, path, page, failMessage) {
+export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
                 variant: 'negative',
-                content: 'Failed to copy code to clipboard',
+                content: 'Failed to copy link to clipboard',
             });
         return [];
     }
@@ -469,6 +472,45 @@ export function extractLocaleFromPath(fragmentPath) {
     return match?.groups?.parsedLocale ?? null;
 }
 
+/**
+ * Resolves parent fragment by checking other fragments' variations fields.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {string} fragmentPath
+ * @returns {Promise<Object|null>}
+ */
+export async function resolveHydratedParentFragment(aem, fragmentPath) {
+    const references = await aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+    const parentRefs = references?.parentReferences || [];
+    if (!parentRefs.length) return null;
+
+    const surface = extractSurfaceFromPath(fragmentPath);
+    const variationLocale = extractLocaleFromPath(fragmentPath);
+    const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
+    const sortedRefs = defaultLocale
+        ? [...parentRefs].sort((a, b) => {
+              const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
+              const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
+              return aIsDefault - bIsDefault;
+          })
+        : parentRefs;
+
+    for (const ref of sortedRefs) {
+        const candidate = await aem.sites.cf.fragments.getByPath(ref.path);
+        if (!candidate) continue;
+
+        const variationsField = candidate.fields?.find((f) => f.name === 'variations');
+        const variations = variationsField?.values || [];
+        if (!variations.includes(fragmentPath)) continue;
+
+        if (!candidate.id) return candidate;
+
+        const hydrated = await aem.sites.cf.fragments.getById(candidate.id);
+        return hydrated || candidate;
+    }
+
+    return null;
+}
+
 export function previewFragmentOnPage(fragment) {
     if (!fragment?.id) return;
 
@@ -570,4 +612,45 @@ export function createKeyedAsyncLoader() {
         if (token !== activeToken) return;
         apply(result);
     };
+}
+
+/**
+ * Generates the delete confirmation summary, omitting categories with a zero count.
+ * Classifies `variationsToDelete` directly by path, so the count always matches what's actually deleted.
+ * @param {import('./aem/fragment.js').Fragment} fragment
+ * @param {string[]} [variationsToDelete]
+ * @returns {string}
+ */
+export function describeVariationsToDelete(fragment, variationsToDelete = []) {
+    const { surface, parsedLocale: currentLocale, fragmentPath } = fragment?.path?.match(PATH_TOKENS)?.groups || {};
+
+    let localeCount = 0;
+    let groupedCount = 0;
+    let promoCount = 0;
+
+    for (const path of variationsToDelete) {
+        if (path.includes(`/${PZN_FOLDER}/`)) {
+            if (isVariationPathInParentLocaleFamily(surface, currentLocale, path)) groupedCount += 1;
+            continue;
+        }
+        if (isPromoVariationPath(path)) {
+            promoCount += 1;
+            continue;
+        }
+        const pathGroups = surface && currentLocale && fragmentPath ? path.match(PATH_TOKENS)?.groups : null;
+        if (
+            pathGroups?.surface === surface &&
+            pathGroups?.fragmentPath === fragmentPath &&
+            pathGroups?.parsedLocale !== currentLocale &&
+            isVariationPathInParentLocaleFamily(surface, currentLocale, path)
+        ) {
+            localeCount += 1;
+        }
+    }
+
+    const parts = [];
+    if (localeCount) parts.push(`${localeCount} locale`);
+    if (groupedCount) parts.push(`${groupedCount} grouped`);
+    if (promoCount) parts.push(`${promoCount} promo`);
+    return `${parts.join(', ')} variation(s)`;
 }

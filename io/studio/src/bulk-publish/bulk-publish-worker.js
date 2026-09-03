@@ -27,7 +27,7 @@ function hasValidPreRecordedSnapshot(entries) {
     try {
         return entries.every((e) => {
             const parsed = JSON.parse(e);
-            return parsed.versionId && parsed.publishComplete === undefined;
+            return 'versionId' in parsed && parsed.publishComplete === undefined;
         });
     } catch {
         return false;

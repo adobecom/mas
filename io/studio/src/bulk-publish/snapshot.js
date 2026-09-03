@@ -202,7 +202,9 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
             return { path: fragmentId, error: err.message };
         }
         try {
-            await restoreVersion(odinEndpoint, fragmentId, entry.versionId, authToken);
+            if (entry.versionId) {
+                await restoreVersion(odinEndpoint, fragmentId, entry.versionId, authToken);
+            }
             if (!entry.wasPublished) {
                 await unpublishFragment(odinEndpoint, fragment.path, authToken);
             }
@@ -230,8 +232,9 @@ async function recordSnapshot({ paths, odinEndpoint, authToken }) {
             const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
             if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
             const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
+            // versionId may be null for new cards that have never been published.
+            // Record them with versionId: null so revert can unpublish them instead.
             const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
-            if (!versionId) return { path, error: `No non-translation version found for fragment: ${path}` };
             return [fragment.id, { path: fragment.path, versionId, wasPublished }];
         } catch (err) {
             return { path, error: err.message };

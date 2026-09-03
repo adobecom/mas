@@ -344,6 +344,23 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.createSnapshot).to.not.have.been.called;
     });
 
+    it('uses pre-recorded snapshots with versionId: null (new cards) as revert target', async () => {
+        const nullVersionEntries = [
+            JSON.stringify({ fragmentId: 'frag-new', versionId: null, wasPublished: false, createdAt: '2026-01-01T00:00:00Z' }),
+        ];
+        deps.getProjectSnapshots.returns(nullVersionEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+        expect(deps.recordSnapshot).to.not.have.been.called;
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.be.null;
+    });
+
     it('falls through to record+createSnapshot when existing entry has publishComplete: true', async () => {
         const completedEntry = JSON.stringify({
             fragmentId: 'frag-1',

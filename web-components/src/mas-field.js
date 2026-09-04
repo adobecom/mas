@@ -140,7 +140,7 @@ function registerOptionsProviders(service) {
 
 const MAS_FIELD_STYLES = `
 mas-field {
-    display: inline;
+    display: contents;
 }
 
 mas-field div[slot="footer"] {

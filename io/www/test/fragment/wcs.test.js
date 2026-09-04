@@ -864,6 +864,35 @@ describe('wcs OSI helpers', function () {
         expect(fields.description.mimeType).to.equal('text/html');
     });
 
+    it('scanMasElements scans every entry of a multi-value text/html field', function () {
+        // customFields is the only multi-value rich text field, so Odin returns its `value` as an
+        // array of strings rather than one string (MWPW-206423). Each entry must be scanned and
+        // rewritten in place, or promos never reach prices authored inside a custom field.
+        const fields = {
+            customFields: {
+                mimeType: 'text/html',
+                value: ['<span data-wcs-osi="A"></span>', '<p>no markup</p>', '<span data-wcs-osi="B"></span>'],
+            },
+            customFieldLabels: ['Discount', 'Plain', 'Price'],
+        };
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A' } }, {});
+        expect(elements.map((element) => element.osi)).to.deep.equal(['SUB-A', 'B']);
+        expect(fields.customFields.value).to.deep.equal([
+            '<span data-wcs-osi="SUB-A"></span>',
+            '<p>no markup</p>',
+            '<span data-wcs-osi="B"></span>',
+        ]);
+        expect(fields.customFields.mimeType).to.equal('text/html');
+    });
+
+    it('scanMasElements leaves a multi-value field untouched when nothing is substituted', function () {
+        const value = ['<span data-wcs-osi="A"></span>'];
+        const fields = { customFields: { mimeType: 'text/html', value } };
+        const elements = scanMasElements(fields, undefined, {});
+        expect(elements).to.deep.equal([{ osi: 'A', rawOsi: 'A', promotionCode: undefined }]);
+        expect(fields.customFields.value).to.equal(value);
+    });
+
     it('scanMasElements skips substitution for elements with data-locked-osi="true"', function () {
         const fields = {
             prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',

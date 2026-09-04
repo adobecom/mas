@@ -50,15 +50,18 @@ describe('MasPromotionsItemsTable', () => {
         await el.updateComplete;
         const headerCells = el.shadowRoot.querySelectorAll('sp-table-head-cell');
         expect(Array.from(headerCells).map((c) => c.textContent.trim())).to.deep.equal([
-            '',
             'Offer',
+            'Actions',
+            'Countries',
+            'OSI override',
+            'Default OSI',
+            'Promo code',
             'Product arrangement',
+            'Default Offer ID',
             'Offer type',
             'Plan type',
             'Customer segment',
             'Market segment',
-            'Promo code',
-            'Actions',
         ]);
     });
 
@@ -237,30 +240,11 @@ describe('MasPromotionsItemsTable', () => {
         expect(Store.promotions.selectedCards.value).to.include('/content/dam/mas/sandbox/en_US/PA-123/pzn/edu');
     });
 
-    it('shows Add product offers empty state when offers selection is empty', async () => {
+    it('shows empty state when offers selection is empty', async () => {
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
-        expect(el.shadowRoot.textContent).to.include('Add product offers');
+        expect(el.shadowRoot.textContent).to.include('No offers selected');
         expect(el.shadowRoot.querySelector('sp-table')).to.be.null;
-    });
-
-    it('opens the offer selector tool when the Add offers icon is clicked', async () => {
-        const ostStub = sandbox.stub().returns(() => {});
-        const previousOst = window.ost;
-        window.ost = { openOfferSelectorTool: ostStub };
-        const commerceService = document.createElement('mas-commerce-service');
-        commerceService.settings = {};
-        commerceService.featureFlags = {};
-        document.body.appendChild(commerceService);
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
-        await el.updateComplete;
-        const addBtn = el.shadowRoot.querySelector('.offers-empty-state sp-button');
-        expect(addBtn).to.not.be.null;
-        addBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(ostStub.calledOnce).to.be.true;
-        window.ost = previousOst;
-        commerceService.remove();
     });
 
     it('shows skeleton rows for the offers table while loading', async () => {
@@ -326,7 +310,7 @@ describe('MasPromotionsItemsTable', () => {
         expect(el.shadowRoot.textContent).to.include('Creative Cloud');
     });
 
-    it('renders promo code count for offer rows', async () => {
+    it('renders promo codes grouped by country for offer rows', async () => {
         Store.promotions.selectedOffers.set(['offer-1']);
         Store.promotions.offerRecordsCache.set('offer-1', {
             path: 'offer-1',
@@ -344,10 +328,14 @@ describe('MasPromotionsItemsTable', () => {
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
-        expect(el.shadowRoot.textContent).to.include('2');
+        const promoCodeCell = el.shadowRoot.querySelector('.promo-code-cell');
+        expect(promoCodeCell.textContent).to.include('US:');
+        expect(promoCodeCell.textContent).to.include('DEFAULT');
+        expect(promoCodeCell.textContent).to.include('CA_en:');
+        expect(promoCodeCell.textContent).to.include('OVERRIDE');
     });
 
-    it('expands offer row with promo codes grouped by country table', async () => {
+    it('renders promo codes grouped by country inline in the offer row', async () => {
         Store.promotions.selectedOffers.set(['offer-expand']);
         Store.promotions.offerRecordsCache.set(
             'offer-expand',
@@ -362,54 +350,14 @@ describe('MasPromotionsItemsTable', () => {
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
-        const expandBtn = el.shadowRoot.querySelector('.expand-cell sp-action-button');
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        const detail = el.shadowRoot.querySelector('.detail-row');
-        expect(detail.textContent).to.include('Offer ID:');
-        expect(detail.textContent).to.include('offer-expand');
-        expect(detail.querySelector('.offer-promo-codes-table')).to.not.be.null;
-        expect(detail.textContent).to.include('Promo codes');
-        expect(detail.textContent).to.include('Countries');
-        expect(detail.textContent).to.include('US-OVERRIDE');
-        expect(detail.textContent).to.include('CA-OVERRIDE');
-        expect(detail.textContent).to.include('US');
-        expect(detail.textContent).to.include('CA_en');
+        const promoCodeCell = el.shadowRoot.querySelector('.promo-code-cell');
+        expect(promoCodeCell.textContent).to.include('US:');
+        expect(promoCodeCell.textContent).to.include('US-OVERRIDE');
+        expect(promoCodeCell.textContent).to.include('CA_en:');
+        expect(promoCodeCell.textContent).to.include('CA-OVERRIDE');
     });
 
-    it('collapses an expanded offer row on second expand-toggle click', async () => {
-        Store.promotions.selectedOffers.set(['offer-collapse']);
-        Store.promotions.offerRecordsCache.set(
-            'offer-collapse',
-            buildPromotionOfferRecord('offer-collapse', { product_code: 'PHSP', offer_id: 'offer-collapse' }, 'PA-1'),
-        );
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
-        await el.updateComplete;
-        const expandBtn = el.shadowRoot.querySelector('.expand-cell sp-action-button');
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(el.shadowRoot.querySelector('.detail-row')).to.not.be.null;
-
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(el.shadowRoot.querySelector('.detail-row')).to.be.null;
-    });
-
-    it('toggles expand when clicking the offer row body directly', async () => {
-        Store.promotions.selectedOffers.set(['offer-row-click']);
-        Store.promotions.offerRecordsCache.set(
-            'offer-row-click',
-            buildPromotionOfferRecord('offer-row-click', { product_code: 'PHSP', offer_id: 'offer-row-click' }, 'PA-1'),
-        );
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
-        await el.updateComplete;
-        const row = el.shadowRoot.querySelector('sp-table-row.offer-row');
-        row.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(el.shadowRoot.querySelector('.detail-row')).to.not.be.null;
-    });
-
-    it('shows a dash and a substitute-offers table when there are substitutions but no promo code exceptions', async () => {
+    it('shows a dash in the promo code cell and the substitute offer id in the OSI override cell when there are substitutions but no promo code exceptions', async () => {
         Store.promotions.selectedOffers.set(['offer-sub']);
         Store.promotions.offerRecordsCache.set(
             'offer-sub',
@@ -431,14 +379,10 @@ describe('MasPromotionsItemsTable', () => {
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
-        const expandBtn = el.shadowRoot.querySelector('.expand-cell sp-action-button');
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        const detail = el.shadowRoot.querySelector('.detail-row');
-        const promoCodesTable = detail.querySelector('.offer-promo-codes-table');
-        expect(promoCodesTable.textContent.trim()).to.include('-');
-        expect(detail.textContent).to.include('Substitute offers');
-        expect(detail.textContent).to.include('US');
+        expect(el.shadowRoot.querySelector('.promo-code-cell').textContent.trim()).to.equal('-');
+        const osiOverrideCell = el.shadowRoot.querySelector('.offer-id');
+        expect(osiOverrideCell.textContent).to.include('US:');
+        expect(osiOverrideCell.textContent).to.include('offer-sub-replacement');
     });
 
     it('renders mnemonic icon for offers tab when cached entry has icon field', async () => {

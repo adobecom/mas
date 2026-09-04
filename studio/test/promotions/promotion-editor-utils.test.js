@@ -677,7 +677,7 @@ describe('promotion-editor-utils', () => {
             expect(getEffectiveSubstituteOffer(subs, 'offer-1', 'US')).to.be.null;
         });
 
-        it('groupOfferSubstitutionsForOffer groups countries by substitute label', () => {
+        it('groupOfferSubstitutionsForOffer groups countries by substitute selector id', () => {
             const subs = parseOfferSubstitutions([
                 'substitute|offer-1|regional-osi|IN',
                 'substitute|offer-1|regional-osi|CA_en',
@@ -686,8 +686,20 @@ describe('promotion-editor-utils', () => {
                 id === 'regional-osi' ? 'Regional CC Pro' : id,
             );
             expect(groups).to.deep.equal([
-                { offerLabel: 'Regional CC Pro', countries: ['IN', 'CA_en'], countriesLabel: 'IN, CA_en' },
+                {
+                    offerId: 'regional-osi',
+                    offerLabel: 'Regional CC Pro',
+                    countries: ['IN', 'CA_en'],
+                    countriesLabel: 'IN, CA_en',
+                },
             ]);
+        });
+
+        it('groupOfferSubstitutionsForOffer keeps two selector ids separate even when they resolve to the same label', () => {
+            const subs = parseOfferSubstitutions(['substitute|offer-1|osi-a|IN', 'substitute|offer-1|osi-b|CA_en']);
+            const groups = groupOfferSubstitutionsForOffer(subs, ['offer-1'], ['IN', 'CA_en'], () => 'Same Label');
+            expect(groups).to.have.lengthOf(2);
+            expect(groups.map((g) => g.offerId).sort()).to.deep.equal(['osi-a', 'osi-b']);
         });
     });
 

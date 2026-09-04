@@ -1,8 +1,10 @@
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import { nothing, render } from 'lit';
 import {
     renderFragmentStatusCell,
     renderPromotionStatusCell,
+    renderCopyableValueCell,
     getItemTypeLabel,
     getItemTitle,
     shouldIgnoreRowClickForSelection,
@@ -74,6 +76,71 @@ describe('render-utils', () => {
             const dot = container.querySelector('.status-dot');
             expect(dot?.classList.contains('yellow')).to.be.true;
             expect(container.textContent).to.include('MODIFIED');
+        });
+    });
+
+    describe('renderCopyableValueCell', () => {
+        let sandbox;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+        });
+
+        it('renders the empty label when value is falsy', () => {
+            const container = document.createElement('div');
+            render(renderCopyableValueCell(container, null, { emptyLabel: 'no data' }), container);
+            expect(container.textContent).to.include('no data');
+            expect(container.querySelector('sp-action-button')).to.not.exist;
+        });
+
+        it('renders the value with a copy button when present', () => {
+            const container = document.createElement('div');
+            render(renderCopyableValueCell(container, 'ABC-123', { ariaLabel: 'Copy value' }), container);
+            expect(container.textContent).to.include('ABC-123');
+            const copyBtn = container.querySelector('sp-action-button[aria-label="Copy value"]');
+            expect(copyBtn).to.exist;
+        });
+
+        it('copies the value and dispatches a positive show-toast on click', async () => {
+            const container = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            render(
+                renderCopyableValueCell(container, 'XYZ-456', {
+                    ariaLabel: 'Copy value',
+                    successMessage: 'Copied!',
+                }),
+                container,
+            );
+            const toastPromise = new Promise((resolve) => {
+                container.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            container.querySelector('sp-action-button[aria-label="Copy value"]').click();
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copied!', variant: 'positive' });
+            expect(navigator.clipboard.writeText.calledWith('XYZ-456')).to.be.true;
+        });
+
+        it('dispatches a negative show-toast when the clipboard write fails', async () => {
+            const container = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('denied'));
+            sandbox.stub(console, 'error');
+            render(
+                renderCopyableValueCell(container, 'FAIL-789', {
+                    ariaLabel: 'Copy value',
+                    errorMessage: 'Copy failed',
+                }),
+                container,
+            );
+            const toastPromise = new Promise((resolve) => {
+                container.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            container.querySelector('sp-action-button[aria-label="Copy value"]').click();
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copy failed', variant: 'negative' });
         });
     });
 

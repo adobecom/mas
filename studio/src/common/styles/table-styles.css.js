@@ -83,6 +83,61 @@ export const tableCellBaseStyles = css`
             background-color: var(--spectrum-blue-800);
         }
     }
+
+    .offer-id {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--spectrum-blue-900);
+
+        .copyable-value {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        div {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        div:hover {
+            text-decoration: underline;
+            color: var(--spectrum-blue-1000);
+        }
+
+        overlay-trigger {
+            flex: 1;
+            min-width: 0;
+        }
+
+        sp-action-button {
+            flex: 0 0 auto;
+            --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
+
+            &:hover {
+                --mod-actionbutton-background-color-hover: var(--spectrum-blue-300);
+                --mod-actionbutton-background-color-hover-selected: var(--spectrum-blue-300);
+            }
+
+            &:active {
+                --mod-actionbutton-background-color-down: var(--spectrum-blue-400);
+                --mod-actionbutton-background-color-down-selected: var(--spectrum-blue-400);
+            }
+
+            &:focus,
+            &:focus-visible {
+                --mod-actionbutton-background-color-focus: var(--spectrum-blue-400);
+                --mod-actionbutton-background-color-focus-selected: var(--spectrum-blue-400);
+            }
+        }
+
+        sp-tooltip {
+            word-break: break-all;
+        }
+    }
 `;
 
 export const textWithTooltipStyles = css`
@@ -161,6 +216,22 @@ export const selectItemsFormSectionStyles = css`
         h2 sp-icon-asterisk100 {
             width: 10px;
             height: 10px;
+        }
+    }
+`;
+
+export const scrollableTableStyles = css`
+    .scrollable-table-container {
+        display: flex;
+        width: 100%;
+        overflow-x: auto;
+        padding-right: 10px;
+
+        .items-table {
+            width: max-content;
+            min-width: 100%;
+            flex: 0;
+            overflow: clip;
         }
     }
 `;

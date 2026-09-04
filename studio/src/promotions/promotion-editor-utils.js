@@ -717,14 +717,14 @@ export function groupOfferSubstitutionsForOffer(offerSubstitutions, offerKeys, c
             }
         }
         if (!substituteSelectorId) continue;
-        const label = resolveOfferLabel?.(substituteSelectorId) ?? substituteSelectorId;
-        if (!groups.has(label)) groups.set(label, []);
-        groups.get(label).push(country);
+        if (!groups.has(substituteSelectorId)) groups.set(substituteSelectorId, []);
+        groups.get(substituteSelectorId).push(country);
     }
 
     return [...groups.entries()]
-        .map(([offerLabel, countryList]) => ({
-            offerLabel,
+        .map(([offerId, countryList]) => ({
+            offerId,
+            offerLabel: resolveOfferLabel?.(offerId) ?? offerId,
             countries: countryList,
             countriesLabel: countryList.join(', '),
         }))

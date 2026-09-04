@@ -120,6 +120,83 @@ export function shouldIgnoreRowClickForSelection(event) {
 }
 
 /**
+ * Copies text to the clipboard and dispatches a `show-toast` event on the given host.
+ * @param {EventTarget} host - Element to dispatch the `show-toast` event on (bubbles/composed)
+ * @param {Event} e - Triggering click event (its propagation is stopped)
+ * @param {string} text - Text to copy
+ * @param {{ successMessage?: string, errorMessage?: string }} [options]
+ */
+export async function copyToClipboardWithToast(
+    host,
+    e,
+    text,
+    { successMessage = 'Copied to clipboard', errorMessage = 'Failed to copy' } = {},
+) {
+    e.stopPropagation();
+    try {
+        await navigator.clipboard.writeText(text);
+        host.dispatchEvent(
+            new CustomEvent('show-toast', {
+                detail: { text: successMessage, variant: 'positive' },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        host.dispatchEvent(
+            new CustomEvent('show-toast', {
+                detail: { text: errorMessage, variant: 'negative' },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+}
+
+/**
+ * Renders a value with a hover tooltip and a copy-to-clipboard button.
+ * @param {EventTarget} host - Element to dispatch the `show-toast` event on when copying
+ * @param {string} value
+ * @param {{ ariaLabel?: string, successMessage?: string, errorMessage?: string }} [options]
+ * @returns {import('lit').TemplateResult}
+ */
+export function renderCopyableValue(host, value, { ariaLabel = 'Copy to clipboard', successMessage, errorMessage } = {}) {
+    return html`<span class="copyable-value">
+        <overlay-trigger triggered-by="hover">
+            <div slot="trigger">${value}</div>
+            <sp-tooltip slot="hover-content" placement="bottom"> ${value} </sp-tooltip>
+        </overlay-trigger>
+        <sp-action-button
+            icon-only
+            quiet
+            aria-label=${ariaLabel}
+            @click=${(e) => copyToClipboardWithToast(host, e, value, { successMessage, errorMessage })}
+        >
+            <sp-icon-copy slot="icon"></sp-icon-copy>
+        </sp-action-button>
+    </span>`;
+}
+
+/**
+ * Renders a table cell showing a value with a hover tooltip and a copy-to-clipboard button,
+ * or an empty-state label when there's no value.
+ * @param {EventTarget} host - Element to dispatch the `show-toast` event on when copying
+ * @param {string|null|undefined} value
+ * @param {{ className?: string, emptyLabel?: string, ariaLabel?: string, successMessage?: string, errorMessage?: string }} [options]
+ * @returns {import('lit').TemplateResult}
+ */
+export function renderCopyableValueCell(
+    host,
+    value,
+    { className = 'offer-id', emptyLabel = 'no offer data', ...options } = {},
+) {
+    return html`
+        <sp-table-cell class=${className}>${value ? renderCopyableValue(host, value, options) : emptyLabel}</sp-table-cell>
+    `;
+}
+
+/**
  * Renders the baseline-variation notice shown when a promotion
  * variation has no tags of its own and inherits the project's tags.
  * @returns {import('lit').TemplateResult}

@@ -25,8 +25,7 @@ export const styles = [
             width: 100%;
         }
 
-        .path,
-        .offer-id {
+        .path {
             min-width: 0;
             overflow: hidden;
         }
@@ -35,49 +34,6 @@ export const styles = [
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
-        }
-
-        .offer-id {
-            color: var(--spectrum-blue-900);
-
-            overlay-trigger {
-                min-width: 0;
-            }
-
-            div {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                margin-right: 4px;
-            }
-
-            div:hover {
-                text-decoration: underline;
-                color: var(--spectrum-blue-1000);
-            }
-
-            sp-action-button {
-                --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
-
-                &:hover {
-                    --mod-actionbutton-background-color-hover: var(--spectrum-blue-300);
-                    --mod-actionbutton-background-color-hover-selected: var(--spectrum-blue-300);
-                }
-
-                &:active {
-                    --mod-actionbutton-background-color-down: var(--spectrum-blue-400);
-                    --mod-actionbutton-background-color-down-selected: var(--spectrum-blue-400);
-                }
-
-                &:focus,
-                &:focus-visible {
-                    --mod-actionbutton-background-color-focus: var(--spectrum-blue-400);
-                    --mod-actionbutton-background-color-focus-selected: var(--spectrum-blue-400);
-                }
-            }
-            sp-tooltip {
-                word-break: break-all;
-            }
         }
 
         .details-cell {

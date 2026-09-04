@@ -105,7 +105,9 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
         '@context': 'https://schema.org/',
         '@type': 'Product',
         '@id': `${url}#product`,
-        name: fields.cardTitle,
+        name: fields.cardTitle?.value
+            ? stripHtml(fields.cardTitle.value)
+            : fields.cardTitle,
         brand: { '@type': 'Brand', name: 'Adobe' },
         offers: [schemaOffer],
     };

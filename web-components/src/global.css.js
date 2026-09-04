@@ -611,6 +611,15 @@ merch-card div[slot='bg-image'] img {
   content: "\\00a0";
 }
 
+merch-card span.price-legal .price-unit-type:not(.disabled)::before,
+merch-card span.price-legal .price-tax-inclusivity:not(.disabled)::before {
+    content: initial;
+}
+
+merch-card span.price-legal .price-unit-type:not(.disabled)::after {
+    content: "\\00a0";
+}
+
 merch-card span.placeholder-resolved[data-template='priceStrikethrough'],
 merch-card span.placeholder-resolved[data-template='strikethrough'],
 merch-card span.price.price-strikethrough {

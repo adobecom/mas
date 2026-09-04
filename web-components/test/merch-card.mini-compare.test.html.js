@@ -258,7 +258,7 @@ runTests(async () => {
             const priceElement = { dataset: { template: 'price' } };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.equal(false);
+            expect(priceOptions.displayPerUnit).to.be.undefined;
         });
     });
 
@@ -465,7 +465,7 @@ runTests(async () => {
                             data-wcs-osi="abm-mult"
                             data-template="price"
                             data-display-per-unit="false"
-                            data-display-tax="false"
+                            data-display-tax="true"
                             data-display-plan-type="true"
                         ></span>
                     </h5>

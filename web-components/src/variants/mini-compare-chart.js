@@ -3,11 +3,13 @@ import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart.css.js';
 import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
+import { getService } from '../utilities.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
     TEMPLATE_PRICE_LEGAL,
+    FF_ANNUAL_PRICE,
 } from '../constants.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
@@ -164,11 +166,13 @@ export class MiniCompareChart extends VariantLayout {
                 this.card?.settings?.displayPlanType ?? false;
             return;
         }
+        const service = getService();
         // For main price display (strikethrough and regular price)
         // Disable perUnit display - it will be shown in legal price only
         if (
             element.dataset.template === 'strikethrough' ||
-            element.dataset.template === 'price'
+            (element.dataset.template === 'price' &&
+                !service.featureFlags[FF_ANNUAL_PRICE])
         ) {
             options.displayPerUnit = false;
         }
@@ -585,6 +589,7 @@ export class MiniCompareChart extends VariantLayout {
 
         let legal;
         try {
+            const service = getService();
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
 
@@ -597,12 +602,25 @@ export class MiniCompareChart extends VariantLayout {
 
             legal = headingPrice.cloneNode(true);
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
-            if (headingPrice.options.displayTax)
-                headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
+
+            if (
+                service.featureFlags[FF_ANNUAL_PRICE] &&
+                headingPrice.options.displayTax
+            ) {
+                legal.dataset.displayTax = 'false';
+            } else if (headingPrice.options.displayTax) {
+                headingPrice.dataset.displayTax = 'false';
+            }
+            if (
+                service.featureFlags[FF_ANNUAL_PRICE] &&
+                headingPrice.options.displayPerUnit
+            ) {
+                legal.dataset.displayPerUnit = 'false';
+            } else if (headingPrice.options.displayPerUnit) {
+                headingPrice.dataset.displayPerUnit = 'false';
+            }
 
             legal.setAttribute('data-template', 'legal');
 

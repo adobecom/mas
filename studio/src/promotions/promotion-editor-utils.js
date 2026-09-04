@@ -336,7 +336,7 @@ export function pruneOrphanedPromotionSelectionAfterOfferRemoval({
 
 export function normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode) {
     const base = offer && typeof offer === 'object' ? { ...offer } : {};
-    const offerId = base.offerId ?? base.offer_id ?? offerSelectorId;
+    const offerId = base.offerId ?? base.offer_id;
     const arrangementCode = productArrangementCode ?? base.product_arrangement_code ?? base.productArrangementCode;
     delete base.offer_id;
     return {

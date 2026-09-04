@@ -71,7 +71,7 @@ describe('MasPromotionsItemsTable', () => {
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
         // Placeholder row before the records land (offers render immediately, unblocked).
-        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerId });
+        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerId, wcsOsi: offerId });
 
         Store.promotions.offerRecordsCache.set(offerId, {
             path: offerId,
@@ -308,6 +308,28 @@ describe('MasPromotionsItemsTable', () => {
         await el.updateComplete;
         expect(el.viewOnlyFragments.length).to.equal(1);
         expect(el.shadowRoot.textContent).to.include('Creative Cloud');
+    });
+
+    it('sorts offer rows by name ascending by default and reverses on header click', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ffsa-osi']);
+        Store.promotions.offerRecordsCache.set(
+            'phsp-osi',
+            buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const offerNames = () =>
+            Array.from(el.shadowRoot.querySelectorAll('.offer-row .offer-cell span')).map((span) => span.textContent);
+        expect(offerNames()).to.deep.equal(['FFSA', 'PHSP']);
+
+        el.shadowRoot.querySelector('sp-table-head-cell.offer-head-cell').click();
+        await el.updateComplete;
+
+        expect(offerNames()).to.deep.equal(['PHSP', 'FFSA']);
     });
 
     it('renders promo codes grouped by country for offer rows', async () => {

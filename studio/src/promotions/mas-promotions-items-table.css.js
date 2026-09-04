@@ -34,6 +34,7 @@ export const promotionsItemsTableStyles = [
 
             sp-table-head {
                 border-bottom: 1px solid var(--spectrum-gray-300);
+                width: max-content;
             }
 
             sp-table-head-cell,
@@ -124,7 +125,6 @@ export const promotionsItemsTableStyles = [
             }
 
             .promo-code-cell {
-                align-items: flex-start;
                 ul,
                 li {
                     margin: 0;

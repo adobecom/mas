@@ -281,7 +281,7 @@ class MasPromotionsEditor extends LitElement {
         return {
             path: selectorId,
             id: selectorId,
-            offerData: { offerId: selectorId },
+            offerData: { offerSelectorIds: [selectorId] },
             tags: [],
             fields: [],
         };

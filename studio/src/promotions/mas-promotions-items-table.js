@@ -5,12 +5,7 @@ import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js'
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
-import {
-    applySearchSurfaceFromPath,
-    renderCopyableValue,
-    renderCopyableValueCell,
-    shouldIgnoreRowClickForSelection,
-} from '../common/utils/render-utils.js';
+import { applySearchSurfaceFromPath, renderCopyableValue, renderCopyableValueCell } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
@@ -48,8 +43,8 @@ const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variat
 // so large promotions don't fetch every attached fragment at once.
 const SELECTED_ITEMS_WINDOW = 25;
 
-const offersTableColumns = [
-    { label: 'Offer', key: 'offer', class: 'offer-head-cell', sortable: true },
+const offersTableHeaders = [
+    { label: 'Offer', key: 'offer', class: 'offer-head-cell', sortable: true, sortKey: 'offerName' },
     { label: 'Actions', key: 'actions' },
     { label: 'Countries', key: 'countries' },
     { label: 'OSI override', key: 'osi-override' },
@@ -85,6 +80,7 @@ class MasPromotionsItemsTable extends LitElement {
         promoVariationSelectedGeos: { type: Array, state: true },
         promoVariationDisabledGeos: { type: Array, state: true },
         fragmentHasEmptyGeosVariation: { type: Boolean, state: true },
+        offersSortDirection: { type: String, state: true },
     };
 
     #loadedPathsKey = null;
@@ -109,6 +105,7 @@ class MasPromotionsItemsTable extends LitElement {
         this.promoVariationSelectedGeos = [];
         this.promoVariationDisabledGeos = [];
         this.fragmentHasEmptyGeosVariation = false;
+        this.offersSortDirection = 'asc';
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
@@ -128,7 +125,7 @@ class MasPromotionsItemsTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         if (this.#selectionController) return;
-        const store = getItemsSelectionStore();
+        const store = getItemsSelectionStore({ allowUnset: true });
         const selectionStore =
             this.type === TABLE_TYPE.OFFERS
                 ? store.selectedOffers
@@ -223,22 +220,22 @@ class MasPromotionsItemsTable extends LitElement {
         this.#loadSelected(paths);
     }
 
-    #loadSelectedOffers(offerIds) {
-        const key = offerIds.slice().sort().join('|');
+    #loadSelectedOffers(wcsOsiList) {
+        const key = wcsOsiList.slice().sort().join('|');
         if (key === this.#loadedPathsKey) return;
         this.#loadedPathsKey = key;
-        if (!offerIds.length) {
+        if (!wcsOsiList.length) {
             this.viewOnlyFragments = [];
             this.viewOnlyLoading = false;
             return;
         }
-        this.viewOnlyFragments = offerIds.map((offerId) => {
-            const cached = Store.promotions.offerRecordsCache.get(offerId);
+        this.viewOnlyFragments = wcsOsiList.map((wcsOsi) => {
+            const cached = Store.promotions.offerRecordsCache.get(wcsOsi);
             if (cached) return cached;
             return {
-                path: offerId,
-                id: offerId,
-                offerData: { offerId },
+                path: wcsOsi,
+                id: wcsOsi,
+                offerData: { offerSelectorIds: [wcsOsi] },
                 tags: [],
                 fields: [],
             };
@@ -653,10 +650,9 @@ class MasPromotionsItemsTable extends LitElement {
     #renderOfferCell(item) {
         const iconSrc =
             item?.getFieldValue?.('mnemonicIcon') ?? item?.fields?.find((f) => f.name === 'mnemonicIcon')?.values?.[0];
-        const offerName = item?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || 'no offer name';
         return html`<sp-table-cell class="offer-cell">
             ${iconSrc ? html`<img class="mnemonic-icon" src=${iconSrc} alt="" />` : nothing}
-            <span>${offerName}</span>
+            <span>${item?.offerName || '-'}</span>
         </sp-table-cell>`;
     }
 
@@ -757,7 +753,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderProductArrangementCell(item) {
-        const arrangement = item?.getTagTitle?.('product_arrangement') || item?.offerData?.product_arrangement_code || '-';
+        const arrangement = item?.getTagTitle?.('product_arrangement') || '-';
         return html`<sp-table-cell>${arrangement}</sp-table-cell>`;
     }
 
@@ -858,8 +854,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderDefaultOsiCell(item) {
-        const value = 'to be done';
-        return renderCopyableValueCell(this, value, {
+        return renderCopyableValueCell(this, item?.offerData?.offerSelectorIds?.join(', '), {
             emptyLabel: '-',
             ariaLabel: 'Copy default OSI to clipboard',
             successMessage: 'Default OSI copied to clipboard',
@@ -887,7 +882,7 @@ class MasPromotionsItemsTable extends LitElement {
             { length: 6 },
             (_, i) =>
                 html`<sp-table-row class="skeleton-row" key=${i}>
-                    ${offersTableColumns.map(
+                    ${offersTableHeaders.map(
                         () =>
                             html`<sp-table-cell>
                                 <div class="skeleton-element skeleton-table-cell"></div>
@@ -903,17 +898,35 @@ class MasPromotionsItemsTable extends LitElement {
                 No offers selected. Use the "Add offer" button to select offers for this promotion.
             </div>`;
         }
+        const offersWithNames = this.viewOnlyFragments
+            .map((offer) => {
+                const offerName = offer?.getTagTitle?.('mas:product_code/') || 'no offer name';
+                return { ...offer, offerName };
+            })
+            .sort((a, b) =>
+                this.offersSortDirection === 'desc'
+                    ? b.offerName.localeCompare(a.offerName)
+                    : a.offerName.localeCompare(b.offerName),
+            );
         return html`<div class="scrollable-table-container">
             <sp-table class="item-table" emphasized>
                 <sp-table-head>
                     ${repeat(
-                        offersTableColumns,
+                        offersTableHeaders,
                         (column) => column.key,
-                        (column) => html`<sp-table-head-cell class=${column.class || ''}>${column.label}</sp-table-head-cell>`,
+                        (column) =>
+                            html`<sp-table-head-cell
+                                class=${column.class || ''}
+                                ?sortable=${column.sortable}
+                                .sortDirection=${column.sortable ? this.offersSortDirection : ''}
+                                sort-key=${column.sortKey || ''}
+                                @sorted=${(e) => (this.offersSortDirection = e.detail.sortDirection)}
+                                >${column.label}</sp-table-head-cell
+                            >`,
                     )}
                 </sp-table-head>
                 <sp-table-body>
-                    ${this.viewOnlyLoading ? this.#renderSkeletonRows() : this.#renderOfferRows(this.viewOnlyFragments)}
+                    ${this.viewOnlyLoading ? this.#renderSkeletonRows() : this.#renderOfferRows(offersWithNames)}
                 </sp-table-body>
             </sp-table>
         </div>`;

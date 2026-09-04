@@ -226,12 +226,5 @@ export const scrollableTableStyles = css`
         width: 100%;
         overflow-x: auto;
         padding-right: 10px;
-
-        .items-table {
-            width: max-content;
-            min-width: 100%;
-            flex: 0;
-            overflow: clip;
-        }
     }
 `;

@@ -168,13 +168,45 @@ export function toQuantity(value, defaultValue = 1) {
 }
 
 /**
+ * Splits comma-separated promo codes into an array,
+ * keeping empty entries for OSI positions without a promo.
  * @param {any} value
  * @returns {string[]}
  */
-export function toOfferSelectorIds(value) {
+export function toPromotionCodes(value) {
     if (value == null) return [];
-    const ids = Array.isArray(value) ? value : String(value).split(',');
-    return ids.filter(isNotEmptyString);
+    return Array.isArray(value)
+        ? value
+        : String(value)
+              .split(',')
+              .map((code) => code.trim());
+}
+
+/**
+ * Zips OSI and promo-code lists by position,
+ * dropping a blank OSI's paired code so later OSIs don't shift onto the wrong code.
+ * A single code (no comma) is left alone and broadcasts to all OSIs.
+ * @param {any} osiValue
+ * @param {any} promotionCodeValue
+ * @returns {{ wcsOsi: string[], promotionCodes: string[] }}
+ */
+export function toWcsOsiAndPromotionCodes(osiValue, promotionCodeValue) {
+    const codes = toPromotionCodes(promotionCodeValue);
+    if (osiValue == null) return { wcsOsi: [], promotionCodes: codes };
+    const ids = Array.isArray(osiValue)
+        ? osiValue
+        : String(osiValue).split(',');
+    if (codes.length <= 1) {
+        return { wcsOsi: ids.filter(isNotEmptyString), promotionCodes: codes };
+    }
+    const wcsOsi = [];
+    const promotionCodes = [];
+    ids.forEach((id, index) => {
+        if (!isNotEmptyString(id)) return;
+        wcsOsi.push(id);
+        promotionCodes.push(codes[index] ?? '');
+    });
+    return { wcsOsi, promotionCodes };
 }
 
 /**

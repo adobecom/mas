@@ -85,6 +85,11 @@ export async function getFromFragmentCache(fragmentId) {
     return fragmentCache.get(fragmentId);
 }
 
+export async function removeFromFragmentCache(fragmentId) {
+    await initFragmentCache();
+    return fragmentCache.remove(fragmentId);
+}
+
 export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     if (!previewFragment) return;
     await initFragmentCache();

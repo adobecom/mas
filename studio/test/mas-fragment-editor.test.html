@@ -47,10 +47,12 @@
                 COLLECTION_MODEL_PATH,
                 COMPARE_CHART_FIELD,
                 ODIN_PREVIEW_ORIGIN,
+                STAGED,
             } from '../src/constants.js';
             import router from '../src/router.js';
             import Events from '../src/events.js';
             import { extractLocaleFromPath } from '../src/utils.js';
+            import { delay } from './utils.js';
             import { nothing } from 'lit';
             runTests(async () => {
                 describe('MasFragmentEditor', () => {
@@ -191,6 +193,46 @@
                             expect(markup).to.include('orphan-grouped-variation-panel');
                             expect(markup).to.include('Parent reference missing for this grouped variation.');
                         });
+                    });
+
+                    it('try to publish staged card', async () => {
+                        const fragment = new Fragment({
+                            id: 'test-id',
+                            fields: [
+                                { name: 'variant', values: ['plans'] },
+                                { name: 'size', values: ['wide'] },
+                                { name: 'cardName', values: ['Test Card'] },
+                                { name: 'tags', values: [STAGED.TAG] },
+                                { name: 'variations', values: ['/abc'] },
+                            ],
+                            references: [
+                                {
+                                    id: 'abc',
+                                    path: '/abc',
+                                    fields: [{ name: 'tags', values: [STAGED.TAG] }],
+                                },
+                            ],
+                        });
+                        const el = document.createElement('mas-fragment-editor');
+                        el.inEdit.value = { get: () => fragment };
+                        el.publishFragment();
+
+                        await delay(100);
+                        const dialog = document.body.querySelector('mas-publish-dialog');
+                        dialog.confirm();
+
+                        await delay(100);
+                        const dialogStaged = document.body.querySelector('mas-publish-staged-dialog');
+
+                        let cancelled = false;
+                        if (dialogStaged) {
+                            dialogStaged.addEventListener('staged-cancelled', () => {
+                                cancelled = true;
+                            });
+                            dialogStaged.cancel();
+                        }
+                        await delay(100);
+                        expect(cancelled).to.be.true;
                     });
 
                     it('renders loading state when no fragment', async () => {

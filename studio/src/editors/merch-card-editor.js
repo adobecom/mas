@@ -11,7 +11,7 @@ import './variant-picker.js';
 import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
+import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
@@ -1070,6 +1070,18 @@ class MerchCardEditor extends LitElement {
         return value;
     }
 
+    #handleStaged() {
+        const tags = this.fragment.getField('tags')?.values || [];
+        const newTags = [...tags];
+        const index = newTags.indexOf(STAGED.TAG);
+        if (index !== -1) {
+            newTags.splice(index, 1);
+        } else {
+            newTags.push(STAGED.TAG);
+        }
+        this.fragmentStore.updateField('tags', newTags);
+    }
+
     #quantitySelectSettingsDefaultsMarkup() {
         const raw = this.globalSettingsDefaults[QUANTITY_MODEL];
         return raw === '' || raw == null ? QUANTITY_EMPTY : raw;
@@ -1557,6 +1569,14 @@ class MerchCardEditor extends LitElement {
                                   ></sp-switch>
                               </sp-field-group>
                           `}
+                    <sp-field-group id="fragment-staged-group">
+                        <sp-field-label for="fragment-staged">Staged?</sp-field-label>
+                        <sp-switch
+                            id="fragment-staged"
+                            ?checked="${this.fragment.isStaged}"
+                            @click="${this.#handleStaged}"
+                        ></sp-switch>
+                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">

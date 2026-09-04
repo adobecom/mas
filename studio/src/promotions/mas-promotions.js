@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
-import { PAGE_NAMES, PROMOTION_MODEL_ID } from '../constants.js';
+import { PAGE_NAMES, PROMOTION_MODEL_ID, STAGED } from '../constants.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -202,6 +202,10 @@ class MasPromotions extends LitElement {
                 sortable: true,
             },
             {
+                key: 'wf-status',
+                label: 'Workflow status',
+            },
+            {
                 key: 'status',
                 label: 'Status',
             },
@@ -238,6 +242,9 @@ class MasPromotions extends LitElement {
                                         ${promo.timeline}
                                         ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
                                     </span>
+                                </sp-table-cell>
+                                <sp-table-cell>
+                                    ${promo.isStaged ? html`<span class="staged-badge">Staged</span>` : nothing}
                                 </sp-table-cell>
                                 ${renderPromotionStatusCell(promo.promotionStatus)}
                                 <sp-table-cell>${promo.createdBy}</sp-table-cell>
@@ -509,6 +516,15 @@ class MasPromotions extends LitElement {
 
     async #handlePublishPromotionFromList(promotion) {
         const fragment = promotion.get();
+        const stagedConfirmed =
+            !fragment.isStaged ||
+            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
+                confirmText: 'Publish',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+            }));
+        if (!stagedConfirmed) return;
+
         if (!canPublishPromotionNow(fragment) && !canSchedulePromotion(fragment)) {
             if (isPromotionExpiredForPublish(fragment)) {
                 showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');

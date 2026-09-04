@@ -215,7 +215,7 @@ export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedO
     return tags;
 }
 
-function extractPromotionItemProductCodeTagIds(tags) {
+export function extractPromotionItemProductCodeTagIds(tags) {
     if (!Array.isArray(tags)) return [];
     return tags.filter((tag) => tag?.id?.startsWith('mas:product_code/')).map((tag) => tag.id);
 }

@@ -329,5 +329,34 @@ export const styles = [
                 transform: scaleX(-1);
             }
         }
+
+        :host([variant='promotions'][view-only]) {
+            min-height: auto;
+            max-height: none;
+            min-width: 0;
+        }
+
+        :host([variant='promotions'][view-only]) sp-tabs,
+        :host([variant='promotions'][view-only]) sp-tab-panel[selected] {
+            flex: 0 1 auto;
+        }
+
+        :host([variant='promotions']) mas-promotions-items-table {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            width: 100%;
+            align-self: stretch;
+            display: flex;
+        }
+
+        :host([variant='promotions'][view-only]) mas-promotions-items-table {
+            flex: 0 1 auto;
+        }
+
+        :host([variant='promotions']) .selected-items-count {
+            bottom: 128px;
+            pointer-events: auto;
+        }
     `,
 ];

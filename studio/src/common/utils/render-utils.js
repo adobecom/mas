@@ -11,6 +11,8 @@ import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
 import { generateLinkToUse, extractSurfaceFromPath } from '../../utils.js';
 import { isPromoVariationPath } from '../../promotions/promotion-model.js';
+import { toggleSidebarIcon } from '../../icons.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
@@ -147,4 +149,68 @@ export function getItemTitle(item, maxLength = 54) {
         return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
     }
     return item.key || item.getFieldValue?.('key') || '-';
+}
+
+/**
+ * Stops an event from bubbling further (used for internal overlay/popover events).
+ * @param {Event} event
+ */
+export function stopPropagation(event) {
+    event.stopPropagation();
+}
+
+/**
+ * Whether the active items-selection store is currently showing only selected items.
+ * @returns {boolean}
+ */
+export function isShowingSelected() {
+    return getItemsSelectionStore().showSelected.value;
+}
+
+/**
+ * Flips the active items-selection store's "show selected" flag.
+ */
+export function toggleShowSelected() {
+    getItemsSelectionStore().showSelected.set(!isShowingSelected());
+}
+
+/**
+ * Label for the selected-items toggle button.
+ * @param {boolean} showingSelection
+ * @returns {string}
+ */
+export function getToggleSelectedLabel(showingSelection) {
+    return showingSelection ? 'Hide selection' : 'Selected items';
+}
+
+/**
+ * Tab label, appending the selection count when viewOnly.
+ * @param {{value: string, label: string}} tab
+ * @param {boolean} viewOnly
+ * @returns {string}
+ */
+export function formatTabLabel(tab, viewOnly) {
+    if (!viewOnly) return tab.label;
+    const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
+    const count = getItemsSelectionStore()[`selected${valueUppercase}`].value.length;
+    return `${tab.label} (${count})`;
+}
+
+/**
+ * Renders the floating "Selected items" / "Hide selection" toggle button.
+ * @param {{count: number, showingSelection: boolean, onToggle: () => void}} options
+ * @returns {import('lit').TemplateResult}
+ */
+export function renderSelectionToggle({ count, showingSelection, onToggle }) {
+    const toggleLabel = getToggleSelectedLabel(showingSelection);
+    return html`
+        <div class="selected-items-count">
+            <sp-button variant="secondary" @click=${onToggle} ?disabled=${!count} class="ghost-button">
+                <sp-icon slot="icon" label=${toggleLabel} class=${showingSelection ? 'flipped' : ''}>
+                    ${toggleSidebarIcon}
+                </sp-icon>
+                ${toggleLabel} (${count})
+            </sp-button>
+        </div>
+    `;
 }

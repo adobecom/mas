@@ -255,6 +255,37 @@ describe('MasSearchAndFilters', () => {
             expect(el.templateFilter).to.deep.equal([]);
         });
 
+        it('resyncs productFilter from the store on reconnect by default', async () => {
+            Store.translationProjects.filters.set({
+                locale: 'en_US',
+                tags: 'mas:product_code/photoshop',
+                personalizationFilterEnabled: false,
+            });
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
+            el.disconnectedCallback();
+            Store.translationProjects.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
+            el.connectedCallback();
+            expect(el.productFilter).to.deep.equal([]);
+        });
+
+        it('does not let a stale store overwrite an externally-managed productFilter on reconnect', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .externalProductFilter=${true}
+                    .productFilter=${['mas:product_code/photoshop']}
+                ></mas-search-and-filters>`,
+            );
+            expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
+            el.disconnectedCallback();
+            // This is the state the shared store is left in after "Import via URL" disconnects (mas-search-and-filters).
+            // It restores the store to what it was before the offer tag was added.
+            Store.translationProjects.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
+            el.connectedCallback();
+            expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
+        });
+
         it('should initialize statusFilter as empty', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             expect(el.statusFilter).to.deep.equal([]);

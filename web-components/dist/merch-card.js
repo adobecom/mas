@@ -1,263 +1,43 @@
-var __defProp = Object.defineProperty;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __typeError = (msg) => {
-  throw TypeError(msg);
-};
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
-var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
-var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
-
-// src/mas-mnemonic.js
-var mas_mnemonic_exports = {};
-__export(mas_mnemonic_exports, {
-  default: () => MasMnemonic
-});
-import { LitElement, html, css as css2, nothing } from "./lit-all.min.js";
-import { unsafeHTML } from "./lit-all.min.js";
-import { ifDefined } from "./lit-all.min.js";
-function hasSpectrumTooltip() {
-  return customElements.get("sp-tooltip") !== void 0 && customElements.get("overlay-trigger") !== void 0 && document.querySelector("sp-theme") !== null;
-}
-var _MasMnemonic, MasMnemonic;
-var init_mas_mnemonic = __esm({
-  "src/mas-mnemonic.js"() {
-    _MasMnemonic = class _MasMnemonic extends LitElement {
-      constructor() {
-        super();
-        this.content = "";
-        this.placement = "top";
-        this.variant = "";
-        this.size = "xs";
-        this.smartPlacement = false;
-        this.tooltipVisible = false;
-        this.lastPointerType = null;
-        this.handleClickOutside = this.handleClickOutside.bind(this);
-        this._tooltipTop = 0;
-        this._tooltipLeft = 0;
-        this._arrowOffset = 0;
-        this._computedPlacement = "top";
-      }
-      connectedCallback() {
-        super.connectedCallback();
-        window.addEventListener("mousedown", this.handleClickOutside);
-        if (!this.smartPlacement && this.closest('merch-card[variant="fries"]')) {
-          this.smartPlacement = true;
-        }
-      }
-      disconnectedCallback() {
-        super.disconnectedCallback();
-        window.removeEventListener("mousedown", this.handleClickOutside);
-      }
-      handleClickOutside(event) {
-        const path = event.composedPath();
-        if (_MasMnemonic.activeTooltip === this && !path.includes(this)) {
-          this.hideTooltip();
-        }
-      }
-      _computeTooltipPosition() {
-        const anchor = this.shadowRoot?.querySelector(".css-tooltip");
-        if (!anchor) return;
-        const rect = anchor.getBoundingClientRect();
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const gap = 14;
-        const tooltipMaxWidth = 200;
-        const tooltipEstHeight = 60;
-        const body = this.shadowRoot?.querySelector(".css-tooltip-body");
-        const tooltipW = body ? body.offsetWidth : tooltipMaxWidth;
-        const tooltipH = body ? body.offsetHeight : tooltipEstHeight;
-        const preferred = this.effectivePlacement;
-        let placement = preferred;
-        if (placement === "top" && rect.top - tooltipH - gap < 0)
-          placement = "bottom";
-        else if (placement === "bottom" && rect.bottom + tooltipH + gap > vh)
-          placement = "top";
-        else if (placement === "left" && rect.left - tooltipW - gap < 0)
-          placement = "right";
-        else if (placement === "right" && rect.right + tooltipW + gap > vw)
-          placement = "left";
-        const iconCenterX = rect.left + rect.width / 2;
-        const iconCenterY = rect.top + rect.height / 2;
-        const arrowSize = 6;
-        const clamp = (min, max, v) => Math.max(min, Math.min(max, v));
-        let top, left, arrowOffset;
-        if (placement === "top" || placement === "bottom") {
-          top = placement === "top" ? rect.top - tooltipH - gap : rect.bottom + gap;
-          left = clamp(0, vw - tooltipW, iconCenterX - tooltipW / 2);
-          arrowOffset = clamp(
-            arrowSize,
-            tooltipW - arrowSize * 2,
-            iconCenterX - left - arrowSize
-          );
-        } else {
-          left = placement === "left" ? rect.left - tooltipW - gap : rect.right + gap;
-          top = clamp(0, vh - tooltipH, iconCenterY - tooltipH / 2);
-          arrowOffset = clamp(
-            arrowSize,
-            tooltipH - arrowSize * 2,
-            iconCenterY - top - arrowSize
-          );
-        }
-        this._tooltipTop = top;
-        this._tooltipLeft = left;
-        this._arrowOffset = arrowOffset;
-        this._computedPlacement = placement;
-      }
-      showTooltip() {
-        if (_MasMnemonic.activeTooltip && _MasMnemonic.activeTooltip !== this) {
-          _MasMnemonic.activeTooltip.closeOverlay();
-          _MasMnemonic.activeTooltip.tooltipVisible = false;
-          _MasMnemonic.activeTooltip.requestUpdate();
-        }
-        _MasMnemonic.activeTooltip = this;
-        if (this.smartPlacement) {
-          this._computeTooltipPosition();
-        }
-        this.tooltipVisible = true;
-        if (this.smartPlacement) {
-          this.updateComplete.then(() => this._computeTooltipPosition());
-        }
-      }
-      hideTooltip() {
-        if (_MasMnemonic.activeTooltip === this) {
-          _MasMnemonic.activeTooltip = null;
-        }
-        this.tooltipVisible = false;
-      }
-      handleTap(e) {
-        e.preventDefault();
-        if (this.tooltipVisible) {
-          this.hideTooltip();
-        } else {
-          this.showTooltip();
-        }
-      }
-      closeOverlay() {
-        const trigger = this.shadowRoot?.querySelector("overlay-trigger");
-        if (trigger?.open !== void 0) {
-          trigger.open = false;
-        }
-      }
-      get effectiveContent() {
-        return this.tooltipText || this.mnemonicText || this.content || this.textContent?.trim() || "";
-      }
-      get effectivePlacement() {
-        return this.tooltipPlacement || this.mnemonicPlacement || this.placement || "top";
-      }
-      renderIcon() {
-        if (!this.src) return html`<slot></slot>`;
-        return html`<merch-icon
+var Rr=Object.defineProperty;var Or=a=>{throw TypeError(a)};var _i=(a,r,e)=>r in a?Rr(a,r,{enumerable:!0,configurable:!0,writable:!0,value:e}):a[r]=e;var Mi=(a,r,e)=>()=>{if(e)throw e[0];try{return a&&(r=a(a=0)),r}catch(t){throw e=[t],t}};var Ri=(a,r)=>{for(var e in r)Rr(a,e,{get:r[e],enumerable:!0})};var d=(a,r,e)=>_i(a,typeof r!="symbol"?r+"":r,e),Zt=(a,r,e)=>r.has(a)||Or("Cannot "+e);var p=(a,r,e)=>(Zt(a,r,"read from private field"),e?e.call(a):r.get(a)),v=(a,r,e)=>r.has(a)?Or("Cannot add the same private member more than once"):r instanceof WeakSet?r.add(a):r.set(a,e),u=(a,r,e,t)=>(Zt(a,r,"write to private field"),t?t.call(a,e):r.set(a,e),e),k=(a,r,e)=>(Zt(a,r,"access private method"),e);var rr={};Ri(rr,{default:()=>Je});import{LitElement as Fi,html as be,css as $i,nothing as Ii}from"./lit-all.min.js";import{unsafeHTML as aa}from"./lit-all.min.js";import{ifDefined as Hi}from"./lit-all.min.js";function Bi(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var O,Je,ar=Mi(()=>{O=class O extends Fi{constructor(){super(),this.content="",this.placement="top",this.variant="",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(r){let e=r.composedPath();O.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let r=this.shadowRoot?.querySelector(".css-tooltip");if(!r)return;let e=r.getBoundingClientRect(),t=window.innerWidth,i=window.innerHeight,n=14,o=200,s=60,c=this.shadowRoot?.querySelector(".css-tooltip-body"),l=c?c.offsetWidth:o,h=c?c.offsetHeight:s,g=this.effectivePlacement;g==="top"&&e.top-h-n<0?g="bottom":g==="bottom"&&e.bottom+h+n>i?g="top":g==="left"&&e.left-l-n<0?g="right":g==="right"&&e.right+l+n>t&&(g="left");let E=e.left+e.width/2,A=e.top+e.height/2,I=6,Et=(Li,zi,Pi)=>Math.max(Li,Math.min(zi,Pi)),kt,Ct,Qt;g==="top"||g==="bottom"?(kt=g==="top"?e.top-h-n:e.bottom+n,Ct=Et(0,t-l,E-l/2),Qt=Et(I,l-I*2,E-Ct-I)):(Ct=g==="left"?e.left-l-n:e.right+n,kt=Et(0,i-h,A-h/2),Qt=Et(I,h-I*2,A-kt-I)),this._tooltipTop=kt,this._tooltipLeft=Ct,this._arrowOffset=Qt,this._computedPlacement=g}showTooltip(){O.activeTooltip&&O.activeTooltip!==this&&(O.activeTooltip.closeOverlay(),O.activeTooltip.tooltipVisible=!1,O.activeTooltip.requestUpdate()),O.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){O.activeTooltip===this&&(O.activeTooltip=null),this.tooltipVisible=!1}handleTap(r){r.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let r=this.shadowRoot?.querySelector("overlay-trigger");r?.open!==void 0&&(r.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||this.textContent?.trim()||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?be`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`;
-      }
-      render() {
-        const content = this.effectiveContent;
-        const placement = this.effectivePlacement;
-        if (!content) {
-          return html`<span class="icon-only">${this.renderIcon()}</span>`;
-        }
-        const useSpectrum = hasSpectrumTooltip();
-        if (useSpectrum) {
-          return html`
+        ></merch-icon>`:be`<slot></slot>`}render(){let r=this.effectiveContent,e=this.effectivePlacement;if(!r)return be`<span class="icon-only">${this.renderIcon()}</span>`;if(Bi())return be`
                 <overlay-trigger
-                    placement="${placement}"
-                    @sp-opened=${() => this.showTooltip()}
+                    placement="${e}"
+                    @sp-opened=${()=>this.showTooltip()}
                 >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         slot="hover-content"
-                        placement="${placement}"
+                        placement="${e}"
                         variant="${this.variant}"
                     >
-                        ${unsafeHTML(content)}
+                        ${aa(r)}
                     </sp-tooltip>
                 </overlay-trigger>
-            `;
-        }
-        const plainContent = content.replace(/<[^>]*>/g, "");
-        const visibleClass = this.tooltipVisible ? "tooltip-visible" : "";
-        const pointerHandlers = {
-          pointerdown: (e) => {
-            this.lastPointerType = e.pointerType;
-          },
-          pointerenter: (e) => e.pointerType !== "touch" && this.showTooltip(),
-          pointerleave: (e) => e.pointerType !== "touch" && this.hideTooltip(),
-          click: (e) => {
-            if (this.lastPointerType === "touch") this.handleTap(e);
-            this.lastPointerType = null;
-          }
-        };
-        const cp = this._computedPlacement;
-        const isHorizontal = cp === "top" || cp === "bottom";
-        const bodyStyle = this.smartPlacement ? `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;` : void 0;
-        const tipOffset = isHorizontal ? `left:${this._arrowOffset}px` : `top:${this._arrowOffset}px`;
-        return html`
+            `;let i=r.replace(/<[^>]*>/g,""),n=this.tooltipVisible?"tooltip-visible":"",o={pointerdown:m=>{this.lastPointerType=m.pointerType},pointerenter:m=>m.pointerType!=="touch"&&this.showTooltip(),pointerleave:m=>m.pointerType!=="touch"&&this.hideTooltip(),click:m=>{this.lastPointerType==="touch"&&this.handleTap(m),this.lastPointerType=null}},s=this._computedPlacement,c=s==="top"||s==="bottom",l=this.smartPlacement?`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`:void 0,h=c?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return be`
             <span
-                class="css-tooltip ${this.smartPlacement ? "smart" : placement} ${visibleClass}"
+                class="css-tooltip ${this.smartPlacement?"smart":e} ${n}"
                 tabindex="0"
                 role="img"
-                aria-label="${plainContent}"
-                @pointerdown=${pointerHandlers.pointerdown}
-                @pointerenter=${pointerHandlers.pointerenter}
-                @pointerleave=${pointerHandlers.pointerleave}
-                @click=${pointerHandlers.click}
+                aria-label="${i}"
+                @pointerdown=${o.pointerdown}
+                @pointerenter=${o.pointerenter}
+                @pointerleave=${o.pointerleave}
+                @click=${o.click}
             >
                 ${this.renderIcon()}
-                <span class="css-tooltip-body" style=${ifDefined(bodyStyle)}>
-                    ${unsafeHTML(content)}
-                    ${this.smartPlacement ? html`<span
+                <span class="css-tooltip-body" style=${Hi(l)}>
+                    ${aa(r)}
+                    ${this.smartPlacement?be`<span
                               aria-hidden="true"
                               role="presentation"
-                              class="css-tooltip-tip ${cp}"
-                              style="${tipOffset}"
-                          ></span>` : nothing}
+                              class="css-tooltip-tip ${s}"
+                              style="${h}"
+                          ></span>`:Ii}
                 </span>
             </span>
-        `;
-      }
-    };
-    __publicField(_MasMnemonic, "activeTooltip", null);
-    __publicField(_MasMnemonic, "properties", {
-      content: { type: String },
-      placement: { type: String },
-      variant: { type: String },
-      // Icon-based tooltip properties
-      src: { type: String },
-      size: { type: String },
-      tooltipText: { type: String, attribute: "tooltip-text" },
-      tooltipPlacement: { type: String, attribute: "tooltip-placement" },
-      // Support studio's mnemonic attribute names
-      mnemonicText: { type: String, attribute: "mnemonic-text" },
-      mnemonicPlacement: { type: String, attribute: "mnemonic-placement" },
-      alt: { type: String },
-      // Opt-in viewport-aware JS positioning (used by fries cards)
-      smartPlacement: { type: Boolean, attribute: "smart-placement" },
-      // Tooltip visibility state
-      tooltipVisible: { type: Boolean, state: true },
-      // Computed positioning state for CSS fallback tooltip
-      _tooltipTop: { type: Number, state: true },
-      _tooltipLeft: { type: Number, state: true },
-      _arrowOffset: { type: Number, state: true },
-      _computedPlacement: { type: String, state: true }
-    });
-    __publicField(_MasMnemonic, "styles", css2`
+        `}};d(O,"activeTooltip",null),d(O,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},alt:{type:String},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),d(O,"styles",$i`
         :host {
             display: contents;
             overflow: visible;
@@ -431,47 +211,7 @@ var init_mas_mnemonic = __esm({
         .icon-only {
             display: inline-block;
         }
-    `);
-    MasMnemonic = _MasMnemonic;
-    customElements.define("mas-mnemonic", MasMnemonic);
-  }
-});
-
-// src/merch-card.js
-import { LitElement as LitElement7 } from "./lit-all.min.js";
-
-// src/merch-card.css.js
-import { css, unsafeCSS } from "./lit-all.min.js";
-
-// src/media.js
-var MOBILE_LANDSCAPE = "(max-width: 767px)";
-var TABLET_DOWN = "(max-width: 1199px)";
-var TABLET_UP = "(min-width: 768px)";
-var DESKTOP_UP = "(min-width: 1200px)";
-var LARGE_DESKTOP = "(min-width: 1600px)";
-var C2_DESKTOP_UP = "(min-width: 1280px)";
-var Media = {
-  matchMobile: window.matchMedia(MOBILE_LANDSCAPE),
-  matchDesktop: window.matchMedia(`${DESKTOP_UP} and (not ${LARGE_DESKTOP})`),
-  matchDesktopOrUp: window.matchMedia(DESKTOP_UP),
-  matchLargeDesktop: window.matchMedia(LARGE_DESKTOP),
-  get isMobile() {
-    return this.matchMobile.matches;
-  },
-  get isDesktop() {
-    return this.matchDesktop.matches;
-  },
-  get isDesktopOrUp() {
-    return this.matchDesktopOrUp.matches;
-  }
-};
-var media_default = Media;
-function isDesktop() {
-  return Media.isDesktop;
-}
-
-// src/merch-card.css.js
-var styles = css`
+    `);Je=O;customElements.define("mas-mnemonic",Je)});import{LitElement as Ko}from"./lit-all.min.js";import{css as Fr,unsafeCSS as Dr}from"./lit-all.min.js";var C="(max-width: 767px)",L="(max-width: 1199px)",w="(min-width: 768px)",b="(min-width: 1200px)",M="(min-width: 1600px)",Ke="(min-width: 1280px)",Nr={matchMobile:window.matchMedia(C),matchDesktop:window.matchMedia(`${b} and (not ${M})`),matchDesktopOrUp:window.matchMedia(b),matchLargeDesktop:window.matchMedia(M),get isMobile(){return this.matchMobile.matches},get isDesktop(){return this.matchDesktop.matches},get isDesktopOrUp(){return this.matchDesktopOrUp.matches}},x=Nr;function St(){return Nr.isDesktop}var $r=Fr`
     :host {
         --consonant-merch-card-background-color: #fff;
         --consonant-merch-card-border: 1px solid
@@ -727,12 +467,9 @@ var styles = css`
     ::slotted([slot='price']) {
         color: var(--consonant-merch-card-price-color);
     }
-`;
-var sizeStyles = () => {
-  const styles3 = [
-    css`
+`,Ir=()=>[Fr`
             /* Tablet */
-            @media screen and ${unsafeCSS(TABLET_UP)} {
+            @media screen and ${Dr(w)} {
                 :host([size='wide']),
                 :host([size='super-wide']) {
                     width: 100%;
@@ -741,228 +478,22 @@ var sizeStyles = () => {
             }
 
             /* Laptop */
-            @media screen and ${unsafeCSS(DESKTOP_UP)} {
+            @media screen and ${Dr(b)} {
                 :host([size='wide']) {
                     grid-column: span 2;
                 }
             }
-        `
-  ];
-  return styles3;
-};
-
-// src/merch-icon.js
-import { LitElement as LitElement2, html as html2, css as css3 } from "./lit-all.min.js";
-
-// src/constants.js
-var Commitment = Object.freeze({
-  MONTH: "MONTH",
-  YEAR: "YEAR",
-  TWO_YEARS: "TWO_YEARS",
-  THREE_YEARS: "THREE_YEARS",
-  PERPETUAL: "PERPETUAL",
-  TERM_LICENSE: "TERM_LICENSE",
-  ACCESS_PASS: "ACCESS_PASS",
-  THREE_MONTHS: "THREE_MONTHS",
-  SIX_MONTHS: "SIX_MONTHS"
-});
-var Term = Object.freeze({
-  ANNUAL: "ANNUAL",
-  MONTHLY: "MONTHLY",
-  TWO_YEARS: "TWO_YEARS",
-  THREE_YEARS: "THREE_YEARS",
-  P1D: "P1D",
-  P1Y: "P1Y",
-  P3Y: "P3Y",
-  P10Y: "P10Y",
-  P15Y: "P15Y",
-  P3D: "P3D",
-  P7D: "P7D",
-  P30D: "P30D",
-  HALF_YEARLY: "HALF_YEARLY",
-  QUARTERLY: "QUARTERLY"
-});
-var MERCH_CARD_LOAD_TIMEOUT = 2e4;
-var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
-var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
-var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
-var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
-var TRIAL_ANALYTICS_IDS = /* @__PURE__ */ new Set([
-  "free-trial",
-  "start-free-trial",
-  "seven-day-trial",
-  "fourteen-day-trial",
-  "thirty-day-trial"
-]);
-var EVENT_MERCH_OFFER_SELECT_READY = "merch-offer-select:ready";
-var EVENT_MERCH_CARD_ACTION_MENU_TOGGLE = "merch-card:action-menu-toggle";
-var EVENT_MERCH_QUANTITY_SELECTOR_CHANGE = "merch-quantity-selector:change";
-var EVENT_MERCH_CARD_QUANTITY_CHANGE = "merch-card-quantity:change";
-var EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE = "merch-modal:addon-and-quantity-update";
-var EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED = "merch-card-collection:literals-changed";
-var EVENT_AEM_LOAD = "aem:load";
-var EVENT_AEM_ERROR = "aem:error";
-var EVENT_MAS_READY = "mas:ready";
-var EVENT_MAS_ERROR = "mas:error";
-var CLASS_NAME_FAILED = "placeholder-failed";
-var CLASS_NAME_PENDING = "placeholder-pending";
-var CLASS_NAME_RESOLVED = "placeholder-resolved";
-var EVENT_TYPE_FAILED = "mas:failed";
-var EVENT_TYPE_RESOLVED = "mas:resolved";
-var LOG_NAMESPACE = "mas/commerce";
-var STATE_FAILED = "failed";
-var STATE_PENDING = "pending";
-var STATE_RESOLVED = "resolved";
-var HEADER_X_REQUEST_ID = "X-Request-Id";
-var CheckoutWorkflowStep = Object.freeze({
-  SEGMENTATION: "segmentation",
-  BUNDLE: "bundle",
-  COMMITMENT: "commitment",
-  RECOMMENDATION: "recommendation",
-  EMAIL: "email",
-  PAYMENT: "payment",
-  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
-  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
-});
-var Env = Object.freeze({
-  STAGE: "STAGE",
-  PRODUCTION: "PRODUCTION",
-  LOCAL: "LOCAL"
-});
-var MARK_START_SUFFIX = ":start";
-var MARK_DURATION_SUFFIX = ":duration";
-var TEMPLATE_PRICE_LEGAL = "legal";
-var PLACEHOLDER_PLAN_TYPE_TEXT = "plan-type-text";
-var FF_DEFAULTS = "mas-ff-defaults";
-
-// src/utils.js
-var MAS_COMMERCE_SERVICE = "mas-commerce-service";
-function debounce(func, delay) {
-  let debounceTimer;
-  return function() {
-    const context = this;
-    const args = arguments;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => func.apply(context, args), delay);
-  };
-}
-function createTag(tag, attributes = {}, content = null, is = null) {
-  const element = is ? document.createElement(tag, { is }) : document.createElement(tag);
-  if (content instanceof HTMLElement) {
-    element.appendChild(content);
-  } else {
-    element.innerHTML = content;
-  }
-  for (const [key, value] of Object.entries(attributes)) {
-    element.setAttribute(key, value);
-  }
-  return element;
-}
-function printMeasure(measure) {
-  return `startTime:${measure.startTime.toFixed(2)}|duration:${measure.duration.toFixed(2)}`;
-}
-function isMobileOrTablet() {
-  return window.matchMedia("(max-width: 1024px)").matches;
-}
-function getService() {
-  return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
-}
-function getOuterHeight(element) {
-  const style = window.getComputedStyle(element);
-  return element.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-}
-function shouldHideStPriceLabels(element) {
-  const nextElSibling = element.nextElementSibling?.nodeName === "BR" ? element.nextElementSibling.nextElementSibling : element.nextElementSibling;
-  return element.dataset.template === "strikethrough" && (element.nextSibling?.nodeName !== "#text" || element.nextSibling.textContent.trim().length < 2) && nextElSibling?.isInlinePrice && nextElSibling?.dataset?.template === "price";
-}
-var ASSET_PROD_HOSTS = ["www.adobe.com", "www.stage.adobe.com"];
-function toRelativeAssetUrl(url, currentHostname = window.location.hostname) {
-  if (!url) return url;
-  if (!ASSET_PROD_HOSTS.includes(currentHostname)) return url;
-  try {
-    const parsed = new URL(url, `https://${currentHostname}`);
-    if (!/\.aem\.(live|page)$/.test(parsed.hostname)) return url;
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  } catch {
-    return url;
-  }
-}
-
-// src/merch-icon.js
-function hasSpectrumTooltip2() {
-  return customElements.get("sp-tooltip") !== void 0 || document.querySelector("sp-theme") !== null;
-}
-var MerchIcon = class extends LitElement2 {
-  constructor() {
-    super();
-    this.size = "m";
-    this.alt = "";
-    this.loading = "lazy";
-  }
-  connectedCallback() {
-    super.connectedCallback();
-    setTimeout(() => this.handleTooltips(), 0);
-  }
-  handleTooltips() {
-    if (hasSpectrumTooltip2()) return;
-    const tooltipElements = this.querySelectorAll(
-      "sp-tooltip, overlay-trigger"
-    );
-    tooltipElements.forEach((element) => {
-      let content = "";
-      let placement = "top";
-      if (element.tagName === "SP-TOOLTIP") {
-        content = element.textContent;
-        placement = element.getAttribute("placement") || "top";
-      } else if (element.tagName === "OVERLAY-TRIGGER") {
-        const tooltip = element.querySelector("sp-tooltip");
-        if (tooltip) {
-          content = tooltip.textContent;
-          placement = tooltip.getAttribute("placement") || element.getAttribute("placement") || "top";
-        }
-      }
-      if (content) {
-        const masMnemonic = document.createElement("mas-mnemonic");
-        masMnemonic.setAttribute("content", content);
-        masMnemonic.setAttribute("placement", placement);
-        const img = this.querySelector("img");
-        const link = this.querySelector("a");
-        if (link && link.contains(img)) {
-          masMnemonic.appendChild(link);
-        } else if (img) {
-          masMnemonic.appendChild(img);
-        }
-        this.innerHTML = "";
-        this.appendChild(masMnemonic);
-        Promise.resolve().then(() => init_mas_mnemonic());
-      }
-      element.remove();
-    });
-  }
-  render() {
-    const { href } = this;
-    const src = toRelativeAssetUrl(this.src);
-    return href ? html2`<a href="${href}">
+        `];import{LitElement as qi,html as ia,css as Ui}from"./lit-all.min.js";var ac=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),ic=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var fe=2e4;var y='span[is="inline-price"][data-wcs-osi]',G='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var Oi='a[is="upt-link"]',Hr=`${y},${G},${Oi}`,Br=new Set(["free-trial","start-free-trial","seven-day-trial","fourteen-day-trial","thirty-day-trial"]);var qr="merch-offer-select:ready",Ur="merch-card:action-menu-toggle";var R="merch-quantity-selector:change",Qe="merch-card-quantity:change",Xt="merch-modal:addon-and-quantity-update";var ve="merch-card-collection:literals-changed";var At="aem:load",Tt="aem:error",ie="mas:ready",jr="mas:error";var Gr="placeholder-failed",Vr="placeholder-pending",Wr="placeholder-resolved";var Yr="mas:failed",D="mas:resolved",Kr="mas/commerce";var K="failed",ne="pending",Q="resolved";var Jt="X-Request-Id",nc=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var oc=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});var Qr=":start",Zr=":duration";var _="legal",Xr="plan-type-text",Jr="mas-ff-defaults";var Ni="mas-commerce-service";function ea(a,r){let e;return function(){let t=this,i=arguments;clearTimeout(e),e=setTimeout(()=>a.apply(t,i),r)}}function z(a,r={},e=null,t=null){let i=t?document.createElement(a,{is:t}):document.createElement(a);e instanceof HTMLElement?i.appendChild(e):i.innerHTML=e;for(let[n,o]of Object.entries(r))i.setAttribute(n,o);return i}function er(a){return`startTime:${a.startTime.toFixed(2)}|duration:${a.duration.toFixed(2)}`}function tr(){return window.matchMedia("(max-width: 1024px)").matches}function Ze(){return document.getElementsByTagName(Ni)?.[0]}function Xe(a){let r=window.getComputedStyle(a);return a.offsetHeight+parseFloat(r.marginTop)+parseFloat(r.marginBottom)}function ta(a){let r=a.nextElementSibling?.nodeName==="BR"?a.nextElementSibling.nextElementSibling:a.nextElementSibling;return a.dataset.template==="strikethrough"&&(a.nextSibling?.nodeName!=="#text"||a.nextSibling.textContent.trim().length<2)&&r?.isInlinePrice&&r?.dataset?.template==="price"}var Di=["www.adobe.com","www.stage.adobe.com"];function ra(a,r=window.location.hostname){if(!a||!Di.includes(r))return a;try{let e=new URL(a,`https://${r}`);return/\.aem\.(live|page)$/.test(e.hostname)?`${e.pathname}${e.search}${e.hash}`:a}catch{return a}}function ji(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var xe=class extends qi{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(ji())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let t="",i="top";if(e.tagName==="SP-TOOLTIP")t=e.textContent,i=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let n=e.querySelector("sp-tooltip");n&&(t=n.textContent,i=n.getAttribute("placement")||e.getAttribute("placement")||"top")}if(t){let n=document.createElement("mas-mnemonic");n.setAttribute("content",t),n.setAttribute("placement",i);let o=this.querySelector("img"),s=this.querySelector("a");s&&s.contains(o)?n.appendChild(s):o&&n.appendChild(o),this.innerHTML="",this.appendChild(n),Promise.resolve().then(()=>ar())}e.remove()})}render(){let{href:r}=this,e=ra(this.src);return r?ia`<a href="${r}">
                   <img
-                      src="${src}"
+                      src="${e}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>` : html2` <img
-                  src="${src}"
+              </a>`:ia` <img
+                  src="${e}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`;
-  }
-};
-__publicField(MerchIcon, "properties", {
-  size: { type: String, attribute: true },
-  src: { type: String, attribute: true },
-  alt: { type: String, attribute: true },
-  href: { type: String, attribute: true },
-  loading: { type: String, attribute: true }
-});
-__publicField(MerchIcon, "styles", css3`
+              />`}};d(xe,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),d(xe,"styles",Ui`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -1000,134 +531,7 @@ __publicField(MerchIcon, "styles", css3`
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);
-customElements.define("merch-icon", MerchIcon);
-
-// src/merch-gradient.js
-var _angle, _borderRadius, _colors, _positions, _updateParentBackground;
-var MerchGradient = class extends HTMLElement {
-  constructor() {
-    super();
-    __privateAdd(this, _angle, "");
-    __privateAdd(this, _borderRadius);
-    __privateAdd(this, _colors, []);
-    __privateAdd(this, _positions, []);
-    __privateAdd(this, _updateParentBackground);
-    __privateSet(this, _updateParentBackground, debounce(() => {
-      if (!this.isConnected) return;
-      this.parentElement.style.background = this.value;
-      if (__privateGet(this, _borderRadius)) {
-        this.parentElement.style.borderRadius = __privateGet(this, _borderRadius);
-      } else if (__privateGet(this, _borderRadius) === "") {
-        this.parentElement.style.borderRadius = "";
-      }
-    }, 1));
-  }
-  static get observedAttributes() {
-    return ["colors", "positions", "angle", "border-radius"];
-  }
-  get value() {
-    const stops = __privateGet(this, _colors).map((color, index) => {
-      const position = __privateGet(this, _positions)[index] || "";
-      return `${color} ${position}`;
-    }).join(", ");
-    return `linear-gradient(${__privateGet(this, _angle)}, ${stops})`;
-  }
-  connectedCallback() {
-    __privateGet(this, _updateParentBackground).call(this);
-  }
-  attributeChangedCallback(name, oldValue, newValue) {
-    if (name === "border-radius") {
-      __privateSet(this, _borderRadius, newValue?.trim());
-    }
-    if (name === "colors" && newValue) {
-      __privateSet(this, _colors, newValue?.split(",").map((color) => color.trim()) ?? []);
-    } else if (name === "positions" && newValue) {
-      __privateSet(this, _positions, newValue?.split(",").map((position) => position.trim()) ?? []);
-    } else if (name === "angle") {
-      __privateSet(this, _angle, newValue?.trim() ?? "");
-    }
-    __privateGet(this, _updateParentBackground).call(this);
-  }
-};
-_angle = new WeakMap();
-_borderRadius = new WeakMap();
-_colors = new WeakMap();
-_positions = new WeakMap();
-_updateParentBackground = new WeakMap();
-customElements.define("merch-gradient", MerchGradient);
-
-// src/merch-addon.js
-import { LitElement as LitElement3, html as html3, css as css4 } from "./lit-all.min.js";
-var MerchAddon = class extends LitElement3 {
-  constructor() {
-    super();
-    this.planType = void 0;
-    this.checked = false;
-    this.updatePlanType = this.updatePlanType.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleCustomClick = this.handleCustomClick.bind(this);
-  }
-  getOsi(planType, offerType) {
-    const offerTypeOptions = {
-      TRIAL: ["TRIAL"],
-      BASE: ["BASE", "PROMOTION", "TRIAL"],
-      PROMOTION: ["PROMOTION", "BASE", "TRIAL"]
-    };
-    const priorityList = offerTypeOptions[offerType] || [offerType];
-    const selector = priorityList.map(
-      (type) => `p[data-plan-type="${planType}"] ${SELECTOR_MAS_INLINE_PRICE}[data-offer-type="${type}"]`
-    ).join(", ");
-    const el = this.querySelector(selector);
-    return el?.dataset?.wcsOsi;
-  }
-  connectedCallback() {
-    super.connectedCallback();
-    this.addEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
-    if (this.background) {
-      this.style.setProperty("--merch-addon-background", this.background);
-    }
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
-  }
-  updatePlanType(e) {
-    if (e.target.tagName !== "SPAN") return;
-    const price = e.target;
-    const offer = price?.value?.[0];
-    if (!offer) return;
-    price.setAttribute("data-offer-type", offer.offerType);
-    const p = price.closest("p");
-    if (p.getAttribute("data-plan-type")) return;
-    const claimedBy = this.querySelector(
-      `p[data-plan-type="${offer.planType}"]`
-    );
-    if (claimedBy && claimedBy !== p) return;
-    p.setAttribute("data-plan-type", offer.planType);
-  }
-  handleChange(e) {
-    this.checked = e.target.checked;
-    this.dispatchEvent(
-      new CustomEvent("change", {
-        detail: { checked: this.checked },
-        bubbles: true,
-        composed: true
-      })
-    );
-  }
-  handleCustomClick() {
-    const addonCheckbox = this.shadowRoot.querySelector("input");
-    addonCheckbox.click();
-  }
-  handleKeyDown(e) {
-    if (e.key === " ") {
-      e.preventDefault();
-      this.handleCustomClick();
-    }
-  }
-  render() {
-    return html3` <input
+    `);customElements.define("merch-icon",xe);var et,oe,tt,rt,ye,Lt=class extends HTMLElement{constructor(){super();v(this,et,"");v(this,oe);v(this,tt,[]);v(this,rt,[]);v(this,ye);u(this,ye,ea(()=>{this.isConnected&&(this.parentElement.style.background=this.value,p(this,oe)?this.parentElement.style.borderRadius=p(this,oe):p(this,oe)===""&&(this.parentElement.style.borderRadius=""))},1))}static get observedAttributes(){return["colors","positions","angle","border-radius"]}get value(){let e=p(this,tt).map((t,i)=>{let n=p(this,rt)[i]||"";return`${t} ${n}`}).join(", ");return`linear-gradient(${p(this,et)}, ${e})`}connectedCallback(){p(this,ye).call(this)}attributeChangedCallback(e,t,i){e==="border-radius"&&u(this,oe,i?.trim()),e==="colors"&&i?u(this,tt,i?.split(",").map(n=>n.trim())??[]):e==="positions"&&i?u(this,rt,i?.split(",").map(n=>n.trim())??[]):e==="angle"&&u(this,et,i?.trim()??""),p(this,ye).call(this)}};et=new WeakMap,oe=new WeakMap,tt=new WeakMap,rt=new WeakMap,ye=new WeakMap;customElements.define("merch-gradient",Lt);import{LitElement as Gi,html as Vi,css as Wi}from"./lit-all.min.js";var we=class extends Gi{constructor(){super(),this.planType=void 0,this.checked=!1,this.updatePlanType=this.updatePlanType.bind(this),this.handleChange=this.handleChange.bind(this),this.handleCustomClick=this.handleCustomClick.bind(this)}getOsi(r,e){let n=({TRIAL:["TRIAL"],BASE:["BASE","PROMOTION","TRIAL"],PROMOTION:["PROMOTION","BASE","TRIAL"]}[e]||[e]).map(s=>`p[data-plan-type="${r}"] ${y}[data-offer-type="${s}"]`).join(", ");return this.querySelector(n)?.dataset?.wcsOsi}connectedCallback(){super.connectedCallback(),this.addEventListener(D,this.updatePlanType),this.background&&this.style.setProperty("--merch-addon-background",this.background)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(D,this.updatePlanType)}updatePlanType(r){if(r.target.tagName!=="SPAN")return;let e=r.target,t=e?.value?.[0];if(!t)return;e.setAttribute("data-offer-type",t.offerType);let i=e.closest("p");if(i.getAttribute("data-plan-type"))return;let n=this.querySelector(`p[data-plan-type="${t.planType}"]`);n&&n!==i||i.setAttribute("data-plan-type",t.planType)}handleChange(r){this.checked=r.target.checked,this.dispatchEvent(new CustomEvent("change",{detail:{checked:this.checked},bubbles:!0,composed:!0}))}handleCustomClick(){this.shadowRoot.querySelector("input").click()}handleKeyDown(r){r.key===" "&&(r.preventDefault(),this.handleCustomClick())}render(){return Vi` <input
                 type="checkbox"
                 id="addon-checkbox"
                 .checked=${this.checked}
@@ -1145,20 +549,7 @@ var MerchAddon = class extends LitElement3 {
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
                 <slot></slot>
-            </label>`;
-  }
-};
-__publicField(MerchAddon, "properties", {
-  planType: { type: String, attribute: "plan-type", reflect: true },
-  checked: { type: Boolean, reflect: true },
-  customCheckbox: {
-    type: Boolean,
-    attribute: "custom-checkbox",
-    reflect: true
-  },
-  background: { type: String, attribute: "background" }
-});
-__publicField(MerchAddon, "styles", css4`
+            </label>`}};d(we,"properties",{planType:{type:String,attribute:"plan-type",reflect:!0},checked:{type:Boolean,reflect:!0},customCheckbox:{type:Boolean,attribute:"custom-checkbox",reflect:!0},background:{type:String,attribute:"background"}}),d(we,"styles",Wi`
         :host {
             --merch-addon-gap: 9px;
             --merch-addon-align: start;
@@ -1227,200 +618,24 @@ __publicField(MerchAddon, "styles", css4`
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);
-customElements.define("merch-addon", MerchAddon);
-
-// src/variants/variant-layout.js
-import { html as html4, nothing as nothing2 } from "./lit-all.min.js";
-var _container;
-var _VariantLayout = class _VariantLayout {
-  constructor(card) {
-    __publicField(this, "card");
-    __privateAdd(this, _container);
-    this.card = card;
-    this.insertVariantStyle();
-  }
-  getContainer() {
-    __privateSet(this, _container, __privateGet(this, _container) ?? this.card.closest(
-      'merch-card-collection, [class*="-merch-cards"]'
-    ) ?? this.card.parentElement);
-    return __privateGet(this, _container);
-  }
-  insertVariantStyle() {
-    const styleKey = this.constructor.name;
-    if (!_VariantLayout.styleMap[styleKey]) {
-      _VariantLayout.styleMap[styleKey] = true;
-      const styles3 = document.createElement("style");
-      styles3.innerHTML = this.getGlobalCSS();
-      document.head.appendChild(styles3);
-    }
-  }
-  updateCardElementMinHeight(el, name) {
-    if (!el || this.card.heightSync === false) return;
-    const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
-    const height = Math.max(
-      0,
-      parseInt(window.getComputedStyle(el).height) || 0
-    );
-    const container = this.getContainer();
-    const maxMinHeight = parseInt(
-      container.style.getPropertyValue(elMinHeightPropertyName)
-    ) || 0;
-    if (height > maxMinHeight) {
-      container.style.setProperty(elMinHeightPropertyName, `${height}px`);
-    }
-  }
-  syncRowHeights(entries) {
-    if (this.card.heightSync === false) return;
-    const container = this.getContainer();
-    if (!container) return;
-    const variant = this.card.variant;
-    const cards = Array.from(
-      container.querySelectorAll(`merch-card[variant="${variant}"]`)
-    ).filter((c) => c.variantLayout?.card?.heightSync !== false);
-    if (cards.length === 0) return;
-    for (const { name } of entries) {
-      const prop = `--consonant-merch-card-${variant}-${name}-height`;
-      if (container.style.getPropertyValue(prop)) {
-        container.style.removeProperty(prop);
-      }
-    }
-    const rows = /* @__PURE__ */ new Map();
-    for (const card of cards) {
-      const rect = card.getBoundingClientRect();
-      if (rect.width <= 2) continue;
-      const rowKey = Math.round(rect.top);
-      let row = rows.get(rowKey);
-      if (!row) {
-        row = [];
-        rows.set(rowKey, row);
-      }
-      row.push(card);
-    }
-    for (const rowCards of rows.values()) {
-      for (const { name, getElement } of entries) {
-        const prop = `--consonant-merch-card-${variant}-${name}-height`;
-        const previous = rowCards.map(
-          (card) => card.style.getPropertyValue(prop)
-        );
-        let max = 0;
-        const elements = rowCards.map((card) => {
-          card.style.removeProperty(prop);
-          const el = getElement(card);
-          if (!el) return el;
-          const height = Math.max(
-            0,
-            parseInt(window.getComputedStyle(el).height) || 0
-          );
-          if (height > max) max = height;
-          return el;
-        });
-        rowCards.forEach((card, index) => {
-          if (elements[index]?.tagName === "HR") return;
-          if (max > 0) {
-            card.style.setProperty(prop, `${max}px`);
-          } else if (previous[index]) {
-            card.style.setProperty(prop, previous[index]);
-          }
-        });
-      }
-    }
-  }
-  get legalDisplayDot() {
-    return true;
-  }
-  get badge() {
-    let additionalStyles;
-    if (!this.card.badgeBackgroundColor || !this.card.badgeColor || !this.card.badgeText) {
-      return;
-    }
-    if (this.evergreen) {
-      additionalStyles = `border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`;
-    }
-    return html4`
+    `);customElements.define("merch-addon",we);import{html as zt,nothing as Yi}from"./lit-all.min.js";var Ee,at=class at{constructor(r){d(this,"card");v(this,Ee);this.card=r,this.insertVariantStyle()}getContainer(){return u(this,Ee,p(this,Ee)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),p(this,Ee)}insertVariantStyle(){let r=this.constructor.name;if(!at.styleMap[r]){at.styleMap[r]=!0;let e=document.createElement("style");e.innerHTML=this.getGlobalCSS(),document.head.appendChild(e)}}updateCardElementMinHeight(r,e){if(!r||this.card.heightSync===!1)return;let t=`--consonant-merch-card-${this.card.variant}-${e}-height`,i=Math.max(0,parseInt(window.getComputedStyle(r).height)||0),n=this.getContainer(),o=parseInt(n.style.getPropertyValue(t))||0;i>o&&n.style.setProperty(t,`${i}px`)}syncRowHeights(r){if(this.card.heightSync===!1)return;let e=this.getContainer();if(!e)return;let t=this.card.variant,i=Array.from(e.querySelectorAll(`merch-card[variant="${t}"]`)).filter(o=>o.variantLayout?.card?.heightSync!==!1);if(i.length===0)return;for(let{name:o}of r){let s=`--consonant-merch-card-${t}-${o}-height`;e.style.getPropertyValue(s)&&e.style.removeProperty(s)}let n=new Map;for(let o of i){let s=o.getBoundingClientRect();if(s.width<=2)continue;let c=Math.round(s.top),l=n.get(c);l||(l=[],n.set(c,l)),l.push(o)}for(let o of n.values())for(let{name:s,getElement:c}of r){let l=`--consonant-merch-card-${t}-${s}-height`,h=o.map(E=>E.style.getPropertyValue(l)),m=0,g=o.map(E=>{E.style.removeProperty(l);let A=c(E);if(!A)return A;let I=Math.max(0,parseInt(window.getComputedStyle(A).height)||0);return I>m&&(m=I),A});o.forEach((E,A)=>{g[A]?.tagName!=="HR"&&(m>0?E.style.setProperty(l,`${m}px`):h[A]&&E.style.setProperty(l,h[A]))})}}get legalDisplayDot(){return!0}get badge(){let r;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(r=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),zt`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
                 style="background-color: ${this.card.badgeBackgroundColor};
                 color: ${this.card.badgeColor};
-                ${additionalStyles}"
+                ${r}"
             >
                 ${this.card.badgeText}
             </div>
-        `;
-  }
-  get cardImage() {
-    return html4` <div class="image">
+        `}get cardImage(){return zt` <div class="image">
             <slot name="bg-image"></slot>
             ${this.badge}
-        </div>`;
-  }
-  /* c8 ignore next 3 */
-  getGlobalCSS() {
-    return "";
-  }
-  /* c8 ignore next 3 */
-  get theme() {
-    return document.querySelector("sp-theme");
-  }
-  get evergreen() {
-    return this.card.classList.contains("intro-pricing");
-  }
-  get promoBottom() {
-    return this.card.classList.contains("promo-bottom");
-  }
-  get headingSelector() {
-    return '[slot="heading-xs"]';
-  }
-  get secureLabel() {
-    return this.card.secureLabel ? html4`<span class="secure-transaction-label"
+        </div>`}getGlobalCSS(){return""}get theme(){return document.querySelector("sp-theme")}get evergreen(){return this.card.classList.contains("intro-pricing")}get promoBottom(){return this.card.classList.contains("promo-bottom")}get headingSelector(){return'[slot="heading-xs"]'}get secureLabel(){return this.card.secureLabel?zt`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
-              >` : nothing2;
-  }
-  get secureLabelFooter() {
-    return html4`<footer>
+              >`:Yi}get secureLabelFooter(){return zt`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`;
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    await this.card.updateComplete;
-    if (this.card.prices?.length > 0) {
-      const settle = Promise.allSettled(
-        this.card.prices.map(
-          (price) => price.onceSettled?.() || Promise.resolve()
-        )
-      );
-      let timeoutId;
-      const timeout = new Promise((resolve) => {
-        timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
-      });
-      await Promise.race([settle, timeout]);
-      clearTimeout(timeoutId);
-    }
-  }
-  connectedCallbackHook() {
-  }
-  disconnectedCallbackHook() {
-  }
-  syncHeights() {
-  }
-  /* c8 ignore next 3 */
-  renderLayout() {
-  }
-  get aemFragmentMapping() {
-    return getFragmentMapping(this.card.variant);
-  }
-};
-_container = new WeakMap();
-__publicField(_VariantLayout, "styleMap", {});
-var VariantLayout = _VariantLayout;
-
-// src/variants/catalog.js
-import { html as html5, css as css5 } from "./lit-all.min.js";
-
-// src/variants/catalog.css.js
-var CSS = `
+        </footer>`}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length>0)){let r=Promise.allSettled(this.card.prices.map(i=>i.onceSettled?.()||Promise.resolve())),e,t=new Promise(i=>{e=setTimeout(i,fe)});await Promise.race([r,t]),clearTimeout(e)}}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Pt(this.card.variant)}};Ee=new WeakMap,d(at,"styleMap",{});var f=at;import{html as ir,css as Ki}from"./lit-all.min.js";var na=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -1481,19 +696,19 @@ merch-card-collection-header.catalog {
     --merch-card-collection-header-search-max-width: 244px;
 }
 
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-columns: min-content auto;
     }
 }
 
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-column-gap: 16px;
     }
 }
 
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
     :root {
         --consonant-merch-card-catalog-width: 300px;
     }
@@ -1568,134 +783,12 @@ merch-card[variant="catalog"] .payment-details {
 merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   font-size: 15px;
   font-weight: 700;
-}`;
-
-// src/variants/catalog.js
-var CATALOG_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  badge: true,
-  ctas: { slot: "footer", size: "m" },
-  description: { tag: "div", slot: "body-xs" },
-  mnemonics: { size: "l" },
-  prices: { tag: "h3", slot: "heading-xs" },
-  shortDescription: {
-    tag: "div",
-    slot: "action-menu-content",
-    attributes: { tabindex: "0" }
-  },
-  size: ["wide", "super-wide"],
-  title: { tag: "h3", slot: "heading-xs" }
-};
-var Catalog = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __publicField(this, "dispatchActionMenuToggle", () => {
-      this.card.dispatchEvent(
-        new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
-          bubbles: true,
-          composed: true,
-          detail: {
-            card: this.card.name,
-            type: "action-menu"
-          }
-        })
-      );
-    });
-    __publicField(this, "toggleActionMenu", (e) => {
-      if (!this.actionMenuContentSlot || !e || e.type !== "click" && e.code !== "Space" && e.code !== "Enter")
-        return;
-      e.preventDefault();
-      e.stopPropagation();
-      this.setMenuVisibility(!this.isMenuOpen());
-    });
-    __publicField(this, "toggleActionMenuFromCard", (e) => {
-      const retract = e?.type === "mouseleave" ? true : void 0;
-      this.card.blur();
-      this.setIconVisibility(false);
-      if (!this.actionMenuContentSlot) return;
-      if (e?.type === "mouseleave") {
-        this.setMenuVisibility(false);
-      }
-    });
-    __publicField(this, "showActionMenuOnHover", () => {
-      if (!this.actionMenu) return;
-      this.setIconVisibility(true);
-    });
-    __publicField(this, "hideActionMenu", () => {
-      this.setMenuVisibility(false);
-      this.setIconVisibility(false);
-    });
-    __publicField(this, "hideActionMenuOnBlur", (e) => {
-      if (e.relatedTarget === this.actionMenu || this.actionMenu?.contains(e.relatedTarget))
-        return;
-      if (this.slottedContent?.contains(e.relatedTarget)) return;
-      if (this.isMenuOpen()) {
-        this.setMenuVisibility(false);
-      }
-      if (!this.card.contains(e.relatedTarget)) {
-        this.setIconVisibility(false);
-      }
-    });
-    __publicField(this, "handleCardFocusOut", (e) => {
-      if (e.relatedTarget === this.actionMenu || this.actionMenu?.contains(e.relatedTarget) || e.relatedTarget === this.card) {
-        return;
-      }
-      if (this.slottedContent && (e.target === this.slottedContent || this.slottedContent.contains(e.target))) {
-        if (!this.slottedContent.contains(e.relatedTarget)) {
-          this.setMenuVisibility(false);
-        }
-      }
-      if (!this.card.contains(e.relatedTarget) && !this.isMenuOpen()) {
-        this.setIconVisibility(false);
-      }
-    });
-    __publicField(this, "handleKeyDown", (e) => {
-      if (e.key === "Escape" || e.key === "Esc") {
-        e.preventDefault();
-        this.hideActionMenu();
-        this.actionMenu?.focus();
-      }
-    });
-  }
-  get actionMenu() {
-    return this.card.shadowRoot.querySelector(".action-menu");
-  }
-  get actionMenuContentSlot() {
-    return this.card.shadowRoot.querySelector(
-      'slot[name="action-menu-content"]'
-    );
-  }
-  get slottedContent() {
-    return this.card.querySelector('[slot="action-menu-content"]');
-  }
-  setIconVisibility(visible) {
-    if (this.slottedContent) {
-      if (isMobileOrTablet() && this.card.actionMenu) return;
-      this.actionMenu?.classList.toggle("invisible", !visible);
-      this.actionMenu?.classList.toggle("always-visible", visible);
-    }
-  }
-  setMenuVisibility(open) {
-    this.actionMenuContentSlot?.classList.toggle("hidden", !open);
-    this.setAriaExpanded(this.actionMenu, open.toString());
-    if (open) {
-      this.dispatchActionMenuToggle();
-      setTimeout(() => {
-        const firstLink = this.slottedContent?.querySelector("a");
-        if (firstLink) firstLink.focus();
-      }, 0);
-    }
-  }
-  isMenuOpen() {
-    return !this.actionMenuContentSlot?.classList.contains("hidden");
-  }
-  renderLayout() {
-    return html5` <div class="body">
+}`;var oa={cardName:{attribute:"name"},badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},shortDescription:{tag:"div",slot:"action-menu-content",attributes:{tabindex:"0"}},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},ke=class extends f{constructor(e){super(e);d(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(Ur,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});d(this,"toggleActionMenu",e=>{!this.actionMenuContentSlot||!e||e.type!=="click"&&e.code!=="Space"&&e.code!=="Enter"||(e.preventDefault(),e.stopPropagation(),this.setMenuVisibility(!this.isMenuOpen()))});d(this,"toggleActionMenuFromCard",e=>{let t=e?.type==="mouseleave"?!0:void 0;this.card.blur(),this.setIconVisibility(!1),this.actionMenuContentSlot&&e?.type==="mouseleave"&&this.setMenuVisibility(!1)});d(this,"showActionMenuOnHover",()=>{this.actionMenu&&this.setIconVisibility(!0)});d(this,"hideActionMenu",()=>{this.setMenuVisibility(!1),this.setIconVisibility(!1)});d(this,"hideActionMenuOnBlur",e=>{e.relatedTarget===this.actionMenu||this.actionMenu?.contains(e.relatedTarget)||this.slottedContent?.contains(e.relatedTarget)||(this.isMenuOpen()&&this.setMenuVisibility(!1),this.card.contains(e.relatedTarget)||this.setIconVisibility(!1))});d(this,"handleCardFocusOut",e=>{e.relatedTarget===this.actionMenu||this.actionMenu?.contains(e.relatedTarget)||e.relatedTarget===this.card||(this.slottedContent&&(e.target===this.slottedContent||this.slottedContent.contains(e.target))&&(this.slottedContent.contains(e.relatedTarget)||this.setMenuVisibility(!1)),!this.card.contains(e.relatedTarget)&&!this.isMenuOpen()&&this.setIconVisibility(!1))});d(this,"handleKeyDown",e=>{(e.key==="Escape"||e.key==="Esc")&&(e.preventDefault(),this.hideActionMenu(),this.actionMenu?.focus())})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}get slottedContent(){return this.card.querySelector('[slot="action-menu-content"]')}setIconVisibility(e){if(this.slottedContent){if(tr()&&this.card.actionMenu)return;this.actionMenu?.classList.toggle("invisible",!e),this.actionMenu?.classList.toggle("always-visible",e)}}setMenuVisibility(e){this.actionMenuContentSlot?.classList.toggle("hidden",!e),this.setAriaExpanded(this.actionMenu,e.toString()),e&&(this.dispatchActionMenuToggle(),setTimeout(()=>{let t=this.slottedContent?.querySelector("a");t&&t.focus()},0))}isMenuOpen(){return!this.actionMenuContentSlot?.classList.contains("hidden")}renderLayout(){return ir` <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${this.slottedContent ? isMobileOrTablet() && this.card.actionMenu ? "always-visible" : "invisible" : "hidden"}"
+                ${this.slottedContent?tr()&&this.card.actionMenu?"always-visible":"invisible":"hidden"}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
                         @focus="${this.showActionMenuOnHover}"
@@ -1711,46 +804,20 @@ var Catalog = class extends VariantLayout {
                 <slot
                     name="action-menu-content"
                     class="action-menu-content
-            ${!this.card.actionMenuContent ? "hidden" : ""}"
+            ${this.card.actionMenuContent?"":"hidden"}"
                     >${this.card.actionMenuContent}
                 </slot>
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${!this.promoBottom ? html5`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>` : ""}
+                ${this.promoBottom?"":ir`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom ? html5`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>` : ""}
+                ${this.promoBottom?ir`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`:""}
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`;
-  }
-  getGlobalCSS() {
-    return CSS;
-  }
-  setAriaExpanded(element, value) {
-    element.setAttribute("aria-expanded", value);
-  }
-  connectedCallbackHook() {
-    this.card.addEventListener("mouseenter", this.showActionMenuOnHover);
-    this.card.addEventListener("mouseleave", this.toggleActionMenuFromCard);
-    this.card.addEventListener("focusin", this.showActionMenuOnHover);
-    this.card.addEventListener("focusout", this.handleCardFocusOut);
-    this.card.addEventListener("keydown", this.handleKeyDown);
-  }
-  disconnectedCallbackHook() {
-    this.card.removeEventListener("mouseenter", this.showActionMenuOnHover);
-    this.card.removeEventListener(
-      "mouseleave",
-      this.toggleActionMenuFromCard
-    );
-    this.card.removeEventListener("focusin", this.showActionMenuOnHover);
-    this.card.removeEventListener("focusout", this.handleCardFocusOut);
-    this.card.removeEventListener("keydown", this.handleKeyDown);
-  }
-};
-__publicField(Catalog, "variantStyle", css5`
+            <slot></slot>`}getGlobalCSS(){return na}setAriaExpanded(e,t){e.setAttribute("aria-expanded",t)}connectedCallbackHook(){this.card.addEventListener("mouseenter",this.showActionMenuOnHover),this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.addEventListener("focusin",this.showActionMenuOnHover),this.card.addEventListener("focusout",this.handleCardFocusOut),this.card.addEventListener("keydown",this.handleKeyDown)}disconnectedCallbackHook(){this.card.removeEventListener("mouseenter",this.showActionMenuOnHover),this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.removeEventListener("focusin",this.showActionMenuOnHover),this.card.removeEventListener("focusout",this.handleCardFocusOut),this.card.removeEventListener("keydown",this.handleKeyDown)}};d(ke,"variantStyle",Ki`
         :host([variant='catalog']) {
             min-height: 330px;
             width: var(--consonant-merch-card-catalog-width);
@@ -1773,13 +840,7 @@ __publicField(Catalog, "variantStyle", css5`
             right: initial;
             left: 16px;
         }
-    `);
-
-// src/variants/image.js
-import { html as html6, css as css6 } from "./lit-all.min.js";
-
-// src/variants/image.css.js
-var CSS2 = `
+    `);import{html as it,css as Qi}from"./lit-all.min.js";var ca=`
 :root {
   --consonant-merch-card-image-width: 300px;
   --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
@@ -1818,7 +879,7 @@ var CSS2 = `
   margin: 0 auto;
 }
 
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image,
@@ -1829,7 +890,7 @@ var CSS2 = `
   }
 }
 
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   :root {
     --consonant-merch-card-image-width: 378px;
   }
@@ -1844,52 +905,7 @@ var CSS2 = `
       grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-image-width));
   }
 }
-`;
-
-// src/variants/image.js
-var IMAGE_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  badge: {
-    tag: "div",
-    slot: "badge",
-    default: "spectrum-yellow-300-plans"
-  },
-  badgeIcon: true,
-  borderColor: { attribute: "border-color" },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-gray-700-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  ctas: { slot: "footer", size: "m" },
-  description: { tag: "div", slot: "body-xs" },
-  mnemonics: { size: "l" },
-  prices: { tag: "h3", slot: "heading-xs" },
-  promoText: { tag: "p", slot: "promo-text" },
-  size: ["wide", "super-wide"],
-  title: { tag: "h3", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "body-xxs" },
-  backgroundImage: { tag: "div", slot: "bg-image" }
-};
-var Image = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS2;
-  }
-  renderLayout() {
-    return html6`<div class="image">
+`;var sa={cardName:{attribute:"name"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},badgeIcon:!0,borderColor:{attribute:"border-color"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},backgroundImage:{tag:"div",slot:"bg-image"}},ce=class extends f{constructor(r){super(r)}getGlobalCSS(){return ca}renderLayout(){return it`<div class="image">
                 <slot name="bg-image"></slot>
                 <slot name="badge"></slot>
             </div>
@@ -1897,24 +913,21 @@ var Image = class extends VariantLayout {
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom ? html6`<slot name="body-xs"></slot
-                          ><slot name="promo-text"></slot>` : html6`<slot name="promo-text"></slot
+                ${this.promoBottom?it`<slot name="body-xs"></slot
+                          ><slot name="promo-text"></slot>`:it`<slot name="promo-text"></slot
                           ><slot name="body-xs"></slot>`}
             </div>
-            ${this.evergreen ? html6`
+            ${this.evergreen?it`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card["detailBg"]}"
+                          style="background: ${this.card.detailBg}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  ` : html6`
+                  `:it`
                       <hr />
                       ${this.secureLabelFooter}
-                  `}`;
-  }
-};
-__publicField(Image, "variantStyle", css6`
+                  `}`}};d(ce,"variantStyle",Qi`
         :host([variant='image']) {
             min-height: 330px;
             width: var(--consonant-merch-card-image-width);
@@ -1936,13 +949,7 @@ __publicField(Image, "variantStyle", css6`
             left: 0px;
             right: initial;
         }
-    `);
-
-// src/variants/inline-heading.js
-import { html as html7 } from "./lit-all.min.js";
-
-// src/variants/inline-heading.css.js
-var CSS3 = `
+    `);import{html as da}from"./lit-all.min.js";var la=`
 :root {
   --consonant-merch-card-inline-heading-width: 300px;
 }
@@ -1967,7 +974,7 @@ var CSS3 = `
   display: contents;
 }
 
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
   .four-merch-cards.inline-heading,
@@ -1978,7 +985,7 @@ var CSS3 = `
   }
 }
 
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   :root {
     --consonant-merch-card-inline-heading-width: 378px;
   }
@@ -1991,24 +998,13 @@ var CSS3 = `
   }
 }
 
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
   .four-merch-cards.inline-heading,
   .four-merch-cards:has(merch-card[variant="inline-heading"]) {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
-`;
-
-// src/variants/inline-heading.js
-var InlineHeading = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS3;
-  }
-  renderLayout() {
-    return html7` ${this.badge}
+`;var _t=class extends f{constructor(r){super(r)}getGlobalCSS(){return la}renderLayout(){return da` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -2016,15 +1012,7 @@ var InlineHeading = class extends VariantLayout {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${!this.card.customHr ? html7`<hr />` : ""} ${this.secureLabelFooter}`;
-  }
-};
-
-// src/variants/mini-compare-chart.js
-import { html as html8, css as css7, unsafeCSS as unsafeCSS2 } from "./lit-all.min.js";
-
-// src/variants/mini-compare-chart.css.js
-var CSS4 = `
+            ${this.card.customHr?"":da`<hr />`} ${this.secureLabelFooter}`}};import{html as Z,css as Zi,unsafeCSS as pa}from"./lit-all.min.js";var ha=`
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;
@@ -2599,7 +1587,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* mini compare mobile */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -2656,7 +1644,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${TABLET_DOWN} {
+@media screen and ${L} {
   merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -2708,7 +1696,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     padding: 6px 18px 4px;
   }
 }
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -2755,7 +1743,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 378px;
     --consonant-merch-card-mini-compare-chart-wide-width: 484px;
@@ -2787,7 +1775,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
   .four-merch-cards.mini-compare-chart,
   .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
       grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-width));
@@ -2862,636 +1850,14 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(7) {
 merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;
-
-// src/variants/mini-compare-chart.js
-var FOOTER_ROW_MIN_HEIGHT = 32;
-var MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "subtitle" },
-  prices: { tag: "p", slot: "heading-m-price" },
-  promoText: { tag: "div", slot: "promo-text" },
-  shortDescription: { tag: "div", slot: "body-xxs" },
-  description: { tag: "div", slot: "body-m" },
-  mnemonics: { size: "l" },
-  quantitySelect: { tag: "div", slot: "quantity-select" },
-  callout: { tag: "div", slot: "callout-content" },
-  addon: true,
-  secureLabel: true,
-  planType: true,
-  badgeIcon: true,
-  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-gray-700-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  whatsIncludedDividerColor: { attribute: "whats-included-divider-color" },
-  allowedWhatsIncludedDividerColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  borderColor: { attribute: "border-color" },
-  size: ["wide", "super-wide"],
-  whatsIncluded: { tag: "div", slot: "footer-rows" },
-  ctas: { slot: "footer", size: "l" },
-  style: "consonant"
-};
-var MiniCompareChart = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __publicField(this, "getRowMinHeightPropertyName", (index) => `--consonant-merch-card-footer-row-${index}-min-height`);
-    __publicField(this, "getMiniCompareFooter", () => {
-      const secureLabel = this.card.secureLabel ? html8`<slot name="secure-transaction-label">
+`;var Xi=32,ma={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},shortDescription:{tag:"div",slot:"body-xxs"},description:{tag:"div",slot:"body-m"},mnemonics:{size:"l"},quantitySelect:{tag:"div",slot:"quantity-select"},callout:{tag:"div",slot:"callout-content"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],whatsIncludedDividerColor:{attribute:"whats-included-divider-color"},allowedWhatsIncludedDividerColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"footer-rows"},ctas:{slot:"footer",size:"l"},style:"consonant"},Ce=class extends f{constructor(e){super(e);d(this,"getRowMinHeightPropertyName",e=>`--consonant-merch-card-footer-row-${e}-min-height`);d(this,"getMiniCompareFooter",()=>{let e=this.card.secureLabel?Z`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
-              >` : html8`<slot name="secure-transaction-label"></slot>`;
-      if (this.isNewVariant) {
-        return html8`<footer>
-                ${secureLabel}
+              >`:Z`<slot name="secure-transaction-label"></slot>`;return this.isNewVariant?Z`<footer>
+                ${e}
                 <p class="action-area"><slot name="footer"></slot></p>
-            </footer>`;
-      }
-      return html8`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
-    });
-    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
-  }
-  connectedCallbackHook() {
-    this.card.addEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    if (this.legalAdjusted && !this.legalObserver) {
-      const legal = this.card.querySelector(
-        '[is="inline-price"][data-template="legal"]'
-      );
-      if (legal) {
-        this.legalResolvedHandler = () => this.adjustShortDescription();
-        legal.addEventListener(
-          EVENT_TYPE_RESOLVED,
-          this.legalResolvedHandler
-        );
-        this.legalElement = legal;
-        this.legalObserver = new MutationObserver(
-          () => this.adjustShortDescription()
-        );
-        this.legalObserver.observe(legal, {
-          childList: true,
-          subtree: true
-        });
-        this.adjustShortDescription();
-      } else {
-        this.legalAdjusted = false;
-      }
-    }
-    this.visibilityObserver = new IntersectionObserver(([entry]) => {
-      if (entry.boundingClientRect.height === 0) return;
-      if (!entry.isIntersecting) return;
-      if (!media_default.isMobile) {
-        requestAnimationFrame(() => {
-          const container = this.getContainer();
-          if (!container) return;
-          const cards = container.querySelectorAll(
-            'merch-card[variant="mini-compare-chart"]'
-          );
-          cards.forEach(
-            (card) => card.variantLayout?.syncHeights?.()
-          );
-        });
-      }
-      this.visibilityObserver.disconnect();
-    });
-    this.visibilityObserver.observe(this.card);
-  }
-  disconnectedCallbackHook() {
-    this.card.removeEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    this.visibilityObserver?.disconnect();
-    this.legalObserver?.disconnect();
-    this.legalObserver = null;
-    if (this.legalElement && this.legalResolvedHandler) {
-      this.legalElement.removeEventListener(
-        EVENT_TYPE_RESOLVED,
-        this.legalResolvedHandler
-      );
-      this.legalResolvedHandler = null;
-      this.legalElement = null;
-    }
-    if (this.calloutListenersAdded) {
-      document.removeEventListener("touchstart", this.handleCalloutTouch);
-      document.removeEventListener("mouseover", this.handleCalloutMouse);
-      const tooltipIcon = this.card.querySelector(
-        '[slot="callout-content"] .icon-button'
-      );
-      tooltipIcon?.removeEventListener(
-        "focusin",
-        this.handleCalloutFocusin
-      );
-      tooltipIcon?.removeEventListener(
-        "focusout",
-        this.handleCalloutFocusout
-      );
-      tooltipIcon?.removeEventListener(
-        "keydown",
-        this.handleCalloutKeydown
-      );
-      this.calloutListenersAdded = false;
-    }
-  }
-  updatePriceQuantity({ detail }) {
-    if (!this.mainPrice || !detail?.option) return;
-    this.mainPrice.dataset.quantity = detail.option;
-  }
-  priceOptionsProvider(element, options) {
-    if (!this.isNewVariant) return;
-    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-      options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-      return;
-    }
-    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
-      options.displayPerUnit = false;
-    }
-  }
-  getGlobalCSS() {
-    return CSS4;
-  }
-  adjustMiniCompareBodySlots() {
-    if (this.card.getBoundingClientRect().width <= 2) return;
-    this.updateCardElementMinHeight(
-      this.card.shadowRoot.querySelector(".top-section"),
-      "top-section"
-    );
-    const slots = [
-      "heading-m",
-      "heading-xs",
-      "subtitle",
-      "body-m",
-      "heading-m-price",
-      "body-xxs",
-      "price-commitment",
-      "quantity-select",
-      "offers",
-      "promo-text",
-      "callout-content",
-      "addon"
-    ];
-    if (this.card.classList.contains("bullet-list")) {
-      slots.push("footer-rows");
-    }
-    slots.forEach(
-      (slot) => this.updateCardElementMinHeight(
-        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
-        slot
-      )
-    );
-    this.updateCardElementMinHeight(
-      this.card.shadowRoot.querySelector("footer"),
-      "footer"
-    );
-    const badge = this.card.shadowRoot.querySelector(
-      ".mini-compare-chart-badge"
-    );
-    if (badge?.textContent !== "") {
-      this.getContainer().style.setProperty(
-        "--consonant-merch-card-mini-compare-chart-top-section-mobile-height",
-        "32px"
-      );
-    }
-  }
-  adjustMiniCompareFooterRows() {
-    if (this.card.getBoundingClientRect().width === 0) return;
-    let rows;
-    if (this.isNewVariant) {
-      const whatsIncluded = this.card.querySelector(
-        "merch-whats-included"
-      );
-      if (!whatsIncluded) return;
-      rows = [
-        ...whatsIncluded.querySelectorAll(
-          '[slot="content"] merch-mnemonic-list'
-        )
-      ];
-    } else {
-      const footerRows = this.card.querySelector(
-        '[slot="footer-rows"] ul'
-      );
-      if (!footerRows || !footerRows.children) return;
-      rows = [...footerRows.children];
-    }
-    if (!rows.length) return;
-    rows.forEach((el, index) => {
-      const height = Math.max(
-        FOOTER_ROW_MIN_HEIGHT,
-        parseFloat(window.getComputedStyle(el).height) || 0
-      );
-      const maxMinHeight = parseFloat(
-        this.getContainer().style.getPropertyValue(
-          this.getRowMinHeightPropertyName(index + 1)
-        )
-      ) || 0;
-      if (height > maxMinHeight) {
-        this.getContainer().style.setProperty(
-          this.getRowMinHeightPropertyName(index + 1),
-          `${height}px`
-        );
-      }
-    });
-  }
-  removeEmptyRows() {
-    if (this.isNewVariant) {
-      const rows = this.card.querySelectorAll(
-        'merch-whats-included [slot="content"] merch-mnemonic-list'
-      );
-      rows.forEach((row) => {
-        if (row.hasAttribute("data-placeholder")) return;
-        const iconSlot = row.querySelector('[slot="icon"]');
-        const hasIcon = !!iconSlot?.querySelector(".sp-icon") || !!iconSlot?.querySelector(
-          'merch-icon[src]:not([src=""]), img[src]:not([src=""])'
-        );
-        const description = row.querySelector('[slot="description"]');
-        const text = description?.textContent?.replace(/\u00a0/g, " ")?.trim() ?? "";
-        if (!hasIcon && !text) row.remove();
-      });
-    } else {
-      const footerRows = this.card.querySelectorAll(".footer-row-cell");
-      footerRows.forEach((row) => {
-        if (row.hasAttribute("data-placeholder")) return;
-        const rowDescription = row.querySelector(
-          ".footer-row-cell-description"
-        );
-        if (rowDescription) {
-          const isEmpty = !rowDescription.textContent.trim();
-          if (isEmpty) {
-            row.remove();
-          }
-        }
-      });
-    }
-  }
-  padFooterRows() {
-    const container = this.getContainer();
-    if (!container) return;
-    const allCards = container.querySelectorAll(
-      'merch-card[variant="mini-compare-chart"]'
-    );
-    if (this.isNewVariant) {
-      let maxRows = 0;
-      allCards.forEach((card) => {
-        const whatsIncluded2 = card.querySelector(
-          "merch-whats-included"
-        );
-        if (!whatsIncluded2) return;
-        const realRows = whatsIncluded2.querySelectorAll(
-          '[slot="content"] merch-mnemonic-list:not([data-placeholder])'
-        );
-        maxRows = Math.max(maxRows, realRows.length);
-      });
-      if (maxRows === 0) return;
-      const whatsIncluded = this.card.querySelector(
-        "merch-whats-included"
-      );
-      if (!whatsIncluded) return;
-      const contentSlot = whatsIncluded.querySelector('[slot="content"]');
-      if (!contentSlot) return;
-      contentSlot.querySelectorAll("merch-mnemonic-list[data-placeholder]").forEach((el) => el.remove());
-      const currentRows = contentSlot.querySelectorAll(
-        "merch-mnemonic-list"
-      ).length;
-      const needed = maxRows - currentRows;
-      for (let i = 0; i < needed; i++) {
-        const empty = document.createElement("merch-mnemonic-list");
-        empty.setAttribute("data-placeholder", "");
-        const iconSlot = document.createElement("div");
-        iconSlot.setAttribute("slot", "icon");
-        const desc = document.createElement("div");
-        desc.setAttribute("slot", "description");
-        empty.append(iconSlot, desc);
-        contentSlot.appendChild(empty);
-      }
-    } else {
-      let maxRows = 0;
-      allCards.forEach((card) => {
-        const ul2 = card.querySelector('[slot="footer-rows"] ul');
-        if (!ul2) return;
-        const realRows = ul2.querySelectorAll(
-          "li.footer-row-cell:not([data-placeholder])"
-        );
-        maxRows = Math.max(maxRows, realRows.length);
-      });
-      if (maxRows === 0) return;
-      const ul = this.card.querySelector('[slot="footer-rows"] ul');
-      if (!ul) return;
-      ul.querySelectorAll("li.footer-row-cell[data-placeholder]").forEach(
-        (el) => el.remove()
-      );
-      const currentRows = ul.querySelectorAll("li.footer-row-cell").length;
-      const needed = maxRows - currentRows;
-      for (let i = 0; i < needed; i++) {
-        const empty = document.createElement("li");
-        empty.className = "footer-row-cell";
-        empty.setAttribute("data-placeholder", "");
-        ul.appendChild(empty);
-      }
-    }
-  }
-  get mainPrice() {
-    const price = this.card.querySelector(
-      `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-    return price;
-  }
-  get headingMPriceSlot() {
-    return this.card.shadowRoot?.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0];
-  }
-  get isNewVariant() {
-    return !!this.card.querySelector("merch-whats-included");
-  }
-  toggleAddon(merchAddon) {
-    const mainPrice = this.mainPrice;
-    const headingMPriceSlot = this.headingMPriceSlot;
-    if (!mainPrice && headingMPriceSlot) {
-      const planType = merchAddon?.getAttribute("plan-type");
-      let visibleSpan = null;
-      if (merchAddon && planType) {
-        const matchingP = merchAddon.querySelector(
-          `p[data-plan-type="${planType}"]`
-        );
-        visibleSpan = matchingP?.querySelector(
-          'span[is="inline-price"]'
-        );
-      }
-      this.card.querySelectorAll('p[slot="heading-m-price"]').forEach((p) => p.remove());
-      if (merchAddon.checked) {
-        if (visibleSpan) {
-          const replacementP = createTag(
-            "p",
-            {
-              class: "addon-heading-m-price-addon",
-              slot: "heading-m-price"
-            },
-            visibleSpan.innerHTML
-          );
-          this.card.appendChild(replacementP);
-        }
-      } else {
-        const freeP = createTag(
-          "p",
-          {
-            class: "card-heading",
-            id: "free",
-            slot: "heading-m-price"
-          },
-          "Free"
-        );
-        this.card.appendChild(freeP);
-      }
-    }
-  }
-  showTooltip(tooltipIcon) {
-    tooltipIcon.classList.remove("hide-tooltip");
-    tooltipIcon.setAttribute("aria-expanded", "true");
-  }
-  hideTooltip(tooltipIcon) {
-    tooltipIcon.classList.add("hide-tooltip");
-    tooltipIcon.setAttribute("aria-expanded", "false");
-  }
-  adjustCallout() {
-    const tooltipIcon = this.card.querySelector(
-      '[slot="callout-content"] .icon-button'
-    );
-    if (!tooltipIcon) return;
-    if (this.calloutListenersAdded) return;
-    const tooltipText = tooltipIcon.title || tooltipIcon.dataset.tooltip;
-    if (!tooltipText) return;
-    if (tooltipIcon.title) {
-      tooltipIcon.dataset.tooltip = tooltipIcon.title;
-      tooltipIcon.removeAttribute("title");
-    }
-    const pElement = tooltipIcon.parentElement;
-    if (pElement && pElement.tagName === "P") {
-      const outerDiv = document.createElement("div");
-      const calloutRow = document.createElement("div");
-      calloutRow.className = "callout-row";
-      const textWrapper = document.createElement("div");
-      textWrapper.className = "callout-text";
-      while (pElement.firstChild && pElement.firstChild !== tooltipIcon) {
-        textWrapper.appendChild(pElement.firstChild);
-      }
-      calloutRow.appendChild(textWrapper);
-      calloutRow.appendChild(tooltipIcon);
-      outerDiv.appendChild(calloutRow);
-      pElement.replaceWith(outerDiv);
-    }
-    tooltipIcon.setAttribute("role", "button");
-    tooltipIcon.setAttribute("tabindex", "0");
-    tooltipIcon.setAttribute("aria-label", tooltipText);
-    tooltipIcon.setAttribute("aria-expanded", "false");
-    this.hideTooltip(tooltipIcon);
-    this.handleCalloutTouch = (event) => {
-      if (event.target !== tooltipIcon) {
-        this.hideTooltip(tooltipIcon);
-      } else {
-        const isHidden = tooltipIcon.classList.contains("hide-tooltip");
-        if (isHidden) {
-          this.showTooltip(tooltipIcon);
-        } else {
-          this.hideTooltip(tooltipIcon);
-        }
-      }
-    };
-    this.handleCalloutMouse = (event) => {
-      if (event.target !== tooltipIcon) {
-        this.hideTooltip(tooltipIcon);
-      } else {
-        this.showTooltip(tooltipIcon);
-      }
-    };
-    this.handleCalloutFocusin = () => {
-      this.showTooltip(tooltipIcon);
-    };
-    this.handleCalloutFocusout = () => {
-      this.hideTooltip(tooltipIcon);
-    };
-    this.handleCalloutKeydown = (event) => {
-      if (event.key === "Escape") {
-        this.hideTooltip(tooltipIcon);
-        tooltipIcon.blur();
-      }
-    };
-    document.addEventListener("touchstart", this.handleCalloutTouch);
-    document.addEventListener("mouseover", this.handleCalloutMouse);
-    tooltipIcon.addEventListener("focusin", this.handleCalloutFocusin);
-    tooltipIcon.addEventListener("focusout", this.handleCalloutFocusout);
-    tooltipIcon.addEventListener("keydown", this.handleCalloutKeydown);
-    this.calloutListenersAdded = true;
-  }
-  async adjustAddon() {
-    await this.card.updateComplete;
-    const addon = this.card.addon;
-    if (!addon) return;
-    const price = this.mainPrice;
-    let planType = this.card.planType;
-    if (price) {
-      await price.onceSettled?.();
-      planType = price.value?.[0]?.planType;
-    }
-    if (!planType) return;
-    addon.planType = planType;
-    const addonWithPlanType = this.card.querySelector(
-      "merch-addon[plan-type]"
-    );
-    addonWithPlanType?.updateComplete.then(() => {
-      this.updateCardElementMinHeight(
-        this.card.shadowRoot.querySelector(`slot[name="addon"]`),
-        "addon"
-      );
-    });
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted || this.legalAdjusting) return;
-    this.legalAdjusting = true;
-    let legal;
-    try {
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const headingPrice = this.mainPrice;
-      if (!headingPrice) return;
-      await headingPrice.onceSettled();
-      if (!headingPrice?.options) return;
-      legal = headingPrice.cloneNode(true);
-      if (headingPrice.options.displayPerUnit)
-        headingPrice.dataset.displayPerUnit = "false";
-      if (headingPrice.options.displayTax)
-        headingPrice.dataset.displayTax = "false";
-      if (headingPrice.options.displayPlanType)
-        headingPrice.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      if (!this.legalResolvedHandler) {
-        this.legalResolvedHandler = () => this.adjustShortDescription();
-        legal.addEventListener(
-          EVENT_TYPE_RESOLVED,
-          this.legalResolvedHandler
-        );
-        this.legalElement = legal;
-      }
-      headingPrice.parentNode.insertBefore(
-        legal,
-        headingPrice.nextSibling
-      );
-      this.legalAdjusted = true;
-      await legal.onceSettled();
-      this.legalObserver = new MutationObserver(
-        () => this.adjustShortDescription()
-      );
-      this.legalObserver.observe(legal, {
-        childList: true,
-        subtree: true
-      });
-    } catch {
-      if (legal?.parentNode) {
-        legal.parentNode.removeChild(legal);
-        this.legalAdjusted = false;
-        this.legalResolvedHandler = null;
-        this.legalElement = null;
-      }
-    } finally {
-      this.legalAdjusting = false;
-    }
-  }
-  // When there's no resolved legal price to carry the plan-type span
-  // (e.g. price failed to resolve, or there's no price at all), build a
-  // minimal stand-in with the same classes so the short description
-  // still renders in the usual plan-type/legal position and styling.
-  getOrCreateFallbackPlanType() {
-    const headingMPriceSlot = this.headingMPriceSlot;
-    if (!headingMPriceSlot) return null;
-    let fallbackLegal = headingMPriceSlot.querySelector(
-      ".price-legal[data-fallback]"
-    );
-    if (!fallbackLegal) {
-      fallbackLegal = document.createElement("span");
-      fallbackLegal.className = "price price-legal";
-      fallbackLegal.dataset.fallback = "true";
-      const planType = document.createElement("span");
-      planType.className = "price-plan-type disabled";
-      fallbackLegal.appendChild(planType);
-      headingMPriceSlot.appendChild(fallbackLegal);
-    }
-    return fallbackLegal.querySelector(".price-plan-type");
-  }
-  adjustShortDescription() {
-    const legalPrice = this.card.querySelector(
-      '[is="inline-price"][data-template="legal"]'
-    );
-    const realPlanType = legalPrice?.querySelector(".price-plan-type");
-    const fallbackLegal = this.headingMPriceSlot?.querySelector(
-      ".price-legal[data-fallback]"
-    );
-    const fallbackPlanType = fallbackLegal?.querySelector(".price-plan-type");
-    if (realPlanType && fallbackPlanType) {
-      const fallbackEm = fallbackPlanType.querySelector("em");
-      if (fallbackEm && !realPlanType.querySelector("em")) {
-        realPlanType.appendChild(fallbackEm);
-      }
-      fallbackLegal.remove();
-    }
-    const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-    if (bodyXxs) {
-      const text = bodyXxs.textContent?.trim();
-      const hasIconButton = !!bodyXxs.querySelector(".icon-button");
-      if (text || hasIconButton) {
-        this.shortDescriptionHTML = bodyXxs.innerHTML;
-        bodyXxs.remove();
-      }
-    }
-    if (!this.shortDescriptionHTML) return;
-    const planType = realPlanType ?? this.getOrCreateFallbackPlanType();
-    if (!planType) return;
-    if (planType.querySelector("em")) return;
-    const em = document.createElement("em");
-    em.innerHTML = ` ${this.shortDescriptionHTML}`;
-    planType.appendChild(em);
-  }
-  renderLayout() {
-    if (!this.isNewVariant) {
-      return html8` <div class="top-section${this.badge ? " badge" : ""}">
-                    <slot name="icons"></slot> ${this.badge}
-                </div>
-                <slot name="heading-m"></slot>
-                ${this.card.classList.contains("bullet-list") ? html8`<slot name="heading-m-price"></slot>
-                          <slot name="price-commitment"></slot>
-                          <slot name="body-xxs"></slot>
-                          <slot name="promo-text"></slot>
-                          <slot name="body-m"></slot>
-                          <slot name="offers"></slot>` : html8`<slot name="body-m"></slot>
-                          <slot name="heading-m-price"></slot>
-                          <slot name="body-xxs"></slot>
-                          <slot name="price-commitment"></slot>
-                          <slot name="offers"></slot>
-                          <slot name="promo-text"></slot> `}
-                <slot name="callout-content"></slot>
-                <slot name="addon"></slot>
-                ${this.getMiniCompareFooter()}
-                <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
-    }
-    return html8` <div class="top-section${this.badge ? " badge" : ""}">
+            </footer>`:Z`<footer>${e}<slot name="footer"></slot></footer>`});this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){if(this.card.addEventListener(R,this.updatePriceQuantity),this.legalAdjusted&&!this.legalObserver){let e=this.card.querySelector('[is="inline-price"][data-template="legal"]');e?(this.legalResolvedHandler=()=>this.adjustShortDescription(),e.addEventListener(D,this.legalResolvedHandler),this.legalElement=e,this.legalObserver=new MutationObserver(()=>this.adjustShortDescription()),this.legalObserver.observe(e,{childList:!0,subtree:!0}),this.adjustShortDescription()):this.legalAdjusted=!1}this.visibilityObserver=new IntersectionObserver(([e])=>{e.boundingClientRect.height!==0&&e.isIntersecting&&(x.isMobile||requestAnimationFrame(()=>{let t=this.getContainer();if(!t)return;t.querySelectorAll('merch-card[variant="mini-compare-chart"]').forEach(n=>n.variantLayout?.syncHeights?.())}),this.visibilityObserver.disconnect())}),this.visibilityObserver.observe(this.card)}disconnectedCallbackHook(){if(this.card.removeEventListener(R,this.updatePriceQuantity),this.visibilityObserver?.disconnect(),this.legalObserver?.disconnect(),this.legalObserver=null,this.legalElement&&this.legalResolvedHandler&&(this.legalElement.removeEventListener(D,this.legalResolvedHandler),this.legalResolvedHandler=null,this.legalElement=null),this.calloutListenersAdded){document.removeEventListener("touchstart",this.handleCalloutTouch),document.removeEventListener("mouseover",this.handleCalloutMouse);let e=this.card.querySelector('[slot="callout-content"] .icon-button');e?.removeEventListener("focusin",this.handleCalloutFocusin),e?.removeEventListener("focusout",this.handleCalloutFocusout),e?.removeEventListener("keydown",this.handleCalloutKeydown),this.calloutListenersAdded=!1}}updatePriceQuantity({detail:e}){!this.mainPrice||!e?.option||(this.mainPrice.dataset.quantity=e.option)}priceOptionsProvider(e,t){if(this.isNewVariant){if(e.dataset.template===_){t.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(e.dataset.template==="strikethrough"||e.dataset.template==="price")&&(t.displayPerUnit=!1)}}getGlobalCSS(){return ha}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let e=["heading-m","heading-xs","subtitle","body-m","heading-m-price","body-xxs","price-commitment","quantity-select","offers","promo-text","callout-content","addon"];this.card.classList.contains("bullet-list")&&e.push("footer-rows"),e.forEach(i=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${i}"]`),i)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let e;if(this.isNewVariant){let t=this.card.querySelector("merch-whats-included");if(!t)return;e=[...t.querySelectorAll('[slot="content"] merch-mnemonic-list')]}else{let t=this.card.querySelector('[slot="footer-rows"] ul');if(!t||!t.children)return;e=[...t.children]}e.length&&e.forEach((t,i)=>{let n=Math.max(Xi,parseFloat(window.getComputedStyle(t).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(i+1)))||0;n>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(i+1),`${n}px`)})}removeEmptyRows(){this.isNewVariant?this.card.querySelectorAll('merch-whats-included [slot="content"] merch-mnemonic-list').forEach(t=>{if(t.hasAttribute("data-placeholder"))return;let i=t.querySelector('[slot="icon"]'),n=!!i?.querySelector(".sp-icon")||!!i?.querySelector('merch-icon[src]:not([src=""]), img[src]:not([src=""])'),s=t.querySelector('[slot="description"]')?.textContent?.replace(/\u00a0/g," ")?.trim()??"";!n&&!s&&t.remove()}):this.card.querySelectorAll(".footer-row-cell").forEach(t=>{if(t.hasAttribute("data-placeholder"))return;let i=t.querySelector(".footer-row-cell-description");i&&!i.textContent.trim()&&t.remove()})}padFooterRows(){let e=this.getContainer();if(!e)return;let t=e.querySelectorAll('merch-card[variant="mini-compare-chart"]');if(this.isNewVariant){let i=0;if(t.forEach(l=>{let h=l.querySelector("merch-whats-included");if(!h)return;let m=h.querySelectorAll('[slot="content"] merch-mnemonic-list:not([data-placeholder])');i=Math.max(i,m.length)}),i===0)return;let n=this.card.querySelector("merch-whats-included");if(!n)return;let o=n.querySelector('[slot="content"]');if(!o)return;o.querySelectorAll("merch-mnemonic-list[data-placeholder]").forEach(l=>l.remove());let s=o.querySelectorAll("merch-mnemonic-list").length,c=i-s;for(let l=0;l<c;l++){let h=document.createElement("merch-mnemonic-list");h.setAttribute("data-placeholder","");let m=document.createElement("div");m.setAttribute("slot","icon");let g=document.createElement("div");g.setAttribute("slot","description"),h.append(m,g),o.appendChild(h)}}else{let i=0;if(t.forEach(c=>{let l=c.querySelector('[slot="footer-rows"] ul');if(!l)return;let h=l.querySelectorAll("li.footer-row-cell:not([data-placeholder])");i=Math.max(i,h.length)}),i===0)return;let n=this.card.querySelector('[slot="footer-rows"] ul');if(!n)return;n.querySelectorAll("li.footer-row-cell[data-placeholder]").forEach(c=>c.remove());let o=n.querySelectorAll("li.footer-row-cell").length,s=i-o;for(let c=0;c<s;c++){let l=document.createElement("li");l.className="footer-row-cell",l.setAttribute("data-placeholder",""),n.appendChild(l)}}}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${y}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot?.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}get isNewVariant(){return!!this.card.querySelector("merch-whats-included")}toggleAddon(e){let t=this.mainPrice,i=this.headingMPriceSlot;if(!t&&i){let n=e?.getAttribute("plan-type"),o=null;if(e&&n&&(o=e.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),e.checked){if(o){let s=z("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},o.innerHTML);this.card.appendChild(s)}}else{let s=z("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}showTooltip(e){e.classList.remove("hide-tooltip"),e.setAttribute("aria-expanded","true")}hideTooltip(e){e.classList.add("hide-tooltip"),e.setAttribute("aria-expanded","false")}adjustCallout(){let e=this.card.querySelector('[slot="callout-content"] .icon-button');if(!e||this.calloutListenersAdded)return;let t=e.title||e.dataset.tooltip;if(!t)return;e.title&&(e.dataset.tooltip=e.title,e.removeAttribute("title"));let i=e.parentElement;if(i&&i.tagName==="P"){let n=document.createElement("div"),o=document.createElement("div");o.className="callout-row";let s=document.createElement("div");for(s.className="callout-text";i.firstChild&&i.firstChild!==e;)s.appendChild(i.firstChild);o.appendChild(s),o.appendChild(e),n.appendChild(o),i.replaceWith(n)}e.setAttribute("role","button"),e.setAttribute("tabindex","0"),e.setAttribute("aria-label",t),e.setAttribute("aria-expanded","false"),this.hideTooltip(e),this.handleCalloutTouch=n=>{n.target!==e?this.hideTooltip(e):e.classList.contains("hide-tooltip")?this.showTooltip(e):this.hideTooltip(e)},this.handleCalloutMouse=n=>{n.target!==e?this.hideTooltip(e):this.showTooltip(e)},this.handleCalloutFocusin=()=>{this.showTooltip(e)},this.handleCalloutFocusout=()=>{this.hideTooltip(e)},this.handleCalloutKeydown=n=>{n.key==="Escape"&&(this.hideTooltip(e),e.blur())},document.addEventListener("touchstart",this.handleCalloutTouch),document.addEventListener("mouseover",this.handleCalloutMouse),e.addEventListener("focusin",this.handleCalloutFocusin),e.addEventListener("focusout",this.handleCalloutFocusout),e.addEventListener("keydown",this.handleCalloutKeydown),this.calloutListenersAdded=!0}async adjustAddon(){await this.card.updateComplete;let e=this.card.addon;if(!e)return;let t=this.mainPrice,i=this.card.planType;if(t&&(await t.onceSettled?.(),i=t.value?.[0]?.planType),!i)return;e.planType=i,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}async adjustLegal(){if(this.legalAdjusted||this.legalAdjusting)return;this.legalAdjusting=!0;let e;try{await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t||(await t.onceSettled(),!t?.options))return;e=t.cloneNode(!0),t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),this.legalResolvedHandler||(this.legalResolvedHandler=()=>this.adjustShortDescription(),e.addEventListener(D,this.legalResolvedHandler),this.legalElement=e),t.parentNode.insertBefore(e,t.nextSibling),this.legalAdjusted=!0,await e.onceSettled(),this.legalObserver=new MutationObserver(()=>this.adjustShortDescription()),this.legalObserver.observe(e,{childList:!0,subtree:!0})}catch{e?.parentNode&&(e.parentNode.removeChild(e),this.legalAdjusted=!1,this.legalResolvedHandler=null,this.legalElement=null)}finally{this.legalAdjusting=!1}}getOrCreateFallbackPlanType(){let e=this.headingMPriceSlot;if(!e)return null;let t=e.querySelector(".price-legal[data-fallback]");if(!t){t=document.createElement("span"),t.className="price price-legal",t.dataset.fallback="true";let i=document.createElement("span");i.className="price-plan-type disabled",t.appendChild(i),e.appendChild(t)}return t.querySelector(".price-plan-type")}adjustShortDescription(){let t=this.card.querySelector('[is="inline-price"][data-template="legal"]')?.querySelector(".price-plan-type"),i=this.headingMPriceSlot?.querySelector(".price-legal[data-fallback]"),n=i?.querySelector(".price-plan-type");if(t&&n){let l=n.querySelector("em");l&&!t.querySelector("em")&&t.appendChild(l),i.remove()}let o=this.card.querySelector('[slot="body-xxs"]');if(o){let l=o.textContent?.trim(),h=!!o.querySelector(".icon-button");(l||h)&&(this.shortDescriptionHTML=o.innerHTML,o.remove())}if(!this.shortDescriptionHTML)return;let s=t??this.getOrCreateFallbackPlanType();if(!s||s.querySelector("em"))return;let c=document.createElement("em");c.innerHTML=` ${this.shortDescriptionHTML}`,s.appendChild(c)}renderLayout(){return this.isNewVariant?Z` <div class="top-section${this.badge?" badge":""}">
                 <slot name="icons"></slot> ${this.badge}
                 <slot name="badge"></slot>
             </div>
@@ -3508,53 +1874,25 @@ var MiniCompareChart = class extends VariantLayout {
             <slot name="callout-content"></slot>
             <slot name="addon"></slot>
             ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
-  }
-  syncHeights() {
-    if (this.card.getBoundingClientRect().width <= 2) return;
-    this.adjustMiniCompareBodySlots();
-    this.adjustMiniCompareFooterRows();
-  }
-  async postCardUpdateHook() {
-    await super.postCardUpdateHook();
-    if (this.isNewVariant) {
-      if (!this.legalAdjusted) {
-        await this.adjustLegal();
-      }
-      this.adjustShortDescription();
-      this.adjustCallout();
-    }
-    await this.adjustAddon();
-    if (this.isNewVariant) {
-      this.removeEmptyRows();
-    }
-    if (!media_default.isMobile) {
-      this.padFooterRows();
-      const container = this.getContainer();
-      if (!container) return;
-      const hasExistingVars = container.style.getPropertyValue(
-        "--consonant-merch-card-footer-row-1-min-height"
-      );
-      if (!hasExistingVars) {
-        requestAnimationFrame(() => {
-          const cards = container.querySelectorAll(
-            'merch-card[variant="mini-compare-chart"]'
-          );
-          cards.forEach(
-            (card) => card.variantLayout?.syncHeights?.()
-          );
-        });
-      } else {
-        requestAnimationFrame(() => {
-          this.syncHeights();
-        });
-      }
-    } else if (!this.isNewVariant) {
-      this.removeEmptyRows();
-    }
-  }
-};
-__publicField(MiniCompareChart, "variantStyle", css7`
+            <slot name="footer-rows"><slot name="body-s"></slot></slot>`:Z` <div class="top-section${this.badge?" badge":""}">
+                    <slot name="icons"></slot> ${this.badge}
+                </div>
+                <slot name="heading-m"></slot>
+                ${this.card.classList.contains("bullet-list")?Z`<slot name="heading-m-price"></slot>
+                          <slot name="price-commitment"></slot>
+                          <slot name="body-xxs"></slot>
+                          <slot name="promo-text"></slot>
+                          <slot name="body-m"></slot>
+                          <slot name="offers"></slot>`:Z`<slot name="body-m"></slot>
+                          <slot name="heading-m-price"></slot>
+                          <slot name="body-xxs"></slot>
+                          <slot name="price-commitment"></slot>
+                          <slot name="offers"></slot>
+                          <slot name="promo-text"></slot> `}
+                <slot name="callout-content"></slot>
+                <slot name="addon"></slot>
+                ${this.getMiniCompareFooter()}
+                <slot name="footer-rows"><slot name="body-s"></slot></slot>`}syncHeights(){this.card.getBoundingClientRect().width<=2||(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}async postCardUpdateHook(){if(await super.postCardUpdateHook(),this.isNewVariant&&(this.legalAdjusted||await this.adjustLegal(),this.adjustShortDescription(),this.adjustCallout()),await this.adjustAddon(),this.isNewVariant&&this.removeEmptyRows(),x.isMobile)this.isNewVariant||this.removeEmptyRows();else{this.padFooterRows();let e=this.getContainer();if(!e)return;let t=e.style.getPropertyValue("--consonant-merch-card-footer-row-1-min-height");requestAnimationFrame(t?()=>{this.syncHeights()}:()=>{e.querySelectorAll('merch-card[variant="mini-compare-chart"]').forEach(n=>n.variantLayout?.syncHeights?.())})}}};d(Ce,"variantStyle",Zi`
         :host([variant='mini-compare-chart']) {
             max-width: var(
                 --consonant-merch-card-mini-compare-chart-wide-width,
@@ -3645,7 +1983,7 @@ __publicField(MiniCompareChart, "variantStyle", css7`
             color: #505050;
         }
 
-        @media screen and ${unsafeCSS2(TABLET_DOWN)} {
+        @media screen and ${pa(L)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart'])
                 footer {
@@ -3655,7 +1993,7 @@ __publicField(MiniCompareChart, "variantStyle", css7`
             }
         }
 
-        @media screen and ${unsafeCSS2(DESKTOP_UP)} {
+        @media screen and ${pa(b)} {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)
@@ -3847,13 +2185,7 @@ __publicField(MiniCompareChart, "variantStyle", css7`
             background-color: #eb1000;
             color: #ffffff;
         }
-    `);
-
-// src/variants/mini-compare-chart-mweb.js
-import { html as html9, css as css8, unsafeCSS as unsafeCSS3, nothing as nothing3 } from "./lit-all.min.js";
-
-// src/variants/mini-compare-chart-mweb.css.js
-var CSS5 = `
+    `);import{html as Mt,css as Ji,unsafeCSS as nr,nothing as en}from"./lit-all.min.js";var ga=`
   :root {
     --list-checked-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' width='20' height='20'%3E%3Cpath fill='%23222222' d='M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z'%3E%3C/path%3E%3C/svg%3E");
     --merch-card-collection-card-width: var(--consonant-merch-card-mini-compare-chart-mweb-width);
@@ -4374,7 +2706,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 }
 
 /* mini compare mobile */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   :root {
     --consonant-merch-card-mini-compare-chart-mweb-width: 302px;
     --consonant-merch-card-mini-compare-chart-mweb-wide-width: 302px;
@@ -4431,7 +2763,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   }
 }
 
-@media screen and ${TABLET_DOWN} {
+@media screen and ${L} {
   merch-card[variant="mini-compare-chart-mweb"] [slot="heading-xs"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -4467,7 +2799,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 }
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
   :root {
     --consonant-merch-card-mini-compare-chart-mweb-width: 302px;
     --consonant-merch-card-mini-compare-chart-mweb-wide-width: 302px;
@@ -4510,7 +2842,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 }
 
 /* desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   :root {
     --consonant-merch-card-mini-compare-chart-mweb-width: 378px;
     --consonant-merch-card-mini-compare-chart-mweb-wide-width: 484px;
@@ -4542,7 +2874,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   }
 }
 
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
   .four-merch-cards.mini-compare-chart-mweb,
   .four-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]) {
     grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-mweb-width));
@@ -4585,67 +2917,7 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;
-
-// src/variants/mini-compare-chart-mweb.js
-var FOOTER_ROW_MIN_HEIGHT2 = 32;
-var listIdCounter = 0;
-var nextListId = () => `mweb-list-${listIdCounter += 1}`;
-var SYNCED_HEIGHT_NAMES = [
-  "heading-xs",
-  "subtitle",
-  "heading-m-price",
-  "promo-text",
-  "body-m",
-  "body-xs"
-];
-var MAX_FOOTER_ROWS = 8;
-var MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "subtitle" },
-  prices: { tag: "p", slot: "heading-m-price" },
-  promoText: { tag: "div", slot: "promo-text" },
-  shortDescription: { tag: "div", slot: "body-m" },
-  description: { tag: "div", slot: "body-xs" },
-  mnemonics: { size: "l" },
-  secureLabel: true,
-  planType: true,
-  badgeIcon: true,
-  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-gray-700-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  borderColor: { attribute: "border-color" },
-  size: ["wide", "super-wide"],
-  ctas: { slot: "footer", size: "l" },
-  style: "consonant"
-};
-var _syncObserver, _resizeObserver, _resizeTimer, _lastWidth, _toggleEls, _MiniCompareChartMweb_instances, siblingCards_fn, syncSiblingsWhenSettled_fn;
-var MiniCompareChartMweb = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __privateAdd(this, _MiniCompareChartMweb_instances);
-    __privateAdd(this, _syncObserver);
-    __privateAdd(this, _resizeObserver);
-    __privateAdd(this, _resizeTimer);
-    __privateAdd(this, _lastWidth, 0);
-    __privateAdd(this, _toggleEls);
-    __publicField(this, "getRowMinHeightPropertyName", (index) => `--consonant-merch-card-footer-row-${index}-min-height`);
-    __publicField(this, "getMiniCompareFooter", () => {
-      return html9` <footer>
+`;var tn=32,rn=0,an=()=>`mweb-list-${rn+=1}`,nn=["heading-xs","subtitle","heading-m-price","promo-text","body-m","body-xs"],on=8,ua={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},shortDescription:{tag:"div",slot:"body-m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],ctas:{slot:"footer",size:"l"},style:"consonant"},H,se,Ae,Te,Le,X,or,cr,Se=class extends f{constructor(e){super(e);v(this,X);v(this,H);v(this,se);v(this,Ae);v(this,Te,0);v(this,Le);d(this,"getRowMinHeightPropertyName",e=>`--consonant-merch-card-footer-row-${e}-min-height`);d(this,"getMiniCompareFooter",()=>Mt` <footer>
             <slot name="secure-transaction-label">
                 <span class="secure-transaction-label-text"
                     >${this.secureLabel}</span
@@ -4654,216 +2926,10 @@ var MiniCompareChartMweb = class extends VariantLayout {
             <p class="action-area">
                 <slot name="footer"></slot>
             </p>
-        </footer>`;
-    });
-    __publicField(this, "getMiniCompareFooterRows", () => {
-      return html9` <div class="footer-rows-container">
+        </footer>`);d(this,"getMiniCompareFooterRows",()=>Mt` <div class="footer-rows-container">
             <slot name="body-xs"></slot>
             <slot name="footer-rows"></slot>
-        </div>`;
-    });
-    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
-  }
-  connectedCallbackHook() {
-    this.card.addEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    __privateSet(this, _lastWidth, this.card.getBoundingClientRect().width);
-    __privateSet(this, _resizeObserver, new ResizeObserver(() => {
-      const width = this.card.getBoundingClientRect().width;
-      if (width === __privateGet(this, _lastWidth)) return;
-      __privateSet(this, _lastWidth, width);
-      clearTimeout(__privateGet(this, _resizeTimer));
-      __privateSet(this, _resizeTimer, setTimeout(
-        () => this.reconcileBreakpoint(),
-        150
-      ));
-    }));
-    __privateGet(this, _resizeObserver).observe(this.card);
-  }
-  disconnectedCallbackHook() {
-    this.card.removeEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    clearTimeout(__privateGet(this, _resizeTimer));
-    __privateGet(this, _resizeObserver)?.disconnect();
-    __privateSet(this, _resizeObserver, null);
-    __privateGet(this, _syncObserver)?.disconnect();
-    __privateSet(this, _syncObserver, null);
-  }
-  reconcileBreakpoint() {
-    if (media_default.isMobile) {
-      this.resetSyncedHeights();
-      this.removeEmptyRows();
-    } else {
-      __privateMethod(this, _MiniCompareChartMweb_instances, syncSiblingsWhenSettled_fn).call(this);
-    }
-  }
-  updatePriceQuantity({ detail }) {
-    if (!this.mainPrice || !detail?.option) return;
-    this.mainPrice.dataset.quantity = detail.option;
-  }
-  syncHeights() {
-    if (media_default.isMobile) return;
-    if (this.card.getBoundingClientRect().width <= 2) {
-      if (!__privateGet(this, _syncObserver)) {
-        __privateSet(this, _syncObserver, new ResizeObserver(() => {
-          if (this.card.getBoundingClientRect().width > 2) {
-            __privateGet(this, _syncObserver)?.disconnect();
-            __privateSet(this, _syncObserver, null);
-            this.syncHeights();
-          }
-        }));
-        __privateGet(this, _syncObserver).observe(this.card);
-      }
-      return;
-    }
-    const slots = [
-      "heading-xs",
-      "subtitle",
-      "heading-m-price",
-      "promo-text",
-      "body-m",
-      "body-xs"
-    ];
-    this.syncRowHeights(
-      slots.map((slot) => ({
-        name: slot,
-        getElement: (card) => card.querySelector(`[slot="${slot}"]`)
-      }))
-    );
-    this.adjustMiniCompareFooterRows();
-  }
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-      options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-      return;
-    }
-    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
-      options.displayPerUnit = false;
-    }
-  }
-  getGlobalCSS() {
-    return CSS5;
-  }
-  adjustMiniCompareFooterRows() {
-    if (this.card.getBoundingClientRect().width === 0) return;
-    const footerRows = this.card.querySelector('[slot="footer-rows"] ul');
-    if (!footerRows || !footerRows.children) return;
-    [...footerRows.children].forEach((el, index) => {
-      const height = Math.max(
-        FOOTER_ROW_MIN_HEIGHT2,
-        parseFloat(window.getComputedStyle(el).height) || 0
-      );
-      const maxMinHeight = parseFloat(
-        this.getContainer().style.getPropertyValue(
-          this.getRowMinHeightPropertyName(index + 1)
-        )
-      ) || 0;
-      if (height > maxMinHeight) {
-        this.getContainer().style.setProperty(
-          this.getRowMinHeightPropertyName(index + 1),
-          `${height}px`
-        );
-      }
-    });
-  }
-  removeEmptyRows() {
-    const footerRows = this.card.querySelectorAll(".footer-row-cell");
-    footerRows.forEach((row) => {
-      const rowDescription = row.querySelector(
-        ".footer-row-cell-description"
-      );
-      if (rowDescription) {
-        const isEmpty = !rowDescription.textContent.trim();
-        if (isEmpty) {
-          row.remove();
-        }
-      }
-    });
-  }
-  setupToggle() {
-    const bodyXs = this.card.querySelector('[slot="body-xs"]');
-    const titleEl = bodyXs?.querySelector("p");
-    const listEl = bodyXs?.querySelector("ul");
-    if (!titleEl || !listEl) return;
-    if (bodyXs.querySelector(".footer-rows-title")) return;
-    const titleText = titleEl.textContent.trim();
-    const heading = this.card.querySelector("h3")?.id;
-    const listId = heading ? `${heading}-list` : nextListId();
-    listEl.id = listId;
-    listEl.classList.add("checkmark-copy-container");
-    const titleDiv = createTag(
-      "h4",
-      { class: "footer-rows-title" },
-      titleText
-    );
-    const toggleBtn = createTag("button", {
-      class: "toggle-icon",
-      "aria-label": titleText,
-      "aria-expanded": "false",
-      "aria-controls": listId
-    });
-    __privateSet(this, _toggleEls, { toggleBtn, listEl });
-    titleDiv.append(toggleBtn);
-    titleDiv.addEventListener("click", () => {
-      if (media_default.isMobile) this.setListOpen(!this.isListOpen);
-    });
-    titleEl.replaceWith(titleDiv);
-  }
-  get isListOpen() {
-    return __privateGet(this, _toggleEls)?.listEl.classList.contains("open") ?? false;
-  }
-  // One definition of "open" for the mobile click handler.
-  setListOpen(isOpen) {
-    const { toggleBtn, listEl } = __privateGet(this, _toggleEls);
-    listEl.classList.toggle("open", isOpen);
-    toggleBtn.classList.toggle("expanded", isOpen);
-    toggleBtn.setAttribute("aria-expanded", String(isOpen));
-  }
-  get legalDisplayDot() {
-    return false;
-  }
-  get mainPrice() {
-    return this.card.querySelector(
-      `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const headingPrice = this.mainPrice;
-      if (!headingPrice) return;
-      const legal = headingPrice.cloneNode(true);
-      await headingPrice.onceSettled();
-      if (!headingPrice?.options) return;
-      if (headingPrice.options.displayPerUnit)
-        headingPrice.dataset.displayPerUnit = "false";
-      if (headingPrice.options.displayTax)
-        headingPrice.dataset.displayTax = "false";
-      if (headingPrice.options.displayPlanType)
-        headingPrice.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      headingPrice.parentNode.insertBefore(
-        legal,
-        headingPrice.nextSibling
-      );
-      await legal.onceSettled();
-    } catch {
-    }
-  }
-  get icons() {
-    if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute("id"))
-      return nothing3;
-    return html9`<slot name="icons"></slot>`;
-  }
-  renderLayout() {
-    return html9`
+        </div>`);this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(R,this.updatePriceQuantity),u(this,Te,this.card.getBoundingClientRect().width),u(this,se,new ResizeObserver(()=>{let e=this.card.getBoundingClientRect().width;e!==p(this,Te)&&(u(this,Te,e),clearTimeout(p(this,Ae)),u(this,Ae,setTimeout(()=>this.reconcileBreakpoint(),150)))})),p(this,se).observe(this.card)}disconnectedCallbackHook(){this.card.removeEventListener(R,this.updatePriceQuantity),clearTimeout(p(this,Ae)),p(this,se)?.disconnect(),u(this,se,null),p(this,H)?.disconnect(),u(this,H,null)}reconcileBreakpoint(){x.isMobile?(this.resetSyncedHeights(),this.removeEmptyRows()):k(this,X,cr).call(this)}updatePriceQuantity({detail:e}){!this.mainPrice||!e?.option||(this.mainPrice.dataset.quantity=e.option)}syncHeights(){if(x.isMobile)return;if(this.card.getBoundingClientRect().width<=2){p(this,H)||(u(this,H,new ResizeObserver(()=>{this.card.getBoundingClientRect().width>2&&(p(this,H)?.disconnect(),u(this,H,null),this.syncHeights())})),p(this,H).observe(this.card));return}let e=["heading-xs","subtitle","heading-m-price","promo-text","body-m","body-xs"];this.syncRowHeights(e.map(t=>({name:t,getElement:i=>i.querySelector(`[slot="${t}"]`)}))),this.adjustMiniCompareFooterRows()}priceOptionsProvider(e,t){if(e.dataset.template===_){t.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(e.dataset.template==="strikethrough"||e.dataset.template==="price")&&(t.displayPerUnit=!1)}getGlobalCSS(){return ga}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let e=this.card.querySelector('[slot="footer-rows"] ul');!e||!e.children||[...e.children].forEach((t,i)=>{let n=Math.max(tn,parseFloat(window.getComputedStyle(t).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(i+1)))||0;n>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(i+1),`${n}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(t=>{let i=t.querySelector(".footer-row-cell-description");i&&!i.textContent.trim()&&t.remove()})}setupToggle(){let e=this.card.querySelector('[slot="body-xs"]'),t=e?.querySelector("p"),i=e?.querySelector("ul");if(!t||!i||e.querySelector(".footer-rows-title"))return;let n=t.textContent.trim(),o=this.card.querySelector("h3")?.id,s=o?`${o}-list`:an();i.id=s,i.classList.add("checkmark-copy-container");let c=z("h4",{class:"footer-rows-title"},n),l=z("button",{class:"toggle-icon","aria-label":n,"aria-expanded":"false","aria-controls":s});u(this,Le,{toggleBtn:l,listEl:i}),c.append(l),c.addEventListener("click",()=>{x.isMobile&&this.setListOpen(!this.isListOpen)}),t.replaceWith(c)}get isListOpen(){return p(this,Le)?.listEl.classList.contains("open")??!1}setListOpen(e){let{toggleBtn:t,listEl:i}=p(this,Le);i.classList.toggle("open",e),t.classList.toggle("expanded",e),t.setAttribute("aria-expanded",String(e))}get legalDisplayDot(){return!1}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${y}[data-template="price"]`)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.mainPrice;if(!e)return;let t=e.cloneNode(!0);if(await e.onceSettled(),!e?.options)return;e.options.displayPerUnit&&(e.dataset.displayPerUnit="false"),e.options.displayTax&&(e.dataset.displayTax="false"),e.options.displayPlanType&&(e.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),e.parentNode.insertBefore(t,e.nextSibling),await t.onceSettled()}catch{}}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?en:Mt`<slot name="icons"></slot>`}renderLayout(){return Mt`
             ${this.badge}
             <div class="body">
                 <div class="body-main">
@@ -4880,63 +2946,7 @@ var MiniCompareChartMweb = class extends VariantLayout {
                 ${this.getMiniCompareFooter()}
             </div>
             ${this.getMiniCompareFooterRows()}
-        `;
-  }
-  async postCardUpdateHook() {
-    if (!this.legalAdjusted) {
-      await this.adjustLegal();
-    }
-    this.setupToggle();
-    if (media_default.isMobile) {
-      this.removeEmptyRows();
-    }
-    await super.postCardUpdateHook();
-    if (!media_default.isMobile) {
-      await __privateMethod(this, _MiniCompareChartMweb_instances, syncSiblingsWhenSettled_fn).call(this);
-    }
-  }
-  resetSyncedHeights() {
-    const container = this.getContainer();
-    if (!container) return;
-    const variant = this.card.variant;
-    const cards = __privateMethod(this, _MiniCompareChartMweb_instances, siblingCards_fn).call(this, container);
-    for (const name of SYNCED_HEIGHT_NAMES) {
-      const prop = `--consonant-merch-card-${variant}-${name}-height`;
-      container.style.removeProperty(prop);
-      cards.forEach((card) => card.style.removeProperty(prop));
-    }
-    for (let index = 1; index <= MAX_FOOTER_ROWS; index += 1) {
-      container.style.removeProperty(
-        this.getRowMinHeightPropertyName(index)
-      );
-    }
-  }
-};
-_syncObserver = new WeakMap();
-_resizeObserver = new WeakMap();
-_resizeTimer = new WeakMap();
-_lastWidth = new WeakMap();
-_toggleEls = new WeakMap();
-_MiniCompareChartMweb_instances = new WeakSet();
-// All sibling cards of this variant inside the given container.
-siblingCards_fn = function(container) {
-  return container.querySelectorAll(
-    `merch-card[variant="${this.card.variant}"]`
-  );
-};
-syncSiblingsWhenSettled_fn = async function() {
-  const container = this.getContainer();
-  if (!container) return;
-  const cards = Array.from(__privateMethod(this, _MiniCompareChartMweb_instances, siblingCards_fn).call(this, container));
-  if (this.card !== cards[0]) return;
-  await Promise.all(cards.map((card) => card.updateComplete));
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  requestAnimationFrame(() => {
-    this.resetSyncedHeights();
-    this.syncHeights();
-  });
-};
-__publicField(MiniCompareChartMweb, "variantStyle", css8`
+        `}async postCardUpdateHook(){this.legalAdjusted||await this.adjustLegal(),this.setupToggle(),x.isMobile&&this.removeEmptyRows(),await super.postCardUpdateHook(),x.isMobile||await k(this,X,cr).call(this)}resetSyncedHeights(){let e=this.getContainer();if(!e)return;let t=this.card.variant,i=k(this,X,or).call(this,e);for(let n of nn){let o=`--consonant-merch-card-${t}-${n}-height`;e.style.removeProperty(o),i.forEach(s=>s.style.removeProperty(o))}for(let n=1;n<=on;n+=1)e.style.removeProperty(this.getRowMinHeightPropertyName(n))}};H=new WeakMap,se=new WeakMap,Ae=new WeakMap,Te=new WeakMap,Le=new WeakMap,X=new WeakSet,or=function(e){return e.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)},cr=async function(){let e=this.getContainer();if(!e)return;let t=Array.from(k(this,X,or).call(this,e));this.card===t[0]&&(await Promise.all(t.map(i=>i.updateComplete)),await new Promise(i=>setTimeout(i,100)),requestAnimationFrame(()=>{this.resetSyncedHeights(),this.syncHeights()}))},d(Se,"variantStyle",Ji`
         :host([variant='mini-compare-chart-mweb'])
             .body-main
             > .price-wrapping {
@@ -5015,7 +3025,7 @@ __publicField(MiniCompareChartMweb, "variantStyle", css8`
             padding-inline-start: var(--consonant-merch-spacing-xs);
         }
 
-        @media screen and ${unsafeCSS3(TABLET_DOWN)} {
+        @media screen and ${nr(L)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart-mweb'])
                 footer {
@@ -5025,13 +3035,13 @@ __publicField(MiniCompareChartMweb, "variantStyle", css8`
             }
         }
 
-        @media screen and ${unsafeCSS3(DESKTOP_UP)} {
+        @media screen and ${nr(b)} {
             :host([variant='mini-compare-chart-mweb']) footer {
                 padding: 0;
             }
         }
 
-        @media screen and ${unsafeCSS3(TABLET_UP)} {
+        @media screen and ${nr(w)} {
             :host([variant='mini-compare-chart-mweb'])
                 .price-wrapping
                 > slot[name='subtitle'] {
@@ -5258,13 +3268,7 @@ __publicField(MiniCompareChartMweb, "variantStyle", css8`
             gap: var(--consonant-merch-spacing-xxs);
             margin: unset;
         }
-    `);
-
-// src/variants/plans.js
-import { html as html10, css as css9, nothing as nothing4 } from "./lit-all.min.js";
-
-// src/variants/plans.css.js
-var CSS6 = `
+    `);import{html as nt,css as cn,nothing as Rt}from"./lit-all.min.js";var fa=`
 :root {
     --consonant-merch-card-plans-width: 302px;
     --consonant-merch-card-plans-students-width: 302px;
@@ -5668,7 +3672,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Mobile */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -5689,7 +3693,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
     :root {
         --consonant-merch-card-plans-students-width: 486px;
     }
@@ -5699,7 +3703,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     }
 }
 
-@media screen and ${TABLET_DOWN} {
+@media screen and ${L} {
     .plans-team .columns .row-1 {
         grid-template-columns: min-content;
     }
@@ -5717,7 +3721,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
     :root {
         --consonant-merch-card-plans-width: 276px;
         --consonant-merch-card-plans-students-width: 484px;
@@ -5765,7 +3769,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Large desktop */
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
     .columns .four-merch-cards.plans {
         grid-template-columns: repeat(2, var(--consonant-merch-card-plans-width));
     }
@@ -5774,340 +3778,11 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         --merch-sidenav-collection-gap: 54px;
     }
 }
-`;
-
-// src/variants/plans.js
-var PLANS_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "subtitle" },
-  prices: { tag: "p", slot: "heading-m" },
-  promoText: { tag: "p", slot: "promo-text" },
-  description: { tag: "div", slot: "body-xs" },
-  mnemonics: { size: "l" },
-  callout: { tag: "div", slot: "callout-content" },
-  quantitySelect: { tag: "div", slot: "quantity-select" },
-  addon: true,
-  secureLabel: true,
-  planType: true,
-  badgeIcon: true,
-  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-gray-700-plans",
-    "spectrum-green-900-plans",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-green-900-plans",
-    "gradient-purple-blue"
-  ],
-  borderColor: { attribute: "border-color" },
-  size: ["wide", "super-wide"],
-  whatsIncluded: { tag: "div", slot: "whats-included" },
-  ctas: { slot: "footer", size: "m" },
-  style: "consonant",
-  perUnitLabel: { tag: "span", slot: "per-unit-label" }
-};
-var PLANS_EDUCATION_AEM_FRAGMENT_MAPPING = {
-  ...(function() {
-    const { whatsIncluded, size, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
-    return rest;
-  })(),
-  title: { tag: "h3", slot: "heading-s" },
-  secureLabel: false
-};
-var PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
-  ...(function() {
-    const { subtitle, whatsIncluded, size, quantitySelect, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
-    return rest;
-  })()
-};
-var _syncObserver2, _resizeFrame;
-var Plans = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __privateAdd(this, _syncObserver2);
-    __privateAdd(this, _resizeFrame);
-    this.adaptForMedia = this.adaptForMedia.bind(this);
-  }
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-  }
-  getGlobalCSS() {
-    return CSS6;
-  }
-  /**
-   * Moves a slot to its proper place (body or footer) depending on card size and screen size
-   * @param {string} name
-   * @param {string[]} sizes
-   * @param {boolean} shouldBeInFooter
-   * @returns
-   */
-  adjustSlotPlacement(name, sizes, shouldBeInFooter) {
-    const shadowRoot = this.card.shadowRoot;
-    const footer = shadowRoot.querySelector("footer");
-    const size = this.card.getAttribute("size");
-    if (!size) return;
-    const slotInFooter = shadowRoot.querySelector(
-      `footer slot[name="${name}"]`
-    );
-    const slotInBody = shadowRoot.querySelector(
-      `.body slot[name="${name}"]`
-    );
-    const body = shadowRoot.querySelector(".body");
-    if (!size.includes("wide")) {
-      footer?.classList.remove("wide-footer");
-      if (slotInFooter) slotInFooter.remove();
-    }
-    if (!sizes.includes(size)) return;
-    footer?.classList.toggle("wide-footer", media_default.isDesktopOrUp);
-    if (!shouldBeInFooter && slotInFooter) {
-      if (slotInBody) slotInFooter.remove();
-      else {
-        const bodyPlaceholder = body.querySelector(
-          `[data-placeholder-for="${name}"]`
-        );
-        if (bodyPlaceholder) bodyPlaceholder.replaceWith(slotInFooter);
-        else body.appendChild(slotInFooter);
-      }
-      return;
-    }
-    if (shouldBeInFooter && slotInBody) {
-      const bodyPlaceholder = document.createElement("div");
-      bodyPlaceholder.setAttribute("data-placeholder-for", name);
-      bodyPlaceholder.classList.add("slot-placeholder");
-      if (!slotInFooter) {
-        const slotInBodyClone = slotInBody.cloneNode(true);
-        footer.prepend(slotInBodyClone);
-      }
-      slotInBody.replaceWith(bodyPlaceholder);
-    }
-  }
-  adaptForMedia() {
-    if (!this.card.closest(
-      "merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns"
-    )) {
-      this.card.removeAttribute("size");
-      return;
-    }
-    this.adjustSlotPlacement("addon", ["super-wide"], media_default.isDesktopOrUp);
-    this.adjustSlotPlacement(
-      "callout-content",
-      ["super-wide"],
-      media_default.isDesktopOrUp
-    );
-  }
-  adjustCallout() {
-    const tooltipIcon = this.card.querySelector(
-      '[slot="callout-content"] .icon-button'
-    );
-    if (tooltipIcon && tooltipIcon.title) {
-      tooltipIcon.dataset.tooltip = tooltipIcon.title;
-      tooltipIcon.removeAttribute("title");
-      tooltipIcon.classList.add("hide-tooltip");
-      document.addEventListener("touchstart", (event) => {
-        event.preventDefault();
-        if (event.target !== tooltipIcon) {
-          tooltipIcon.classList.add("hide-tooltip");
-        } else {
-          event.target.classList.toggle("hide-tooltip");
-        }
-      });
-      document.addEventListener("mouseover", (event) => {
-        event.preventDefault();
-        if (event.target !== tooltipIcon) {
-          tooltipIcon.classList.add("hide-tooltip");
-        } else {
-          event.target.classList.remove("hide-tooltip");
-        }
-      });
-    }
-  }
-  syncHeights() {
-    if (this.card.getBoundingClientRect().width <= 2) {
-      if (!__privateGet(this, _syncObserver2)) {
-        __privateSet(this, _syncObserver2, new ResizeObserver(() => {
-          if (this.card.getBoundingClientRect().width > 2) {
-            __privateGet(this, _syncObserver2)?.disconnect();
-            __privateSet(this, _syncObserver2, null);
-            this.syncHeights();
-          }
-        }));
-        __privateGet(this, _syncObserver2).observe(this.card);
-      }
-      return;
-    }
-    const slots = [
-      "heading-xs",
-      "subtitle",
-      "heading-m",
-      "promo-text",
-      "body-xs"
-    ];
-    this.syncRowHeights(
-      slots.map((slot) => ({
-        name: slot,
-        getElement: (card) => card.querySelector(`[slot="${slot}"]`)
-      }))
-    );
-  }
-  async adjustEduLists() {
-    if (this.card.variant !== "plans-education") return;
-    const existingSpacer = this.card.querySelector(".spacer");
-    if (existingSpacer) return;
-    const body = this.card.querySelector('[slot="body-xs"]');
-    if (!body) return;
-    const list = body.querySelector("ul");
-    if (!list) return;
-    const listHeader = list.previousElementSibling;
-    const spacer = document.createElement("div");
-    spacer.classList.add("spacer");
-    body.insertBefore(spacer, listHeader);
-    const intersectionObs = new IntersectionObserver(([entry]) => {
-      if (entry.boundingClientRect.height === 0) return;
-      let offset = 0;
-      const heading = this.card.querySelector('[slot="heading-s"]');
-      if (heading) offset += getOuterHeight(heading);
-      const subtitle = this.card.querySelector('[slot="subtitle"]');
-      if (subtitle) offset += getOuterHeight(subtitle);
-      const price = this.card.querySelector('[slot="heading-m"]');
-      if (price) offset += 8 + getOuterHeight(price);
-      for (const child of body.childNodes) {
-        if (child.classList.contains("spacer")) break;
-        offset += getOuterHeight(child);
-      }
-      const maxOffset = this.card.parentElement.style.getPropertyValue(
-        "--merch-card-plans-edu-list-max-offset"
-      );
-      if (offset > (parseFloat(maxOffset) || 0)) {
-        this.card.parentElement.style.setProperty(
-          "--merch-card-plans-edu-list-max-offset",
-          `${offset}px`
-        );
-      }
-      this.card.style.setProperty(
-        "--merch-card-plans-edu-list-offset",
-        `${offset}px`
-      );
-      intersectionObs.disconnect();
-    });
-    intersectionObs.observe(this.card);
-  }
-  async postCardUpdateHook() {
-    this.adaptForMedia();
-    this.adjustAddon();
-    this.adjustCallout();
-    if (!this.legalAdjusted) {
-      await this.adjustLegal();
-      await this.adjustEduLists();
-    }
-    await super.postCardUpdateHook();
-    if (window.matchMedia("(min-width: 768px)").matches) {
-      if (this.card === this.card.parentElement.firstElementChild) {
-        requestAnimationFrame(() => {
-          this.syncHeights();
-        });
-      }
-    }
-  }
-  get headingM() {
-    return this.card.querySelector('[slot="heading-m"]');
-  }
-  get mainPrice() {
-    const price = this.headingM?.querySelector(
-      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-    return price;
-  }
-  get divider() {
-    return this.card.variant === "plans-education" ? html10`<div class="divider"></div>` : nothing4;
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const prices = [];
-      const headingPrice = this.card.querySelector(
-        `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-      );
-      if (headingPrice) prices.push(headingPrice);
-      const legalPromises = prices.map(async (price) => {
-        const legal = price.cloneNode(true);
-        await price.onceSettled();
-        if (!price?.options) return;
-        if (price.options.displayPerUnit)
-          price.dataset.displayPerUnit = "false";
-        if (price.options.displayTax)
-          price.dataset.displayTax = "false";
-        if (price.options.displayPlanType)
-          price.dataset.displayPlanType = "false";
-        legal.setAttribute("data-template", "legal");
-        price.parentNode.insertBefore(legal, price.nextSibling);
-        await legal.onceSettled();
-      });
-      await Promise.all(legalPromises);
-    } catch {
-    }
-  }
-  async adjustAddon() {
-    await this.card.updateComplete;
-    const addon = this.card.addon;
-    if (!addon) return;
-    addon.setAttribute("custom-checkbox", "");
-    const price = this.mainPrice;
-    if (!price) return;
-    await price.onceSettled?.();
-    const planType = price.value?.[0]?.planType;
-    if (!planType) return;
-    addon.planType = planType;
-  }
-  get stockCheckbox() {
-    return this.card.checkboxLabel ? html10`<label id="stock-checkbox">
+`;var Ot={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},va={...(function(){let{whatsIncluded:a,size:r,...e}=Ot;return e})(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},ba={...(function(){let{subtitle:a,whatsIncluded:r,size:e,quantitySelect:t,...i}=Ot;return i})()},B,q,N=class extends f{constructor(e){super(e);v(this,B);v(this,q);this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(e,t){e.dataset.template===_&&(t.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return fa}adjustSlotPlacement(e,t,i){let n=this.card.shadowRoot,o=n.querySelector("footer"),s=this.card.getAttribute("size");if(!s)return;let c=n.querySelector(`footer slot[name="${e}"]`),l=n.querySelector(`.body slot[name="${e}"]`),h=n.querySelector(".body");if(s.includes("wide")||(o?.classList.remove("wide-footer"),c&&c.remove()),!!t.includes(s)){if(o?.classList.toggle("wide-footer",x.isDesktopOrUp),!i&&c){if(l)c.remove();else{let m=h.querySelector(`[data-placeholder-for="${e}"]`);m?m.replaceWith(c):h.appendChild(c)}return}if(i&&l){let m=document.createElement("div");if(m.setAttribute("data-placeholder-for",e),m.classList.add("slot-placeholder"),!c){let g=l.cloneNode(!0);o.prepend(g)}l.replaceWith(m)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],x.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],x.isDesktopOrUp)}adjustCallout(){let e=this.card.querySelector('[slot="callout-content"] .icon-button');e&&e.title&&(e.dataset.tooltip=e.title,e.removeAttribute("title"),e.classList.add("hide-tooltip"),document.addEventListener("touchstart",t=>{t.preventDefault(),t.target!==e?e.classList.add("hide-tooltip"):t.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",t=>{t.preventDefault(),t.target!==e?e.classList.add("hide-tooltip"):t.target.classList.remove("hide-tooltip")}))}syncHeights(){if(this.card.getBoundingClientRect().width<=2){p(this,B)||(u(this,B,new ResizeObserver(()=>{this.card.getBoundingClientRect().width>2&&(p(this,B)?.disconnect(),u(this,B,null),this.syncHeights())})),p(this,B).observe(this.card));return}let e=["heading-xs","subtitle","heading-m","promo-text","body-xs"];this.syncRowHeights(e.map(t=>({name:t,getElement:i=>i.querySelector(`[slot="${t}"]`)})))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let t=this.card.querySelector('[slot="body-xs"]');if(!t)return;let i=t.querySelector("ul");if(!i)return;let n=i.previousElementSibling,o=document.createElement("div");o.classList.add("spacer"),t.insertBefore(o,n);let s=new IntersectionObserver(([c])=>{if(c.boundingClientRect.height===0)return;let l=0,h=this.card.querySelector('[slot="heading-s"]');h&&(l+=Xe(h));let m=this.card.querySelector('[slot="subtitle"]');m&&(l+=Xe(m));let g=this.card.querySelector('[slot="heading-m"]');g&&(l+=8+Xe(g));for(let A of t.childNodes){if(A.classList.contains("spacer"))break;l+=Xe(A)}let E=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");l>(parseFloat(E)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${l}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${l}px`),s.disconnect()});s.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists()),await super.postCardUpdateHook(),window.matchMedia("(min-width: 768px)").matches&&this.card===this.card.parentElement.firstElementChild&&requestAnimationFrame(()=>{this.syncHeights()})}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM?.querySelector(`${y}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?nt`<div class="divider"></div>`:Rt}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=[],t=this.card.querySelector(`[slot="heading-m"] ${y}[data-template="price"]`);t&&e.push(t);let i=e.map(async n=>{let o=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),o.setAttribute("data-template","legal"),n.parentNode.insertBefore(o,n.nextSibling),await o.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let e=this.card.addon;if(!e)return;e.setAttribute("custom-checkbox","");let t=this.mainPrice;if(!t)return;await t.onceSettled?.();let i=t.value?.[0]?.planType;i&&(e.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?nt`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>` : nothing4;
-  }
-  get icons() {
-    if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute("id"))
-      return nothing4;
-    return html10`<slot name="icons"></slot>`;
-  }
-  resizeHandler() {
-    if (__privateGet(this, _resizeFrame)) cancelAnimationFrame(__privateGet(this, _resizeFrame));
-    __privateSet(this, _resizeFrame, requestAnimationFrame(() => {
-      __privateSet(this, _resizeFrame, null);
-      if (window.matchMedia("(min-width: 768px)").matches) {
-        this.syncHeights();
-      }
-    }));
-  }
-  connectedCallbackHook() {
-    media_default.matchMobile.addEventListener("change", this.adaptForMedia);
-    media_default.matchDesktopOrUp.addEventListener("change", this.adaptForMedia);
-  }
-  disconnectedCallbackHook() {
-    media_default.matchMobile.removeEventListener("change", this.adaptForMedia);
-    media_default.matchDesktopOrUp.removeEventListener(
-      "change",
-      this.adaptForMedia
-    );
-    __privateGet(this, _syncObserver2)?.disconnect();
-    __privateSet(this, _syncObserver2, null);
-    if (__privateGet(this, _resizeFrame)) {
-      cancelAnimationFrame(__privateGet(this, _resizeFrame));
-      __privateSet(this, _resizeFrame, null);
-    }
-  }
-  renderLayout() {
-    return html10` ${this.badge}
+            </label>`:Rt}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?Rt:nt`<slot name="icons"></slot>`}resizeHandler(){p(this,q)&&cancelAnimationFrame(p(this,q)),u(this,q,requestAnimationFrame(()=>{u(this,q,null),window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()}))}connectedCallbackHook(){x.matchMobile.addEventListener("change",this.adaptForMedia),x.matchDesktopOrUp.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){x.matchMobile.removeEventListener("change",this.adaptForMedia),x.matchDesktopOrUp.removeEventListener("change",this.adaptForMedia),p(this,B)?.disconnect(),u(this,B,null),p(this,q)&&(cancelAnimationFrame(p(this,q)),u(this,q,null))}renderLayout(){return nt` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -6128,12 +3803,7 @@ var Plans = class extends VariantLayout {
                 <slot name="badge"></slot>
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`;
-  }
-};
-_syncObserver2 = new WeakMap();
-_resizeFrame = new WeakMap();
-__publicField(Plans, "variantStyle", css9`
+            <slot></slot>`}};B=new WeakMap,q=new WeakMap,d(N,"variantStyle",cn`
         :host([variant^='plans']) {
             min-height: 273px;
             --merch-card-plans-min-width: 244px;
@@ -6244,70 +3914,7 @@ __publicField(Plans, "variantStyle", css9`
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `);
-__publicField(Plans, "collectionOptions", {
-  customHeaderArea: (collection) => {
-    if (!collection.sidenav) return nothing4;
-    return html10`<slot name="resultsText"></slot>`;
-  },
-  headerVisibility: {
-    search: false,
-    sort: false,
-    result: ["mobile", "tablet"],
-    custom: ["desktop"]
-  },
-  onSidenavAttached: (collection) => {
-    const minifyOverflowingWideCards = () => {
-      const merchCards = collection.querySelectorAll("merch-card");
-      for (const merchCard of merchCards) {
-        if (merchCard.hasAttribute("data-size")) {
-          merchCard.setAttribute(
-            "size",
-            merchCard.getAttribute("data-size")
-          );
-          merchCard.removeAttribute("data-size");
-        }
-      }
-      if (!media_default.isDesktop) return;
-      let columns = 0;
-      for (const merchCard of merchCards) {
-        if (merchCard.style.display === "none") continue;
-        const size = merchCard.getAttribute("size");
-        let columnCount = size === "wide" ? 2 : size === "super-wide" ? 3 : 1;
-        if (columnCount === 2 && columns % 3 === 2) {
-          merchCard.setAttribute("data-size", size);
-          merchCard.removeAttribute("size");
-          columnCount = 1;
-        }
-        columns += columnCount;
-      }
-    };
-    media_default.matchDesktop.addEventListener(
-      "change",
-      minifyOverflowingWideCards
-    );
-    collection.addEventListener(
-      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
-      minifyOverflowingWideCards
-    );
-    collection.onUnmount.push(() => {
-      media_default.matchDesktop.removeEventListener(
-        "change",
-        minifyOverflowingWideCards
-      );
-      collection.removeEventListener(
-        EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
-        minifyOverflowingWideCards
-      );
-    });
-  }
-});
-
-// src/variants/plans-v2.js
-import { html as html11, css as css10, unsafeCSS as unsafeCSS4, nothing as nothing5 } from "./lit-all.min.js";
-
-// src/variants/plans-v2.css.js
-var CSS7 = `
+    `),d(N,"collectionOptions",{customHeaderArea:e=>e.sidenav?nt`<slot name="resultsText"></slot>`:Rt,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:e=>{let t=()=>{let i=e.querySelectorAll("merch-card");for(let o of i)o.hasAttribute("data-size")&&(o.setAttribute("size",o.getAttribute("data-size")),o.removeAttribute("data-size"));if(!x.isDesktop)return;let n=0;for(let o of i){if(o.style.display==="none")continue;let s=o.getAttribute("size"),c=s==="wide"?2:s==="super-wide"?3:1;c===2&&n%3===2&&(o.setAttribute("data-size",s),o.removeAttribute("size"),c=1),n+=c}};x.matchDesktop.addEventListener("change",t),e.addEventListener(ve,t),e.onUnmount.push(()=>{x.matchDesktop.removeEventListener("change",t),e.removeEventListener(ve,t)})}});import{html as V,css as sn,unsafeCSS as ya,nothing as Nt}from"./lit-all.min.js";var xa=`
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;
@@ -6504,7 +4111,7 @@ merch-card[variant="plans-v2"] [slot="heading-xs"] {
 }
 
 /* Mobile-specific heading-xs styles */
-@media ${MOBILE_LANDSCAPE} {
+@media ${C} {
     merch-card[variant="plans-v2"] [slot="heading-xs"] {
         font-size: 28px;
         font-weight: 800;
@@ -6543,7 +4150,7 @@ merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant
 }
 
 /* Mobile-specific wide card subtitle styles */
-@media ${MOBILE_LANDSCAPE} {
+@media ${C} {
     merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
         font-size: 28px;
         font-weight: 900;
@@ -6756,7 +4363,7 @@ merch-card[variant="plans-v2"] .help-text {
     margin-top: var(--consonant-merch-spacing-xxs);
 }
 
-@media screen and ${MOBILE_LANDSCAPE}, ${TABLET_DOWN} {
+@media screen and ${C}, ${L} {
     :root {
         --consonant-merch-card-plans-v2-width: 100%;
     }
@@ -6767,7 +4374,7 @@ merch-card[variant="plans-v2"] .help-text {
     }
 }
 
-@media screen and ${TABLET_UP}, ${DESKTOP_UP}, ${LARGE_DESKTOP} {
+@media screen and ${w}, ${b}, ${M} {
     :root {
         --consonant-merch-card-plans-v2-width: 276px;
     }
@@ -6881,7 +4488,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Mobile */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -6901,7 +4508,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Tablet */
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
     :root {
         --consonant-merch-card-plans-v2-width: 360px;
     }
@@ -6917,7 +4524,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
     :root {
         --consonant-merch-card-plans-v2-width: 276px;
     }
@@ -6937,382 +4544,43 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Large Desktop */
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
 .columns .four-merch-cards.plans:has(merch-card[variant="plans-v2"]) {
     grid-template-columns: repeat(2, var(--consonant-merch-card-plans-v2-width));
   }
 
 }
-`;
-
-// src/variants/plans-v2.js
-var PLANS_V2_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "subtitle" },
-  prices: { tag: "p", slot: "heading-m" },
-  shortDescription: { tag: "p", slot: "short-description" },
-  promoText: { tag: "p", slot: "promo-text" },
-  description: { tag: "div", slot: "body-xs" },
-  mnemonics: { size: "l" },
-  callout: { tag: "div", slot: "callout-content" },
-  quantitySelect: { tag: "div", slot: "quantity-select" },
-  addon: true,
-  secureLabel: true,
-  planType: true,
-  badgeIcon: true,
-  badge: { tag: "div", slot: "badge", default: "spectrum-red-700-plans" },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-gray-700-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-green-900-plans",
-    "spectrum-red-700-plans",
-    "gradient-purple-blue"
-  ],
-  borderColor: { attribute: "border-color" },
-  size: ["wide", "super-wide"],
-  whatsIncluded: { tag: "div", slot: "whats-included" },
-  ctas: { slot: "footer", size: "m" },
-  style: "consonant",
-  perUnitLabel: { tag: "span", slot: "per-unit-label" }
-};
-var PlansV2 = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    this.adaptForMedia = this.adaptForMedia.bind(this);
-    this.toggleShortDescription = this.toggleShortDescription.bind(this);
-    this.shortDescriptionExpanded = false;
-    this.syncScheduled = false;
-  }
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-      options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-      return;
-    }
-    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
-      options.displayPerUnit = false;
-    }
-  }
-  getGlobalCSS() {
-    return CSS7;
-  }
-  adjustSlotPlacement(name, sizes, shouldBeInFooter) {
-    const { shadowRoot } = this.card;
-    const footer = shadowRoot.querySelector("footer");
-    const body = shadowRoot.querySelector(".body");
-    const size = this.card.getAttribute("size");
-    if (!size) return;
-    const slotInFooter = shadowRoot.querySelector(
-      `footer slot[name="${name}"]`
-    );
-    const slotInBody = shadowRoot.querySelector(
-      `.body slot[name="${name}"]`
-    );
-    if (!size.includes("wide")) {
-      footer?.classList.remove("wide-footer");
-      slotInFooter?.remove();
-    }
-    if (!sizes.includes(size)) return;
-    footer?.classList.toggle("wide-footer", media_default.isDesktopOrUp);
-    if (!shouldBeInFooter && slotInFooter) {
-      if (slotInBody) {
-        slotInFooter.remove();
-      } else {
-        const bodyPlaceholder = body.querySelector(
-          `[data-placeholder-for="${name}"]`
-        );
-        if (bodyPlaceholder) {
-          bodyPlaceholder.replaceWith(slotInFooter);
-        } else {
-          body.appendChild(slotInFooter);
-        }
-      }
-      return;
-    }
-    if (shouldBeInFooter && slotInBody) {
-      const bodyPlaceholder = document.createElement("div");
-      bodyPlaceholder.setAttribute("data-placeholder-for", name);
-      bodyPlaceholder.classList.add("slot-placeholder");
-      if (!slotInFooter) {
-        footer.prepend(slotInBody.cloneNode(true));
-      }
-      slotInBody.replaceWith(bodyPlaceholder);
-    }
-  }
-  adaptForMedia() {
-    const isInCollection = this.card.closest(
-      "merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"
-    );
-    if (!isInCollection) {
-      if (!this.card.hasAttribute("size")) {
-        return;
-      }
-      return;
-    }
-    this.adjustSlotPlacement("heading-m", ["wide"], true);
-    this.adjustSlotPlacement("addon", ["super-wide"], media_default.isDesktopOrUp);
-    this.adjustSlotPlacement(
-      "callout-content",
-      ["super-wide"],
-      media_default.isDesktopOrUp
-    );
-  }
-  adjustCallout() {
-    const tooltipIcon = this.card.querySelector(
-      '[slot="callout-content"] .icon-button'
-    );
-    if (!tooltipIcon?.title) return;
-    tooltipIcon.dataset.tooltip = tooltipIcon.title;
-    tooltipIcon.removeAttribute("title");
-    tooltipIcon.classList.add("hide-tooltip");
-    const hideTooltipExcept = (target) => {
-      if (target === tooltipIcon) {
-        tooltipIcon.classList.toggle("hide-tooltip");
-      } else {
-        tooltipIcon.classList.add("hide-tooltip");
-      }
-    };
-    document.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      hideTooltipExcept(e.target);
-    });
-    document.addEventListener("mouseover", (e) => {
-      e.preventDefault();
-      if (e.target !== tooltipIcon) {
-        tooltipIcon.classList.add("hide-tooltip");
-      } else {
-        tooltipIcon.classList.remove("hide-tooltip");
-      }
-    });
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    this.adaptForMedia();
-    this.adjustAddon();
-    this.adjustCallout();
-    this.updateShortDescriptionVisibility();
-    if (this.hasShortDescription) {
-      this.card.setAttribute("has-short-description", "");
-    } else {
-      this.card.removeAttribute("has-short-description");
-    }
-    if (!this.legalAdjusted) {
-      await this.adjustLegal();
-    }
-    await super.postCardUpdateHook();
-    if (window.matchMedia("(min-width: 768px)").matches) {
-      requestAnimationFrame(() => {
-        this.syncHeights();
-      });
-    }
-  }
-  get mainPrice() {
-    return this.card.querySelector(
-      `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-  }
-  syncHeights() {
-    if (this.card.getBoundingClientRect().width <= 2) return;
-    this.syncRowHeights([
-      {
-        name: "body",
-        getElement: (card) => card.shadowRoot?.querySelector(".body")
-      },
-      {
-        name: "footer",
-        getElement: (card) => card.shadowRoot?.querySelector("footer")
-      },
-      {
-        name: "short-description",
-        getElement: (card) => card.querySelector('[slot="short-description"]')
-      }
-    ]);
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const headingPrice = this.mainPrice;
-      if (!headingPrice) return;
-      const legal = headingPrice.cloneNode(true);
-      await headingPrice.onceSettled();
-      if (!headingPrice?.options) return;
-      if (headingPrice.options.displayPerUnit)
-        headingPrice.dataset.displayPerUnit = "false";
-      if (headingPrice.options.displayTax)
-        headingPrice.dataset.displayTax = "false";
-      if (headingPrice.options.displayPlanType)
-        headingPrice.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      headingPrice.parentNode.insertBefore(
-        legal,
-        headingPrice.nextSibling
-      );
-      await legal.onceSettled();
-    } catch {
-    }
-  }
-  async adjustAddon() {
-    await this.card.updateComplete;
-    const addon = this.card.addon;
-    if (!addon) return;
-    addon.setAttribute("custom-checkbox", "");
-    const price = this.mainPrice;
-    if (!price) return;
-    await price.onceSettled?.();
-    const planType = price.value?.[0]?.planType;
-    if (planType) addon.planType = planType;
-  }
-  get stockCheckbox() {
-    return this.card.checkboxLabel ? html11`<label id="stock-checkbox">
+`;var wa={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},shortDescription:{tag:"p",slot:"short-description"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},J=class extends f{constructor(r){super(r),this.adaptForMedia=this.adaptForMedia.bind(this),this.toggleShortDescription=this.toggleShortDescription.bind(this),this.shortDescriptionExpanded=!1,this.syncScheduled=!1}priceOptionsProvider(r,e){if(r.dataset.template===_){e.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(r.dataset.template==="strikethrough"||r.dataset.template==="price")&&(e.displayPerUnit=!1)}getGlobalCSS(){return xa}adjustSlotPlacement(r,e,t){let{shadowRoot:i}=this.card,n=i.querySelector("footer"),o=i.querySelector(".body"),s=this.card.getAttribute("size");if(!s)return;let c=i.querySelector(`footer slot[name="${r}"]`),l=i.querySelector(`.body slot[name="${r}"]`);if(s.includes("wide")||(n?.classList.remove("wide-footer"),c?.remove()),!!e.includes(s)){if(n?.classList.toggle("wide-footer",x.isDesktopOrUp),!t&&c){if(l)c.remove();else{let h=o.querySelector(`[data-placeholder-for="${r}"]`);h?h.replaceWith(c):o.appendChild(c)}return}if(t&&l){let h=document.createElement("div");h.setAttribute("data-placeholder-for",r),h.classList.add("slot-placeholder"),c||n.prepend(l.cloneNode(!0)),l.replaceWith(h)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"))return this.card.hasAttribute("size"),void 0;this.adjustSlotPlacement("heading-m",["wide"],!0),this.adjustSlotPlacement("addon",["super-wide"],x.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],x.isDesktopOrUp)}adjustCallout(){let r=this.card.querySelector('[slot="callout-content"] .icon-button');if(!r?.title)return;r.dataset.tooltip=r.title,r.removeAttribute("title"),r.classList.add("hide-tooltip");let e=t=>{t===r?r.classList.toggle("hide-tooltip"):r.classList.add("hide-tooltip")};document.addEventListener("touchstart",t=>{t.preventDefault(),e(t.target)}),document.addEventListener("mouseover",t=>{t.preventDefault(),t.target!==r?r.classList.add("hide-tooltip"):r.classList.remove("hide-tooltip")})}async postCardUpdateHook(){this.card.isConnected&&(this.adaptForMedia(),this.adjustAddon(),this.adjustCallout(),this.updateShortDescriptionVisibility(),this.hasShortDescription?this.card.setAttribute("has-short-description",""):this.card.removeAttribute("has-short-description"),this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook(),window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()}))}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${y}[data-template="price"]`)}syncHeights(){this.card.getBoundingClientRect().width<=2||this.syncRowHeights([{name:"body",getElement:r=>r.shadowRoot?.querySelector(".body")},{name:"footer",getElement:r=>r.shadowRoot?.querySelector("footer")},{name:"short-description",getElement:r=>r.querySelector('[slot="short-description"]')}])}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.mainPrice;if(!r)return;let e=r.cloneNode(!0);if(await r.onceSettled(),!r?.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),r.parentNode.insertBefore(e,r.nextSibling),await e.onceSettled()}catch{}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;r.setAttribute("custom-checkbox","");let e=this.mainPrice;if(!e)return;await e.onceSettled?.();let t=e.value?.[0]?.planType;t&&(r.planType=t)}get stockCheckbox(){return this.card.checkboxLabel?V`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>` : nothing5;
-  }
-  get hasShortDescription() {
-    return !!this.card.querySelector('[slot="short-description"]');
-  }
-  get shortDescriptionLabel() {
-    const shortDescElement = this.card.querySelector(
-      '[slot="short-description"]'
-    );
-    const boldElement = shortDescElement.querySelector("strong, b");
-    if (boldElement?.textContent?.trim()) {
-      return boldElement.textContent.trim();
-    }
-    const headingOrPara = shortDescElement.querySelector(
-      "h1, h2, h3, h4, h5, h6, p"
-    );
-    if (headingOrPara?.textContent?.trim()) {
-      return headingOrPara.textContent.trim();
-    }
-    const firstLine = shortDescElement.textContent?.trim().split("\n")[0].trim();
-    return firstLine;
-  }
-  updateShortDescriptionVisibility() {
-    const shortDescElement = this.card.querySelector(
-      '[slot="short-description"]'
-    );
-    if (!shortDescElement) return;
-    const firstElement = shortDescElement.querySelector("strong, b, p");
-    if (!firstElement) return;
-    if (!media_default.isMobile) {
-      firstElement.style.display = "";
-    } else {
-      firstElement.style.display = "none";
-    }
-  }
-  toggleShortDescription() {
-    this.shortDescriptionExpanded = !this.shortDescriptionExpanded;
-    this.card.requestUpdate();
-  }
-  get shortDescriptionToggle() {
-    if (!this.hasShortDescription) return nothing5;
-    if (!media_default.isMobile) {
-      return html11`
-                <div class="short-description-content desktop">
-                    <slot name="short-description"></slot>
-                </div>
-            `;
-    }
-    return html11`
+            </label>`:Nt}get hasShortDescription(){return!!this.card.querySelector('[slot="short-description"]')}get shortDescriptionLabel(){let r=this.card.querySelector('[slot="short-description"]'),e=r.querySelector("strong, b");if(e?.textContent?.trim())return e.textContent.trim();let t=r.querySelector("h1, h2, h3, h4, h5, h6, p");return t?.textContent?.trim()?t.textContent.trim():r.textContent?.trim().split(`
+`)[0].trim()}updateShortDescriptionVisibility(){let r=this.card.querySelector('[slot="short-description"]');if(!r)return;let e=r.querySelector("strong, b, p");e&&(x.isMobile?e.style.display="none":e.style.display="")}toggleShortDescription(){this.shortDescriptionExpanded=!this.shortDescriptionExpanded,this.card.requestUpdate()}get shortDescriptionToggle(){return this.hasShortDescription?x.isMobile?V`
             <div class="short-description-divider"></div>
             <div
-                class="short-description-toggle ${this.shortDescriptionExpanded ? "expanded" : ""}"
+                class="short-description-toggle ${this.shortDescriptionExpanded?"expanded":""}"
                 @click=${this.toggleShortDescription}
             >
                 <span class="toggle-label">${this.shortDescriptionLabel}</span>
                 <span
-                    class="toggle-icon ${this.shortDescriptionExpanded ? "expanded" : ""}"
+                    class="toggle-icon ${this.shortDescriptionExpanded?"expanded":""}"
                 ></span>
             </div>
             <div
-                class="short-description-content ${this.shortDescriptionExpanded ? "expanded" : ""}"
+                class="short-description-content ${this.shortDescriptionExpanded?"expanded":""}"
             >
                 <slot name="short-description"></slot>
             </div>
-        `;
-  }
-  get icons() {
-    return this.card.querySelector('[slot="icons"]') || this.card.getAttribute("id") ? html11`<slot name="icons"></slot>` : nothing5;
-  }
-  get secureLabelFooter() {
-    return html11`<footer>
+        `:V`
+                <div class="short-description-content desktop">
+                    <slot name="short-description"></slot>
+                </div>
+            `:Nt}get icons(){return this.card.querySelector('[slot="icons"]')||this.card.getAttribute("id")?V`<slot name="icons"></slot>`:Nt}get secureLabelFooter(){return V`<footer>
             ${this.secureLabel}<slot name="quantity-select"></slot
             ><slot name="footer"></slot>
-        </footer>`;
-  }
-  connectedCallbackHook() {
-    this.handleMediaChange = () => {
-      this.adaptForMedia();
-      this.updateShortDescriptionVisibility();
-      this.card.requestUpdate();
-      if (window.matchMedia("(min-width: 768px)").matches) {
-        requestAnimationFrame(() => {
-          this.syncHeights();
-        });
-      }
-    };
-    media_default.matchMobile.addEventListener("change", this.handleMediaChange);
-    media_default.matchDesktopOrUp.addEventListener(
-      "change",
-      this.handleMediaChange
-    );
-    this.handleResize = () => {
-      if (this._resizeFrame) cancelAnimationFrame(this._resizeFrame);
-      this._resizeFrame = requestAnimationFrame(() => {
-        this._resizeFrame = null;
-        if (window.matchMedia("(min-width: 768px)").matches) {
-          this.syncHeights();
-        }
-      });
-    };
-    window.addEventListener("resize", this.handleResize);
-    this.visibilityObserver = new IntersectionObserver(([entry]) => {
-      if (entry.boundingClientRect.height === 0) return;
-      if (!entry.isIntersecting) return;
-      if (window.matchMedia("(min-width: 768px)").matches) {
-        requestAnimationFrame(() => {
-          this.syncHeights();
-        });
-      }
-      this.visibilityObserver.disconnect();
-    });
-    this.visibilityObserver.observe(this.card);
-  }
-  disconnectedCallbackHook() {
-    media_default.matchMobile.removeEventListener("change", this.handleMediaChange);
-    media_default.matchDesktopOrUp.removeEventListener(
-      "change",
-      this.handleMediaChange
-    );
-    if (this.handleResize) {
-      window.removeEventListener("resize", this.handleResize);
-      this.handleResize = null;
-    }
-    if (this._resizeFrame) {
-      cancelAnimationFrame(this._resizeFrame);
-      this._resizeFrame = null;
-    }
-    this.visibilityObserver?.disconnect();
-  }
-  renderLayout() {
-    const size = this.card.getAttribute("size");
-    const isWide = size === "wide";
-    return html11` ${this.badge}
+        </footer>`}connectedCallbackHook(){this.handleMediaChange=()=>{this.adaptForMedia(),this.updateShortDescriptionVisibility(),this.card.requestUpdate(),window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()})},x.matchMobile.addEventListener("change",this.handleMediaChange),x.matchDesktopOrUp.addEventListener("change",this.handleMediaChange),this.handleResize=()=>{this._resizeFrame&&cancelAnimationFrame(this._resizeFrame),this._resizeFrame=requestAnimationFrame(()=>{this._resizeFrame=null,window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()})},window.addEventListener("resize",this.handleResize),this.visibilityObserver=new IntersectionObserver(([r])=>{r.boundingClientRect.height!==0&&r.isIntersecting&&(window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()}),this.visibilityObserver.disconnect())}),this.visibilityObserver.observe(this.card)}disconnectedCallbackHook(){x.matchMobile.removeEventListener("change",this.handleMediaChange),x.matchDesktopOrUp.removeEventListener("change",this.handleMediaChange),this.handleResize&&(window.removeEventListener("resize",this.handleResize),this.handleResize=null),this._resizeFrame&&(cancelAnimationFrame(this._resizeFrame),this._resizeFrame=null),this.visibilityObserver?.disconnect()}renderLayout(){let e=this.card.getAttribute("size")==="wide";return V` ${this.badge}
             <div class="body">
-                ${isWide ? html11`
+                ${e?V`
                           <div class="heading-wrapper wide">
                               ${this.icons}
                               <slot name="heading-xs"></slot>
@@ -7324,7 +4592,7 @@ var PlansV2 = class extends VariantLayout {
                           <slot name="badge"></slot>
                           <div class="price-divider"></div>
                           <slot name="heading-m"></slot>
-                      ` : html11`
+                      `:V`
                           <div class="heading-wrapper">
                               ${this.icons}
                               <div class="heading-xs-wrapper">
@@ -7340,10 +4608,7 @@ var PlansV2 = class extends VariantLayout {
                       `}
             </div>
             ${this.secureLabelFooter} ${this.shortDescriptionToggle}
-            <slot></slot>`;
-  }
-};
-__publicField(PlansV2, "variantStyle", css10`
+            <slot></slot>`}};d(J,"variantStyle",sn`
         :host([variant='plans-v2']) {
             display: flex;
             flex-direction: column;
@@ -7832,7 +5097,7 @@ __publicField(PlansV2, "variantStyle", css10`
             margin-right: 0;
         }
 
-        @media ${unsafeCSS4(MOBILE_LANDSCAPE)}, ${unsafeCSS4(TABLET_DOWN)} {
+        @media ${ya(C)}, ${ya(L)} {
             :host([variant='plans-v2']) {
                 --merch-card-plans-v2-padding: 26px 16px;
             }
@@ -7899,70 +5164,7 @@ __publicField(PlansV2, "variantStyle", css10`
             .toggle-label {
             color: #292929;
         }
-    `);
-__publicField(PlansV2, "collectionOptions", {
-  customHeaderArea: (collection) => {
-    if (!collection.sidenav) return nothing5;
-    return html11`<slot name="resultsText"></slot>`;
-  },
-  headerVisibility: {
-    search: false,
-    sort: false,
-    result: ["mobile", "tablet"],
-    custom: ["desktop"]
-  },
-  onSidenavAttached: (collection) => {
-    const minifyOverflowingWideCards = () => {
-      const merchCards = collection.querySelectorAll("merch-card");
-      merchCards.forEach((merchCard) => {
-        if (merchCard.hasAttribute("data-size")) {
-          merchCard.setAttribute(
-            "size",
-            merchCard.getAttribute("data-size")
-          );
-          merchCard.removeAttribute("data-size");
-        }
-      });
-      if (!media_default.isDesktop) return;
-      let columns = 0;
-      merchCards.forEach((merchCard) => {
-        if (merchCard.style.display === "none") return;
-        const size = merchCard.getAttribute("size");
-        let columnCount = size === "wide" ? 2 : size === "super-wide" ? 3 : 1;
-        if (columnCount === 2 && columns % 3 === 2) {
-          merchCard.setAttribute("data-size", size);
-          merchCard.removeAttribute("size");
-          columnCount = 1;
-        }
-        columns += columnCount;
-      });
-    };
-    media_default.matchDesktop.addEventListener(
-      "change",
-      minifyOverflowingWideCards
-    );
-    collection.addEventListener(
-      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
-      minifyOverflowingWideCards
-    );
-    collection.onUnmount.push(() => {
-      media_default.matchDesktop.removeEventListener(
-        "change",
-        minifyOverflowingWideCards
-      );
-      collection.removeEventListener(
-        EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
-        minifyOverflowingWideCards
-      );
-    });
-  }
-});
-
-// src/variants/pro.js
-import { html as html12, css as css11, nothing as nothing6, unsafeCSS as unsafeCSS5 } from "./lit-all.min.js";
-
-// src/variants/pro.css.js
-var CSS8 = `
+    `),d(J,"collectionOptions",{customHeaderArea:r=>r.sidenav?V`<slot name="resultsText"></slot>`:Nt,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:r=>{let e=()=>{let t=r.querySelectorAll("merch-card");if(t.forEach(n=>{n.hasAttribute("data-size")&&(n.setAttribute("size",n.getAttribute("data-size")),n.removeAttribute("data-size"))}),!x.isDesktop)return;let i=0;t.forEach(n=>{if(n.style.display==="none")return;let o=n.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&i%3===2&&(n.setAttribute("data-size",o),n.removeAttribute("size"),s=1),i+=s})};x.matchDesktop.addEventListener("change",e),r.addEventListener(ve,e),r.onUnmount.push(()=>{x.matchDesktop.removeEventListener("change",e),r.removeEventListener(ve,e)})}});import{html as W,css as ln,nothing as ze,unsafeCSS as ot}from"./lit-all.min.js";var Ea=`
 :root {
     --consonant-merch-card-pro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
     --consonant-merch-card-pro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;
@@ -8173,7 +5375,7 @@ merch-card[variant="pro"][size='edu'] [slot="heading-xs"] {
     line-height: 20px;
 }
 
-@media screen and ${C2_DESKTOP_UP} {
+@media screen and ${Ke} {
     merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
         font-size: 36px;
         line-height: 32px;
@@ -8613,14 +5815,14 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 .container.one-merch-card {
     padding-inline: var(--grid-padding);
 }
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
     merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         max-width: 720px;
     }
 }
 
-@media screen and ${C2_DESKTOP_UP} {
+@media screen and ${Ke} {
     merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         max-width: 1192px;
@@ -8646,7 +5848,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
     /* Mobile (320\u2013767px): the default track caps cards at 394px, leaving side
        margins wider than the 24px gutter. Collapse to a single 1fr track and
        drop the card cap so cards fill the available width. */
@@ -8670,550 +5872,25 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-`;
-
-// src/focus.js
-var [ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, ENTER, TAB] = [
-  "ArrowLeft",
-  "ArrowRight",
-  "ArrowUp",
-  "ArrowDown",
-  "Enter",
-  "Tab"
-];
-
-// src/variants/pro.js
-var VARIANT = "pro";
-var TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
-var SYNCED_BANDS = [
-  {
-    prop: `--consonant-merch-card-${VARIANT}-mnemonic-height`,
-    selector: ".mnemonic"
-  },
-  {
-    prop: `--consonant-merch-card-${VARIANT}-name-description-height`,
-    selector: ".name-description"
-  }
-];
-var STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
-var STRIKE_SELECTOR = '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
-var SYNC_MIN_WIDTH = "(min-width: 768px)";
-var PRO_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  subtitle: { tag: "p", slot: "subtitle" },
-  title: { tag: "h3", slot: "heading-xs" },
-  description: { tag: "div", slot: "body-xs" },
-  mnemonics: { size: "s" },
-  size: ["wide", "edu"],
-  prices: { tag: "p", slot: "heading-m" },
-  promoText: { tag: "p", slot: "promo-text" },
-  perUnitLabel: { tag: "span", slot: "per-unit-label" },
-  callout: {
-    tag: "div",
-    slot: "callout-content",
-    editorLabel: "License callout"
-  },
-  quantitySelect: { tag: "div", slot: "quantity-select" },
-  shortDescription: { tag: "div", slot: "legal-text" },
-  secureLabel: true,
-  planType: true,
-  addon: true,
-  ctas: { slot: "footer", size: "m" },
-  whatsIncluded: { tag: "div", slot: "whats-included" },
-  eduDisclaimer: { tag: "div", slot: "edu-disclaimer" },
-  backgroundColor: {
-    attribute: "background-color",
-    editorLabel: "Theme",
-    specialValues: { Light: "light", Dark: "dark" }
-  },
-  borderColor: {
-    attribute: "border-color",
-    specialValues: { Black: "black" },
-    // editor: only Default + Black, and disabled when Theme = Dark
-    hideTransparent: true,
-    disableWhenBackgroundColor: "dark"
-  },
-  allowedBorderColors: [],
-  style: "consonant"
-};
-var _licenseDocListenerBound, _sizeObserver, _onPriceResolved, _onModalQuantityChange, _Pro_instances, rowCards_fn, removeLicenseDocListener_fn, currentLicenseIndex_fn, openLicensePopover_fn, closeLicensePopover_fn, _handleLicenseKeydown;
-var _Pro = class _Pro extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __privateAdd(this, _Pro_instances);
-    __publicField(this, "expanded", false);
-    __publicField(this, "licenseOpen", false);
-    __publicField(this, "licenseQty", null);
-    // Active-descendant highlight; focus stays on the trigger (combobox model).
-    __publicField(this, "licenseHighlightedIndex", 0);
-    __privateAdd(this, _licenseDocListenerBound, null);
-    __privateAdd(this, _sizeObserver, null);
-    __privateAdd(this, _onPriceResolved, () => this.resyncOnReflow());
-    __publicField(this, "lastSyncKey", null);
-    __privateAdd(this, _onModalQuantityChange, ({ detail }) => {
-      const next = detail?.quantity == null ? null : String(detail.quantity);
-      if (next == null || next === this.licenseQty) return;
-      if (!this.licenseOptions?.includes(next)) return;
-      this.licenseQty = next;
-      this.card.requestUpdate();
-    });
-    __publicField(this, "toggleExpanded", (e) => {
-      e.preventDefault();
-      const expanded = !this.expanded;
-      for (const card of __privateMethod(this, _Pro_instances, rowCards_fn).call(this)) {
-        const layout = card.variantLayout;
-        if (!(layout instanceof _Pro)) continue;
-        layout.expanded = expanded;
-        card._proExpanded = expanded;
-        card.requestUpdate();
-      }
-    });
-    __publicField(this, "toggleLicensePopover", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (this.licenseOpen) {
-        __privateMethod(this, _Pro_instances, closeLicensePopover_fn).call(this);
-      } else {
-        __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
-      }
-      this.card.requestUpdate();
-    });
-    // Select-only combobox keys (ARIA APG): arrows/Home/End move the
-    // active-descendant highlight, Enter/Space commit, Escape closes, Tab commits
-    // and lets focus advance. Focus stays on the trigger throughout.
-    __privateAdd(this, _handleLicenseKeydown, (e) => {
-      const opts = this.licenseOptions;
-      if (!opts?.length) return;
-      const last = opts.length - 1;
-      switch (e.key) {
-        case ARROW_DOWN:
-          e.preventDefault();
-          if (this.licenseOpen) {
-            this.licenseHighlightedIndex = (this.licenseHighlightedIndex + 1) % opts.length;
-          } else {
-            __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
-          }
-          break;
-        case ARROW_UP:
-          e.preventDefault();
-          if (this.licenseOpen) {
-            this.licenseHighlightedIndex = (this.licenseHighlightedIndex - 1 + opts.length) % opts.length;
-          } else {
-            __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
-          }
-          break;
-        case "Home":
-          if (!this.licenseOpen) return;
-          e.preventDefault();
-          this.licenseHighlightedIndex = 0;
-          break;
-        case "End":
-          if (!this.licenseOpen) return;
-          e.preventDefault();
-          this.licenseHighlightedIndex = last;
-          break;
-        case ENTER:
-        case " ":
-          e.preventDefault();
-          if (this.licenseOpen) {
-            this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
-            return;
-          }
-          __privateMethod(this, _Pro_instances, openLicensePopover_fn).call(this);
-          break;
-        case "Escape":
-          if (!this.licenseOpen) return;
-          e.preventDefault();
-          __privateMethod(this, _Pro_instances, closeLicensePopover_fn).call(this);
-          break;
-        case TAB:
-          if (this.licenseOpen) {
-            this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
-          }
-          return;
-        default:
-          return;
-      }
-      this.card.requestUpdate();
-    });
-    __publicField(this, "selectLicenseQty", (value) => {
-      this.licenseQty = value;
-      this.licenseOpen = false;
-      __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
-      const qs = this.quantitySelectEl;
-      if (qs) {
-        qs.selectedValue = Number(value);
-        qs.dispatchEvent(
-          new CustomEvent(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, {
-            detail: { option: Number(value) },
-            bubbles: true
-          })
-        );
-      }
-      this.card.requestUpdate();
-    });
-    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
-    this.expanded = card._proExpanded ?? false;
-  }
-  getGlobalCSS() {
-    return CSS8;
-  }
-  // Forwards the Show Plan type setting to the legal-template price (which
-  // renders the plan type line). Same pattern as plans/plans-v2.
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-  }
-  // Clones the main price into a legal-template sibling (as plans/plans-v2) so
-  // tax/plan-type render on the clone, off the main price.
-  async adjustLegal() {
-    if (this.legalAdjusted) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const headingPrice = this.mainPrice;
-      if (!headingPrice) return;
-      const legal = headingPrice.cloneNode(true);
-      await headingPrice.onceSettled();
-      if (!headingPrice?.options) return;
-      if (headingPrice.options.displayTax)
-        headingPrice.dataset.displayTax = "false";
-      if (headingPrice.options.displayPlanType)
-        headingPrice.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      legal.dataset.displayPerUnit = "false";
-      headingPrice.parentNode.insertBefore(
-        legal,
-        headingPrice.nextSibling
-      );
-      await legal.onceSettled();
-      if (!this.legalResolvedHandler) {
-        this.legalResolvedHandler = () => this.adjustShortDescription();
-        legal.addEventListener(
-          EVENT_TYPE_RESOLVED,
-          this.legalResolvedHandler
-        );
-      }
-      this.adjustShortDescription();
-    } catch {
-    }
-  }
-  // Authored Short Description replaces the derived plan type wording. Read
-  // [slot="legal-text"] in place (never detached): the shadow has no matching
-  // slot so it won't render, and merch-card swaps in a fresh layout per render.
-  adjustShortDescription() {
-    const text = this.card.querySelector('[slot="legal-text"]')?.textContent?.trim();
-    if (!text) return;
-    const legalPrice = this.card.querySelector(
-      '[slot="heading-m"] [data-template="legal"]'
-    );
-    const planType = legalPrice?.querySelector(".price-plan-type");
-    if (!planType) return;
-    planType.textContent = text;
-    const tax = legalPrice.querySelector(
-      ".price-tax-inclusivity:not(.disabled)"
-    );
-    if (tax?.textContent && !/\s$/.test(tax.textContent)) {
-      tax.textContent += ". ";
-    }
-  }
-  get hasWhatsIncluded() {
-    return !!this.card.querySelector('[slot="whats-included"]');
-  }
-  get hasEduDisclaimer() {
-    return !this.card?.settings?.hideEduDisclaimer;
-  }
-  get whatsIncludedToggleLabel() {
-    return this.card.querySelector('[slot="whats-included"] .whats-included-label')?.textContent.trim() || "See what's included:";
-  }
-  get hasCallout() {
-    return !!this.card.querySelector('[slot="callout-content"]');
-  }
-  get hasQuantitySelect() {
-    const qs = this.quantitySelectEl;
-    if (!qs) return false;
-    return !!qs.getAttribute("title") || parseInt(qs.getAttribute("min"), 10) > 0 || parseInt(qs.getAttribute("step"), 10) > 0;
-  }
-  get hasAddOn() {
-    return !!this.card.querySelector('[slot="addon"]');
-  }
-  get mainPrice() {
-    return this.card.querySelector(
-      `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-  }
-  // Push the selected license quantity onto the main price so WCS re-prices
-  // (volume promo). Mirrors mini-compare-chart — the card previously only
-  // dispatched the event for checkout-link wiring, leaving the price at qty 1.
-  updatePriceQuantity({ detail }) {
-    if (!this.mainPrice || !detail?.option) return;
-    this.mainPrice.dataset.quantity = detail.option;
-  }
-  async adjustAddon() {
-    await this.card.updateComplete;
-    const addon = this.card.addon;
-    if (!addon) return;
-    addon.setAttribute("custom-checkbox", "");
-    const price = this.mainPrice;
-    if (!price) return;
-    await price.onceSettled?.();
-    const planType = price.value?.[0]?.planType;
-    if (planType) addon.planType = planType;
-  }
-  async postCardUpdateHook() {
-    this.adjustEduWhatsIncluded();
-    await this.adjustAddon();
-    if (!this.legalAdjusted) {
-      await this.adjustLegal();
-    }
-    this.adjustShortDescription();
-    await super.postCardUpdateHook();
-    if (window.matchMedia("(min-width: 768px)").matches) this.syncHeights();
-  }
-  // pro/edu only: the authored whats-included leading paragraph is the panel
-  // title; promote it and inject the server-resolved (already localized)
-  // sub-label + disclaimer strings published on the card's `placeholders` map
-  // (settings.js -> replace transformer -> here). Idempotent via the
-  // `.whats-included-title` guard so re-renders don't double-apply.
-  adjustEduWhatsIncluded() {
-    if (this.card.size !== "edu") return;
-    const slot = this.card.querySelector('[slot="whats-included"]');
-    if (!slot || slot.querySelector(".whats-included-title")) return;
-    const authoredTitle = slot.querySelector(".whats-included-label");
-    if (!authoredTitle) return;
-    const title = document.createElement("h4");
-    title.className = "whats-included-title";
-    title.innerHTML = authoredTitle.innerHTML;
-    authoredTitle.replaceWith(title);
-    const { whatsIncludedLabel, eduDisclaimer } = this.card.placeholders ?? {};
-    const label = document.createElement("p");
-    label.className = "whats-included-label";
-    label.textContent = whatsIncludedLabel ?? "";
-    title.after(label);
-    slot.querySelectorAll(".section h4:not(.whats-included-title)").forEach(
-      (h4) => {
-        const row = document.createElement("p");
-        row.innerHTML = h4.innerHTML;
-        h4.replaceWith(row);
-      }
-    );
-    if (eduDisclaimer) {
-      const disclaimer = document.createElement("div");
-      disclaimer.className = "whats-included-disclaimer";
-      disclaimer.innerHTML = eduDisclaimer;
-      slot.append(disclaimer);
-    }
-  }
-  // Heading/description reflow when the Adobe Clean fonts load, so wait for
-  // them before measuring. Same shape as full-pricing-express.waitForTitleFont.
-  async waitForContentFonts() {
-    const els = [
-      this.card.querySelector('[slot="heading-xs"]'),
-      this.card.querySelector('[slot="body-xs"]')
-    ].filter(Boolean);
-    if (document.fonts?.load) {
-      await Promise.all(
-        els.map((el) => {
-          const s = window.getComputedStyle(el);
-          const font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
-          return document.fonts.load(font, el.textContent).catch(() => null);
-        })
-      );
-    }
-    await document.fonts?.ready;
-  }
-  // Publish each row's tallest white-card height as min-height so prices/CTAs
-  // line up. Group by offsetTop, not rect.top: the tab entrance animation
-  // transforms the painted tops mid-flight, which would split a row.
-  async syncHeights() {
-    if (this.card.heightSync === false) {
-      this.clearSyncedHeights(this.card);
-      return;
-    }
-    await this.waitForContentFonts();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    const container = this.getContainer();
-    if (!container || this.card.getBoundingClientRect().width <= 2) return;
-    const variant = this.card.variant;
-    const prop = TOP_CARD_HEIGHT_PROP;
-    const cards = [
-      ...container.querySelectorAll(`merch-card[variant="${variant}"]`)
-    ].filter(
-      (card) => card.getBoundingClientRect().width > 2 && card.variantLayout?.card?.heightSync !== false
-    );
-    if (!window.matchMedia(SYNC_MIN_WIDTH).matches) {
-      cards.forEach((card) => this.clearSyncedHeights(card));
-      return;
-    }
-    const rows = /* @__PURE__ */ new Map();
-    for (const card of cards) {
-      const row = rows.get(card.offsetTop) ?? [];
-      row.push(card);
-      rows.set(card.offsetTop, row);
-    }
-    const maxHeight = (row, getElement) => row.reduce((max, card) => {
-      const el = getElement(card);
-      return el ? Math.max(max, parseInt(getComputedStyle(el).height) || 0) : max;
-    }, 0);
-    for (const row of rows.values()) {
-      row.forEach((card) => this.clearSyncedHeights(card));
-      if (row.length < 2) continue;
-      const strikes = row.map(
-        (card) => card.querySelector(STRIKE_SELECTOR) ? parseInt(
-          getComputedStyle(card.querySelector(STRIKE_SELECTOR)).height
-        ) || 0 : 0
-      );
-      const tallestStrike = Math.max(0, ...strikes);
-      if (tallestStrike > 0)
-        row.forEach((card, i) => {
-          const shortfall = tallestStrike - strikes[i];
-          if (shortfall > 0)
-            card.style.setProperty(
-              STRIKE_RESERVE_PROP,
-              `${shortfall}px`
-            );
-        });
-      for (const band of SYNCED_BANDS) {
-        const max2 = maxHeight(
-          row,
-          (card) => card.shadowRoot?.querySelector(band.selector)
-        );
-        if (max2 > 0)
-          row.forEach(
-            (card) => card.style.setProperty(band.prop, `${max2}px`)
-          );
-      }
-      const max = maxHeight(
-        row,
-        (card) => card.shadowRoot?.querySelector(".top-card")
-      );
-      if (max > 0)
-        row.forEach((card) => card.style.setProperty(prop, `${max}px`));
-    }
-  }
-  clearSyncedHeights(card) {
-    card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
-    card.style.removeProperty(STRIKE_RESERVE_PROP);
-    SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
-  }
-  // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
-  // A late price resolution adds the struck and legal rows after the first pass.
-  resyncOnReflow() {
-    const width = this.card.getBoundingClientRect().width;
-    if (width <= 2) return;
-    const height = (selector, root = this.card) => Math.round(
-      root?.querySelector(selector)?.getBoundingClientRect().height || 0
-    );
-    const key = [
-      Math.round(width),
-      height('[slot="body-xs"]'),
-      height(STRIKE_SELECTOR),
-      height('[slot="heading-m"] span[is="inline-price"]'),
-      height(
-        '[slot="heading-m"] :is(.price-legal, [data-template="legal"])'
-      ),
-      height(".license-zone", this.card.shadowRoot),
-      height(".add-on", this.card.shadowRoot)
-    ].join(":");
-    if (key === this.lastSyncKey) return;
-    this.lastSyncKey = key;
-    this.syncHeights();
-  }
-  connectedCallbackHook() {
-    if (!this.card) return;
-    this.card.addEventListener(
-      EVENT_MERCH_CARD_QUANTITY_CHANGE,
-      __privateGet(this, _onModalQuantityChange)
-    );
-    this.card.addEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    this.card.addEventListener(EVENT_TYPE_RESOLVED, __privateGet(this, _onPriceResolved));
-    if (typeof ResizeObserver === "undefined") return;
-    __privateSet(this, _sizeObserver, new ResizeObserver(() => this.resyncOnReflow()));
-    __privateGet(this, _sizeObserver).observe(this.card);
-    const desc = this.card.querySelector('[slot="body-xs"]');
-    if (desc) __privateGet(this, _sizeObserver).observe(desc);
-  }
-  disconnectedCallbackHook() {
-    this.card?.removeEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    this.card?.removeEventListener(
-      EVENT_TYPE_RESOLVED,
-      __privateGet(this, _onPriceResolved)
-    );
-    __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
-    __privateGet(this, _sizeObserver)?.disconnect();
-    this.card?.removeEventListener(
-      EVENT_MERCH_CARD_QUANTITY_CHANGE,
-      __privateGet(this, _onModalQuantityChange)
-    );
-  }
-  get quantitySelectEl() {
-    return this.card.querySelector("merch-quantity-select");
-  }
-  get licenseOptions() {
-    const qs = this.quantitySelectEl;
-    if (!qs) return null;
-    const min = parseInt(qs.getAttribute("min"), 10);
-    const max = parseInt(qs.getAttribute("max"), 10);
-    const step = parseInt(qs.getAttribute("step"), 10) || 1;
-    if (Number.isNaN(min) || Number.isNaN(max) || max < min || step < 1)
-      return null;
-    const opts = [];
-    for (let v = min; v <= max; v += step) opts.push(String(v));
-    return opts;
-  }
-  // Plural label from the authored "singular|plural" title (two dictionary
-  // placeholders, resolved per locale). No "|" → unchanged for every quantity;
-  // pluralization is never derived in code (appending "s" breaks most locales).
-  licenseLabel(count) {
-    const title = this.quantitySelectEl?.getAttribute("title") || "License";
-    const [singular, plural] = title.split("|").map((s) => s.trim());
-    return Number(count) === 1 ? singular : plural || singular;
-  }
-  get hasLicenseSelector() {
-    return (this.licenseOptions?.length ?? 0) > 0;
-  }
-  get currentLicenseValue() {
-    const opts = this.licenseOptions;
-    if (!opts?.length) return null;
-    if (this.licenseQty != null) return this.licenseQty;
-    const def = this.quantitySelectEl?.getAttribute("default-value");
-    return def != null && opts.includes(def) ? def : opts[0];
-  }
-  renderLicenseSelector() {
-    if (!this.hasLicenseSelector) {
-      return html12`<slot name="quantity-select"></slot>`;
-    }
-    const opts = this.licenseOptions;
-    const current = this.currentLicenseValue;
-    const open = !!this.licenseOpen;
-    const label = this.licenseLabel(Number(current));
-    return html12`
-            <div class="license-select" ?data-open=${open}>
+`;var[Hs,Bs,ka,Ca,Sa,Aa]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var Ft="pro",sr=`--consonant-merch-card-${Ft}-top-card-height`,Dt=[{prop:`--consonant-merch-card-${Ft}-mnemonic-height`,selector:".mnemonic"},{prop:`--consonant-merch-card-${Ft}-name-description-height`,selector:".name-description"}],Ta=`--consonant-merch-card-${Ft}-strike-reserve`,lr='[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])',dn="(min-width: 768px)",La={cardName:{attribute:"name"},subtitle:{tag:"p",slot:"subtitle"},title:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"s"},size:["wide","edu"],prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},perUnitLabel:{tag:"span",slot:"per-unit-label"},callout:{tag:"div",slot:"callout-content",editorLabel:"License callout"},quantitySelect:{tag:"div",slot:"quantity-select"},shortDescription:{tag:"div",slot:"legal-text"},secureLabel:!0,planType:!0,addon:!0,ctas:{slot:"footer",size:"m"},whatsIncluded:{tag:"div",slot:"whats-included"},eduDisclaimer:{tag:"div",slot:"edu-disclaimer"},backgroundColor:{attribute:"background-color",editorLabel:"Theme",specialValues:{Light:"light",Dark:"dark"}},borderColor:{attribute:"border-color",specialValues:{Black:"black"},hideTransparent:!0,disableWhenBackgroundColor:"dark"},allowedBorderColors:[],style:"consonant"},Y,le,dt,ht,P,za,ct,Pa,st,dr,$t,It=class It extends f{constructor(e){super(e);v(this,P);d(this,"expanded",!1);d(this,"licenseOpen",!1);d(this,"licenseQty",null);d(this,"licenseHighlightedIndex",0);v(this,Y,null);v(this,le,null);v(this,dt,()=>this.resyncOnReflow());d(this,"lastSyncKey",null);v(this,ht,({detail:e})=>{let t=e?.quantity==null?null:String(e.quantity);t==null||t===this.licenseQty||this.licenseOptions?.includes(t)&&(this.licenseQty=t,this.card.requestUpdate())});d(this,"toggleExpanded",e=>{e.preventDefault();let t=!this.expanded;for(let i of k(this,P,za).call(this)){let n=i.variantLayout;n instanceof It&&(n.expanded=t,i._proExpanded=t,i.requestUpdate())}});d(this,"toggleLicensePopover",e=>{e.preventDefault(),e.stopPropagation(),this.licenseOpen?k(this,P,dr).call(this):k(this,P,st).call(this),this.card.requestUpdate()});v(this,$t,e=>{let t=this.licenseOptions;if(!t?.length)return;let i=t.length-1;switch(e.key){case Ca:e.preventDefault(),this.licenseOpen?this.licenseHighlightedIndex=(this.licenseHighlightedIndex+1)%t.length:k(this,P,st).call(this);break;case ka:e.preventDefault(),this.licenseOpen?this.licenseHighlightedIndex=(this.licenseHighlightedIndex-1+t.length)%t.length:k(this,P,st).call(this);break;case"Home":if(!this.licenseOpen)return;e.preventDefault(),this.licenseHighlightedIndex=0;break;case"End":if(!this.licenseOpen)return;e.preventDefault(),this.licenseHighlightedIndex=i;break;case Sa:case" ":if(e.preventDefault(),this.licenseOpen){this.selectLicenseQty(t[this.licenseHighlightedIndex]);return}k(this,P,st).call(this);break;case"Escape":if(!this.licenseOpen)return;e.preventDefault(),k(this,P,dr).call(this);break;case Aa:this.licenseOpen&&this.selectLicenseQty(t[this.licenseHighlightedIndex]);return;default:return}this.card.requestUpdate()});d(this,"selectLicenseQty",e=>{this.licenseQty=e,this.licenseOpen=!1,k(this,P,ct).call(this);let t=this.quantitySelectEl;t&&(t.selectedValue=Number(e),t.dispatchEvent(new CustomEvent(R,{detail:{option:Number(e)},bubbles:!0}))),this.card.requestUpdate()});this.updatePriceQuantity=this.updatePriceQuantity.bind(this),this.expanded=e._proExpanded??!1}getGlobalCSS(){return Ea}priceOptionsProvider(e,t){e.dataset.template===_&&(t.displayPlanType=this.card?.settings?.displayPlanType??!1)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.mainPrice;if(!e)return;let t=e.cloneNode(!0);if(await e.onceSettled(),!e?.options)return;e.options.displayTax&&(e.dataset.displayTax="false"),e.options.displayPlanType&&(e.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),t.dataset.displayPerUnit="false",e.parentNode.insertBefore(t,e.nextSibling),await t.onceSettled(),this.legalResolvedHandler||(this.legalResolvedHandler=()=>this.adjustShortDescription(),t.addEventListener(D,this.legalResolvedHandler)),this.adjustShortDescription()}catch{}}adjustShortDescription(){let e=this.card.querySelector('[slot="legal-text"]')?.textContent?.trim();if(!e)return;let t=this.card.querySelector('[slot="heading-m"] [data-template="legal"]'),i=t?.querySelector(".price-plan-type");if(!i)return;i.textContent=e;let n=t.querySelector(".price-tax-inclusivity:not(.disabled)");n?.textContent&&!/\s$/.test(n.textContent)&&(n.textContent+=". ")}get hasWhatsIncluded(){return!!this.card.querySelector('[slot="whats-included"]')}get hasEduDisclaimer(){return!this.card?.settings?.hideEduDisclaimer}get whatsIncludedToggleLabel(){return this.card.querySelector('[slot="whats-included"] .whats-included-label')?.textContent.trim()||"See what's included:"}get hasCallout(){return!!this.card.querySelector('[slot="callout-content"]')}get hasQuantitySelect(){let e=this.quantitySelectEl;return e?!!e.getAttribute("title")||parseInt(e.getAttribute("min"),10)>0||parseInt(e.getAttribute("step"),10)>0:!1}get hasAddOn(){return!!this.card.querySelector('[slot="addon"]')}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${y}[data-template="price"]`)}updatePriceQuantity({detail:e}){!this.mainPrice||!e?.option||(this.mainPrice.dataset.quantity=e.option)}async adjustAddon(){await this.card.updateComplete;let e=this.card.addon;if(!e)return;e.setAttribute("custom-checkbox","");let t=this.mainPrice;if(!t)return;await t.onceSettled?.();let i=t.value?.[0]?.planType;i&&(e.planType=i)}async postCardUpdateHook(){this.adjustEduWhatsIncluded(),await this.adjustAddon(),this.legalAdjusted||await this.adjustLegal(),this.adjustShortDescription(),await super.postCardUpdateHook(),window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()}adjustEduWhatsIncluded(){if(this.card.size!=="edu")return;let e=this.card.querySelector('[slot="whats-included"]');if(!e||e.querySelector(".whats-included-title"))return;let t=e.querySelector(".whats-included-label");if(!t)return;let i=document.createElement("h4");i.className="whats-included-title",i.innerHTML=t.innerHTML,t.replaceWith(i);let{whatsIncludedLabel:n,eduDisclaimer:o}=this.card.placeholders??{},s=document.createElement("p");if(s.className="whats-included-label",s.textContent=n??"",i.after(s),e.querySelectorAll(".section h4:not(.whats-included-title)").forEach(c=>{let l=document.createElement("p");l.innerHTML=c.innerHTML,c.replaceWith(l)}),o){let c=document.createElement("div");c.className="whats-included-disclaimer",c.innerHTML=o,e.append(c)}}async waitForContentFonts(){let e=[this.card.querySelector('[slot="heading-xs"]'),this.card.querySelector('[slot="body-xs"]')].filter(Boolean);document.fonts?.load&&await Promise.all(e.map(t=>{let i=window.getComputedStyle(t),n=`${i.fontWeight} ${i.fontSize} ${i.fontFamily}`;return document.fonts.load(n,t.textContent).catch(()=>null)})),await document.fonts?.ready}async syncHeights(){if(this.card.heightSync===!1){this.clearSyncedHeights(this.card);return}await this.waitForContentFonts(),await new Promise(c=>requestAnimationFrame(c)),await new Promise(c=>requestAnimationFrame(c));let e=this.getContainer();if(!e||this.card.getBoundingClientRect().width<=2)return;let t=this.card.variant,i=sr,n=[...e.querySelectorAll(`merch-card[variant="${t}"]`)].filter(c=>c.getBoundingClientRect().width>2&&c.variantLayout?.card?.heightSync!==!1);if(!window.matchMedia(dn).matches){n.forEach(c=>this.clearSyncedHeights(c));return}let o=new Map;for(let c of n){let l=o.get(c.offsetTop)??[];l.push(c),o.set(c.offsetTop,l)}let s=(c,l)=>c.reduce((h,m)=>{let g=l(m);return g?Math.max(h,parseInt(getComputedStyle(g).height)||0):h},0);for(let c of o.values()){if(c.forEach(g=>this.clearSyncedHeights(g)),c.length<2)continue;let l=c.map(g=>g.querySelector(lr)&&parseInt(getComputedStyle(g.querySelector(lr)).height)||0),h=Math.max(0,...l);h>0&&c.forEach((g,E)=>{let A=h-l[E];A>0&&g.style.setProperty(Ta,`${A}px`)});for(let g of Dt){let E=s(c,A=>A.shadowRoot?.querySelector(g.selector));E>0&&c.forEach(A=>A.style.setProperty(g.prop,`${E}px`))}let m=s(c,g=>g.shadowRoot?.querySelector(".top-card"));m>0&&c.forEach(g=>g.style.setProperty(i,`${m}px`))}}clearSyncedHeights(e){e.style.removeProperty(sr),e.style.removeProperty(Ta),Dt.forEach(t=>e.style.removeProperty(t.prop))}resyncOnReflow(){let e=this.card.getBoundingClientRect().width;if(e<=2)return;let t=(n,o=this.card)=>Math.round(o?.querySelector(n)?.getBoundingClientRect().height||0),i=[Math.round(e),t('[slot="body-xs"]'),t(lr),t('[slot="heading-m"] span[is="inline-price"]'),t('[slot="heading-m"] :is(.price-legal, [data-template="legal"])'),t(".license-zone",this.card.shadowRoot),t(".add-on",this.card.shadowRoot)].join(":");i!==this.lastSyncKey&&(this.lastSyncKey=i,this.syncHeights())}connectedCallbackHook(){if(!this.card||(this.card.addEventListener(Qe,p(this,ht)),this.card.addEventListener(R,this.updatePriceQuantity),this.card.addEventListener(D,p(this,dt)),typeof ResizeObserver>"u"))return;u(this,le,new ResizeObserver(()=>this.resyncOnReflow())),p(this,le).observe(this.card);let e=this.card.querySelector('[slot="body-xs"]');e&&p(this,le).observe(e)}disconnectedCallbackHook(){this.card?.removeEventListener(R,this.updatePriceQuantity),this.card?.removeEventListener(D,p(this,dt)),k(this,P,ct).call(this),p(this,le)?.disconnect(),this.card?.removeEventListener(Qe,p(this,ht))}get quantitySelectEl(){return this.card.querySelector("merch-quantity-select")}get licenseOptions(){let e=this.quantitySelectEl;if(!e)return null;let t=parseInt(e.getAttribute("min"),10),i=parseInt(e.getAttribute("max"),10),n=parseInt(e.getAttribute("step"),10)||1;if(Number.isNaN(t)||Number.isNaN(i)||i<t||n<1)return null;let o=[];for(let s=t;s<=i;s+=n)o.push(String(s));return o}licenseLabel(e){let t=this.quantitySelectEl?.getAttribute("title")||"License",[i,n]=t.split("|").map(o=>o.trim());return Number(e)===1?i:n||i}get hasLicenseSelector(){return(this.licenseOptions?.length??0)>0}get currentLicenseValue(){let e=this.licenseOptions;if(!e?.length)return null;if(this.licenseQty!=null)return this.licenseQty;let t=this.quantitySelectEl?.getAttribute("default-value");return t!=null&&e.includes(t)?t:e[0]}renderLicenseSelector(){if(!this.hasLicenseSelector)return W`<slot name="quantity-select"></slot>`;let e=this.licenseOptions,t=this.currentLicenseValue,i=!!this.licenseOpen,n=this.licenseLabel(Number(t));return W`
+            <div class="license-select" ?data-open=${i}>
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
-                    aria-expanded=${open ? "true" : "false"}
+                    aria-expanded=${i?"true":"false"}
                     aria-controls="license-popover"
                     aria-labelledby="license-select-label"
-                    aria-activedescendant=${open ? `license-option-${this.licenseHighlightedIndex}` : nothing6}
+                    aria-activedescendant=${i?`license-option-${this.licenseHighlightedIndex}`:ze}
                     @click=${this.toggleLicensePopover}
-                    @keydown=${__privateGet(this, _handleLicenseKeydown)}
+                    @keydown=${p(this,$t)}
                 >
                     <span class="license-select-trigger-text">
-                        <span class="license-select-value">${current}</span>
+                        <span class="license-select-value">${t}</span>
                         <span
                             class="license-select-label"
                             id="license-select-label"
-                            >${label}</span
+                            >${n}</span
                         >
                     </span>
                     <span
@@ -9228,7 +5905,7 @@ var _Pro = class _Pro extends VariantLayout {
                     aria-labelledby="license-select-label"
                     aria-multiselectable="false"
                     tabindex="-1"
-                    ?hidden=${!open}
+                    ?hidden=${!i}
                 >
                     <li
                         class="license-select-popover-header"
@@ -9236,8 +5913,8 @@ var _Pro = class _Pro extends VariantLayout {
                         @click=${this.toggleLicensePopover}
                     >
                         <span class="license-select-trigger-text">
-                            <span class="license-select-value">${current}</span>
-                            <span class="license-select-label">${label}</span>
+                            <span class="license-select-value">${t}</span>
+                            <span class="license-select-label">${n}</span>
                         </span>
                         <span
                             class="license-select-chevron"
@@ -9245,30 +5922,21 @@ var _Pro = class _Pro extends VariantLayout {
                             style="transform: rotate(180deg);"
                         ></span>
                     </li>
-                    ${opts.map(
-      (opt, index) => html12`
+                    ${e.map((o,s)=>W`
                             <li
-                                class="license-select-option ${index === this.licenseHighlightedIndex ? "highlighted" : ""}${opt === current ? " selected" : ""}"
-                                id="license-option-${index}"
+                                class="license-select-option ${s===this.licenseHighlightedIndex?"highlighted":""}${o===t?" selected":""}"
+                                id="license-option-${s}"
                                 role="option"
-                                aria-selected=${opt === current ? "true" : "false"}
-                                @click=${() => this.selectLicenseQty(opt)}
-                                @mouseenter=${() => {
-        this.licenseHighlightedIndex = index;
-        this.card.requestUpdate();
-      }}
+                                aria-selected=${o===t?"true":"false"}
+                                @click=${()=>this.selectLicenseQty(o)}
+                                @mouseenter=${()=>{this.licenseHighlightedIndex=s,this.card.requestUpdate()}}
                             >
-                                ${opt}
+                                ${o}
                             </li>
-                        `
-    )}
+                        `)}
                 </ul>
             </div>
-        `;
-  }
-  renderLayout() {
-    const expanded = !!this.expanded;
-    return html12`
+        `}renderLayout(){let e=!!this.expanded;return W`
             <div class="top-card">
                 <div class="mnemonic">
                     <slot name="icons"></slot>
@@ -9285,25 +5953,25 @@ var _Pro = class _Pro extends VariantLayout {
                     </div>
                     <slot name="promo-text"></slot>
                 </div>
-                ${this.hasLicenseSelector || this.hasCallout || this.hasQuantitySelect ? html12`<div class="license-zone">
+                ${this.hasLicenseSelector||this.hasCallout||this.hasQuantitySelect?W`<div class="license-zone">
                           ${this.renderLicenseSelector()}
-                          ${this.hasCallout ? html12`<div class="callout">
+                          ${this.hasCallout?W`<div class="callout">
                                     <slot name="callout-content"></slot>
-                                </div>` : nothing6}
-                      </div>` : nothing6}
-                ${this.hasAddOn ? html12`<div class="add-on">
+                                </div>`:ze}
+                      </div>`:ze}
+                ${this.hasAddOn?W`<div class="add-on">
                           <slot name="addon"></slot>
-                      </div>` : nothing6}
+                      </div>`:ze}
                 <footer>
                     <slot name="footer"></slot>
                 </footer>
                 ${this.secureLabel}
             </div>
-            ${this.hasWhatsIncluded ? html12`
+            ${this.hasWhatsIncluded?W`
                       <button
                           class="whats-included-toggle"
                           type="button"
-                          aria-expanded=${expanded ? "true" : "false"}
+                          aria-expanded=${e?"true":"false"}
                           aria-controls="features-zone"
                           @click=${this.toggleExpanded}
                       >
@@ -9318,71 +5986,16 @@ var _Pro = class _Pro extends VariantLayout {
                       <div
                           id="features-zone"
                           class="features-zone"
-                          ?hidden=${!expanded}
+                          ?hidden=${!e}
                       >
                           <slot name="whats-included"></slot>
                       </div>
-                  ` : nothing6}
-            ${this.hasEduDisclaimer ? html12`<div class="edu-disclaimer">
+                  `:ze}
+            ${this.hasEduDisclaimer?W`<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
-                  </div>` : nothing6}
+                  </div>`:ze}
             <slot></slot>
-        `;
-  }
-};
-_licenseDocListenerBound = new WeakMap();
-_sizeObserver = new WeakMap();
-_onPriceResolved = new WeakMap();
-_onModalQuantityChange = new WeakMap();
-_Pro_instances = new WeakSet();
-// Cards sharing this card's row (same offsetTop, as syncHeights groups them);
-// stacked single-column cards land on different rows and stay independent.
-rowCards_fn = function() {
-  const top = this.card.offsetTop;
-  const cards = Array.from(
-    this.getContainer()?.querySelectorAll(
-      `merch-card[variant="${this.card.variant}"]`
-    ) ?? []
-  ).filter(
-    (card) => card.getBoundingClientRect().width > 2 && card.offsetTop === top
-  );
-  return cards.length ? cards : [this.card];
-};
-removeLicenseDocListener_fn = function() {
-  if (!__privateGet(this, _licenseDocListenerBound)) return;
-  document.removeEventListener(
-    "mousedown",
-    __privateGet(this, _licenseDocListenerBound)
-  );
-  __privateSet(this, _licenseDocListenerBound, null);
-};
-currentLicenseIndex_fn = function() {
-  const idx = this.licenseOptions?.indexOf(this.currentLicenseValue);
-  return idx > 0 ? idx : 0;
-};
-openLicensePopover_fn = function() {
-  this.licenseOpen = true;
-  this.licenseHighlightedIndex = __privateMethod(this, _Pro_instances, currentLicenseIndex_fn).call(this);
-  if (!__privateGet(this, _licenseDocListenerBound)) {
-    __privateSet(this, _licenseDocListenerBound, (evt) => {
-      if (!evt.composedPath().includes(this.card)) {
-        this.licenseOpen = false;
-        this.card.requestUpdate();
-        __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
-      }
-    });
-    document.addEventListener(
-      "mousedown",
-      __privateGet(this, _licenseDocListenerBound)
-    );
-  }
-};
-closeLicensePopover_fn = function() {
-  this.licenseOpen = false;
-  __privateMethod(this, _Pro_instances, removeLicenseDocListener_fn).call(this);
-};
-_handleLicenseKeydown = new WeakMap();
-__publicField(_Pro, "variantStyle", css11`
+        `}};Y=new WeakMap,le=new WeakMap,dt=new WeakMap,ht=new WeakMap,P=new WeakSet,za=function(){let e=this.card.offsetTop,t=Array.from(this.getContainer()?.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)??[]).filter(i=>i.getBoundingClientRect().width>2&&i.offsetTop===e);return t.length?t:[this.card]},ct=function(){p(this,Y)&&(document.removeEventListener("mousedown",p(this,Y)),u(this,Y,null))},Pa=function(){let e=this.licenseOptions?.indexOf(this.currentLicenseValue);return e>0?e:0},st=function(){this.licenseOpen=!0,this.licenseHighlightedIndex=k(this,P,Pa).call(this),p(this,Y)||(u(this,Y,e=>{e.composedPath().includes(this.card)||(this.licenseOpen=!1,this.card.requestUpdate(),k(this,P,ct).call(this))}),document.addEventListener("mousedown",p(this,Y)))},dr=function(){this.licenseOpen=!1,k(this,P,ct).call(this)},$t=new WeakMap,d(It,"variantStyle",ln`
         :host([variant='pro']) {
             display: flex;
             flex-direction: column;
@@ -9451,14 +6064,14 @@ __publicField(_Pro, "variantStyle", css11`
                publishes the row's max .top-card height here as min-height so
                shorter cards match; content-box, so the height maps straight. */
             flex: 0 0 auto;
-            min-height: var(${unsafeCSS5(TOP_CARD_HEIGHT_PROP)}, auto);
+            min-height: var(${ot(sr)}, auto);
         }
 
         :host([variant='pro']) .mnemonic {
             display: flex;
             align-items: center;
             gap: 12px;
-            min-height: var(${unsafeCSS5(SYNCED_BANDS[0].prop)}, auto);
+            min-height: var(${ot(Dt[0].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='icons']) {
@@ -9484,7 +6097,7 @@ __publicField(_Pro, "variantStyle", css11`
             /* Hold the row's tallest description so the price starts at the same
                height everywhere. The slack goes to the footer margin, not here. */
             flex: 0 0 auto;
-            min-height: var(${unsafeCSS5(SYNCED_BANDS[1].prop)}, auto);
+            min-height: var(${ot(Dt[1].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='heading-xs']) {
@@ -9874,7 +6487,7 @@ __publicField(_Pro, "variantStyle", css11`
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
-        @media screen and ${unsafeCSS5(C2_DESKTOP_UP)} {
+        @media screen and ${ot(Ke)} {
             :host([variant='pro']) .whats-included-toggle {
                 display: none;
             }
@@ -9897,7 +6510,7 @@ __publicField(_Pro, "variantStyle", css11`
             margin: unset;
         }
 
-        @media screen and ${unsafeCSS5(TABLET_UP)} {
+        @media screen and ${ot(w)} {
             :host([variant='pro'][size='edu']) {
                 flex-direction: row;
                 gap: 8px;
@@ -9927,14 +6540,7 @@ __publicField(_Pro, "variantStyle", css11`
                 flex: 0 0 auto;
             }
         }
-    `);
-var Pro = _Pro;
-
-// src/variants/product.js
-import { html as html13, css as css12 } from "./lit-all.min.js";
-
-// src/variants/product.css.js
-var CSS9 = `
+    `);var lt=It;import{html as hr,css as hn}from"./lit-all.min.js";var _a=`
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -10062,7 +6668,7 @@ merch-card-collection.product merch-card {
 }
 
 /* Tablet */
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
     .two-merch-cards.product,
     .three-merch-cards.product,
     .four-merch-cards.product,
@@ -10074,7 +6680,7 @@ merch-card-collection.product merch-card {
 }
 
 /* desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   :root {
     --consonant-merch-card-product-width: 378px;
   }
@@ -10163,7 +6769,7 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
     display: block;
 }
 
-@media screen and ${TABLET_DOWN} {
+@media screen and ${L} {
     merch-card[variant="product"] .merch-short-description {
         display: inline-block;
     }
@@ -10192,94 +6798,15 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
     }
 }
 
-`;
-
-// src/variants/product.js
-var PRODUCT_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  prices: { tag: "p", slot: "heading-xs" },
-  promoText: { tag: "p", slot: "promo-text" },
-  description: { tag: "div", slot: "body-xs" },
-  shortDescription: { tag: "div", slot: "short-description" },
-  mnemonics: { size: "l" },
-  callout: { tag: "div", slot: "callout-content" },
-  quantitySelect: { tag: "div", slot: "quantity-select" },
-  secureLabel: true,
-  planType: true,
-  addon: true,
-  addonBackground: true,
-  badgeIcon: true,
-  badge: {
-    tag: "div",
-    slot: "badge",
-    default: "color-yellow-300-variation"
-  },
-  allowedBadgeColors: [
-    "color-yellow-300-variation",
-    "color-gray-300-variation",
-    "color-gray-700-variation",
-    "color-green-900-variation",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "color-yellow-300-variation",
-    "color-gray-300-variation",
-    "color-green-900-variation",
-    "gradient-purple-blue"
-  ],
-  borderColor: { attribute: "border-color" },
-  whatsIncluded: { tag: "div", slot: "whats-included" },
-  ctas: { slot: "footer", size: "m" },
-  style: "consonant",
-  perUnitLabel: { tag: "span", slot: "per-unit-label" }
-};
-var _resizeFrame2;
-var Product = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __privateAdd(this, _resizeFrame2);
-    this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
-    this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
-  }
-  getGlobalCSS() {
-    return CSS9;
-  }
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
-      options.displayPerUnit = false;
-    }
-  }
-  adjustProductBodySlots() {
-    if (this.card.getBoundingClientRect().width === 0) return;
-    const slots = [
-      "heading-xs",
-      "body-xxs",
-      "body-xs",
-      "promo-text",
-      "callout-content",
-      "addon",
-      "body-lower"
-    ];
-    slots.forEach(
-      (slot) => this.updateCardElementMinHeight(
-        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
-        slot
-      )
-    );
-  }
-  renderLayout() {
-    return html13` ${this.badge}
+`;var Ma={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},shortDescription:{tag:"div",slot:"short-description"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},secureLabel:!0,planType:!0,addon:!0,addonBackground:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"color-yellow-300-variation"},allowedBadgeColors:["color-yellow-300-variation","color-gray-300-variation","color-gray-700-variation","color-green-900-variation","gradient-purple-blue"],allowedBorderColors:["color-yellow-300-variation","color-gray-300-variation","color-green-900-variation","gradient-purple-blue"],borderColor:{attribute:"border-color"},whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},U,Pe=class extends f{constructor(e){super(e);v(this,U);this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return _a}priceOptionsProvider(e,t){e.dataset.template===_&&(t.displayPlanType=this.card?.settings?.displayPlanType??!1,(e.dataset.template==="strikethrough"||e.dataset.template==="price")&&(t.displayPerUnit=!1))}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(t=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${t}"]`),t))}renderLayout(){return hr` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
-                ${!this.promoBottom ? html13`<slot name="promo-text"></slot>` : ""}
+                ${this.promoBottom?"":hr`<slot name="promo-text"></slot>`}
                 <slot name="body-xs"></slot>
                 <slot name="short-description"></slot>
                 <slot name="addon"></slot>
-                ${this.promoBottom ? html13`<slot name="promo-text"></slot>` : ""}
+                ${this.promoBottom?hr`<slot name="promo-text"></slot>`:""}
                 <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="quantity-select"></slot>
@@ -10287,185 +6814,7 @@ var Product = class extends VariantLayout {
                 <slot name="badge"></slot>
             </div>
             <hr />
-            ${this.secureLabelFooter}`;
-  }
-  connectedCallbackHook() {
-    this.handleResize = () => {
-      if (__privateGet(this, _resizeFrame2)) cancelAnimationFrame(__privateGet(this, _resizeFrame2));
-      __privateSet(this, _resizeFrame2, requestAnimationFrame(() => {
-        __privateSet(this, _resizeFrame2, null);
-        this.postCardUpdateHook();
-      }));
-    };
-    this.adjustShortDescriptionBound = this.adjustShortDescription.bind(this);
-    window.addEventListener("resize", this.handleResize);
-    this.card.addEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    this.card.addEventListener(
-      EVENT_MAS_READY,
-      this.adjustShortDescriptionBound
-    );
-  }
-  disconnectedCallbackHook() {
-    if (this.handleResize) {
-      window.removeEventListener("resize", this.handleResize);
-      this.handleResize = null;
-    }
-    if (__privateGet(this, _resizeFrame2)) {
-      cancelAnimationFrame(__privateGet(this, _resizeFrame2));
-      __privateSet(this, _resizeFrame2, null);
-    }
-    this.card.removeEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.updatePriceQuantity
-    );
-    this.card.removeEventListener(
-      EVENT_MAS_READY,
-      this.adjustShortDescriptionBound
-    );
-  }
-  adjustShortDescription() {
-    const shortDescEl = this.card.querySelector(
-      '[slot="short-description"]'
-    );
-    if (!shortDescEl?.textContent?.trim()) return;
-    const legalPrice = this.card.querySelector(
-      'span[data-template="legal"]'
-    );
-    if (!legalPrice) return;
-    this.card.querySelector(".merch-short-description")?.remove();
-    const span = document.createElement("span");
-    span.className = "merch-short-description";
-    span.innerHTML = shortDescEl.innerHTML;
-    span.querySelectorAll("p").forEach(
-      (p) => p.replaceWith(...p.childNodes)
-    );
-    span.querySelectorAll(".icon-button").forEach((btn) => {
-      if (btn.dataset.eventsWired) return;
-      btn.dataset.eventsWired = "1";
-      ["mouseenter", "focus"].forEach(
-        (evt) => btn.addEventListener(
-          evt,
-          () => btn.classList.add("tooltip-visible")
-        )
-      );
-      ["mouseleave", "blur"].forEach(
-        (evt) => btn.addEventListener(
-          evt,
-          () => btn.classList.remove("tooltip-visible")
-        )
-      );
-      btn.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") btn.classList.remove("tooltip-visible");
-      });
-    });
-    legalPrice.after(span);
-    shortDescEl.hidden = true;
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    this.adjustAddon();
-    if (!media_default.isMobile) {
-      this.adjustProductBodySlots();
-    }
-    if (!this.legalAdjusted) {
-      await this.adjustLegal();
-    }
-    await super.postCardUpdateHook();
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted || !this.card.id) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const headingPrice = this.mainPrice;
-      if (!headingPrice) return;
-      const legal = headingPrice.cloneNode(true);
-      await headingPrice.onceSettled();
-      if (!headingPrice?.options) return;
-      if (headingPrice.options.displayTax)
-        headingPrice.dataset.displayTax = "false";
-      if (headingPrice.options.displayPlanType)
-        headingPrice.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      legal.dataset.displayPerUnit = "false";
-      if (headingPrice.dataset.template === "optical") {
-        legal.dataset.displayPlanType = "false";
-      }
-      headingPrice.closest('[slot="heading-xs"]').appendChild(legal);
-      await legal.onceSettled();
-    } catch {
-    }
-  }
-  get headingXSSlot() {
-    return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0];
-  }
-  get mainPrice() {
-    const slot = `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}`;
-    return this.card.querySelector(
-      `${slot}[data-template="price"], ${slot}[data-template="optical"]`
-    );
-  }
-  updatePriceQuantity({ detail }) {
-    if (!this.mainPrice || !detail?.option) return;
-    this.mainPrice.dataset.quantity = detail.option;
-  }
-  toggleAddon(merchAddon) {
-    const mainPrice = this.mainPrice;
-    const headingXSSlot = this.headingXSSlot;
-    if (!mainPrice && headingXSSlot) {
-      const planType = merchAddon?.getAttribute("plan-type");
-      let visibleSpan = null;
-      if (merchAddon && planType) {
-        const matchingP = merchAddon.querySelector(
-          `p[data-plan-type="${planType}"]`
-        );
-        visibleSpan = matchingP?.querySelector(
-          'span[is="inline-price"]'
-        );
-      }
-      this.card.querySelectorAll('p[slot="heading-xs"]').forEach((p) => p.remove());
-      if (merchAddon.checked) {
-        if (visibleSpan) {
-          const replacementP = createTag(
-            "p",
-            {
-              class: "addon-heading-xs-price-addon",
-              slot: "heading-xs"
-            },
-            visibleSpan.innerHTML
-          );
-          this.card.appendChild(replacementP);
-        }
-      } else {
-        const freeP = createTag(
-          "p",
-          { class: "card-heading", id: "free", slot: "heading-xs" },
-          "Free"
-        );
-        this.card.appendChild(freeP);
-      }
-    }
-  }
-  async adjustAddon() {
-    await this.card.updateComplete;
-    const addon = this.card.addon;
-    if (!addon) return;
-    const price = this.mainPrice;
-    let planType = this.card.planType;
-    if (price) {
-      await price.onceSettled?.();
-      planType = price.value?.[0]?.planType;
-    }
-    if (!planType) return;
-    addon.planType = planType;
-  }
-};
-_resizeFrame2 = new WeakMap();
-__publicField(Product, "variantStyle", css12`
+            ${this.secureLabelFooter}`}connectedCallbackHook(){this.handleResize=()=>{p(this,U)&&cancelAnimationFrame(p(this,U)),u(this,U,requestAnimationFrame(()=>{u(this,U,null),this.postCardUpdateHook()}))},this.adjustShortDescriptionBound=this.adjustShortDescription.bind(this),window.addEventListener("resize",this.handleResize),this.card.addEventListener(R,this.updatePriceQuantity),this.card.addEventListener(ie,this.adjustShortDescriptionBound)}disconnectedCallbackHook(){this.handleResize&&(window.removeEventListener("resize",this.handleResize),this.handleResize=null),p(this,U)&&(cancelAnimationFrame(p(this,U)),u(this,U,null)),this.card.removeEventListener(R,this.updatePriceQuantity),this.card.removeEventListener(ie,this.adjustShortDescriptionBound)}adjustShortDescription(){let e=this.card.querySelector('[slot="short-description"]');if(!e?.textContent?.trim())return;let t=this.card.querySelector('span[data-template="legal"]');if(!t)return;this.card.querySelector(".merch-short-description")?.remove();let i=document.createElement("span");i.className="merch-short-description",i.innerHTML=e.innerHTML,i.querySelectorAll("p").forEach(n=>n.replaceWith(...n.childNodes)),i.querySelectorAll(".icon-button").forEach(n=>{n.dataset.eventsWired||(n.dataset.eventsWired="1",["mouseenter","focus"].forEach(o=>n.addEventListener(o,()=>n.classList.add("tooltip-visible"))),["mouseleave","blur"].forEach(o=>n.addEventListener(o,()=>n.classList.remove("tooltip-visible"))),n.addEventListener("keydown",o=>{o.key==="Escape"&&n.classList.remove("tooltip-visible")}))}),t.after(i),e.hidden=!0}async postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),x.isMobile||this.adjustProductBodySlots(),this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.mainPrice;if(!e)return;let t=e.cloneNode(!0);if(await e.onceSettled(),!e?.options)return;e.options.displayTax&&(e.dataset.displayTax="false"),e.options.displayPlanType&&(e.dataset.displayPlanType="false"),t.setAttribute("data-template","legal"),t.dataset.displayPerUnit="false",e.dataset.template==="optical"&&(t.dataset.displayPlanType="false"),e.closest('[slot="heading-xs"]').appendChild(t),await t.onceSettled()}catch{}}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){let e=`[slot="heading-xs"] ${y}`;return this.card.querySelector(`${e}[data-template="price"], ${e}[data-template="optical"]`)}updatePriceQuantity({detail:e}){!this.mainPrice||!e?.option||(this.mainPrice.dataset.quantity=e.option)}toggleAddon(e){let t=this.mainPrice,i=this.headingXSSlot;if(!t&&i){let n=e?.getAttribute("plan-type"),o=null;if(e&&n&&(o=e.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(s=>s.remove()),e.checked){if(o){let s=z("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},o.innerHTML);this.card.appendChild(s)}}else{let s=z("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let e=this.card.addon;if(!e)return;let t=this.mainPrice,i=this.card.planType;t&&(await t.onceSettled?.(),i=t.value?.[0]?.planType),i&&(e.planType=i)}};U=new WeakMap,d(Pe,"variantStyle",hn`
         :host([variant='product']) {
             background:
                 linear-gradient(white, white) padding-box,
@@ -10517,13 +6866,7 @@ __publicField(Product, "variantStyle", css12`
             color: rgb(80, 80, 80);
             line-height: var(--consonant-merch-card-detail-xs-line-height);
         }
-    `);
-
-// src/variants/brand-concierge-product.js
-import { html as html14, css as css13 } from "./lit-all.min.js";
-
-// src/variants/brand-concierge-product.css.js
-var CSS10 = `
+    `);import{html as pn,css as mn}from"./lit-all.min.js";var Ra=`
 merch-card[variant="brand-concierge-product"] {
     width: 100%;
     min-width: 248px;
@@ -10602,67 +6945,7 @@ merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--
 merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--secondary {
     color: inherit;
 }
-`;
-
-// src/variants/brand-concierge-product.js
-var BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  mnemonics: { size: "l" },
-  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-plans",
-    "spectrum-gray-300-plans",
-    "spectrum-gray-700-plans",
-    "spectrum-green-900-plans",
-    "gradient-purple-blue"
-  ],
-  title: { tag: "h3", slot: "heading-s" },
-  prices: { tag: "p", slot: "heading-xs" },
-  planType: true,
-  promoText: { tag: "p", slot: "promo-text" },
-  description: { tag: "div", slot: "body-xs" },
-  ctas: { slot: "footer", size: "m" },
-  style: "consonant"
-};
-var BrandConciergeProduct = class extends VariantLayout {
-  getGlobalCSS() {
-    return CSS10;
-  }
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted || !this.card.id) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const price = this.card.querySelector(
-        `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-      );
-      if (!price) return;
-      const legal = price.cloneNode(true);
-      await price.onceSettled();
-      if (!price.options) return;
-      if (price.options.displayPerUnit)
-        price.dataset.displayPerUnit = "false";
-      if (price.options.displayTax) price.dataset.displayTax = "false";
-      if (price.options.displayPlanType)
-        price.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      price.parentNode.insertBefore(legal, price.nextSibling);
-      await legal.onceSettled();
-    } catch {
-    }
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    if (!this.legalAdjusted) await this.adjustLegal();
-    await super.postCardUpdateHook();
-  }
-  renderLayout() {
-    return html14` ${this.badge}
+`;var Oa={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},planType:!0,promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},_e=class extends f{getGlobalCSS(){return Ra}priceOptionsProvider(r,e){r.dataset.template===_&&(e.displayPlanType=this.card?.settings?.displayPlanType??!1)}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.card.querySelector(`[slot="heading-xs"] ${y}[data-template="price"]`);if(!r)return;let e=r.cloneNode(!0);if(await r.onceSettled(),!r.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),r.parentNode.insertBefore(e,r.nextSibling),await e.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}renderLayout(){return pn` ${this.badge}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="badge"></slot>
@@ -10672,10 +6955,7 @@ var BrandConciergeProduct = class extends VariantLayout {
                 <slot name="body-xs"></slot>
             </div>
             <footer><slot name="footer"></slot></footer>
-            <slot></slot>`;
-  }
-};
-__publicField(BrandConciergeProduct, "variantStyle", css13`
+            <slot></slot>`}};d(_e,"variantStyle",mn`
         :host([variant='brand-concierge-product']) {
             font-weight: 400;
             background:
@@ -10693,13 +6973,7 @@ __publicField(BrandConciergeProduct, "variantStyle", css13`
             padding: 0px 16px 16px;
             gap: 8px;
         }
-    `);
-
-// src/variants/segment.js
-import { html as html15, css as css14 } from "./lit-all.min.js";
-
-// src/variants/segment.css.js
-var CSS11 = `
+    `);import{html as pr,css as gn}from"./lit-all.min.js";var Na=`
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -10756,13 +7030,13 @@ merch-card[variant="segment"] {
 }
 
 /* Mobile */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
 }
 
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -10778,7 +7052,7 @@ merch-card[variant="segment"] {
 }
 
 /* desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -10842,113 +7116,21 @@ merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;
 }
-`;
-
-// src/variants/segment.js
-var SEGMENT_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  prices: { tag: "p", slot: "heading-xs" },
-  promoText: { tag: "p", slot: "promo-text" },
-  description: { tag: "div", slot: "body-xs" },
-  callout: { tag: "div", slot: "callout-content" },
-  planType: true,
-  secureLabel: true,
-  badgeIcon: true,
-  badge: { tag: "div", slot: "badge", default: "color-red-700-variation" },
-  allowedBadgeColors: [
-    "color-yellow-300-variation",
-    "color-gray-300-variation",
-    "color-gray-700-variation",
-    "color-green-900-variation",
-    "color-red-700-variation",
-    "gradient-purple-blue"
-  ],
-  allowedBorderColors: [
-    "color-yellow-300-variation",
-    "color-gray-300-variation",
-    "color-green-900-variation",
-    "color-red-700-variation",
-    "gradient-purple-blue"
-  ],
-  borderColor: { attribute: "border-color" },
-  ctas: { slot: "footer", size: "m" },
-  style: "consonant",
-  perUnitLabel: { tag: "span", slot: "per-unit-label" }
-};
-var Segment = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  priceOptionsProvider(element, options) {
-    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-    if (element.dataset.template === "strikethrough" || element.dataset.template === "price") {
-      options.displayPerUnit = false;
-    }
-  }
-  getGlobalCSS() {
-    return CSS11;
-  }
-  get badgeElement() {
-    return this.card.querySelector('[slot="badge"]');
-  }
-  get mainPrice() {
-    return this.card.querySelector(
-      `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-  }
-  async postCardUpdateHook() {
-    if (!this.legalAdjusted) {
-      await this.adjustLegal();
-    }
-    await super.postCardUpdateHook();
-  }
-  async adjustLegal() {
-    if (this.legalAdjusted || !this.card.id) return;
-    try {
-      this.legalAdjusted = true;
-      await this.card.updateComplete;
-      await customElements.whenDefined("inline-price");
-      const headingPrice = this.mainPrice;
-      if (!headingPrice) return;
-      const legal = headingPrice.cloneNode(true);
-      await headingPrice.onceSettled();
-      if (!headingPrice?.options) return;
-      if (headingPrice.options.displayPerUnit)
-        headingPrice.dataset.displayPerUnit = "false";
-      if (headingPrice.options.displayTax)
-        headingPrice.dataset.displayTax = "false";
-      if (headingPrice.options.displayPlanType)
-        headingPrice.dataset.displayPlanType = "false";
-      legal.setAttribute("data-template", "legal");
-      headingPrice.parentNode.insertBefore(
-        legal,
-        headingPrice.nextSibling
-      );
-      await legal.onceSettled();
-    } catch {
-    }
-  }
-  renderLayout() {
-    return html15`
+`;var Da={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},planType:!0,secureLabel:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"color-red-700-variation"},allowedBadgeColors:["color-yellow-300-variation","color-gray-300-variation","color-gray-700-variation","color-green-900-variation","color-red-700-variation","gradient-purple-blue"],allowedBorderColors:["color-yellow-300-variation","color-gray-300-variation","color-green-900-variation","color-red-700-variation","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Me=class extends f{constructor(r){super(r)}priceOptionsProvider(r,e){r.dataset.template===_&&(e.displayPlanType=this.card?.settings?.displayPlanType??!1,(r.dataset.template==="strikethrough"||r.dataset.template==="price")&&(e.displayPerUnit=!1))}getGlobalCSS(){return Na}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${y}[data-template="price"]`)}async postCardUpdateHook(){this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook()}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let r=this.mainPrice;if(!r)return;let e=r.cloneNode(!0);if(await r.onceSettled(),!r?.options)return;r.options.displayPerUnit&&(r.dataset.displayPerUnit="false"),r.options.displayTax&&(r.dataset.displayTax="false"),r.options.displayPlanType&&(r.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),r.parentNode.insertBefore(e,r.nextSibling),await e.onceSettled()}catch{}}renderLayout(){return pr`
             ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${!this.promoBottom ? html15`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>` : ""}
+                ${this.promoBottom?"":pr`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom ? html15`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>` : ""}
+                ${this.promoBottom?pr`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`:""}
                 <slot name="badge"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}
-        `;
-  }
-};
-__publicField(Segment, "variantStyle", css14`
+        `}};d(Me,"variantStyle",gn`
         :host([variant='segment']) {
             min-height: 214px;
             background:
@@ -10959,13 +7141,7 @@ __publicField(Segment, "variantStyle", css14`
         :host([variant='segment']) ::slotted(h3[slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);
-
-// src/variants/media.js
-import { html as html16, css as css15 } from "./lit-all.min.js";
-
-// src/variants/media.css.js
-var CSS12 = `
+    `);import{html as un,css as fn}from"./lit-all.min.js";var Fa=`
 
     merch-card[variant='media'] {
         border: 0;
@@ -11078,35 +7254,7 @@ var CSS12 = `
         width: 700px;
     }
 
-`;
-
-// src/variants/media.js
-var MEDIA_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "h3", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "body-xxs" },
-  description: { tag: "div", slot: "body-xs" },
-  ctas: { slot: "footer", size: "m" },
-  backgroundImage: { tag: "div", slot: "bg-image" },
-  style: "consonant"
-};
-var Media2 = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS12;
-  }
-  removeFocusFromModalClose() {
-    const modal = this.card.closest(".dialog-modal");
-    if (modal) modal.querySelector(".dialog-close")?.blur();
-  }
-  async postCardUpdateHook() {
-    this.removeFocusFromModalClose();
-    await super.postCardUpdateHook();
-  }
-  renderLayout() {
-    return html16`
+`;var $a={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},backgroundImage:{tag:"div",slot:"bg-image"},style:"consonant"},Re=class extends f{constructor(r){super(r)}getGlobalCSS(){return Fa}removeFocusFromModalClose(){let r=this.card.closest(".dialog-modal");r&&r.querySelector(".dialog-close")?.blur()}async postCardUpdateHook(){this.removeFocusFromModalClose(),await super.postCardUpdateHook()}renderLayout(){return un`
             <div class="media-row">
                 <div class="text">
                     <slot name="body-xxs"></slot>
@@ -11118,10 +7266,7 @@ var Media2 = class extends VariantLayout {
                     <slot name="bg-image"></slot>
                 </div>
             </div>
-        `;
-  }
-};
-__publicField(Media2, "variantStyle", css15`
+        `}};d(Re,"variantStyle",fn`
         :host([variant='media']) .media-row {
             display: flex;
             gap: 24px;
@@ -11150,13 +7295,7 @@ __publicField(Media2, "variantStyle", css15`
                 gap: 40px;
             }
         }
-    `);
-
-// src/variants/special-offer.js
-import { html as html17, css as css16 } from "./lit-all.min.js";
-
-// src/variants/special-offer.css.js
-var CSS13 = `
+    `);import{html as mr,css as vn}from"./lit-all.min.js";var Ia=`
 :root {
   --consonant-merch-card-special-offers-width: 302px;
 	--merch-card-collection-card-width: var(--consonant-merch-card-special-offers-width);
@@ -11210,13 +7349,13 @@ merch-card[variant="special-offers"] .price-plan-type {
   display: contents;
 }
 
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
 }
 
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
@@ -11232,7 +7371,7 @@ merch-card[variant="special-offers"] .price-plan-type {
 }
 
 /* desktop */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers,
   .three-merch-cards:has(merch-card[variant="special-offers"]),
@@ -11241,76 +7380,13 @@ merch-card[variant="special-offers"] .price-plan-type {
   }
 }
 
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
   .four-merch-cards.special-offers,
   .four-merch-cards:has(merch-card[variant="special-offers"]) {
     grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;
-
-// src/variants/special-offer.js
-var SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  backgroundImage: { tag: "div", slot: "bg-image" },
-  subtitle: { tag: "p", slot: "detail-m" },
-  title: { tag: "h3", slot: "heading-xs" },
-  prices: { tag: "p", slot: "heading-xs-price" },
-  description: { tag: "div", slot: "body-xs" },
-  ctas: { slot: "footer", size: "l" },
-  planType: true,
-  badgeIcon: true,
-  badge: {
-    tag: "div",
-    slot: "badge",
-    default: "spectrum-yellow-300-special-offers"
-  },
-  allowedBadgeColors: [
-    "spectrum-yellow-300-special-offers",
-    "spectrum-gray-300-special-offers",
-    "spectrum-green-900-special-offers"
-  ],
-  allowedBorderColors: [
-    "spectrum-yellow-300-special-offers",
-    "spectrum-gray-300-special-offers",
-    "spectrum-green-900-special-offers"
-  ],
-  borderColor: { attribute: "border-color" }
-};
-var SpecialOffer = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __publicField(this, "legal");
-  }
-  get headingSelector() {
-    return '[slot="detail-m"]';
-  }
-  getGlobalCSS() {
-    return CSS13;
-  }
-  priceOptionsProvider(element, options) {
-    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
-  }
-  async postCardUpdateHook() {
-    await super.postCardUpdateHook();
-    this.adjustLegal();
-  }
-  adjustLegal() {
-    if (this.legal !== void 0) return;
-    const price = this.card.querySelector(
-      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-    if (!price) return;
-    const legal = price.cloneNode(true);
-    this.legal = legal;
-    price.dataset.displayPlanType = "false";
-    legal.dataset.template = "legal";
-    legal.dataset.displayPerUnit = "false";
-    legal.setAttribute("slot", "legal");
-    this.card.appendChild(legal);
-  }
-  renderLayout() {
-    return html17`${this.cardImage}
+`;var Ha={cardName:{attribute:"name"},backgroundImage:{tag:"div",slot:"bg-image"},subtitle:{tag:"p",slot:"detail-m"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs-price"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"},planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-special-offers"},allowedBadgeColors:["spectrum-yellow-300-special-offers","spectrum-gray-300-special-offers","spectrum-green-900-special-offers"],allowedBorderColors:["spectrum-yellow-300-special-offers","spectrum-gray-300-special-offers","spectrum-green-900-special-offers"],borderColor:{attribute:"border-color"}},Oe=class extends f{constructor(e){super(e);d(this,"legal")}get headingSelector(){return'[slot="detail-m"]'}getGlobalCSS(){return Ia}priceOptionsProvider(e,t){t.displayPlanType=this.card?.settings?.displayPlanType??!1}async postCardUpdateHook(){await super.postCardUpdateHook(),this.adjustLegal()}adjustLegal(){if(this.legal!==void 0)return;let e=this.card.querySelector(`${y}[data-template="price"]`);if(!e)return;let t=e.cloneNode(!0);this.legal=t,e.dataset.displayPlanType="false",t.dataset.template="legal",t.dataset.displayPerUnit="false",t.setAttribute("slot","legal"),this.card.appendChild(t)}renderLayout(){return mr`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
@@ -11319,21 +7395,18 @@ var SpecialOffer = class extends VariantLayout {
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>
-            ${this.evergreen ? html17`
+            ${this.evergreen?mr`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card["detailBg"]}"
+                          style="background: ${this.card.detailBg}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  ` : html17`
+                  `:mr`
                       <hr />
                       ${this.secureLabelFooter}
                   `}
-            <slot></slot>`;
-  }
-};
-__publicField(SpecialOffer, "variantStyle", css16`
+            <slot></slot>`}};d(Oe,"variantStyle",vn`
         :host([variant='special-offers']) {
             min-height: 439px;
             background:
@@ -11367,13 +7440,7 @@ __publicField(SpecialOffer, "variantStyle", css16`
         ) {
             border-color: var(--spectrum-green-900-special-offers);
         }
-    `);
-
-// src/variants/simplified-pricing-express.js
-import { html as html18, css as css17, nothing as nothing7 } from "./lit-all.min.js";
-
-// src/variants/simplified-pricing-express.css.js
-var CSS14 = `
+    `);import{html as qa,css as bn}from"./lit-all.min.js";var Ba=`
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -11417,7 +7484,7 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
 }
 
 /* Desktop - 3 columns */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
     merch-card-collection.simplified-pricing-express {
         grid-template-columns: repeat(3, 1fr);
         max-width: calc(3 * var(--merch-card-simplified-pricing-express-width) + 32px);
@@ -11664,7 +7731,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Fix leftmost tooltip cutoff on mobile */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:first-child mas-mnemonic:first-child {
     --tooltip-left-offset: 0;
   }
@@ -11673,7 +7740,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 /* Tooltip containers - overflow handled by Shadow DOM */
 
 /* Mobile styles */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   .collection-container.simplified-pricing-express {
     grid-template-columns: 1fr;
     width: 100%;
@@ -11715,7 +7782,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Collapse/expand styles for mobile only */
-@media screen and ${MOBILE_LANDSCAPE} {
+@media screen and ${C} {
   /* Base transition for smooth animation */
   merch-card[variant="simplified-pricing-express"] {
     transition: max-height 0.5s ease-out;
@@ -11769,7 +7836,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Tablet styles - responsive full width with padding */
-@media screen and ${TABLET_UP} and ${TABLET_DOWN} {
+@media screen and ${w} and ${L} {
   .collection-container.simplified-pricing-express {
     display: block;
     width: 100%;
@@ -11807,7 +7874,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
 }
 
 /* Small font size button styles for desktop when button text is too long */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
   merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
   merch-card[variant="simplified-pricing-express"] [slot="cta"] button.small-font-size-button,
   merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
@@ -11816,220 +7883,20 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
       font-size: var(--merch-card-simplified-pricing-express-body-xs-font-size, 14px);
   }
 }
-`;
-
-// src/variants/simplified-pricing-express.js
-var SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
-  title: {
-    tag: "h3",
-    slot: "heading-xs",
-    maxCount: 250,
-    withSuffix: true
-  },
-  badge: {
-    tag: "div",
-    slot: "badge",
-    default: "spectrum-blue-400"
-  },
-  allowedBadgeColors: [
-    "spectrum-blue-400",
-    "spectrum-gray-300",
-    "spectrum-yellow-300",
-    "gradient-purple-blue",
-    "gradient-firefly-spectrum"
-  ],
-  description: {
-    tag: "div",
-    slot: "body-xs",
-    maxCount: 2e3,
-    withSuffix: false
-  },
-  prices: {
-    tag: "div",
-    slot: "price"
-  },
-  callout: {
-    tag: "div",
-    slot: "callout-content",
-    editorLabel: "Price description"
-  },
-  ctas: {
-    slot: "cta",
-    size: "XL"
-  },
-  borderColor: {
-    attribute: "border-color",
-    specialValues: {
-      gray: "var(--spectrum-gray-300)",
-      blue: "var(--spectrum-blue-400)",
-      "gradient-purple-blue": "linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)",
-      "gradient-firefly-spectrum": "linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"
-    }
-  },
-  disabledAttributes: [
-    "badgeColor",
-    "badgeBorderColor",
-    "trialBadgeColor",
-    "trialBadgeBorderColor"
-  ],
-  supportsDefaultChild: true
-};
-var SimplifiedPricingExpress = class extends VariantLayout {
-  getGlobalCSS() {
-    return CSS14;
-  }
-  get aemFragmentMapping() {
-    return SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING;
-  }
-  get headingSelector() {
-    return '[slot="heading-xs"]';
-  }
-  get badge() {
-    const badgeElement = this.card.querySelector('[slot="badge"]');
-    return html18`<div
+`;var gr={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},callout:{tag:"div",slot:"callout-content",editorLabel:"Price description"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},Ne=class extends f{getGlobalCSS(){return Ba}get aemFragmentMapping(){return gr}get headingSelector(){return'[slot="heading-xs"]'}get badge(){let r=this.card.querySelector('[slot="badge"]');return qa`<div
             class="badge-wrapper"
-            style="${badgeElement ? "" : "visibility: hidden"}"
+            style="${r?"":"visibility: hidden"}"
         >
             <slot name="badge"></slot>
-        </div>`;
-  }
-  syncHeights() {
-    if (this.card.getBoundingClientRect().width === 0) {
-      return;
-    }
-    const shadow = this.card.shadowRoot;
-    if (!shadow) return;
-    ["header", "price-container", "cta"].forEach(
-      (className) => this.updateCardElementMinHeight(
-        shadow.querySelector(`.${className}`),
-        className
-      )
-    );
-    const descriptionSlot = this.card.querySelector('[slot="body-xs"]');
-    if (descriptionSlot) {
-      this.updateCardElementMinHeight(descriptionSlot, "description");
-    }
-    const iconRow = this.card.querySelector(
-      '[slot="body-xs"] p:has(mas-mnemonic)'
-    );
-    if (iconRow) {
-      this.updateCardElementMinHeight(iconRow, "icons");
-    }
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    await super.postCardUpdateHook();
-    const container = this.getContainer();
-    if (!container) return;
-    const cards = container.querySelectorAll(
-      `merch-card[variant="${this.card.variant}"]`
-    );
-    const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
-    cards.forEach((card) => {
-      card.classList.remove("small-font-size-button");
-      const ctas = card.querySelectorAll(
-        '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]'
-      );
-      ctas.forEach((cta) => {
-        const isLong = cta.textContent.trim().length > CTA_LONG_TEXT_CHAR_THRESHOLD;
-        cta.classList.toggle("small-font-size-button", isLong);
-      });
-    });
-    if (media_default.isDesktopOrUp) {
-      cards.forEach((card) => card.variantLayout?.syncHeights?.());
-    }
-  }
-  connectedCallbackHook() {
-    if (!this.card || this.card.failed) {
-      return;
-    }
-    this.setupAccordion();
-    if (this.card?.hasAttribute("data-default-card") && !isDesktop()) {
-      this.card.setAttribute("data-expanded", "true");
-    }
-    this.observeVisibility();
-  }
-  resyncSiblings() {
-    const container = this.getContainer();
-    if (!container) return;
-    container.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach((card) => card.variantLayout?.syncHeights?.());
-  }
-  observeVisibility() {
-    if (typeof ResizeObserver === "undefined") return;
-    this.lastSyncedWidth = 0;
-    this.sizeObserver = new ResizeObserver(() => {
-      const width = this.card.getBoundingClientRect().width;
-      if (width <= 2 || width === this.lastSyncedWidth) return;
-      this.lastSyncedWidth = width;
-      this.resyncSiblings();
-    });
-    this.sizeObserver.observe(this.card);
-  }
-  setupAccordion() {
-    const merchCard = this.card;
-    if (!merchCard) {
-      return;
-    }
-    const updateExpandedState = () => {
-      if (!isDesktop()) {
-        const isDefaultCard = merchCard.hasAttribute("data-default-card");
-        merchCard.setAttribute(
-          "data-expanded",
-          isDefaultCard ? "true" : "false"
-        );
-      } else {
-        merchCard.removeAttribute("data-expanded");
-      }
-    };
-    updateExpandedState();
-    const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
-    this.mediaQueryListener = () => {
-      updateExpandedState();
-    };
-    mediaQuery.addEventListener("change", this.mediaQueryListener);
-  }
-  disconnectedCallbackHook() {
-    if (this.mediaQueryListener) {
-      const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
-      mediaQuery.removeEventListener("change", this.mediaQueryListener);
-    }
-    this.sizeObserver?.disconnect();
-    this.sizeObserver = null;
-  }
-  handleChevronClick(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    this.toggleExpanded();
-  }
-  handleCardClick(e) {
-    if (e.target.closest(
-      '.chevron-button, mas-mnemonic, button, a, [role="button"]'
-    )) {
-      return;
-    }
-    e.preventDefault();
-    this.toggleExpanded();
-  }
-  toggleExpanded() {
-    const merchCard = this.card;
-    if (!merchCard || isDesktop()) {
-      return;
-    }
-    const currentExpanded = merchCard.getAttribute("data-expanded");
-    const isExpanded = currentExpanded === "true";
-    const newExpanded = !isExpanded ? "true" : "false";
-    merchCard.setAttribute("data-expanded", newExpanded);
-  }
-  renderLayout() {
-    return html18`
+        </div>`}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.shadowRoot;if(!r)return;["header","price-container","cta"].forEach(i=>this.updateCardElementMinHeight(r.querySelector(`.${i}`),i));let e=this.card.querySelector('[slot="body-xs"]');e&&this.updateCardElementMinHeight(e,"description");let t=this.card.querySelector('[slot="body-xs"] p:has(mas-mnemonic)');t&&this.updateCardElementMinHeight(t,"icons")}async postCardUpdateHook(){if(!this.card.isConnected)return;await super.postCardUpdateHook();let r=this.getContainer();if(!r)return;let e=r.querySelectorAll(`merch-card[variant="${this.card.variant}"]`),t=34;e.forEach(i=>{i.classList.remove("small-font-size-button"),i.querySelectorAll('[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]').forEach(o=>{let s=o.textContent.trim().length>t;o.classList.toggle("small-font-size-button",s)})}),x.isDesktopOrUp&&e.forEach(i=>i.variantLayout?.syncHeights?.())}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!St()&&this.card.setAttribute("data-expanded","true"),this.observeVisibility())}resyncSiblings(){let r=this.getContainer();r&&r.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(e=>e.variantLayout?.syncHeights?.())}observeVisibility(){typeof ResizeObserver>"u"||(this.lastSyncedWidth=0,this.sizeObserver=new ResizeObserver(()=>{let r=this.card.getBoundingClientRect().width;r<=2||r===this.lastSyncedWidth||(this.lastSyncedWidth=r,this.resyncSiblings())}),this.sizeObserver.observe(this.card))}setupAccordion(){let r=this.card;if(!r)return;let e=()=>{if(St())r.removeAttribute("data-expanded");else{let i=r.hasAttribute("data-default-card");r.setAttribute("data-expanded",i?"true":"false")}};e();let t=window.matchMedia(C);this.mediaQueryListener=()=>{e()},t.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(C).removeEventListener("change",this.mediaQueryListener),this.sizeObserver?.disconnect(),this.sizeObserver=null}handleChevronClick(r){r.preventDefault(),r.stopPropagation(),this.toggleExpanded()}handleCardClick(r){r.target.closest('.chevron-button, mas-mnemonic, button, a, [role="button"]')||(r.preventDefault(),this.toggleExpanded())}toggleExpanded(){let r=this.card;if(!r||St())return;let i=r.getAttribute("data-expanded")==="true"?"false":"true";r.setAttribute("data-expanded",i)}renderLayout(){return qa`
             ${this.badge}
-            <div class="card-content" @click=${(e) => this.handleCardClick(e)}>
+            <div class="card-content" @click=${r=>this.handleCardClick(r)}>
                 <div class="header">
                     <slot name="heading-xs"></slot>
                     <slot name="trial-badge"></slot>
                     <button
                         class="chevron-button"
-                        @click=${(e) => this.handleChevronClick(e)}
+                        @click=${r=>this.handleChevronClick(r)}
                     >
                         <svg
                             class="chevron-icon"
@@ -12058,10 +7925,7 @@ var SimplifiedPricingExpress = class extends VariantLayout {
                 </div>
             </div>
             <slot></slot>
-        `;
-  }
-};
-__publicField(SimplifiedPricingExpress, "variantStyle", css17`
+        `}};d(Ne,"variantStyle",bn`
         :host([variant='simplified-pricing-express']) {
             --merch-card-simplified-pricing-express-width: 365px;
             --merch-card-simplified-pricing-express-padding: 24px;
@@ -12471,13 +8335,7 @@ __publicField(SimplifiedPricingExpress, "variantStyle", css17`
                 max-height: 1000px;
             }
         }
-    `);
-
-// src/variants/full-pricing-express.js
-import { html as html19, css as css18, nothing as nothing8 } from "./lit-all.min.js";
-
-// src/variants/full-pricing-express.css.js
-var CSS15 = `
+    `);import{html as ja,css as xn}from"./lit-all.min.js";var Ua=`
 :root {
     --merch-card-full-pricing-express-width: 378px;
     --merch-card-full-pricing-express-mobile-width: 365px;
@@ -12538,7 +8396,7 @@ merch-card-collection.full-pricing-express {
 }
 
 /* Desktop small - 2 columns */
-@media screen and ${DESKTOP_UP} and (max-width: 1399px) {
+@media screen and ${b} and (max-width: 1399px) {
     merch-card-collection.full-pricing-express {
         grid-template-columns: repeat(2, 1fr);
         max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
@@ -12937,7 +8795,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectr
 }
 
 /* Small font size button styles for desktop when button text is too long */
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
     merch-card[variant="full-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
     merch-card[variant="full-pricing-express"] [slot="cta"] button.small-font-size-button,
     merch-card[variant="full-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
@@ -13116,181 +8974,12 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
         min-height: var(--consonant-merch-card-full-pricing-express-description-row-11-height);
     }
 }
-`;
-
-// src/variants/full-pricing-express.js
-var FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
-  title: {
-    tag: "h3",
-    slot: "heading-xs",
-    maxCount: 250,
-    withSuffix: true
-  },
-  badge: {
-    tag: "div",
-    slot: "badge",
-    default: "spectrum-blue-400"
-  },
-  allowedBadgeColors: [
-    "spectrum-blue-400",
-    "spectrum-gray-300",
-    "spectrum-yellow-300",
-    "gradient-purple-blue",
-    "gradient-firefly-spectrum"
-  ],
-  description: {
-    tag: "div",
-    slot: "body-s",
-    maxCount: 2e3,
-    withSuffix: false
-  },
-  shortDescription: {
-    tag: "div",
-    slot: "short-description",
-    maxCount: 3e3,
-    withSuffix: false
-  },
-  callout: {
-    tag: "div",
-    slot: "callout-content",
-    editorLabel: "Price description"
-  },
-  prices: {
-    tag: "div",
-    slot: "price"
-  },
-  trialBadge: {
-    tag: "div",
-    slot: "trial-badge"
-  },
-  ctas: {
-    slot: "cta",
-    size: "XL"
-  },
-  mnemonics: {
-    size: "xs"
-  },
-  borderColor: {
-    attribute: "border-color",
-    specialValues: {
-      gray: "var(--spectrum-gray-300)",
-      blue: "var(--spectrum-blue-400)",
-      "gradient-purple-blue": "linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)",
-      "gradient-firefly-spectrum": "linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"
-    }
-  },
-  showAllSpectrumColors: true,
-  multiWhatsIncluded: "true",
-  disabledAttributes: []
-};
-var _FullPricingExpress = class _FullPricingExpress extends VariantLayout {
-  getGlobalCSS() {
-    return CSS15;
-  }
-  get aemFragmentMapping() {
-    return FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING;
-  }
-  get headingSelector() {
-    return '[slot="heading-xs"]';
-  }
-  get badge() {
-    const badgeElement = this.card.querySelector('[slot="badge"]');
-    return html19`<div
+`;var ur={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},callout:{tag:"div",slot:"callout-content",editorLabel:"Price description"},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"xs"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},showAllSpectrumColors:!0,multiWhatsIncluded:"true",disabledAttributes:[]},pt=class pt extends f{getGlobalCSS(){return Ua}get aemFragmentMapping(){return ur}get headingSelector(){return'[slot="heading-xs"]'}get badge(){let r=this.card.querySelector('[slot="badge"]');return ja`<div
             class="badge-wrapper"
-            style="${badgeElement ? "" : "visibility: hidden"}"
+            style="${r?"":"visibility: hidden"}"
         >
             <slot name="badge"></slot>
-        </div>`;
-  }
-  async waitForTitleFont() {
-    const title = this.card.querySelector(this.headingSelector);
-    if (title && document.fonts?.load) {
-      const style = window.getComputedStyle(title);
-      const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      await document.fonts.load(font, title.textContent).catch(() => null);
-    }
-    await document.fonts.ready;
-  }
-  async syncHeights() {
-    await this.waitForTitleFont();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    if (this.card.getBoundingClientRect().width <= 2) return;
-    const sectionEntries = _FullPricingExpress.SYNCED_SECTIONS.map(
-      (name) => ({
-        name,
-        getElement: (card) => card.shadowRoot?.querySelector(`.${name}`)
-      })
-    );
-    const container = this.getContainer();
-    const cards = container ? container.querySelectorAll(
-      `merch-card[variant="${this.card.variant}"]`
-    ) : [this.card];
-    const descriptionRowSelector = '[slot="body-s"] > *';
-    const descriptionRows = Math.max(
-      0,
-      ...Array.from(
-        cards,
-        (card) => card.querySelectorAll(descriptionRowSelector).length
-      )
-    );
-    const rowEntries = Array.from(
-      { length: descriptionRows },
-      (_, index) => ({
-        name: `description-row-${index}`,
-        getElement: (card) => card.querySelectorAll(descriptionRowSelector)[index]
-      })
-    );
-    this.syncRowHeights([...sectionEntries, ...rowEntries]);
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    await super.postCardUpdateHook();
-    const container = this.getContainer();
-    if (container) {
-      const cards = container.querySelectorAll(
-        `merch-card[variant="${this.card.variant}"]`
-      );
-      const CTA_LONG_TEXT_CHAR_THRESHOLD = 49;
-      cards.forEach((card) => {
-        card.classList.remove("small-font-size-button");
-        const ctas = card.querySelectorAll(
-          '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]'
-        );
-        ctas.forEach((cta) => {
-          const isLong = cta.textContent.trim().length > CTA_LONG_TEXT_CHAR_THRESHOLD;
-          cta.classList.toggle("small-font-size-button", isLong);
-        });
-      });
-    }
-    if (window.matchMedia("(min-width: 768px)").matches) {
-      this.syncHeights();
-    }
-  }
-  resyncOnReflow() {
-    const width = this.card.getBoundingClientRect().width;
-    if (width <= 2) return;
-    const title = this.card.querySelector(this.headingSelector);
-    const titleHeight = title ? Math.round(title.getBoundingClientRect().height) : 0;
-    const key = `${Math.round(width)}:${titleHeight}`;
-    if (key === this.lastSyncedKey) return;
-    this.lastSyncedKey = key;
-    this.syncHeights();
-  }
-  connectedCallbackHook() {
-    if (!this.card || typeof ResizeObserver === "undefined") return;
-    this.lastSyncedKey = "";
-    this.sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
-    this.sizeObserver.observe(this.card);
-    const title = this.card.querySelector(this.headingSelector);
-    if (title) this.sizeObserver.observe(title);
-  }
-  disconnectedCallbackHook() {
-    this.sizeObserver?.disconnect();
-    this.sizeObserver = null;
-  }
-  renderLayout() {
-    return html19`
+        </div>`}async waitForTitleFont(){let r=this.card.querySelector(this.headingSelector);if(r&&document.fonts?.load){let e=window.getComputedStyle(r),t=`${e.fontWeight} ${e.fontSize} ${e.fontFamily}`;await document.fonts.load(t,r.textContent).catch(()=>null)}await document.fonts.ready}async syncHeights(){if(await this.waitForTitleFont(),await new Promise(s=>requestAnimationFrame(s)),await new Promise(s=>requestAnimationFrame(s)),this.card.getBoundingClientRect().width<=2)return;let r=pt.SYNCED_SECTIONS.map(s=>({name:s,getElement:c=>c.shadowRoot?.querySelector(`.${s}`)})),e=this.getContainer(),t=e?e.querySelectorAll(`merch-card[variant="${this.card.variant}"]`):[this.card],i='[slot="body-s"] > *',n=Math.max(0,...Array.from(t,s=>s.querySelectorAll(i).length)),o=Array.from({length:n},(s,c)=>({name:`description-row-${c}`,getElement:l=>l.querySelectorAll(i)[c]}));this.syncRowHeights([...r,...o])}async postCardUpdateHook(){if(!this.card.isConnected)return;await super.postCardUpdateHook();let r=this.getContainer();if(r){let e=r.querySelectorAll(`merch-card[variant="${this.card.variant}"]`),t=49;e.forEach(i=>{i.classList.remove("small-font-size-button"),i.querySelectorAll('[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]').forEach(o=>{let s=o.textContent.trim().length>t;o.classList.toggle("small-font-size-button",s)})})}window.matchMedia("(min-width: 768px)").matches&&this.syncHeights()}resyncOnReflow(){let r=this.card.getBoundingClientRect().width;if(r<=2)return;let e=this.card.querySelector(this.headingSelector),t=e?Math.round(e.getBoundingClientRect().height):0,i=`${Math.round(r)}:${t}`;i!==this.lastSyncedKey&&(this.lastSyncedKey=i,this.syncHeights())}connectedCallbackHook(){if(!this.card||typeof ResizeObserver>"u")return;this.lastSyncedKey="",this.sizeObserver=new ResizeObserver(()=>this.resyncOnReflow()),this.sizeObserver.observe(this.card);let r=this.card.querySelector(this.headingSelector);r&&this.sizeObserver.observe(r)}disconnectedCallbackHook(){this.sizeObserver?.disconnect(),this.sizeObserver=null}renderLayout(){return ja`
             ${this.badge}
             <div class="card-content">
                 <div class="header">
@@ -13315,16 +9004,7 @@ var _FullPricingExpress = class _FullPricingExpress extends VariantLayout {
                 </div>
             </div>
             <slot></slot>
-        `;
-  }
-};
-__publicField(_FullPricingExpress, "SYNCED_SECTIONS", [
-  "header",
-  "short-description",
-  "price-container",
-  "cta"
-]);
-__publicField(_FullPricingExpress, "variantStyle", css18`
+        `}};d(pt,"SYNCED_SECTIONS",["header","short-description","price-container","cta"]),d(pt,"variantStyle",xn`
         :host([variant='full-pricing-express']) {
             /* CSS Variables */
             --merch-card-full-pricing-express-width: 437px;
@@ -13638,19 +9318,8 @@ __publicField(_FullPricingExpress, "variantStyle", css18`
                 );
             }
         }
-    `);
-var FullPricingExpress = _FullPricingExpress;
-
-// src/variants/headless.js
-import { html as html20, nothing as nothing9 } from "./lit-all.min.js";
-
-// src/variants/headless.css.js
-import { css as css19, unsafeCSS as unsafeCSS6 } from "./lit-all.min.js";
-var HEADLESS_FAMILY_VARIANTS = ["headless", "marquee", "faq", "banner-blade"];
-var familySelector = (slot, suffix = "") => HEADLESS_FAMILY_VARIANTS.map(
-  (variant) => `merch-card[variant='${variant}'] [slot='${slot}']${suffix}`
-).join(",\n");
-var CSS16 = `
+    `);var mt=pt;import{html as gt,nothing as Ga}from"./lit-all.min.js";import{css as yn,unsafeCSS as wn}from"./lit-all.min.js";var En=["headless","marquee","faq","banner-blade"],De=(a,r="")=>En.map(e=>`merch-card[variant='${e}'] [slot='${a}']${r}`).join(`,
+`),ee=`
 /* Headless variant: minimal container for label/value rows */
 .headless {
     display: flex;
@@ -13662,173 +9331,99 @@ var CSS16 = `
    callout background box) from global.css.js so every row renders as plain text,
    matching the untouched body-xs/short-description rows. Applies to every variant
    in HEADLESS_FAMILY_VARIANTS above. */
-${familySelector("heading-xs")},
-${familySelector("promo-text")} {
+${De("heading-xs")},
+${De("promo-text")} {
     color: var(--consonant-merch-card-body-xs-color);
     font-weight: 400;
     font-size: var(--consonant-merch-card-body-xs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
 }
-${familySelector("callout-content")} {
+${De("callout-content")} {
     display: block;
     margin: 0;
     gap: 0;
 }
-${familySelector("callout-content", " > p")},
-${familySelector("callout-content", " > div")},
-${familySelector("callout-content", " > div > div")} {
+${De("callout-content"," > p")},
+${De("callout-content"," > div")},
+${De("callout-content"," > div > div")} {
     background: transparent;
     padding: 0;
     border-radius: 0;
     width: auto;
 }
-`;
-function headlessRowStyle(variantName) {
-  const variant = unsafeCSS6(variantName);
-  return css19`
-        :host([variant='${variant}']) {
+`;function te(a){let r=wn(a);return yn`
+        :host([variant='${r}']) {
             border: none;
             background: transparent;
             box-shadow: none;
         }
-        :host([variant='${variant}']) .headless {
+        :host([variant='${r}']) .headless {
             display: flex;
             flex-direction: column;
             padding: var(--consonant-merch-spacing-xs, 8px);
         }
-        :host([variant='${variant}']) .headless-row {
+        :host([variant='${r}']) .headless-row {
             display: flex;
             gap: var(--consonant-merch-spacing-xs, 8px);
             padding: var(--consonant-merch-spacing-xxs, 4px) 0;
         }
-        :host([variant='${variant}']) .headless-label {
+        :host([variant='${r}']) .headless-label {
             flex-shrink: 0;
             font-weight: 600;
             min-width: 8em;
         }
-        :host([variant='${variant}']) .headless-value {
+        :host([variant='${r}']) .headless-value {
             flex: 1;
         }
-        :host([variant='${variant}']) .headless-value::slotted(*) {
+        :host([variant='${r}']) .headless-value::slotted(*) {
             display: inline;
         }
-        :host([variant='${variant}']) .headless-section {
+        :host([variant='${r}']) .headless-section {
             font-size: 0.75em;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--spectrum-gray-600);
             padding-top: 4px;
         }
-    `;
-}
-
-// src/variants/headless.js
-var HEADLESS_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "p", slot: "heading-xs" },
-  cardTitle: { tag: "p", slot: "heading-xs" },
-  subtitle: { tag: "p", slot: "body-xxs" },
-  description: { tag: "div", slot: "body-xs" },
-  promoText: { tag: "p", slot: "promo-text" },
-  shortDescription: { tag: "p", slot: "short-description" },
-  callout: { tag: "div", slot: "callout-content" },
-  quantitySelect: { tag: "div", slot: "quantity-select" },
-  whatsIncluded: { tag: "div", slot: "whats-included" },
-  addonConfirmation: { tag: "div", slot: "addon-confirmation" },
-  badge: { tag: "div", slot: "badge" },
-  trialBadge: { tag: "div", slot: "trial-badge" },
-  prices: { tag: "p", slot: "prices" },
-  backgroundImage: { tag: "div", slot: "bg-image" },
-  ctas: { slot: "footer", size: "m" },
-  addon: true,
-  secureLabel: true,
-  borderColor: { attribute: "border-color" },
-  backgroundColor: { attribute: "background-color" },
-  size: [],
-  mnemonics: { size: "m" },
-  customFields: { tag: "div", slot: "custom-fields" }
-};
-var HEADLESS_FIELDS = [
-  { slot: "bg-image", label: "Background Image" },
-  { slot: "badge", label: "Badge" },
-  { slot: "icons", label: "Mnemonic icon" },
-  { slot: "heading-xs", label: "Title" },
-  { slot: "body-xxs", label: "Subtitle" },
-  { slot: "body-xs", label: "Product description" },
-  { slot: "promo-text", label: "Promo Text" },
-  { slot: "callout-content", label: "Callout text" },
-  { slot: "short-description", label: "Short Description" },
-  { slot: "trial-badge", label: "Trial Badge" },
-  { slot: "prices", label: "Product price" },
-  { slot: "quantity-select", label: "Quantity select" },
-  { slot: "addon", label: "Addon" },
-  { slot: "whats-included", label: "What's included" },
-  { slot: "addon-confirmation", label: "Addon confirmation" },
-  { slot: "footer", label: "CTAs" }
-];
-var Headless = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS16;
-  }
-  renderLayout() {
-    const customFieldEls = [
-      ...this.card.querySelectorAll('[slot^="custom-field-"]')
-    ];
-    return html20`
+    `}var Va={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},cardTitle:{tag:"p",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},promoText:{tag:"p",slot:"promo-text"},shortDescription:{tag:"p",slot:"short-description"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},whatsIncluded:{tag:"div",slot:"whats-included"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},badge:{tag:"div",slot:"badge"},trialBadge:{tag:"div",slot:"trial-badge"},prices:{tag:"p",slot:"prices"},backgroundImage:{tag:"div",slot:"bg-image"},ctas:{slot:"footer",size:"m"},addon:!0,secureLabel:!0,borderColor:{attribute:"border-color"},backgroundColor:{attribute:"background-color"},size:[],mnemonics:{size:"m"},customFields:{tag:"div",slot:"custom-fields"}},kn=[{slot:"bg-image",label:"Background Image"},{slot:"badge",label:"Badge"},{slot:"icons",label:"Mnemonic icon"},{slot:"heading-xs",label:"Title"},{slot:"body-xxs",label:"Subtitle"},{slot:"body-xs",label:"Product description"},{slot:"promo-text",label:"Promo Text"},{slot:"callout-content",label:"Callout text"},{slot:"short-description",label:"Short Description"},{slot:"trial-badge",label:"Trial Badge"},{slot:"prices",label:"Product price"},{slot:"quantity-select",label:"Quantity select"},{slot:"addon",label:"Addon"},{slot:"whats-included",label:"What's included"},{slot:"addon-confirmation",label:"Addon confirmation"},{slot:"footer",label:"CTAs"}],Fe=class extends f{constructor(r){super(r)}getGlobalCSS(){return ee}renderLayout(){let r=[...this.card.querySelectorAll('[slot^="custom-field-"]')];return gt`
             <div class="headless">
-                ${HEADLESS_FIELDS.map(
-      ({ slot, label }) => html20`
+                ${kn.map(({slot:e,label:t})=>gt`
                         <div class="headless-row">
-                            <span class="headless-label">${label}</span>
+                            <span class="headless-label">${t}</span>
                             <span class="headless-value">
-                                <slot name="${slot}"></slot>
+                                <slot name="${e}"></slot>
                             </span>
                         </div>
-                    `
-    )}
-                ${customFieldEls.length ? html20`
+                    `)}
+                ${r.length?gt`
                           <div class="headless-row">
                               <span class="headless-label headless-section">
                                   Custom fields
                               </span>
                           </div>
-                          ${customFieldEls.map(
-      (el, i) => html20`
+                          ${r.map((e,t)=>gt`
                                   <div class="headless-row">
                                       <span class="headless-label">
-                                          ${el.dataset.label || `Custom field ${i + 1}`}
+                                          ${e.dataset.label||`Custom field ${t+1}`}
                                       </span>
                                       <span class="headless-value">
                                           <slot
-                                              name="${el.getAttribute("slot")}"
+                                              name="${e.getAttribute("slot")}"
                                           ></slot>
                                       </span>
                                   </div>
-                              `
-    )}
-                      ` : nothing9}
-                ${this.card.secureLabel ? html20`
+                              `)}
+                      `:Ga}
+                ${this.card.secureLabel?gt`
                           <div class="headless-row">
                               <span class="headless-label">Secure label</span>
                               <span class="headless-value">
                                   ${this.secureLabel}
                               </span>
                           </div>
-                      ` : nothing9}
+                      `:Ga}
             </div>
-        `;
-  }
-};
-__publicField(Headless, "variantStyle", headlessRowStyle("headless"));
-
-// src/variants/mini.js
-import { css as css20, html as html21 } from "./lit-all.min.js";
-
-// src/variants/mini.css.js
-var CSS17 = `
+        `}};d(Fe,"variantStyle",te("headless"));import{css as Cn,html as Sn}from"./lit-all.min.js";var Wa=`
 merch-card[variant="mini"] {
   color: var(--spectrum-body-color);
   width: 400px;
@@ -13861,60 +9456,7 @@ merch-card[variant="mini"] span.promo-duration-text,
 merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
-`;
-
-// src/variants/mini.js
-var MINI_AEM_FRAGMENT_MAPPING = {
-  title: { tag: "p", slot: "title" },
-  prices: { tag: "p", slot: "prices" },
-  description: {
-    tag: "p",
-    slot: "description"
-  },
-  planType: true,
-  ctas: { slot: "ctas", size: "S" }
-};
-var Mini = class extends VariantLayout {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "legal");
-  }
-  async postCardUpdateHook() {
-    await super.postCardUpdateHook();
-    this.adjustLegal();
-  }
-  getGlobalCSS() {
-    return CSS17;
-  }
-  get headingSelector() {
-    return '[slot="title"]';
-  }
-  priceOptionsProvider(element, options) {
-    options.literals = {
-      ...options.literals,
-      strikethroughAriaLabel: "",
-      alternativePriceAriaLabel: ""
-    };
-    options.space = true;
-    options.displayAnnual = this.card.settings?.displayAnnual ?? false;
-  }
-  adjustLegal() {
-    if (this.legal !== void 0) return;
-    const price = this.card.querySelector(
-      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
-    );
-    if (!price) return;
-    const legal = price.cloneNode(true);
-    this.legal = legal;
-    price.dataset.displayTax = "false";
-    price.dataset.displayPerUnit = "false";
-    legal.dataset.template = "legal";
-    legal.dataset.displayPlanType = this.card?.settings?.displayPlanType ?? true;
-    legal.setAttribute("slot", "legal");
-    this.card.appendChild(legal);
-  }
-  renderLayout() {
-    return html21`
+`;var Ya={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},$e=class extends f{constructor(){super(...arguments);d(this,"legal")}async postCardUpdateHook(){await super.postCardUpdateHook(),this.adjustLegal()}getGlobalCSS(){return Wa}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(e,t){t.literals={...t.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},t.space=!0,t.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let e=this.card.querySelector(`${y}[data-template="price"]`);if(!e)return;let t=e.cloneNode(!0);this.legal=t,e.dataset.displayTax="false",e.dataset.displayPerUnit="false",t.dataset.template="legal",t.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,t.setAttribute("slot","legal"),this.card.appendChild(t)}renderLayout(){return Sn`
             ${this.badge}
             <div class="body">
                 <slot name="title"></slot>
@@ -13923,23 +9465,14 @@ var Mini = class extends VariantLayout {
                 <slot name="description"></slot>
                 <slot name="ctas"></slot>
             </div>
-        `;
-  }
-};
-__publicField(Mini, "variantStyle", css20`
+        `}};d($e,"variantStyle",Cn`
         :host([variant='mini']) {
             min-width: 209px;
             min-height: 103px;
             background-color: var(--spectrum-background-base-color);
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
-    `);
-
-// src/variants/compare-chart-column.js
-import { html as html22, css as css21 } from "./lit-all.min.js";
-
-// src/variants/compare-chart-column.css.js
-var CSS18 = `
+    `);import{html as An,css as Tn}from"./lit-all.min.js";var Ka=`
     merch-card[variant='compare-chart-column'] {
         --compare-chart-cell-border-color: var(--spectrum-gray-300, #d3d3d3) !important;
         --compare-chart-cell-bg: #fff !important;
@@ -13972,54 +9505,7 @@ var CSS18 = `
         min-height: auto !important;
         padding-block: 0 !important;
     }
-`;
-
-// src/variants/compare-chart-column.js
-var COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
-  mnemonics: { size: "l" },
-  title: { tag: "h3", slot: "header", maxCount: 100 },
-  prices: { tag: "p", slot: "price" },
-  description: { tag: "div", slot: "detail", maxCount: 1e3 },
-  ctas: { slot: "cta", size: "M" },
-  features: { tag: "div", slot: "features", unwrap: true }
-};
-var HEIGHT_SYNC_TARGETS = [
-  { key: "header", selector: ".seg-header" },
-  { key: "price", selector: ".seg-price" },
-  { key: "detail", selector: ".seg-detail" },
-  { key: "cta", selector: ".seg-cta" }
-];
-var _CompareChartColumn_instances, adjustSlotHeights_fn;
-var CompareChartColumn = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-    __privateAdd(this, _CompareChartColumn_instances);
-    this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
-  }
-  getGlobalCSS() {
-    return CSS18;
-  }
-  get aemFragmentMapping() {
-    return COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING;
-  }
-  /** Comparison table host for stamping shared min-height custom properties
-   * (override default container: merch-card-collection / *-merch-cards / parent). */
-  getContainer() {
-    return this.card.closest("mas-compare-chart") ?? this.card.parentElement;
-  }
-  connectedCallbackHook() {
-    window.addEventListener("resize", this.postCardUpdateHook);
-  }
-  disconnectedCallbackHook() {
-    window.removeEventListener("resize", this.postCardUpdateHook);
-  }
-  async postCardUpdateHook() {
-    if (!this.card.isConnected) return;
-    await this.card.updateComplete;
-    __privateMethod(this, _CompareChartColumn_instances, adjustSlotHeights_fn).call(this);
-  }
-  renderLayout() {
-    return html22`
+`;var fr={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},Ln=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],Ht,Qa,Ie=class extends f{constructor(e){super(e);v(this,Ht);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return Ka}get aemFragmentMapping(){return fr}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,k(this,Ht,Qa).call(this))}renderLayout(){return An`
             <div class="card">
                 <div class="seg seg-header">
                     <slot name="icons"></slot>
@@ -14037,18 +9523,7 @@ var CompareChartColumn = class extends VariantLayout {
                 <slot name="cta"></slot>
             </div>
             <slot></slot>
-        `;
-  }
-};
-_CompareChartColumn_instances = new WeakSet();
-adjustSlotHeights_fn = function() {
-  if (this.card.getBoundingClientRect().width === 0) return;
-  const root = this.card.shadowRoot;
-  HEIGHT_SYNC_TARGETS.forEach(
-    ({ key, selector }) => this.updateCardElementMinHeight(root.querySelector(selector), key)
-  );
-};
-__publicField(CompareChartColumn, "variantStyle", css21`
+        `}};Ht=new WeakSet,Qa=function(){if(this.card.getBoundingClientRect().width===0)return;let e=this.card.shadowRoot;Ln.forEach(({key:t,selector:i})=>this.updateCardElementMinHeight(e.querySelector(i),t))},d(Ie,"variantStyle",Tn`
         :host([variant='compare-chart-column']) {
             --compare-chart-card-padding: 12px;
             --compare-chart-seg-radius: 4px;
@@ -14169,13 +9644,7 @@ __publicField(CompareChartColumn, "variantStyle", css21`
         :host([variant='compare-chart-column']) .seg-cta {
             min-height: var(--consonant-merch-card-compare-chart-cta-height);
         }
-    `);
-
-// src/variants/fries.js
-import { html as html23, css as css22 } from "./lit-all.min.js";
-
-// src/variants/fries.css.js
-var CSS19 = `
+    `);import{html as zn,css as Pn}from"./lit-all.min.js";var Za=`
     merch-card[variant='fries'] {
         background-color: var(
             --merch-card-custom-background-color,
@@ -14353,46 +9822,7 @@ var CSS19 = `
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;
-
-// src/variants/fries.js
-var FRIES_AEM_FRAGMENT_MAPPING = {
-  mnemonics: { size: "s" },
-  title: { tag: "h3", slot: "heading-xxs", maxCount: 250, withSuffix: true },
-  description: {
-    tag: "div",
-    slot: "body-s",
-    maxCount: 2e3,
-    withSuffix: false
-  },
-  whatsIncluded: { tag: "div", slot: "whats-included" },
-  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300" },
-  trialBadge: {
-    tag: "div",
-    slot: "trial-badge",
-    default: "spectrum-green-800"
-  },
-  prices: { tag: "p", slot: "price" },
-  ctas: { slot: "cta", size: "M" },
-  addonConfirmation: { tag: "div", slot: "addon-confirmation" },
-  borderColor: {
-    attribute: "border-color",
-    specialValues: {
-      gray: "--spectrum-gray-300",
-      "gradient-purple-blue": "var(--gradient-purple-blue)",
-      "gradient-firefly-spectrum": "var(--gradient-firefly-spectrum)"
-    }
-  }
-};
-var FriesCard = class extends VariantLayout {
-  getGlobalCSS() {
-    return CSS19;
-  }
-  get aemFragmentMapping() {
-    return FRIES_AEM_FRAGMENT_MAPPING;
-  }
-  renderLayout() {
-    return html23`
+`;var vr={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300","gradient-purple-blue":"var(--gradient-purple-blue)","gradient-firefly-spectrum":"var(--gradient-firefly-spectrum)"}}},He=class extends f{getGlobalCSS(){return Za}get aemFragmentMapping(){return vr}renderLayout(){return zn`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -14411,10 +9841,7 @@ var FriesCard = class extends VariantLayout {
                 </div>
             </div>
             <slot></slot>
-        `;
-  }
-};
-__publicField(FriesCard, "variantStyle", css22`
+        `}};d(He,"variantStyle",Pn`
         :host([variant='fries']) {
             --merch-card-fries-max-width: 620px;
             --merch-card-fries-padding: 24px;
@@ -14507,343 +9934,48 @@ __publicField(FriesCard, "variantStyle", css22`
                 --gradient-firefly-spectrum
             );
         }
-    `);
-
-// src/variants/marquee.js
-import { html as html24, nothing as nothing10 } from "./lit-all.min.js";
-var MARQUEE_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  title: { tag: "p", slot: "heading-xs" },
-  description: { tag: "div", slot: "body-xs" },
-  shortDescription: { tag: "p", slot: "short-description" },
-  prices: { tag: "p", slot: "prices" },
-  ctas: { slot: "footer", size: "m" }
-};
-var MARQUEE_FIELDS = [
-  { slot: "heading-xs", label: "Title" },
-  { slot: "body-xs", label: "Product description" },
-  { slot: "short-description", label: "Short Description" },
-  { slot: "prices", label: "Product price" },
-  { slot: "footer", label: "CTAs" }
-];
-var Marquee = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS16;
-  }
-  renderLayout() {
-    return html24`
+    `);import{html as br,nothing as _n}from"./lit-all.min.js";var Xa={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},shortDescription:{tag:"p",slot:"short-description"},prices:{tag:"p",slot:"prices"},ctas:{slot:"footer",size:"m"}},Mn=[{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Product description"},{slot:"short-description",label:"Short Description"},{slot:"prices",label:"Product price"},{slot:"footer",label:"CTAs"}],Be=class extends f{constructor(r){super(r)}getGlobalCSS(){return ee}renderLayout(){return br`
             <div class="headless">
-                ${MARQUEE_FIELDS.map(
-      ({ slot, label }) => html24`
+                ${Mn.map(({slot:r,label:e})=>br`
                         <div class="headless-row">
-                            <span class="headless-label">${label}</span>
+                            <span class="headless-label">${e}</span>
                             <span class="headless-value">
-                                <slot name="${slot}"></slot>
+                                <slot name="${r}"></slot>
                             </span>
                         </div>
-                    `
-    )}
-                ${this.card.secureLabel ? html24`
+                    `)}
+                ${this.card.secureLabel?br`
                           <div class="headless-row">
                               <span class="headless-label">Secure label</span>
                               <span class="headless-value">
                                   ${this.secureLabel}
                               </span>
                           </div>
-                      ` : nothing10}
+                      `:_n}
             </div>
-        `;
-  }
-};
-__publicField(Marquee, "variantStyle", headlessRowStyle("marquee"));
-
-// src/variants/faq.js
-import { html as html25 } from "./lit-all.min.js";
-var FAQ_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  prices: { tag: "p", slot: "prices" },
-  description: {
-    tag: "div",
-    slot: "body-xs",
-    editorLabel: "FAQ answer 1"
-  },
-  shortDescription: {
-    tag: "p",
-    slot: "short-description",
-    editorLabel: "FAQ answer 2"
-  },
-  callout: {
-    tag: "div",
-    slot: "callout-content",
-    editorLabel: "FAQ answer 3"
-  }
-};
-var FAQ_FIELDS = [
-  { slot: "prices", label: "Product price" },
-  { slot: "body-xs", label: "FAQ answer 1" },
-  { slot: "short-description", label: "FAQ answer 2" },
-  { slot: "callout-content", label: "FAQ answer 3" }
-];
-var Faq = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS16;
-  }
-  renderLayout() {
-    return html25`
+        `}};d(Be,"variantStyle",te("marquee"));import{html as Ja}from"./lit-all.min.js";var ei={cardName:{attribute:"name"},prices:{tag:"p",slot:"prices"},description:{tag:"div",slot:"body-xs",editorLabel:"FAQ answer 1"},shortDescription:{tag:"p",slot:"short-description",editorLabel:"FAQ answer 2"},callout:{tag:"div",slot:"callout-content",editorLabel:"FAQ answer 3"}},Rn=[{slot:"prices",label:"Product price"},{slot:"body-xs",label:"FAQ answer 1"},{slot:"short-description",label:"FAQ answer 2"},{slot:"callout-content",label:"FAQ answer 3"}],qe=class extends f{constructor(r){super(r)}getGlobalCSS(){return ee}renderLayout(){return Ja`
             <div class="headless">
-                ${FAQ_FIELDS.map(
-      ({ slot, label }) => html25`
+                ${Rn.map(({slot:r,label:e})=>Ja`
                         <div class="headless-row">
-                            <span class="headless-label">${label}</span>
+                            <span class="headless-label">${e}</span>
                             <span class="headless-value">
-                                <slot name="${slot}"></slot>
+                                <slot name="${r}"></slot>
                             </span>
                         </div>
-                    `
-    )}
+                    `)}
             </div>
-        `;
-  }
-};
-__publicField(Faq, "variantStyle", headlessRowStyle("faq"));
-
-// src/variants/banner-blade.js
-import { html as html26 } from "./lit-all.min.js";
-var BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
-  cardName: { attribute: "name" },
-  description: { tag: "div", slot: "body-xs" },
-  ctas: { slot: "footer", size: "m" }
-};
-var BANNER_BLADE_FIELDS = [
-  { slot: "body-xs", label: "Description" },
-  { slot: "footer", label: "CTAs" }
-];
-var BannerBlade = class extends VariantLayout {
-  constructor(card) {
-    super(card);
-  }
-  getGlobalCSS() {
-    return CSS16;
-  }
-  renderLayout() {
-    return html26`
+        `}};d(qe,"variantStyle",te("faq"));import{html as ti}from"./lit-all.min.js";var ri={cardName:{attribute:"name"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},On=[{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],Ue=class extends f{constructor(r){super(r)}getGlobalCSS(){return ee}renderLayout(){return ti`
             <div class="headless">
-                ${BANNER_BLADE_FIELDS.map(
-      ({ slot, label }) => html26`
+                ${On.map(({slot:r,label:e})=>ti`
                         <div class="headless-row">
-                            <span class="headless-label">${label}</span>
+                            <span class="headless-label">${e}</span>
                             <span class="headless-value">
-                                <slot name="${slot}"></slot>
+                                <slot name="${r}"></slot>
                             </span>
                         </div>
-                    `
-    )}
+                    `)}
             </div>
-        `;
-  }
-};
-__publicField(BannerBlade, "variantStyle", headlessRowStyle("banner-blade"));
-
-// src/variants/variants.js
-var variantRegistry = /* @__PURE__ */ new Map();
-var variantState = /* @__PURE__ */ new WeakMap();
-var variantStyleSheets = /* @__PURE__ */ new Map();
-var registerVariant = (name, variantClass, fragmentMapping = null, style = null, collectionOptions) => {
-  variantRegistry.set(name, {
-    class: variantClass,
-    fragmentMapping,
-    style,
-    collectionOptions
-  });
-};
-registerVariant(
-  "catalog",
-  Catalog,
-  CATALOG_AEM_FRAGMENT_MAPPING,
-  Catalog.variantStyle
-);
-registerVariant("image", Image);
-registerVariant("inline-heading", InlineHeading);
-registerVariant(
-  "mini-compare-chart",
-  MiniCompareChart,
-  MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
-  MiniCompareChart.variantStyle
-);
-registerVariant(
-  "mini-compare-chart-mweb",
-  MiniCompareChartMweb,
-  MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING,
-  MiniCompareChartMweb.variantStyle
-);
-registerVariant(
-  "plans",
-  Plans,
-  PLANS_AEM_FRAGMENT_MAPPING,
-  Plans.variantStyle,
-  Plans.collectionOptions
-);
-registerVariant(
-  "plans-students",
-  Plans,
-  PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
-  Plans.variantStyle,
-  Plans.collectionOptions
-);
-registerVariant(
-  "plans-education",
-  Plans,
-  PLANS_EDUCATION_AEM_FRAGMENT_MAPPING,
-  Plans.variantStyle,
-  Plans.collectionOptions
-);
-registerVariant(
-  "plans-v2",
-  PlansV2,
-  PLANS_V2_AEM_FRAGMENT_MAPPING,
-  PlansV2.variantStyle,
-  PlansV2.collectionOptions
-);
-registerVariant(
-  "pro",
-  Pro,
-  PRO_AEM_FRAGMENT_MAPPING,
-  Pro.variantStyle
-  // No collectionOptions (unlike the plans* variants): those only drive
-  // sidenav-collection behavior (header visibility, results text, wide-card
-  // resize) and pro collections render without a sidenav.
-);
-registerVariant(
-  "product",
-  Product,
-  PRODUCT_AEM_FRAGMENT_MAPPING,
-  Product.variantStyle
-);
-registerVariant(
-  "brand-concierge-product",
-  BrandConciergeProduct,
-  BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING,
-  BrandConciergeProduct.variantStyle
-);
-registerVariant(
-  "segment",
-  Segment,
-  SEGMENT_AEM_FRAGMENT_MAPPING,
-  Segment.variantStyle
-);
-registerVariant("media", Media2, MEDIA_AEM_FRAGMENT_MAPPING, Media2.variantStyle);
-registerVariant(
-  "headless",
-  Headless,
-  HEADLESS_AEM_FRAGMENT_MAPPING,
-  Headless.variantStyle
-);
-registerVariant(
-  "special-offers",
-  SpecialOffer,
-  SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
-  SpecialOffer.variantStyle
-);
-registerVariant(
-  "simplified-pricing-express",
-  SimplifiedPricingExpress,
-  SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
-  SimplifiedPricingExpress.variantStyle
-);
-registerVariant(
-  "full-pricing-express",
-  FullPricingExpress,
-  FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
-  FullPricingExpress.variantStyle
-);
-registerVariant("mini", Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
-registerVariant("image", Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
-registerVariant(
-  "compare-chart-column",
-  CompareChartColumn,
-  COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
-  CompareChartColumn.variantStyle
-);
-registerVariant(
-  "fries",
-  FriesCard,
-  FRIES_AEM_FRAGMENT_MAPPING,
-  FriesCard.variantStyle
-);
-registerVariant(
-  "marquee",
-  Marquee,
-  MARQUEE_AEM_FRAGMENT_MAPPING,
-  Marquee.variantStyle
-);
-registerVariant("faq", Faq, FAQ_AEM_FRAGMENT_MAPPING, Faq.variantStyle);
-registerVariant(
-  "banner-blade",
-  BannerBlade,
-  BANNER_BLADE_AEM_FRAGMENT_MAPPING,
-  BannerBlade.variantStyle
-);
-var applyStyleSheet = (card, style, state) => {
-  try {
-    let sheet = variantStyleSheets.get(card.variant);
-    if (!sheet) {
-      sheet = new CSSStyleSheet();
-      sheet.replaceSync(style.cssText);
-      variantStyleSheets.set(card.variant, sheet);
-    }
-    if (state?.styleSheet && state.styleSheet !== sheet) {
-      const index = card.shadowRoot.adoptedStyleSheets.indexOf(
-        state.styleSheet
-      );
-      if (index !== -1) {
-        card.shadowRoot.adoptedStyleSheets.splice(index, 1);
-      }
-    }
-    if (!card.shadowRoot.adoptedStyleSheets.includes(sheet)) {
-      card.shadowRoot.adoptedStyleSheets.push(sheet);
-    }
-    return { styleSheet: sheet };
-  } catch (e) {
-    const styleElement = document.createElement("style");
-    styleElement.textContent = style.cssText;
-    styleElement.setAttribute("data-variant-style", card.variant);
-    const oldElement = state?.styleElement || card.shadowRoot.querySelector("[data-variant-style]");
-    if (oldElement) oldElement.remove();
-    card.shadowRoot.appendChild(styleElement);
-    return { styleElement };
-  }
-};
-var getVariantLayout = (card) => {
-  const variantInfo = variantRegistry.get(card.variant);
-  if (!variantInfo) return void 0;
-  const { class: VariantClass, style } = variantInfo;
-  const state = variantState.get(card);
-  if (state?.appliedVariant === card.variant) {
-    return new VariantClass(card);
-  }
-  const styleState = style ? applyStyleSheet(card, style, state) : {};
-  variantState.set(card, {
-    appliedVariant: card.variant,
-    ...styleState
-  });
-  return new VariantClass(card);
-};
-function getFragmentMapping(variant) {
-  return variantRegistry.get(variant)?.fragmentMapping;
-}
-function getCollectionOptions(variant) {
-  return variantRegistry.get(variant)?.collectionOptions;
-}
-
-// src/global.css.js
-var styles2 = document.createElement("style");
-styles2.innerHTML = `
+        `}};d(Ue,"variantStyle",te("banner-blade"));var Bt=new Map,ai=new WeakMap,ii=new Map,S=(a,r,e=null,t=null,i)=>{Bt.set(a,{class:r,fragmentMapping:e,style:t,collectionOptions:i})};S("catalog",ke,oa,ke.variantStyle);S("image",ce);S("inline-heading",_t);S("mini-compare-chart",Ce,ma,Ce.variantStyle);S("mini-compare-chart-mweb",Se,ua,Se.variantStyle);S("plans",N,Ot,N.variantStyle,N.collectionOptions);S("plans-students",N,ba,N.variantStyle,N.collectionOptions);S("plans-education",N,va,N.variantStyle,N.collectionOptions);S("plans-v2",J,wa,J.variantStyle,J.collectionOptions);S("pro",lt,La,lt.variantStyle);S("product",Pe,Ma,Pe.variantStyle);S("brand-concierge-product",_e,Oa,_e.variantStyle);S("segment",Me,Da,Me.variantStyle);S("media",Re,$a,Re.variantStyle);S("headless",Fe,Va,Fe.variantStyle);S("special-offers",Oe,Ha,Oe.variantStyle);S("simplified-pricing-express",Ne,gr,Ne.variantStyle);S("full-pricing-express",mt,ur,mt.variantStyle);S("mini",$e,Ya,$e.variantStyle);S("image",ce,sa,ce.variantStyle);S("compare-chart-column",Ie,fr,Ie.variantStyle);S("fries",He,vr,He.variantStyle);S("marquee",Be,Xa,Be.variantStyle);S("faq",qe,ei,qe.variantStyle);S("banner-blade",Ue,ri,Ue.variantStyle);var Nn=(a,r,e)=>{try{let t=ii.get(a.variant);if(t||(t=new CSSStyleSheet,t.replaceSync(r.cssText),ii.set(a.variant,t)),e?.styleSheet&&e.styleSheet!==t){let i=a.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);i!==-1&&a.shadowRoot.adoptedStyleSheets.splice(i,1)}return a.shadowRoot.adoptedStyleSheets.includes(t)||a.shadowRoot.adoptedStyleSheets.push(t),{styleSheet:t}}catch{let i=document.createElement("style");i.textContent=r.cssText,i.setAttribute("data-variant-style",a.variant);let n=e?.styleElement||a.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),a.shadowRoot.appendChild(i),{styleElement:i}}},xr=a=>{let r=Bt.get(a.variant);if(!r)return;let{class:e,style:t}=r,i=ai.get(a);if(i?.appliedVariant===a.variant)return new e(a);let n=t?Nn(a,t,i):{};return ai.set(a,{appliedVariant:a.variant,...n}),new e(a)};function Pt(a){return Bt.get(a)?.fragmentMapping}function ni(a){return Bt.get(a)?.collectionOptions}var oi=document.createElement("style");oi.innerHTML=`
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;
@@ -15837,7 +10969,7 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }    
 }
 
-@media screen and ${TABLET_DOWN} {
+@media screen and ${L} {
     merch-card [slot='callout-content'] .icon-button::before {
         top: unset;
         left: unset;
@@ -15892,7 +11024,7 @@ merch-card[border-color="spectrum-red-700-plans"] {
     text-align: right;
 }
 
-@media screen and ${TABLET_UP} {
+@media screen and ${w} {
     .two-merch-cards,
     .three-merch-cards,
     .four-merch-cards,
@@ -15908,7 +11040,7 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }
 }
 
-@media screen and ${DESKTOP_UP} {
+@media screen and ${b} {
 
     .four-merch-cards,
 	.section.four-merch-cards > .content {
@@ -15927,7 +11059,7 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }
 }
 
-@media screen and ${LARGE_DESKTOP} {
+@media screen and ${M} {
     .four-merch-cards,
     merch-sidenav ~ .four-merch-cards,
 	.section.four-merch-cards > .content {
@@ -15935,87 +11067,9 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }
 }
 
-`;
-document.head.appendChild(styles2);
-
-// src/merch-badge.js
-import { LitElement as LitElement4, html as html27, css as css23, nothing as nothing11 } from "./lit-all.min.js";
-import { unsafeHTML as unsafeHTML2 } from "./lit-all.min.js";
-var renderIcon = (iconName) => {
-  if (!iconName) return nothing11;
-  if (iconName.startsWith("sp-icon-"))
-    return html27`${unsafeHTML2(
-      `<${iconName} class="badge-icon"></${iconName}>`
-    )}`;
-  return html27`<img src="${iconName}" class="badge-icon" />`;
-};
-var MerchBadge = class extends LitElement4 {
-  constructor() {
-    super();
-    this.color = "";
-    this.variant = "";
-    this.backgroundColor = "";
-    this.borderColor = "";
-    this.text = this.textContent;
-    this.icon = "";
-  }
-  connectedCallback() {
-    if (this.borderColor && this.borderColor !== "transparent") {
-      this.style.setProperty(
-        "--merch-badge-border",
-        `1px solid var(--${this.borderColor})`
-      );
-    } else if (!this.backgroundColor.startsWith("gradient-")) {
-      this.style.setProperty(
-        "--merch-badge-border",
-        `1px solid var(--${this.backgroundColor})`
-      );
-    }
-    this.style.setProperty(
-      "--merch-badge-background-color",
-      `var(--${this.backgroundColor})`
-    );
-    if ((!this.borderColor || this.borderColor === "transparent") && this.backgroundColor.startsWith("gradient-")) {
-      this.style.setProperty(
-        "--merch-badge-padding",
-        "3px 11px 4px 11px"
-      );
-    } else {
-      this.style.setProperty(
-        "--merch-badge-padding",
-        "2px 10px 3px 10px"
-      );
-    }
-    this.style.setProperty("--merch-badge-color", this.color);
-    this.style.setProperty(
-      "--merch-badge-font-size",
-      "var(--consonant-merch-card-body-xs-font-size)"
-    );
-    if (!this.querySelector('span[is="inline-price"]')) {
-      this.textContent = "";
-    }
-    const card = this.closest("merch-card");
-    const size = card?.getAttribute("size");
-    const offset = card?.querySelectorAll(":scope > merch-icon").length || 0;
-    this.style.setProperty("--merch-badge-offset", offset);
-    this.style.setProperty("--merch-badge-with-offset", offset ? 1 : 0);
-    this.style.setProperty("--merch-badge-card-size", size ? 2 : 1);
-    super.connectedCallback();
-  }
-  render() {
-    return html27`<div class="badge">
-            ${renderIcon(this.icon)}<slot>${this.text}</slot>
-        </div>`;
-  }
-};
-__publicField(MerchBadge, "properties", {
-  color: { type: String },
-  variant: { type: String },
-  backgroundColor: { type: String, attribute: "background-color" },
-  borderColor: { type: String, attribute: "border-color" },
-  icon: { type: String }
-});
-__publicField(MerchBadge, "styles", css23`
+`;document.head.appendChild(oi);import{LitElement as Dn,html as yr,css as Fn,nothing as $n}from"./lit-all.min.js";import{unsafeHTML as In}from"./lit-all.min.js";var Hn=a=>a?a.startsWith("sp-icon-")?yr`${In(`<${a} class="badge-icon"></${a}>`)}`:yr`<img src="${a}" class="badge-icon" />`:$n,je=class extends Dn{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent,this.icon=""}connectedCallback(){this.borderColor&&this.borderColor!=="transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.backgroundColor.startsWith("gradient-")||this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),(!this.borderColor||this.borderColor==="transparent")&&this.backgroundColor.startsWith("gradient-")?this.style.setProperty("--merch-badge-padding","3px 11px 4px 11px"):this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.querySelector('span[is="inline-price"]')||(this.textContent="");let r=this.closest("merch-card"),e=r?.getAttribute("size"),t=r?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",t),this.style.setProperty("--merch-badge-with-offset",t?1:0),this.style.setProperty("--merch-badge-card-size",e?2:1),super.connectedCallback()}render(){return yr`<div class="badge">
+            ${Hn(this.icon)}<slot>${this.text}</slot>
+        </div>`}};d(je,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"},icon:{type:String}}),d(je,"styles",Fn`
         :host {
             display: block;
             background: var(--merch-badge-background-color);
@@ -16036,23 +11090,10 @@ __publicField(MerchBadge, "styles", css23`
             height: 18px;
             width: 18px;
         }
-    `);
-customElements.define("merch-badge", MerchBadge);
-
-// src/merch-mnemonic-list.js
-import { html as html28, css as css24, LitElement as LitElement5 } from "./lit-all.min.js";
-var MerchMnemonicList = class extends LitElement5 {
-  constructor() {
-    super();
-  }
-  render() {
-    return html28`
+    `);customElements.define("merch-badge",je);import{html as Bn,css as qn,LitElement as Un}from"./lit-all.min.js";var ut=class extends Un{constructor(){super()}render(){return Bn`
             <slot name="icon"></slot>
             <slot name="description">${this.description}</slot>
-        `;
-  }
-};
-__publicField(MerchMnemonicList, "styles", css24`
+        `}};d(ut,"styles",qn`
         :host {
             display: flex;
             flex-wrap: nowrap;
@@ -16077,63 +11118,12 @@ __publicField(MerchMnemonicList, "styles", css24`
         :host .hidden {
             display: none;
         }
-    `);
-__publicField(MerchMnemonicList, "properties", {
-  description: { type: String, attribute: true }
-});
-customElements.define("merch-mnemonic-list", MerchMnemonicList);
-
-// src/merch-whats-included.js
-import { html as html29, css as css25, LitElement as LitElement6, nothing as nothing12 } from "./lit-all.min.js";
-var MerchWhatsIncluded = class extends LitElement6 {
-  updated() {
-    this.hideSeeMoreEls();
-  }
-  hideSeeMoreEls() {
-    if (this.isMobile) {
-      this.rows.forEach((node, index) => {
-        if (index >= 5) {
-          node.style.display = this.showAll ? "flex" : "none";
-        }
-      });
-    }
-  }
-  constructor() {
-    super();
-    this.showAll = false;
-    this.mobileRows = this.mobileRows === void 0 ? 5 : this.mobileRows;
-  }
-  toggle() {
-    this.showAll = !this.showAll;
-    this.dispatchEvent(
-      new CustomEvent("hide-see-more-elements", {
-        bubbles: true,
-        composed: true
-      })
-    );
-    this.requestUpdate();
-  }
-  render() {
-    return html29`<slot name="heading"></slot>
+    `),d(ut,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",ut);import{html as wr,css as jn,LitElement as Gn,nothing as ci}from"./lit-all.min.js";var ft=class extends Gn{updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((r,e)=>{e>=5&&(r.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return wr`<slot name="heading"></slot>
             <slot name="contentBullets"></slot>
-            ${!this.isMobile || !this.bulletsAdded ? html29`<slot name="content"></slot>` : nothing12}
-            ${this.isMobile && this.rows.length > this.mobileRows && !this.bulletsAdded ? html29`<div @click=${this.toggle} class="see-more">
-                      ${this.showAll ? "- See less" : "+ See more"}
-                  </div>` : nothing12}`;
-  }
-  get isMobile() {
-    return window.matchMedia("(max-width: 767px)").matches;
-  }
-  get rows() {
-    return this.querySelectorAll('[slot="content"] merch-mnemonic-list');
-  }
-  get bulletsAdded() {
-    return !!this.querySelector(
-      '[slot="contentBullets"] merch-mnemonic-list'
-    );
-  }
-};
-__publicField(MerchWhatsIncluded, "styles", css25`
+            ${!this.isMobile||!this.bulletsAdded?wr`<slot name="content"></slot>`:ci}
+            ${this.isMobile&&this.rows.length>this.mobileRows&&!this.bulletsAdded?wr`<div @click=${this.toggle} class="see-more">
+                      ${this.showAll?"- See less":"+ See more"}
+                  </div>`:ci}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll('[slot="content"] merch-mnemonic-list')}get bulletsAdded(){return!!this.querySelector('[slot="contentBullets"] merch-mnemonic-list')}};d(ft,"styles",jn`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -16178,2367 +11168,12 @@ __publicField(MerchWhatsIncluded, "styles", css25`
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `);
-__publicField(MerchWhatsIncluded, "properties", {
-  heading: { type: String, attribute: true },
-  mobileRows: { type: Number, attribute: true }
-});
-customElements.define("merch-whats-included", MerchWhatsIncluded);
-
-// ../../../../node_modules/@dexter/tacocat-core/src/utilities.js
-function getParameter(key, defaults = {}, { metadata = true, search = true, storage = true } = {}) {
-  let param;
-  if (search && param == null) {
-    const params = new URLSearchParams(window.location.search);
-    const searchKey = isString(search) ? search : key;
-    param = params.get(searchKey);
-  }
-  if (storage && param == null) {
-    const storageKey = isString(storage) ? storage : key;
-    param = window.sessionStorage.getItem(storageKey) ?? window.localStorage.getItem(storageKey);
-  }
-  if (metadata && param == null) {
-    const metadataKey = toKebabCase(isString(metadata) ? metadata : key);
-    const element = document.documentElement.querySelector(
-      `meta[name="${metadataKey}"]`
-    );
-    param = element?.content;
-  }
-  return param == null ? defaults[key] : param;
-}
-var isBoolean = (value) => typeof value === "boolean";
-var isFunction = (value) => typeof value === "function";
-var isString = (value) => typeof value === "string";
-function toBoolean(value, defaultValue) {
-  if (isBoolean(value)) return value;
-  const string = String(value);
-  if (string === "1" || string === "true") return true;
-  if (string === "0" || string === "false") return false;
-  return defaultValue;
-}
-function toKebabCase(value = "") {
-  return String(value).replace(
-    /(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,
-    (_, p1, p2) => `${p1}-${p2}`
-  ).replace(/\W+/gu, "-").toLowerCase();
-}
-
-// src/lana.js
-var config = {
-  clientId: "merch-at-scale",
-  delimiter: "\xB6",
-  ignoredProperties: ["analytics", "literals", "element"],
-  serializableTypes: ["Array", "Object"],
-  sampleRate: 1,
-  severity: "e",
-  tags: "acom",
-  isProdDomain: false
-};
-var PAGE_LIMIT = 1e3;
-function isError(value) {
-  return value instanceof Error || typeof value?.originatingRequest === "string";
-}
-function serializeValue(value) {
-  if (value == null) return void 0;
-  const type = typeof value;
-  if (type === "function") {
-    return value.name ? `function ${value.name}` : "function";
-  }
-  if (type === "object") {
-    if (value instanceof Error) return value.message;
-    if (typeof value.originatingRequest === "string") {
-      const { message, originatingRequest, status } = value;
-      return [message, status, originatingRequest].filter(Boolean).join(" ");
-    }
-    const objectType = value[Symbol.toStringTag] ?? Object.getPrototypeOf(value).constructor.name;
-    if (!config.serializableTypes.includes(objectType)) return objectType;
-  }
-  return value;
-}
-function serializeParam(key, value) {
-  if (config.ignoredProperties.includes(key)) return void 0;
-  return serializeValue(value);
-}
-var lanaAppender = {
-  append(entry) {
-    if (entry.level !== "error") return;
-    const { message, params } = entry;
-    const errors = [];
-    const values = [];
-    let payload = message;
-    params.forEach((param) => {
-      if (param != null) {
-        (isError(param) ? errors : values).push(param);
-      }
-    });
-    if (errors.length) {
-      payload += ` ${errors.map(serializeValue).join(" ")}`;
-    }
-    const { pathname, search } = window.location;
-    let page = `${config.delimiter}page=${pathname}${search}`;
-    if (page.length > PAGE_LIMIT) {
-      page = `${page.slice(0, PAGE_LIMIT)}<trunc>`;
-    }
-    payload += page;
-    if (values.length) {
-      payload += `${config.delimiter}facts=`;
-      payload += JSON.stringify(values, serializeParam);
-    }
-    window.lana?.log(payload, config);
-  }
-};
-function updateConfig(newConfig) {
-  Object.assign(
-    config,
-    Object.fromEntries(
-      Object.entries(newConfig).filter(
-        ([key, value]) => key in config && value !== "" && value !== null && value !== void 0 && !Number.isNaN(value)
-        // Correctly exclude NaN
-      )
-    )
-  );
-}
-
-// src/log.js
-var HostEnv = {
-  LOCAL: "local",
-  PROD: "prod",
-  STAGE: "stage"
-};
-var LogLevels = {
-  DEBUG: "debug",
-  ERROR: "error",
-  INFO: "info",
-  WARN: "warn"
-};
-var appenders = /* @__PURE__ */ new Set();
-var filters = /* @__PURE__ */ new Set();
-var loggerIndexes = /* @__PURE__ */ new Map();
-var consoleAppender = {
-  append({ level, message, params, timestamp, source }) {
-    console[level](
-      `${timestamp}ms [${source}] %c${message}`,
-      "font-weight: bold;",
-      ...params
-    );
-  }
-};
-var debugFilter = { filter: ({ level }) => level !== LogLevels.DEBUG };
-var quietFilter = { filter: () => false };
-function createEntry(level, message, namespace, params, source) {
-  return {
-    level,
-    message,
-    namespace,
-    get params() {
-      if (params.length === 1 && isFunction(params[0])) {
-        params = params[0]();
-        if (!Array.isArray(params)) params = [params];
-      }
-      return params;
-    },
-    source,
-    timestamp: performance.now().toFixed(3)
-  };
-}
-function handleEntry(entry) {
-  if ([...filters].every((filter) => filter(entry))) {
-    appenders.forEach((appender) => appender(entry));
-  }
-}
-function createLog(namespace) {
-  const index = (loggerIndexes.get(namespace) ?? 0) + 1;
-  loggerIndexes.set(namespace, index);
-  const id = `${namespace} #${index}`;
-  const log2 = {
-    id,
-    namespace,
-    module: (name) => createLog(`${log2.namespace}/${name}`),
-    updateConfig
-  };
-  Object.values(LogLevels).forEach((level) => {
-    log2[level] = (message, ...params) => handleEntry(createEntry(level, message, namespace, params, id));
-  });
-  return Object.seal(log2);
-}
-function use(...plugins) {
-  plugins.forEach((plugin) => {
-    const { append, filter } = plugin;
-    if (isFunction(filter)) filters.add(filter);
-    if (isFunction(append)) appenders.add(append);
-  });
-}
-function init(env = {}) {
-  const { name } = env;
-  const debug = toBoolean(
-    getParameter("commerce.debug", { search: true, storage: true }),
-    name === HostEnv.LOCAL
-  );
-  if (debug) use(consoleAppender);
-  else use(debugFilter);
-  if (name === HostEnv.PROD) use(lanaAppender);
-  return Log;
-}
-function reset() {
-  appenders.clear();
-  filters.clear();
-}
-var Log = {
-  ...createLog(LOG_NAMESPACE),
-  Level: LogLevels,
-  Plugins: { consoleAppender, debugFilter, quietFilter, lanaAppender },
-  init,
-  reset,
-  use
-};
-
-// src/utilities.js
-var MAS_COMMERCE_SERVICE2 = "mas-commerce-service";
-var log = Log.module("utilities");
-var setImmediate = (getConfig) => window.setTimeout(getConfig);
-function getService2() {
-  return document.getElementsByTagName(MAS_COMMERCE_SERVICE2)?.[0];
-}
-
-// src/mas-error.js
-var MasError = class _MasError extends Error {
-  /**
-   * Creates a new MasError instance
-   * @param {string} message - The error message
-   * @param {Object} context - Additional context information about the error
-   * @param {unknown} cause - The original error that caused this error
-   */
-  constructor(message, context, cause) {
-    super(message, { cause });
-    this.name = "MasError";
-    if (context.response) {
-      const requestId = context.response.headers?.get(HEADER_X_REQUEST_ID);
-      if (requestId) {
-        context.requestId = requestId;
-      }
-      if (context.response.status) {
-        context.status = context.response.status;
-        context.statusText = context.response.statusText;
-      }
-      if (context.response.url) {
-        context.url = context.response.url;
-      }
-    }
-    delete context.response;
-    this.context = context;
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, _MasError);
-    }
-  }
-  /**
-   * Returns a string representation of the error including context
-   * @returns {string} String representation of the error
-   */
-  toString() {
-    const contextStr = Object.entries(this.context || {}).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ");
-    let errorString = `${this.name}: ${this.message}`;
-    if (contextStr) {
-      errorString += ` (${contextStr})`;
-    }
-    if (this.cause) {
-      errorString += `
-Caused by: ${this.cause}`;
-    }
-    return errorString;
-  }
-};
-
-// src/mas-element.js
-var StateClassName = {
-  [STATE_FAILED]: CLASS_NAME_FAILED,
-  [STATE_PENDING]: CLASS_NAME_PENDING,
-  [STATE_RESOLVED]: CLASS_NAME_RESOLVED
-};
-var StateEventType = {
-  [STATE_FAILED]: EVENT_TYPE_FAILED,
-  [STATE_RESOLVED]: EVENT_TYPE_RESOLVED
-};
-var _service;
-var MasElement = class {
-  constructor(wrapperElement) {
-    __privateAdd(this, _service);
-    __publicField(this, "changes", /* @__PURE__ */ new Map());
-    __publicField(this, "connected", false);
-    __publicField(this, "error");
-    __publicField(this, "log");
-    __publicField(this, "options");
-    __publicField(this, "promises", []);
-    __publicField(this, "state", STATE_PENDING);
-    __publicField(this, "timer", null);
-    __publicField(this, "value");
-    __publicField(this, "version", 0);
-    __publicField(this, "wrapperElement");
-    this.wrapperElement = wrapperElement;
-    this.log = Log.module("mas-element");
-  }
-  update() {
-    [STATE_FAILED, STATE_PENDING, STATE_RESOLVED].forEach((state) => {
-      this.wrapperElement.classList.toggle(
-        StateClassName[state],
-        state === this.state
-      );
-    });
-  }
-  notify() {
-    if (this.state === STATE_RESOLVED || this.state === STATE_FAILED) {
-      if (this.state === STATE_RESOLVED) {
-        this.promises.forEach(
-          ({ resolve }) => resolve(this.wrapperElement)
-        );
-      } else if (this.state === STATE_FAILED) {
-        this.promises.forEach(({ reject }) => reject(this.error));
-      }
-      this.promises = [];
-    }
-    let detail = this.error;
-    if (this.error instanceof MasError) {
-      detail = {
-        message: this.error.message,
-        ...this.error.context
-      };
-    }
-    this.wrapperElement.dispatchEvent(
-      new CustomEvent(StateEventType[this.state], {
-        bubbles: true,
-        composed: true,
-        detail
-      })
-    );
-  }
-  /**
-   * Adds name/value of the updated attribute to the `changes` map,
-   * requests placeholder update.
-   */
-  attributeChangedCallback(name, _, value) {
-    this.changes.set(name, value);
-    this.requestUpdate();
-  }
-  /**
-   * Triggers when this component is connected to DOM.
-   * Subscribes to the `ready` event of the commerce service,
-   * requests placeholder update.
-   */
-  connectedCallback() {
-    __privateSet(this, _service, getService2());
-    this.requestUpdate(true);
-  }
-  /**
-   * Triggers when this component is disconnected from DOM.
-   * Runs and then erases all disposers.
-   */
-  disconnectedCallback() {
-    if (this.connected) {
-      this.connected = false;
-      this.log?.debug("Disconnected:", { element: this.wrapperElement });
-    }
-  }
-  /**
-   * Returns a promise resolving to this placeholder
-   * when its value is resolved or rejected.
-   * If placeholder is not pending for completion of an async operation
-   * the returned promise is already resolved or rejected.
-   */
-  onceSettled() {
-    const { error, promises, state } = this;
-    if (STATE_RESOLVED === state)
-      return Promise.resolve(this.wrapperElement);
-    if (STATE_FAILED === state) return Promise.reject(error);
-    return new Promise((resolve, reject) => {
-      promises.push({ resolve, reject });
-    });
-  }
-  /**
-   * Sets component state to "RESOLVED".
-   * Updates its class list and stored value, notifies observers and fires "RESOLVED" event.
-   */
-  toggleResolved(version, value, options) {
-    if (version !== this.version) return false;
-    if (options !== void 0) this.options = options;
-    this.state = STATE_RESOLVED;
-    this.value = value;
-    this.update();
-    this.log?.debug("Resolved:", { element: this.wrapperElement, value });
-    setImmediate(() => this.notify());
-    return true;
-  }
-  /**
-   * Sets component state to "FAILED".
-   * Updates its class list and stored error, notifies observers and fires "FAILED" event.
-   */
-  toggleFailed(version, error, options) {
-    if (version !== this.version) return false;
-    if (options !== void 0) this.options = options;
-    this.error = error;
-    this.state = STATE_FAILED;
-    this.update();
-    const wcName = this.wrapperElement.getAttribute("is");
-    this.log?.error(`${wcName}: Failed to render: ${error.message}`, {
-      element: this.wrapperElement,
-      ...error.context,
-      ...__privateGet(this, _service)?.duration
-    });
-    setImmediate(() => this.notify());
-    return true;
-  }
-  /**
-   * Sets component state to "PENDING".
-   * Increments its version, updates CSS classes, notifies observers and fires "PENDING" event.
-   */
-  togglePending(options) {
-    this.version++;
-    if (options) this.options = options;
-    this.state = STATE_PENDING;
-    this.update();
-    this.log?.debug("Pending:", {
-      osi: this.wrapperElement?.options?.wcsOsi
-    });
-    return this.version;
-  }
-  /**
-   * Queues task to update this component.
-   * Skips rendering if update is not forced and no changes were accumulated since the previous update.
-   * Calls `render` method to perform the update.
-   * Restores previous state of the component if the `render` method returned `false`.
-   */
-  requestUpdate(force = false) {
-    if (!this.wrapperElement.isConnected || !getService2()) return;
-    if (this.timer) return;
-    const { error, options, state, value, version } = this;
-    this.state = STATE_PENDING;
-    this.timer = setImmediate(async () => {
-      this.timer = null;
-      let changes = null;
-      if (this.changes.size) {
-        changes = Object.fromEntries(this.changes.entries());
-        this.changes.clear();
-      }
-      if (this.connected) {
-        this.log?.debug("Updated:", {
-          element: this.wrapperElement,
-          changes
-        });
-      } else {
-        this.connected = true;
-        this.log?.debug("Connected:", {
-          element: this.wrapperElement,
-          changes
-        });
-      }
-      if (changes || force) {
-        try {
-          const result = await this.wrapperElement.render?.();
-          if (result === false && this.state === STATE_PENDING && this.version === version) {
-            this.state = state;
-            this.error = error;
-            this.value = value;
-            this.update();
-            this.notify();
-          }
-        } catch (error2) {
-          this.toggleFailed(this.version, error2, options);
-        }
-      }
-    });
-  }
-};
-_service = new WeakMap();
-
-// src/upt-link.js
-function getPromoTermsUrl(env) {
-  const host = env === "PRODUCTION" ? "www.adobe.com" : "www.stage.adobe.com";
-  return `https://${host}/offers/promo-terms.html`;
-}
-var _service2;
-var _UptLink = class _UptLink extends HTMLAnchorElement {
-  constructor() {
-    super();
-    __publicField(this, "masElement", new MasElement(this));
-    __privateAdd(this, _service2);
-    this.setAttribute("is", _UptLink.is);
-  }
-  get isUptLink() {
-    return true;
-  }
-  /**
-   * @param {string} osi
-   * @param {string} promotionCode
-   */
-  initializeWcsData(osi, promotionCode) {
-    this.setAttribute("data-wcs-osi", osi);
-    if (promotionCode)
-      this.setAttribute("data-promotion-code", promotionCode);
-  }
-  attributeChangedCallback(name, oldValue, value) {
-    this.masElement.attributeChangedCallback(name, oldValue, value);
-  }
-  connectedCallback() {
-    this.masElement.connectedCallback();
-    __privateSet(this, _service2, getService());
-    if (__privateGet(this, _service2)) {
-      this.log = __privateGet(this, _service2).log.module("upt-link");
-    }
-  }
-  disconnectedCallback() {
-    this.masElement.disconnectedCallback();
-    __privateSet(this, _service2, void 0);
-  }
-  requestUpdate(force = false) {
-    this.masElement.requestUpdate(force);
-  }
-  onceSettled() {
-    return this.masElement.onceSettled();
-  }
-  async render() {
-    const service = getService();
-    if (!service) return false;
-    if (!this.dataset.imsCountry) {
-      service.imsCountryPromise.then((countryCode) => {
-        if (countryCode) this.dataset.imsCountry = countryCode;
-      });
-    }
-    const options = service.collectCheckoutOptions({}, this);
-    if (!options.wcsOsi) {
-      this.log.error(`Missing 'data-wcs-osi' attribute on upt-link.`);
-      return false;
-    }
-    const version = this.masElement.togglePending(options);
-    const promises = service.resolveOfferSelectors(options);
-    try {
-      const [[offer]] = await Promise.all(promises);
-      const { country, language, env } = options;
-      let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
-      const promotionCode = this.getAttribute("data-promotion-code");
-      if (promotionCode)
-        params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
-      this.href = `${getPromoTermsUrl(env)}?${params}`;
-      this.masElement.toggleResolved(version, offer, options);
-    } catch (error) {
-      const masError = new Error(
-        `Could not resolve offer selectors for id: ${options.wcsOsi}.`,
-        error.message
-      );
-      this.masElement.toggleFailed(version, masError, options);
-      return false;
-    }
-  }
-  /**
-   * @param {HTMLElement} element
-   */
-  static createFrom(element) {
-    const uptLink = new _UptLink();
-    for (const attribute of element.attributes) {
-      if (attribute.name === "is") continue;
-      if (attribute.name === "class" && attribute.value.includes("upt-link"))
-        uptLink.setAttribute(
-          "class",
-          attribute.value.replace("upt-link", "").trim()
-        );
-      else uptLink.setAttribute(attribute.name, attribute.value);
-    }
-    uptLink.innerHTML = element.innerHTML;
-    uptLink.setAttribute("tabindex", 0);
-    return uptLink;
-  }
-};
-_service2 = new WeakMap();
-__publicField(_UptLink, "is", "upt-link");
-__publicField(_UptLink, "tag", "a");
-__publicField(_UptLink, "observedAttributes", [
-  "data-wcs-osi",
-  "data-promotion-code",
-  "data-ims-country"
-]);
-var UptLink = _UptLink;
-if (!window.customElements.get(UptLink.is)) {
-  window.customElements.define(UptLink.is, UptLink, {
-    extends: UptLink.tag
-  });
-}
-
-// src/hydrate.js
-var DEFAULT_BADGE_COLOR = "#000000";
-var DEFAULT_BADGE_BACKGROUND_COLOR = "#F8D904";
-var DEFAULT_BORDER_COLOR = "#EAEAEA";
-var DEFAULT_TRIAL_BADGE_BORDER_COLOR = "#31A547";
-var CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
-var ANALYTICS_TAG = "mas:product_code/";
-var ANALYTICS_LINK_ATTR = "daa-ll";
-var ANALYTICS_SECTION_ATTR = "daa-lh";
-var SPECTRUM_BUTTON_SIZES = ["XL", "L", "M", "S"];
-var TEXT_TRUNCATE_SUFFIX = "...";
-function appendSlot(fieldName, fields, el, mapping) {
-  const config2 = mapping[fieldName];
-  if (fields[fieldName] && config2) {
-    const attributes = { slot: config2?.slot, ...config2?.attributes };
-    let content = fields[fieldName];
-    if (config2.maxCount && typeof content === "string") {
-      const [truncatedContent, cleanContent] = getTruncatedTextData(
-        content,
-        config2.maxCount,
-        config2.withSuffix
-      );
-      if (truncatedContent !== content) {
-        attributes.title = cleanContent;
-        content = truncatedContent;
-      }
-    }
-    const tag = createTag(config2.tag, attributes, content);
-    el.append(tag);
-  }
-}
-function processMnemonics(fields, merchCard, mnemonicsConfig) {
-  const icons = (fields.mnemonicIcon || []).filter((icon) => icon);
-  const mnemonics = icons.map((icon, index) => ({
-    icon,
-    alt: fields.mnemonicAlt?.[index] ?? "",
-    link: fields.mnemonicLink?.[index] ?? ""
-  }));
-  mnemonics?.forEach(({ icon: src, alt, link: href }) => {
-    if (href && !/^https?:/.test(href)) {
-      try {
-        href = new URL(`https://${href}`).href.toString();
-      } catch (e) {
-        href = "#";
-      }
-    }
-    const attrs = {
-      slot: "icons",
-      src,
-      loading: merchCard.loading,
-      size: mnemonicsConfig?.size ?? "l"
-    };
-    if (alt) attrs.alt = alt;
-    if (href) attrs.href = href;
-    const merchIcon = createTag("merch-icon", attrs);
-    merchCard.append(merchIcon);
-  });
-  const slotIcons = merchCard.shadowRoot.querySelector('slot[name="icons"]');
-  if (slotIcons) {
-    slotIcons.style.display = mnemonics?.length ? null : "none";
-  }
-}
-function isMerchBadgeContentEmpty(badgeHtml) {
-  const el = new DOMParser().parseFromString(badgeHtml, "text/html").querySelector("merch-badge");
-  if (!el) return true;
-  if (el.querySelector('span[is="inline-price"]')) return false;
-  return !el.textContent?.trim();
-}
-function processBadge(fields, merchCard, mapping) {
-  if (mapping.badge?.slot) {
-    const shouldRenderBadge = fields.badge?.length;
-    if (shouldRenderBadge && !fields.badge?.startsWith("<merch-badge")) {
-      let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
-      let setBorderColorForBadge = false;
-      if (mapping.allowedBadgeColors?.includes(mapping.badge?.default)) {
-        badgeDefaultBgColor = mapping.badge?.default;
-        if (!fields.borderColor) {
-          setBorderColorForBadge = true;
-        }
-      }
-      const bgColorToUse = fields.badgeBackgroundColor || badgeDefaultBgColor;
-      let borderColorToUse = fields.borderColor || "";
-      if (setBorderColorForBadge) {
-        borderColorToUse = mapping.badge?.default;
-        fields.borderColor = mapping.badge?.default;
-      }
-      fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
-    }
-    if (fields.badge?.startsWith("<merch-badge") && isMerchBadgeContentEmpty(fields.badge)) {
-      fields.badge = "";
-    }
-    appendSlot("badge", fields, merchCard, mapping);
-  } else {
-    if (fields.badge) {
-      merchCard.setAttribute("badge-text", fields.badge);
-      if (!mapping.disabledAttributes?.includes("badgeColor")) {
-        merchCard.setAttribute(
-          "badge-color",
-          fields.badgeColor || DEFAULT_BADGE_COLOR
-        );
-      }
-      if (!mapping.disabledAttributes?.includes("badgeBackgroundColor")) {
-        merchCard.setAttribute(
-          "badge-background-color",
-          fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR
-        );
-      }
-      merchCard.setAttribute(
-        "border-color",
-        fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR
-      );
-    } else {
-      merchCard.setAttribute(
-        "border-color",
-        fields.borderColor || DEFAULT_BORDER_COLOR
-      );
-    }
-  }
-}
-function processTrialBadge(fields, merchCard, mapping) {
-  if (mapping.trialBadge && fields.trialBadge) {
-    if (!fields.trialBadge.startsWith("<merch-badge")) {
-      const borderColorToUse = !mapping.disabledAttributes?.includes(
-        "trialBadgeBorderColor"
-      ) && fields.trialBadgeBorderColor || DEFAULT_TRIAL_BADGE_BORDER_COLOR;
-      fields.trialBadge = `<merch-badge variant="${fields.variant}" border-color="${borderColorToUse}">${fields.trialBadge}</merch-badge>`;
-    }
-    appendSlot("trialBadge", fields, merchCard, mapping);
-  }
-}
-function processSize(fields, merchCard, sizeConfig) {
-  if (sizeConfig?.includes(fields.size)) {
-    merchCard.setAttribute("size", fields.size);
-  }
-}
-function processCardName(fields, merchCard) {
-  if (fields.cardName) {
-    merchCard.setAttribute("name", fields.cardName);
-  }
-}
-function processTitle(fields, merchCard, titleConfig) {
-  if (fields.cardTitle) {
-    fields.cardTitle = processMnemonicElements(fields.cardTitle);
-  }
-  appendSlot("cardTitle", fields, merchCard, { cardTitle: titleConfig });
-}
-function processSubtitle(fields, merchCard, mapping) {
-  appendSlot("subtitle", fields, merchCard, mapping);
-}
-function processBackgroundColor(fields, merchCard, allowedColors, backgroundColorConfig) {
-  if (!fields.backgroundColor || fields.backgroundColor.toLowerCase() === "default") {
-    merchCard.style.removeProperty("--merch-card-custom-background-color");
-    merchCard.removeAttribute("background-color");
-    return;
-  }
-  if (allowedColors?.[fields.backgroundColor]) {
-    merchCard.style.setProperty(
-      "--merch-card-custom-background-color",
-      `var(${allowedColors[fields.backgroundColor]})`
-    );
-    merchCard.setAttribute("background-color", fields.backgroundColor);
-  } else if (backgroundColorConfig?.attribute && fields.backgroundColor) {
-    merchCard.setAttribute(
-      backgroundColorConfig.attribute,
-      fields.backgroundColor
-    );
-    merchCard.style.removeProperty("--merch-card-custom-background-color");
-  }
-}
-function processBorderColor(fields, merchCard, variantMapping) {
-  const borderColorConfig = variantMapping?.borderColor;
-  const customBorderColor = "--consonant-merch-card-border-color";
-  if (fields.borderColor?.toLowerCase() === "transparent") {
-    merchCard.style.setProperty(customBorderColor, "transparent");
-  } else if (fields.borderColor && borderColorConfig) {
-    const specialValue = borderColorConfig?.specialValues?.[fields.borderColor];
-    const isGradient = specialValue?.includes("gradient") || /-gradient/.test(fields.borderColor);
-    const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(
-      fields.borderColor
-    );
-    if (isGradient) {
-      merchCard.setAttribute("gradient-border", "true");
-      let borderColorKey = fields.borderColor;
-      if (borderColorConfig?.specialValues) {
-        for (const [key, value] of Object.entries(
-          borderColorConfig.specialValues
-        )) {
-          if (value === fields.borderColor) {
-            borderColorKey = key;
-            break;
-          }
-        }
-      }
-      merchCard.setAttribute("border-color", borderColorKey);
-      merchCard.style.removeProperty(customBorderColor);
-    } else if (isSpectrumColor) {
-      merchCard.setAttribute("border-color", fields.borderColor);
-      merchCard.style.setProperty(
-        customBorderColor,
-        `var(--${fields.borderColor})`
-      );
-    } else {
-      merchCard.style.setProperty(
-        customBorderColor,
-        `var(--${fields.borderColor})`
-      );
-    }
-  } else {
-    merchCard.style.removeProperty(customBorderColor);
-  }
-}
-var DEFAULT_FIELD_SENTINELS = /* @__PURE__ */ new Set(["", "default"]);
-function processWhatsIncludedDividerColor(fields, merchCard, variantMapping) {
-  const config2 = variantMapping?.whatsIncludedDividerColor;
-  const customVar = "--consonant-merch-card-whats-included-divider-color";
-  if (!config2) return;
-  const wi = merchCard.querySelector('[slot="footer-rows"] merch-whats-included') ?? merchCard.querySelector("merch-whats-included");
-  const fromMarkup = wi?.getAttribute("whats-included-divider-color")?.trim();
-  const fromField = fields.whatsIncludedDividerColor != null ? String(fields.whatsIncludedDividerColor).trim() : "";
-  const raw = fromMarkup || fromField;
-  if (raw == null || DEFAULT_FIELD_SENTINELS.has(String(raw).trim().toLowerCase())) {
-    merchCard.removeAttribute("whats-included-divider-color");
-    merchCard.style.removeProperty(customVar);
-    return;
-  }
-  const value = String(raw).trim();
-  if (value.toLowerCase() === "transparent") {
-    merchCard.removeAttribute("whats-included-divider-color");
-    merchCard.style.setProperty(customVar, "transparent");
-    return;
-  }
-  const specialValue = config2.specialValues?.[value];
-  const isGradient = specialValue?.includes("gradient") || /-gradient/.test(value) || /^gradient-/.test(value);
-  const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(value);
-  if (isGradient) {
-    let dividerColorKey = value;
-    if (config2.specialValues) {
-      for (const [key, v] of Object.entries(config2.specialValues)) {
-        if (v === value) {
-          dividerColorKey = key;
-          break;
-        }
-      }
-    }
-    merchCard.setAttribute("whats-included-divider-color", dividerColorKey);
-    merchCard.style.removeProperty(customVar);
-  } else if (isSpectrumColor) {
-    merchCard.setAttribute("whats-included-divider-color", value);
-    merchCard.style.setProperty(customVar, `var(--${value})`);
-  } else {
-    merchCard.removeAttribute("whats-included-divider-color");
-    merchCard.style.setProperty(customVar, `var(--${value})`);
-  }
-}
-function processBackgroundImage(fields, merchCard, backgroundImageConfig) {
-  if (fields.backgroundImage) {
-    const imgAttributes = {
-      loading: merchCard.loading ?? "lazy",
-      src: fields.backgroundImage
-    };
-    if (fields.backgroundImageAltText) {
-      imgAttributes.alt = fields.backgroundImageAltText;
-    } else {
-      imgAttributes.role = "none";
-    }
-    if (!backgroundImageConfig) return;
-    if (backgroundImageConfig?.attribute) {
-      merchCard.setAttribute(
-        backgroundImageConfig.attribute,
-        fields.backgroundImage
-      );
-      return;
-    }
-    merchCard.append(
-      createTag(
-        backgroundImageConfig.tag,
-        { slot: backgroundImageConfig.slot },
-        createTag("img", imgAttributes)
-      )
-    );
-  }
-}
-function processMnemonicElements(htmlContent) {
-  if (!htmlContent || typeof htmlContent !== "string") return htmlContent;
-  if (htmlContent.includes("<mas-mnemonic")) {
-    Promise.resolve().then(() => (init_mas_mnemonic(), mas_mnemonic_exports)).catch(console.error);
-  }
-  return htmlContent;
-}
-function processPrices(fields, merchCard, mapping) {
-  if (fields.prices) {
-    fields.prices = processMnemonicElements(fields.prices);
-  }
-  appendSlot("prices", fields, merchCard, mapping);
-}
-function coerceMultivalueFeatureField(raw) {
-  if (raw == null || raw === "") return [];
-  if (typeof raw === "string") return raw.trim() ? [raw] : [];
-  if (Array.isArray(raw)) return raw.flatMap(coerceMultivalueFeatureField);
-  if (typeof raw === "object") {
-    if (typeof raw.value === "string") {
-      return raw.value.trim() ? [raw.value] : [];
-    }
-    if (Array.isArray(raw.value)) {
-      return raw.value.flatMap(coerceMultivalueFeatureField);
-    }
-    if (typeof raw.content === "string") {
-      return raw.content.trim() ? [raw.content] : [];
-    }
-    if (typeof raw.html === "string") {
-      return raw.html.trim() ? [raw.html] : [];
-    }
-  }
-  return [];
-}
-function processFeatures(fields, merchCard, mapping) {
-  const values = coerceMultivalueFeatureField(fields.features).filter(
-    (html30) => html30.trim()
-  );
-  if (!values.length) return;
-  const container = createTag("div", {
-    slot: mapping?.features?.slot ?? "features",
-    hidden: "",
-    "data-compare-chart-features": ""
-  });
-  values.forEach((value) => {
-    let doc;
-    try {
-      doc = new DOMParser().parseFromString(value, "text/html");
-    } catch {
-      return;
-    }
-    const p = doc.body.querySelector("p[name]");
-    if (p) {
-      container.append(p);
-      return;
-    }
-    container.insertAdjacentHTML("beforeend", value);
-  });
-  if (container.children.length) merchCard.append(container);
-  processFeaturesLinks(merchCard, mapping);
-}
-function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
-  const isCheckoutLink = linkElement.hasAttribute("data-wcs-osi") && Boolean(linkElement.getAttribute("data-wcs-osi"));
-  const originalClassName = linkElement.className || "";
-  const checkoutLinkStyle = CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? "accent";
-  const isAccent = checkoutLinkStyle.includes("accent");
-  const isPrimary = checkoutLinkStyle.includes("primary");
-  const isSecondary = checkoutLinkStyle.includes("secondary");
-  const isOutline = checkoutLinkStyle.includes("-outline");
-  const isLinkStyle = checkoutLinkStyle.includes("-link");
-  linkElement.classList.remove("accent", "primary", "secondary");
-  let newButtonElement;
-  if (merchCard.consonant) {
-    newButtonElement = createConsonantButton(
-      linkElement,
-      isAccent,
-      isCheckoutLink,
-      isLinkStyle,
-      isPrimary,
-      isSecondary,
-      aemFragmentMapping?.ctas?.size
-    );
-  } else if (isLinkStyle) {
-    newButtonElement = linkElement;
-  } else {
-    let variant;
-    if (isAccent) {
-      variant = "accent";
-    } else if (isPrimary) {
-      variant = "primary";
-    } else if (isSecondary) {
-      variant = "secondary";
-    }
-    newButtonElement = merchCard.spectrum === "swc" ? createSpectrumSwcButton(
-      linkElement,
-      aemFragmentMapping,
-      isOutline,
-      variant,
-      isCheckoutLink
-    ) : createSpectrumCssButton(
-      linkElement,
-      aemFragmentMapping,
-      isOutline,
-      variant,
-      isCheckoutLink
-    );
-  }
-  return newButtonElement;
-}
-function processDescriptionLinks(merchCard, aemFragmentMapping) {
-  const { slot } = aemFragmentMapping?.description;
-  processLinks(merchCard, aemFragmentMapping, slot);
-}
-function processFeaturesLinks(merchCard, aemFragmentMapping) {
-  const slot = aemFragmentMapping?.features?.slot;
-  if (!slot) return;
-  processLinks(merchCard, aemFragmentMapping, slot);
-}
-function processLinks(merchCard, aemFragmentMapping, slot) {
-  const links = merchCard.querySelectorAll(
-    `[slot="${slot}"] a[data-wcs-osi]`
-  );
-  if (!links.length) return;
-  links.forEach((link) => {
-    const checkoutLink = transformLinkToButton(
-      link,
-      merchCard,
-      aemFragmentMapping
-    );
-    link.replaceWith(checkoutLink);
-  });
-}
-function processDescription(fields, merchCard, mapping, settings) {
-  if (fields.description) {
-    fields.description = processMnemonicElements(fields.description);
-  }
-  if (fields.promoText) {
-    fields.promoText = processMnemonicElements(fields.promoText);
-  }
-  if (fields.shortDescription) {
-    fields.shortDescription = processMnemonicElements(
-      fields.shortDescription
-    );
-  }
-  appendSlot("promoText", fields, merchCard, mapping);
-  appendSlot("description", fields, merchCard, mapping);
-  appendSlot("shortDescription", fields, merchCard, mapping);
-  if (fields.shortDescription) {
-    merchCard.setAttribute("action-menu", "true");
-    if (!fields.actionMenuLabel) {
-      merchCard.setAttribute("action-menu-label", "More options");
-    }
-  }
-  processDescriptionLinks(merchCard, mapping);
-  appendSlot("callout", fields, merchCard, mapping);
-  processQuantitySelect(fields, merchCard, mapping, settings);
-  appendSlot("whatsIncluded", fields, merchCard, mapping);
-}
-function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
-  if (!mapping.quantitySelect) return;
-  if (!fields.quantitySelect) fields.quantitySelect = settings.quantitySelect;
-  appendSlot("quantitySelect", fields, merchCard, mapping);
-}
-function processAddon(fields, merchCard, mapping, settings = {}) {
-  if (!mapping.addon) return;
-  const addonSource = fields.addon ?? settings.addon;
-  const addonField = addonSource?.replace(/[{}]/g, "");
-  if (!addonField) return;
-  if (/disabled/.test(addonField)) return;
-  let background;
-  let innerContent = addonField;
-  const temp = document.createElement("div");
-  temp.innerHTML = addonField;
-  const firstEl = temp.firstElementChild;
-  if (firstEl?.tagName?.toLowerCase() === "merch-addon") {
-    background = firstEl.getAttribute("background") || void 0;
-    innerContent = firstEl.innerHTML;
-  }
-  const attrs = { slot: "addon" };
-  if (background) attrs.background = background;
-  const addon = createTag("merch-addon", attrs, innerContent);
-  [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
-    const parent = span.parentElement;
-    if (parent?.nodeName !== "P") return;
-    if (!parent.hasAttribute("data-plan-type")) {
-      parent.setAttribute("data-plan-type", "");
-    }
-  });
-  merchCard.append(addon);
-}
-function processAddonConfirmation(fields, merchCard, mapping) {
-  if (fields.addonConfirmation) {
-    appendSlot("addonConfirmation", fields, merchCard, mapping);
-  }
-}
-function processCustomFields(fields, merchCard, mapping) {
-  const config2 = mapping?.customFields;
-  if (!config2) return;
-  const values = Array.isArray(fields.customFields) ? fields.customFields : fields.customFields ? [fields.customFields] : [];
-  const labels = Array.isArray(fields.customFieldLabels) ? fields.customFieldLabels : fields.customFieldLabels ? [fields.customFieldLabels] : [];
-  values.filter(Boolean).forEach((html30, i) => {
-    const label = labels[i];
-    const el = createTag(
-      config2.tag,
-      { slot: `custom-field-${i}`, "data-label": label || "" },
-      html30
-    );
-    merchCard.append(el);
-  });
-}
-function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
-  if (settings?.secureLabel && aemFragmentMapping?.secureLabel) {
-    merchCard.setAttribute("secure-label", settings.secureLabel);
-  }
-}
-function getTruncatedTextData(text, limit, withSuffix = true) {
-  try {
-    const _text = typeof text !== "string" ? "" : text;
-    const cleanText = clearTags(_text);
-    if (cleanText.length <= limit) return [_text, cleanText];
-    let index = 0;
-    let inTag = false;
-    let remaining = withSuffix ? limit - TEXT_TRUNCATE_SUFFIX.length < 1 ? 1 : limit - TEXT_TRUNCATE_SUFFIX.length : limit;
-    const openTags = [];
-    for (const char of _text) {
-      index++;
-      if (char === "<") {
-        inTag = true;
-        if (_text[index] === "/") {
-          openTags.pop();
-        } else {
-          let tagName = "";
-          for (const tagChar of _text.substring(index)) {
-            if (tagChar === " " || tagChar === ">") break;
-            tagName += tagChar;
-          }
-          openTags.push(tagName);
-        }
-      }
-      if (char === "/") {
-        if (_text[index] === ">") {
-          openTags.pop();
-        }
-      }
-      if (char === ">") {
-        inTag = false;
-        continue;
-      }
-      if (inTag) continue;
-      remaining--;
-      if (remaining === 0) break;
-    }
-    let trimmedText = _text.substring(0, index).trim();
-    if (openTags.length > 0) {
-      if (openTags[0] === "p") openTags.shift();
-      for (const tag of openTags.reverse()) {
-        trimmedText += `</${tag}>`;
-      }
-    }
-    const truncatedText = `${trimmedText}${withSuffix ? TEXT_TRUNCATE_SUFFIX : ""}`;
-    return [truncatedText, cleanText];
-  } catch (error) {
-    const fallbackText = typeof text === "string" ? text : "";
-    const cleanFallback = clearTags(fallbackText);
-    return [fallbackText, cleanFallback];
-  }
-}
-function clearTags(text) {
-  if (!text) return "";
-  let result = "";
-  let inTag = false;
-  for (const char of text) {
-    if (char === "<") inTag = true;
-    if (char === ">") {
-      inTag = false;
-      continue;
-    }
-    if (inTag) continue;
-    result += char;
-  }
-  return result;
-}
-function processUptLinks(fields, merchCard) {
-  const placeholders = merchCard.querySelectorAll("a.upt-link");
-  placeholders.forEach((placeholder) => {
-    const uptLink = UptLink.createFrom(placeholder);
-    placeholder.replaceWith(uptLink);
-    uptLink.initializeWcsData(fields.osi, fields.promoCode);
-  });
-}
-function createSpectrumCssButton(cta, aemFragmentMapping, isOutline, variant, isCheckout) {
-  let button = cta;
-  if (isCheckout) {
-    const CheckoutButton = customElements.get("checkout-button");
-    button = CheckoutButton.createCheckoutButton({}, cta.innerHTML);
-  } else {
-    button.innerHTML = `<span>${button.textContent}</span>`;
-  }
-  button.setAttribute("tabindex", 0);
-  for (const attr of cta.attributes) {
-    if (["class", "is"].includes(attr.name)) continue;
-    button.setAttribute(attr.name, attr.value);
-  }
-  button.firstElementChild?.classList.add("spectrum-Button-label");
-  const size = aemFragmentMapping?.ctas?.size ?? "M";
-  const variantClass = `spectrum-Button--${variant}`;
-  const sizeClass = SPECTRUM_BUTTON_SIZES.includes(size) ? `spectrum-Button--size${size}` : "spectrum-Button--sizeM";
-  const spectrumClass = ["spectrum-Button", variantClass, sizeClass];
-  if (isOutline) {
-    spectrumClass.push("spectrum-Button--outline");
-  }
-  button.classList.add(...spectrumClass);
-  return button;
-}
-function createSpectrumSwcButton(cta, aemFragmentMapping, isOutline, variant, isCheckout) {
-  let button = cta;
-  if (isCheckout) {
-    const CheckoutButton = customElements.get("checkout-button");
-    button = CheckoutButton.createCheckoutButton(cta.dataset);
-    button.connectedCallback();
-    button.render();
-  }
-  let treatment = "fill";
-  if (isOutline) {
-    treatment = "outline";
-  }
-  const spectrumCta = createTag(
-    "sp-button",
-    {
-      treatment,
-      variant,
-      tabIndex: 0,
-      size: aemFragmentMapping?.ctas?.size ?? "m",
-      ...cta.dataset.analyticsId && {
-        "data-analytics-id": cta.dataset.analyticsId
-      }
-    },
-    cta.innerHTML
-  );
-  spectrumCta.source = button;
-  (isCheckout ? button.onceSettled() : Promise.resolve(button)).then(
-    (target) => {
-      spectrumCta.setAttribute("data-navigation-url", target.href);
-    }
-  );
-  spectrumCta.addEventListener("click", (e) => {
-    if (e.defaultPrevented) return;
-    button.click();
-  });
-  return spectrumCta;
-}
-function createConsonantButton(cta, isAccent, isCheckout, isLinkStyle, isPrimary, isSecondary, size) {
-  let button = cta;
-  if (isCheckout) {
-    try {
-      const CheckoutLink = customElements.get("checkout-link");
-      if (CheckoutLink) {
-        button = CheckoutLink.createCheckoutLink(
-          cta.dataset,
-          cta.innerHTML
-        ) ?? cta;
-      }
-    } catch {
-    }
-  }
-  if (!isLinkStyle) {
-    button.classList.add("button", "con-button");
-    if (size && size !== "m") {
-      button.classList.add(`button-${size}`);
-    }
-    if (isAccent) {
-      button.classList.add("blue");
-    }
-    if (isPrimary) {
-      button.classList.add("primary");
-    }
-    if (isSecondary) {
-      button.classList.add("secondary");
-    }
-  }
-  return button;
-}
-function processCTAs(fields, merchCard, aemFragmentMapping, variant, settings) {
-  if (fields.ctas && aemFragmentMapping.ctas) {
-    fields.ctas = processMnemonicElements(fields.ctas);
-    const { slot } = aemFragmentMapping.ctas;
-    const footer = createTag("div", { slot }, fields.ctas);
-    const allCtaLinks = [...footer.querySelectorAll("a")];
-    const filteredLinks = settings?.hideTrialCTAs ? allCtaLinks.filter(
-      (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId)
-    ) : allCtaLinks;
-    const ctas = (filteredLinks.length > 0 ? filteredLinks : allCtaLinks).map(
-      (cta) => transformLinkToButton(cta, merchCard, aemFragmentMapping)
-    );
-    footer.textContent = "";
-    footer.append(...ctas);
-    merchCard.append(footer);
-    if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
-      ctas.forEach((cta) => {
-        const checkout = cta.source ?? cta;
-        if (!checkout.onceSettled) return;
-        cta.hidden = true;
-        checkout.onceSettled().then(() => {
-          if (checkout.value?.[0]?.offerType === "TRIAL") {
-            const othersVisible = ctas.some(
-              (c) => c !== cta && !c.hidden
-            );
-            if (othersVisible) {
-              cta.remove();
-            } else {
-              cta.hidden = false;
-            }
-          } else {
-            cta.hidden = false;
-          }
-        }).catch(() => {
-          cta.hidden = false;
-        });
-      });
-    }
-  }
-}
-function processAnalytics(fields, merchCard) {
-  const { tags } = fields;
-  const cardAnalyticsId = tags?.find(
-    (tag) => typeof tag === "string" && tag.startsWith(ANALYTICS_TAG)
-  )?.split("/").pop();
-  if (!cardAnalyticsId) return;
-  merchCard.setAttribute(ANALYTICS_SECTION_ATTR, cardAnalyticsId);
-  const elements = [
-    ...merchCard.shadowRoot.querySelectorAll(
-      `a[data-analytics-id],button[data-analytics-id]`
-    ),
-    ...merchCard.querySelectorAll(
-      `a[data-analytics-id],button[data-analytics-id]`
-    )
-  ];
-  elements.forEach((el, index) => {
-    el.setAttribute(
-      ANALYTICS_LINK_ATTR,
-      `${el.dataset.analyticsId}-${index + 1}`
-    );
-  });
-}
-function updateLinksCSS(merchCard) {
-  if (merchCard.spectrum !== "css") return;
-  [
-    ["primary-link", "primary"],
-    ["secondary-link", "secondary"]
-  ].forEach(([className, variant]) => {
-    merchCard.querySelectorAll(`a.${className}`).forEach((link) => {
-      link.classList.remove(className);
-      link.classList.add("spectrum-Link", `spectrum-Link--${variant}`);
-    });
-  });
-}
-function cleanup(merchCard) {
-  merchCard.querySelectorAll("[slot]").forEach((el) => {
-    el.remove();
-  });
-  merchCard.variant = void 0;
-  const attributesToRemove = [
-    "checkbox-label",
-    "stock-offer-osis",
-    "secure-label",
-    "background-image",
-    "background-color",
-    "border-color",
-    "whats-included-divider-color",
-    "badge-background-color",
-    "badge-color",
-    "badge-text",
-    "gradient-border",
-    "size",
-    ANALYTICS_SECTION_ATTR
-  ];
-  attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));
-  const classesToRemove = ["wide-strip", "thin-strip"];
-  merchCard.classList.remove(...classesToRemove);
-}
-async function hydrate(fragment, merchCard) {
-  if (!fragment) {
-    const cardIdForError = merchCard?.id || "unknown";
-    console.error(
-      `hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${cardIdForError}).`
-    );
-    throw new Error(
-      `hydrate: Fragment is undefined for card (merchCard id: ${cardIdForError}).`
-    );
-  }
-  if (!fragment.fields) {
-    const problemId = fragment.id || "unknown";
-    const cardIdForError = merchCard?.id || "unknown";
-    console.error(
-      `hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'. Cannot hydrate.`
-    );
-    throw new Error(
-      `hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'.`
-    );
-  }
-  const { id, fields, settings = {}, priceLiterals, placeholders } = fragment;
-  if (fields.variant === "bizpro") fields.variant = "pro";
-  const { variant } = fields;
-  if (!variant)
-    throw new Error(`hydrate: no template found in payload ${id}`);
-  cleanup(merchCard);
-  merchCard.compatVersion = fields.compatVersion;
-  merchCard.contextPromotionCode = fields.promoCode;
-  merchCard.settings = settings;
-  if (priceLiterals) merchCard.priceLiterals = priceLiterals;
-  if (placeholders) merchCard.placeholders = placeholders;
-  merchCard.id ?? (merchCard.id = fragment.id);
-  if (fragment.variationId)
-    merchCard.setAttribute("variation-id", fragment.variationId);
-  if (fragment.maskId) merchCard.setAttribute("mask-id", fragment.maskId);
-  if (fragment.promoProject)
-    merchCard.setAttribute("data-promotion-project", fragment.promoProject);
-  if (fragment.promoVariationProject)
-    merchCard.setAttribute(
-      "data-promotion-variation-project",
-      fragment.promoVariationProject
-    );
-  merchCard.variant = variant;
-  await merchCard.updateComplete;
-  const { aemFragmentMapping: mapping } = merchCard.variantLayout;
-  if (!mapping)
-    throw new Error(`hydrate: variant mapping not found for ${id}`);
-  if (mapping.style === "consonant") {
-    merchCard.setAttribute("consonant", true);
-  }
-  processMnemonics(fields, merchCard, mapping.mnemonics);
-  processTrialBadge(fields, merchCard, mapping);
-  processSize(fields, merchCard, mapping.size);
-  processCardName(fields, merchCard);
-  processTitle(fields, merchCard, mapping.title);
-  processBadge(fields, merchCard, mapping);
-  processSubtitle(fields, merchCard, mapping);
-  processPrices(fields, merchCard, mapping);
-  processBackgroundImage(fields, merchCard, mapping.backgroundImage);
-  processBackgroundColor(
-    fields,
-    merchCard,
-    mapping.allowedColors,
-    mapping.backgroundColor
-  );
-  processBorderColor(fields, merchCard, mapping);
-  processDescription(fields, merchCard, mapping, settings);
-  processFeatures(fields, merchCard, mapping);
-  processWhatsIncludedDividerColor(fields, merchCard, mapping);
-  processAddon(fields, merchCard, mapping, settings);
-  processAddonConfirmation(fields, merchCard, mapping);
-  processCustomFields(fields, merchCard, mapping);
-  processSecureLabel(fields, merchCard, mapping, settings);
-  try {
-    processUptLinks(fields, merchCard);
-  } catch {
-  }
-  processCTAs(fields, merchCard, mapping, variant, settings);
-  processAnalytics(fields, merchCard);
-  updateLinksCSS(merchCard);
-}
-
-// src/compat-version.js
-var COMPAT_VERSION_GLOBAL_PROMO_CODE = 1;
-
-// src/plan-type-text.js
-var SENTENCE_TERMINATORS = [".", "!", "?"];
-var PLAN_TYPE_TEXT_STYLES = `
+    `),d(ft,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",ft);function si(a,r={},{metadata:e=!0,search:t=!0,storage:i=!0}={}){let n;if(t&&n==null){let o=new URLSearchParams(window.location.search),s=Er(t)?t:a;n=o.get(s)}if(i&&n==null){let o=Er(i)?i:a;n=window.sessionStorage.getItem(o)??window.localStorage.getItem(o)}if(e&&n==null){let o=Wn(Er(e)?e:a);n=document.documentElement.querySelector(`meta[name="${o}"]`)?.content}return n??r[a]}var Vn=a=>typeof a=="boolean",qt=a=>typeof a=="function";var Er=a=>typeof a=="string";function li(a,r){if(Vn(a))return a;let e=String(a);return e==="1"||e==="true"?!0:e==="0"||e==="false"?!1:r}function Wn(a=""){return String(a).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(r,e,t)=>`${e}-${t}`).replace(/\W+/gu,"-").toLowerCase()}var de={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,severity:"e",tags:"acom",isProdDomain:!1},di=1e3;function Yn(a){return a instanceof Error||typeof a?.originatingRequest=="string"}function hi(a){if(a==null)return;let r=typeof a;if(r==="function")return a.name?`function ${a.name}`:"function";if(r==="object"){if(a instanceof Error)return a.message;if(typeof a.originatingRequest=="string"){let{message:t,originatingRequest:i,status:n}=a;return[t,n,i].filter(Boolean).join(" ")}let e=a[Symbol.toStringTag]??Object.getPrototypeOf(a).constructor.name;if(!de.serializableTypes.includes(e))return e}return a}function Kn(a,r){if(!de.ignoredProperties.includes(a))return hi(r)}var kr={append(a){if(a.level!=="error")return;let{message:r,params:e}=a,t=[],i=[],n=r;e.forEach(l=>{l!=null&&(Yn(l)?t:i).push(l)}),t.length&&(n+=` ${t.map(hi).join(" ")}`);let{pathname:o,search:s}=window.location,c=`${de.delimiter}page=${o}${s}`;c.length>di&&(c=`${c.slice(0,di)}<trunc>`),n+=c,i.length&&(n+=`${de.delimiter}facts=`,n+=JSON.stringify(i,Kn)),window.lana?.log(n,de)}};function pi(a){Object.assign(de,Object.fromEntries(Object.entries(a).filter(([r,e])=>r in de&&e!==""&&e!==null&&e!==void 0&&!Number.isNaN(e))))}var mi={LOCAL:"local",PROD:"prod",STAGE:"stage"},Cr={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},Sr=new Set,Ar=new Set,gi=new Map,ui={append({level:a,message:r,params:e,timestamp:t,source:i}){console[a](`${t}ms [${i}] %c${r}`,"font-weight: bold;",...e)}},fi={filter:({level:a})=>a!==Cr.DEBUG},Qn={filter:()=>!1};function Zn(a,r,e,t,i){return{level:a,message:r,namespace:e,get params(){return t.length===1&&qt(t[0])&&(t=t[0](),Array.isArray(t)||(t=[t])),t},source:i,timestamp:performance.now().toFixed(3)}}function Xn(a){[...Ar].every(r=>r(a))&&Sr.forEach(r=>r(a))}function vi(a){let r=(gi.get(a)??0)+1;gi.set(a,r);let e=`${a} #${r}`,t={id:e,namespace:a,module:i=>vi(`${t.namespace}/${i}`),updateConfig:pi};return Object.values(Cr).forEach(i=>{t[i]=(n,...o)=>Xn(Zn(i,n,a,o,e))}),Object.seal(t)}function Ut(...a){a.forEach(r=>{let{append:e,filter:t}=r;qt(t)&&Ar.add(t),qt(e)&&Sr.add(e)})}function Jn(a={}){let{name:r}=a,e=li(si("commerce.debug",{search:!0,storage:!0}),r===mi.LOCAL);return Ut(e?ui:fi),r===mi.PROD&&Ut(kr),vt}function eo(){Sr.clear(),Ar.clear()}var vt={...vi(Kr),Level:Cr,Plugins:{consoleAppender:ui,debugFilter:fi,quietFilter:Qn,lanaAppender:kr},init:Jn,reset:eo,use:Ut};var to="mas-commerce-service",zh=vt.module("utilities");var jt=a=>window.setTimeout(a);function Tr(){return document.getElementsByTagName(to)?.[0]}var Gt=class a extends Error{constructor(r,e,t){if(super(r,{cause:t}),this.name="MasError",e.response){let i=e.response.headers?.get(Jt);i&&(e.requestId=i),e.response.status&&(e.status=e.response.status,e.statusText=e.response.statusText),e.response.url&&(e.url=e.response.url)}delete e.response,this.context=e,Error.captureStackTrace&&Error.captureStackTrace(this,a)}toString(){let r=Object.entries(this.context||{}).map(([t,i])=>`${t}: ${JSON.stringify(i)}`).join(", "),e=`${this.name}: ${this.message}`;return r&&(e+=` (${r})`),this.cause&&(e+=`
+Caused by: ${this.cause}`),e}};var ro={[K]:Gr,[ne]:Vr,[Q]:Wr},ao={[K]:Yr,[Q]:D},bt,Vt=class{constructor(r){v(this,bt);d(this,"changes",new Map);d(this,"connected",!1);d(this,"error");d(this,"log");d(this,"options");d(this,"promises",[]);d(this,"state",ne);d(this,"timer",null);d(this,"value");d(this,"version",0);d(this,"wrapperElement");this.wrapperElement=r,this.log=vt.module("mas-element")}update(){[K,ne,Q].forEach(r=>{this.wrapperElement.classList.toggle(ro[r],r===this.state)})}notify(){(this.state===Q||this.state===K)&&(this.state===Q?this.promises.forEach(({resolve:e})=>e(this.wrapperElement)):this.state===K&&this.promises.forEach(({reject:e})=>e(this.error)),this.promises=[]);let r=this.error;this.error instanceof Gt&&(r={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(ao[this.state],{bubbles:!0,composed:!0,detail:r}))}attributeChangedCallback(r,e,t){this.changes.set(r,t),this.requestUpdate()}connectedCallback(){u(this,bt,Tr()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:r,promises:e,state:t}=this;return Q===t?Promise.resolve(this.wrapperElement):K===t?Promise.reject(r):new Promise((i,n)=>{e.push({resolve:i,reject:n})})}toggleResolved(r,e,t){return r!==this.version?!1:(t!==void 0&&(this.options=t),this.state=Q,this.value=e,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:e}),jt(()=>this.notify()),!0)}toggleFailed(r,e,t){if(r!==this.version)return!1;t!==void 0&&(this.options=t),this.error=e,this.state=K,this.update();let i=this.wrapperElement.getAttribute("is");return this.log?.error(`${i}: Failed to render: ${e.message}`,{element:this.wrapperElement,...e.context,...p(this,bt)?.duration}),jt(()=>this.notify()),!0}togglePending(r){return this.version++,r&&(this.options=r),this.state=ne,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(r=!1){if(!this.wrapperElement.isConnected||!Tr()||this.timer)return;let{error:e,options:t,state:i,value:n,version:o}=this;this.state=ne,this.timer=jt(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||r)try{await this.wrapperElement.render?.()===!1&&this.state===ne&&this.version===o&&(this.state=i,this.error=e,this.value=n,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,t)}})}};bt=new WeakMap;function io(a){return`https://${a==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var pe,he=class he extends HTMLAnchorElement{constructor(){super();d(this,"masElement",new Vt(this));v(this,pe);this.setAttribute("is",he.is)}get isUptLink(){return!0}initializeWcsData(e,t){this.setAttribute("data-wcs-osi",e),t&&this.setAttribute("data-promotion-code",t)}attributeChangedCallback(e,t,i){this.masElement.attributeChangedCallback(e,t,i)}connectedCallback(){this.masElement.connectedCallback(),u(this,pe,Ze()),p(this,pe)&&(this.log=p(this,pe).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),u(this,pe,void 0)}requestUpdate(e=!1){this.masElement.requestUpdate(e)}onceSettled(){return this.masElement.onceSettled()}async render(){let e=Ze();if(!e)return!1;this.dataset.imsCountry||e.imsCountryPromise.then(o=>{o&&(this.dataset.imsCountry=o)});let t=e.collectCheckoutOptions({},this);if(!t.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let i=this.masElement.togglePending(t),n=e.resolveOfferSelectors(t);try{let[[o]]=await Promise.all(n),{country:s,language:c,env:l}=t,h=`locale=${c}_${s}&country=${s}&offer_id=${o.offerId}`,m=this.getAttribute("data-promotion-code");m&&(h+=`&promotion_code=${encodeURIComponent(m)}`),this.href=`${io(l)}?${h}`,this.masElement.toggleResolved(i,o,t)}catch(o){let s=new Error(`Could not resolve offer selectors for id: ${t.wcsOsi}.`,o.message);return this.masElement.toggleFailed(i,s,t),!1}}static createFrom(e){let t=new he;for(let i of e.attributes)i.name!=="is"&&(i.name==="class"&&i.value.includes("upt-link")?t.setAttribute("class",i.value.replace("upt-link","").trim()):t.setAttribute(i.name,i.value));return t.innerHTML=e.innerHTML,t.setAttribute("tabindex",0),t}};pe=new WeakMap,d(he,"is","upt-link"),d(he,"tag","a"),d(he,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var re=he;window.customElements.get(re.is)||window.customElements.define(re.is,re,{extends:re.tag});var no="#000000",Lr="#F8D904",oo="#EAEAEA",co="#31A547",so=/(accent|primary|secondary)(-(outline|link))?/,lo="mas:product_code/",ho="daa-ll",Wt="daa-lh",po=["XL","L","M","S"],zr="...";function F(a,r,e,t){let i=t[a];if(r[a]&&i){let n={slot:i?.slot,...i?.attributes},o=r[a];if(i.maxCount&&typeof o=="string"){let[c,l]=Do(o,i.maxCount,i.withSuffix);c!==o&&(n.title=l,o=c)}let s=z(i.tag,n,o);e.append(s)}}function mo(a,r,e){let i=(a.mnemonicIcon||[]).filter(o=>o).map((o,s)=>({icon:o,alt:a.mnemonicAlt?.[s]??"",link:a.mnemonicLink?.[s]??""}));i?.forEach(({icon:o,alt:s,link:c})=>{if(c&&!/^https?:/.test(c))try{c=new URL(`https://${c}`).href.toString()}catch{c="#"}let l={slot:"icons",src:o,loading:r.loading,size:e?.size??"l"};s&&(l.alt=s),c&&(l.href=c);let h=z("merch-icon",l);r.append(h)});let n=r.shadowRoot.querySelector('slot[name="icons"]');n&&(n.style.display=i?.length?null:"none")}function go(a){let r=new DOMParser().parseFromString(a,"text/html").querySelector("merch-badge");return r?r.querySelector('span[is="inline-price"]')?!1:!r.textContent?.trim():!0}function uo(a,r,e){if(e.badge?.slot){if(a.badge?.length&&!a.badge?.startsWith("<merch-badge")){let i=Lr,n=!1;e.allowedBadgeColors?.includes(e.badge?.default)&&(i=e.badge?.default,a.borderColor||(n=!0));let o=a.badgeBackgroundColor||i,s=a.borderColor||"";n&&(s=e.badge?.default,a.borderColor=e.badge?.default),a.badge=`<merch-badge variant="${a.variant}" background-color="${o}" border-color="${s}">${a.badge}</merch-badge>`}a.badge?.startsWith("<merch-badge")&&go(a.badge)&&(a.badge=""),F("badge",a,r,e)}else a.badge?(r.setAttribute("badge-text",a.badge),e.disabledAttributes?.includes("badgeColor")||r.setAttribute("badge-color",a.badgeColor||no),e.disabledAttributes?.includes("badgeBackgroundColor")||r.setAttribute("badge-background-color",a.badgeBackgroundColor||Lr),r.setAttribute("border-color",a.badgeBackgroundColor||Lr)):r.setAttribute("border-color",a.borderColor||oo)}function fo(a,r,e){if(e.trialBadge&&a.trialBadge){if(!a.trialBadge.startsWith("<merch-badge")){let t=!e.disabledAttributes?.includes("trialBadgeBorderColor")&&a.trialBadgeBorderColor||co;a.trialBadge=`<merch-badge variant="${a.variant}" border-color="${t}">${a.trialBadge}</merch-badge>`}F("trialBadge",a,r,e)}}function vo(a,r,e){e?.includes(a.size)&&r.setAttribute("size",a.size)}function bo(a,r){a.cardName&&r.setAttribute("name",a.cardName)}function xo(a,r,e){a.cardTitle&&(a.cardTitle=Ge(a.cardTitle)),F("cardTitle",a,r,{cardTitle:e})}function yo(a,r,e){F("subtitle",a,r,e)}function wo(a,r,e,t){if(!a.backgroundColor||a.backgroundColor.toLowerCase()==="default"){r.style.removeProperty("--merch-card-custom-background-color"),r.removeAttribute("background-color");return}e?.[a.backgroundColor]?(r.style.setProperty("--merch-card-custom-background-color",`var(${e[a.backgroundColor]})`),r.setAttribute("background-color",a.backgroundColor)):t?.attribute&&a.backgroundColor&&(r.setAttribute(t.attribute,a.backgroundColor),r.style.removeProperty("--merch-card-custom-background-color"))}function Eo(a,r,e){let t=e?.borderColor,i="--consonant-merch-card-border-color";if(a.borderColor?.toLowerCase()==="transparent")r.style.setProperty(i,"transparent");else if(a.borderColor&&t){let o=t?.specialValues?.[a.borderColor]?.includes("gradient")||/-gradient/.test(a.borderColor),s=/^spectrum-.*-(plans|special-offers)$/.test(a.borderColor);if(o){r.setAttribute("gradient-border","true");let c=a.borderColor;if(t?.specialValues){for(let[l,h]of Object.entries(t.specialValues))if(h===a.borderColor){c=l;break}}r.setAttribute("border-color",c),r.style.removeProperty(i)}else s?(r.setAttribute("border-color",a.borderColor),r.style.setProperty(i,`var(--${a.borderColor})`)):r.style.setProperty(i,`var(--${a.borderColor})`)}else r.style.removeProperty(i)}var ko=new Set(["","default"]);function Co(a,r,e){let t=e?.whatsIncludedDividerColor,i="--consonant-merch-card-whats-included-divider-color";if(!t)return;let o=(r.querySelector('[slot="footer-rows"] merch-whats-included')??r.querySelector("merch-whats-included"))?.getAttribute("whats-included-divider-color")?.trim(),s=a.whatsIncludedDividerColor!=null?String(a.whatsIncludedDividerColor).trim():"",c=o||s;if(c==null||ko.has(String(c).trim().toLowerCase())){r.removeAttribute("whats-included-divider-color"),r.style.removeProperty(i);return}let l=String(c).trim();if(l.toLowerCase()==="transparent"){r.removeAttribute("whats-included-divider-color"),r.style.setProperty(i,"transparent");return}let m=t.specialValues?.[l]?.includes("gradient")||/-gradient/.test(l)||/^gradient-/.test(l),g=/^spectrum-.*-(plans|special-offers)$/.test(l);if(m){let E=l;if(t.specialValues){for(let[A,I]of Object.entries(t.specialValues))if(I===l){E=A;break}}r.setAttribute("whats-included-divider-color",E),r.style.removeProperty(i)}else g?(r.setAttribute("whats-included-divider-color",l),r.style.setProperty(i,`var(--${l})`)):(r.removeAttribute("whats-included-divider-color"),r.style.setProperty(i,`var(--${l})`))}function So(a,r,e){if(a.backgroundImage){let t={loading:r.loading??"lazy",src:a.backgroundImage};if(a.backgroundImageAltText?t.alt=a.backgroundImageAltText:t.role="none",!e)return;if(e?.attribute){r.setAttribute(e.attribute,a.backgroundImage);return}r.append(z(e.tag,{slot:e.slot},z("img",t)))}}function Ge(a){return!a||typeof a!="string"||a.includes("<mas-mnemonic")&&Promise.resolve().then(()=>(ar(),rr)).catch(console.error),a}function Ao(a,r,e){a.prices&&(a.prices=Ge(a.prices)),F("prices",a,r,e)}function Pr(a){if(a==null||a==="")return[];if(typeof a=="string")return a.trim()?[a]:[];if(Array.isArray(a))return a.flatMap(Pr);if(typeof a=="object"){if(typeof a.value=="string")return a.value.trim()?[a.value]:[];if(Array.isArray(a.value))return a.value.flatMap(Pr);if(typeof a.content=="string")return a.content.trim()?[a.content]:[];if(typeof a.html=="string")return a.html.trim()?[a.html]:[]}return[]}function To(a,r,e){let t=Pr(a.features).filter(n=>n.trim());if(!t.length)return;let i=z("div",{slot:e?.features?.slot??"features",hidden:"","data-compare-chart-features":""});t.forEach(n=>{let o;try{o=new DOMParser().parseFromString(n,"text/html")}catch{return}let s=o.body.querySelector("p[name]");if(s){i.append(s);return}i.insertAdjacentHTML("beforeend",n)}),i.children.length&&r.append(i),zo(r,e)}function xi(a,r,e){let t=a.hasAttribute("data-wcs-osi")&&!!a.getAttribute("data-wcs-osi"),i=a.className||"",n=so.exec(i)?.[0]??"accent",o=n.includes("accent"),s=n.includes("primary"),c=n.includes("secondary"),l=n.includes("-outline"),h=n.includes("-link");a.classList.remove("accent","primary","secondary");let m;if(r.consonant)m=Ho(a,o,t,h,s,c,e?.ctas?.size);else if(h)m=a;else{let g;o?g="accent":s?g="primary":c&&(g="secondary"),m=r.spectrum==="swc"?Io(a,e,l,g,t):$o(a,e,l,g,t)}return m}function Lo(a,r){let{slot:e}=r?.description;yi(a,r,e)}function zo(a,r){let e=r?.features?.slot;e&&yi(a,r,e)}function yi(a,r,e){let t=a.querySelectorAll(`[slot="${e}"] a[data-wcs-osi]`);t.length&&t.forEach(i=>{let n=xi(i,a,r);i.replaceWith(n)})}function Po(a,r,e,t){a.description&&(a.description=Ge(a.description)),a.promoText&&(a.promoText=Ge(a.promoText)),a.shortDescription&&(a.shortDescription=Ge(a.shortDescription)),F("promoText",a,r,e),F("description",a,r,e),F("shortDescription",a,r,e),a.shortDescription&&(r.setAttribute("action-menu","true"),a.actionMenuLabel||r.setAttribute("action-menu-label","More options")),Lo(r,e),F("callout",a,r,e),_o(a,r,e,t),F("whatsIncluded",a,r,e)}function _o(a,r,e,t={}){e.quantitySelect&&(a.quantitySelect||(a.quantitySelect=t.quantitySelect),F("quantitySelect",a,r,e))}function Mo(a,r,e,t={}){if(!e.addon)return;let n=(a.addon??t.addon)?.replace(/[{}]/g,"");if(!n||/disabled/.test(n))return;let o,s=n,c=document.createElement("div");c.innerHTML=n;let l=c.firstElementChild;l?.tagName?.toLowerCase()==="merch-addon"&&(o=l.getAttribute("background")||void 0,s=l.innerHTML);let h={slot:"addon"};o&&(h.background=o);let m=z("merch-addon",h,s);[...m.querySelectorAll(y)].forEach(g=>{let E=g.parentElement;E?.nodeName==="P"&&(E.hasAttribute("data-plan-type")||E.setAttribute("data-plan-type",""))}),r.append(m)}function Ro(a,r,e){a.addonConfirmation&&F("addonConfirmation",a,r,e)}function Oo(a,r,e){let t=e?.customFields;if(!t)return;let i=Array.isArray(a.customFields)?a.customFields:a.customFields?[a.customFields]:[],n=Array.isArray(a.customFieldLabels)?a.customFieldLabels:a.customFieldLabels?[a.customFieldLabels]:[];i.filter(Boolean).forEach((o,s)=>{let c=n[s],l=z(t.tag,{slot:`custom-field-${s}`,"data-label":c||""},o);r.append(l)})}function No(a,r,e,t){t?.secureLabel&&e?.secureLabel&&r.setAttribute("secure-label",t.secureLabel)}function Do(a,r,e=!0){try{let t=typeof a!="string"?"":a,i=bi(t);if(i.length<=r)return[t,i];let n=0,o=!1,s=e?r-zr.length<1?1:r-zr.length:r,c=[];for(let m of t){if(n++,m==="<")if(o=!0,t[n]==="/")c.pop();else{let g="";for(let E of t.substring(n)){if(E===" "||E===">")break;g+=E}c.push(g)}if(m==="/"&&t[n]===">"&&c.pop(),m===">"){o=!1;continue}if(!o&&(s--,s===0))break}let l=t.substring(0,n).trim();if(c.length>0){c[0]==="p"&&c.shift();for(let m of c.reverse())l+=`</${m}>`}return[`${l}${e?zr:""}`,i]}catch{let i=typeof a=="string"?a:"",n=bi(i);return[i,n]}}function bi(a){if(!a)return"";let r="",e=!1;for(let t of a){if(t==="<"&&(e=!0),t===">"){e=!1;continue}e||(r+=t)}return r}function Fo(a,r){r.querySelectorAll("a.upt-link").forEach(t=>{let i=re.createFrom(t);t.replaceWith(i),i.initializeWcsData(a.osi,a.promoCode)})}function $o(a,r,e,t,i){let n=a;i?n=customElements.get("checkout-button").createCheckoutButton({},a.innerHTML):n.innerHTML=`<span>${n.textContent}</span>`,n.setAttribute("tabindex",0);for(let h of a.attributes)["class","is"].includes(h.name)||n.setAttribute(h.name,h.value);n.firstElementChild?.classList.add("spectrum-Button-label");let o=r?.ctas?.size??"M",s=`spectrum-Button--${t}`,c=po.includes(o)?`spectrum-Button--size${o}`:"spectrum-Button--sizeM",l=["spectrum-Button",s,c];return e&&l.push("spectrum-Button--outline"),n.classList.add(...l),n}function Io(a,r,e,t,i){let n=a;i&&(n=customElements.get("checkout-button").createCheckoutButton(a.dataset),n.connectedCallback(),n.render());let o="fill";e&&(o="outline");let s=z("sp-button",{treatment:o,variant:t,tabIndex:0,size:r?.ctas?.size??"m",...a.dataset.analyticsId&&{"data-analytics-id":a.dataset.analyticsId}},a.innerHTML);return s.source=n,(i?n.onceSettled():Promise.resolve(n)).then(c=>{s.setAttribute("data-navigation-url",c.href)}),s.addEventListener("click",c=>{c.defaultPrevented||n.click()}),s}function Ho(a,r,e,t,i,n,o){let s=a;if(e)try{let c=customElements.get("checkout-link");c&&(s=c.createCheckoutLink(a.dataset,a.innerHTML)??a)}catch{}return t||(s.classList.add("button","con-button"),o&&o!=="m"&&s.classList.add(`button-${o}`),r&&s.classList.add("blue"),i&&s.classList.add("primary"),n&&s.classList.add("secondary")),s}function Bo(a,r,e,t,i){if(a.ctas&&e.ctas){a.ctas=Ge(a.ctas);let{slot:n}=e.ctas,o=z("div",{slot:n},a.ctas),s=[...o.querySelectorAll("a")],c=i?.hideTrialCTAs?s.filter(h=>!Br.has(h.dataset.analyticsId)):s,l=(c.length>0?c:s).map(h=>xi(h,r,e));o.textContent="",o.append(...l),r.append(o),i?.hideTrialCTAs&&c.length>0&&l.forEach(h=>{let m=h.source??h;m.onceSettled&&(h.hidden=!0,m.onceSettled().then(()=>{m.value?.[0]?.offerType==="TRIAL"&&l.some(E=>E!==h&&!E.hidden)?h.remove():h.hidden=!1}).catch(()=>{h.hidden=!1}))})}}function qo(a,r){let{tags:e}=a,t=e?.find(n=>typeof n=="string"&&n.startsWith(lo))?.split("/").pop();if(!t)return;r.setAttribute(Wt,t),[...r.shadowRoot.querySelectorAll("a[data-analytics-id],button[data-analytics-id]"),...r.querySelectorAll("a[data-analytics-id],button[data-analytics-id]")].forEach((n,o)=>{n.setAttribute(ho,`${n.dataset.analyticsId}-${o+1}`)})}function Uo(a){a.spectrum==="css"&&[["primary-link","primary"],["secondary-link","secondary"]].forEach(([r,e])=>{a.querySelectorAll(`a.${r}`).forEach(t=>{t.classList.remove(r),t.classList.add("spectrum-Link",`spectrum-Link--${e}`)})})}function jo(a){a.querySelectorAll("[slot]").forEach(t=>{t.remove()}),a.variant=void 0,["checkbox-label","stock-offer-osis","secure-label","background-image","background-color","border-color","whats-included-divider-color","badge-background-color","badge-color","badge-text","gradient-border","size",Wt].forEach(t=>a.removeAttribute(t));let e=["wide-strip","thin-strip"];a.classList.remove(...e)}async function wi(a,r){if(!a){let l=r?.id||"unknown";throw console.error(`hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${l}).`),new Error(`hydrate: Fragment is undefined for card (merchCard id: ${l}).`)}if(!a.fields){let l=a.id||"unknown",h=r?.id||"unknown";throw console.error(`hydrate: Fragment for card ID '${l}' (merchCard id: ${h}) is missing 'fields'. Cannot hydrate.`),new Error(`hydrate: Fragment for card ID '${l}' (merchCard id: ${h}) is missing 'fields'.`)}let{id:e,fields:t,settings:i={},priceLiterals:n,placeholders:o}=a;t.variant==="bizpro"&&(t.variant="pro");let{variant:s}=t;if(!s)throw new Error(`hydrate: no template found in payload ${e}`);jo(r),r.compatVersion=t.compatVersion,r.contextPromotionCode=t.promoCode,r.settings=i,n&&(r.priceLiterals=n),o&&(r.placeholders=o),r.id??(r.id=a.id),a.variationId&&r.setAttribute("variation-id",a.variationId),a.maskId&&r.setAttribute("mask-id",a.maskId),a.promoProject&&r.setAttribute("data-promotion-project",a.promoProject),a.promoVariationProject&&r.setAttribute("data-promotion-variation-project",a.promoVariationProject),r.variant=s,await r.updateComplete;let{aemFragmentMapping:c}=r.variantLayout;if(!c)throw new Error(`hydrate: variant mapping not found for ${e}`);c.style==="consonant"&&r.setAttribute("consonant",!0),mo(t,r,c.mnemonics),fo(t,r,c),vo(t,r,c.size),bo(t,r),xo(t,r,c.title),uo(t,r,c),yo(t,r,c),Ao(t,r,c),So(t,r,c.backgroundImage),wo(t,r,c.allowedColors,c.backgroundColor),Eo(t,r,c),Po(t,r,c,i),To(t,r,c),Co(t,r,c),Mo(t,r,c,i),Ro(t,r,c),Oo(t,r,c),No(t,r,c,i);try{Fo(t,r)}catch{}Bo(t,r,c,s,i),qo(t,r),Uo(r)}var Go=[".","!","?"],Vo=`
 merch-card span[is='inline-price'][data-template='legal'][data-placeholder='plan-type-text'] {
     display: inline;
 }
 span[is='inline-price'][data-placeholder='plan-type-text'] {
     visibility: visible;
 }
-`;
-if (typeof document !== "undefined" && !document.querySelector("style[data-plan-type-text]")) {
-  const style = document.createElement("style");
-  style.setAttribute("data-plan-type-text", "");
-  style.textContent = PLAN_TYPE_TEXT_STYLES;
-  document.head.append(style);
-}
-function precedingChar(el) {
-  const range = document.createRange();
-  range.setStart(el.parentNode, 0);
-  range.setEndBefore(el);
-  return range.toString().replace(/\s+$/, "").slice(-1);
-}
-function planTypeCaseFor(element) {
-  const char = precedingChar(element);
-  return !char || SENTENCE_TERMINATORS.includes(char) ? "upper" : "lower";
-}
-function planTypeTextOptionsProvider(element, options) {
-  if (element.dataset.placeholder === PLACEHOLDER_PLAN_TYPE_TEXT) {
-    const osi = element.closest("merch-card, mas-field")?.osi;
-    if (osi) {
-      options.wcsOsi = osi;
-      options.displayPlanType = true;
-      options.displayPerUnit = false;
-      options.displayTax = false;
-      options.displayRecurrence = false;
-      options.displayOldPrice = false;
-      options.displayAnnual = false;
-      options.forceTaxExclusive = false;
-      options.displayDot = false;
-      options.planTypeCase = planTypeCaseFor(element);
-    }
-  }
-}
-
-// src/merch-card.js
-var MERCH_CARD = "merch-card";
-var MARK_MERCH_CARD_PREFIX = "merch-card:";
-var VARIANTS_WITH_HEIGHT_SYNC = [
-  "full-pricing-express",
-  "simplified-pricing-express"
-];
-var VARIANTS_WITH_WIDTH_BADGE_SYNC = [
-  "segment",
-  "product",
-  "plans-education",
-  "mini-compare-chart-mweb"
-];
-function priceOptionsProvider(element, options) {
-  const card = element.closest(MERCH_CARD);
-  if (!card) return options;
-  if (card.priceLiterals) {
-    options.literals ?? (options.literals = {});
-    Object.assign(options.literals, card.priceLiterals);
-  }
-  if (shouldHideStPriceLabels(element)) {
-    options.displayPerUnit = false;
-    options.displayTax = false;
-  }
-  if (!options.promotionCode && (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE || card.hasAttribute("data-promotion-project"))) {
-    options.promotionCode = card.contextPromotionCode;
-  }
-  if (card.aemFragment) {
-    options[FF_DEFAULTS] = true;
-  }
-  card.variantLayout?.priceOptionsProvider?.(element, options);
-  if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-    options.displayDot ?? (options.displayDot = card.variantLayout?.legalDisplayDot ?? true);
-  }
-  if (options.displayAnnual === void 0 && typeof card.settings?.displayAnnual === "boolean") {
-    options.displayAnnual = card.settings.displayAnnual;
-  }
-}
-function checkoutOptionsProvider(element, options) {
-  const card = element.closest(MERCH_CARD);
-  if (!card) return options;
-  if (!options.promotionCode && (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE || card.hasAttribute("data-promotion-project"))) {
-    options.promotionCode = card.contextPromotionCode;
-  }
-}
-function registerOptionsProviders(masCommerceService) {
-  if (!masCommerceService.providers.has(priceOptionsProvider)) {
-    masCommerceService.providers.price(priceOptionsProvider);
-  }
-  if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
-    masCommerceService.providers.checkout(checkoutOptionsProvider);
-  }
-  if (!masCommerceService.providers.has(planTypeTextOptionsProvider)) {
-    masCommerceService.providers.price(planTypeTextOptionsProvider);
-  }
-}
-var intersectionObserver = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    const card = entry.target;
-    if (VARIANTS_WITH_HEIGHT_SYNC.includes(card.variant)) {
-      if (card.clientHeight === 0) return;
-      intersectionObserver.unobserve(card);
-      card.requestUpdate();
-      return;
-    }
-    if (VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(card.variant)) {
-      if (entry.boundingClientRect.width === 0) return;
-      if ((card.variant === "product" || card.variant === "mini-compare-chart-mweb" || card.variant === "plans-education") && card.querySelector('merch-icon[slot="icons"]')) {
-        intersectionObserver.unobserve(card);
-        return;
-      }
-      const cardWidth = card.getBoundingClientRect().width;
-      const badgeEl = card.querySelector('[slot="badge"] > merch-badge');
-      const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
-      if (cardWidth === 0 || !badgeEl) {
-        intersectionObserver.unobserve(card);
-        return;
-      }
-      card.style.setProperty(
-        "--consonant-merch-card-heading-xs-max-width",
-        `${Math.round(cardWidth - badgeWidth - 16)}px`
-      );
-      intersectionObserver.unobserve(card);
-    }
-  });
-});
-var idCounter = 0;
-var _contextPromotionCode, _durationMarkName, _internalId, _log, _service3, _startMarkName, _resolveHydration, _hydrationPromise, _MerchCard_instances, fail_fn, regularPrice_get, legal_get, getCta_fn;
-var MerchCard = class extends LitElement7 {
-  constructor() {
-    super();
-    __privateAdd(this, _MerchCard_instances);
-    __privateAdd(this, _contextPromotionCode);
-    __privateAdd(this, _durationMarkName);
-    __privateAdd(this, _internalId);
-    // internal unique card identifier
-    __privateAdd(this, _log);
-    __privateAdd(this, _service3);
-    __privateAdd(this, _startMarkName);
-    __privateAdd(this, _resolveHydration);
-    __privateAdd(this, _hydrationPromise, new Promise((resolve) => {
-      __privateSet(this, _resolveHydration, resolve);
-    }));
-    /**
-     * Compat version of the card.
-     * @type {number}
-     */
-    __publicField(this, "compatVersion");
-    __publicField(this, "customerSegment");
-    __publicField(this, "marketSegment");
-    /**
-     * @type {VariantLayout}
-     */
-    __publicField(this, "variantLayout");
-    this.id = null;
-    this.failed = false;
-    this.filters = {};
-    this.types = "";
-    this.selected = false;
-    this.spectrum = "css";
-    this.loading = "lazy";
-    this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
-    this.handleMasReady = this.handleMasReady.bind(this);
-    this.handleMerchOfferSelectReady = this.handleMerchOfferSelectReady.bind(this);
-  }
-  get contextPromotionCode() {
-    return __privateGet(this, _contextPromotionCode);
-  }
-  set contextPromotionCode(value) {
-    __privateSet(this, _contextPromotionCode, value);
-    if (value) {
-      this.setAttribute("data-promotion-code", value);
-    } else {
-      this.removeAttribute("data-promotion-code");
-    }
-  }
-  firstUpdated() {
-    this.variantLayout = getVariantLayout(this);
-    this.variantLayout?.connectedCallbackHook();
-  }
-  willUpdate(changedProperties) {
-    if (changedProperties.has("variant") || !this.variantLayout) {
-      this.variantLayout?.disconnectedCallbackHook();
-      this.variantLayout = getVariantLayout(this);
-      this.variantLayout?.connectedCallbackHook();
-    }
-  }
-  updated(changedProperties) {
-    if (!this.style.getPropertyValue(
-      "--consonant-merch-card-border-color"
-    ) && this.computedBorderColor && (changedProperties.has("badgeBackgroundColor") || changedProperties.has("borderColor"))) {
-      this.style.setProperty(
-        "--consonant-merch-card-border-color",
-        this.computedBorderColor
-      );
-    }
-    if (changedProperties.has("backgroundColor")) {
-      this.style.setProperty(
-        "--merch-card-custom-background-color",
-        this.backgroundColor ? `var(--${this.backgroundColor})` : ""
-      );
-    }
-    try {
-      this.variantLayoutPromise = this.variantLayout?.postCardUpdateHook(changedProperties);
-    } catch (e) {
-      __privateMethod(this, _MerchCard_instances, fail_fn).call(this, `Error in postCardUpdateHook: ${e.message}`, {}, false);
-    }
-  }
-  get theme() {
-    return this.closest("sp-theme");
-  }
-  get dir() {
-    return this.closest("[dir]")?.getAttribute("dir") ?? "ltr";
-  }
-  render() {
-    if (!this.isConnected || !this.variantLayout || this.style.display === "none")
-      return;
-    return this.variantLayout.renderLayout();
-  }
-  get computedBorderColor() {
-    if (![
-      "ccd-slice",
-      "ccd-suggested",
-      "ah-promoted-plans",
-      "simplified-pricing-express",
-      "full-pricing-express"
-    ].includes(this.variant)) {
-      return this.borderColor ? this.borderColor : this.badgeBackgroundColor;
-    }
-    return "";
-  }
-  get badgeElement() {
-    return this.shadowRoot.getElementById("badge");
-  }
-  get headingmMSlot() {
-    return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0];
-  }
-  get footerSlot() {
-    return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0];
-  }
-  get descriptionSlot() {
-    return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0];
-  }
-  get descriptionSlotCompare() {
-    return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0];
-  }
-  get iconButton() {
-    return this.querySelector('[slot="callout-content"] .icon-button');
-  }
-  get price() {
-    return this.headingmMSlot?.querySelector(SELECTOR_MAS_INLINE_PRICE);
-  }
-  get checkoutLinks() {
-    return [
-      ...this.footerSlot?.querySelectorAll(SELECTOR_MAS_CHECKOUT_LINK) ?? []
-    ];
-  }
-  get checkoutLinksDescription() {
-    return [
-      ...this.descriptionSlot?.querySelectorAll(
-        SELECTOR_MAS_CHECKOUT_LINK
-      ) ?? []
-    ];
-  }
-  get checkoutLinkDescriptionCompare() {
-    return [
-      ...this.descriptionSlotCompare?.querySelectorAll(
-        SELECTOR_MAS_CHECKOUT_LINK
-      ) ?? []
-    ];
-  }
-  get activeDescriptionLinks() {
-    if (this.variant === "mini-compare-chart" || this.variant === "mini-compare-chart-mweb") {
-      return this.checkoutLinkDescriptionCompare;
-    }
-    return this.checkoutLinksDescription;
-  }
-  async toggleStockOffer({ target }) {
-    if (!this.stockOfferOsis) return;
-    const elements = this.checkoutLinks;
-    if (elements.length === 0) return;
-    for (const element of elements) {
-      await element.onceSettled();
-      const planType = element.value?.[0]?.planType;
-      if (!planType) return;
-      const stockOfferOsi = this.stockOfferOsis[planType];
-      if (!stockOfferOsi) return;
-      const osis = element.dataset.wcsOsi.split(",").filter((osi) => osi !== stockOfferOsi);
-      if (target.checked) {
-        osis.push(stockOfferOsi);
-      }
-      element.dataset.wcsOsi = osis.join(",");
-    }
-  }
-  changeHandler(event) {
-    if (event.target.tagName === "MERCH-ADDON") {
-      this.toggleAddon(event.target);
-    }
-  }
-  toggleAddon(merchAddon) {
-    this.variantLayout?.toggleAddon?.(merchAddon);
-    const allLinks = [
-      ...this.checkoutLinks,
-      ...this.activeDescriptionLinks ?? []
-    ];
-    if (allLinks.length === 0) return;
-    const updateOsi = (link) => {
-      const { offerType, planType } = link.value?.[0] ?? {};
-      if (!offerType || !planType) return;
-      const addonOsi = merchAddon.getOsi(planType, offerType);
-      const osis = (link.dataset.wcsOsi || "").split(",").filter((osi) => osi && osi !== addonOsi);
-      if (merchAddon.checked) {
-        osis.push(addonOsi);
-      }
-      link.dataset.wcsOsi = osis.join(",");
-    };
-    allLinks.forEach(updateOsi);
-  }
-  handleQuantitySelection(event) {
-    const allLinks = [
-      ...this.checkoutLinks,
-      ...this.activeDescriptionLinks ?? []
-    ];
-    if (allLinks.length === 0) return;
-    for (const link of allLinks) {
-      link.dataset.quantity = event.detail.option;
-    }
-  }
-  get titleElement() {
-    return this.querySelector(
-      this.variantLayout?.headingSelector || ".card-heading"
-    );
-  }
-  get title() {
-    return this.titleElement?.textContent?.trim();
-  }
-  /* c8 ignore next 3 */
-  get description() {
-    return this.querySelector('[slot="body-xs"]')?.textContent?.trim();
-  }
-  /**
-   * If the card is the single app, set the order for all filters to 2.
-   * If not, increment the order for all filters after the second card by 1.
-   * @param {*} singleApp
-   */
-  updateFilters(singleApp) {
-    const newFilters = { ...this.filters };
-    Object.keys(newFilters).forEach((key) => {
-      if (singleApp) {
-        newFilters[key].order = Math.min(newFilters[key].order || 2, 2);
-        return;
-      }
-      const value = newFilters[key].order;
-      if (value === 1 || isNaN(value)) return;
-      newFilters[key].order = Number(value) + 1;
-    });
-    this.filters = newFilters;
-  }
-  showInfoTooltip(el, classVisible) {
-    const tooltipLeft = "tooltip-left";
-    const tooltipRight = "tooltip-right";
-    if (window.screen.width < 600 && el.getAttribute("data-tooltip")?.length > 12) {
-      this.iconButton.classList.remove(tooltipLeft);
-      this.iconButton.classList.remove(tooltipRight);
-      if (el.getBoundingClientRect().x < 100) {
-        this.iconButton.classList.add(tooltipLeft);
-      }
-      if (el.getBoundingClientRect().x > window.screen.width - 100) {
-        this.iconButton.classList.add(tooltipRight);
-      }
-    }
-    this.iconButton.classList.add(classVisible);
-  }
-  handleInfoIconEvents() {
-    const tooltipVisible = "tooltip-visible";
-    if (this.iconButton) {
-      ["mouseenter", "focus"].forEach(
-        (eventName) => this.iconButton.addEventListener(
-          eventName,
-          (e) => this.showInfoTooltip(e.target, tooltipVisible),
-          false
-        )
-      );
-      ["mouseleave", "blur"].forEach(
-        (eventName) => this.iconButton.addEventListener(
-          eventName,
-          () => this.iconButton.classList.remove(tooltipVisible),
-          false
-        )
-      );
-      this.iconButton.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          this.iconButton.classList.remove(tooltipVisible);
-        }
-      });
-    }
-  }
-  additionalModalTriggers() {
-    if (!this.settings?.additionalModalTriggers) return;
-    const mapping = this.variantLayout.aemFragmentMapping.title;
-    this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
-    this.makeElementModalTrigger("merch-icon", "icons");
-  }
-  handleMasReady() {
-    this.handleInfoIconEvents();
-    this.additionalModalTriggers();
-  }
-  /* c8 ignore next 3 */
-  includes(text) {
-    return this.textContent.match(new RegExp(text, "i")) !== null;
-  }
-  connectedCallback() {
-    var _a;
-    super.connectedCallback();
-    if (!__privateGet(this, _internalId)) {
-      __privateSet(this, _internalId, idCounter++);
-    }
-    if (!this.aemFragment) {
-      (_a = __privateGet(this, _resolveHydration)) == null ? void 0 : _a.call(this);
-      __privateSet(this, _resolveHydration, void 0);
-    }
-    this.id ?? (this.id = this.getAttribute("id") ?? this.aemFragment?.getAttribute("fragment"));
-    const logId = this.id ?? __privateGet(this, _internalId);
-    __privateSet(this, _startMarkName, `${MARK_MERCH_CARD_PREFIX}${logId}${MARK_START_SUFFIX}`);
-    __privateSet(this, _durationMarkName, `${MARK_MERCH_CARD_PREFIX}${logId}${MARK_DURATION_SUFFIX}`);
-    performance.mark(__privateGet(this, _startMarkName));
-    __privateSet(this, _service3, getService());
-    registerOptionsProviders(__privateGet(this, _service3));
-    __privateSet(this, _log, __privateGet(this, _service3).Log.module(MERCH_CARD));
-    this.addEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.handleQuantitySelection
-    );
-    this.addEventListener(
-      EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
-      this.handleAddonAndQuantityUpdate
-    );
-    this.addEventListener(
-      EVENT_MERCH_OFFER_SELECT_READY,
-      this.handleMerchOfferSelectReady
-    );
-    this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
-    this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-    this.addEventListener(EVENT_MAS_READY, this.handleMasReady);
-    this.addEventListener("change", this.changeHandler);
-    if (this.variantLayout) {
-      this.variantLayout.connectedCallbackHook();
-    }
-    if (!this.aemFragment) {
-      setTimeout(() => this.checkReady(), 0);
-    }
-  }
-  makeElementModalTrigger(tag, slot) {
-    const isIcon = tag === "merch-icon";
-    const trigger = this.querySelector(
-      `${tag}[slot="${slot}"]:not(.modal-trigger)`
-    );
-    if (!trigger) return;
-    const cta = this.querySelector(
-      "a.button.placeholder-resolved[data-modal]"
-    );
-    if (!cta) return;
-    trigger.setAttribute("tabindex", "0");
-    trigger.addEventListener("click", (e) => {
-      cta.checkoutActionHandler?.(e);
-    });
-    trigger.addEventListener("keypress", (e) => {
-      if (e.code === "Enter") cta.checkoutActionHandler?.(e);
-    });
-    trigger.classList.add("modal-trigger");
-    const titleDaaLL = this.title.replace(/\s+/g, "-").toLowerCase();
-    const daaLL = `${titleDaaLL}${isIcon ? "-icon" : ""}--${this.analyticsId}--card`;
-    trigger.setAttribute("daa-ll", daaLL);
-    trigger.setAttribute("role", "link");
-    if (isIcon) {
-      trigger.setAttribute("alt", this.title);
-    }
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.variantLayout?.disconnectedCallbackHook();
-    this.removeEventListener(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      this.handleQuantitySelection
-    );
-    this.removeEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
-    this.removeEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-    this.removeEventListener(EVENT_MAS_READY, this.handleMasReady);
-    this.removeEventListener("change", this.changeHandler);
-    this.removeEventListener(
-      EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
-      this.handleAddonAndQuantityUpdate
-    );
-  }
-  // custom methods
-  async handleAemFragmentEvents(e) {
-    var _a;
-    if (!this.isConnected) return;
-    if (e.type === EVENT_AEM_ERROR) {
-      __privateMethod(this, _MerchCard_instances, fail_fn).call(this, `AEM fragment cannot be loaded`);
-    }
-    if (e.type === EVENT_AEM_LOAD) {
-      this.failed = false;
-      if (e.target.nodeName === "AEM-FRAGMENT") {
-        const fragment = e.detail;
-        try {
-          if (!__privateGet(this, _resolveHydration)) {
-            __privateSet(this, _hydrationPromise, new Promise((resolve) => {
-              __privateSet(this, _resolveHydration, resolve);
-            }));
-          }
-          await hydrate(fragment, this);
-        } catch (e2) {
-          __privateMethod(this, _MerchCard_instances, fail_fn).call(this, `hydration has failed: ${e2.message}`);
-        } finally {
-          (_a = __privateGet(this, _resolveHydration)) == null ? void 0 : _a.call(this);
-          __privateSet(this, _resolveHydration, void 0);
-        }
-        this.checkReady();
-      }
-    }
-  }
-  async checkReady() {
-    if (!this.isConnected) return;
-    if (this.failed) return;
-    if (__privateGet(this, _hydrationPromise)) {
-      await __privateGet(this, _hydrationPromise);
-      if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant) || VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(this.variant)) {
-        intersectionObserver.observe(this);
-      }
-      __privateSet(this, _hydrationPromise, void 0);
-    }
-    if (this.variantLayoutPromise) {
-      await this.variantLayoutPromise;
-      this.variantLayoutPromise = void 0;
-    }
-    const timeoutPromise = new Promise(
-      (resolve) => setTimeout(() => resolve("timeout"), MERCH_CARD_LOAD_TIMEOUT)
-    );
-    if (this.aemFragment) {
-      const result2 = await Promise.race([
-        this.aemFragment.updateComplete,
-        timeoutPromise
-      ]);
-      if (result2 === false || result2 === "timeout") {
-        const errorMessage = result2 === "timeout" ? `AEM fragment was not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout` : "AEM fragment cannot be loaded";
-        __privateMethod(this, _MerchCard_instances, fail_fn).call(this, errorMessage, {}, false);
-        return;
-      }
-    }
-    const masElements = [...this.querySelectorAll(SELECTOR_MAS_ELEMENT)];
-    const successPromise = Promise.all(
-      masElements.map((element) => {
-        const settled = element.onceSettled?.();
-        if (!settled) return Promise.resolve(element);
-        return settled.catch(() => element);
-      })
-    ).then((elements) => {
-      const active = elements.filter((el) => el.isConnected);
-      return active.length === 0 || active.every(
-        (el) => el.classList.contains("placeholder-resolved")
-      );
-    });
-    const result = await Promise.race([successPromise, timeoutPromise]);
-    if (!this.isConnected) return;
-    const connectedMasElements = masElements.filter((el) => el.isConnected);
-    const allResolved = connectedMasElements.length === 0 || connectedMasElements.every(
-      (el) => el.classList.contains("placeholder-resolved")
-    );
-    if (allResolved) {
-      this.measure = performance.measure(
-        __privateGet(this, _durationMarkName),
-        __privateGet(this, _startMarkName)
-      );
-      const detail = {
-        ...this.aemFragment?.fetchInfo,
-        ...__privateGet(this, _service3).duration,
-        measure: printMeasure(this.measure)
-      };
-      this.dispatchEvent(
-        new CustomEvent(EVENT_MAS_READY, {
-          bubbles: true,
-          composed: true,
-          detail
-        })
-      );
-      return this;
-    } else {
-      this.measure = performance.measure(
-        __privateGet(this, _durationMarkName),
-        __privateGet(this, _startMarkName)
-      );
-      const details = {
-        measure: printMeasure(this.measure),
-        ...__privateGet(this, _service3).duration
-      };
-      if (result === "timeout") {
-        __privateMethod(this, _MerchCard_instances, fail_fn).call(this, `Contains offers that were not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout`, details);
-      } else {
-        const ctaFailed = connectedMasElements.some(
-          (el) => el.matches(SELECTOR_MAS_CHECKOUT_LINK) && el.classList.contains("placeholder-failed")
-        );
-        __privateMethod(this, _MerchCard_instances, fail_fn).call(this, ctaFailed ? `CTA has an invalid offer` : `Contains unresolved offers`, details);
-      }
-    }
-  }
-  get aemFragment() {
-    return this.querySelector("aem-fragment");
-  }
-  get addon() {
-    return this.querySelector("merch-addon");
-  }
-  /* c8 ignore next 3 */
-  get quantitySelect() {
-    return this.querySelector("merch-quantity-select");
-  }
-  get addonCheckbox() {
-    return this.querySelector("merch-addon");
-  }
-  displayFooterElementsInColumn() {
-    if (!this.classList.contains("product")) return;
-    const secureTransactionLabel = this.shadowRoot.querySelector(
-      ".secure-transaction-label"
-    );
-    const checkoutLinkCtas = this.footerSlot?.querySelectorAll(
-      SELECTOR_MAS_CHECKOUT_LINK
-    );
-    if (checkoutLinkCtas.length === 2 && secureTransactionLabel) {
-      secureTransactionLabel.parentElement.classList.add("footer-column");
-    }
-  }
-  handleMerchOfferSelectReady() {
-    if (this.offerSelect && !this.offerSelect.planType) return;
-    this.displayFooterElementsInColumn();
-  }
-  /* c8 ignore next 3 */
-  get dynamicPrice() {
-    return this.querySelector('[slot="price"]');
-  }
-  handleAddonAndQuantityUpdate({ detail: { id, items } }) {
-    if (!id || !items?.length) return;
-    const parentTab = this.closest('[role="tabpanel"][hidden="true"]');
-    if (parentTab) return;
-    const cta = this.checkoutLinks.find(
-      (link) => link.getAttribute("data-modal-id") === id
-    );
-    if (!cta) return;
-    const url = new URL(cta.getAttribute("href"));
-    const pa = url.searchParams.get("pa");
-    const mainProductQuantity = items.find(
-      (item) => item.productArrangementCode === pa
-    )?.quantity;
-    const isAddonIncluded = !!items.find(
-      (item) => item.productArrangementCode !== pa
-    );
-    if (mainProductQuantity) {
-      this.quantitySelect?.dispatchEvent(
-        new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
-          detail: { quantity: mainProductQuantity },
-          bubbles: true,
-          composed: true
-        })
-      );
-    }
-    if (this.addonCheckbox && this.addonCheckbox.checked !== isAddonIncluded) {
-      this.toggleStockOffer({ target: this.addonCheckbox });
-      const checkboxEvent = new Event("change", {
-        bubbles: true,
-        cancelable: true
-      });
-      Object.defineProperty(checkboxEvent, "target", {
-        writable: false,
-        value: { checked: isAddonIncluded }
-      });
-      this.addonCheckbox.handleChange(checkboxEvent);
-    }
-  }
-  get prices() {
-    return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
-  }
-  get osi() {
-    const promo = this.querySelector(
-      '[is="inline-price"][data-template="price"][data-promotion-code]'
-    );
-    const regular = this.querySelector(
-      '[is="inline-price"][data-template="price"]'
-    );
-    return (promo ?? regular)?.dataset.wcsOsi ?? this.aemFragment?.data?.fields?.osi;
-  }
-  get promoPrice() {
-    if (!this.querySelector(`span.price-strikethrough`)) return;
-    let price = this.querySelector(`.price.price-alternative`);
-    if (!price) {
-      price = this.querySelector(
-        `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"] > span`
-      );
-    }
-    if (!price) return;
-    price = price.innerText;
-    return price;
-  }
-  get regularPrice() {
-    return __privateGet(this, _MerchCard_instances, regularPrice_get)?.innerText;
-  }
-  get promotionCode() {
-    const promotionCodes = [
-      ...this.querySelectorAll(
-        `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`
-      )
-    ].map((el) => el.dataset.promotionCode).filter(
-      (promotionCode) => ![void 0, "cancel-context"].includes(promotionCode)
-    );
-    if (promotionCodes.length === 0) {
-      return this.contextPromotionCode;
-    }
-    const uniqueCodes = [...new Set(promotionCodes)];
-    if (uniqueCodes.length > 1) {
-      __privateGet(this, _log)?.warn(
-        `Multiple different promotion codes found: ${uniqueCodes.join(", ")}`
-      );
-    }
-    return promotionCodes[0];
-  }
-  get annualPrice() {
-    const price = this.querySelector(
-      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"] > .price.price-annual`
-    );
-    return price?.innerText;
-  }
-  get promoText() {
-    return void 0;
-  }
-  get taxText() {
-    return (__privateGet(this, _MerchCard_instances, legal_get) ?? __privateGet(this, _MerchCard_instances, regularPrice_get))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim() || void 0;
-  }
-  get recurrenceText() {
-    return __privateGet(this, _MerchCard_instances, regularPrice_get)?.querySelector("span.price-recurrence")?.textContent?.trim();
-  }
-  get unitText() {
-    const unitTextSelector = ".price-unit-type";
-    return __privateGet(this, _MerchCard_instances, legal_get)?.querySelector(unitTextSelector)?.textContent?.trim() ?? __privateGet(this, _MerchCard_instances, regularPrice_get)?.querySelector(unitTextSelector)?.textContent?.trim() ?? this.querySelector(unitTextSelector)?.textContent?.trim() ?? void 0;
-  }
-  get planTypeText() {
-    return this.querySelector(
-      '[is="inline-price"][data-template="legal"] span.price-plan-type'
-    )?.textContent?.trim();
-  }
-  get seeTermsInfo() {
-    const seeTerms = this.querySelector('a[is="upt-link"]');
-    if (!seeTerms) return void 0;
-    return __privateMethod(this, _MerchCard_instances, getCta_fn).call(this, seeTerms);
-  }
-  get renewalText() {
-    return this.querySelector("span.renewal-text")?.textContent?.trim();
-  }
-  get promoDurationText() {
-    return this.querySelector(
-      "span.promo-duration-text"
-    )?.textContent?.trim();
-  }
-  get ctas() {
-    const ctas = this.querySelector(
-      '[slot="ctas"], [slot="footer"]'
-    )?.querySelectorAll(`${SELECTOR_MAS_CHECKOUT_LINK}, a`);
-    return Array.from(ctas ?? []);
-  }
-  get primaryCta() {
-    return __privateMethod(this, _MerchCard_instances, getCta_fn).call(this, this.ctas.find(
-      (cta) => cta.variant === "accent" || cta.matches(".spectrum-Button--accent,.con-button.blue")
-    ));
-  }
-  get secondaryCta() {
-    return __privateMethod(this, _MerchCard_instances, getCta_fn).call(this, this.ctas.find(
-      (cta) => cta.variant !== "accent" && !cta.matches(".spectrum-Button--accent,.con-button.blue")
-    ));
-  }
-};
-_contextPromotionCode = new WeakMap();
-_durationMarkName = new WeakMap();
-_internalId = new WeakMap();
-_log = new WeakMap();
-_service3 = new WeakMap();
-_startMarkName = new WeakMap();
-_resolveHydration = new WeakMap();
-_hydrationPromise = new WeakMap();
-_MerchCard_instances = new WeakSet();
-fail_fn = function(error, details = {}, dispatch = true) {
-  var _a;
-  if (!this.isConnected) return;
-  const aemFragment = this.aemFragment;
-  let fragmentId = aemFragment?.getAttribute("fragment");
-  fragmentId = `[${fragmentId}]`;
-  const detail = {
-    ...aemFragment?.fetchInfo,
-    ...__privateGet(this, _service3).duration,
-    ...details,
-    message: error
-  };
-  __privateGet(this, _log).error(`merch-card${fragmentId}: ${error}`, detail);
-  this.failed = true;
-  (_a = __privateGet(this, _resolveHydration)) == null ? void 0 : _a.call(this);
-  __privateSet(this, _resolveHydration, void 0);
-  if (!__privateGet(this, _service3).isPreview()) this.style.display = "none";
-  if (!dispatch) return;
-  this.dispatchEvent(
-    new CustomEvent(EVENT_MAS_ERROR, {
-      bubbles: true,
-      composed: true,
-      detail
-    })
-  );
-};
-regularPrice_get = function() {
-  return this.querySelector(`span.price-strikethrough`) ?? this.querySelector(
-    `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"] > span`
-  );
-};
-legal_get = function() {
-  return this.querySelector(
-    `${SELECTOR_MAS_INLINE_PRICE}[data-template="legal"]`
-  );
-};
-getCta_fn = function(element) {
-  if (!element) return void 0;
-  return {
-    text: element.innerText.trim(),
-    analyticsId: element.dataset.analyticsId,
-    href: element.getAttribute("href") ?? element.dataset.href
-  };
-};
-__publicField(MerchCard, "properties", {
-  id: { type: String, attribute: "id", reflect: true },
-  name: { type: String, attribute: "name", reflect: true },
-  variant: { type: String, reflect: true },
-  size: { type: String, attribute: "size", reflect: true },
-  badgeColor: { type: String, attribute: "badge-color", reflect: true },
-  borderColor: { type: String, attribute: "border-color", reflect: true },
-  backgroundColor: {
-    type: String,
-    attribute: "background-color",
-    reflect: true
-  },
-  badgeBackgroundColor: {
-    type: String,
-    attribute: "badge-background-color",
-    reflect: true
-  },
-  backgroundImage: {
-    type: String,
-    attribute: "background-image",
-    reflect: true
-  },
-  badgeText: { type: String, attribute: "badge-text" },
-  actionMenu: { type: Boolean, attribute: "action-menu" },
-  actionMenuLabel: { type: String, attribute: "action-menu-label" },
-  customHr: { type: Boolean, attribute: "custom-hr" },
-  consonant: { type: Boolean, attribute: "consonant" },
-  failed: { type: Boolean, attribute: "failed", reflect: true },
-  spectrum: { type: String, attribute: "spectrum" },
-  detailBg: { type: String, attribute: "detail-bg" },
-  secureLabel: { type: String, attribute: "secure-label" },
-  checkboxLabel: { type: String, attribute: "checkbox-label" },
-  addonTitle: { type: String, attribute: "addon-title" },
-  addonOffers: { type: Object, attribute: "addon-offers" },
-  selected: { type: Boolean, attribute: "aria-selected", reflect: true },
-  storageOption: { type: String, attribute: "storage", reflect: true },
-  planType: { type: String, attribute: "plan-type", reflect: true },
-  heightSync: { type: Boolean, attribute: "height-sync" },
-  settings: {
-    type: Object,
-    attribute: false
-  },
-  stockOfferOsis: {
-    type: Object,
-    attribute: "stock-offer-osis",
-    converter: {
-      fromAttribute: (value) => {
-        if (!value) return;
-        const [PUF, ABM, M2M] = value.split(",");
-        return { PUF, ABM, M2M };
-      }
-    }
-  },
-  filters: {
-    type: String,
-    reflect: true,
-    converter: {
-      fromAttribute: (value) => {
-        return Object.fromEntries(
-          value.split(",").map((filter) => {
-            const [key, order, size] = filter.split(":");
-            const value2 = Number(order);
-            return [
-              key,
-              {
-                order: isNaN(value2) ? void 0 : value2,
-                size
-              }
-            ];
-          })
-        );
-      },
-      toAttribute: (value) => {
-        return Object.entries(value).map(
-          ([key, { order, size }]) => [key, order, size].filter((v) => v != void 0).join(":")
-        ).join(",");
-      }
-    }
-  },
-  types: {
-    type: String,
-    attribute: "types",
-    reflect: true
-  },
-  merchOffer: { type: Object },
-  analyticsId: {
-    type: String,
-    attribute: ANALYTICS_SECTION_ATTR,
-    reflect: true
-  },
-  loading: { type: String },
-  priceLiterals: { type: Object }
-});
-__publicField(MerchCard, "styles", [styles, ...sizeStyles()]);
-__publicField(MerchCard, "registerVariant", registerVariant);
-__publicField(MerchCard, "getCollectionOptions", getCollectionOptions);
-__publicField(MerchCard, "getFragmentMapping", getFragmentMapping);
-customElements.define(MERCH_CARD, MerchCard);
-export {
-  MerchCard
-};
-//# sourceMappingURL=merch-card.js.map
+`;if(typeof document<"u"&&!document.querySelector("style[data-plan-type-text]")){let a=document.createElement("style");a.setAttribute("data-plan-type-text",""),a.textContent=Vo,document.head.append(a)}function Wo(a){let r=document.createRange();return r.setStart(a.parentNode,0),r.setEndBefore(a),r.toString().replace(/\s+$/,"").slice(-1)}function Yo(a){let r=Wo(a);return!r||Go.includes(r)?"upper":"lower"}function _r(a,r){if(a.dataset.placeholder!==Xr)return;let e=a.closest("merch-card, mas-field")?.osi;e&&(r.wcsOsi=e,r.planTypeCase=Yo(a))}var Kt="merch-card",Ei="merch-card:",Ai=["full-pricing-express","simplified-pricing-express"],Ti=["segment","product","plans-education","mini-compare-chart-mweb"];function ki(a,r){let e=a.closest(Kt);if(!e)return r;e.priceLiterals&&(r.literals??(r.literals={}),Object.assign(r.literals,e.priceLiterals)),ta(a)&&(r.displayPerUnit=!1,r.displayTax=!1),!r.promotionCode&&(e.compatVersion>=1||e.hasAttribute("data-promotion-project"))&&(r.promotionCode=e.contextPromotionCode),e.aemFragment&&(r[Jr]=!0),e.variantLayout?.priceOptionsProvider?.(a,r),a.dataset.template===_&&(r.displayDot??(r.displayDot=e.variantLayout?.legalDisplayDot??!0)),r.displayAnnual===void 0&&typeof e.settings?.displayAnnual=="boolean"&&(r.displayAnnual=e.settings.displayAnnual)}function Ci(a,r){let e=a.closest(Kt);if(!e)return r;!r.promotionCode&&(e.compatVersion>=1||e.hasAttribute("data-promotion-project"))&&(r.promotionCode=e.contextPromotionCode)}function Qo(a){a.providers.has(ki)||a.providers.price(ki),a.providers.has(Ci)||a.providers.checkout(Ci),a.providers.has(_r)||a.providers.price(_r)}var xt=new IntersectionObserver(a=>{a.forEach(r=>{let e=r.target;if(Ai.includes(e.variant)){if(e.clientHeight===0)return;xt.unobserve(e),e.requestUpdate();return}if(Ti.includes(e.variant)){if(r.boundingClientRect.width===0)return;if((e.variant==="product"||e.variant==="mini-compare-chart-mweb"||e.variant==="plans-education")&&e.querySelector('merch-icon[slot="icons"]')){xt.unobserve(e);return}let t=e.getBoundingClientRect().width,i=e.querySelector('[slot="badge"] > merch-badge'),n=i?.getBoundingClientRect().width||0;if(t===0||!i){xt.unobserve(e);return}e.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-n-16)}px`),xt.unobserve(e)}})}),Zo=0,wt,Ve,We,Ye,j,ge,$,ue,T,me,yt,Mr,Yt,ae=class extends Ko{constructor(){super();v(this,T);v(this,wt);v(this,Ve);v(this,We);v(this,Ye);v(this,j);v(this,ge);v(this,$);v(this,ue,new Promise(e=>{u(this,$,e)}));d(this,"compatVersion");d(this,"customerSegment");d(this,"marketSegment");d(this,"variantLayout");this.id=null,this.failed=!1,this.filters={},this.types="",this.selected=!1,this.spectrum="css",this.loading="lazy",this.handleAemFragmentEvents=this.handleAemFragmentEvents.bind(this),this.handleMasReady=this.handleMasReady.bind(this),this.handleMerchOfferSelectReady=this.handleMerchOfferSelectReady.bind(this)}get contextPromotionCode(){return p(this,wt)}set contextPromotionCode(e){u(this,wt,e),e?this.setAttribute("data-promotion-code",e):this.removeAttribute("data-promotion-code")}firstUpdated(){this.variantLayout=xr(this),this.variantLayout?.connectedCallbackHook()}willUpdate(e){(e.has("variant")||!this.variantLayout)&&(this.variantLayout?.disconnectedCallbackHook(),this.variantLayout=xr(this),this.variantLayout?.connectedCallbackHook())}updated(e){!this.style.getPropertyValue("--consonant-merch-card-border-color")&&this.computedBorderColor&&(e.has("badgeBackgroundColor")||e.has("borderColor"))&&this.style.setProperty("--consonant-merch-card-border-color",this.computedBorderColor),e.has("backgroundColor")&&this.style.setProperty("--merch-card-custom-background-color",this.backgroundColor?`var(--${this.backgroundColor})`:"");try{this.variantLayoutPromise=this.variantLayout?.postCardUpdateHook(e)}catch(t){k(this,T,me).call(this,`Error in postCardUpdateHook: ${t.message}`,{},!1)}}get theme(){return this.closest("sp-theme")}get dir(){return this.closest("[dir]")?.getAttribute("dir")??"ltr"}render(){if(!(!this.isConnected||!this.variantLayout||this.style.display==="none"))return this.variantLayout.renderLayout()}get computedBorderColor(){return["ccd-slice","ccd-suggested","ah-promoted-plans","simplified-pricing-express","full-pricing-express"].includes(this.variant)?"":this.borderColor?this.borderColor:this.badgeBackgroundColor}get badgeElement(){return this.shadowRoot.getElementById("badge")}get headingmMSlot(){return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0]}get footerSlot(){return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0]}get descriptionSlot(){return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0]}get descriptionSlotCompare(){return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0]}get iconButton(){return this.querySelector('[slot="callout-content"] .icon-button')}get price(){return this.headingmMSlot?.querySelector(y)}get checkoutLinks(){return[...this.footerSlot?.querySelectorAll(G)??[]]}get checkoutLinksDescription(){return[...this.descriptionSlot?.querySelectorAll(G)??[]]}get checkoutLinkDescriptionCompare(){return[...this.descriptionSlotCompare?.querySelectorAll(G)??[]]}get activeDescriptionLinks(){return this.variant==="mini-compare-chart"||this.variant==="mini-compare-chart-mweb"?this.checkoutLinkDescriptionCompare:this.checkoutLinksDescription}async toggleStockOffer({target:e}){if(!this.stockOfferOsis)return;let t=this.checkoutLinks;if(t.length!==0)for(let i of t){await i.onceSettled();let n=i.value?.[0]?.planType;if(!n)return;let o=this.stockOfferOsis[n];if(!o)return;let s=i.dataset.wcsOsi.split(",").filter(c=>c!==o);e.checked&&s.push(o),i.dataset.wcsOsi=s.join(",")}}changeHandler(e){e.target.tagName==="MERCH-ADDON"&&this.toggleAddon(e.target)}toggleAddon(e){this.variantLayout?.toggleAddon?.(e);let t=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(t.length===0)return;let i=n=>{let{offerType:o,planType:s}=n.value?.[0]??{};if(!o||!s)return;let c=e.getOsi(s,o),l=(n.dataset.wcsOsi||"").split(",").filter(h=>h&&h!==c);e.checked&&l.push(c),n.dataset.wcsOsi=l.join(",")};t.forEach(i)}handleQuantitySelection(e){let t=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(t.length!==0)for(let i of t)i.dataset.quantity=e.detail.option}get titleElement(){return this.querySelector(this.variantLayout?.headingSelector||".card-heading")}get title(){return this.titleElement?.textContent?.trim()}get description(){return this.querySelector('[slot="body-xs"]')?.textContent?.trim()}updateFilters(e){let t={...this.filters};Object.keys(t).forEach(i=>{if(e){t[i].order=Math.min(t[i].order||2,2);return}let n=t[i].order;n===1||isNaN(n)||(t[i].order=Number(n)+1)}),this.filters=t}showInfoTooltip(e,t){let i="tooltip-left",n="tooltip-right";window.screen.width<600&&e.getAttribute("data-tooltip")?.length>12&&(this.iconButton.classList.remove(i),this.iconButton.classList.remove(n),e.getBoundingClientRect().x<100&&this.iconButton.classList.add(i),e.getBoundingClientRect().x>window.screen.width-100&&this.iconButton.classList.add(n)),this.iconButton.classList.add(t)}handleInfoIconEvents(){let e="tooltip-visible";this.iconButton&&(["mouseenter","focus"].forEach(t=>this.iconButton.addEventListener(t,i=>this.showInfoTooltip(i.target,e),!1)),["mouseleave","blur"].forEach(t=>this.iconButton.addEventListener(t,()=>this.iconButton.classList.remove(e),!1)),this.iconButton.addEventListener("keydown",t=>{t.key==="Escape"&&this.iconButton.classList.remove(e)}))}additionalModalTriggers(){if(!this.settings?.additionalModalTriggers)return;let e=this.variantLayout.aemFragmentMapping.title;this.makeElementModalTrigger(e?.tag,e?.slot),this.makeElementModalTrigger("merch-icon","icons")}handleMasReady(){this.handleInfoIconEvents(),this.additionalModalTriggers()}includes(e){return this.textContent.match(new RegExp(e,"i"))!==null}connectedCallback(){var t;super.connectedCallback(),p(this,We)||u(this,We,Zo++),this.aemFragment||((t=p(this,$))==null||t.call(this),u(this,$,void 0)),this.id??(this.id=this.getAttribute("id")??this.aemFragment?.getAttribute("fragment"));let e=this.id??p(this,We);u(this,ge,`${Ei}${e}${Qr}`),u(this,Ve,`${Ei}${e}${Zr}`),performance.mark(p(this,ge)),u(this,j,Ze()),Qo(p(this,j)),u(this,Ye,p(this,j).Log.module(Kt)),this.addEventListener(R,this.handleQuantitySelection),this.addEventListener(Xt,this.handleAddonAndQuantityUpdate),this.addEventListener(qr,this.handleMerchOfferSelectReady),this.addEventListener(Tt,this.handleAemFragmentEvents),this.addEventListener(At,this.handleAemFragmentEvents),this.addEventListener(ie,this.handleMasReady),this.addEventListener("change",this.changeHandler),this.variantLayout&&this.variantLayout.connectedCallbackHook(),this.aemFragment||setTimeout(()=>this.checkReady(),0)}makeElementModalTrigger(e,t){let i=e==="merch-icon",n=this.querySelector(`${e}[slot="${t}"]:not(.modal-trigger)`);if(!n)return;let o=this.querySelector("a.button.placeholder-resolved[data-modal]");if(!o)return;n.setAttribute("tabindex","0"),n.addEventListener("click",l=>{o.checkoutActionHandler?.(l)}),n.addEventListener("keypress",l=>{l.code==="Enter"&&o.checkoutActionHandler?.(l)}),n.classList.add("modal-trigger");let c=`${this.title.replace(/\s+/g,"-").toLowerCase()}${i?"-icon":""}--${this.analyticsId}--card`;n.setAttribute("daa-ll",c),n.setAttribute("role","link"),i&&n.setAttribute("alt",this.title)}disconnectedCallback(){super.disconnectedCallback(),this.variantLayout?.disconnectedCallbackHook(),this.removeEventListener(R,this.handleQuantitySelection),this.removeEventListener(Tt,this.handleAemFragmentEvents),this.removeEventListener(At,this.handleAemFragmentEvents),this.removeEventListener(ie,this.handleMasReady),this.removeEventListener("change",this.changeHandler),this.removeEventListener(Xt,this.handleAddonAndQuantityUpdate)}async handleAemFragmentEvents(e){var t;if(this.isConnected&&(e.type===Tt&&k(this,T,me).call(this,"AEM fragment cannot be loaded"),e.type===At&&(this.failed=!1,e.target.nodeName==="AEM-FRAGMENT"))){let i=e.detail;try{p(this,$)||u(this,ue,new Promise(n=>{u(this,$,n)})),await wi(i,this)}catch(n){k(this,T,me).call(this,`hydration has failed: ${n.message}`)}finally{(t=p(this,$))==null||t.call(this),u(this,$,void 0)}this.checkReady()}}async checkReady(){if(!this.isConnected||this.failed)return;p(this,ue)&&(await p(this,ue),(Ai.includes(this.variant)||Ti.includes(this.variant))&&xt.observe(this),u(this,ue,void 0)),this.variantLayoutPromise&&(await this.variantLayoutPromise,this.variantLayoutPromise=void 0);let e=new Promise(c=>setTimeout(()=>c("timeout"),fe));if(this.aemFragment){let c=await Promise.race([this.aemFragment.updateComplete,e]);if(c===!1||c==="timeout"){let l=c==="timeout"?`AEM fragment was not resolved within ${fe} timeout`:"AEM fragment cannot be loaded";k(this,T,me).call(this,l,{},!1);return}}let t=[...this.querySelectorAll(Hr)],i=Promise.all(t.map(c=>{let l=c.onceSettled?.();return l?l.catch(()=>c):Promise.resolve(c)})).then(c=>{let l=c.filter(h=>h.isConnected);return l.length===0||l.every(h=>h.classList.contains("placeholder-resolved"))}),n=await Promise.race([i,e]);if(!this.isConnected)return;let o=t.filter(c=>c.isConnected);if(o.length===0||o.every(c=>c.classList.contains("placeholder-resolved"))){this.measure=performance.measure(p(this,Ve),p(this,ge));let c={...this.aemFragment?.fetchInfo,...p(this,j).duration,measure:er(this.measure)};return this.dispatchEvent(new CustomEvent(ie,{bubbles:!0,composed:!0,detail:c})),this}else{this.measure=performance.measure(p(this,Ve),p(this,ge));let c={measure:er(this.measure),...p(this,j).duration};if(n==="timeout")k(this,T,me).call(this,`Contains offers that were not resolved within ${fe} timeout`,c);else{let l=o.some(h=>h.matches(G)&&h.classList.contains("placeholder-failed"));k(this,T,me).call(this,l?"CTA has an invalid offer":"Contains unresolved offers",c)}}}get aemFragment(){return this.querySelector("aem-fragment")}get addon(){return this.querySelector("merch-addon")}get quantitySelect(){return this.querySelector("merch-quantity-select")}get addonCheckbox(){return this.querySelector("merch-addon")}displayFooterElementsInColumn(){if(!this.classList.contains("product"))return;let e=this.shadowRoot.querySelector(".secure-transaction-label");(this.footerSlot?.querySelectorAll(G)).length===2&&e&&e.parentElement.classList.add("footer-column")}handleMerchOfferSelectReady(){this.offerSelect&&!this.offerSelect.planType||this.displayFooterElementsInColumn()}get dynamicPrice(){return this.querySelector('[slot="price"]')}handleAddonAndQuantityUpdate({detail:{id:e,items:t}}){if(!e||!t?.length||this.closest('[role="tabpanel"][hidden="true"]'))return;let n=this.checkoutLinks.find(h=>h.getAttribute("data-modal-id")===e);if(!n)return;let s=new URL(n.getAttribute("href")).searchParams.get("pa"),c=t.find(h=>h.productArrangementCode===s)?.quantity,l=!!t.find(h=>h.productArrangementCode!==s);if(c&&this.quantitySelect?.dispatchEvent(new CustomEvent(Qe,{detail:{quantity:c},bubbles:!0,composed:!0})),this.addonCheckbox&&this.addonCheckbox.checked!==l){this.toggleStockOffer({target:this.addonCheckbox});let h=new Event("change",{bubbles:!0,cancelable:!0});Object.defineProperty(h,"target",{writable:!1,value:{checked:l}}),this.addonCheckbox.handleChange(h)}}get prices(){return Array.from(this.querySelectorAll(y))}get osi(){let e=this.querySelector('[is="inline-price"][data-template="price"][data-promotion-code]'),t=this.querySelector('[is="inline-price"][data-template="price"]');return(e??t)?.dataset.wcsOsi??this.aemFragment?.data?.fields?.osi}get promoPrice(){if(!this.querySelector("span.price-strikethrough"))return;let e=this.querySelector(".price.price-alternative");if(e||(e=this.querySelector(`${y}[data-template="price"] > span`)),!!e)return e=e.innerText,e}get regularPrice(){return p(this,T,yt)?.innerText}get promotionCode(){let e=[...this.querySelectorAll(`${y}[data-promotion-code],${G}[data-promotion-code]`)].map(i=>i.dataset.promotionCode).filter(i=>![void 0,"cancel-context"].includes(i));if(e.length===0)return this.contextPromotionCode;let t=[...new Set(e)];return t.length>1&&p(this,Ye)?.warn(`Multiple different promotion codes found: ${t.join(", ")}`),e[0]}get annualPrice(){return this.querySelector(`${y}[data-template="price"] > .price.price-annual`)?.innerText}get promoText(){}get taxText(){return(p(this,T,Mr)??p(this,T,yt))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim()||void 0}get recurrenceText(){return p(this,T,yt)?.querySelector("span.price-recurrence")?.textContent?.trim()}get unitText(){let e=".price-unit-type";return p(this,T,Mr)?.querySelector(e)?.textContent?.trim()??p(this,T,yt)?.querySelector(e)?.textContent?.trim()??this.querySelector(e)?.textContent?.trim()??void 0}get planTypeText(){return this.querySelector('[is="inline-price"][data-template="legal"] span.price-plan-type')?.textContent?.trim()}get seeTermsInfo(){let e=this.querySelector('a[is="upt-link"]');if(e)return k(this,T,Yt).call(this,e)}get renewalText(){return this.querySelector("span.renewal-text")?.textContent?.trim()}get promoDurationText(){return this.querySelector("span.promo-duration-text")?.textContent?.trim()}get ctas(){let e=this.querySelector('[slot="ctas"], [slot="footer"]')?.querySelectorAll(`${G}, a`);return Array.from(e??[])}get primaryCta(){return k(this,T,Yt).call(this,this.ctas.find(e=>e.variant==="accent"||e.matches(".spectrum-Button--accent,.con-button.blue")))}get secondaryCta(){return k(this,T,Yt).call(this,this.ctas.find(e=>e.variant!=="accent"&&!e.matches(".spectrum-Button--accent,.con-button.blue")))}};wt=new WeakMap,Ve=new WeakMap,We=new WeakMap,Ye=new WeakMap,j=new WeakMap,ge=new WeakMap,$=new WeakMap,ue=new WeakMap,T=new WeakSet,me=function(e,t={},i=!0){var c;if(!this.isConnected)return;let n=this.aemFragment,o=n?.getAttribute("fragment");o=`[${o}]`;let s={...n?.fetchInfo,...p(this,j).duration,...t,message:e};p(this,Ye).error(`merch-card${o}: ${e}`,s),this.failed=!0,(c=p(this,$))==null||c.call(this),u(this,$,void 0),p(this,j).isPreview()||(this.style.display="none"),i&&this.dispatchEvent(new CustomEvent(jr,{bubbles:!0,composed:!0,detail:s}))},yt=function(){return this.querySelector("span.price-strikethrough")??this.querySelector(`${y}[data-template="price"] > span`)},Mr=function(){return this.querySelector(`${y}[data-template="legal"]`)},Yt=function(e){if(e)return{text:e.innerText.trim(),analyticsId:e.dataset.analyticsId,href:e.getAttribute("href")??e.dataset.href}},d(ae,"properties",{id:{type:String,attribute:"id",reflect:!0},name:{type:String,attribute:"name",reflect:!0},variant:{type:String,reflect:!0},size:{type:String,attribute:"size",reflect:!0},badgeColor:{type:String,attribute:"badge-color",reflect:!0},borderColor:{type:String,attribute:"border-color",reflect:!0},backgroundColor:{type:String,attribute:"background-color",reflect:!0},badgeBackgroundColor:{type:String,attribute:"badge-background-color",reflect:!0},backgroundImage:{type:String,attribute:"background-image",reflect:!0},badgeText:{type:String,attribute:"badge-text"},actionMenu:{type:Boolean,attribute:"action-menu"},actionMenuLabel:{type:String,attribute:"action-menu-label"},customHr:{type:Boolean,attribute:"custom-hr"},consonant:{type:Boolean,attribute:"consonant"},failed:{type:Boolean,attribute:"failed",reflect:!0},spectrum:{type:String,attribute:"spectrum"},detailBg:{type:String,attribute:"detail-bg"},secureLabel:{type:String,attribute:"secure-label"},checkboxLabel:{type:String,attribute:"checkbox-label"},addonTitle:{type:String,attribute:"addon-title"},addonOffers:{type:Object,attribute:"addon-offers"},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},storageOption:{type:String,attribute:"storage",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},heightSync:{type:Boolean,attribute:"height-sync"},settings:{type:Object,attribute:!1},stockOfferOsis:{type:Object,attribute:"stock-offer-osis",converter:{fromAttribute:e=>{if(!e)return;let[t,i,n]=e.split(",");return{PUF:t,ABM:i,M2M:n}}}},filters:{type:String,reflect:!0,converter:{fromAttribute:e=>Object.fromEntries(e.split(",").map(t=>{let[i,n,o]=t.split(":"),s=Number(n);return[i,{order:isNaN(s)?void 0:s,size:o}]})),toAttribute:e=>Object.entries(e).map(([t,{order:i,size:n}])=>[t,i,n].filter(o=>o!=null).join(":")).join(",")}},types:{type:String,attribute:"types",reflect:!0},merchOffer:{type:Object},analyticsId:{type:String,attribute:Wt,reflect:!0},loading:{type:String},priceLiterals:{type:Object}}),d(ae,"styles",[$r,...Ir()]),d(ae,"registerVariant",S),d(ae,"getCollectionOptions",ni),d(ae,"getFragmentMapping",Pt);customElements.define(Kt,ae);export{ae as MerchCard};

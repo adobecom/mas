@@ -228,6 +228,9 @@ describe('replace', () => {
             expect(description).to.contain('is="inline-price"');
             expect(description).to.contain('data-template="legal"');
             expect(description).to.contain('data-placeholder="plan-type-text"');
+            expect(description).to.contain('data-display-plan-type="true"');
+            expect(description).to.contain('data-display-per-unit="false"');
+            expect(description).to.contain('data-display-tax="false"');
         });
 
         it('resolves the system placeholder regardless of fragment model', async () => {

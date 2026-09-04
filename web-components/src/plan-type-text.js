@@ -46,24 +46,15 @@ export function planTypeCaseFor(element) {
 }
 
 /**
- * Price-options provider for the {{plan-type-text}} token: renders the plan
- * type only, sourcing the OSI from the surrounding card/field, and cases the
- * label from the preceding copy (sentence-boundary).
+ * Price-options provider for the {{plan-type-text}} token — supplies the two
+ * runtime-only values: the OSI from the surrounding card/field and the
+ * sentence-boundary casing from the preceding copy. Display flags are static
+ * and carried by the marker's data attributes.
  */
 export function planTypeTextOptionsProvider(element, options) {
-    if (element.dataset.placeholder === PLACEHOLDER_PLAN_TYPE_TEXT) {
-        const osi = element.closest('merch-card, mas-field')?.osi;
-        if (osi) {
-            options.wcsOsi = osi;
-            options.displayPlanType = true;
-            options.displayPerUnit = false;
-            options.displayTax = false;
-            options.displayRecurrence = false;
-            options.displayOldPrice = false;
-            options.displayAnnual = false;
-            options.forceTaxExclusive = false;
-            options.displayDot = false;
-            options.planTypeCase = planTypeCaseFor(element);
-        }
-    }
+    if (element.dataset.placeholder !== PLACEHOLDER_PLAN_TYPE_TEXT) return;
+    const osi = element.closest('merch-card, mas-field')?.osi;
+    if (!osi) return;
+    options.wcsOsi = osi;
+    options.planTypeCase = planTypeCaseFor(element);
 }

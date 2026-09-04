@@ -26,18 +26,13 @@ const tokenCard = (before) => {
 };
 
 describe('planTypeTextOptionsProvider', () => {
-    it('injects the host OSI and forces plan-type-only', () => {
+    it('injects the host OSI and leaves display flags to the marker', () => {
         const options = {};
         planTypeTextOptionsProvider(tokenCard('text '), options);
         expect(options.wcsOsi).to.equal('ABC');
-        expect(options.displayPlanType).to.equal(true);
-        expect(options.displayPerUnit).to.equal(false);
-        expect(options.displayTax).to.equal(false);
-        expect(options.displayRecurrence).to.equal(false);
-        expect(options.displayOldPrice).to.equal(false);
-        expect(options.displayAnnual).to.equal(false);
-        expect(options.forceTaxExclusive).to.equal(false);
-        expect(options.displayDot).to.equal(false);
+        expect(options.displayPerUnit).to.equal(undefined);
+        expect(options.displayTax).to.equal(undefined);
+        expect(options.displayPlanType).to.equal(undefined);
     });
 
     it('is a no-op for elements without the placeholder attribute', () => {

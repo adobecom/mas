@@ -36,7 +36,7 @@ import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
-import { planTypeTextOptionsProvider } from './plan-type-text.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -964,16 +964,7 @@ export class MerchCard extends LitElement {
     }
 
     get osi() {
-        const promo = this.querySelector(
-            '[is="inline-price"][data-template="price"][data-promotion-code]',
-        );
-        const regular = this.querySelector(
-            '[is="inline-price"][data-template="price"]',
-        );
-        return (
-            (promo ?? regular)?.dataset.wcsOsi ??
-            this.aemFragment?.data?.fields?.osi
-        );
+        return hostOsi(this);
     }
 
     get promoPrice() {

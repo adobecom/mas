@@ -7,7 +7,7 @@ import {
 } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
-import { planTypeTextOptionsProvider } from './plan-type-text.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -386,16 +386,7 @@ class MasField extends HTMLElement {
     }
 
     get osi() {
-        const promo = this.querySelector(
-            '[is="inline-price"][data-template="price"][data-promotion-code]',
-        );
-        const regular = this.querySelector(
-            '[is="inline-price"][data-template="price"]',
-        );
-        return (
-            (promo ?? regular)?.dataset.wcsOsi ??
-            this.aemFragment?.data?.fields?.osi
-        );
+        return hostOsi(this);
     }
 
     #ensureContentElement() {

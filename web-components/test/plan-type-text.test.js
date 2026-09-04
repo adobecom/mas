@@ -16,6 +16,12 @@ before(async () => {
     await customElements.whenDefined('merch-card');
 });
 
+afterEach(() => {
+    document.body
+        .querySelectorAll('merch-card, mas-field')
+        .forEach((el) => el.remove());
+});
+
 const tokenCard = (before) => {
     const card = document.createElement('merch-card');
     card.innerHTML =
@@ -82,6 +88,16 @@ describe('planTypeCaseFor (sentence-boundary casing)', () => {
 
     it('is lower mid-sentence', () => {
         expect(planTypeCaseFor(tokenCard('billed '))).to.equal('lower');
+    });
+
+    it('sees preceding copy across an inline wrapper', () => {
+        const card = document.createElement('merch-card');
+        card.innerHTML =
+            '<span is="inline-price" data-template="price" data-wcs-osi="ABC"></span>' +
+            '<p>your plan is <em><span is="inline-price" data-template="legal" data-placeholder="plan-type-text"></span></em></p>';
+        document.body.append(card);
+        const token = card.querySelector('[data-placeholder="plan-type-text"]');
+        expect(planTypeCaseFor(token)).to.equal('lower');
     });
 });
 

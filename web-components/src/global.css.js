@@ -306,7 +306,6 @@ merch-card span[is='inline-price'] {
     display: inline-block;
 }
 
-
 .annual-price-new-line > span[is="inline-price"] {
   line-height: var(--consonant-merch-card-body-m-line-height);
 }

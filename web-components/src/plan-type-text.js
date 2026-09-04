@@ -25,15 +25,40 @@ if (
     document.head.append(style);
 }
 
+const BLOCK_ANCESTOR =
+    'p, div, li, td, th, h1, h2, h3, h4, h5, h6, section, article, blockquote';
+
 /**
- * Last non-space character rendered immediately before `el` within its block
- * parent. Returns '' when nothing precedes it.
+ * Last non-space character rendered before `el` within its nearest block
+ * ancestor, so inline wrappers (`<em>…`) don't hide the preceding copy.
+ * Returns '' when nothing precedes it.
  */
 export function precedingChar(el) {
+    const block = el.closest(BLOCK_ANCESTOR) ?? el.parentNode;
     const range = document.createRange();
-    range.setStart(el.parentNode, 0);
+    range.setStart(block, 0);
     range.setEndBefore(el);
     return range.toString().replace(/\s+$/, '').slice(-1);
+}
+
+/**
+ * Resolves the OSI for a card/field: the promo price OSI (a real promotion,
+ * not the `cancel-context` sentinel), else the regular price OSI, else the
+ * fragment's own `osi` field. Prices nested in a `<merch-addon>` are ignored.
+ */
+export function hostOsi(host) {
+    const prices = [
+        ...host.querySelectorAll('[is="inline-price"][data-template="price"]'),
+    ].filter((price) => !price.closest('merch-addon'));
+    const promo = prices.find(
+        (price) =>
+            price.dataset.promotionCode &&
+            price.dataset.promotionCode !== 'cancel-context',
+    );
+    return (
+        (promo ?? prices[0])?.dataset.wcsOsi ??
+        host.aemFragment?.data?.fields?.osi
+    );
 }
 
 /**

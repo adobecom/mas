@@ -1011,6 +1011,92 @@ sp-progress-circle.preview {
     text-decoration: none;
 }
 
+/* "References" section: which collections / projects / cards use the open fragment, grouped by type
+   with per-type collapsibles. Neutral gray palette so it reads as distinct from the blue blocks. */
+.references-container {
+    box-sizing: border-box;
+    width: 600px;
+    max-width: 100%;
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+
+.references-title {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--spectrum-gray-900, #292929);
+}
+
+/* Each type collapsible is a standalone card, matching the variation sections
+   (mas-related-variations.css.js .variation-type-section). */
+.reference-type-section {
+    background: var(--spectrum-gray-50, #f8f8f8);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.reference-type-section + .reference-type-section {
+    margin-top: 16px;
+}
+
+.reference-type-toggle {
+    --mod-actionbutton-background-color-default: transparent;
+    --mod-actionbutton-content-color-default: var(--spectrum-gray-900, #292929);
+    --mod-actionbutton-font-weight: 700;
+    width: 100%;
+    justify-content: flex-start;
+    margin: 0;
+    font-weight: bold;
+}
+
+.reference-type-toggle:hover {
+    --mod-actionbutton-content-color-hover: var(--spectrum-blue-800, #3b63fb);
+}
+
+.reference-type-rows {
+    padding: 12px 4px 0;
+}
+
+.referencing-message {
+    color: var(--spectrum-neutral-subdued-content-color-default);
+    font-size: 14px;
+}
+
+.references-error .referencing-message {
+    color: var(--spectrum-global-color-gray-900);
+}
+
+.referencing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    color: var(--spectrum-global-color-gray-900);
+    font-size: 14px;
+    text-decoration: none;
+}
+
+a.referencing-row:hover {
+    color: var(--spectrum-global-color-blue-500);
+    text-decoration: none;
+}
+
+.referencing-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.referencing-locale-count,
+.referencing-status {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: normal;
+    color: var(--spectrum-neutral-subdued-content-color-default);
+}
+
+
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;

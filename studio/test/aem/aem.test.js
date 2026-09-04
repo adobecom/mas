@@ -397,4 +397,97 @@ describe('aem.js', () => {
             }
         });
     });
+
+    describe('method: getReferencedByFragmentId', () => {
+        const CARD_ID = '77fffd31-3a9d-4881-a5ed-455a28afc880';
+
+        it('GETs the by-id referencedBy endpoint with the limit and returns items + cursor', async () => {
+            let capturedUrl;
+            let capturedOptions;
+            window.fetch = async (url, options) => {
+                capturedUrl = url;
+                capturedOptions = options;
+                return {
+                    ok: true,
+                    json: async () => ({
+                        items: [
+                            {
+                                type: 'content-fragment',
+                                title: 'Coll',
+                                path: '/content/dam/mas/acom/en_US/coll',
+                                status: 'PUBLISHED',
+                                id: 'c1',
+                                model: { path: '/conf/mas/settings/dam/cfm/models/collection' },
+                            },
+                        ],
+                        cursor: 'next-cursor',
+                    }),
+                };
+            };
+            const page = await aem.getReferencedByFragmentId(CARD_ID, { limit: 50 });
+            expect(capturedUrl).to.include(`/cf/fragments/${CARD_ID}/referencedBy`);
+            expect(capturedUrl).to.include('limit=50');
+            expect(capturedOptions.method).to.equal('GET');
+            expect(page.items).to.have.lengthOf(1);
+            expect(page.items[0].id).to.equal('c1');
+            expect(page.cursor).to.equal('next-cursor');
+        });
+
+        it('passes the cursor query param when provided', async () => {
+            let capturedUrl;
+            window.fetch = async (url) => {
+                capturedUrl = url;
+                return { ok: true, json: async () => ({ items: [] }) };
+            };
+            await aem.getReferencedByFragmentId(CARD_ID, { limit: 50, cursor: 'abc123' });
+            expect(capturedUrl).to.include('cursor=abc123');
+        });
+
+        it('filters out page and experience-fragment parents (content-fragment only)', async () => {
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        { type: 'content-fragment', path: '/content/dam/mas/acom/en_US/a', id: 'a', model: { path: 'x' } },
+                        { type: 'experience-fragment', path: '/content/experience-fragments/x', id: 'xf' },
+                        { type: 'page', path: '/content/some/page' },
+                    ],
+                }),
+            });
+            const page = await aem.getReferencedByFragmentId(CARD_ID, { limit: 50 });
+            expect(page.items).to.have.lengthOf(1);
+            expect(page.items[0].type).to.equal('content-fragment');
+            expect(page.cursor).to.be.undefined;
+        });
+
+        it('throws a non-empty-id validation error', async () => {
+            try {
+                await aem.getReferencedByFragmentId('', { limit: 50 });
+                expect.fail('should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('required');
+            }
+        });
+
+        it('throws when the response is not ok', async () => {
+            window.fetch = async () => ({ ok: false, status: 403, statusText: 'Forbidden' });
+            try {
+                await aem.getReferencedByFragmentId(CARD_ID, { limit: 50 });
+                expect.fail('should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('403');
+            }
+        });
+
+        it('passes the abort signal to fetch', async () => {
+            let capturedSignal;
+            const controller = new AbortController();
+            window.fetch = async (url, options) => {
+                capturedSignal = options.signal;
+                return { ok: true, json: async () => ({ items: [] }) };
+            };
+            await aem.getReferencedByFragmentId(CARD_ID, { limit: 50, abortController: controller });
+            expect(capturedSignal).to.equal(controller.signal);
+        });
+    });
 });

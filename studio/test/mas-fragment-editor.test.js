@@ -1769,6 +1769,221 @@ describe('MasFragmentEditor', () => {
             expect(Store.search.get().region).to.be.undefined;
         });
     });
+
+    describe('References section', () => {
+        const collRow = (over = {}) => ({
+            groupKey: 'acom/plans-all',
+            title: 'Plans All',
+            modelPath: COLLECTION_MODEL_PATH,
+            representative: {
+                id: 'coll-1',
+                path: '/content/dam/mas/acom/en_US/plans-all',
+                status: 'PUBLISHED',
+                link: 'https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=coll-1',
+            },
+            locales: ['en_US', 'fr_FR'],
+            localeCount: 2,
+            ...over,
+        });
+
+        const renderSection = (editor) => {
+            const host = document.createElement('div');
+            render(editor.referencesSection, host);
+            return host;
+        };
+
+        const withCard = () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            return editor;
+        };
+
+        it('titles the section "References" and renders a loading state', () => {
+            const editor = withCard();
+            editor.isLoadingReferencingFragments = true;
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('References');
+            expect(host.textContent).to.include('Loading references');
+        });
+
+        it('renders a distinct error state (not "no references") on failure', () => {
+            const editor = withCard();
+            editor.referencingFragmentsError = true;
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('References unavailable');
+            expect(host.textContent).to.not.include('No references found');
+            expect(host.querySelector('.references-error')).to.not.equal(null);
+        });
+
+        it('renders the empty state when there are no references', () => {
+            const editor = withCard();
+            editor.referencingFragments = [];
+            expect(renderSection(editor).textContent).to.include('No references found');
+        });
+
+        it('renders a per-type collapsible header with a count, collapsed by default (rows hidden)', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Collections (1)');
+            // collapsed: the row link is not rendered
+            expect(host.querySelector('a.referencing-row')).to.equal(null);
+        });
+
+        it('shows the collection row as a deep link with a locale badge when its type is expanded', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            editor.expandedReferenceTypes = new Set(['collections']);
+            const host = renderSection(editor);
+            const link = host.querySelector('a.referencing-row');
+            expect(link).to.not.equal(null);
+            expect(link.getAttribute('href')).to.include('coll-1');
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(host.textContent).to.include('2 locales');
+            expect(host.textContent).to.include('PUBLISHED');
+        });
+
+        it('renders each type bucket in order with its own collapsible', () => {
+            const editor = withCard();
+            editor.referencingFragments = [
+                { key: 'collections', label: 'Collections', rows: [collRow()] },
+                { key: 'promoProjects', label: 'Promo Projects', rows: [collRow({ groupKey: 'p' })] },
+                { key: 'bulkPublishProjects', label: 'Bulk Publish Projects', rows: [collRow({ groupKey: 'b' })] },
+            ];
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Collections (1)');
+            expect(host.textContent).to.include('Promo Projects (1)');
+            expect(host.textContent).to.include('Bulk Publish Projects (1)');
+            expect(host.querySelectorAll('.reference-type-section')).to.have.lengthOf(3);
+        });
+
+        it('renders a bulk-publish-project row as a link to the bulk-publish editor when expanded', () => {
+            const editor = withCard();
+            editor.referencingFragments = [
+                {
+                    key: 'bulkPublishProjects',
+                    label: 'Bulk Publish Projects',
+                    rows: [
+                        {
+                            groupKey: '/content/dam/mas/acom/bulk-publish-projects/launch',
+                            title: 'Launch EMEA',
+                            representative: {
+                                id: 'p1',
+                                path: '/content/dam/mas/acom/bulk-publish-projects/launch',
+                                status: 'DRAFT',
+                                link: 'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=p1',
+                            },
+                            locales: [],
+                            localeCount: 0,
+                        },
+                    ],
+                },
+            ];
+            editor.expandedReferenceTypes = new Set(['bulkPublishProjects']);
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Launch EMEA');
+            const link = host.querySelector('a.referencing-row');
+            expect(link).to.not.equal(null);
+            expect(link.getAttribute('href')).to.include('bulkPublishProjectId=p1');
+        });
+
+        const renderUsage = (editor) => {
+            const host = document.createElement('div');
+            render(editor.usageSection, host);
+            return host;
+        };
+
+        it('does not auto-load usage on fragment open (lazy — no query until expand)', () => {
+            const editor = withCard();
+            editor.willUpdate(new Map());
+            expect(editor.usageExpanded).to.equal(false);
+            expect(editor.fragmentUsage).to.equal(null);
+        });
+
+        it('shows the Usage collapsible but does not render the body while collapsed (lazy)', () => {
+            const editor = withCard();
+            editor.usageExpanded = false;
+            // even if data were cached, the body stays hidden until expanded
+            editor.fragmentUsage = { available: true, totalCount: 5, rows: [{ apiKey: 'cc', country: 'US', count: 5 }] };
+            const host = renderUsage(editor);
+            expect(host.textContent).to.include('Usage (last 7 days)');
+            expect(host.textContent).to.not.include('requests');
+        });
+
+        it('renders the usage breakdown once expanded', () => {
+            const editor = withCard();
+            editor.usageExpanded = true;
+            editor.fragmentUsage = {
+                available: true,
+                totalCount: 1234,
+                rows: [
+                    { locale: 'en_US', apiKey: 'cc', country: 'US', count: 1200 },
+                    { locale: 'fr_FR', apiKey: 'express', country: 'FR', count: 34 },
+                ],
+            };
+            const host = renderUsage(editor);
+            expect(host.textContent).to.include('1234 requests');
+            expect(host.textContent).to.include('cc / en_US / US');
+            expect(host.textContent).to.include('express / fr_FR / FR');
+        });
+
+        it('shows "unavailable" when expanded and the proxy returned no data', () => {
+            const editor = withCard();
+            editor.usageExpanded = true;
+            editor.fragmentUsage = { available: false };
+            expect(renderUsage(editor).textContent).to.include('Usage data unavailable');
+        });
+
+        it('does not render a usage section for non-card/collection fragments', () => {
+            const { editor } = createEditor();
+            sandbox
+                .stub(editor, 'fragment')
+                .get(() => ({ id: 'ph', model: { path: '/conf/mas/settings/dam/cfm/models/dictionnary' } }));
+            const host = renderUsage(editor);
+            expect(host.textContent.trim()).to.equal('');
+        });
+
+        it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
+            let resolveA;
+            let resolveB;
+            const cf = (id, name) => ({
+                type: 'content-fragment',
+                path: `/content/dam/mas/acom/en_US/${name}`,
+                id,
+                status: 'PUBLISHED',
+                model: { path: COLLECTION_MODEL_PATH },
+            });
+            const getReferencedByFragmentId = sandbox.stub();
+            getReferencedByFragmentId.onCall(0).returns(
+                new Promise((r) => {
+                    resolveA = () => r({ items: [cf('a1', 'coll-a')] });
+                }),
+            );
+            getReferencedByFragmentId.onCall(1).returns(
+                new Promise((r) => {
+                    resolveB = () => r({ items: [cf('b1', 'coll-b')] });
+                }),
+            );
+            const { editor } = createEditor({ aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } } });
+
+            let current = { id: 'frag-A', path: '/content/dam/mas/acom/en_US/card-a', model: { path: CARD_MODEL_PATH } };
+            sandbox.stub(editor, 'fragment').get(() => current);
+
+            editor.willUpdate(new Map()); // load A (token 1)
+            current = { id: 'frag-B', path: '/content/dam/mas/acom/en_US/card-b', model: { path: CARD_MODEL_PATH } };
+            editor.willUpdate(new Map()); // load B (token 2) — aborts A
+
+            resolveB();
+            await new Promise((r) => setTimeout(r, 10));
+            resolveA(); // stale — must not overwrite B
+            await new Promise((r) => setTimeout(r, 10));
+
+            expect(getReferencedByFragmentId.calledTwice).to.be.true;
+            const collections = editor.referencingFragments.find((b) => b.key === 'collections');
+            expect(collections.rows).to.have.lengthOf(1);
+            expect(collections.rows[0].representative.id).to.equal('b1');
+        });
+    });
 });
 
 describe('MasFragmentEditor – #preloadEditorModule', () => {

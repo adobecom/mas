@@ -166,11 +166,13 @@ export class MiniCompareChart extends VariantLayout {
                 this.card?.settings?.displayPlanType ?? false;
             return;
         }
+        const service = getService();
         // For main price display (strikethrough and regular price)
         // Disable perUnit display - it will be shown in legal price only
         if (
             element.dataset.template === 'strikethrough' ||
-            element.dataset.template === 'price'
+            (element.dataset.template === 'price' &&
+                !service.featureFlags[FF_ANNUAL_PRICE])
         ) {
             options.displayPerUnit = false;
         }

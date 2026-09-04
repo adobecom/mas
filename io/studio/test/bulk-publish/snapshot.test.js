@@ -822,6 +822,27 @@ describe('bulk-publish/snapshot.js', () => {
             const body = JSON.parse(unpublishCall[3].body);
             expect(body.paths).to.deep.equal(['/content/dam/new-card']);
         });
+
+        it('skips fragment with versionId: null and wasPublished: true (no prior version, already live)', async () => {
+            const entries = makeEntries([{ fragmentId: 'frag-live', versionId: null, wasPublished: true }]);
+
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri === `/adobe/sites/cf/fragments/frag-live`) {
+                    return fetchResponse({ id: 'frag-live', path: '/content/dam/live-card' });
+                }
+                return fetchResponse({});
+            });
+
+            const result = await snapshot.revertSnapshot({ entries, odinEndpoint, authToken });
+            expect(result.failures).to.deep.equal([]);
+            expect(result.skipped).to.deep.equal(['frag-live']);
+
+            const restoreCall = fetchOdinStub.args.find(([, uri]) => uri.includes('/restore/'));
+            expect(restoreCall).to.not.exist;
+
+            const unpublishCall = fetchOdinStub.args.find(([, uri]) => uri === '/adobe/sites/cf/fragments/publish');
+            expect(unpublishCall).to.not.exist;
+        });
     });
 
     // ── translation version detection (via recordSnapshot) ───────────────────

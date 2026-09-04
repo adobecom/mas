@@ -202,6 +202,9 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
             return { path: fragmentId, error: err.message };
         }
         try {
+            // No prior non-translation version exists and the fragment was already published:
+            // there is nothing to restore and nothing to unpublish, so skip rather than silently succeed.
+            if (!entry.versionId && entry.wasPublished) return { skipped: fragmentId };
             if (entry.versionId) {
                 await restoreVersion(odinEndpoint, fragmentId, entry.versionId, authToken);
             }

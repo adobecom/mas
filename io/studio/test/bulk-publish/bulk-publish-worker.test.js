@@ -488,6 +488,12 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(publishedPaths).to.include(collPath);
         expect(publishedPaths).to.include(cardPath);
         expect(deps.createSnapshot).to.not.have.been.called;
+
+        // Both pending entries should be preserved in final snapshots (pending marker removed)
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(finalSnapshots).to.have.length(2);
+        expect(JSON.parse(finalSnapshots[0]).publishComplete).to.be.undefined;
+        expect(JSON.parse(finalSnapshots[1]).publishComplete).to.be.undefined;
     });
 
     it('uses pre-recorded snapshots with versionId: null (new cards) as revert target', async () => {

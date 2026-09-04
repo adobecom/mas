@@ -199,6 +199,61 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
 
+    describe('system placeholders (plan-type-text)', () => {
+        const buildContext = () => ({
+            surface: DEFAULT_SURFACE,
+            locale: DEFAULT_LOCALE,
+            regionLocale: DEFAULT_LOCALE,
+            defaultLocale: DEFAULT_LOCALE,
+            loggedTransformer: 'replace',
+            requestId: 'mas-replace-ut',
+            promises: {},
+        });
+
+        const initContext = async (dictionaryFixture = DICTIONARY_RESPONSE) => {
+            clearDictionaryCache();
+            stubEmptyDictionary(false, BASELINE_SURFACE, DEFAULT_LOCALE, fetchStub);
+            mockDirectDictionary(false, DEFAULT_SURFACE, DEFAULT_LOCALE, dictionaryFixture, fetchStub);
+            const context = buildContext();
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            return context;
+        };
+
+        it('resolves {{plan-type-text}} to the legal inline-price marker', async () => {
+            const context = await initContext();
+            context.body = odinResponse('legal: {{plan-type-text}}');
+            const response = await replace.process(context);
+            const { description } = response.body.fields;
+            expect(description).to.contain('is="inline-price"');
+            expect(description).to.contain('data-template="legal"');
+            expect(description).to.contain('data-placeholder="plan-type-text"');
+            expect(description).to.contain('data-display-plan-type="true"');
+            expect(description).to.contain('data-display-per-unit="false"');
+            expect(description).to.contain('data-display-tax="false"');
+        });
+
+        it('resolves the system placeholder regardless of fragment model', async () => {
+            const context = await initContext();
+            context.body = { ...odinResponse('legal: {{plan-type-text}}'), model: { id: 'some-other-model' } };
+            const response = await replace.process(context);
+            expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
+        });
+
+        it('system placeholder wins over an Odin dictionary entry of the same key', async () => {
+            const dict = structuredClone(DICTIONARY_RESPONSE);
+            dict.references[Object.keys(dict.references)[0]].value.fields = {
+                key: 'plan-type-text',
+                value: 'SHOULD_NOT_WIN',
+            };
+            const context = await initContext(dict);
+            context.body = odinResponse('x {{plan-type-text}}');
+            const response = await replace.process(context);
+            expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
+            expect(response.body.fields.description).to.not.contain('SHOULD_NOT_WIN');
+        });
+    });
+
     describe('layering (acom default + surface baseline + region overlay)', () => {
         // sandbox/fr_BE → base language fr_FR: acom/fr_FR (default) + sandbox/fr_FR (baseline) + sandbox/fr_BE (region).
         const layeredContext = () => ({

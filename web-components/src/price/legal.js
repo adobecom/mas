@@ -51,6 +51,7 @@ const legalTemplate = (
         displayTax = false,
         displayPlanType = false,
         displayDot = true,
+        planTypeCase,
         language,
         literals: priceLiterals = {},
     } = {},
@@ -101,6 +102,13 @@ const legalTemplate = (
                 planType,
             },
         );
+    }
+
+    if (planTypeLabel && planTypeCase) {
+        planTypeLabel =
+            (planTypeCase === 'lower'
+                ? planTypeLabel[0].toLowerCase()
+                : planTypeLabel[0].toUpperCase()) + planTypeLabel.slice(1);
     }
 
     let cssClass = cssClassNames.container;

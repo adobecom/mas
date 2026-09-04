@@ -19,6 +19,17 @@ const CONTEXT_ATTRIBUTES = [
 ];
 
 /**
+ * Maps a CTA's authored style class to Milo's con-button classes.
+ * Returns null for link-style and unstyled anchors, which stay plain links.
+ */
+function conButtonClasses(className) {
+    const style = CHECKOUT_STYLE_PATTERN.exec(className ?? '')?.[0];
+    if (!style || style.includes('-link')) return null;
+    const outline = style.startsWith('secondary') || style.includes('-outline');
+    return `con-button ${outline ? 'outline' : 'blue'}`;
+}
+
+/**
  * Resolves the promo code the mas-field should apply to its prices/CTAs,
  * honoring the global promo-code compat gate the same way merch-card's
  * option providers do: only fragments authored at or above
@@ -411,9 +422,10 @@ class MasField extends HTMLElement {
         return { fieldName: field, index: null };
     }
 
-    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
-     *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
-     *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
+    /** Extracts the Nth anchor from CTA HTML and styles it as a con-button so Milo renders
+     *  it as a button; unstyled and link-style anchors stay plain links.
+     *  Uses a <template> so custom elements (e.g. checkout-link) are not upgraded and their
+     *  attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
     #extractIndexedAnchor(html, index) {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
@@ -427,7 +439,9 @@ class MasField extends HTMLElement {
             anchor = template.content.querySelector(`a[data-key="${index}"]`);
         }
         if (!anchor) return null;
-        anchor.removeAttribute('class');
+        const buttonClasses = conButtonClasses(anchor.className);
+        if (buttonClasses) anchor.className = buttonClasses;
+        else anchor.removeAttribute('class');
         return anchor.outerHTML;
     }
 

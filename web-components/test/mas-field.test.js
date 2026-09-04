@@ -194,8 +194,32 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.textContent).to.equal('Free trial');
     });
 
-    it('strips class attribute from extracted anchor', () => {
+    it('maps accent to con-button blue on the extracted anchor', () => {
         const el = makeIndexedField(1, THREE_CTAS);
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.className).to.equal('con-button blue');
+    });
+
+    it('maps primary-outline to con-button outline on the extracted anchor', () => {
+        const el = makeIndexedField(2, THREE_CTAS);
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.className).to.equal('con-button outline');
+    });
+
+    it('strips class from a plain (unstyled) extracted anchor', () => {
+        const el = makeIndexedField(
+            1,
+            '<a href="/pro" data-key="k1">Save today</a>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.hasAttribute('class')).to.be.false;
+    });
+
+    it('keeps a link-style extracted anchor a plain link', () => {
+        const el = makeIndexedField(
+            1,
+            '<a href="/pro" data-key="k1" class="accent-link">Save today</a>',
+        );
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.hasAttribute('class')).to.be.false;
     });

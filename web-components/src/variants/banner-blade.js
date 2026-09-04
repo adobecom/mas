@@ -5,10 +5,11 @@ import { CSS, headlessRowStyle } from './headless.css.js';
 /**
  * AEM fragment field → slot mapping so hydrate() can populate all Banner/Blade
  * slots. Covers both the Sticky Banner and Blade blocks, which share the same
- * content shape (description + CTAs) and are authored once under this single variant.
+ * content shape (title + description + CTAs) and are authored once under this single variant.
  */
 export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
+    title: { tag: 'h3', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },
 };
@@ -18,6 +19,7 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
  * only, no card). Labels match the editor (merch-card-editor.js). Order defines render order.
  */
 const BANNER_BLADE_FIELDS = [
+    { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Description' },
     { slot: 'footer', label: 'CTAs' },
 ];

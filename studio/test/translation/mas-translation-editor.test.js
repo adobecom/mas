@@ -4,7 +4,7 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import { PAGE_NAMES, QUICK_ACTION, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
 import Store from '../../src/store.js';
-import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import router from '../../src/router.js';
 import Events from '../../src/events.js';
 import { Fragment } from '../../src/aem/fragment.js';
@@ -252,6 +252,23 @@ describe('MasTranslationEditor', () => {
                 error = e;
             }
             expect(error).to.be.null;
+        });
+    });
+
+    describe('disconnectedCallback', () => {
+        it('restores the items selection store snapshot on removal', async () => {
+            setItemsSelectionStore(null);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.remove();
+            expect(getItemsSelectionStore({ allowUnset: true })).to.be.null;
+        });
+
+        it('does not clobber the shared store when another editor claimed it before this editor disconnects', async () => {
+            setItemsSelectionStore(null);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            setItemsSelectionStore(Store.compareChart);
+            el.remove();
+            expect(getItemsSelectionStore({ allowUnset: true })).to.equal(Store.compareChart);
         });
     });
 

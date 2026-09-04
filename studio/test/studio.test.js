@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { nothing } from 'lit';
 import { PAGE_NAMES } from '../src/constants.js';
+import Store from '../src/store.js';
 import '../src/studio.js';
 
 const PAGE_GETTERS = [
@@ -22,10 +23,24 @@ const PAGE_GETTERS = [
 ];
 
 // Pre-register stubs so customElements.get(tag) returns a constructor in template tests,
-// isolating getter logic from actual async module loading.
+// isolating getter logic from actual async module loading. Stubs log connect/disconnect
+// order into pageTransitionLog so the transition-ordering suite below can assert the
+// outgoing page view disconnects before the incoming one connects (see studio.js's
+// single `currentPage` child part, which is what guarantees that ordering).
+const pageTransitionLog = [];
 for (const { tag } of PAGE_GETTERS) {
     if (!customElements.get(tag)) {
-        customElements.define(tag, class extends HTMLElement {});
+        customElements.define(
+            tag,
+            class extends HTMLElement {
+                connectedCallback() {
+                    pageTransitionLog.push([tag, 'connect']);
+                }
+                disconnectedCallback() {
+                    pageTransitionLog.push([tag, 'disconnect']);
+                }
+            },
+        );
     }
 }
 
@@ -167,5 +182,63 @@ describe('MasStudio – #lazyLoad failure path', () => {
         // Toast should not have been emitted for a successful import
         await new Promise((r) => setTimeout(r, 100));
         expect(toastSpy.called).to.be.false;
+    });
+});
+
+describe('MasStudio – page transition ordering', () => {
+    let el;
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        el = document.createElement('mas-studio');
+        // renderCommerceService() reaches for a <mas-commerce-service> element that
+        // real app markup provides outside this component's own render tree; stub it
+        // so setting masJsReady doesn't throw in isolation.
+        sandbox.stub(el, 'renderCommerceService');
+        el.masJsReady = true;
+        document.body.append(el);
+    });
+
+    afterEach(() => {
+        el.remove();
+        sandbox.restore();
+        Store.page.set(PAGE_NAMES.WELCOME);
+    });
+
+    const TRANSITIONS = [
+        [PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR],
+        [PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.TRANSLATION_EDITOR],
+        [PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.FRAGMENT_EDITOR],
+        [PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.FRAGMENT_EDITOR],
+        [PAGE_NAMES.BULK_PUBLISH_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR],
+    ];
+
+    for (const [from, to] of TRANSITIONS) {
+        it(`disconnects "${from}" before connecting "${to}"`, async () => {
+            Store.page.set(from);
+            await el.updateComplete;
+            pageTransitionLog.length = 0;
+
+            Store.page.set(to);
+            await el.updateComplete;
+
+            const disconnectIndex = pageTransitionLog.findIndex(([, phase]) => phase === 'disconnect');
+            const connectIndex = pageTransitionLog.findIndex(([, phase]) => phase === 'connect');
+            expect(disconnectIndex, 'expected a disconnect event').to.be.greaterThan(-1);
+            expect(connectIndex, 'expected a connect event').to.be.greaterThan(-1);
+            expect(disconnectIndex).to.be.lessThan(connectIndex);
+        });
+    }
+
+    it('never has more than one page view mounted at a time', async () => {
+        const tagFor = (page) => PAGE_GETTERS.find(({ matchingPages }) => matchingPages.includes(page)).tag;
+
+        for (const page of [PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.FRAGMENT_EDITOR]) {
+            Store.page.set(page);
+            await el.updateComplete;
+            const mounted = PAGE_GETTERS.filter(({ tag }) => el.querySelector(tag));
+            expect(mounted.map(({ tag }) => tag)).to.deep.equal([tagFor(page)]);
+        }
     });
 });

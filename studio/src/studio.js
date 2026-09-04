@@ -284,20 +284,49 @@ class MasStudio extends LitElement {
         return html`<editor-panel></editor-panel>`;
     }
 
+    get currentPage() {
+        switch (this.page.value) {
+            case PAGE_NAMES.WELCOME:
+                return this.splashScreen;
+            case PAGE_NAMES.CONTENT:
+                return html`${this.content}${this.editorPanel}`;
+            case PAGE_NAMES.PLACEHOLDERS:
+                return this.placeholders;
+            case PAGE_NAMES.FRAGMENT_EDITOR:
+                return this.fragmentEditor;
+            case PAGE_NAMES.PROMOTIONS:
+                return this.promotions;
+            case PAGE_NAMES.PROMOTIONS_EDITOR:
+                return this.promotionsEditor;
+            case PAGE_NAMES.VERSION:
+                return this.versionPage;
+            case PAGE_NAMES.TRANSLATIONS:
+                return this.translation;
+            case PAGE_NAMES.TRANSLATION_EDITOR:
+                return this.translationEditor;
+            case PAGE_NAMES.BULK_PUBLISH:
+                return this.bulkPublish;
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR:
+                return this.bulkPublishEditor;
+            case PAGE_NAMES.ADVANCED_TOOLS:
+                return this.advancedTools;
+            case PAGE_NAMES.SETTINGS:
+            case PAGE_NAMES.SETTINGS_EDITOR:
+                return this.settings;
+            case PAGE_NAMES.MASKS:
+            case PAGE_NAMES.MASKS_EDITOR:
+                return this.masks;
+            default:
+                return nothing;
+        }
+    }
+
     render() {
         return html`
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav}
-                ${this.masJsReady
-                    ? html`<div class="main-container">
-                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
-                          ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${this.bulkPublish} ${this.bulkPublishEditor} ${this.advancedTools} ${this.editorPanel}
-                          ${this.settings} ${this.masks} ${this.offerMapping}
-                      </div>`
-                    : nothing}
+                ${this.sideNav} ${this.masJsReady ? html`<div class="main-container">${this.currentPage}</div>` : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>

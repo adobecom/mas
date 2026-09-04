@@ -637,11 +637,13 @@ describe('MasPromotionsItemsTable', () => {
         el.type = TABLE_TYPE.CARDS;
         document.body.appendChild(el);
         await el.updateComplete;
-        expect(ownControllerCount()).to.equal(1);
+        // itemsSelection (ItemsSelectionController) + the guarded #selectionController.
+        expect(ownControllerCount()).to.equal(2);
         el.remove();
         document.body.appendChild(el);
         await el.updateComplete;
-        expect(ownControllerCount()).to.equal(1);
+        // Reparenting must not add a second #selectionController.
+        expect(ownControllerCount()).to.equal(2);
         el.remove();
         addControllerSpy.restore();
     });
@@ -1189,7 +1191,7 @@ describe('MasPromotionsItemsTable', () => {
                 tags: [],
                 offerData: null,
             };
-            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]));
+            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]), Store.promotions);
 
             const cardWithGroupedVariation = {
                 ...cardFragment,

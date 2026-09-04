@@ -51,7 +51,6 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
-import { getItemsSelectionStore } from './common/items-selection-store.js';
 import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
@@ -1057,7 +1056,11 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(false);
     }
 
-    async loadAllCollections() {
+    async loadAllCollections(store) {
+        if (!store) {
+            console.warn('loadAllCollections: store is null or undefined');
+            return;
+        }
         const surfaceKey =
             this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
                 ? this.#promotionsItemPickerSurfaceOrNavPath()
@@ -1092,12 +1095,10 @@ export class MasRepository extends LitElement {
                 collectionsByPath.set(fragment.path, collection);
             }
 
-            const s = getItemsSelectionStore({ allowUnset: true });
-            if (!s) return;
-            s.allCollections.setMeta('loaded', true);
-            s.allCollections.set(collections);
-            s.displayCollections.set(collections);
-            s.collectionsByPaths.set(collectionsByPath);
+            store.allCollections.setMeta('loaded', true);
+            store.allCollections.set(collections);
+            store.displayCollections.set(collections);
+            store.collectionsByPaths.set(collectionsByPath);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');

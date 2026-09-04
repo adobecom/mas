@@ -1312,6 +1312,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
         selector?.resetFilters();
+        this.#syncOfferProductTagsToFragmentSearch();
         const cachedCollections = Store.promotions.allCollections.get();
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
             Store.promotions.displayCollections.set(cachedCollections);

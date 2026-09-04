@@ -66,17 +66,17 @@ describe('MasPromotionsItemsTable', () => {
     });
 
     it('rebuilds offer rows when offer records finish hydrating after first paint', async () => {
-        const offerId = 'osi-xyz';
-        Store.promotions.selectedOffers.set([offerId]);
+        const wcsOsi = 'osi-xyz';
+        Store.promotions.selectedOffers.set([wcsOsi]);
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
         // Placeholder row before the records land (offers render immediately, unblocked).
-        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerId, wcsOsi: offerId });
+        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerSelectorIds: [wcsOsi] });
 
-        Store.promotions.offerRecordsCache.set(offerId, {
-            path: offerId,
-            id: offerId,
-            offerData: { offerId, offerType: 'BASE' },
+        Store.promotions.offerRecordsCache.set(wcsOsi, {
+            path: wcsOsi,
+            id: wcsOsi,
+            offerData: { offerSelectorIds: [wcsOsi], offerType: 'BASE' },
             tags: [],
             fields: [],
         });
@@ -300,14 +300,17 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.offerRecordsCache.set('offer-cache-1', {
             path: 'offer-cache-1',
             id: 'offer-cache-1',
-            offerData: { offerId: 'offer-cache-1', product_arrangement_code: 'PA-1' },
+            offerData: { offerSelectorIds: ['offer-cache-1'], product_arrangement_code: 'PA-1' },
             tags: [{ id: 'mas:product_code/cc', title: 'Creative Cloud' }],
             fields: [],
+            getTagTitle: (tagName) => {
+                return tagName.startsWith('mas:product_code') ? 'Creative Cloud' : '';
+            },
         });
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
         expect(el.viewOnlyFragments.length).to.equal(1);
-        expect(el.shadowRoot.textContent).to.include('Creative Cloud');
+        expect(el.shadowRoot.querySelector('.offer-cell').innerText).to.include('Creative Cloud');
     });
 
     it('sorts offer rows by name ascending by default and reverses on header click', async () => {
@@ -337,7 +340,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.offerRecordsCache.set('offer-1', {
             path: 'offer-1',
             id: 'offer-1',
-            offerData: { offerId: 'offer-1' },
+            offerData: { offerSelectorIds: ['offer-1'] },
             tags: [],
             fields: [],
         });

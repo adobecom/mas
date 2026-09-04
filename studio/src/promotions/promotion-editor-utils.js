@@ -412,6 +412,7 @@ export async function resolvePromotionOfferRecord(offerSelectorId, country) {
         resolvedOffer = await resolvePromotionWcsOffer(offerSelectorId, country);
     } catch {
         resolvedOffer = null;
+        console.error("Couldn't resolve offer selector id", offerSelectorId);
     }
     const arrangementCode = resolvedOffer?.product_arrangement_code ?? resolvedOffer?.productArrangementCode;
     return buildPromotionOfferRecord(offerSelectorId, resolvedOffer, arrangementCode);

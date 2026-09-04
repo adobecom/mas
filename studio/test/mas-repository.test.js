@@ -806,6 +806,7 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'locale') return 'en_US';
                     if (key === 'tags') return '';
                     if (key === 'createdBy') return '';
+                    if (key === 'status') return '';
                     if (key === 'personalizationFilterEnabled') return false;
                     return null;
                 }),
@@ -2056,7 +2057,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('handles published tag filter by setting status', async () => {
+        it('no longer treats mas:status/published as a status filter (tag passes through untouched)', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -2088,8 +2089,8 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 const searchOptions = searchStub.firstCall.args[0];
-                expect(searchOptions.status).to.equal('PUBLISHED');
-                expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
+                expect(searchOptions.status).to.equal(undefined);
+                expect(searchOptions.tags).to.deep.equal(['mas:status/published', 'mas:custom-tag']);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -2962,6 +2963,118 @@ describe('MasRepository dictionary helpers', () => {
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('searchFragments status wiring', () => {
+        const createMockCursorFromPages = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
+        const setupStatusSearchTest = async ({ tags = '', status } = {}) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags, status } };
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages([[]]));
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                searchStub,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('no longer translates the mas:status/published tag into a status filter', async () => {
+            const { repository, searchStub, cleanup } = await setupStatusSearchTest({
+                tags: 'mas:status/published',
+            });
+            try {
+                await repository.searchFragments();
+                const options = searchStub.firstCall.args[0];
+                expect(options.status).to.equal(undefined);
+                expect(options.tags).to.include('mas:status/published');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sends filters.value.status to AEM as an array on localSearch.status', async () => {
+            const { repository, searchStub, cleanup } = await setupStatusSearchTest({
+                status: 'DRAFT,NEW',
+            });
+            try {
+                await repository.searchFragments();
+                const options = searchStub.firstCall.args[0];
+                expect(options.status).to.deep.equal(['DRAFT', 'NEW']);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('omits localSearch.status entirely when no status filter is set', async () => {
+            const { repository, searchStub, cleanup } = await setupStatusSearchTest({});
+            try {
+                await repository.searchFragments();
+                const options = searchStub.firstCall.args[0];
+                expect(options).to.not.have.property('status');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('persists status metadata and re-runs the search when status changes', async () => {
+            const { repository, searchStub, mockDataStore, cleanup } = await setupStatusSearchTest({
+                status: 'DRAFT',
+            });
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.setMeta.calledWith('status', 'DRAFT')).to.be.true;
+
+                mockDataStore.get.returns([{ get: () => ({ path: `${ROOT_PATH}/acom/en_US/x`, status: 'DRAFT' }) }]);
+                mockDataStore.getMeta.withArgs('path').returns('acom');
+                mockDataStore.getMeta.withArgs('query').returns('');
+                mockDataStore.getMeta.withArgs('locale').returns('en_US');
+                mockDataStore.getMeta.withArgs('tags').returns('');
+                mockDataStore.getMeta.withArgs('createdBy').returns('');
+                mockDataStore.getMeta.withArgs('status').returns('DRAFT');
+
+                repository.filters = { value: { locale: 'en_US', tags: '', status: 'DRAFT,NEW' } };
+                await repository.searchFragments();
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
             }
         });
     });
@@ -4504,5 +4617,53 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls refreshFragment for each published fragment', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.refreshFragment.calledTwice).to.be.true;
+    });
+});
+
+describe('status filter narrowing', () => {
+    const createRepository = () => new MasRepository();
+
+    it('treats adding a status to an unfiltered list as narrowing', () => {
+        const repository = createRepository();
+        const narrowed = repository.testOnlyIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+        );
+        expect(narrowed).to.equal(true);
+    });
+
+    it('treats adding a status to an existing filter as widening (must refetch)', () => {
+        const repository = createRepository();
+        const narrowed = repository.testOnlyIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
+        );
+        expect(narrowed).to.equal(false);
+    });
+
+    it('treats tightening to a subset as narrowing', () => {
+        const repository = createRepository();
+        const narrowed = repository.testOnlyIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+        );
+        expect(narrowed).to.equal(true);
+    });
+
+    it('filters in memory on item.status, not tags', () => {
+        const repository = createRepository();
+        const stores = [
+            { value: { id: 'a', path: '/a', status: 'DRAFT', tags: [], fields: [] } },
+            { value: { id: 'b', path: '/b', status: 'PUBLISHED', tags: [], fields: [] } },
+        ];
+        const result = repository.testOnlyApplyInMemoryFilter(stores, {
+            query: '',
+            tags: [],
+            variants: [],
+            contentTypes: [],
+            createdBy: [],
+            status: ['DRAFT'],
+        });
+        expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
     });
 });

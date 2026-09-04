@@ -136,8 +136,9 @@ class AEM {
         if (modelIds.length > 0) {
             filter.modelIds = modelIds;
         }
-        if (status) {
-            filter.status = [status];
+        const statusValues = Array.isArray(status) ? status.filter(Boolean) : status ? [status] : [];
+        if (statusValues.length > 0) {
+            filter.status = statusValues;
         }
         if (createdBy?.length > 0) {
             filter.created ??= {};

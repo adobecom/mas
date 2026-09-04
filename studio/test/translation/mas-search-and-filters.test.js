@@ -900,6 +900,7 @@ describe('MasSearchAndFilters', () => {
                 locale: 'en_US',
                 tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
+                status: undefined,
             });
         });
 
@@ -1291,6 +1292,7 @@ describe('MasSearchAndFilters', () => {
                 locale: 'en_US',
                 tags: 'mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
+                status: undefined,
             });
         });
     });

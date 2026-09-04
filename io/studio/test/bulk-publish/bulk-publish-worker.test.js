@@ -226,6 +226,152 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green');
     });
 
+    it('passes includeCards and includeVariations to createSnapshot in pre-recorded branch', async () => {
+        deps.getProjectSnapshots.returns(preRecordedEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, expandedPaths: [], failures: [] });
+        deps.publishResolved.resolves([]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker(
+            {
+                projectId: 'proj-1',
+                odinEndpoint: 'https://odin',
+                authToken: 't',
+                publishedBy: '',
+                includeCards: true,
+                includeVariations: true,
+            },
+            deps,
+        );
+
+        const snapshotCall = deps.createSnapshot.firstCall.args[0];
+        expect(snapshotCall.includeCards).to.equal(true);
+        expect(snapshotCall.includeVariations).to.equal(true);
+    });
+
+    it('merges cascaded entries (not in pre-recorded) into snapshotEntries in pre-recorded branch', async () => {
+        const collEntry = JSON.stringify({
+            fragmentId: 'frag-coll',
+            versionId: 'v-green',
+            wasPublished: true,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        const cardEntry = JSON.stringify({
+            fragmentId: 'frag-card',
+            versionId: 'v-pre-bulk',
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        deps.getProjectSnapshots.returns([collEntry]);
+        deps.createSnapshot.resolves({
+            entries: [
+                // frag-coll is already in pre-recorded → should be skipped
+                JSON.stringify({
+                    fragmentId: 'frag-coll',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: true,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+                cardEntry,
+            ],
+            expandedPaths: ['/content/dam/coll', '/content/dam/card'],
+            failures: [],
+        });
+        deps.publishResolved.resolves([]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
+
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(finalSnapshots).to.have.length(2);
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green'); // pre-recorded wins
+        expect(JSON.parse(finalSnapshots[1]).fragmentId).to.equal('frag-card'); // cascaded appended
+    });
+
+    it('merges cascaded entries into snapshotEntries in fallback (no pre-recorded) branch', async () => {
+        const collEntry = JSON.stringify({
+            fragmentId: 'frag-coll',
+            versionId: null,
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        const cardEntry = JSON.stringify({
+            fragmentId: 'frag-card',
+            versionId: 'v-pre-bulk',
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        deps.getProjectSnapshots.returns([]);
+        deps.recordSnapshot.resolves({ entries: [collEntry], failures: [] });
+        deps.createSnapshot.resolves({
+            entries: [
+                JSON.stringify({
+                    fragmentId: 'frag-coll',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: false,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+                cardEntry,
+            ],
+            expandedPaths: ['/content/dam/coll', '/content/dam/card'],
+            failures: [],
+        });
+        deps.publishResolved.resolves([]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
+
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(finalSnapshots).to.have.length(2);
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.be.null; // record entry wins (null = new card)
+        expect(JSON.parse(finalSnapshots[1]).fragmentId).to.equal('frag-card'); // cascaded appended
+    });
+
+    it('publishes expanded paths from pre-recorded branch when includeCards is true', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        const collEntry = JSON.stringify({
+            fragmentId: 'frag-coll',
+            versionId: 'v-green',
+            wasPublished: true,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectSnapshots.returns([collEntry]);
+        deps.createSnapshot.resolves({
+            entries: [
+                JSON.stringify({
+                    fragmentId: 'frag-coll',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: true,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+            ],
+            expandedPaths: [collPath, cardPath],
+            failures: [],
+        });
+        deps.publishResolved.resolves([
+            { path: collPath, status: 'published' },
+            { path: cardPath, status: 'published' },
+        ]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.include(collPath);
+        expect(publishedPaths).to.include(cardPath);
+    });
+
     it('publishes expanded paths (cards) when includeCards is true', async () => {
         const collPath = '/content/dam/mas/acom/en_US/coll';
         const cardPath = '/content/dam/mas/acom/en_US/card-1';
@@ -342,6 +488,29 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(publishedPaths).to.include(collPath);
         expect(publishedPaths).to.include(cardPath);
         expect(deps.createSnapshot).to.not.have.been.called;
+
+        // Both pending entries should be preserved in final snapshots (pending marker removed)
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(finalSnapshots).to.have.length(2);
+        expect(JSON.parse(finalSnapshots[0]).publishComplete).to.be.undefined;
+        expect(JSON.parse(finalSnapshots[1]).publishComplete).to.be.undefined;
+    });
+
+    it('uses pre-recorded snapshots with versionId: null (new cards) as revert target', async () => {
+        const nullVersionEntries = [
+            JSON.stringify({ fragmentId: 'frag-new', versionId: null, wasPublished: false, createdAt: '2026-01-01T00:00:00Z' }),
+        ];
+        deps.getProjectSnapshots.returns(nullVersionEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+        expect(deps.recordSnapshot).to.not.have.been.called;
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.be.null;
     });
 
     it('falls through to record+createSnapshot when existing entry has publishComplete: true', async () => {

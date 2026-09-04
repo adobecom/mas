@@ -819,8 +819,8 @@ class MasPromotionsItemsTable extends LitElement {
         </sp-table-cell>`;
     }
 
-    #renderCountriesCell() {
-        return html`<sp-table-cell>${this.#countries.join(', ') || '-'}</sp-table-cell>`;
+    #renderCountriesCell(item) {
+        return html`<sp-table-cell>to be clarified</sp-table-cell>`;
     }
 
     #renderOsiOverrideCell(item) {

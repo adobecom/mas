@@ -140,7 +140,12 @@ function registerOptionsProviders(service) {
 
 const MAS_FIELD_STYLES = `
 mas-field {
-    display: inline;
+    display: contents;
+}
+
+/* An :empty span still counts as a flex gap item under display:contents; hide it. */
+mas-field > [data-role="mas-field-content"]:empty {
+    display: none;
 }
 
 mas-field div[slot="footer"] {

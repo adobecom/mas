@@ -1067,9 +1067,11 @@ describe('mas-field – tooltip icon-button rendering', () => {
         );
         const btn = el.querySelector('.icon-button');
         // Force the icon hard against the right edge, then trigger the show handler.
-        el.style.position = 'fixed';
-        el.style.left = `${window.innerWidth - 4}px`;
-        el.style.top = '200px';
+        // mas-field is display:contents (no box), so pin the icon itself, not the wrapper.
+        btn.style.position = 'fixed';
+        btn.style.margin = '0';
+        btn.style.left = `${window.innerWidth - 4}px`;
+        btn.style.top = '200px';
         btn.dispatchEvent(new Event('mouseenter'));
         expect(
             btn.classList.contains('right'),

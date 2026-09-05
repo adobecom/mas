@@ -729,6 +729,11 @@ mas-field {
     display: contents;
 }
 
+/* An :empty span still counts as a flex gap item under display:contents; hide it. */
+mas-field > [data-role="mas-field-content"]:empty {
+    display: none;
+}
+
 mas-field div[slot="footer"] {
     display: flex;
     gap: 24px;

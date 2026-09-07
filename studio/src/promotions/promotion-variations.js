@@ -385,14 +385,20 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 
 /**
  * Searches promo variations for grouped paths by project tag.
- * Skips the attachment check because grouped paths never appear
- * in a project's 'fragments' field — only the parent card does.
+ * With `onlyAttached`, only probes the grouped paths a project actually has selected;
+ * otherwise probes all grouped paths against every project (needed for cascade-delete).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string[]} groupedVariationPaths
  * @param {Array<Object>} promotionProjects
+ * @param {{ onlyAttached?: boolean }} [options]
  * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
  */
-async function probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects = []) {
+async function probeGroupedVariationPromoReferences(
+    aem,
+    groupedVariationPaths,
+    promotionProjects = [],
+    { onlyAttached = false } = {},
+) {
     if (!aem || !groupedVariationPaths.length) return [];
 
     const refsPerProject = await processConcurrently(
@@ -400,8 +406,12 @@ async function probeGroupedVariationPromoReferences(aem, groupedVariationPaths, 
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
             if (!tagId) return [];
+            const pathsToProbe = onlyAttached
+                ? groupedVariationPaths.filter((path) => (project.getFieldValues?.('fragments') || []).includes(path))
+                : groupedVariationPaths;
+            if (!pathsToProbe.length) return [];
             const refsPerPath = await processConcurrently(
-                groupedVariationPaths,
+                pathsToProbe,
                 (path) => probePromoVariationsForFragment(aem, path, tagId),
                 VARIATIONS_CONCURRENCY_LIMIT,
             );
@@ -417,15 +427,23 @@ async function probeGroupedVariationPromoReferences(aem, groupedVariationPaths, 
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragmentData
  * @param {Array<Object>} promotionProjects
+ * @param {{ onlyAttachedGroupedVariations?: boolean }} [options]
  * @returns {Promise<Object>}
  */
-export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
+export async function mergePromoReferencesForDefaultFragment(
+    aem,
+    fragmentData,
+    promotionProjects = [],
+    { onlyAttachedGroupedVariations = false } = {},
+) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
     const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
 
     const [defaultRefs, groupedRefs] = await Promise.all([
         probePromoVariationReferences(aem, fragmentData.path, promotionProjects),
-        probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects),
+        probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects, {
+            onlyAttached: onlyAttachedGroupedVariations,
+        }),
     ]);
 
     return mergePromoVariationReferences(fragmentData, [...defaultRefs, ...groupedRefs]);

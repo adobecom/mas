@@ -48,14 +48,16 @@ export async function getPromotionProjectsForProbe(loadPromotions) {
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragmentData
  * @param {() => Promise<void>} loadPromotions
+ * @param {{ onlyAttachedGroupedVariations?: boolean }} [options]
  * @returns {Promise<Object>}
  */
-export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, loadPromotions) {
+export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, loadPromotions, options = {}) {
     if (!canProbePromoVariationsForFragment(fragmentData)) return { ...fragmentData, promoVariationProbeNotNeeded: true };
     const merged = await promotionVariations.mergePromoReferencesForDefaultFragment(
         aem,
         fragmentData,
         await getPromotionProjectsForProbe(loadPromotions),
+        options,
     );
     return { ...merged, promoVariationProbeNotNeeded: true };
 }

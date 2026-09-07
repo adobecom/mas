@@ -1357,6 +1357,63 @@ describe('promotion-variations', () => {
             expect(enriched.references).to.have.lengthOf(1);
             expect(enriched.references[0].path).to.equal(groupedPromoPath);
         });
+
+        it('excludes a grouped variation promo reference for a project that no longer lists that grouped path, when onlyAttachedGroupedVariations is set', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            const project = {
+                tags: [{ id: 'mas:promotion/black-friday' }],
+                getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? [defaultPath] : undefined)),
+            };
+
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, [project], {
+                onlyAttachedGroupedVariations: true,
+            });
+
+            expect(enriched.references).to.have.lengthOf(0);
+        });
+
+        it('keeps a grouped variation promo reference when the project still lists that grouped path, with onlyAttachedGroupedVariations set', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            const project = {
+                tags: [{ id: 'mas:promotion/black-friday' }],
+                getFieldValues: sandbox
+                    .stub()
+                    .callsFake((name) => (name === 'fragments' ? [defaultPath, groupedPath] : undefined)),
+            };
+
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, [project], {
+                onlyAttachedGroupedVariations: true,
+            });
+
+            expect(enriched.references).to.have.lengthOf(1);
+            expect(enriched.references[0].path).to.equal(groupedPromoPath);
+        });
     });
 
     describe('resolveDefaultFragmentForPromoVariation', () => {

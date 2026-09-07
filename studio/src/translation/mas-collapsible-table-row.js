@@ -540,7 +540,9 @@ export class MasCollapsibleTableRow extends LitElement {
         this.#promoLoadInProgress = true;
         this.#promoActiveLoadCount++;
         this.isLoadingPromoVariations = true;
-        mergePromoReferencesIntoFragmentData(this.repository.aem, this.topLevelCard, () => this.repository.loadPromotions())
+        mergePromoReferencesIntoFragmentData(this.repository.aem, this.topLevelCard, () => this.repository.loadPromotions(), {
+            onlyAttachedGroupedVariations: true,
+        })
             .then(async (mergedFragmentData) => {
                 if (token !== this.#loadToken) return;
                 const promoOnly = new Fragment(mergedFragmentData).listPromoVariations();

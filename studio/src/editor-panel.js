@@ -561,7 +561,8 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        const fieldVariations = this.fragment?.getVariations() || [];
+        const isVariation = this.fragment && this.editorContextStore.isVariation(this.fragment.id);
+        const fieldVariations = !isVariation && this.fragment ? this.fragment.getVariations() : [];
         let promoVariationPaths = [];
         if (this.fragment) {
             try {
@@ -586,6 +587,13 @@ export default class EditorPanel extends LitElement {
                 }
                 if (parent) {
                     await this.repository.removeFromParentVariations(parent, this.fragment.path);
+                }
+                for (const promoVariationPath of this.variationsToDelete) {
+                    try {
+                        await this.repository.aem.sites.cf.fragments.forceDelete({ path: promoVariationPath });
+                    } catch (error) {
+                        console.error(`Failed to delete promo variation ${promoVariationPath}:`, error);
+                    }
                 }
                 let deleted = await this.repository.deleteFragment(this.fragment, {
                     startToast: false,

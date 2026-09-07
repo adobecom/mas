@@ -1469,8 +1469,8 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async deleteFragment() {
-        if (!this.editorContextStore.isVariation(this.fragment.id)) {
-            const fieldVariations = this.fragment.getVariations();
+        const isVariation = this.editorContextStore.isVariation(this.fragment.id);
+        if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
             let promoVariationPaths;
             try {
                 promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
@@ -1479,6 +1479,7 @@ export default class MasFragmentEditor extends LitElement {
                 showToast('Failed to check for promo variations. Please try again.', 'negative');
                 return;
             }
+            const fieldVariations = isVariation ? [] : this.fragment.getVariations();
             this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         } else {
             this.variationsToDelete = [];
@@ -1495,6 +1496,13 @@ export default class MasFragmentEditor extends LitElement {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 if (localeDefaultFragment) {
                     await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
+                }
+                for (const promoVariationPath of this.variationsToDelete) {
+                    try {
+                        await this.repository.aem.sites.cf.fragments.forceDelete({ path: promoVariationPath });
+                    } catch (error) {
+                        console.error(`Failed to delete promo variation ${promoVariationPath}:`, error);
+                    }
                 }
                 let deleted = await this.repository.deleteFragment(this.fragment, {
                     startToast: false,

@@ -1023,6 +1023,63 @@ describe('MasFragmentEditor', () => {
             expect(Store.fragments.inEdit.set.called).to.be.false;
             expect(el.deleteInProgress).to.be.false;
         });
+
+        it('probes and stages promo variations for deletion when deleting a grouped variation directly', async () => {
+            el.inEdit.value = {
+                get: () => ({
+                    id: 'test-id',
+                    path: '/content/dam/mas/sandbox/en_US/pzn/my-fragment',
+                    getVariations: () => [],
+                }),
+            };
+            mockRepo.getPromoVariationPaths = sandbox
+                .stub()
+                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment']);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            await el.deleteFragment();
+
+            expect(mockRepo.getPromoVariationPaths.calledOnce).to.be.true;
+            expect(mockRepo.getPromoVariationPaths.firstCall.args[0].path).to.equal(
+                '/content/dam/mas/sandbox/en_US/pzn/my-fragment',
+            );
+            expect(el.variationsToDelete).to.deep.equal([
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+            ]);
+            expect(el.showDeleteDialog).to.be.true;
+        });
+
+        it('does not probe promo variations when deleting a non-grouped variation', async () => {
+            el.inEdit.value = {
+                get: () => ({
+                    id: 'test-id',
+                    path: '/content/dam/mas/sandbox/en_BE/my-fragment',
+                    getVariations: () => [],
+                }),
+            };
+            mockRepo.getPromoVariationPaths = sandbox.stub().resolves([]);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            await el.deleteFragment();
+
+            expect(mockRepo.getPromoVariationPaths.called).to.be.false;
+            expect(el.variationsToDelete).to.deep.equal([]);
+        });
+
+        it('force-deletes staged promo variations when confirming delete of a grouped variation', async () => {
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            mockRepo.aem = { sites: { cf: { fragments: { forceDelete: sandbox.stub().resolves() } } } };
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
+
+            await el.confirmDelete();
+
+            expect(
+                mockRepo.aem.sites.cf.fragments.forceDelete.calledOnceWith({
+                    path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+                }),
+            ).to.be.true;
+        });
     });
 
     describe('cloning', () => {

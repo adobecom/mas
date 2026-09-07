@@ -36,6 +36,7 @@ import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -106,6 +107,9 @@ function registerOptionsProviders(masCommerceService) {
     }
     if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
         masCommerceService.providers.checkout(checkoutOptionsProvider);
+    }
+    if (!masCommerceService.providers.has(planTypeTextOptionsProvider)) {
+        masCommerceService.providers.price(planTypeTextOptionsProvider);
     }
 }
 
@@ -957,6 +961,10 @@ export class MerchCard extends LitElement {
 
     get prices() {
         return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
+    }
+
+    get osi() {
+        return hostOsi(this);
     }
 
     get promoPrice() {

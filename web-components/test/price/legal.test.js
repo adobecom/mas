@@ -14,6 +14,43 @@ function renderAndComparePrice(id, html) {
 }
 
 describe('function "createLegalTemplate"', () => {
+    const legalPlanType = (planTypeCase) =>
+        legalTemplate(
+            {
+                country: 'US',
+                language: 'en',
+                displayPlanType: true,
+                planTypeCase,
+                literals: { planTypeLabel: 'Annual, billed monthly' },
+            },
+            { planType: 'ABM' },
+            {},
+        );
+
+    it('lowercases the plan type first letter when planTypeCase is lower', () => {
+        expect(legalPlanType('lower')).to.contain('annual, billed monthly');
+    });
+
+    it('uppercases the plan type first letter when planTypeCase is upper', () => {
+        expect(
+            legalTemplate(
+                {
+                    country: 'US',
+                    language: 'en',
+                    displayPlanType: true,
+                    planTypeCase: 'upper',
+                    literals: { planTypeLabel: 'annual, billed monthly' },
+                },
+                { planType: 'ABM' },
+                {},
+            ),
+        ).to.contain('Annual, billed monthly');
+    });
+
+    it('leaves the plan type label unchanged when planTypeCase is absent', () => {
+        expect(legalPlanType(undefined)).to.contain('Annual, billed monthly');
+    });
+
     it('displays legal template with tax and plan type texts', () => {
         renderAndComparePrice(
             'createLegalTemplate2',

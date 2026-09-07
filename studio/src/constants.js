@@ -69,7 +69,8 @@ export const EVENT_KEYUP = 'keyup';
 
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
-export const EVENT_OST_SELECT = 'ost-select';
+// Avoids event name collision with ost-app.js ('ost-select').
+export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
 export const OPERATIONS = {
@@ -137,6 +138,7 @@ export const PAGE_NAMES = {
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
+    OFFER_MAPPING: 'offer-mapping',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -167,6 +169,7 @@ export const FIELD_MODEL_MAPPING = {
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
+export const TAG_LOCALE_PREFIX = 'mas:locale/';
 export const TAG_MERCH_CARD_COLLECTION = `${TAG_STUDIO_CONTENT_TYPE}/merch-card-collection`;
 export const TAG_MERCH_CARD = `${TAG_STUDIO_CONTENT_TYPE}/merch-card`;
 export const TAG_COMPARE_CHART = `${TAG_STUDIO_CONTENT_TYPE}/${COMPARE_CHART_CREATE_TYPE}`;

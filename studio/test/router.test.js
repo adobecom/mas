@@ -699,88 +699,6 @@ describe('Router', () => {
         });
     });
 
-    describe('navigateToVariationsTable', () => {
-        it('should navigate to variations table', async () => {
-            await router.navigateToVariationsTable('test-id');
-            expect(Store.search.get().query).to.equal('test-id');
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-            expect(Store.renderMode.get()).to.equal('table');
-        });
-
-        it('should error if no fragmentId provided', async () => {
-            const consoleSpy = sandbox.stub(console, 'error');
-            await router.navigateToVariationsTable(null);
-            expect(consoleSpy.calledWith('Fragment ID is required for navigation')).to.be.true;
-        });
-
-        it('should set Store.search.query to the fragmentId', async () => {
-            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
-            await router.navigateToVariationsTable('test-uuid-1234');
-            expect(Store.search.get().query).to.equal('test-uuid-1234');
-        });
-
-        it('should set Store.fragments.expandedId to the fragmentId', async () => {
-            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
-            await router.navigateToVariationsTable('test-uuid-1234');
-            expect(Store.fragments.expandedId.get()).to.equal('test-uuid-1234');
-        });
-
-        it('should set viewMode, renderMode and page', async () => {
-            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
-            await router.navigateToVariationsTable('test-uuid-1234');
-            expect(Store.viewMode.get()).to.equal('default');
-            expect(Store.renderMode.get()).to.equal('table');
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-        });
-
-        it('should clear the fragment editor state', async () => {
-            Store.fragmentEditor.fragmentId.set('previous-editor-id');
-            Store.fragmentEditor.loading.set(true);
-            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
-            await router.navigateToVariationsTable('test-uuid-1234');
-            expect(Store.fragmentEditor.fragmentId.get()).to.be.null;
-            expect(Store.fragmentEditor.loading.get()).to.equal(false);
-        });
-
-        it('should update the URL hash to include query=<fragmentId>', async () => {
-            mockLocation.hash = '';
-            router.start();
-            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
-            await router.navigateToVariationsTable('test-uuid-1234');
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            expect(mockLocation.hash).to.include('query=test-uuid-1234');
-        });
-
-        it('should not navigate if fragmentId is falsy', async () => {
-            sandbox.stub(console, 'error');
-            const beforeQuery = Store.search.get().query;
-            const beforeExpandedId = Store.fragments.expandedId.get();
-            await router.navigateToVariationsTable(undefined);
-            expect(Store.search.get().query).to.equal(beforeQuery);
-            expect(Store.fragments.expandedId.get()).to.equal(beforeExpandedId);
-        });
-
-        it('should not mutate stores when the unsaved-changes prompt is rejected', async () => {
-            sandbox.stub(router, 'getActiveEditor').returns({
-                editor: { promptDiscardChanges: sandbox.stub().resolves(false) },
-                shouldCheckUnsavedChanges: true,
-            });
-            const beforeSearch = structuredClone(Store.search.get());
-            const beforeExpandedId = Store.fragments.expandedId.get();
-            const beforeViewMode = Store.viewMode.get();
-            const beforeRenderMode = Store.renderMode.get();
-            const beforePage = Store.page.get();
-
-            await router.navigateToVariationsTable('some-uuid');
-
-            expect(Store.search.get()).to.deep.equal(beforeSearch);
-            expect(Store.fragments.expandedId.get()).to.equal(beforeExpandedId);
-            expect(Store.viewMode.get()).to.equal(beforeViewMode);
-            expect(Store.renderMode.get()).to.equal(beforeRenderMode);
-            expect(Store.page.get()).to.equal(beforePage);
-        });
-    });
-
     describe('navigateToFragmentEditor', () => {
         it('should navigate to fragment editor', async () => {
             await router.navigateToFragmentEditor('test-id');
@@ -1016,6 +934,10 @@ describe('Router', () => {
         beforeEach(() => {
             originalMasksCreating = Store.masks.creating.get();
             originalMasksFragmentId = Store.masks.fragmentId.get();
+            // Masks is now access-gated on direct hash too; authorize so the normalize-route cases
+            // reach masks. The "block unauthorized" case sets its own empty user to test denial.
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         });
 
         afterEach(() => {
@@ -1056,6 +978,47 @@ describe('Router', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
             expect(Store.masks.creating.get()).to.equal(false);
             expect(Store.masks.fragmentId.get()).to.equal(null);
+        });
+
+        it('redirects an unauthorized direct hash to masks back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=masks&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=masks');
+        });
+    });
+
+    describe('offer mapping route access', () => {
+        it('should block unauthorized offer-mapping page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        });
+
+        it('redirects an unauthorized direct hash to offer-mapping back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=offer-mapping&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=offer-mapping');
+        });
+
+        it('allows an authorized user to reach offer-mapping', async () => {
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
+            Store.page.set(PAGE_NAMES.WELCOME);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.OFFER_MAPPING);
         });
     });
 

@@ -6,6 +6,7 @@ const {
     shouldHideStPriceLabels,
     getValidatedMasLibsUrl,
     isAllowedMasIOUrl,
+    toRelativeAssetUrl,
 } = await import('../src/utils.js');
 
 describe('function "paramsToHash"', () => {
@@ -223,5 +224,46 @@ describe('function "isAllowedMasIOUrl"', () => {
         for (const url of rejected) {
             expect(isAllowedMasIOUrl(url), url).to.be.false;
         }
+    });
+});
+
+describe('function "toRelativeAssetUrl"', () => {
+    const iconPath = '/cc-shared/assets/img/product-icons/svg/photoshop.svg';
+
+    it('rewrites an aem.live url to a relative path on www.adobe.com', () => {
+        expect(
+            toRelativeAssetUrl(
+                `https://main--cc--adobecom.aem.live${iconPath}`,
+                'www.adobe.com',
+            ),
+        ).to.equal(iconPath);
+    });
+
+    it('rewrites an aem.page url to a relative path on www.stage.adobe.com', () => {
+        expect(
+            toRelativeAssetUrl(
+                `https://main--cc--adobecom.aem.page${iconPath}`,
+                'www.stage.adobe.com',
+            ),
+        ).to.equal(iconPath);
+    });
+
+    it('leaves a non-aem url unchanged', () => {
+        const url = `https://www.adobe.com${iconPath}`;
+        expect(toRelativeAssetUrl(url, 'www.adobe.com')).to.equal(url);
+    });
+
+    it('leaves an aem url unchanged outside prod/stage hosts', () => {
+        const url = `https://main--cc--adobecom.aem.live${iconPath}`;
+        expect(toRelativeAssetUrl(url, 'main--cc--adobecom.aem.live')).to.equal(
+            url,
+        );
+    });
+
+    it('passes through falsy values', () => {
+        expect(toRelativeAssetUrl('', 'www.adobe.com')).to.equal('');
+        expect(toRelativeAssetUrl(undefined, 'www.adobe.com')).to.equal(
+            undefined,
+        );
     });
 });

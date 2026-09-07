@@ -73,7 +73,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { html } from 'lit';
+            import { html, render } from 'lit';
             // Import actual components
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
@@ -143,7 +143,7 @@
                 }),
                 createSettingRow({
                     name: 'addon',
-                    value: '',
+                    value: 'addon1',
                     valueType: 'optional-text',
                     booleanValue: false,
                 }),
@@ -178,6 +178,7 @@
                             if (field.name === 'promoText') return { ...field, values: ['<p>Parent Promo</p>'] };
                             if (field.name === 'callout') return { ...field, values: ['<p>Parent Callout</p>'] };
                             if (field.name === 'ctas') return { ...field, values: ['<p>Parent CTAs</p>'] };
+                            if (field.name === 'addon') return { ...field, values: ['{{addon1}}'] };
                             if (field.name === 'mnemonicIcon')
                                 return { ...field, values: ['/test/mocks/img/creative-cloud.svg'], multiple: true };
                             if (field.name === 'mnemonicAlt') return { ...field, values: ['Parent Alt'], multiple: true };
@@ -226,6 +227,10 @@
                         Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
+                        Store.placeholders.addons.data.set([
+                            { value: 'addon1', itemText: 'addon1' },
+                            { value: 'addon2', itemText: 'addon2' },
+                        ]);
                         Store.placeholders.previewByLocale.set({ [variationLocale]: {} });
                         Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
@@ -842,22 +847,24 @@
                                 parentOverrides: {
                                     showPlanType: ['true'],
                                     showSecureLabel: ['true'],
+                                    addon: ['{{addon-stock-trial}}'],
+                                },
+                                variationOverrides: {
                                     addon: ['{{addon-mili-test}}'],
                                 },
-                                variationOverrides: {},
                                 testId: 'variation-inherits-parent-visual-overrides',
                             });
 
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
                             expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
-                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.true;
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
 
                             expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
                             expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
-                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+                            expect(editor.isAddonSettingVisuallyOverridden()).to.be.true;
 
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.exist;
@@ -1007,6 +1014,121 @@
                             .querySelector('quantity-select-field')
                             .shadowRoot.querySelector('#quantity-selector-default');
                         expect(qsDefault2.value).to.equal('1');
+                    });
+
+                    it('update addon value and then rollback to the settings value', async () => {
+                        const { editor, fragmentStore } = await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                addon: ['addon1'],
+                            },
+                            'test-addon',
+                        );
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal('{{addon2}}');
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal('');
+                    });
+
+                    it('update addon value and background and then rollback to the settings value', async () => {
+                        const { editor, fragmentStore } = await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                addon: ['addon1'],
+                            },
+                            'test-addon',
+                        );
+
+                        const addonBGEl = editor.querySelector('sp-picker#addonBackground');
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
+                            '<merch-addon background="#dadada">{{addon2}}</merch-addon>',
+                        );
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
+                            '<merch-addon background="#dadada">addon1</merch-addon>',
+                        );
+                    });
+
+                    it('update variation addon value and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await delay(200);
+
+                        expect(addonSelect.value).to.equal('addon1');
+                        const addonSelectOverride2 = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        expect(addonSelectOverride2).to.be.null;
+                    });
+
+                    it('update variation addon value and background and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const addonBGEl = editor.querySelector('sp-picker#addonBackground');
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+
+                        const addonValue = editor.fragment.getFieldValue('addon', 0);
+                        expect(addonValue).to.equal('<merch-addon background="#dadada">{{addon2}}</merch-addon>');
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await delay(200);
+
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonValue2 = editor.fragment.getFieldValue('addon', 0);
+                        expect(addonValue2).to.equal('<merch-addon background="#dadada">{{addon1}}</merch-addon>');
                     });
 
                     describe('getWhatsIncludedProps', () => {
@@ -1456,6 +1578,78 @@
                         it('renders no banner when validationStatus is empty', async () => {
                             const { editor } = await setupTestEnvironment({}, 'validation-none');
                             expect(editor.querySelector('.fragment-validation-banner')).to.not.exist;
+                        });
+                    });
+
+                    describe('CTA reference key warning', () => {
+                        const makeEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = true;
+                            editor.localeDefaultFragment = new Fragment({
+                                path: '/content/dam/mas/x/en_US/base',
+                                fields: [{ name: 'ctas', values: [ctasHtml] }],
+                            });
+                            return editor;
+                        };
+
+                        it('flags base fragment CTA key issues on a variation', () => {
+                            const editor = makeEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('Base fragment CTAs need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                        });
+
+                        it('renders nothing when base CTA keys are clean', () => {
+                            const editor = makeEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
+                        });
+
+                        const makeBaselineEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = false;
+                            editor.fragmentStore = {
+                                get: () =>
+                                    new Fragment({
+                                        path: '/content/dam/mas/x/en_US/base',
+                                        fields: [{ name: 'ctas', values: [ctasHtml] }],
+                                    }),
+                            };
+                            return editor;
+                        };
+
+                        it('reports own CTA key issues with a Fix link on a baseline', () => {
+                            const editor = makeBaselineEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('CTA references need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                            expect(container.querySelector('sp-link.field-status-restore-link')).to.exist;
+                        });
+
+                        it('field-level Fix link invokes fixCtaKeys on the ctas RTE field', () => {
+                            const editor = makeBaselineEditor('<a data-key="dup">A</a><a data-key="dup">B</a>');
+                            const rte = document.createElement('rte-field');
+                            rte.id = 'ctas';
+                            let called = 0;
+                            rte.fixCtaKeys = () => (called += 1);
+                            editor.appendChild(rte);
+
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            container.querySelector('sp-link.field-status-restore-link').click();
+                            expect(called).to.equal(1);
+                        });
+
+                        it('renders nothing when own CTA keys are clean', () => {
+                            const editor = makeBaselineEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
                         });
                     });
                 });

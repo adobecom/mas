@@ -3,6 +3,7 @@ import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getLocaleByCode, getLocaleCode, getSurfaceLocales } from '../../../io/www/src/fragment/locales.js';
 import { TAG_PROMOTION_PREFIX, VARIATION_TYPES } from '../constants.js';
+import { isPznCountryTagId, isLocaleTagId } from '../common/utils/personalization-utils.js';
 
 /* ---------- pure helpers ---------- */
 
@@ -82,6 +83,42 @@ export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
     return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
 }
 
+/** Parses CTA HTML and returns an array of `{ text, href, key }` objects, one per anchor.
+ *  Uses a <template> element so checkout-link custom elements are never upgraded and their
+ *  attributes (href, data-key, data-wcs-osi, …) are preserved exactly as stored. */
+export function parseCtas(html) {
+    if (!html || typeof html !== 'string') return [];
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return [...template.content.querySelectorAll('a')]
+        .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '', key: a.getAttribute('data-key') }))
+        .filter(({ text, href }) => text || href);
+}
+
+/** Reference-key problems in a list of parsed CTAs (see {@link parseCtas}): anchors missing a
+ *  `data-key`, and keys shared by more than one anchor. Both break `cta[<key>]` references. */
+export function getCtaKeyIssues(ctas = []) {
+    const counts = new Map();
+    let missingCount = 0;
+    for (const { key } of ctas) {
+        if (!key) {
+            missingCount += 1;
+            continue;
+        }
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const duplicateKeys = [...counts.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+    return { missingCount, duplicateKeys, hasIssues: missingCount > 0 || duplicateKeys.length > 0 };
+}
+
+/** Human-readable summary of {@link getCtaKeyIssues} counts, e.g. "2 without a reference key, 1 duplicated". */
+export function summarizeCtaKeyIssues({ missingCount = 0, duplicateKeys = [] } = {}) {
+    const parts = [];
+    if (missingCount) parts.push(`${missingCount} without a reference key`);
+    if (duplicateKeys.length) parts.push(`${duplicateKeys.length} duplicated`);
+    return parts.join(', ');
+}
+
 export function listLocaleVariations(fragment) {
     return fragment?.listLocaleVariations?.() || [];
 }
@@ -119,6 +156,43 @@ export function hasAnyVariationTabItems(fragment) {
 
 export function getGroupedVariationTagsValue(variationFragment) {
     return pznTagsValue(variationFragment);
+}
+
+// A promo variation cloned from a grouped variation keeps its personalization tag (e.g. mas:pzn/edu)
+// alongside the promo's geo tags in pznTags.
+export function isGeoTag(tag) {
+    if (!tag) return false;
+    return isLocaleTagId(tag) || isPznCountryTagId(tag);
+}
+
+export function getPromoVariationGeoTagsValue(variationFragment) {
+    const values =
+        variationFragment?.getFieldValues?.('pznTags') ||
+        variationFragment?.fields?.find((field) => field.name === 'pznTags')?.values ||
+        [];
+    return values
+        .filter(Boolean)
+        .filter((tag) => isGeoTag(tag))
+        .join(',');
+}
+
+export function getPromoVariationPersonalizationTagsValue(variationFragment) {
+    const values =
+        variationFragment?.getFieldValues?.('pznTags') ||
+        variationFragment?.fields?.find((field) => field.name === 'pznTags')?.values ||
+        [];
+    return values
+        .filter(Boolean)
+        .filter((tag) => !isGeoTag(tag))
+        .join(',');
+}
+
+export function getPromoVariationPersonalizationTagLabels(variationFragment) {
+    return getPromoVariationPersonalizationTagsValue(variationFragment)
+        .split(',')
+        .filter(Boolean)
+        .map((tag) => tag.split('/').pop())
+        .join(', ');
 }
 
 export function getPromotionCode(variationFragment) {

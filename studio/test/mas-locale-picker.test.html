@@ -138,7 +138,7 @@
                             expect(el.currentLocale.lang).to.equal('ja');
                         });
                         it('should initialize with default locale if requested locale is not present on surface', async function () {
-                            setContext('en_US'); // Store says en_US, element has ar_SA which is not on surface
+                            setContext('en_US'); // Store says en_US, element has ru_RU which is not on surface
                             const el = initElementFromTemplate('nonpresentLocale', this.test.title);
                             await el.updateComplete;
                             expect(el.locale).to.equal('en_US'); // Fallback to en_US
@@ -222,6 +222,7 @@
                         it('should filter by express surface', async function () {
                             const locales = getDefaultLocales('express');
                             expect(locales.map((loc) => getLocaleCode(loc))).to.deep.equal([
+                                'ar_SA',
                                 'da_DK',
                                 'de_DE',
                                 'en_GB',
@@ -568,7 +569,7 @@
                         <div class="test-item">
                             <p><strong>Arabic on a surface not having that langauge:</strong></p>
                             <template id="nonpresentLocale">
-                                <mas-locale-picker surface="express" locale="ar_SA"></mas-locale-picker>
+                                <mas-locale-picker surface="express" locale="ru_RU"></mas-locale-picker>
                             </template>
                         </div>
                     </div>

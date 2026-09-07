@@ -9,6 +9,21 @@ import { delay } from './utils.js';
 
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
+import Media from '../src/media.js';
+
+// Deterministically control Media.isMobile without real viewport changes —
+// setViewport round-trips are slow/flaky under the full suite and can stall the
+// file. The toggle/height logic keys off Media.isMobile and a JS `.open` class,
+// not live media queries, so a stubbed getter exercises the same code paths.
+const setIsMobile = (value) => {
+    Object.defineProperty(Media.matchMobile, 'matches', {
+        configurable: true,
+        get: () => value,
+    });
+};
+const resetIsMobile = () => {
+    delete Media.matchMobile.matches;
+};
 
 runTests(async () => {
     mockIms();
@@ -224,7 +239,7 @@ runTests(async () => {
             expect(variantLayout2.icons).to.not.be.undefined;
         });
 
-        it('[desktop] should setup toggle with list always open', async () => {
+        it('[desktop] creates a hidden toggle button and shows the list via CSS', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();
             await delay(200);
@@ -234,28 +249,145 @@ runTests(async () => {
             expect(titleDiv, 'footer-rows-title created').to.exist;
             expect(titleDiv.textContent).to.include("See what's included:");
 
-            // Desktop: no toggle button, list always open
+            // The button is always in the DOM so a later resize to mobile has a
+            // collapse control; CSS (not JS) hides it and shows the list at
+            // desktop widths.
             const toggleBtn = titleDiv.querySelector('.toggle-icon');
-            expect(toggleBtn, 'no toggle button on desktop').to.be.null;
-
+            expect(toggleBtn, 'toggle button created').to.exist;
             const list = bodyXs.querySelector('ul.checkmark-copy-container');
             expect(list, 'list has checkmark-copy-container class').to.exist;
-            expect(list.classList.contains('open')).to.be.true;
+            expect(
+                getComputedStyle(toggleBtn).display,
+                'button hidden',
+            ).to.equal('none');
+            expect(getComputedStyle(list).display, 'list shown').to.equal(
+                'block',
+            );
         });
 
-        it('should clean up on disconnect', async () => {
+        it('[desktop→mobile] clears grow-only synced heights so mobile restores natural height', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(200);
+
+            const layout = card.variantLayout;
+            const container = layout.getContainer();
+
+            try {
+                // Desktop sync sets cross-card min-height vars on the container.
+                setIsMobile(false);
+                layout.reconcileBreakpoint();
+                await delay(50);
+                expect(
+                    parseInt(
+                        container.style.getPropertyValue(
+                            '--consonant-merch-card-footer-row-1-min-height',
+                        ),
+                    ) || 0,
+                    'footer-row height synced on desktop',
+                ).to.be.at.least(32);
+
+                // Mobile is single-column: the grow-only heights must be cleared
+                // so collapsed cards size naturally instead of keeping desktop
+                // heights.
+                setIsMobile(true);
+                layout.reconcileBreakpoint();
+                await delay(50);
+                expect(
+                    container.style.getPropertyValue(
+                        '--consonant-merch-card-footer-row-1-min-height',
+                    ),
+                    'footer-row height cleared on mobile',
+                ).to.equal('');
+                expect(
+                    container.style.getPropertyValue(
+                        '--consonant-merch-card-mini-compare-chart-mweb-body-xs-height',
+                    ),
+                    'body-xs height cleared on mobile',
+                ).to.equal('');
+            } finally {
+                resetIsMobile();
+            }
+        });
+
+        it('[mobile] title click toggles the collapsible list', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(200);
+
+            const layout = card.variantLayout;
+            const bodyXs = card.querySelector('[slot="body-xs"]');
+            const titleDiv = bodyXs.querySelector('.footer-rows-title');
+            const list = bodyXs.querySelector('ul.checkmark-copy-container');
+            const toggleBtn = titleDiv.querySelector('.toggle-icon');
+
+            try {
+                setIsMobile(true);
+                layout.setListOpen(false);
+                expect(list.classList.contains('open'), 'collapsed baseline').to
+                    .be.false;
+                expect(toggleBtn.getAttribute('aria-expanded')).to.equal(
+                    'false',
+                );
+
+                titleDiv.click();
+                expect(list.classList.contains('open'), 'expands on click').to
+                    .be.true;
+                expect(toggleBtn.getAttribute('aria-expanded')).to.equal(
+                    'true',
+                );
+
+                titleDiv.click();
+                expect(list.classList.contains('open'), 'collapses on click').to
+                    .be.false;
+            } finally {
+                resetIsMobile();
+            }
+        });
+
+        it('[desktop] title click never collapses the list', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(200);
+
+            const layout = card.variantLayout;
+            const titleDiv = card.querySelector('.footer-rows-title');
+
+            try {
+                setIsMobile(false);
+                layout.setListOpen(false); // force a collapsed class
+                titleDiv.click();
+                // Desktop clicks are no-ops; CSS keeps the list visible.
+                expect(layout.isListOpen, 'click ignored on desktop').to.be
+                    .false;
+            } finally {
+                resetIsMobile();
+            }
+        });
+
+        it('reconnects without throwing and still reconciles on resize', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();
             await delay(100);
 
-            const variantLayout = card.variantLayout;
+            const layout = card.variantLayout;
+            const container = layout.getContainer();
 
-            // disconnectedCallbackHook should remove event listener and observer
-            variantLayout.disconnectedCallbackHook();
-            expect(variantLayout._syncObserver).to.be.null;
+            layout.disconnectedCallbackHook();
+            layout.connectedCallbackHook(); // must not throw
 
-            // Re-connect
-            variantLayout.connectedCallbackHook();
+            try {
+                setIsMobile(true);
+                layout.reconcileBreakpoint(); // re-wired path clears synced heights
+                expect(
+                    container.style.getPropertyValue(
+                        '--consonant-merch-card-footer-row-1-min-height',
+                    ),
+                    'heights cleared after reconnect',
+                ).to.equal('');
+            } finally {
+                resetIsMobile();
+            }
         });
     });
 });

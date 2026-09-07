@@ -184,10 +184,13 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
     );
 }
 
-export function onOfferSelect(offerSelectorId, type, offer) {
+export function onOfferSelect(offerSelectorId, type, offer, options, promoOverride) {
+    // OST passes the promo code as `promoOverride` (or on the placeholder options); forward it so an
+    // osi-field opted into promo capture can store `<osi>,<promoCode>`.
+    const promotionCode = promoOverride || options?.storedPromoOverride || options?.promotionCode;
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_OFFER_SELECT, {
-            detail: { offerSelectorId, offer },
+            detail: { offerSelectorId, offer, promotionCode },
             bubbles: true,
         }),
     );

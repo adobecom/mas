@@ -9,6 +9,7 @@ import {
     applyCollectionSettings,
     parsePlaceholderRemap,
     applyPlaceholderRemaps,
+    resolveSettingEntry,
     PLACEHOLDER_REMAP_SETTING,
 } from '../../src/fragment/transformers/settings.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
@@ -52,6 +53,70 @@ describe('settings', () => {
             expect(result.secureLabel.override[0].locales).to.include('fr_FR');
         });
 
+        it('groups a geo override that precedes the default', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                geos: ['mas:pzn/country/KR'],
+                            },
+                        },
+                    },
+                    ref2: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default).to.exist;
+            expect(result.hideTrialCTAs.default.booleanValue).to.be.false;
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].booleanValue).to.be.true;
+            expect(result.hideTrialCTAs.override[0].geos).to.include('mas:pzn/country/KR');
+        });
+
+        it('groups a template-scoped entry as the default', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'displayPlanType',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                templates: ['plans'],
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.displayPlanType.default.templates).to.deep.equal(['plans']);
+            expect(result.displayPlanType.override).to.be.empty;
+        });
+
+        it('uses the last unscoped entry as the default', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: true } } },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default.booleanValue).to.equal(true);
+            expect(result.hideTrialCTAs.override).to.be.empty;
+        });
+
         it('returns empty object when references is null', () => {
             expect(collectSettingEntries({})).to.deep.equal({});
             expect(collectSettingEntries({ references: null })).to.deep.equal({});
@@ -66,6 +131,162 @@ describe('settings', () => {
                 },
             };
             expect(collectSettingEntries(fragment)).to.deep.equal({});
+        });
+
+        it('reads geos directly from geos field', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                geos: ['mas:pzn/country/KR', 'mas:pzn/country/JP'],
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].geos).to.deep.equal(['mas:pzn/country/KR', 'mas:pzn/country/JP']);
+            expect(result.hideTrialCTAs.override[0].locales).to.deep.equal([]);
+        });
+    });
+
+    describe('resolveSettingEntry', () => {
+        const makeSetting = (overrides = []) => ({
+            default: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false, locales: [], geos: [] },
+            override: overrides,
+        });
+
+        it('matches country override when country codes are uppercase', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/KR'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('matches country override case-insensitively', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/kr'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('returns default when country does not match', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/KR'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'JP');
+            expect(entry.booleanValue).to.equal(false);
+        });
+
+        it('ignores override with no scope', () => {
+            const setting = makeSetting([
+                { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: true, locales: [], geos: [] },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, undefined);
+            expect(entry.booleanValue).to.equal(false);
+        });
+
+        it('matches template-only override when country is undefined', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    templates: ['plans'],
+                    locales: [],
+                    geos: [],
+                },
+            ]);
+            const entry = resolveSettingEntry({ fields: { variant: 'plans' } }, 'en_US', setting, undefined);
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('country-specific override wins over tag-only override when both match', () => {
+            const fragment = { fields: { tags: ['catalog'] } };
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: [],
+                    geos: ['mas:pzn/country/KR'],
+                    tags: [],
+                },
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: false,
+                    locales: [],
+                    geos: [],
+                    tags: ['catalog'],
+                },
+            ]);
+            const entry = resolveSettingEntry(fragment, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('locale-specific override wins over tag-only override when both match', () => {
+            const fragment = { fields: { tags: ['catalog'] } };
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: ['fr_FR'],
+                    geos: [],
+                    tags: [],
+                },
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: false,
+                    locales: [],
+                    geos: [],
+                    tags: ['catalog'],
+                },
+            ]);
+            const entry = resolveSettingEntry(fragment, 'fr_FR', setting, undefined);
+            expect(entry.booleanValue).to.equal(true);
+        });
+
+        it('prefers geos over legacy locales when both are present', () => {
+            const setting = makeSetting([
+                {
+                    name: 'hideTrialCTAs',
+                    valuetype: 'boolean',
+                    booleanValue: true,
+                    locales: ['en_US'],
+                    geos: ['mas:pzn/country/JP'],
+                },
+            ]);
+            const entry = resolveSettingEntry({}, 'en_US', setting, 'KR');
+            expect(entry.booleanValue).to.equal(false);
         });
     });
 
@@ -131,7 +352,14 @@ describe('settings', () => {
             const result = await getSettings(createContext());
             expect(result).to.deep.equal({
                 secureLabel: {
-                    default: { name: 'secureLabel', type: 'optional-text', booleanValue: true, textValue: '{{secure-label}}' },
+                    default: {
+                        name: 'secureLabel',
+                        type: 'optional-text',
+                        booleanValue: true,
+                        textValue: '{{secure-label}}',
+                        locales: [],
+                        geos: [],
+                    },
                     override: [],
                 },
             });
@@ -371,6 +599,43 @@ describe('settings', () => {
             expect(result.body.settings?.tagLabels).to.exist;
         });
 
+        it('applies country override to child fragments in a collection body', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: {
+                    model: { id: COLLECTION_MODEL_ID },
+                    references: {
+                        ref1: {
+                            type: 'content-fragment',
+                            value: { fields: { variant: 'plans' } },
+                        },
+                    },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.references.ref1.value.settings.hideTrialCTAs).to.be.true;
+        });
+
         it('applyCollectionSettings uses empty tagLabels when Object.fromEntries is falsy', function () {
             const fromEntriesStub = sinon.stub(Object, 'fromEntries').returns(null);
             const context = {
@@ -415,7 +680,7 @@ describe('settings', () => {
                                 tags: [],
                                 valuetype: 'optional-text',
                                 textValue:
-                                    '<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>',
+                                    '<merch-quantity-select title="Select quantity" min="2" default-value="3" max="10" step="1"></merch-quantity-select>',
                                 booleanValue: true,
                             },
                             override: [],
@@ -425,7 +690,7 @@ describe('settings', () => {
             };
             const result = await settings.process(context);
             expect(result.body.settings.quantitySelect).to.equal(
-                '<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>',
+                '<merch-quantity-select title="Select quantity" min="2" default-value="3" max="10" step="1"></merch-quantity-select>',
             );
         });
 
@@ -720,6 +985,99 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.settings).to.exist;
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
+        });
+
+        it('applies hideTrialCTAs country override when context country matches', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
+        it('uses default when country does not match override', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
+        });
+
+        it('prefers region-locale geo override over country override when both match', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: false,
+                                    geos: ['mas:locale/US/en_US'],
+                                },
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    geos: ['mas:pzn/country/KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
         });
 
         it('applies setting when templates is empty array (no template filter)', async () => {

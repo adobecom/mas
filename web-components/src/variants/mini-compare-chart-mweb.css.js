@@ -646,9 +646,13 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 
-  merch-card[variant="mini-compare-chart-mweb"] .checkmark-copy-container.open {
+  merch-card[variant="mini-compare-chart-mweb"] .checkmark-copy-container {
     display: block;
     margin-top: 16px;
+  }
+
+  merch-card[variant="mini-compare-chart-mweb"] .toggle-icon {
+    display: none;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] .footer-row-cell-checkmark {

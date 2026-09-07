@@ -195,6 +195,14 @@ class RteField extends LitElement {
                 fromAttribute: (value) => value.split(','),
             },
         },
+        /** Restricts which basic format buttons (strong/em/strikethrough/underline/superscript) render. Unset (default) shows all, preserving existing behavior for every other rte-field usage. */
+        formatMarks: {
+            type: Array,
+            attribute: 'format-marks',
+            converter: {
+                fromAttribute: (value) => value.split(','),
+            },
+        },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
         smallActive: { type: Boolean, state: true },
@@ -1587,7 +1595,8 @@ class RteField extends LitElement {
         // did not change (e.g. a promo-only edit). The multi-step OST flow collapses
         // the editor selection before the checkout-link event arrives, so fall back
         // to the label captured when the CTA was double-clicked.
-        const selectedText = selection.node?.type === state.schema.nodes.link ? selection.node.textContent : '';
+        const selectedText =
+            selection.node && selection.node.type === state.schema.nodes.link ? selection.node.textContent : '';
         const ctaText = attributes.text || selectedText || this.ostTargetText || '';
         const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && ctaText ? state.schema.text(ctaText) : null;
 
@@ -2139,42 +2148,53 @@ class RteField extends LitElement {
 
     get #formatButtons() {
         if (this.hideFormatButtons) return nothing;
+        const showMark = (mark) => !this.formatMarks || this.formatMarks.includes(mark);
         return html`
-            <sp-action-button
-                @click=${this.#handleToolbarAction('strong')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Bold (Command+B)"
-            >
-                <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('em')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Italic (Command+I)"
-            >
-                <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('strikethrough')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Strikethrough (Command+S)"
-            >
-                <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('underline')}
-                title="Underline (Command+U)"
-                @mousedown=${(e) => e.preventDefault()}
-            >
-                <sp-icon-underline slot="icon"></sp-icon-underline>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('superscript')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Superscript (Command+Shift+.)"
-            >
-                <span slot="icon" class="superscript-icon">x²</span>
-            </sp-action-button>
+            ${showMark('strong')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('strong')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Bold (Command+B)"
+                  >
+                      <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('em')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('em')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Italic (Command+I)"
+                  >
+                      <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('strikethrough')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('strikethrough')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Strikethrough (Command+S)"
+                  >
+                      <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('underline')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('underline')}
+                      title="Underline (Command+U)"
+                      @mousedown=${(e) => e.preventDefault()}
+                  >
+                      <sp-icon-underline slot="icon"></sp-icon-underline>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('superscript')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('superscript')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Superscript (Command+Shift+.)"
+                  >
+                      <span slot="icon" class="superscript-icon">x²</span>
+                  </sp-action-button>`
+                : nothing}
             ${this.marks?.includes('small')
                 ? html`<sp-action-button
                       id="smallButton"

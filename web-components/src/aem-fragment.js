@@ -2,10 +2,12 @@ import { getParameter } from '@dexter/tacocat-core';
 import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
+    EVENT_TYPE_READY,
     MARK_START_SUFFIX,
     MARK_DURATION_SUFFIX,
 } from './constants.js';
 import { MasError } from './mas-error.js';
+import { getImsCountryCookie } from './ims.js';
 import { getLogHeaders } from './utilities.js';
 import { getService, getValidatedMasLibsUrl, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
@@ -237,7 +239,15 @@ export class AemFragment extends HTMLElement {
 
     connectedCallback() {
         if (this.#fetchPromise) return;
-        this.#service ??= getService(this);
+        this.#service = getService(this);
+        if (!this.#service?.settings) {
+            document.addEventListener(
+                EVENT_TYPE_READY,
+                () => this.isConnected && this.connectedCallback(),
+                { once: true },
+            );
+            return;
+        }
         this.#preview = this.#service.settings?.preview;
         this.#log ??= this.#service.log.module(
             `${AEM_FRAGMENT_TAG_NAME}[${this.#fragmentId}]`,
@@ -394,8 +404,14 @@ export class AemFragment extends HTMLElement {
             this.#rawData = fragment;
             return true;
         }
-        const { masIOUrl, wcsApiKey, country, locale, instant } =
-            this.#service.settings;
+        const {
+            masIOUrl,
+            wcsApiKey,
+            country: configuredCountry,
+            locale,
+            instant,
+        } = this.#service.settings;
+        const country = getImsCountryCookie() ?? configuredCountry;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;

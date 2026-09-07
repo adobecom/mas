@@ -9,7 +9,7 @@ import {
     getStudioFragmentDisplayPath,
     renderInheritedTagsNotice,
 } from '../../../src/common/utils/render-utils.js';
-import { generateCodeToUse } from '../../../src/utils.js';
+import { generateLinkToUse } from '../../../src/utils.js';
 import Store from '../../../src/store.js';
 import {
     CARD_MODEL_PATH,
@@ -93,6 +93,12 @@ describe('render-utils', () => {
             );
         });
 
+        it('returns Grouped variation for a promo variation created from a grouped variation', () => {
+            expect(
+                getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card/pzn/edu' }),
+            ).to.equal('Grouped variation');
+        });
+
         it('returns Placeholder for dictionary model', () => {
             expect(getItemTypeLabel({ model: { path: `${DICTIONARY_MODEL_PATH}/foo` } })).to.equal('Placeholder');
         });
@@ -152,7 +158,7 @@ describe('render-utils', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
-            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateCodeToUse(fragment, 'acom', 'content').authorPath);
+            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
             expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
         });
 

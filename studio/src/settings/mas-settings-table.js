@@ -219,8 +219,9 @@ export class MasSettingsTable extends LitElement {
         `;
     }
 
-    #localeCellTemplate(locales = []) {
-        const { primary, extraCount } = this.#localeSummary(locales);
+    #localeCellTemplate(locales = [], geos = []) {
+        const values = geos.length ? geos.map((geo) => geo.split('/').pop()) : locales;
+        const { primary, extraCount } = this.#localeSummary(values);
 
         return html`
             <div class="summary-content">
@@ -369,7 +370,7 @@ export class MasSettingsTable extends LitElement {
                 </sp-table-cell>
                 <sp-table-cell class="label-column" data-column="label">${this.#labelCellTemplate(row)}</sp-table-cell>
                 <sp-table-cell class="locale-column" data-column="locale"
-                    >${this.#localeCellTemplate(row.locales)}</sp-table-cell
+                    >${this.#localeCellTemplate(row.locales, row.geos)}</sp-table-cell
                 >
                 <sp-table-cell class="template-column" data-column="template">${this.#templateCellTemplate(row)}</sp-table-cell>
                 <sp-table-cell class="value-column" data-column="value"
@@ -405,7 +406,7 @@ export class MasSettingsTable extends LitElement {
                     <div class="override-cell label-column override-label-column">
                         ${this.#labelCellTemplate(override, { nested: true })}
                     </div>
-                    <div class="override-cell locale-column">${this.#localeCellTemplate(override.locales)}</div>
+                    <div class="override-cell locale-column">${this.#localeCellTemplate(override.locales, override.geos)}</div>
                     <div class="override-cell template-column">
                         <span class="cell-text" title=${this.#templateSummary(override.templateIds, override.template)}
                             >${this.#templateSummary(override.templateIds, override.template)}</span
@@ -538,7 +539,7 @@ export class MasSettingsTable extends LitElement {
                     >
                         Label
                     </sp-table-head-cell>
-                    <sp-table-head-cell class="locale-column" data-column="locale">Locale</sp-table-head-cell>
+                    <sp-table-head-cell class="locale-column" data-column="locale">Geo</sp-table-head-cell>
                     <sp-table-head-cell class="template-column" data-column="template">Template</sp-table-head-cell>
                     <sp-table-head-cell class="value-column" data-column="value">Value</sp-table-head-cell>
                     <sp-table-head-cell class="tags-column" data-column="tags">Tags</sp-table-head-cell>

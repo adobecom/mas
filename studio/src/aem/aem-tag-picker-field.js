@@ -8,7 +8,7 @@ import {
     TAG_COMPARE_CHART_PATH,
 } from '../constants.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
-import { VARIANTS } from '../editors/variant-picker.js';
+import { VARIANTS, getVariantTreeData } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 import { getService } from '../utils.js';
 import { AEM_TAG_PATTERN, fromAttribute, toAttribute } from './tag-path-utils.js';
@@ -33,6 +33,7 @@ class AemTagPickerField extends LitElement {
         },
         namespace: { type: String },
         top: { type: String },
+        surface: { type: String },
         multiple: { type: Boolean }, // Whether multiple selection is allowed
         hierarchicalTags: { type: Object, state: true },
         selected: { type: String },
@@ -180,6 +181,7 @@ class AemTagPickerField extends LitElement {
         this.baseUrl = document.querySelector('meta[name="aem-base-url"]')?.content;
         this.bucket = null;
         this.top = null;
+        this.surface = null;
         this.multiple = false;
         this.hierarchicalTags = new Map();
         this.flatTags = [];
@@ -362,7 +364,7 @@ class AemTagPickerField extends LitElement {
         if (this.top !== 'variant' || this.flatTags.length) return;
         VARIANTS.forEach((variant) => {
             if (variant.value === 'all') return;
-            const tagPath = `/content/cq:tags/mas/variant/${variant.value}`;
+            const tagPath = this.#variantTagPath(variant.value);
             this.flatTags.push(tagPath);
             this.#data.set(tagPath, {
                 name: variant.value,
@@ -831,13 +833,25 @@ class AemTagPickerField extends LitElement {
         this.searchQuery = eventTarget?.value || '';
     }
 
+    #variantTagPath(variant) {
+        return `/content/cq:tags/mas/variant/${variant}`;
+    }
+
     get checkboxMenu() {
         if (!this.ready) return nothing;
 
         const showSearch = !this.personalizationToggle && this.flatTags.length > 7;
-        let filteredTags = this.flatTags;
+        let surfaceTags = this.flatTags;
+        if (this.surface) {
+            surfaceTags = [];
+            getVariantTreeData(this.surface).forEach((variant) => {
+                surfaceTags.push(this.#variantTagPath(variant.name));
+            });
+        }
+
+        let filteredTags = surfaceTags;
         if (showSearch) {
-            filteredTags = this.flatTags.filter((path) =>
+            filteredTags = surfaceTags.filter((path) =>
                 this.#resolveTagText(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
             );
         }

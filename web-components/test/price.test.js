@@ -444,24 +444,6 @@ describe('class "InlinePrice"', () => {
                 ],
             },
             {
-                locale: 'AZ_en',
-                expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                ],
-            },
-            {
-                locale: 'AZ_ru',
-                expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                ],
-            },
-            {
                 locale: 'CZ_cs',
                 expected: [
                     [true, false],

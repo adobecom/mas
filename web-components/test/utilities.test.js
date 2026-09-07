@@ -44,6 +44,24 @@ describe('function "toPromotionCodes"', () => {
 });
 
 describe('function "toWcsOsiAndPromotionCodes"', () => {
+    it('pairs each OSI with its own promo code, leaving a middle OSI promo-less', () => {
+        expect(
+            toWcsOsiAndPromotionCodes('A,B,C', 'PROMOCODE1,,PROMOCODE3'),
+        ).to.deep.equal({
+            wcsOsi: ['A', 'B', 'C'],
+            promotionCodes: ['PROMOCODE1', '', 'PROMOCODE3'],
+        });
+    });
+
+    it('pairs a genuinely promo-less OSI with an empty code', () => {
+        expect(toWcsOsiAndPromotionCodes('abm,stock-abm', 'P1,')).to.deep.equal(
+            {
+                wcsOsi: ['abm', 'stock-abm'],
+                promotionCodes: ['P1', ''],
+            },
+        );
+    });
+
     it('leaves promotionCodes untouched when OSI is null or undefined', () => {
         expect(toWcsOsiAndPromotionCodes(null, 'P1')).to.deep.equal({
             wcsOsi: [],
@@ -71,15 +89,6 @@ describe('function "toWcsOsiAndPromotionCodes"', () => {
             wcsOsi: ['abm', 'stock-abm'],
             promotionCodes: ['P1', 'P3'],
         });
-    });
-
-    it('pairs a genuinely promo-less OSI with an empty code', () => {
-        expect(toWcsOsiAndPromotionCodes('abm,stock-abm', 'P1,')).to.deep.equal(
-            {
-                wcsOsi: ['abm', 'stock-abm'],
-                promotionCodes: ['P1', ''],
-            },
-        );
     });
 
     it('accepts an array OSI value as-is', () => {

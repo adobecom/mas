@@ -183,9 +183,10 @@ export function toPromotionCodes(value) {
 }
 
 /**
- * Zips OSI and promo-code lists by position,
- * dropping a blank OSI's paired code so later OSIs don't shift onto the wrong code.
- * A single code (no comma) is left alone and broadcasts to all OSIs.
+ * Zips OSI and promo-code lists by position for a soft bundle:
+ * osi="A,B,C" promo="P1,,P3" -> A=P1, B=none, C=P3.
+ * A single code (no comma) broadcasts to all OSIs.
+ * A blank OSI also drops its paired code, so later OSIs keep their own.
  * @param {any} osiValue
  * @param {any} promotionCodeValue
  * @returns {{ wcsOsi: string[], promotionCodes: string[] }}

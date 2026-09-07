@@ -7,6 +7,7 @@ import {
 } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -88,6 +89,15 @@ export function priceOptionsProvider(element, options) {
     options[FF_DEFAULTS] = true;
     options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
 
+    // Apply the fragment's resolved price literals (e.g. the locale's plan-type
+    // label), mirroring merch-card — otherwise labels fall back to the built-in
+    // defaults and locale-specific plan types render empty.
+    const priceLiterals = masField?.aemFragment?.data?.priceLiterals;
+    if (priceLiterals) {
+        options.literals ??= {};
+        Object.assign(options.literals, priceLiterals);
+    }
+
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
         options.displayTax = false;
@@ -136,6 +146,9 @@ function registerOptionsProviders(service) {
         return;
     service.providers.price(priceOptionsProvider);
     service.providers.checkout(checkoutOptionsProvider);
+    if (!service.providers.has(planTypeTextOptionsProvider)) {
+        service.providers.price(planTypeTextOptionsProvider);
+    }
 }
 
 const MAS_FIELD_STYLES = `
@@ -370,6 +383,10 @@ class MasField extends HTMLElement {
 
     get aemFragment() {
         return this.querySelector('aem-fragment');
+    }
+
+    get osi() {
+        return hostOsi(this);
     }
 
     #ensureContentElement() {

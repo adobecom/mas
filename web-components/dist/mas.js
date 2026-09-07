@@ -7242,8 +7242,9 @@ merch-card[variant="product"][id] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
-    content: "\xA0";
+merch-card[variant="product"][id] .price.price-legal .price-unit-type:not(.disabled)::before,
+merch-card[variant="product"][id] .price.price-legal .disabled + span:not(.disabled)::before {
+    content: initial;
 }
 
 merch-card[variant="product"] [slot="footer"] a.con-button.primary {
@@ -7753,12 +7754,9 @@ merch-card[variant="segment"][id] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
-    content: "";
-}
-
-merch-card[variant="segment"][id] .price-legal .price-unit-type:not(.disabled)::after {
-  content: "\\00a0";
+merch-card[variant="segment"][id] .price.price-legal .price-unit-type:not(.disabled)::before,
+merch-card[variant="segment"][id] .price.price-legal .disabled + span:not(.disabled)::before {
+    content: initial;
 }
 
 merch-card[variant="segment"] [slot="footer"] a.con-button.primary {
@@ -11242,15 +11240,6 @@ merch-card div[slot='bg-image'] img {
 .price-unit-type:not(.disabled)::before,
 .price-tax-inclusivity:not(.disabled)::before {
   content: "\\00a0";
-}
-
-merch-card span.price-legal .price-unit-type:not(.disabled)::before,
-merch-card span.price-legal .price-tax-inclusivity:not(.disabled)::before {
-    content: initial;
-}
-
-merch-card span.price-legal .price-unit-type:not(.disabled)::after {
-    content: "\\00a0";
 }
 
 merch-card span.placeholder-resolved[data-template='priceStrikethrough'],

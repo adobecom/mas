@@ -3,6 +3,7 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
+import { INHERITED_SETTINGS_FIELDS } from '../reactivity/preview-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import {
     buildCandidateCollisionPath,
@@ -220,7 +221,16 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     if (isGroupedVariationSource) {
         const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
         if (parentFragment) {
-            effectiveFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
+            const mergedFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
+            // A model field is always present on AEM fragments, even when unset (values: ['']).
+            // Check for an actual value, not just presence.
+            const hasOwnValue = (field) => (field?.values || []).some((value) => value !== '' && value != null);
+            const ownFieldNamesWithValue = new Set(
+                (sourceFragment.fields || []).filter(hasOwnValue).map((field) => field.name),
+            );
+            effectiveFields = mergedFields.filter(
+                (field) => !INHERITED_SETTINGS_FIELDS.has(field.name) || ownFieldNamesWithValue.has(field.name),
+            );
         }
     }
 

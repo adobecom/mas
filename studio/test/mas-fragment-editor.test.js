@@ -424,6 +424,42 @@ describe('MasFragmentEditor', () => {
             expect(existingStore.previewStore.resolved).to.equal(false);
         });
 
+        it('deleteFragment awaits a still-pending cached-store promo refresh before staging variations', async () => {
+            const existingData = createFragmentData({ id: 'existing-id', locale: 'en_US', slug: 'existing' });
+            const existingStore = generateFragmentStore(new Fragment(existingData));
+            Store.fragments.list.data.value = [existingStore];
+            Store.fragmentEditor.fragmentId.value = 'existing-id';
+
+            let resolveRefresh;
+            mockRepo.refreshFragment = sandbox.stub().returns(
+                new Promise((resolve) => {
+                    resolveRefresh = resolve;
+                }),
+            );
+
+            await el.initFragment();
+
+            const listPromoVariationsStub = sandbox
+                .stub(existingStore.get(), 'listPromoVariations')
+                .returns([{ path: '/content/dam/mas/s/en_US/promotions/summer/existing' }]);
+
+            let deleteResolved = false;
+            const deletePromise = el.deleteFragment().then(() => {
+                deleteResolved = true;
+            });
+
+            await Promise.resolve();
+            expect(deleteResolved).to.be.false;
+            expect(listPromoVariationsStub.called).to.be.false;
+
+            resolveRefresh();
+            await deletePromise;
+
+            expect(deleteResolved).to.be.true;
+            expect(listPromoVariationsStub.calledOnce).to.be.true;
+            expect(el.variationsToDelete).to.include('/content/dam/mas/s/en_US/promotions/summer/existing');
+        });
+
         it('reattaches parent for existing variation when resolved parent changes', async () => {
             const oldParent = new Fragment(createFragmentData({ id: 'old-parent-id', locale: 'en_US', slug: 'default-old' }));
             const existingVariationData = createFragmentData({
@@ -1024,45 +1060,44 @@ describe('MasFragmentEditor', () => {
             expect(el.deleteInProgress).to.be.false;
         });
 
-        it('probes and stages promo variations for deletion when deleting a grouped variation directly', async () => {
+        it('stages already-known promo variations when deleting a grouped variation directly', async () => {
+            const listPromoVariations = sandbox
+                .stub()
+                .returns([{ path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment' }]);
             el.inEdit.value = {
                 get: () => ({
                     id: 'test-id',
                     path: '/content/dam/mas/sandbox/en_US/pzn/my-fragment',
                     getVariations: () => [],
+                    listPromoVariations,
                 }),
             };
-            mockRepo.getPromoVariationPaths = sandbox
-                .stub()
-                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment']);
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
 
             await el.deleteFragment();
 
-            expect(mockRepo.getPromoVariationPaths.calledOnce).to.be.true;
-            expect(mockRepo.getPromoVariationPaths.firstCall.args[0].path).to.equal(
-                '/content/dam/mas/sandbox/en_US/pzn/my-fragment',
-            );
+            expect(listPromoVariations.calledOnce).to.be.true;
             expect(el.variationsToDelete).to.deep.equal([
                 '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
             ]);
             expect(el.showDeleteDialog).to.be.true;
         });
 
-        it('does not probe promo variations when deleting a non-grouped variation', async () => {
+        it('does not check promo variations when deleting a non-grouped variation', async () => {
+            const listPromoVariations = sandbox.stub().returns([]);
             el.inEdit.value = {
                 get: () => ({
                     id: 'test-id',
                     path: '/content/dam/mas/sandbox/en_BE/my-fragment',
                     getVariations: () => [],
+                    listPromoVariations,
                 }),
             };
-            mockRepo.getPromoVariationPaths = sandbox.stub().resolves([]);
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
 
             await el.deleteFragment();
 
-            expect(mockRepo.getPromoVariationPaths.called).to.be.false;
+            expect(listPromoVariations.called).to.be.false;
             expect(el.variationsToDelete).to.deep.equal([]);
         });
 

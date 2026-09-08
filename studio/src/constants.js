@@ -141,9 +141,7 @@ export const PAGE_NAMES = {
     OFFER_MAPPING: 'offer-mapping',
 };
 
-export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
-export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
 export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';

@@ -59,6 +59,9 @@ masStudio-*.json
 # Worktree documentation (per-ticket, not committed)
 /docs/
 
+# pznTags migration scratch reports (live content paths/etags, never committed)
+/scripts/pzn-tags-locale-to-country/tmp/
+
 # web-components specific
 !web-components/dist
 web-components/commerce.json
@@ -66,3 +69,7 @@ web-components/mas.json
 web-components/stats.json
 *.jsonl
 mcp-server.log
+
+# raw copy of fragments before update
+scripts/content/fragments
+

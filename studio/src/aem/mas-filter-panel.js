@@ -61,6 +61,18 @@ class MasFilterPanel extends LitElement {
             stroke-width: 3px;
         }
 
+        .status-filter-trigger {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 40px;
+        }
+
+        .status-filter-trigger sp-action-button {
+            display: flex;
+            flex-direction: row-reverse;
+        }
+
         .status-filter-popover {
             padding: 12px;
         }
@@ -328,10 +340,10 @@ class MasFilterPanel extends LitElement {
         const displayLabel = selectedCount > 0 ? `Status (${selectedCount})` : 'Status';
 
         return html`
-            <overlay-trigger placement="bottom-start" data-filter-type="status">
-                <sp-action-button slot="trigger">
+            <overlay-trigger class="status-filter-trigger" placement="bottom" data-filter-type="status">
+                <sp-action-button slot="trigger" quiet aria-label="Status">
                     ${displayLabel}
-                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                    <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
                 <sp-popover slot="click-content" class="status-filter-popover">
                     <div class="checkbox-list">

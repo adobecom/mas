@@ -201,8 +201,9 @@ function createCardItem(card) {
     const iconBg = variantColor(card);
     const iconSvg = window.MASIcons ? window.MASIcons.get(variantIcon(card), 'M') : '';
 
+    const isBareElement = card.elementType === 'price' || card.elementType === 'cta';
     const cardName = card.cardName || card.fragmentId;
-    const hint = [card.variant, card.size, promotionHint(card.promotion)].filter(Boolean).join(' · ');
+    const hint = [card.variant, card.osi, card.size, promotionHint(card.promotion)].filter(Boolean).join(' · ');
 
     item.innerHTML = `
     <div class="card-row-thumbnail" style="background:${iconBg}">${iconSvg}</div>
@@ -210,13 +211,18 @@ function createCardItem(card) {
       <div class="card-row-name">${escapeHtml(cardName)}</div>
       <div class="card-row-hint">${escapeHtml(hint)}</div>
     </div>
+    ${
+        isBareElement
+            ? ''
+            : `
     <button class="card-row-edit" aria-label="Edit in Studio" title="Edit in Studio">
       ${window.MASIcons ? window.MASIcons.get('Edit', 'S') : ''}
-    </button>
+    </button>`
+    }
   `;
 
     item.addEventListener('click', (e) => {
-        if (e.target.closest('.card-row-edit')) {
+        if (!isBareElement && e.target.closest('.card-row-edit')) {
             openInStudio(card.fragmentId, card.variant, card.locale);
             return;
         }

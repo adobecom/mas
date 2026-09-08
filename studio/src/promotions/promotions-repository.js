@@ -212,6 +212,19 @@ function getProjectGeos(project) {
 }
 
 /**
+ * Resolves the geos configured on the promotion project carrying the given tag. Reads the
+ * promotions list store so the geo picker and the save-time validation share one source.
+ * @param {string} promoTagId
+ * @param {() => Promise<void>} loadPromotions
+ * @returns {Promise<string[]>}
+ */
+export async function getProjectGeosForTag(promoTagId, loadPromotions) {
+    if (!promoTagId) return [];
+    const project = findProjectByTag(await getPromotionProjectsForProbe(loadPromotions), promoTagId);
+    return project?.getFieldValues?.('geos') ?? [];
+}
+
+/**
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragment - the promo variation fragment being saved
  * @param {string[]} geoTags - the pznTags currently set on the fragment

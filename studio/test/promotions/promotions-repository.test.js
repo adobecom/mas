@@ -5,6 +5,7 @@ import {
     assertPromoVariationGeoTagsValid,
     buildPromoVariationParentRefreshCallback,
     createPromoVariation,
+    getProjectGeosForTag,
     getPromotionProjectsForProbe,
     getPublishedAttachedPromoVariations,
     getUnpublishedAttachedPromoVariations,
@@ -61,6 +62,53 @@ describe('promotions-repository', () => {
 
             expect(loadPromotions.called).to.be.false;
             expect(projects).to.deep.equal([]);
+        });
+    });
+
+    describe('getProjectGeosForTag', () => {
+        const makeProject = (tag, geos) => ({
+            get: () => ({
+                getFieldValues: (name) => {
+                    if (name === 'tags') return [tag];
+                    if (name === 'geos') return geos;
+                    return [];
+                },
+            }),
+        });
+
+        it('returns the geos of the project matching the promotion tag', async () => {
+            Store.promotions.list.data.set([
+                makeProject('mas:promotion/spring-sale', ['mas:pzn/country/de']),
+                makeProject('mas:promotion/black-friday', ['mas:pzn/country/ar', 'mas:pzn/country/fr']),
+            ]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+
+            const geos = await getProjectGeosForTag('mas:promotion/black-friday', () => Promise.resolve());
+
+            expect(geos).to.deep.equal(['mas:pzn/country/ar', 'mas:pzn/country/fr']);
+        });
+
+        it('returns an empty list when no project carries the promotion tag', async () => {
+            Store.promotions.list.data.set([makeProject('mas:promotion/spring-sale', ['mas:pzn/country/de'])]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+
+            const geos = await getProjectGeosForTag('mas:promotion/black-friday', () => Promise.resolve());
+
+            expect(geos).to.deep.equal([]);
+        });
+
+        it('loads promotions when the list was never fetched', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([makeProject('mas:promotion/black-friday', ['mas:pzn/country/fr'])]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+
+            const geos = await getProjectGeosForTag('mas:promotion/black-friday', loadPromotions);
+
+            expect(loadPromotions.calledOnce).to.be.true;
+            expect(geos).to.deep.equal(['mas:pzn/country/fr']);
         });
     });
 

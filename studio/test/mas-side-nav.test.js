@@ -678,7 +678,7 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
-            const fieldValue = container.querySelector('.field-value');
+            const fieldValue = container.querySelector('.field-value:not(.field-value-empty)');
             expect(fieldValue.textContent).to.not.include('&nbsp;');
             expect(fieldValue.querySelector('s').textContent).to.equal('US$69.99/mo');
         });
@@ -1002,7 +1002,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(trigger.hasAttribute('disabled')).to.be.true;
         });
 
-        it('should render one menu item per copyable field plus the JSON-LD Schema item', () => {
+        it('should render one menu item per copyable field plus the whole-CTAs row and the JSON-LD Schema item', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'description', values: ['Great plan'] },
@@ -1012,8 +1012,21 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
+            // 2 fields + the empty whole-CTAs field row + JSON-LD Schema.
             const items = container.querySelectorAll('sp-menu-item');
-            expect(items.length).to.equal(3);
+            expect(items.length).to.equal(4);
+        });
+
+        it('should render the whole CTAs field as an empty copyable row when there are no CTAs', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const ctasRow = [...container.querySelectorAll('sp-menu-item')].find((item) => item.textContent.includes('CTAs'));
+            expect(ctasRow).to.exist;
+            expect(ctasRow.querySelector('.field-value-empty')).to.exist;
         });
 
         it('should render copy field menu inside a scroll container', () => {

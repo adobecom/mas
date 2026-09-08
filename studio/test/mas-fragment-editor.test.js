@@ -662,6 +662,10 @@ describe('MasFragmentEditor', () => {
 
                 expect(store.get().references.map((ref) => ref.path)).to.deep.equal([promoCopyPath]);
                 expect(store.get().promoVariationProbeNotNeeded).to.equal(true);
+                // The folded-in ref lives under promotions/, so it counts as a promo variation —
+                // the count the editor passes to the related-variations panel now reflects it,
+                // which is what drives that prop-driven panel's re-render.
+                expect(store.get().getPromoVariationCount()).to.equal(1);
             });
 
             it('preserves field edits made while the probe is in flight', async () => {

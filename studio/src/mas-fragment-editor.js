@@ -1029,6 +1029,9 @@ export default class MasFragmentEditor extends LitElement {
                 if (!fragment) return;
                 fragment.references = enriched.references;
                 fragment.promoVariationProbeNotNeeded = true;
+                // Notify re-renders the editor; the recomputed per-block variation counts passed to
+                // mas-related-variations then change (promo 0 -> N), so that prop-driven panel
+                // re-renders even though `fragment` was mutated in place.
                 fragmentStore.notify();
             })
             .catch((error) => console.error('Promo variation probe failed:', error));
@@ -2086,12 +2089,16 @@ export default class MasFragmentEditor extends LitElement {
 
     get relatedVariationsSection() {
         if (!this.fragment || isPromoVariationPath(this.fragment.path)) return nothing;
+        const target = this.relatedVariationsTargetFragment;
         return html`<mas-related-variations
             .fragment=${this.fragment}
-            .targetFragment=${this.relatedVariationsTargetFragment}
+            .targetFragment=${target}
             .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
             .isPromoVariation=${this.isPromoVariationFragment()}
             .repository=${this.repository}
+            .localeVariationCount=${target?.getLocaleVariationCount() ?? 0}
+            .promoVariationCount=${target?.getPromoVariationCount() ?? 0}
+            .groupedVariationCount=${target?.getGroupedVariationCount() ?? 0}
         ></mas-related-variations>`;
     }
 

@@ -1592,6 +1592,18 @@ describe('MasPromotionsEditor', () => {
             const overlay = el.renderRoot.querySelector('.confirm-dialog-overlay');
             expect(overlay).to.not.be.null;
         });
+
+        it('hides the floating quick-actions toolbar while the confirm dialog is open', async () => {
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.exist;
+
+            el.fragment.hasChanges = true;
+            await el.updateComplete;
+            el.promptDiscardChanges();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.be.null;
+        });
     });
 
     describe('delete quick action', () => {
@@ -1743,6 +1755,22 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('duplicate quick action', () => {
+        it('hides the floating quick-actions toolbar while the duplicate dialog is open', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.exist;
+
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.be.null;
+
+            el.duplicateDialogOpen = false;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.exist;
+        });
+
         it('calls createFragment when duplicate-confirmed is dispatched on the dialog', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));

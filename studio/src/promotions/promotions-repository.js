@@ -4,7 +4,9 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
-import { resolveHydratedParentFragment } from '../utils.js';
+import { resolveHydratedParentFragment, normalizeKey } from '../utils.js';
+import { buildPromotionDuplicatePayload } from './promotion-editor-utils.js';
+import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
 
@@ -194,4 +196,51 @@ export async function probePromoVariationsForFragment(aem, defaultPath, promoTag
  */
 export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
     return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId);
+}
+
+/**
+ * Clones each promo variation attached to `sourcePromotion` under `newPromoTagId` into independent
+ * fragments, resolving each one's actual source (default fragment or pzn variation).
+ * Runs sequentially since createPromoVariation resolves sibling-index/geo collisions against current AEM state per source fragment.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} sourcePromotion
+ * @param {string} newPromoTagId
+ * @returns {Promise<void>}
+ */
+async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTagId) {
+    const existingVariations = await promotionVariations.getAllAttachedPromoVariations(aem, sourcePromotion);
+    const attachedFragmentPaths = sourcePromotion.getFieldValues?.('fragments') || [];
+    for (const variation of existingVariations) {
+        const sourceFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+            aem,
+            variation.path,
+            variation.id,
+            attachedFragmentPaths,
+        );
+        if (!sourceFragment) continue;
+        await promotionVariations.createPromoVariation(aem, sourceFragment.id, newPromoTagId, variation.pznTags || [], []);
+    }
+}
+
+/**
+ * Duplicates a promotion project's settings and title/tag under a new name.
+ * When `duplicateVariations` is true, also clones every attached promo variation as an independent fragment.
+ * @param {{ createFragment: Function, getPromotionsPath: () => string, aem: import('../aem/aem.js').AEM }} repository
+ * @param {Object} sourcePromotion
+ * @param {{ title: string, duplicateVariations?: boolean }} options
+ * @returns {Promise<Object>}
+ */
+export async function duplicatePromotionProject(repository, sourcePromotion, { title, duplicateVariations = false } = {}) {
+    const payload = {
+        ...buildPromotionDuplicatePayload(sourcePromotion, title),
+        parentPath: repository.getPromotionsPath(),
+        modelId: PROMOTION_MODEL_ID,
+    };
+    const newPromotion = await repository.createFragment(payload, false);
+    if (duplicateVariations) {
+        const slug = normalizeKey(title?.trim());
+        const newPromoTagId = slug ? `${TAG_PROMOTION_PREFIX}${slug}` : null;
+        if (newPromoTagId) await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+    }
+    return newPromotion;
 }

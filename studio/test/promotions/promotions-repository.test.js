@@ -4,6 +4,7 @@ import Store from '../../src/store.js';
 import {
     buildPromoVariationParentRefreshCallback,
     createPromoVariation,
+    duplicatePromotionProject,
     getPromotionProjectsForProbe,
     getPublishedAttachedPromoVariations,
     getUnpublishedAttachedPromoVariations,
@@ -378,6 +379,157 @@ describe('promotions-repository', () => {
             expect(result.promoVariationProbeNotNeeded).to.be.true;
             expect(result.references).to.deep.equal(fragmentData.references);
             expect(result.path).to.equal(fragmentData.path);
+        });
+    });
+
+    describe('duplicatePromotionProject', () => {
+        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const promoVariationPath = `${promoFolder}/my-card`;
+
+        function makeSourcePromotion() {
+            return {
+                fields: [
+                    { name: 'title', type: 'text', values: ['Black Friday'] },
+                    { name: 'tags', type: 'tag', multiple: true, values: ['mas:promotion/black-friday'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [defaultPath] },
+                ],
+                tags: [{ id: 'mas:promotion/black-friday' }],
+                getFieldValues: (name) =>
+                    name === 'fragments' ? [defaultPath] : name === 'tags' ? ['mas:promotion/black-friday'] : [],
+            };
+        }
+
+        it('creates the duplicated project fragment via repository.createFragment', async () => {
+            const newPromotion = { id: 'new-promo-1' };
+            const repository = {
+                createFragment: sandbox.stub().resolves(newPromotion),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem: { sites: { cf: { fragments: { search: makeSearchStub() } } } },
+            };
+
+            const result = await duplicatePromotionProject(repository, makeSourcePromotion(), { title: 'Black Friday copy' });
+
+            expect(result).to.deep.equal(newPromotion);
+            expect(repository.createFragment.calledOnce).to.be.true;
+            const [payload, addToStoreList] = repository.createFragment.firstCall.args;
+            expect(payload.parentPath).to.equal('/content/dam/mas/promotions');
+            expect(payload.fields.find((f) => f.name === 'title').values).to.deep.equal(['Black Friday copy']);
+            expect(payload.fields.find((f) => f.name === 'tags').values).to.deep.equal(['mas:promotion/black-friday-copy']);
+            expect(addToStoreList).to.be.false;
+        });
+
+        it('does not probe or clone promo variations when duplicateVariations is false', async () => {
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }] });
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem: { sites: { cf: { fragments: { search } }, createFragmentCopy: sandbox.stub() } },
+            };
+
+            await duplicatePromotionProject(repository, makeSourcePromotion(), {
+                title: 'Black Friday copy',
+                duplicateVariations: false,
+            });
+
+            expect(search.called).to.be.false;
+        });
+
+        it('clones each attached promo variation under the new promotion tag when duplicateVariations is true', async () => {
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }] });
+            const createdVariation = { id: 'new-promo-var-1', path: promoVariationPath };
+            const getById = sandbox.stub();
+            getById
+                .withArgs('existing-var')
+                .resolves({ id: 'existing-var', path: promoVariationPath, tags: [{ id: 'mas:promotion/black-friday' }] });
+            getById.withArgs('default-frag-1').resolves({ id: 'default-frag-1', path: defaultPath, tags: [] });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            search,
+                            getByPath: sandbox
+                                .stub()
+                                .withArgs(defaultPath)
+                                .resolves({ id: 'default-frag-1', path: defaultPath, fields: [] }),
+                            getById,
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox.stub().resolves(createdVariation),
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-1' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem,
+            };
+
+            await duplicatePromotionProject(repository, makeSourcePromotion(), {
+                title: 'Black Friday copy',
+                duplicateVariations: true,
+            });
+
+            expect(aem.createFragmentCopy.calledOnce).to.be.true;
+            const newTags = aem.saveTags.firstCall.args[0].newTags;
+            expect(newTags).to.include('mas:promotion/black-friday-copy');
+            expect(newTags).to.not.include('mas:promotion/black-friday');
+        });
+
+        it('clones a promo variation sourced from a PZN variation using that PZN fragment as source, not the default', async () => {
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/my-card/pzn/edu';
+            const search = makeSearchStub({
+                [promoFolder]: [],
+                [groupedPromoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoPath, status: 'DRAFT', fields: [] }],
+            });
+            const getById = sandbox.stub();
+            getById
+                .withArgs('grouped-promo-var-id')
+                .resolves({ id: 'grouped-promo-var-id', path: groupedPromoPath, tags: [{ id: 'mas:promotion/black-friday' }] });
+            getById.withArgs('grouped-source-id').resolves({ id: 'grouped-source-id', path: groupedSourcePath, tags: [] });
+            getById.withArgs('default-frag-1').resolves({ id: 'default-frag-1', path: defaultPath, tags: [] });
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(groupedSourcePath).resolves({ id: 'grouped-source-id', path: groupedSourcePath, fields: [] });
+            getByPath.withArgs(defaultPath).resolves({ id: 'default-frag-1', path: defaultPath, fields: [] });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            search,
+                            getById,
+                            getByPath,
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }),
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox
+                                .stub()
+                                .resolves({ id: 'new-grouped-promo-var', path: groupedPromoPath }),
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-grouped-promo-var' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem,
+            };
+
+            await duplicatePromotionProject(repository, makeSourcePromotion(), {
+                title: 'Black Friday copy',
+                duplicateVariations: true,
+            });
+
+            expect(getById.calledWith('grouped-source-id')).to.be.true;
+            expect(getById.calledWith('default-frag-1')).to.be.false;
         });
     });
 

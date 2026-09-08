@@ -46,7 +46,10 @@ import {
     splitPromotionTagsFieldValues,
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
+    isPromotionTitleTaken,
+    buildPromotionDuplicatePayload,
 } from '../../src/promotions/promotion-editor-utils.js';
+import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
@@ -1236,6 +1239,92 @@ describe('promotion-editor-utils', () => {
                 'geos',
                 'fragments',
             ]);
+        });
+    });
+
+    describe('isPromotionTitleTaken', () => {
+        it('returns true when a case-insensitive match exists', () => {
+            expect(isPromotionTitleTaken('black friday', ['Black Friday', 'Cyber Monday'])).to.be.true;
+        });
+
+        it('returns false when no match exists', () => {
+            expect(isPromotionTitleTaken('New Title', ['Black Friday', 'Cyber Monday'])).to.be.false;
+        });
+
+        it('ignores leading/trailing whitespace when comparing', () => {
+            expect(isPromotionTitleTaken('  Black Friday  ', ['Black Friday'])).to.be.true;
+        });
+
+        it('returns false for an empty title', () => {
+            expect(isPromotionTitleTaken('', ['Black Friday'])).to.be.false;
+        });
+
+        it('returns false when existingTitles is empty or missing', () => {
+            expect(isPromotionTitleTaken('Black Friday', [])).to.be.false;
+            expect(isPromotionTitleTaken('Black Friday')).to.be.false;
+        });
+
+        it('treats spaces and dashes as equivalent, matching the AEM slug collision (normalizeKey)', () => {
+            expect(isPromotionTitleTaken('Black Friday', ['Black-Friday'])).to.be.true;
+        });
+
+        it('treats titles differing only by punctuation as equivalent, matching normalizeKey', () => {
+            expect(isPromotionTitleTaken('Q3 FY26 BTSPromo LATM!', ['Q3-FY26-BTSPromo-LATM'])).to.be.true;
+        });
+    });
+
+    describe('buildPromotionDuplicatePayload', () => {
+        function makeSourceFragment(fields) {
+            return { fields };
+        }
+
+        it('sets the new title as the title field value', () => {
+            const source = makeSourceFragment([{ name: 'title', type: 'text', values: ['Original'] }]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'title').values).to.deep.equal(['Original copy']);
+        });
+
+        it('derives name from a normalized slug of the new title', () => {
+            const source = makeSourceFragment([{ name: 'title', type: 'text', values: ['Original'] }]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original Copy!');
+            expect(payload.name).to.equal('original-copy');
+        });
+
+        it('replaces the old promotion tag with one derived from the new title, keeping other tags', () => {
+            const source = makeSourceFragment([
+                { name: 'tags', type: 'tag', multiple: true, values: ['mas:status/published', 'mas:promotion/original'] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal(['mas:status/published', `${TAG_PROMOTION_PREFIX}original-copy`]);
+        });
+
+        it('drops the collections field', () => {
+            const source = makeSourceFragment([
+                { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: ['/some/collection'] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'collections')).to.be.undefined;
+        });
+
+        it('preserves fragments field values unchanged (default fragments are not duplicated)', () => {
+            const fragmentsPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const source = makeSourceFragment([
+                { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: [fragmentsPath] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'fragments').values).to.deep.equal([fragmentsPath]);
+        });
+
+        it('preserves other field values unchanged', () => {
+            const source = makeSourceFragment([
+                { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'promoCode', type: 'text', values: ['CODE'] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'promoCode').values).to.deep.equal(['CODE']);
         });
     });
 });

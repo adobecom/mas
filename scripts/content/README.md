@@ -93,3 +93,56 @@ node bulk-publish.mjs \
 ```
 
 Exit codes: `0` on full success, `1` on HTTP error or bad usage, `2` if any paths failed (summary still printed).
+
+# fix-extra-options-quotes.mjs
+
+Repairs card fragments whose `data-extra-options` attribute has unescaped inner
+quotes (pre-GLAAS-11333 CATS-i corruption), escaping them to `&quot;`. Scans
+one surface/locale folder, writes changed fragments in parallel (unless
+`--dry-run`), and emits a `.txt` of Studio deep-links for building a
+bulk-publish project. Does not publish.
+
+Before each update it saves the fragment's original payload to
+`fragments/<last-folder-token>/<fragment-id>.json` (e.g. `--folder
+/content/dam/mas/adobe-home` → `fragments/adobe-home/<id>.json`) so a bad run
+can be rolled back. Backups are skipped in `--dry-run`.
+
+Flags:
+
+- `--folder <path>`: surface/locale folder to scan (required).
+- `--dry-run`: report affected fragments without writing.
+- `--limit <n>`: stop after `n` affected fragments (`--limit 1` = first only).
+- `--concurrency <n>`: number of fragments written in parallel (default 10).
+  This bounds the burst of author-tier writes — lower it to be gentler.
+
+Invalid `--limit` / `--concurrency` values (non-integer or negative) fail fast
+with exit `1` rather than silently disabling the flag.
+
+Assumes flat (non-nested) `data-extra-options` JSON, which is all the Studio UI
+can author; a nested `{…{…}…}` value would not be matched.
+
+The escape logic mirrors the IO corrector (`fixDataExtraOptionsInValue` in
+`io/www/src/fragment/transformers/corrector.js`) for the corruption this script
+targets, but parity is not exact: this script also scans the `cta` field (the
+corrector only handles `ctas`), and it does not perform the corrector's global
+`&quot;` un-escape pass — it only escapes unescaped inner quotes.
+
+Exit codes: `0` all good; `1` bad usage; `2` one or more PUTs failed (the
+failed fragment ids/paths are printed and excluded from the report).
+
+```sh
+export MAS_IMS_TOKEN="your-ims-token"
+export MAS_API_KEY="mas-studio"
+
+# preview only the first affected fragment
+node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
+    --folder /content/dam/mas/ccd/de_DE --limit 1 --dry-run
+
+# repair the whole folder, 10 parallel writers (default)
+node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
+    --folder /content/dam/mas/ccd/de_DE
+
+# repair with 20 parallel writers
+node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
+    --folder /content/dam/mas/ccd/de_DE --concurrency 20
+```

@@ -73,10 +73,13 @@ class CardOverlay {
 
         const icons = window.MASIcons;
         const isCollection = cardData.elementType === 'collection';
+        const isBareElement = cardData.elementType === 'price' || cardData.elementType === 'cta';
         const headerLabel = isCollection
             ? `Collection: ${this.escapeHtml(cardData.cardName)}`
             : this.escapeHtml(cardData.cardName);
         const promotion = !isCollection && window.MASPromo ? window.MASPromo.readElementPromotion(cardData.element) : null;
+        const idLabel = isBareElement ? 'OSI' : 'Fragment ID';
+        const idValue = isBareElement ? cardData.osi : cardData.fragmentId;
         panel.innerHTML = `
       <div class="mas-ext-panel-header">
         <h3>${headerLabel}</h3>
@@ -88,14 +91,14 @@ class CardOverlay {
         <section class="mas-ext-section mas-ext-section-basic">
           <h4 class="mas-ext-section-title">Basic info</h4>
           <div class="mas-ext-field">
-            <span class="mas-ext-field-label">Fragment ID</span>
-            <span class="mas-ext-field-value mas-ext-mono">${this.escapeHtml(cardData.fragmentId)}</span>
-            <button class="mas-ext-icon-btn mas-ext-copy-btn" data-value="${this.escapeAttr(cardData.fragmentId)}" aria-label="Copy Fragment ID">
+            <span class="mas-ext-field-label">${idLabel}</span>
+            <span class="mas-ext-field-value mas-ext-mono">${this.escapeHtml(idValue)}</span>
+            <button class="mas-ext-icon-btn mas-ext-copy-btn" data-value="${this.escapeAttr(idValue)}" aria-label="Copy ${idLabel}">
               ${icons.get('Copy', 'S')}
             </button>
           </div>
           ${
-              isCollection
+              isCollection || isBareElement
                   ? ''
                   : `
           <div class="mas-ext-field">
@@ -114,14 +117,23 @@ class CardOverlay {
                   : ''
           }
           ${this.renderPromotionField(promotion)}
+          ${
+              isBareElement
+                  ? ''
+                  : `
           <div class="mas-ext-field">
             <span class="mas-ext-field-label">Path</span>
             <span class="mas-ext-field-value mas-ext-mono mas-ext-path-value">Loading…</span>
             <button class="mas-ext-icon-btn mas-ext-copy-btn mas-ext-copy-path-btn" data-value="" aria-label="Copy Path" style="visibility:hidden">
               ${icons.get('Copy', 'S')}
             </button>
-          </div>
+          </div>`
+          }
         </section>
+        ${
+            isBareElement
+                ? ''
+                : `
         <hr class="mas-ext-divider"/>
         <section class="mas-ext-section mas-ext-section-variation" style="display:none">
           <h4 class="mas-ext-section-title">Variation info</h4>
@@ -138,8 +150,13 @@ class CardOverlay {
           <div class="mas-ext-section-content">
             <div class="mas-ext-loading">Loading fragment data…</div>
           </div>
-        </section>
+        </section>`
+        }
       </div>
+      ${
+          isBareElement
+              ? ''
+              : `
       <div class="mas-ext-panel-footer">
         <button class="mas-ext-btn mas-ext-btn-secondary mas-ext-refresh-btn">
           ${icons.get('Refresh', 'S')}
@@ -149,22 +166,12 @@ class CardOverlay {
           ${icons.get('Edit', 'S')}
           <span>Edit in Studio</span>
         </button>
-      </div>
+      </div>`
+      }
     `;
 
         const closeBtn = panel.querySelector('.mas-ext-close-btn');
         closeBtn.addEventListener('click', () => this.closePanel(cardData.fragmentId));
-
-        const editBtn = panel.querySelector('.mas-ext-edit-btn');
-        editBtn.addEventListener('click', () => {
-            window.MASStudioLinker.openInStudio(cardData.fragmentId, {
-                variant: cardData.variant,
-                locale: cardData.locale,
-            });
-        });
-
-        const refreshBtn = panel.querySelector('.mas-ext-refresh-btn');
-        refreshBtn.addEventListener('click', () => this.refreshFragmentData(cardData.fragmentId));
 
         const copyBtns = panel.querySelectorAll('.mas-ext-copy-btn');
         copyBtns.forEach((btn) => {
@@ -178,6 +185,28 @@ class CardOverlay {
             });
         });
 
+        this.positionPanel(panel, cardData.element);
+        document.body.appendChild(panel);
+
+        const overlayData = this.overlays.get(cardData.fragmentId);
+        if (overlayData) {
+            overlayData.panel = panel;
+        }
+        this.expandedOverlays.add(cardData.fragmentId);
+
+        if (isBareElement) return;
+
+        const editBtn = panel.querySelector('.mas-ext-edit-btn');
+        editBtn.addEventListener('click', () => {
+            window.MASStudioLinker.openInStudio(cardData.fragmentId, {
+                variant: cardData.variant,
+                locale: cardData.locale,
+            });
+        });
+
+        const refreshBtn = panel.querySelector('.mas-ext-refresh-btn');
+        refreshBtn.addEventListener('click', () => this.refreshFragmentData(cardData.fragmentId));
+
         const toggleSection = panel.querySelector('.mas-ext-section-toggle');
         toggleSection.addEventListener('click', () => {
             const section = panel.querySelector('[data-section="details"]');
@@ -187,14 +216,6 @@ class CardOverlay {
             }
         });
 
-        this.positionPanel(panel, cardData.element);
-        document.body.appendChild(panel);
-
-        const overlayData = this.overlays.get(cardData.fragmentId);
-        if (overlayData) {
-            overlayData.panel = panel;
-        }
-        this.expandedOverlays.add(cardData.fragmentId);
         this.loadFragmentDetails(cardData.fragmentId);
     }
 

@@ -530,7 +530,7 @@ class MasField extends HTMLElement {
             content.innerHTML = html;
             this.#upgradeCheckoutLinks(content);
             this.#decorateTooltips(content);
-            this.#stampContext(content);            
+            this.#stampContext(content);
             return;
         }
         content.textContent = html == null ? '' : String(html);

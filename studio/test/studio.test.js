@@ -9,6 +9,7 @@ const PAGE_GETTERS = [
     { getter: 'placeholders', matchingPages: [PAGE_NAMES.PLACEHOLDERS], tag: 'mas-placeholders' },
     { getter: 'settings', matchingPages: [PAGE_NAMES.SETTINGS, PAGE_NAMES.SETTINGS_EDITOR], tag: 'mas-settings' },
     { getter: 'masks', matchingPages: [PAGE_NAMES.MASKS, PAGE_NAMES.MASKS_EDITOR], tag: 'mas-masks' },
+    { getter: 'offerMapping', matchingPages: [PAGE_NAMES.OFFER_MAPPING], tag: 'mas-offer-mapping' },
     { getter: 'splashScreen', matchingPages: [PAGE_NAMES.WELCOME], tag: 'mas-splash-screen' },
     { getter: 'versionPage', matchingPages: [PAGE_NAMES.VERSION], tag: 'version-page' },
     { getter: 'fragmentEditor', matchingPages: [PAGE_NAMES.FRAGMENT_EDITOR], tag: 'mas-fragment-editor' },

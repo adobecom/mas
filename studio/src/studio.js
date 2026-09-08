@@ -316,6 +316,8 @@ class MasStudio extends LitElement {
             case PAGE_NAMES.MASKS:
             case PAGE_NAMES.MASKS_EDITOR:
                 return this.masks;
+            case PAGE_NAMES.OFFER_MAPPING:
+                return this.offerMapping;
             default:
                 return nothing;
         }

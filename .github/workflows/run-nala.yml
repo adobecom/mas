@@ -15,6 +15,8 @@ permissions:
     pull-requests: read
 
 env:
+    # Keep in sync with the branch-protection required-approval count. These are
+    # separate sources of truth and will drift if one is changed without the other.
     REQUIRED_APPROVALS: 2
 
 # Prevent multiple runs from happening at the same time. Keyed on the PR number
@@ -91,7 +93,13 @@ jobs:
                                       username: login,
                                   });
                               return data.permission === 'admin' || data.permission === 'write';
-                          } catch {
+                          } catch (error) {
+                              // Throws on insufficient token scope, transient 403/5xx,
+                              // rate limiting, or an unresolvable login. Log it so a
+                              // dropped approver is diagnosable instead of silent.
+                              core.warning(
+                                  `Could not resolve write permission for ${login}; not counting their approval: ${error.message}`,
+                              );
                               return false;
                           }
                       };

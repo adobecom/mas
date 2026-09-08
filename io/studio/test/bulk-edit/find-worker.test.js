@@ -59,6 +59,11 @@ function load(overrides = {}) {
                 }
                 return { total: results.length, byLocale };
             },
+            normalizeLimitKey: (value) => {
+                const limit = Number.parseInt(value, 10);
+                if (value === undefined) return null;
+                return Number.isFinite(limit) && limit > 0 ? limit : 1000;
+            },
             '@noCallThru': true,
         },
         '../common.js': { fetchOdin: async () => ({}), '@noCallThru': true },
@@ -171,6 +176,25 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         const done = patches[patches.length - 1];
         expect(done.status).to.equal('DONE');
         expect(done.total).to.equal(1001);
+    });
+    it('stops collecting at the match limit and finishes DONE', async () => {
+        const { mod, patches, exports } = load({
+            pages: [
+                [{ id: 'a', path: '/p/a', hit: 'A' }],
+                [{ id: 'b', path: '/p/b', hit: 'B' }],
+                [{ id: 'c', path: '/p/c', hit: 'C' }],
+            ],
+            job: {
+                params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false, limit: 2 },
+                status: 'RUNNING',
+            },
+        });
+        const result = await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
+        expect(result.status).to.equal('DONE');
+        expect(result.total).to.equal(2);
+        const exportPayload = exports.find((entry) => entry.payload)?.payload;
+        expect(exportPayload.items.map((r) => r.id)).to.deep.equal(['a', 'b']);
+        expect(patches[patches.length - 1].status).to.equal('DONE');
     });
     it('marks FAILED and rethrows on AEM error', async () => {
         const { mod, patches } = load({ error: true });

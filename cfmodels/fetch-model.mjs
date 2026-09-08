@@ -67,6 +67,7 @@ function fieldLabelOf(field) {
 
 function simplifyField(field) {
     const fieldLabel = fieldLabelOf(field);
+    const maxLength = field.maxlength !== undefined ? Number(field.maxlength) : undefined;
 
     if (field.valueType === 'string/enum') {
         const optionNodes = Object.values(field.optionsmultifield ?? {}).filter((node) => node?.fieldValue !== undefined);
@@ -84,6 +85,7 @@ function simplifyField(field) {
     return {
         fieldLabel,
         type: multiple ? `${baseType}[]` : baseType,
+        ...(maxLength !== undefined && { maxLength }),
     };
 }
 

@@ -286,6 +286,13 @@ runTests(async () => {
             return wi;
         }
 
+        // mini-compare-chart projects whats-included through the
+        // "footer-rows" slot; plans exposes its own "whats-included" slot.
+        const WHATS_INCLUDED_SLOT_BY_VARIANT = {
+            'mini-compare-chart': 'footer-rows',
+            plans: 'whats-included',
+        };
+
         async function mountCard(variant, whatsIncluded) {
             const mount = document.createElement('div');
             mount.style.cssText =

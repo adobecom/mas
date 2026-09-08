@@ -14,6 +14,7 @@ import {
     parseLocaleCode,
     isKnownLocale,
     geoCacheKey,
+    resolveTerritoryCountries,
     PLACEHOLDERS_BASELINE_SURFACE,
     getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
@@ -439,6 +440,32 @@ describe('locales', function () {
         it('handles malformed locale (no underscore) without crashing', function () {
             expect(geoCacheKey('fr', undefined)).to.deep.equal({ locale: 'fr', country: null });
             expect(geoCacheKey('fr', 'FR')).to.deep.equal({ locale: 'fr', country: 'FR' });
+        });
+    });
+
+    describe('resolveTerritoryCountries', () => {
+        it('maps es_PR to PR content country and US wcs country', () => {
+            expect(resolveTerritoryCountries('es_PR', 'US')).to.deep.equal({ country: 'PR', wcsCountry: 'US' });
+        });
+        it('maps es_PR even when no incoming country is provided', () => {
+            expect(resolveTerritoryCountries('es_PR', undefined)).to.deep.equal({ country: 'PR', wcsCountry: 'US' });
+        });
+        it('does NOT map en_PR (excluded)', () => {
+            expect(resolveTerritoryCountries('en_PR', 'US')).to.deep.equal({ country: 'US', wcsCountry: 'US' });
+        });
+        it('passes through a normal locale unchanged', () => {
+            expect(resolveTerritoryCountries('es_ES', 'ES')).to.deep.equal({ country: 'ES', wcsCountry: 'ES' });
+        });
+        it('passes through en_US unchanged', () => {
+            expect(resolveTerritoryCountries('en_US', 'US')).to.deep.equal({ country: 'US', wcsCountry: 'US' });
+        });
+        it('does not throw on undefined locale', () => {
+            expect(resolveTerritoryCountries(undefined, 'US')).to.deep.equal({ country: 'US', wcsCountry: 'US' });
+        });
+        it('returns a fresh object (mutating the result does not corrupt the map)', () => {
+            const first = resolveTerritoryCountries('es_PR', 'US');
+            first.country = 'XX';
+            expect(resolveTerritoryCountries('es_PR', 'US')).to.deep.equal({ country: 'PR', wcsCountry: 'US' });
         });
     });
 });

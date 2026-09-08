@@ -31,6 +31,7 @@ export const defaultLiterals = {
     alternativePriceAriaLabel: 'Alternatively at',
     strikethroughAriaLabel: 'Regularly at',
     planTypeLabel: '{planType, select, ABM {Annual, billed monthly} other {}}',
+    discountLabel: '{discount}%',
 };
 
 const log = createLog('ConsonantTemplates/price');
@@ -460,7 +461,7 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
                   },
                   value,
                   attributes,
-              )}&nbsp;`
+              )}${context.wrapClauses ? ' ' : '&nbsp;'}`
             : ''
     }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}`;
 };
@@ -524,7 +525,11 @@ const createPromoPriceWithAnnualTemplate =
             shouldDisplayOldPrice
                 ? `${createPriceTemplate({
                       displayStrikethrough: true,
-                  })(ctxStAnnual, value, attributes)}&nbsp;`
+                  })(
+                      ctxStAnnual,
+                      value,
+                      attributes,
+                  )}${context.wrapClauses ? ' ' : '&nbsp;'}`
                 : ''
         }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
             {

@@ -1,19 +1,23 @@
 {
     "title": {
         "fieldLabel": "Title",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "status": {
         "fieldLabel": "status",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "targetLocales": {
         "fieldLabel": "Target Locales",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "completedLocales": {
         "fieldLabel": "Completed Locales",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "submissionDate": {
         "fieldLabel": "submissionDate",

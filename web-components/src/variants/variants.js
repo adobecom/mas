@@ -18,6 +18,10 @@ import {
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
 import { Pro, PRO_AEM_FRAGMENT_MAPPING } from './pro.js';
 import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
+import {
+    BrandConciergeProduct,
+    BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING,
+} from './brand-concierge-product.js';
 import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
 import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
 import {
@@ -39,6 +43,12 @@ import {
     COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
 } from './compare-chart-column.js';
 import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
+import { Marquee, MARQUEE_AEM_FRAGMENT_MAPPING } from './marquee.js';
+import { Faq, FAQ_AEM_FRAGMENT_MAPPING } from './faq.js';
+import {
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+} from './banner-blade.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -129,6 +139,12 @@ registerVariant(
     Product.variantStyle,
 );
 registerVariant(
+    'brand-concierge-product',
+    BrandConciergeProduct,
+    BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING,
+    BrandConciergeProduct.variantStyle,
+);
+registerVariant(
     'segment',
     Segment,
     SEGMENT_AEM_FRAGMENT_MAPPING,
@@ -172,6 +188,19 @@ registerVariant(
     FriesCard,
     FRIES_AEM_FRAGMENT_MAPPING,
     FriesCard.variantStyle,
+);
+registerVariant(
+    'marquee',
+    Marquee,
+    MARQUEE_AEM_FRAGMENT_MAPPING,
+    Marquee.variantStyle,
+);
+registerVariant('faq', Faq, FAQ_AEM_FRAGMENT_MAPPING, Faq.variantStyle);
+registerVariant(
+    'banner-blade',
+    BannerBlade,
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+    BannerBlade.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

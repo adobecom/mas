@@ -132,8 +132,7 @@ describe('MasSelectionPanel', () => {
             expect(urls).to.have.length(2);
             expect(urls[0]).to.include('query=uuid-1');
             expect(urls[1]).to.include('query=uuid-2');
-            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 code snippets') }))).to.be
-                .true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 links') }))).to.be.true;
         });
 
         it('joins multiple html entries with <br>', async () => {
@@ -327,7 +326,7 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.true;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.true;
         });
 
         it('does not show Copy URLs button when nothing is selected', async () => {
@@ -335,7 +334,7 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.false;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.false;
         });
 
         it('shows Copy URLs button for multi-selection', async () => {
@@ -345,7 +344,7 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.true;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.true;
         });
     });
 });

@@ -4,6 +4,7 @@ import { PZN_COUNTRY_TAG_PATH_PREFIX } from '../src/constants.js';
 import {
     fragmentHasPersonalizationTag,
     getFragmentNonCountryPznTagIds,
+    isLocaleTagId,
     isPznCountryTagId,
     isPznCountryTagPath,
     PZN_TAG_ID_PREFIX,
@@ -46,6 +47,21 @@ describe('personalization-utils', () => {
         it('returns false for non-country mas:pzn ids', () => {
             expect(isPznCountryTagId('mas:pzn/general')).to.be.false;
             expect(isPznCountryTagId('mas:pzn/segment')).to.be.false;
+        });
+    });
+
+    describe('isLocaleTagId', () => {
+        it('returns false for empty or missing id', () => {
+            expect(isLocaleTagId('')).to.be.false;
+            expect(isLocaleTagId(undefined)).to.be.false;
+        });
+
+        it('matches mas:locale/ tag ids', () => {
+            expect(isLocaleTagId('mas:locale/fr_FR')).to.be.true;
+        });
+
+        it('returns false for non-locale tag ids', () => {
+            expect(isLocaleTagId('mas:pzn/general')).to.be.false;
         });
     });
 

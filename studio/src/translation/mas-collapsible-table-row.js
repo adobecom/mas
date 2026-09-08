@@ -2,13 +2,22 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
-import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
+import { getItemTypeLabel, renderInheritedTagsNotice, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
-import { getPromotionInfo, getPromotionTagFromFragment, findPromotionProjectIdByTag } from '../promotions/promotion-model.js';
-import { getGroupedVariationTagsValue } from '../editors/variation-utils.js';
+import {
+    getPromotionInfo,
+    getPromotionTagFromFragment,
+    findPromotionProjectIdByTag,
+    isPromoVariationPath,
+} from '../promotions/promotion-model.js';
+import {
+    getGroupedVariationTagsValue,
+    getPromoVariationGeoTagsValue,
+    getPromoVariationPersonalizationTagLabels,
+} from '../editors/variation-utils.js';
 import Store from '../store.js';
 import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
 import '../aem/aem-tag-picker-field.js';
@@ -216,18 +225,20 @@ export class MasCollapsibleTableRow extends LitElement {
                                   </sp-table-cell>`
                                 : nothing}
                             ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
-                            ${manageOnly
-                                ? html`<sp-table-cell class="table-icon-cell">
-                                      <sp-action-button
-                                          quiet
-                                          icon-only
-                                          aria-label="Remove grouped variation from this promotion"
-                                          @click=${(e) => this.#toggleSelect(e, variationPath)}
-                                      >
-                                          <sp-icon-close slot="icon"></sp-icon-close>
-                                      </sp-action-button>
-                                  </sp-table-cell>`
-                                : nothing}
+                            ${this.renderActionsCell
+                                ? this.renderActionsCell(variation)
+                                : manageOnly
+                                  ? html`<sp-table-cell class="table-icon-cell">
+                                        <sp-action-button
+                                            quiet
+                                            icon-only
+                                            aria-label="Remove grouped variation from this promotion"
+                                            @click=${(e) => this.#toggleSelect(e, variationPath)}
+                                        >
+                                            <sp-icon-close slot="icon"></sp-icon-close>
+                                        </sp-action-button>
+                                    </sp-table-cell>`
+                                  : nothing}
                         </sp-table-row>
 
                         ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
@@ -419,16 +430,19 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderGeosTags(item) {
-        const geosValue = getGroupedVariationTagsValue(item) || '';
+        const geosValue =
+            (this.renderActionsCell ? getPromoVariationGeoTagsValue(item) : getGroupedVariationTagsValue(item)) || '';
         return html`<sp-table-cell class="details-cell">
             <div class="details-label">Geos variation tags</div>
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                display-value
-                top="locale,pzn"
-                value="${geosValue}"
-                readonly
-            ></aem-tag-picker-field>
+            ${geosValue
+                ? html`<aem-tag-picker-field
+                      namespace="/content/cq:tags/mas"
+                      display-value
+                      top="locale,pzn"
+                      value="${geosValue}"
+                      readonly
+                  ></aem-tag-picker-field>`
+                : renderInheritedTagsNotice()}
         </sp-table-cell>`;
     }
 
@@ -445,7 +459,8 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderItemType(item) {
-        return html`<sp-table-cell>${getItemTypeLabel(item)}</sp-table-cell>`;
+        const label = this.renderActionsCell && isPromoVariationPath(item?.path) ? 'Promotion' : getItemTypeLabel(item);
+        return html`<sp-table-cell>${label}</sp-table-cell>`;
     }
 
     #getTabLabel(tab) {
@@ -661,8 +676,18 @@ export class MasCollapsibleTableRow extends LitElement {
                 </div>
             </sp-table-cell>
             ${this.renderGeosTags(variation)}
-            <sp-table-cell></sp-table-cell>
-            <sp-table-cell></sp-table-cell>
+            ${this.renderActionsCell
+                ? html`<sp-table-cell class="details-cell">
+                      <div class="details-label">Applies to</div>
+                      <div>${Fragment.isGroupedVariationPath(variation.path) ? 'Grouped variation' : 'Default fragment'}</div>
+                  </sp-table-cell>`
+                : html`<sp-table-cell></sp-table-cell>`}
+            ${this.renderActionsCell && Fragment.isGroupedVariationPath(variation.path)
+                ? html`<sp-table-cell class="details-cell">
+                      <div class="details-label">Grouped variation tags</div>
+                      <div>${getPromoVariationPersonalizationTagLabels(variation)}</div>
+                  </sp-table-cell>`
+                : html`<sp-table-cell></sp-table-cell>`}
         </sp-table-row>`;
     }
 

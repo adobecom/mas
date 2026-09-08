@@ -4,6 +4,7 @@ import {
     tableCellBaseStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
+    textWithTooltipStyles,
 } from '../common/styles/table-styles.css.js';
 
 export const styles = [
@@ -11,6 +12,7 @@ export const styles = [
     tableCellBaseStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
+    textWithTooltipStyles,
     css`
         :host {
             display: block;

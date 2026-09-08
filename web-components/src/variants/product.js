@@ -170,8 +170,10 @@ export class Product extends VariantLayout {
         this.card.querySelector('.merch-short-description')?.remove();
         const span = document.createElement('span');
         span.className = 'merch-short-description';
-        const inner = shortDescEl.querySelector('p') ?? shortDescEl;
-        span.innerHTML = inner.innerHTML;
+        span.innerHTML = shortDescEl.innerHTML;
+        span.querySelectorAll('p').forEach((p) =>
+            p.replaceWith(...p.childNodes),
+        );
         span.querySelectorAll('.icon-button').forEach((btn) => {
             if (btn.dataset.eventsWired) return;
             btn.dataset.eventsWired = '1';
@@ -227,9 +229,14 @@ export class Product extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
 
             legal.setAttribute('data-template', 'legal');
+            legal.dataset.displayPerUnit = 'false';
+            // Optical cards state billing terms in the short description;
+            // suppress the legal plan type to avoid duplicating it.
+            if (headingPrice.dataset.template === 'optical') {
+                legal.dataset.displayPlanType = 'false';
+            }
             headingPrice.closest('[slot="heading-xs"]').appendChild(legal);
             await legal.onceSettled();
-            legal.querySelector('.price-unit-type')?.remove();
         } catch {
             // Proceed with other adjustments
         }
@@ -242,10 +249,10 @@ export class Product extends VariantLayout {
     }
 
     get mainPrice() {
-        const price = this.card.querySelector(
-            `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        const slot = `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}`;
+        return this.card.querySelector(
+            `${slot}[data-template="price"], ${slot}[data-template="optical"]`,
         );
-        return price;
     }
 
     updatePriceQuantity({ detail }) {

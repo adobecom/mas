@@ -16,6 +16,7 @@ import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
 } from '../src/constants.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../io/www/src/fragment/utils/explicit-empty.js';
 
 chai.use(chaiAsPromised);
 
@@ -89,6 +90,38 @@ runTests(async () => {
         });
 
         describe('aem-fragment core functionality', () => {
+            it('normalizes explicit_empty sentinel to empty string in author mode', async () => {
+                const fragmentId = 'sentinel-badge-test';
+                cache.add({
+                    id: fragmentId,
+                    fields: [
+                        {
+                            name: 'badge',
+                            values: [EXPLICIT_EMPTY_SENTINEL],
+                            multiple: false,
+                        },
+                        { name: 'title', values: ['Keep me'], multiple: false },
+                    ],
+                    tags: [],
+                    settings: {},
+                    priceLiterals: {},
+                    dictionary: {},
+                    placeholders: {},
+                });
+
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', fragmentId);
+                aemFragment.setAttribute('author', '');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+
+                expect(aemFragment.data.fields.badge).to.equal('');
+                expect(aemFragment.data.fields.title).to.equal('Keep me');
+
+                aemFragment.remove();
+                cache.clear();
+            });
+
             it('has fragment cache', async () => {
                 expect(cache).to.exist;
                 expect(cache.has('id123')).to.false;
@@ -526,6 +559,36 @@ runTests(async () => {
                 expect(fetch.lastCall.firstArg).to.equal(
                     'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
+            });
+
+            it('does not wait for IMS before using the platform country cookie', async () => {
+                cache.clear();
+                Object.defineProperty(document, 'cookie', {
+                    configurable: true,
+                    get: () => 'ims_country_code=kr',
+                });
+                const existing = document.querySelector('mas-commerce-service');
+                const publishService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    publishService.setAttribute(attr.name, attr.value);
+                }
+                publishService.setAttribute('country', 'CA');
+                publishService.setAttribute('locale', 'en_US');
+                document.body.insertBefore(publishService, existing);
+                publishService.imsCountryPromise = new Promise(() => undefined);
+
+                try {
+                    const aemFragment = addFragment('fragment-cc-all-apps');
+                    await aemFragment.updateComplete;
+                    expect(fetch.lastCall.firstArg).to.equal(
+                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                    );
+                } finally {
+                    publishService.remove();
+                    delete document.cookie;
+                }
             });
 
             it('dispatches aem:error when preview mode returns non-200', async () => {

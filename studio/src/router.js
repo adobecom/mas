@@ -2,11 +2,22 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PAT
 import Store from './store.js';
 import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce, hasNonEmptyCompareChart } from './utils.js';
-import { canAccessSettings, canAccessMasks } from './groups.js';
+import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
+
+// Pages that require access authorization on direct hash/URL navigation, where #getAuthorizedPage
+// (programmatic nav only) never runs — mapped to the per-surface permission gate for reaching them.
+// Both currently share settings access.
+const RESTRICTED_PAGE_ACCESS = {
+    [PAGE_NAMES.SETTINGS]: canAccessSettings,
+    [PAGE_NAMES.SETTINGS_EDITOR]: canAccessSettings,
+    [PAGE_NAMES.MASKS]: canAccessMasks,
+    [PAGE_NAMES.MASKS_EDITOR]: canAccessMasks,
+    [PAGE_NAMES.OFFER_MAPPING]: canAccessOfferMapping,
+};
 
 /**
  * True when the URL hash change only adjusts search-linked params while staying on the same
@@ -66,8 +77,8 @@ export function orderHashParamEntries(entries) {
 }
 
 export class Router extends EventTarget {
-    #settingsAccessRouteWatcher = () => {
-        this.#resolveSettingsAccessRoute();
+    #restrictedAccessRouteWatcher = () => {
+        this.#resolveRestrictedAccessRoute();
     };
 
     constructor(location = window.location) {
@@ -302,46 +313,6 @@ export class Router extends EventTarget {
                 this.isNavigating = false;
             }
         };
-    }
-
-    /**
-     * Navigate to the content table with a specific fragment expanded to show variations.
-     * @param {string} fragmentId - The fragment ID to expand in the variations table
-     */
-    async navigateToVariationsTable(fragmentId) {
-        if (!fragmentId) {
-            console.error('Fragment ID is required for navigation');
-            return;
-        }
-
-        this.isNavigating = true;
-        try {
-            // Check for unsaved changes
-            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
-            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
-
-            if (!confirmed) return;
-
-            const leavingFragmentEditor =
-                Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION;
-
-            // Clear fragment editor state
-            Store.fragmentEditor.fragmentId.set(null);
-            Store.fragmentEditor.loading.set(false);
-            Store.fragments.inEdit.set();
-            Store.search.set((prev) => ({ ...prev, query: fragmentId }));
-
-            // Navigate to content page in table view
-            Store.viewMode.set('default');
-            Store.renderMode.set('table');
-            this.#resetPromotionEditorState();
-            if (leavingFragmentEditor) {
-                this.#snapContentLocaleToParentDefault();
-            }
-            Store.page.set(PAGE_NAMES.CONTENT);
-        } finally {
-            this.isNavigating = false;
-        }
     }
 
     /**
@@ -580,7 +551,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
-        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
+        const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
         if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {
             this.updateHistory();
@@ -636,7 +607,7 @@ export class Router extends EventTarget {
             }
             const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
             this.#syncSearchStoreFromHashParams();
-            const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
+            const redirectedSettingsRoute = this.#enforceRestrictedAccessFromParams();
             if (normalizedSettingsRoute || redirectedSettingsRoute) {
                 this.updateHistory();
             }
@@ -742,6 +713,10 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.MASKS || page === PAGE_NAMES.MASKS_EDITOR;
     }
 
+    #isOfferMappingPage(page) {
+        return page === PAGE_NAMES.OFFER_MAPPING;
+    }
+
     #syncSearchStoreFromHashParams() {
         const currentValue = Store.search.get();
         this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
@@ -760,6 +735,11 @@ export class Router extends EventTarget {
             if (canAccessMasks(Store.surface())) return page;
             Store.masks.creating.set(false);
             Store.masks.fragmentId.set(null);
+            return PAGE_NAMES.WELCOME;
+        }
+        if (this.#isOfferMappingPage(page)) {
+            if (!Store.users.getMeta('loaded')) return page;
+            if (canAccessOfferMapping(Store.surface())) return page;
             return PAGE_NAMES.WELCOME;
         }
         return page;
@@ -781,40 +761,43 @@ export class Router extends EventTarget {
         return true;
     }
 
-    #enforceSettingsAccessFromParams() {
-        const page = this.currentParams.get('page');
-        if (!this.#isSettingsPage(page)) return false;
+    #enforceRestrictedAccessFromParams() {
+        const canAccess = RESTRICTED_PAGE_ACCESS[this.currentParams.get('page')];
+        if (!canAccess) return false;
         if (!Store.users.getMeta('loaded')) {
-            this.#startWatchingSettingsAccessRoute();
+            this.#startWatchingRestrictedAccessRoute();
             return false;
         }
-        this.#stopWatchingSettingsAccessRoute();
-        if (canAccessSettings(Store.surface())) return false;
+        this.#stopWatchingRestrictedAccessRoute();
+        if (canAccess(Store.surface())) return false;
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);
+        // Clear any in-progress editor state for the restricted pages (harmless when not on that page).
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
+        Store.masks.creating.set(false);
+        Store.masks.fragmentId.set(null);
         return true;
     }
 
-    #startWatchingSettingsAccessRoute() {
-        Store.profile.subscribe(this.#settingsAccessRouteWatcher);
-        Store.users.subscribe(this.#settingsAccessRouteWatcher);
+    #startWatchingRestrictedAccessRoute() {
+        Store.profile.subscribe(this.#restrictedAccessRouteWatcher);
+        Store.users.subscribe(this.#restrictedAccessRouteWatcher);
     }
 
-    #stopWatchingSettingsAccessRoute() {
-        Store.profile.unsubscribe(this.#settingsAccessRouteWatcher);
-        Store.users.unsubscribe(this.#settingsAccessRouteWatcher);
+    #stopWatchingRestrictedAccessRoute() {
+        Store.profile.unsubscribe(this.#restrictedAccessRouteWatcher);
+        Store.users.unsubscribe(this.#restrictedAccessRouteWatcher);
     }
 
-    #resolveSettingsAccessRoute() {
+    #resolveRestrictedAccessRoute() {
         this.currentParams ??= new URLSearchParams(this.#hashValue());
-        if (!this.#isSettingsPage(this.currentParams.get('page'))) {
-            this.#stopWatchingSettingsAccessRoute();
+        if (!RESTRICTED_PAGE_ACCESS[this.currentParams.get('page')]) {
+            this.#stopWatchingRestrictedAccessRoute();
             return false;
         }
-        const redirected = this.#enforceSettingsAccessFromParams();
+        const redirected = this.#enforceRestrictedAccessFromParams();
         if (redirected) {
             this.updateHistory();
         }

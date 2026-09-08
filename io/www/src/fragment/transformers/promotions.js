@@ -272,6 +272,20 @@ function parseFragmentPaths(hydratedProject) {
         .filter(Boolean);
 }
 
+function parseGroupedVariationReferences(hydratedProject) {
+    const { references } = hydratedProject;
+    const fragmentRefs = hydratedProject.fields?.fragments ?? [];
+    const map = new Map();
+    for (const refId of fragmentRefs) {
+        const ref = references?.[refId]?.value;
+        const fragmentPath = ref && PATH_TOKENS.exec(ref.path ?? '')?.groups?.fragmentPath;
+        if (fragmentPath && isGroupedVariationFragmentPath(fragmentPath)) {
+            map.set(fragmentPath, ref);
+        }
+    }
+    return map;
+}
+
 function getCachedVariations(preview, key) {
     const store = preview ? JSON.parse(localStorage.getItem('promo-variations') ?? '{}') : promoVariationsCache;
     const entry = store[key];
@@ -369,6 +383,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
+    const groupedVariationReferences = parseGroupedVariationReferences(hydratedProject);
     const offerLines = hydratedProject.fields?.offers ?? [];
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
@@ -396,6 +411,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         promoCode,
         fragmentPaths,
         groupedVariationPaths,
+        groupedVariationReferences,
         offerOverrides,
         offerSubstitutions,
         ignoreVariations,
@@ -516,6 +532,7 @@ async function promotions(context) {
             ignoreVariationOsis: buildIgnoreVariationOsis(project.ignoreVariations ?? [], { regionLocale, country }),
             fragmentPaths: new Set(project.fragmentPaths),
             groupedVariationPaths: new Set(project.groupedVariationPaths),
+            groupedVariationReferences: project.groupedVariationReferences,
             hasWildcard: Boolean(promoMap['*']),
         };
     });

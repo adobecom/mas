@@ -164,6 +164,14 @@ runTests(async () => {
             expect(badge).to.not.exist; // No badge should render without text
         });
 
+        it('should NOT render slotted badge when no badge slot child is present', async () => {
+            const card = document.querySelector(
+                'merch-card[variant="simplified-pricing-express"]',
+            );
+            expect(card.querySelector('[slot="badge"]')).to.not.exist;
+            await delay(100);
+        });
+
         it('should work in dark theme', async () => {
             const darkCard = document.querySelector(
                 '.dark merch-card[variant="simplified-pricing-express"]',

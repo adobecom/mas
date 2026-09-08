@@ -180,6 +180,7 @@ const CCD = [
 ];
 
 const EXPRESS = [
+    { lang: 'ar', country: 'SA' },
     { lang: 'da', country: 'DK' },
     { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
     { lang: 'en', country: 'GB' },

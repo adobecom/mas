@@ -6,6 +6,8 @@ const URL_SEGMENT_ALIASES = {
     hk: { lang: 'zh', country: 'HK' },
 };
 
+const SELECTOR_CARD = 'merch-card, merch-card-collection';
+
 // Mirrors SELECTOR_MAS_INLINE_PRICE / SELECTOR_MAS_CHECKOUT_LINK in web-components/src/constants.js.
 // The extension has no build step to import that module, so these are kept in sync manually.
 const SELECTOR_BARE_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
@@ -17,6 +19,9 @@ const SELECTOR_BARE_ELEMENT = `${SELECTOR_BARE_INLINE_PRICE}, ${SELECTOR_BARE_CT
 // elements it renders, so both the field and its prices/CTAs trace back to a fragment.
 const SELECTOR_MAS_FIELD = 'mas-field';
 const SELECTOR_MAS_FIELD_CONTENT = ':scope > [data-role="mas-field-content"]';
+
+// Everything the extension badges, so an added subtree is walked once.
+const SELECTOR_DETECTABLE = `${SELECTOR_CARD}, ${SELECTOR_BARE_ELEMENT}, ${SELECTOR_MAS_FIELD}`;
 
 class CardDetector {
     constructor() {
@@ -138,7 +143,7 @@ class CardDetector {
 
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const elements = document.querySelectorAll('merch-card, merch-card-collection');
+        const elements = document.querySelectorAll(SELECTOR_CARD);
         const cards = [];
         const collections = [];
         for (const el of elements) {
@@ -166,16 +171,9 @@ class CardDetector {
     startObserving() {
         const enqueue = (node) => {
             if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.tagName === 'MERCH-CARD' || node.tagName === 'MERCH-CARD-COLLECTION' || node.tagName === 'MAS-FIELD') {
-                    this.pendingCards.push(node);
-                } else if (node.matches?.(SELECTOR_BARE_ELEMENT)) {
-                    this.pendingCards.push(node);
-                }
-                node.querySelectorAll?.('merch-card, merch-card-collection').forEach((c) => this.pendingCards.push(c));
-                node.querySelectorAll?.(SELECTOR_BARE_ELEMENT).forEach((c) => this.pendingCards.push(c));
-                node.querySelectorAll?.(SELECTOR_MAS_FIELD).forEach((c) => this.pendingCards.push(c));
-            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            if (node.matches?.(SELECTOR_DETECTABLE)) this.pendingCards.push(node);
+            node.querySelectorAll?.(SELECTOR_DETECTABLE).forEach((c) => this.pendingCards.push(c));
         };
 
         // A mas-field renders its content asynchronously, and a text-only field (a title,
@@ -298,7 +296,7 @@ class CardDetector {
     }
 
     isInsideCard(element) {
-        return typeof element.closest === 'function' && element.closest('merch-card, merch-card-collection') !== null;
+        return typeof element.closest === 'function' && element.closest(SELECTOR_CARD) !== null;
     }
 
     /**
@@ -314,8 +312,8 @@ class CardDetector {
     }
 
     processBareElement(element) {
-        if (this.isInsideCard(element)) return;
         if (this.elementIds.has(element)) return;
+        if (this.isInsideCard(element)) return;
 
         const elementType = this.classifyBareElementType(element);
         if (!elementType) return;

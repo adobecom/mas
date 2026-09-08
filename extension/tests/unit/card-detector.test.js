@@ -46,7 +46,6 @@ function fakeMasField({
     insideCard = false,
     commerceChild = null,
     contentSpan = null,
-    promotionCode = null,
 } = {}) {
     return {
         tagName: 'MAS-FIELD',
@@ -54,7 +53,6 @@ function fakeMasField({
         getAttribute(name) {
             if (name === 'fragment-id') return fragmentId;
             if (name === 'field') return field;
-            if (name === 'data-promotion-code') return promotionCode;
             return null;
         },
         closest(selector) {
@@ -319,7 +317,7 @@ test('processMasField records a field that loads after an earlier skipped attemp
     d.pageLocale = { locale: 'en_US', country: 'US' };
     const el = fakeMasField({ fragmentId: null });
     d.processMasField(el);
-    el.getAttribute = (name) => (name === 'fragment-id' ? 'frag-late' : name === 'field' ? 'title' : null);
+    el.getAttribute = fakeMasField({ fragmentId: 'frag-late' }).getAttribute;
     d.processMasField(el);
     assert.equal(d.detectedCards.size, 1);
 });

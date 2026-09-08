@@ -283,24 +283,17 @@ class CardOverlay {
         return `${fragmentId}|${locale || 'en_US'}|${country || ''}`;
     }
 
-    /**
-     * The AEM fragment id to fetch for an overlay. Cards key their overlay by it, but
-     * price/cta/field overlays are keyed by a synthetic id, so read it off the cardData.
-     */
-    sourceFragmentIdFor(fragmentId) {
-        return this.overlays.get(fragmentId)?.cardData?.sourceFragmentId || null;
-    }
-
     async loadFragmentDetails(fragmentId) {
         const overlayData = this.overlays.get(fragmentId);
         if (!overlayData || !overlayData.panel) return;
 
-        const sourceFragmentId = overlayData.cardData?.sourceFragmentId;
+        // Cards key their overlay by the fragment id, but price/cta/field overlays are
+        // keyed by a synthetic id, so the id to fetch always comes off the cardData.
+        const cardData = overlayData.cardData;
+        const sourceFragmentId = cardData?.sourceFragmentId;
         if (!sourceFragmentId) return;
 
         const contentDiv = overlayData.panel.querySelector('[data-section="details"] .mas-ext-section-content');
-
-        const cardData = overlayData.cardData;
         const key = this.cacheKey(sourceFragmentId, cardData?.locale, cardData?.country);
 
         if (this.fragmentDataCache.has(key)) {
@@ -667,9 +660,8 @@ class CardOverlay {
     }
 
     refreshFragmentData(fragmentId) {
-        const overlayData = this.overlays.get(fragmentId);
-        const cardData = overlayData?.cardData;
-        const key = this.cacheKey(this.sourceFragmentIdFor(fragmentId), cardData?.locale, cardData?.country);
+        const cardData = this.overlays.get(fragmentId)?.cardData;
+        const key = this.cacheKey(cardData?.sourceFragmentId, cardData?.locale, cardData?.country);
         this.fragmentDataCache.delete(key);
         this.loadFragmentDetails(fragmentId);
     }

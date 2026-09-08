@@ -58,16 +58,10 @@ const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 // onto Odin (see createSwrCache). Published reads keep entries in memory; preview reads persist
 // them in localStorage (`promotions-<surface>`) so studio reloads don't refetch.
 const projectsCache = createSwrCache({ name: 'promotions' });
-// Per-project all-hydrated payload cache. The hydrate response is locale/landscape/country-
-// independent project metadata (fields.fragments/offers/promoCode, tags), so `project.id` alone is a
-// safe shared key. Same herd protection as projectsCache; preview persists to localStorage
-// (`promotions-hydrate-<id>`) so studio reloads don't re-hit Odin per project.
-const hydrateCache = createSwrCache({ name: 'promotions-hydrate' });
 let promoVariationsCache = {};
 
 export function clearPromoCache(preview = false) {
     projectsCache.clear(preview);
-    hydrateCache.clear(preview);
     if (preview) {
         localStorage.removeItem('promo-variations');
     } else {
@@ -373,34 +367,20 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoTag = project.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
-    const hydrateLoader = async () => {
-        const response = await fetch(
-            odinReferences(project.id, context.preview, REFERENCES.ALL),
-            context,
-            `promotions-hydrate-${project.id}`,
-        );
-        if (response.status !== 200) {
-            logError(`Failed to hydrate promotion project ${project.id}: ${response.message}`, context);
-            return null;
-        }
-        return response.body;
-    };
-
-    const [hydratedProject, defaultVariations, regionVariations] = await Promise.all([
-        // Preview/studio only: cache the all-hydrated payload per project.id so re-rendering a card
-        // in the editor doesn't re-hydrate every project (a non-200 resolves null → not cached →
-        // retried next read). Published/live is deliberately left uncached — it always hydrates
-        // fresh, exactly as before, so this change cannot affect live performance.
-        context.preview ? hydrateCache.get(context, project.id, hydrateLoader) : hydrateLoader(),
+    const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
+        fetch(odinReferences(project.id, context.preview, REFERENCES.ALL), context, `promotions-hydrate-${project.id}`),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
             : {},
     ]);
 
-    if (!hydratedProject) {
+    if (hydrateResponse.status !== 200) {
+        logError(`Failed to hydrate promotion project ${project.id}: ${hydrateResponse.message}`, context);
         return null;
     }
+
+    const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
     const groupedVariationReferences = parseGroupedVariationReferences(hydratedProject);

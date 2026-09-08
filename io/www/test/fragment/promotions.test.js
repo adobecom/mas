@@ -129,18 +129,6 @@ describe('promotions', () => {
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('does not cache the hydrate in published mode (fresh per init)', async () => {
-            const project = makeProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
-
-            const first = await promotionsTransformer.init(createContext());
-            expect(first.activeProjects).to.have.lengthOf(1);
-            await promotionsTransformer.init(createContext());
-            // Published/live path is intentionally uncached — every init re-hydrates fresh.
-            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(2);
-        });
-
         it('returns no active projects when project end date has passed', async () => {
             const project = makeProject({ surfaces: ['acom'], endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -1053,43 +1041,6 @@ describe('promotions', () => {
 
             clearPromoCache(true);
             expect(storage['promotions-acom']).to.be.undefined;
-        });
-
-        it('persists the per-project hydrate in localStorage and clears it in preview mode', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-            const previewCtx = createContext({
-                regionLocale: 'en_US',
-                preview: { url: 'https://odin.adobe.com/adobe/contentFragments' },
-            });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
-
-            await promotionsTransformer.init(previewCtx);
-            expect(storage['promotions-hydrate-proj-1']).to.exist;
-
-            const result = await promotionsTransformer.init(previewCtx);
-            expect(result.activeProjects).to.have.length(1);
-            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(1);
-
-            clearPromoCache(true);
-            expect(storage['promotions-hydrate-proj-1']).to.be.undefined;
-        });
-
-        it('does not cache a failed hydrate in preview mode (retried next init)', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-            const previewCtx = createContext({
-                regionLocale: 'en_US',
-                preview: { url: 'https://odin.adobe.com/adobe/contentFragments' },
-            });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'boom'));
-
-            const first = await promotionsTransformer.init(previewCtx);
-            expect(first.activeProjects).to.have.lengthOf(0);
-            expect(storage['promotions-hydrate-proj-1']).to.be.undefined;
-            await promotionsTransformer.init(previewCtx);
-            // Failure is not cached, so the hydrate is re-attempted on the next preview read.
-            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(2);
         });
 
         it('retains blocking refetch in preview mode: an expired entry refetches fresh, never served stale', async () => {

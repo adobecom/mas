@@ -144,6 +144,18 @@ class MasSideNav extends LitElement {
             font-weight: 600;
             word-break: break-word;
         }
+
+        /* Emphasize fields that have content; keep empty placeholders muted. */
+        .field-entry-filled .field-label {
+            font-weight: 700;
+            color: #6e6e6e;
+        }
+
+        .field-value-empty {
+            font-weight: 400;
+            font-style: italic;
+            opacity: 0.6;
+        }
     `;
 
     reactiveController = new ReactiveController(
@@ -602,20 +614,25 @@ class MasSideNav extends LitElement {
         };
     }
 
-    /** Non-empty fragment fields with display names and value previews. */
+    /**
+     * Fragment fields with display names and value previews, including empty ones so authors
+     * can copy a link to an empty placeholder (e.g. inject promo-only content where the default
+     * is blank). Non-empty fields are emphasized in the UI. For a variation an empty own-field
+     * means "inherit", so those still fall through to the base fragment as inherited entries.
+     */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
+        const isVariation = this.#isVariationFragment(fragment?.id);
         const currentFields = this.#sortFieldsByVariantOrder(
             fragment.fields
-                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !fragment.isValueEmpty(f.values))
+                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && (!isVariation || !fragment.isValueEmpty(f.values)))
                 .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment, resolvedInlinePrices)),
             fragment,
         );
 
-        const fragmentId = fragment?.id;
-        if (!this.#isVariationFragment(fragmentId)) {
+        if (!isVariation) {
             return currentFields;
         }
 
@@ -628,8 +645,7 @@ class MasSideNav extends LitElement {
         const inheritedFields = this.#sortFieldsByVariantOrder(
             baseFragment.fields
                 .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
-                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices))
-                .filter((f) => !!f.preview),
+                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices)),
             baseFragment,
         );
 
@@ -673,14 +689,16 @@ class MasSideNav extends LitElement {
         const hasCustomFields = currentCustomFields.length || inheritedCustomFields.length;
         const renderRow = ({ name, displayName, preview, source, sourceFragment }) => html`
             <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
-                ${preview
-                    ? html`<div
-                          class="field-entry ${isVariation && source === FIELD_SOURCE.CURRENT ? 'field-entry-overridden' : ''}"
-                      >
-                          <span class="field-label">${displayName}</span>
-                          <span class="field-value">${renderPreview(preview)}</span>
-                      </div>`
-                    : displayName}
+                <div
+                    class="field-entry ${isVariation && source === FIELD_SOURCE.CURRENT
+                        ? 'field-entry-overridden'
+                        : ''} ${preview ? 'field-entry-filled' : 'field-entry-empty'}"
+                >
+                    <span class="field-label">${displayName}</span>
+                    ${preview
+                        ? html`<span class="field-value">${renderPreview(preview)}</span>`
+                        : html`<span class="field-value field-value-empty">Empty</span>`}
+                </div>
             </sp-menu-item>
         `;
         return html`

@@ -58,15 +58,40 @@ describe('MasSideNav – Copy Field', () => {
             expect(el.copyableFields).to.deep.equal([]);
         });
 
-        it('should filter out empty-value fields', () => {
+        it('should include empty-value fields so authors can copy empty placeholders', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'description', values: [] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const names = el.copyableFields.map((f) => f.name);
+            const fields = el.copyableFields;
+            const names = fields.map((f) => f.name);
             expect(names).to.include('cardTitle');
-            expect(names).to.not.include('description');
+            expect(names).to.include('description');
+            // Non-empty fields carry a preview (emphasized in the popover); empty ones do not.
+            expect(fields.find((f) => f.name === 'cardTitle').preview).to.be.ok;
+            expect(fields.find((f) => f.name === 'description').preview).to.not.be.ok;
+        });
+
+        it('should include empty inherited base fields for variations', () => {
+            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Variation title'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment(
+                [
+                    { name: 'description', values: ['Included description'] },
+                    { name: 'promoText', values: [] },
+                ],
+                { id: 'base-123' },
+            );
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(sourceFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+            const fields = el.copyableFields;
+            const inheritedNames = fields.filter((f) => f.source === 'inherited').map((f) => f.name);
+            expect(inheritedNames).to.include('description');
+            expect(inheritedNames).to.include('promoText');
+            expect(fields.find((f) => f.name === 'promoText').preview).to.not.be.ok;
         });
 
         it('should include only allowlisted copy fields', () => {

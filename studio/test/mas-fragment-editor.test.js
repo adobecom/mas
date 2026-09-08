@@ -160,9 +160,11 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    it('renders loading state when no fragment', async () => {
+    it('renders the masked editor skeleton (not a blocking spinner) when no fragment', async () => {
         const el = await fixture(html`<mas-fragment-editor></mas-fragment-editor>`);
-        expect(el.querySelector('#loading-state')).to.exist;
+        expect(el.querySelector('#loading-state')).to.not.exist;
+        expect(el.querySelector('.form-skeleton')).to.exist;
+        expect(el.querySelector('.preview-skeleton')).to.exist;
     });
 
     it('extracts locale from path', async () => {

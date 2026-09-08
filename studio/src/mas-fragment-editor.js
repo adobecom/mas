@@ -353,18 +353,6 @@ export default class MasFragmentEditor extends LitElement {
             margin: 24px 0;
         }
 
-        #loading-state {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-        }
-
         .empty-state {
             display: flex;
             flex-direction: column;
@@ -557,6 +545,33 @@ export default class MasFragmentEditor extends LitElement {
             height: 40px;
             width: 100%;
             margin-top: auto;
+        }
+
+        .form-skeleton {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding-top: 8px;
+        }
+
+        .skeleton-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .skeleton-field-label {
+            height: 14px;
+            width: 30%;
+        }
+
+        .skeleton-field-input {
+            height: 32px;
+            width: 100%;
+        }
+
+        .skeleton-field-input.tall {
+            height: 72px;
         }
     `;
 
@@ -783,6 +798,32 @@ export default class MasFragmentEditor extends LitElement {
                         <div class="skeleton-element skeleton-price"></div>
                         <div class="skeleton-element skeleton-cta"></div>
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Full-editor loading state: a masked shell (form fields + preview) instead of a blocking
+    // spinner, so the editor feels present while init runs. The preview mask is continuous with
+    // the real preview's own skeleton, so only the form column swaps in when the store activates.
+    get editorSkeleton() {
+        return html`
+            ${this.styles}
+            <div id="fragment-editor">
+                <div id="editor-content">
+                    <div id="form-column">
+                        <div class="form-skeleton" aria-hidden="true">
+                            ${[0, 1, 2, 3, 4, 5].map(
+                                (index) => html`
+                                    <div class="skeleton-field">
+                                        <div class="skeleton-element skeleton-field-label"></div>
+                                        <div class="skeleton-element skeleton-field-input ${index % 2 ? '' : 'tall'}"></div>
+                                    </div>
+                                `,
+                            )}
+                        </div>
+                    </div>
+                    ${this.previewSkeleton}
                 </div>
             </div>
         `;
@@ -2305,26 +2346,8 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     render() {
-        if (!this.fragment) {
-            return html`
-                ${this.styles}
-                <div id="fragment-editor">
-                    <div id="loading-state">
-                        <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                    </div>
-                </div>
-            `;
-        }
-
-        if (this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
-            return html`
-                ${this.styles}
-                <div id="fragment-editor">
-                    <div id="loading-state">
-                        <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                    </div>
-                </div>
-            `;
+        if (!this.fragment || this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
+            return this.editorSkeleton;
         }
 
         const orphanGroupedVariation = this.orphanGroupedVariationState;

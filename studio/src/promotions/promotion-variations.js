@@ -161,6 +161,31 @@ export function findOverlappingGeoTags(existingVariations, newGeoTags) {
 }
 
 /**
+ * Validates a promo variation's geo tags against its siblings and (optionally) its
+ * promotion project's geos. Throws a UserFriendlyError on the first conflict found.
+ * @param {Array<{ id?: string, pznTags: string[] }>} existingVariations
+ * @param {string[]} geoTags
+ * @param {string[]} [projectGeos] - when provided, geoTags must all be contained in this list
+ */
+export function assertPromoVariationGeoTagsValid(existingVariations, geoTags, projectGeos) {
+    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
+        throw new UserFriendlyError('A variation with no geos already exists for this project.');
+    }
+    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
+    if (overlapping.length) {
+        throw new UserFriendlyError(
+            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
+        );
+    }
+    if (projectGeos) {
+        const notInProject = geoTags.filter((tag) => !projectGeos.includes(tag));
+        if (notInProject.length) {
+            throw new UserFriendlyError(`These geos are not part of the promotion project: ${notInProject.join(', ')}`);
+        }
+    }
+}
+
+/**
  * Finds the next available index: skips indices already used by sibling variations (gaps
  * allowed) and any that would collide with another fragment in the same project.
  * @param {number[]} usedIndices
@@ -229,19 +254,14 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         ...variation,
         pznTags: (variation.pznTags || []).filter((tag) => !preservedPznTags.includes(tag)),
     }));
-    if (!geoTags.length && existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)) {
-        throw new UserFriendlyError(
-            isGroupedVariationSource
-                ? 'A promo variation for this grouped variation fragment already exists.'
-                : 'A variation with no geos already exists for this project.',
-        );
+    if (
+        isGroupedVariationSource &&
+        !geoTags.length &&
+        existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)
+    ) {
+        throw new UserFriendlyError('A promo variation for this grouped variation fragment already exists.');
     }
-    const overlapping = findOverlappingGeoTags(existingGeoTagsByVariation, geoTags);
-    if (overlapping.length) {
-        throw new UserFriendlyError(
-            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
-        );
-    }
+    assertPromoVariationGeoTagsValid(existingGeoTagsByVariation, geoTags);
 
     const nextIndex = getNextAvailablePromoVariationIndex(
         existingVariations.map((variation) => variation.index),

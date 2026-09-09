@@ -290,24 +290,21 @@ const createPriceTemplate =
             method = formatAnnualPrice;
         }
 
-        // India regroups digits client-side (lakh/crore) → numeric path.
+        // India regroups digits client-side (lakh/crore) on the numeric path.
+        // WCS already groups them ("1,11,744"), so this only guards the fallback.
         const isIndianPrice = country === 'IN';
 
-        // Use WCS's pre-formatted price, except optical (client-divided) and India.
-        let formatted;
-        if (
-            priceInfo &&
-            !displayOptical &&
-            !isIndianPrice &&
-            toBoolean(displayFormatted)
-        ) {
-            formatted = selectPreformattedPrice({
-                priceInfo,
-                showWithoutDiscount,
-                displayAnnual,
-                promotion,
-            });
-        }
+        // WCS pre-split parts; undefined leaf → numeric fallback below.
+        const preformatted =
+            priceInfo && toBoolean(displayFormatted)
+                ? selectPreformattedPrice({
+                      priceInfo,
+                      showWithoutDiscount,
+                      displayAnnual,
+                      displayOptical,
+                      promotion,
+                  })
+                : undefined;
         const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
             commitment,
             formatString,
@@ -320,7 +317,8 @@ const createPriceTemplate =
             quantity,
             term,
             usePrecision,
-            formatted,
+            preformatted,
+            priceInfoFormat: priceInfo?.format,
         });
 
         let accessibleLabel = '',

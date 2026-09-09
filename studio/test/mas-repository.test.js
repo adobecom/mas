@@ -4274,6 +4274,143 @@ describe('MasRepository dictionary helpers', () => {
             expect(unsubscribeSpy.calledWith(subscribedFn)).to.be.true;
         });
     });
+
+    describe('saveFragment - promo variation geo tag validation', () => {
+        const promoTag = 'mas:promotion/black-friday';
+        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const variationPath = `${promoFolder}/my-card`;
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+        });
+
+        it('blocks the save and reports the conflict when the promo variation geo tags overlap a sibling', async () => {
+            const repository = createFullRepository();
+            const fragment = new Fragment({
+                id: 'var-1',
+                path: variationPath,
+                model: { path: '/conf/mas/settings/dam/cfm/models/other' },
+                tags: [{ id: promoTag }],
+                fields: [{ name: 'pznTags', type: 'tag', multiple: true, values: ['mas:pzn/country/ar'] }],
+            });
+            const fragmentStore = new FragmentStore(fragment);
+            Store.promotions.list.data.set([{ get: () => ({ tags: [{ id: promoTag }] }) }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            const search = makeSearchStub(sandbox, {
+                [promoFolder]: [
+                    {
+                        id: 'sibling-1',
+                        path: `${promoFolder}/my-card-2`,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+                    },
+                ],
+            });
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({ id: fragment.id, path: fragment.path, tags: fragment.tags }),
+                    getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
+                    search,
+                    save: sandbox.stub(),
+                },
+            });
+            sandbox.stub(repository, 'processError');
+
+            const result = await repository.saveFragment(fragmentStore, { withToast: false });
+
+            expect(result).to.be.false;
+            expect(repository.aem.sites.cf.fragments.save.called, 'should not persist a conflicting geo tag change').to.be
+                .false;
+            expect(repository.processError.calledOnce).to.be.true;
+            expect(repository.processError.firstCall.args[0].message).to.include('mas:pzn/country/ar');
+        });
+
+        it('saves normally when the promo variation geo tags have no conflicts', async () => {
+            const repository = createFullRepository();
+            const fragment = new Fragment({
+                id: 'var-1',
+                path: variationPath,
+                model: { path: '/conf/mas/settings/dam/cfm/models/other' },
+                tags: [{ id: promoTag }],
+                fields: [{ name: 'pznTags', type: 'tag', multiple: true, values: ['mas:pzn/country/fr'] }],
+            });
+            const fragmentStore = new FragmentStore(fragment);
+            Store.promotions.list.data.set([{ get: () => ({ tags: [{ id: promoTag }] }) }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            const search = makeSearchStub(sandbox, {
+                [promoFolder]: [
+                    {
+                        id: 'sibling-1',
+                        path: `${promoFolder}/my-card-2`,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+                    },
+                ],
+            });
+            const savedFragment = { id: 'var-1', path: variationPath, fields: fragment.fields };
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({ id: fragment.id, path: fragment.path, tags: fragment.tags }),
+                    getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
+                    search,
+                    save: sandbox.stub().resolves(savedFragment),
+                },
+            });
+
+            const result = await repository.saveFragment(fragmentStore, { withToast: false });
+
+            expect(result).to.deep.equal(savedFragment);
+            expect(repository.aem.sites.cf.fragments.save.calledOnce).to.be.true;
+        });
+
+        it('validates the geo tags actually being saved, not a value prepareVariationForSave reset relative to an unrelated parent', async () => {
+            const repository = createFullRepository();
+            const parentFragment = new Fragment({
+                id: 'grouped-parent',
+                path: '/content/dam/mas/sandbox/en_US/PA-1/pzn/my-card',
+                fields: [{ name: 'pznTags', type: 'tag', multiple: true, values: ['mas:pzn/country/ar'] }],
+            });
+            const fragment = new Fragment({
+                id: 'var-1',
+                path: variationPath,
+                model: { path: '/conf/mas/settings/dam/cfm/models/other' },
+                tags: [{ id: promoTag }],
+                // Same value as parentFragment's pznTags — prepareVariationForSave will treat this
+                // as "same-as-parent" and reset it to [] in fragmentToSave, unrelated to the
+                // promo-sibling conflict this test is about.
+                fields: [{ name: 'pznTags', type: 'tag', multiple: true, values: ['mas:pzn/country/ar'] }],
+            });
+            const fragmentStore = new FragmentStore(fragment);
+            fragmentStore.parentFragment = parentFragment;
+            Store.promotions.list.data.set([{ get: () => ({ tags: [{ id: promoTag }] }) }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            const search = makeSearchStub(sandbox, {
+                [promoFolder]: [
+                    {
+                        id: 'sibling-1',
+                        path: `${promoFolder}/my-card-2`,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+                    },
+                ],
+            });
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({ id: fragment.id, path: fragment.path, tags: fragment.tags }),
+                    getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
+                    search,
+                    save: sandbox.stub(),
+                },
+            });
+            sandbox.stub(repository, 'processError');
+
+            const result = await repository.saveFragment(fragmentStore, { withToast: false });
+
+            expect(result).to.be.false;
+            expect(repository.aem.sites.cf.fragments.save.called).to.be.false;
+            expect(repository.processError.calledOnce).to.be.true;
+            expect(repository.processError.firstCall.args[0].message).to.include('mas:pzn/country/ar');
+        });
+    });
 });
 
 describe('MasRepository publishFragment', () => {

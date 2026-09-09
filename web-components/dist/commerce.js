@@ -518,7 +518,12 @@ span[is='inline-price'][data-placeholder='plan-type-text'] {
 }
 `;if(typeof document<"u"&&!document.querySelector("style[data-plan-type-text]")){let e=document.createElement("style");e.setAttribute("data-plan-type-text",""),e.textContent=zc,document.head.append(e)}var Kc="p, div, li, td, th, h1, h2, h3, h4, h5, h6, section, article, blockquote";function Zc(e){let t=e.closest(Kc)??e.parentNode,r=document.createRange();return r.setStart(t,0),r.setEndBefore(e),r.toString().replace(/\s+$/,"").slice(-1)}function zo(e){let t=[...e.querySelectorAll('[is="inline-price"][data-template="price"]')].filter(n=>!n.closest("merch-addon"));return(t.find(n=>n.dataset.promotionCode&&n.dataset.promotionCode!=="cancel-context")??t[0])?.dataset.wcsOsi??e.aemFragment?.data?.fields?.osi}function Qc(e){let t=Zc(e);return!t||qc.includes(t)?"upper":"lower"}function Pn(e,t){if(e.dataset.placeholder!==wr)return;let r=e.closest("merch-card, mas-field")?.osi;r&&(t.wcsOsi=r,t.planTypeCase=Qc(e))}var Nn="mas-field",el=/(accent|primary|secondary)(-(outline|link))?/,tl=["fragment-id","variation-id","mask-id","data-promotion-project","data-promotion-variation-project"];function In(e){return e.compatVersion>=1||e.hasAttribute("data-promotion-project")?e.getAttribute("data-promotion-code"):null}function Ko(e,t){let r=document.createElement("template");r.innerHTML=e;let n=[...r.content.querySelectorAll("a")],i=n.filter(o=>hr.has(o.dataset.analyticsId));return i.length===0?e:i.length===n.length?t?null:e:(i.forEach(o=>o.remove()),r.innerHTML)}function Zo(e,t){if(!e)return t;let r=e.closest(Nn);if(!(r||e.hasAttribute("fragment-id")))return t;t[oe]=!0,t.wrapClauses=!0;let i=r?.aemFragment?.data?.priceLiterals;if(i&&(t.literals??(t.literals={}),Object.assign(t.literals,i)),Co(e)&&(t.displayPerUnit=!1,t.displayTax=!1),r&&e.dataset.template===Lr&&(t.displayPlanType=r.aemFragment?.data?.settings?.displayPlanType??!1),!t.promotionCode){let o=e.dataset.promotionCode??(r?In(r):null);o&&(t.promotionCode=o)}t.displayAnnual===void 0&&typeof r?.settings?.displayAnnual=="boolean"&&(t.displayAnnual=r.settings.displayAnnual)}function rl(e,t){if(t.promotionCode||!e)return;let r=e.closest(Nn),n=e.dataset.promotionCode??(r?In(r):null);n&&(t.promotionCode=n)}function nl(e){!e?.providers||e.providers.has(Zo)||(e.providers.price(Zo),e.providers.checkout(rl),e.providers.has(Pn)||e.providers.price(Pn))}var il=`
 mas-field {
-    display: inline;
+    display: contents;
+}
+
+/* An :empty span still counts as a flex gap item under display:contents; hide it. */
+mas-field > [data-role="mas-field-content"]:empty {
+    display: none;
 }
 
 mas-field div[slot="footer"] {

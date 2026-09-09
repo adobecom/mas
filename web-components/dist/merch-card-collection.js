@@ -9375,7 +9375,7 @@ merch-card[variant="mini"] span.renewal-text {
                         </div>
                     `)}
             </div>
-        `}};g(Mt,"variantStyle",Ge("faq"));import{html as oo}from"./lit-all.min.js";var so={cardName:{attribute:"name"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},Sl=[{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],Rt=class extends y{constructor(r){super(r)}getGlobalCSS(){return $e}renderLayout(){return oo`
+        `}};g(Mt,"variantStyle",Ge("faq"));import{html as oo}from"./lit-all.min.js";var so={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},Sl=[{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],Rt=class extends y{constructor(r){super(r)}getGlobalCSS(){return $e}renderLayout(){return oo`
             <div class="headless">
                 ${Sl.map(({slot:r,label:t})=>oo`
                         <div class="headless-row">

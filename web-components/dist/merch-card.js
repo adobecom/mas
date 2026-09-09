@@ -9995,7 +9995,7 @@ merch-card[variant="mini"] span.renewal-text {
                         </div>
                     `)}
             </div>
-        `}};d(Ge,"variantStyle",ae("faq"));import{html as ai}from"./lit-all.min.js";var ii={cardName:{attribute:"name"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},Fn=[{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],Ve=class extends f{constructor(r){super(r)}getGlobalCSS(){return re}renderLayout(){return ai`
+        `}};d(Ge,"variantStyle",ae("faq"));import{html as ai}from"./lit-all.min.js";var ii={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},Fn=[{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],Ve=class extends f{constructor(r){super(r)}getGlobalCSS(){return re}renderLayout(){return ai`
             <div class="headless">
                 ${Fn.map(({slot:r,label:e})=>ai`
                         <div class="headless-row">

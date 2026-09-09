@@ -7,7 +7,7 @@ export default class MasBrandConcierge {
         return this.page.locator(`merch-card:has(aem-fragment[fragment="${id}"])`).first();
     }
 
-    getGalleryFooterCtas() {
-        return this.page.locator('.three-merch-cards merch-card div[slot="footer"] :is(a, button)');
+    getStudioLink(id) {
+        return this.page.locator(`.commerce-item:has(aem-fragment[fragment="${id}"]) a.commerce-link`);
     }
 }

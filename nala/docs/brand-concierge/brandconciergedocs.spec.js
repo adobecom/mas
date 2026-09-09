@@ -18,9 +18,11 @@ export const features = [
     },
     {
         tcid: '1',
-        name: '@MAS-BrandConcierge-CTA-alignment',
+        name: '@MAS-BrandConcierge-studio-links',
         path: DOCS_GALLERY_PATH.BRAND_CONCIERGE,
-        data: {},
+        data: {
+            ids: ['d723cb3e-399a-45ef-b899-9b687ca0703d', 'ce25f8f8-f8a3-4567-9af8-aee76c1dd96b'],
+        },
         tags: '@mas-docs @mas-brand-concierge @commerce @smoke @regression @milo',
     },
     {

@@ -2,6 +2,11 @@
 # named MWPW-XXXXXX: IMS only accepts that shape as a Studio redirect target,
 # and an unregistered origin sends the login to www.adobe.com instead.
 mechanism: aem-branch-preview
+# Installed by the engine only for this tenant's local preview, outside Git.
+tools:
+    aem:
+        package: '@adobe/aem-cli'
+        version: '16.20.5'
 pin_pattern: 'https://{branch}--mas--adobecom.aem.page{page}?martech=off'
 # Consumer pages load branch web components via ?maslibs= (a value containing
 # '--' is a full host label, so the fork resolves). Docs pages ignore maslibs.
@@ -27,7 +32,7 @@ local:
     # `.pinata/scripts/test-preview-supervisor.sh` exercises this script.
     cmd: |
         if ! command -v aem >/dev/null 2>&1; then
-            echo "AEM CLI is missing from the Piñata runtime PATH; provision @adobe/aem-cli@16.20.5 outside the MAS checkout (see .pinata/README.md)" >&2
+            echo "AEM CLI is missing from the Piñata runtime PATH; deploy tenant preview-tool provisioning support (see .pinata/README.md)" >&2
             exit 127
         fi
         # R10: refuse a port that already has a LISTENER, not merely one that

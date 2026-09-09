@@ -33,23 +33,21 @@ No secrets, generated run history, or shared package copies belong here.
 
 After `npm ci`, command gates use the repository's installed tools.
 The existing `studio` stage proxy and web-component build scripts are reused.
-The preview runner preserves the runtime PATH alongside repository tool paths.
-It fails immediately with setup instructions if `aem` is unavailable.
+`preview.yaml` declares `@adobe/aem-cli@16.20.5` as a preview tool. The engine
+installs it on demand in this run's scratch directory **outside the checkout**,
+and prepends it only to the local preview process's PATH. Other tenants do not
+install it unless they explicitly declare an approved tool. No global install
+or MAS package-file change is needed.
 
-Provision the preview CLI once in the runtime image or a dedicated tool prefix,
-**outside the MAS checkout**, using a supported Node release (22.22.2+ or 24.15+):
+Installations are reused across captures within the same run, not across runs:
+this prevents a tenant from modifying executable tooling used by another run.
+The runtime needs npm, public npm registry access, and a compatible Node release
+(22.22.2+ or 24.15+). Install scripts are disabled and failed installations stop
+the preview rather than falling back to an unrelated global CLI.
 
-```sh
-# Example runtime image setup; the prefix must be writable during installation.
-npm install --prefix /opt/pinata-tools/aem --no-save --package-lock=false @adobe/aem-cli@16.20.5
-export PATH="/opt/pinata-tools/aem/node_modules/.bin:$PATH"
-aem --version
-```
-
-Persist that PATH in the engine service configuration or container image, not
-just an interactive terminal. For local development, use a dedicated writable
-directory outside MAS instead of `/opt/pinata-tools/aem`. This PR documents the
-runtime prerequisite; it does not install tools into existing runtimes.
+Deploy Fiesta's tenant preview-tool support before enabling this configuration;
+older engines reject the new `tools` field. Keep this PR in draft until that
+engine change is deployed and a MAS preview has been verified.
 
 ```sh
 python3 -m pip install PyYAML==6.0.2
@@ -92,9 +90,8 @@ Merging these files alone does not route Slack requests to MAS.
    Site tokens must be provisioned by an authorized site administrator; the
    AEM CLI admin token is not a substitute. Do not put credentials in Git.
 5. Check access to the shared `mas-web-components` and `mas-studio` models,
-   the stage author service, and the selected preview surfaces. Provision the
-   runtime CLI as described above and verify `aem --version` from the engine's
-   service environment before testing previews.
+   the stage author service, and the selected preview surfaces. Deploy the
+   tenant preview-tool support as described above before testing previews.
 6. Run Slack → refinement → planning → changes → verification → PR against
    MAS before switching the default repository.
 

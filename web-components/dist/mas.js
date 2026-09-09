@@ -10662,7 +10662,7 @@ merch-card[variant="mini"] span.renewal-text {
                         </div>
                     `)}
             </div>
-        `}};g(oa,"variantStyle",Ot("faq"));P();var rp={cardName:{attribute:"name"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},gf=[{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],sa=class extends C{constructor(r){super(r)}getGlobalCSS(){return Rt}renderLayout(){return f`
+        `}};g(oa,"variantStyle",Ot("faq"));P();var rp={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"}},gf=[{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Description"},{slot:"footer",label:"CTAs"}],sa=class extends C{constructor(r){super(r)}getGlobalCSS(){return Rt}renderLayout(){return f`
             <div class="headless">
                 ${gf.map(({slot:r,label:e})=>f`
                         <div class="headless-row">

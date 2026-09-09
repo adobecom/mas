@@ -1,0 +1,17 @@
+# Fiesta tenant contract — M@S (Merch at Scale) identity and references.
+#
+# The harness reads this at the pinned commit and holds no M@S-specific
+# knowledge of its own. Identity ladder: adobe (company) > acom (org) >
+# mas (product) > … . Unknown keys are rejected, so a typo fails loudly.
+org: acom
+product: mas
+repo: adobecom/mas
+owners_from: CODEOWNERS
+
+# Which shared mental models the planner should consult for M@S work.
+# Selection is tenant-owned; the model content is resolved from the shared
+# registry at run time (see .pinata/README.md).
+mental_models:
+    use:
+        - mas-web-components
+        - mas-studio

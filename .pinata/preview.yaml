@@ -1,0 +1,431 @@
+# EDS branch previews: {branch}--mas--adobecom.aem.page. Branches must be
+# named MWPW-XXXXXX: IMS only accepts that shape as a Studio redirect target,
+# and an unregistered origin sends the login to www.adobe.com instead.
+mechanism: aem-branch-preview
+pin_pattern: 'https://{branch}--mas--adobecom.aem.page{page}?martech=off'
+# Consumer pages load branch web components via ?maslibs= (a value containing
+# '--' is a full host label, so the fork resolves). Docs pages ignore maslibs.
+# The host here must be a mas-owned one: a consumer host in this pattern
+# shadows pasted consumer URLs and strips them to bare paths.
+overlay_pattern: 'https://main--mas--adobecom.aem.page{page}?maslibs={branch}--mas--adobecom&martech=off'
+
+# Local serve (preferred): the repo's own dev server on the diff-applied
+# worktree. Port 3000 is what maslibs=local resolves to in consumer bootstraps.
+# Galleries hydrate from prod services (mas/io, WCS) so they render fully here.
+local:
+    # Studio's author proxy runs alongside aem up. proxy:stage points it at the
+    # stage author, so automated captures never read or write production content,
+    # and PROXY_PORT moves it off 8080 where the harness gateway already listens.
+    # This command stays in the foreground as a SUPERVISOR: both servers are its
+    # children, it refuses to hand over until the proxy actually answers (the
+    # harness only polls port 3000, so a proxy that never binds would otherwise
+    # leave aem up healthy and the promotions view rendering an empty list —
+    # which photographs as real evidence), and it exits non-zero the moment
+    # either child dies, taking the other with it via the trap. Every sentence it
+    # writes to stderr reaches the operator: the harness keeps the tail and puts
+    # it in the error. fiesta's process-group reap remains the outer net.
+    # `.pinata/scripts/test-preview-supervisor.sh` exercises this script.
+    cmd: |
+        # R10: refuse a port that already has a LISTENER, not merely one that
+        # speaks HTTP. A foreign proxy, or a leftover from an interrupted run,
+        # would otherwise be captured through as if it were ours.
+        if command -v nc >/dev/null 2>&1; then
+            bound='nc -z 127.0.0.1 8091'
+        elif command -v lsof >/dev/null 2>&1; then
+            bound='lsof -nP -iTCP:8091 -sTCP:LISTEN'
+        else
+            bound=''
+            echo "neither nc nor lsof is available: cannot check whether 8091 is already bound" >&2
+        fi
+        if [ -n "$bound" ] && $bound >/dev/null 2>&1; then
+            echo "port 8091 already has a listener — refusing to start a second author proxy" >&2
+            exit 1
+        fi
+        cleanup() { kill $proxy_pid $aem_pid 2>/dev/null; }
+        trap cleanup EXIT INT TERM
+        PROXY_PORT=8091 npm --prefix studio run proxy:stage &
+        proxy_pid=$!
+        # Each probe is BOUNDED. A listener that accepts and then answers nothing
+        # — the proxy itself, once it wedges — parks an unbounded curl forever,
+        # and this loop stops rechecking whether the proxy is even alive.
+        until curl -sf -o /dev/null --connect-timeout 2 --max-time 5 -X OPTIONS http://127.0.0.1:8091/; do
+            if ! kill -0 $proxy_pid 2>/dev/null; then
+                wait $proxy_pid
+                status=$?
+                # A proxy that exits 0 without ever binding still failed: exiting
+                # 0 here would report a healthy preview that serves nothing.
+                [ "$status" -eq 0 ] && status=1
+                echo "author proxy exited with status $status before binding 8091" >&2
+                exit "$status"
+            fi
+            sleep 0.5
+        done
+        aem up --port=3000 --no-open --stop-other --url https://main--mas--adobecom.aem.page &
+        aem_pid=$!
+        # `kill -0` polling rather than `wait -n`: macOS /bin/sh has no `wait -n`.
+        while kill -0 $proxy_pid 2>/dev/null && kill -0 $aem_pid 2>/dev/null; do sleep 1; done
+        echo "local preview stopped: the author proxy or aem up exited" >&2
+        exit 1
+    # Push the Close branch at verification time too, so the share URL a human
+    # sees at escalation (and in the PR body) resolves instead of 404ing until
+    # approval. The gate's share_sync probe vouches for propagation.
+    publish_branch: true
+    # proxy.port tells studio.html which author proxy to call; galleries ignore it.
+    # aem.env=stage pins Studio's WHOLE environment to stage: locally the author
+    # already rides the stage proxy, but the mas-studio IO runtime would default
+    # to prod without it. Base params override a pasted link's own aem.env, so
+    # automated captures are stage-pinned deterministically; non-Studio pages
+    # ignore the param.
+    url: 'http://localhost:3000{page}?proxy.port=8091&aem.env=stage'
+    # Foreign consumer pages stay remote on the public content host and pull
+    # web components from this server via maslibs=local. studio.html is listed as
+    # an own host instead: it loads its code by relative path, so only serving it
+    # from here shows the candidate build. maslibs would be a no-op for it.
+    consumer_overlay:
+        own_hosts: ['--mas--', 'mas.adobe.com']
+        params: 'maslibs=local&martech=off'
+
+# Hosts that carry mas pages when a requester pastes a URL: studio deep links
+# and da-cc consumer pages in practice. Live URLs capture on the .page host.
+capture_hosts:
+    - '--mas--adobecom.aem.page'
+    # Studio deep links are pasted on the production domain. Without this entry
+    # the URL is dropped and the gate has nothing to capture. The page is served
+    # from the local worktree (own_hosts above), so production is never shot.
+    - host: 'mas.adobe.com'
+      auth: ims
+    - host: '--da-cc--adobecom.aem.page'
+      auth: da-cc-token
+    # Lingo fragments / M@S DC pages are pasted on da-dc (MWPW-195301) — same
+    # token gating as da-cc, and provisioned by hand for the same reason (see
+    # auth_profiles below).
+    - host: '--da-dc--adobecom.aem.page'
+      auth: da-dc-token
+    - host: '--mas--adobecom.aem.live'
+      capture_on: '--mas--adobecom.aem.page'
+    - host: '--da-cc--adobecom.aem.live'
+      capture_on: '--da-cc--adobecom.aem.page'
+    - host: '--da-dc--adobecom.aem.live'
+      capture_on: '--da-dc--adobecom.aem.page'
+
+# IMS login for Studio surfaces, same account and flow already verified on the
+# milo tenant. Dormant until a capture_hosts entry attaches it via auth: ims.
+auth_profiles:
+    # No `mint:` on either of these, deliberately. The aem CLI login cannot
+    # produce a site token for this account: its consent page hands back the
+    # admin API's auth token, and creating a real site token needs
+    # POST admin.hlx.page/config/adobecom/sites/<site>/secrets.json, which
+    # cod23684+masautomation@adobetest.com is 403 on. Declaring a self-heal that
+    # cannot succeed turned an immediately actionable "AEM_SITE_TOKEN_DA_DC not
+    # set" into a 180 s dead wait (run 55d037d6). Provision the tokens once, by
+    # hand — README "Site tokens" has the recipe.
+    da-cc-token:
+        token_env: AEM_SITE_TOKEN_DA_CC
+        header: 'authorization: token {token}'
+    da-dc-token:
+        token_env: AEM_SITE_TOKEN_DA_DC
+        header: 'authorization: token {token}'
+    ims:
+        account:
+            username: cod23684+masautomation@adobetest.com
+            password_env: IMS_PASS
+        idp_hosts: [auth.services.adobe.com, ims-na1.adobelogin.com]
+        # studio.html loads imslib and calls adobeIMS.signIn() from its onReady,
+        # so this script IS the login: when it does not load, no SUSI form ever
+        # appears and every step below burns its whole timeout for a reason none
+        # of them names (runs 8a6d63a3, cfb4e24e). Declaring it lets the harness
+        # say what failed — and, when the failure is this one, relaunch the
+        # capture browser on its fallback engine and retry the login once.
+        bootstrap_assets:
+            - 'https://www.adobe.com/libs/deps/imslib.min.js'
+        # <mas-studio> is appended only by initMasStudio(), i.e. once IMS reports
+        # a signed-in session, so it is the login's success signal. It is NOT a
+        # shortcut past the steps: the harness only skips a login when the page
+        # ALSO carries a cookie this profile declares under `session_cookies`,
+        # because candidate code can render a signed-in-looking shell and an
+        # anonymous visit to the IdP sets cookies of its own. This profile
+        # declares none, so the shortcut is off and every capture signs in.
+        # Declaring the real IMS session cookie names would turn it back on.
+        # The token mint ignores this selector — that flow never opens this page.
+        success_selector: mas-studio
+        steps:
+            # Studio signs in via a client-side imslib redirect, so the page is
+            # still on its own origin when the steps start. The harness refuses
+            # to type into a field whose OWNING FRAME is not on idp_hosts above
+            # (this page is served from the candidate worktree, and a PR could
+            # plant these selectors) — so wait for the real SUSI form, which
+            # only exists once the redirect has landed. The harness races this
+            # first step: if the form is already up it is not waited for twice,
+            # and a server-redirecting host or a live session skips it entirely.
+            # Residual trust, deliberately bounded: the candidate DOM can make
+            # the harness SKIP a login, never make it type a credential.
+            - wait_for: '#EmailPage-EmailField'
+              optional: true
+              timeout_ms: 60000
+            - fill: '#EmailPage-EmailField'
+              value_from: username
+              timeout_ms: 45000
+            - click: '[data-id=EmailPage-ContinueButton]'
+            # IMS sometimes ignores Continue: redo email+Continue until the password page shows; toaster = account rejected.
+            - fill: '#PasswordPage-PasswordField'
+              value_from: password
+              timeout_ms: 60000
+              retry_previous: 2
+              retry_interval_ms: 1000
+              retry_max_replays: 4
+              abort_on: ['[data-id=EmailPage-Toaster]']
+            - click: '[data-id=PasswordPage-ContinueButton]'
+            # Profile chooser and passkey nudge are interstitials; skip if absent.
+            - click: '[data-id="PP-ProfileChooser-AuthAccount"]'
+              optional: true
+              timeout_ms: 8000
+            - click: 'button:has-text("Skip"), [data-id="PasskeyNudgePage-SkipButton"]'
+              optional: true
+              timeout_ms: 8000
+        settle_ms: 5000
+
+# Demo galleries under web-components/docs/ (code-bus pages, real fragments).
+# Every surface declares a match glob; a change no glob covers escalates.
+surfaces:
+    - id: merch-card
+      page: /web-components/docs/merch-card.html
+      description: >-
+          Generic merch-card gallery with many variants side by side — fallback
+          for cross-cutting web-components changes. Prefer a dedicated gallery
+          when one matches; pick nothing for changes cards can't render.
+      match: 'web-components/src/*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: ccd
+      page: /web-components/docs/ccd.html
+      description: CCD slice and suggested cards in a dense grid.
+      match: 'web-components/src/variants/ccd-*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: fries
+      page: /web-components/docs/fries.html
+      description: Fries cards, incl. border/gradient treatments and sizes.
+      match: 'web-components/src/variants/fries*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: catalog
+      page: /web-components/docs/catalog.html
+      description: Catalog variant cards.
+      match: 'web-components/src/variants/catalog*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: plans
+      page: /web-components/docs/plans.html
+      description: Plans and plans-v2 pricing cards with badges and quantity selectors.
+      match: 'web-components/src/variants/plans*'
+      requires:
+          - /web-components/docs/styles.css
+
+    - id: inline-price
+      page: /web-components/docs/inline-price.html
+      description: >-
+          Inline price spans in every configuration: promo, strikethrough, tax
+          and per-unit labels, locale price literals.
+      match: 'web-components/*price*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: checkout
+      page: /web-components/docs/checkout-link.html
+      description: Checkout links and buttons with workflow-step, quantity and promo params.
+      match: 'web-components/src/checkout-*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: feature-flags
+      page: /web-components/docs/feature-flags.html
+      description: mas-ff-* flag docs with flag-sensitive price examples.
+      match: 'web-components/src/mas-commerce-service*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: aem-fragment
+      page: /web-components/docs/aem-fragment.html
+      description: Cards hydrated from real fragment UUIDs via the DA mount.
+      match: 'web-components/src/aem-fragment*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    - id: plans-collection
+      page: /web-components/docs/plans-collection.html
+      description: >-
+          Plans collection gallery, grouped plans cards driven by the
+          merch-card-collection element.
+      match: 'web-components/src/merch-card-collection*'
+      requires:
+          - /web-components/docs/spectrum.css
+          - /web-components/docs/styles.css
+
+    # M@S Studio, a hash-routed app on studio.html. mas.adobe.com is an own
+    # host, so the capture serves the diff-applied worktree with the author
+    # proxy on stage (never production content); the ims login rides the
+    # mas.adobe.com capture-host entry. sandbox is the designated testing
+    # folder, so the grid always has real cards to open.
+    # aem.env=stage repeated here so NON-local rungs (branch preview) also pin
+    # Studio to the stage author instead of its prod default.
+    - id: studio-content
+      url: https://mas.adobe.com/studio.html?aem.env=stage#page=content&path=sandbox
+      description: >-
+          M@S Studio authoring app on the content grid of the sandbox folder,
+          real stage cards. Double-clicking a card opens the merch card
+          editor and its fields: tag pickers, prices, OST links, variant
+          controls. The fallback for studio/ changes — editors, fields,
+          dialogs, pickers, Studio chrome — that no dedicated Studio surface
+          below (placeholders, translations, version history) covers; prefer
+          the dedicated one when the change is about that page.
+      match: 'studio/*'
+      requires:
+          - /studio/libs/swc.js
+          - /web-components/dist/mas.js
+
+    # Dedicated Studio pages: the selector prefers these over studio-content for
+    # changes under their folders, so the visual gate photographs the page the
+    # ticket is about instead of the Fragments grid (2026-08-17/18: MWPW-187985
+    # and MWPW-186084 both escalated on "wrong page" evidence).
+    - id: studio-placeholders
+      url: https://mas.adobe.com/studio.html?aem.env=stage#page=placeholders&path=sandbox
+      description: >-
+          M@S Studio Placeholders page for the sandbox folder: the placeholders
+          table with row checkboxes and the selection action bar (Copy Code,
+          delete, publish). Pick for changes under studio/src/placeholders or
+          the selection panel/action bar as used by placeholders.
+      match: 'studio/src/placeholders/*'
+      requires:
+          - /studio/libs/swc.js
+          - /web-components/dist/mas.js
+
+    - id: studio-translations
+      url: https://mas.adobe.com/studio.html?aem.env=stage#page=translations&path=sandbox
+      description: >-
+          M@S Studio Translations page for the sandbox folder: the translation
+          projects table (project, status, last updated by, sent on, actions)
+          and its toolbar. Pick for changes under studio/src/translation.
+      match: 'studio/src/translation/*'
+      requires:
+          - /studio/libs/swc.js
+          - /web-components/dist/mas.js
+
+    # The version-history panel is not deep-linkable without a fragment id, so
+    # the surface opens it the way an author does: double-click the first
+    # sandbox card (opens the merch card editor), then the editor side nav's
+    # History item (once the fragment has loaded and the item is enabled).
+    # Studio components render into light DOM, so the dblclick can be
+    # dispatched at the card element (2026-08-18: MWPW-202902 escalated on
+    # "no version history panel visible").
+    - id: studio-version-history
+      url: https://mas.adobe.com/studio.html?aem.env=stage#page=content&path=sandbox
+      description: >-
+          M@S Studio version-history panel of the first sandbox card: the list
+          of versions (date/time, "By <author>" line, label/comment, row menu)
+          next to the version preview. Pick for changes to version history,
+          version attribution or the version repository (studio/src/version*,
+          studio/src/aem/*).
+      match: 'studio/src/version*'
+      requires:
+          - /studio/libs/swc.js
+          - /web-components/dist/mas.js
+      interact:
+          - wait_for: 'mas-fragment-render.mas-fragment'
+          - dispatch_event: dblclick
+            at: 'mas-fragment-render.mas-fragment'
+          - wait_for: 'mas-side-nav-item[label="History"]:not([disabled])'
+          - click: 'mas-side-nav-item[label="History"]:not([disabled])'
+          - wait_for: 'version-page .version-item .version-author-name'
+          # the list renders entry by entry as the repository answers
+          - wait_ms: 1500
+
+    # Mined from adobecom/mas merged PR test urls (full history, 745 PRs
+    # 2024-06 to 2026-07; each probed HTTP 200, public, never a /drafts/ page).
+    # Consumer pages stay on .aem.live, their .aem.page previews are ims gated.
+    # The pre-2025-10 window adds no pages: its unique urls are all dead or
+    # ims gated (old ccd galleries 404, studio deeplinks gated).
+    - id: cc-plans
+      url: https://main--cc--adobecom.aem.live/creativecloud/plans?martech=off
+      description: >-
+          Production Creative Cloud plans page (en-US baseline), plans cards
+          with badges, quantity select and legal labels, hydrated through the
+          mas.adobe.com fragment delivery pipeline. Pick for io/www transformer
+          changes or plans work that needs real production context; the
+          localized siblings below cover locale-specific rendering.
+      match: 'io/www/src/*'
+
+    - id: cc-plans-fr
+      url: https://main--cc--adobecom.aem.live/fr/creativecloud/plans?martech=off
+      description: >-
+          French Creative Cloud plans page, localized price literals: TTC
+          suffix, comma decimals, euro placement. Pick for price-literals or
+          locale string changes where the exact French strings must render;
+          for tax-label markup itself prefer cc-plans-kr.
+      match: 'web-components/price-literals.json'
+
+    - id: cc-plans-kr
+      url: https://main--cc--adobecom.aem.live/kr/creativecloud/plans?martech=off
+      description: >-
+          Korean Creative Cloud plans page, tax-inclusive label strings and
+          full-width punctuation across every plans card. Pick for price
+          template or tax-label rendering changes that need a whole page of
+          localized cards, not one isolated card.
+      match: 'web-components/src/price/template.js'
+
+    - id: cc-plans-ar
+      url: https://main--cc--adobecom.aem.live/ar/creativecloud/plans?martech=off
+      description: >-
+          Arabic Creative Cloud plans page, right to left layout across plans
+          cards. Pick for direction sensitive layout changes.
+      match: 'web-components/src/global.css.js'
+
+    - id: cc-products-catalog
+      url: https://main--cc--adobecom.aem.live/products/catalog?martech=off
+      description: >-
+          Production products catalog, catalog cards inside a collection with
+          search, sidenav filters and load more.
+      match: 'web-components/src/sidenav/*'
+
+    - id: cc-segment-blade
+      url: https://main--cc--adobecom.aem.live/au/cc-shared/fragments/merch/creativecloud/illustration/merch-card/segment-blade?martech=off
+      description: >-
+          Single segment card fragment page with a real AU offer, exercises
+          price templates, per unit and tax labels on one isolated card.
+      match: 'web-components/src/price/*'
+
+    - id: dc-bizpro-plans
+      url: https://main--da-dc--adobecom.aem.live/dc-shared/fragments/tests/2026/q2/ace1205/fragments/ace1205-plans?martech=off
+      description: >-
+          BizPro plan cards with VAT legal pricing on the DC ace1205 campaign
+          fragment page. Pick for bizpro variant or business-pricing legal
+          label changes.
+      match: 'web-components/src/variants/bizpro*'
+
+    - id: express-pricing
+      url: https://main--da-express-milo--adobecom.aem.live/jp/express/pricing?martech=off
+      description: >-
+          Japanese Adobe Express pricing page with the full and simplified
+          pricing express cards; JP titles double as a long-title wrapping
+          check. Pick for the express card variants.
+      match: 'web-components/src/variants/*pricing-express*'
+
+    - id: milo-merch-kitchen-sink
+      url: https://main--milo--adobecom.aem.page/merch/kitchen-sink?martech=off
+      description: >-
+          Merch kitchen sink on the milo host, every card variant on one page
+          with real fragments. Production-content sibling of the local
+          merch-card gallery, pick for merch-card chrome changes (badges,
+          strokes, hydration) that need real content-bus context.
+      match: 'web-components/src/merch-card.js'

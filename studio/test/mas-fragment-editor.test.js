@@ -160,9 +160,11 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    it('renders loading state when no fragment', async () => {
+    it('renders the masked editor skeleton (not a blocking spinner) when no fragment', async () => {
         const el = await fixture(html`<mas-fragment-editor></mas-fragment-editor>`);
-        expect(el.querySelector('#loading-state')).to.exist;
+        expect(el.querySelector('#loading-state')).to.not.exist;
+        expect(el.querySelector('.form-skeleton')).to.exist;
+        expect(el.querySelector('.preview-skeleton')).to.exist;
     });
 
     it('extracts locale from path', async () => {
@@ -592,6 +594,116 @@ describe('MasFragmentEditor', () => {
             expect(el.updateTranslatedLocalesStore.called).to.be.false;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.IDLE);
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
+        });
+
+        describe('background promo-variation probe', () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/frag';
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promoCopyPath = `${promotionsRoot}/bf/frag/pzn/edu`;
+            const groupedItem = {
+                id: 'gpromo',
+                path: promoCopyPath,
+                tags: [],
+                status: 'DRAFT',
+                title: 'Promo copy',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+            };
+            const makeFragmentData = (id) => ({
+                id,
+                path: defaultPath,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+                references: [],
+                model: { path: CARD_MODEL_PATH },
+            });
+            const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 20));
+            let originalPromotions;
+
+            beforeEach(() => {
+                originalPromotions = Store.promotions.list.data.get();
+                Store.promotions.list.data.value = [];
+            });
+
+            afterEach(() => {
+                Store.promotions.list.data.value = originalPromotions;
+            });
+
+            // Gates the promo probe on a controllable search generator so we can observe the
+            // editor state while the probe is still in flight.
+            const gateSearch = () => {
+                let release;
+                const gate = new Promise((resolve) => {
+                    release = resolve;
+                });
+                mockRepo.aem.sites.cf.fragments.search = sandbox.stub().callsFake(async function* () {
+                    await gate;
+                    yield [groupedItem];
+                });
+                return release;
+            };
+
+            it('activates the store before the probe resolves, then folds in promo refs', async () => {
+                const fragmentData = makeFragmentData('bg-id');
+                mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
+                const releaseSearch = gateSearch();
+                Store.fragmentEditor.fragmentId.value = 'bg-id';
+
+                await el.initFragment();
+
+                // Store is active while the probe is still pending — render/preview didn't wait.
+                const store = el.inEdit.get();
+                expect(store.get().id).to.equal('bg-id');
+                expect(store.get().references).to.deep.equal([]);
+                expect(store.get().promoVariationProbeNotNeeded).to.not.equal(true);
+
+                releaseSearch();
+                await flushAsync();
+
+                expect(store.get().references.map((ref) => ref.path)).to.deep.equal([promoCopyPath]);
+                expect(store.get().promoVariationProbeNotNeeded).to.equal(true);
+                // The folded-in ref lives under promotions/, so it counts as a promo variation —
+                // the count the editor passes to the related-variations panel now reflects it,
+                // which is what drives that prop-driven panel's re-render.
+                expect(store.get().getPromoVariationCount()).to.equal(1);
+            });
+
+            it('preserves field edits made while the probe is in flight', async () => {
+                const fragmentData = makeFragmentData('edit-id');
+                mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
+                const releaseSearch = gateSearch();
+                Store.fragmentEditor.fragmentId.value = 'edit-id';
+
+                await el.initFragment();
+
+                const store = el.inEdit.get();
+                store.get().updateFieldInternal('cardTitle', 'user typed');
+
+                releaseSearch();
+                await flushAsync();
+
+                // Refs applied without a full refreshFrom, so the in-flight edit survives.
+                expect(store.get().cardTitle).to.equal('user typed');
+                expect(store.get().hasChanges).to.equal(true);
+                expect(store.get().references.map((ref) => ref.path)).to.deep.equal([promoCopyPath]);
+            });
+
+            it('does not mutate the store when the user navigated away before the probe resolves', async () => {
+                const fragmentData = makeFragmentData('nav-id');
+                mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
+                const releaseSearch = gateSearch();
+                Store.fragmentEditor.fragmentId.value = 'nav-id';
+
+                await el.initFragment();
+                const store = el.inEdit.get();
+
+                Store.fragmentEditor.fragmentId.value = 'other-id';
+                releaseSearch();
+                await flushAsync();
+
+                expect(store.get().references).to.deep.equal([]);
+                expect(store.get().promoVariationProbeNotNeeded).to.not.equal(true);
+            });
         });
     });
 

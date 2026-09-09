@@ -8,7 +8,11 @@ import { Promotion } from '../../src/aem/promotion.js';
 import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
 import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
-import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
+import { makeSearchStub as makeSharedSearchStub, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetTagCache } from '../helpers/tag-cache.js';
+import '@spectrum-web-components/tabs/sp-tab.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -295,7 +299,7 @@ describe('MasPromotionsEditor', () => {
             expect(el.showSelectedEmptyState).to.be.false;
             expect(el.renderRoot.textContent).to.include('Selected items');
             expect(el.selectedItemsViewTab).to.equal(TABLE_TYPE.CARDS);
-            const selector = el.renderRoot.querySelector('mas-promotions-items-selector');
+            const selector = el.renderRoot.querySelector('mas-items-selector[view-only]');
             expect(selector?.selectedTab).to.equal(TABLE_TYPE.CARDS);
             expect(el.fragment.getFieldValues('fragments')).to.deep.equal(selectedPaths);
         });
@@ -2275,6 +2279,297 @@ describe('MasPromotionsEditor', () => {
             const banner = el.renderRoot.querySelector('.fragment-validation-banner');
             expect(banner).to.exist;
             expect(banner.textContent).to.include('references a path that does not exist in JCR');
+        });
+    });
+
+    describe('items selector integration (mas-items-selector)', () => {
+        beforeEach(() => {
+            stubAemTagQueryFetch(sandbox);
+            resetTagCache(MAS_TAG_NAMESPACE);
+        });
+
+        afterEach(() => {
+            resetTagCache(MAS_TAG_NAMESPACE);
+        });
+
+        function pickerSelector(el) {
+            return el.renderRoot.querySelector('.add-items-dialog mas-items-selector');
+        }
+
+        function viewSelector(el) {
+            return el.renderRoot.querySelector('mas-items-selector[view-only]');
+        }
+
+        describe('picker (non-viewOnly) mas-items-selector', () => {
+            it('renders exactly two picker tabs: fragments and collections', async () => {
+                const { el } = await mountEditorWithRepo();
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                expect(selector.shadowRoot.querySelectorAll('sp-tab').length).to.equal(2);
+            });
+
+            it('shows the Import via URL button', async () => {
+                const { el } = await mountEditorWithRepo();
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                expect(selector.shadowRoot.querySelector('.import-url-btn')).to.exist;
+            });
+
+            it('keeps the offer-based product filter active after leaving and returning from Import via URL', async () => {
+                const { el } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.selectedOffers.set(['offer-1']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const cardsFilterBefore = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (f) => f.type === TABLE_TYPE.CARDS,
+                );
+                expect(cardsFilterBefore.productFilter).to.deep.equal(['mas:product_code/phsp']);
+
+                selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                await selector.updateComplete;
+                const importTabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                importTabs.selected = TABLE_TYPE.CARDS;
+                importTabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                await selector.updateComplete;
+
+                const cardsFilterAfter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (f) => f.type === TABLE_TYPE.CARDS,
+                );
+                expect(cardsFilterAfter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+            });
+
+            describe('Import via URL restrictions (surface + offer)', () => {
+                const COPY_CODE_URL = (uuid) =>
+                    `https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=${uuid}`;
+
+                const mockCard = (path, uuid, tags = []) => ({
+                    id: uuid,
+                    path,
+                    title: 'Test Card',
+                    model: { path: CARD_MODEL_PATH },
+                    status: 'PUBLISHED',
+                    tags,
+                    fields: [],
+                });
+
+                const importViaUrl = async (selector, value) => {
+                    const btn = selector.shadowRoot.querySelector('sp-button.import-url-btn');
+                    btn.click();
+                    await selector.updateComplete;
+                    const textarea = selector.shadowRoot.querySelector('textarea.import-url-input');
+                    const dt = new DataTransfer();
+                    dt.setData('text/plain', value);
+                    textarea.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: dt }));
+                    await new Promise((resolve) => setTimeout(resolve, 0));
+                    await selector.updateComplete;
+                };
+
+                const selectOfferWithProductTag = (offerId, productCode) => {
+                    Store.promotions.offerRecordsCache.set(offerId, {
+                        tags: [{ id: `mas:product_code/${productCode}` }],
+                    });
+                    Store.promotions.selectedOffers.set([offerId]);
+                };
+
+                let globalRepo;
+                let originalQuerySelector;
+
+                beforeEach(() => {
+                    originalQuerySelector = document.querySelector.bind(document);
+                    globalRepo = { aem: { sites: { cf: { fragments: { getById: sandbox.stub() } } } } };
+                    sandbox.stub(document, 'querySelector').callsFake((selector) => {
+                        if (selector === 'mas-repository') return globalRepo;
+                        return originalQuerySelector(selector);
+                    });
+                });
+
+                it('rejects a fragment from a surface not selected on the promotion', async () => {
+                    const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+                    const card = mockCard('/content/dam/mas/acom/en_US/test-card', uuid, [{ id: 'mas:product_code/phsp' }]);
+                    globalRepo.aem.sites.cf.fragments.getById.resolves(card);
+                    const { el } = await mountEditorWithRepo();
+                    selectOfferWithProductTag('offer-1', 'phsp');
+                    el.fragmentStore.updateField('surfaces', ['sandbox']);
+                    await el.updateComplete;
+                    const selector = pickerSelector(el);
+                    await importViaUrl(selector, COPY_CODE_URL(uuid));
+                    expect(selector.importedUrls[0].status).to.equal('error');
+                    expect(selector.importedUrls[0].errorMessage).to.match(/not allowed here/);
+                    expect(Store.promotions.selectedCards.get()).to.not.include(card.path);
+                });
+
+                it('accepts a fragment whose surface is one of several surfaces selected on the promotion', async () => {
+                    const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+                    const card = mockCard('/content/dam/mas/acom/en_US/test-card', uuid, [{ id: 'mas:product_code/phsp' }]);
+                    globalRepo.aem.sites.cf.fragments.getById.resolves(card);
+                    const { el } = await mountEditorWithRepo();
+                    selectOfferWithProductTag('offer-1', 'phsp');
+                    el.fragmentStore.updateField('surfaces', ['sandbox,acom']);
+                    await el.updateComplete;
+                    const selector = pickerSelector(el);
+                    await importViaUrl(selector, COPY_CODE_URL(uuid));
+                    expect(selector.importedUrls[0].status).to.equal('valid');
+                    expect(Store.promotions.selectedCards.get()).to.include(card.path);
+                });
+
+                it('rejects a fragment that does not match any selected offer', async () => {
+                    const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+                    const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid, [{ id: 'mas:product_code/ilst' }]);
+                    globalRepo.aem.sites.cf.fragments.getById.resolves(card);
+                    const { el } = await mountEditorWithRepo();
+                    selectOfferWithProductTag('offer-1', 'phsp');
+                    el.fragmentStore.updateField('surfaces', ['sandbox']);
+                    await el.updateComplete;
+                    const selector = pickerSelector(el);
+                    await importViaUrl(selector, COPY_CODE_URL(uuid));
+                    expect(selector.importedUrls[0].status).to.equal('error');
+                    expect(selector.importedUrls[0].errorMessage).to.match(/does not match any selected offer/);
+                    expect(Store.promotions.selectedCards.get()).to.not.include(card.path);
+                });
+
+                it('accepts a fragment matching one of several selected offers', async () => {
+                    const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+                    const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid, [{ id: 'mas:product_code/ilst' }]);
+                    globalRepo.aem.sites.cf.fragments.getById.resolves(card);
+                    const { el } = await mountEditorWithRepo();
+                    Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                    Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                    Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
+                    el.fragmentStore.updateField('surfaces', ['sandbox']);
+                    await el.updateComplete;
+                    const selector = pickerSelector(el);
+                    await importViaUrl(selector, COPY_CODE_URL(uuid));
+                    expect(selector.importedUrls[0].status).to.equal('valid');
+                    expect(Store.promotions.selectedCards.get()).to.include(card.path);
+                });
+
+                it('rejects when no offer is selected at all', async () => {
+                    const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+                    const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+                    globalRepo.aem.sites.cf.fragments.getById.resolves(card);
+                    const { el } = await mountEditorWithRepo();
+                    el.fragmentStore.updateField('surfaces', ['sandbox']);
+                    await el.updateComplete;
+                    const selector = pickerSelector(el);
+                    await importViaUrl(selector, COPY_CODE_URL(uuid));
+                    expect(selector.importedUrls[0].status).to.equal('error');
+                    expect(selector.importedUrls[0].errorMessage).to.match(/Select at least one offer/);
+                });
+            });
+
+            it('forwards hidePromoVariations, hideGroupedVariations, variationTabs and selectableTabs to mas-select-items-table', async () => {
+                const { el } = await mountEditorWithRepo();
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const table = selector.shadowRoot.querySelector('mas-select-items-table');
+                expect(table.hidePromoVariations).to.be.true;
+                expect(table.hideGroupedVariations).to.be.true;
+                expect(table.tabs).to.deep.equal(['promotion', 'grouped']);
+                expect(table.selectableTabs).to.deep.equal(['grouped']);
+            });
+
+            it('shows labeled surface picker options when multiple fragment surfaces are available', async () => {
+                const { el } = await mountEditorWithRepo();
+                el.fragmentStore.updateField('surfaces', ['sandbox,acom']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (f) => f.type === TABLE_TYPE.CARDS,
+                );
+                expect(cardsFilter.promotionSurfaceOptions.map((o) => o.id)).to.deep.equal(['sandbox', 'acom']);
+            });
+
+            it('sets Store.search.query directly when the search input is a UUID', async () => {
+                const { el } = await mountEditorWithRepo();
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                const search = selector.shadowRoot.querySelector('sp-search');
+                search.value = '12345678-1234-1234-1234-123456789012';
+                search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+                await selector.updateComplete;
+                expect(Store.search.get().query).to.equal('12345678-1234-1234-1234-123456789012');
+            });
+
+            it('resetFilters delegates to the picker mas-items-selector', async () => {
+                const { el } = await mountEditorWithRepo();
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const spy = sandbox.spy(selector, 'resetFilters');
+                selector.resetFilters();
+                expect(spy.called).to.be.true;
+            });
+        });
+
+        describe('viewOnly mas-items-selector', () => {
+            async function openWithSelection(el) {
+                Store.promotions.selectedOffers.set(['offer-1']);
+                Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/card']);
+                await el.updateComplete;
+            }
+
+            it('renders three view-only tabs for offers, fragments, and collections', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                const selector = viewSelector(el);
+                expect(selector.shadowRoot.querySelectorAll('sp-tab').length).to.equal(3);
+            });
+
+            it('renders mas-promotions-items-table for every tab', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                const selector = viewSelector(el);
+                expect(selector.shadowRoot.querySelectorAll('mas-promotions-items-table').length).to.equal(3);
+            });
+
+            it('includes selection counts in tab labels', async () => {
+                const { el } = await mountEditorWithRepo();
+                Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
+                Store.promotions.selectedCards.set(['/a', '/b']);
+                await el.updateComplete;
+                const selector = viewSelector(el);
+                const tabs = [...selector.shadowRoot.querySelectorAll('sp-tab')];
+                const offersTab = tabs.find((t) => t.value === TABLE_TYPE.OFFERS);
+                const cardsTab = tabs.find((t) => t.value === TABLE_TYPE.CARDS);
+                expect(offersTab.textContent).to.include('(2)');
+                expect(cardsTab.textContent).to.include('(2)');
+            });
+
+            it('re-dispatches promotion-offer-removed and resets to the offers tab', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+                await el.updateComplete;
+                const selector = viewSelector(el);
+                const table = selector.shadowRoot.querySelector('mas-promotions-items-table');
+                table.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(el.selectedItemsViewTab).to.equal(TABLE_TYPE.OFFERS);
+            });
+
+            it('updates the toast when a child table dispatches show-toast', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                const selector = viewSelector(el);
+                const table = selector.shadowRoot.querySelector('mas-promotions-items-table');
+                table.dispatchEvent(
+                    new CustomEvent('show-toast', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { text: 'Toast text', variant: 'positive' },
+                    }),
+                );
+                await el.updateComplete;
+                const toast = selector.shadowRoot.querySelector('sp-toast');
+                expect(toast.textContent).to.equal('Toast text');
+                expect(toast.variant).to.equal('positive');
+            });
         });
     });
 });

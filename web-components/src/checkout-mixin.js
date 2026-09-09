@@ -270,7 +270,6 @@ export function CheckoutMixin(Base) {
                 e.shiftKey ||
                 e.altKey ||
                 this.classList.contains(CLASS_NAME_DOWNLOAD) ||
-                this.classList.contains(CLASS_NAME_UPGRADE) ||
                 this.hasAttribute('download') ||
                 (this.target && this.target !== '_self')
             ) {

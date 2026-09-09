@@ -462,6 +462,8 @@ describe('aup-select checkout routing', () => {
                             lang: 'en',
                             ctxrturl: window.location.href,
                             ot: 'BASE',
+                            items: `${element.value[0].offerId}|1`,
+                            step: 'email',
                         },
                     },
                 ]);
@@ -531,18 +533,28 @@ describe('aup-select checkout routing', () => {
                 });
             }
 
-            for (const className of ['download', 'upgrade']) {
-                it(`preserves ${className} checkout actions`, async () => {
-                    await service.registerCheckoutAction(() => ({
-                        handler: legacy,
-                        className,
-                    }));
-                    const element = await create(Class);
-                    click(element);
-                    expect(legacy.calledOnce).to.be.true;
-                    expect(sdk.getOrchestratorContext.called).to.be.false;
-                });
-            }
+            it('preserves download checkout actions', async () => {
+                await service.registerCheckoutAction(() => ({
+                    handler: legacy,
+                    className: 'download',
+                }));
+                const element = await create(Class);
+                click(element);
+                expect(legacy.calledOnce).to.be.true;
+                expect(sdk.getOrchestratorContext.called).to.be.false;
+            });
+
+            it('routes upgrade checkout actions through AUP', async () => {
+                await service.registerCheckoutAction(() => ({
+                    handler: legacy,
+                    className: 'upgrade',
+                }));
+                const element = await create(Class, { upgrade: true });
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
+            });
 
             it('suppresses repeated clicks until workflow exit, then allows reopening', async () => {
                 const exit = deferred();
@@ -720,15 +732,47 @@ describe('aup-select checkout routing', () => {
         { wcsOsi: 'abm-promo', promotionCode: 'nicopromo' },
         { extraOptions: '{"ao":"stock"}' },
         { upgrade: true },
-        { wcsOsi: 'perpetual', perpetual: true },
         { checkoutWorkflowStep: 'change-plan/team-upgrade/plans' },
     ]) {
-        it(`preserves unsupported checkout ${JSON.stringify(options)}`, async () => {
+        it(`lets AUP resolve checkout ${JSON.stringify(options)}`, async () => {
             const element = await create(CheckoutLink, options);
             click(element);
             await element.aupCheckoutPromise;
+            expect(launch.calledOnce).to.be.true;
+            expect(legacy.called).to.be.false;
+        });
+    }
+
+    it('retains existing checkout for perpetual CTAs', async () => {
+        const element = await create(CheckoutLink, {
+            wcsOsi: 'perpetual',
+            perpetual: true,
+        });
+        const event = click(element);
+        await element.aupCheckoutPromise;
+        expect(sdk.getOrchestratorContext.called).to.be.false;
+        expect(launch.called).to.be.false;
+        expect(legacy.calledOnceWithExactly(event)).to.be.true;
+    });
+
+    for (const mixed of [false, true]) {
+        it(`rejects resolved perpetual offers without the CTA flag (mixed: ${mixed})`, async () => {
+            const subscription = await create();
+            const perpetual = await create(CheckoutLink, {
+                wcsOsi: 'perpetual',
+                perpetual: true,
+            });
+            const offers = mixed
+                ? [...subscription.value, ...perpetual.value]
+                : perpetual.value;
+            const handled = await launchAupCheckout(
+                sdk,
+                offers,
+                subscription.options,
+            );
+            expect(handled).to.be.false;
+            expect(sdk.getOrchestratorContext.called).to.be.false;
             expect(launch.called).to.be.false;
-            expect(legacy.calledOnce).to.be.true;
         });
     }
 
@@ -784,11 +828,80 @@ describe('aup-select checkout routing', () => {
                 lang: 'en',
                 ctxrturl: 'https://www.adobe.com/plans',
                 ot: 'BASE',
+                items: `${element.value[0].offerId}|1`,
+                step: 'email',
                 rtc: 't',
                 lo: 'sl',
                 af: 'feature',
             },
         });
+    });
+
+    it('forwards all cart offers with their quantities and promotion code', async () => {
+        const element = await create(CheckoutLink, {
+            wcsOsi: 'abm-promo,stock-m2m',
+            quantity: '2,3',
+            promotionCode: 'nicopromo',
+        });
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.firstCall.args[0].params).to.include({
+            items: `${element.value[0].offerId}|2,${element.value[1].offerId}|3`,
+            apc: 'nicopromo',
+            ot: element.value[0].offerType,
+        });
+        expect(legacy.called).to.be.false;
+    });
+
+    it('forwards quantity overrides and checkout workflow parameters', async () => {
+        const element = await create(CheckoutLink, {
+            quantity: 2,
+            checkoutWorkflowStep: 'change-plan/team-upgrade/plans',
+            extraOptions: JSON.stringify({
+                addonProductArrangementCode: 'stock-addon',
+                q: '4',
+                apc: 'campaign-promo',
+                trackingid: 'campaign-id',
+                otac: 'offer-token',
+                nglwfdata: 'workflow-data',
+                'so.su': 'subscription-id',
+                'context.guid': 'context-id',
+                rtc: false,
+                cf: 0,
+                referrer: 'https://www.adobe.com/plans',
+            }),
+        });
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.firstCall.args[0].params).to.include({
+            items: `${element.value[0].offerId}|4`,
+            step: 'change-plan/team-upgrade/plans',
+            ao: 'stock-addon',
+            apc: 'campaign-promo',
+            trackingid: 'campaign-id',
+            otac: 'offer-token',
+            nglwfdata: 'workflow-data',
+            soSu: 'subscription-id',
+            contextGuid: 'context-id',
+            rtc: false,
+            cf: 0,
+            referrer: 'https://www.adobe.com/plans',
+        });
+    });
+
+    it('lets AUP decide whether an offer type and incomplete context are supported', async () => {
+        const element = await create();
+        const offer = {
+            ...element.value[0],
+            offerType: 'NEW_OFFER_TYPE',
+            productArrangementCode: undefined,
+        };
+        await launchAupCheckout(sdk, [offer], {
+            ...element.options,
+            country: undefined,
+        });
+        expect(launch.calledOnce).to.be.true;
+        expect(launch.firstCall.args[0].params.ot).to.equal('NEW_OFFER_TYPE');
     });
 
     it('maps product code and plan preselection from resolved offer data', async () => {

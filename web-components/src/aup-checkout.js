@@ -2,28 +2,13 @@ import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 
 function getRequest(offers, options) {
     if (
-        offers.length !== 1 ||
-        !options.country ||
-        options.quantity?.some((quantity) => quantity !== 1) ||
-        (options.q != null && Number(options.q) !== 1) ||
-        options.promotionCode ||
-        options.apc ||
-        options.ao ||
-        options.addonProductArrangementCode ||
-        options.upgrade ||
         options.perpetual ||
-        options.checkoutWorkflowStep?.startsWith('change-plan/')
+        offers.some((offer) => offer.commitment === 'PERPETUAL')
     ) {
         return;
     }
     const [offer] = offers;
-    if (
-        !offer.productArrangementCode ||
-        !['BASE', 'TRIAL'].includes(offer.offerType) ||
-        offer.promotion
-    ) {
-        return;
-    }
+    if (!offer) return;
     const context = {
         clientId: options.checkoutClientId,
         clientType: 'web',
@@ -48,9 +33,74 @@ function getRequest(offers, options) {
         ),
         ctxrturl: options.ctxrturl ?? window.location.href,
         ot: offer.offerType,
+        items: offers
+            .map(({ offerId }, index) => {
+                const quantity =
+                    options.q ??
+                    options.quantity?.[index] ??
+                    options.quantity?.[0];
+                return quantity == null ? offerId : `${offerId}|${quantity}`;
+            })
+            .join(','),
     };
-    for (const key of ['rtc', 'lo', 'af']) {
-        if (options[key]) params[key] = options[key];
+    for (const [key, value] of Object.entries({
+        step: options.checkoutWorkflowStep,
+        apc: options.promotionCode,
+        ao: options.addonProductArrangementCode,
+        code: options.authCode,
+        soSu: options['so.su'],
+        soCa: options['so.ca'],
+        soVa: options['so.va'],
+        soTr: options['so.tr'],
+        contextGuid: options['context.guid'],
+        dcwatc: options.DCWATC,
+    })) {
+        if (value != null) params[key] = value;
+    }
+    for (const key of [
+        'step',
+        'apc',
+        'ao',
+        'ctx',
+        'ijt',
+        'otac',
+        'nglwfdata',
+        'appctxid',
+        'soSu',
+        'soCa',
+        'soVa',
+        'soTr',
+        'promoid',
+        'sdid',
+        'trackingid',
+        'mv',
+        'mv2',
+        'contextGuid',
+        'ai',
+        'sc',
+        'th',
+        'lo',
+        'gsp',
+        'spint',
+        'mal',
+        'csm',
+        'af',
+        'rf',
+        'usid',
+        'dcwatc',
+        'cf',
+        'rtc',
+        'ccli',
+        'csc',
+        'referrer',
+        'code',
+        'ew',
+        'pp',
+        'token',
+        'mat',
+        'pcid',
+    ]) {
+        if (options[key] != null) params[key] = options[key];
     }
     return {
         intent: offer.offerType === 'TRIAL' ? 'try' : 'buy',

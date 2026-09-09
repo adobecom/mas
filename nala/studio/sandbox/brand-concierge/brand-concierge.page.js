@@ -12,8 +12,8 @@ export default class SandboxBrandConciergePage {
         this.cardCTA = page.locator('div[slot="footer"] a');
 
         // Shadow DOM elements (Playwright locators pierce shadow roots)
-        this.cardBody = page.locator('merch-card .body');
-        this.cardFooter = page.locator('merch-card footer');
+        this.cardBody = page.locator('.body');
+        this.cardFooter = page.locator('footer');
 
         // Brand Concierge Product card CSS properties (observed on the
         // brand-concierge-product variant render):

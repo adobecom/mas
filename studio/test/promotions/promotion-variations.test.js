@@ -1376,11 +1376,13 @@ describe('promotion-variations', () => {
         it('also merges probed promo references for the fragment own grouped variations', async () => {
             const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
             const groupedPath = `${defaultPath}/pzn/edu`;
-            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
-            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
-            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const groupedPromoPath = `${promotionsRoot}/black-friday/my-card/pzn/edu`;
+            // Grouped copies are discovered by an EDGES full-text search on the variation leaf, scoped
+            // to the promotions root (was one folder search per project) — the stub is keyed on the
+            // root and ignores the query text, so the suffix matcher does the authoritative filtering.
             const search = makeSearchStub({
-                [promoFolder]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+                [promotionsRoot]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
             });
             const aem = createAemMock({ fragments: { search } });
             const fragmentData = {
@@ -1394,6 +1396,69 @@ describe('promotion-variations', () => {
             ]);
             expect(enriched.references).to.have.lengthOf(1);
             expect(enriched.references[0].path).to.equal(groupedPromoPath);
+        });
+
+        it('discovers grouped promo variations with one search regardless of project count', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const nestedCopy = `${promotionsRoot}/emea/back-to-school/my-card/pzn/edu`; // multi-segment promoName
+            const suffixedCopy = `${promotionsRoot}/black-friday/my-card/pzn/edu-2`; // -N sibling
+            const unrelated = `${promotionsRoot}/black-friday/other-card/pzn/edu`; // different card
+            const search = makeSearchStub({
+                [promotionsRoot]: [
+                    { id: 'g1', path: nestedCopy, tags: [] },
+                    { id: 'g2', path: suffixedCopy, tags: [] },
+                    { id: 'unrelated', path: unrelated, tags: [] },
+                ],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+
+            const manyProjects = Array.from({ length: 25 }, (_, i) => ({ tags: [{ id: `mas:promotion/p${i}` }] }));
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, manyProjects);
+
+            expect(search.callCount).to.equal(1);
+            // Targeted full-text search on the variation leaf, scoped to the promotions root —
+            // not a whole-subtree scan and not one search per project.
+            expect(search.firstCall.args[0]).to.deep.equal({ path: promotionsRoot, query: 'edu' });
+            const paths = enriched.references.map((ref) => ref.path).sort();
+            expect(paths).to.deep.equal([nestedCopy, suffixedCopy].sort());
+        });
+
+        it('runs one targeted search per grouped variation (concurrent, not a whole-tree scan)', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const eduCopy = `${promotionsRoot}/black-friday/my-card/pzn/edu`;
+            const smbCopy = `${promotionsRoot}/emea/back-to-school/my-card/pzn/smb`;
+            const search = makeSearchStub({
+                [promotionsRoot]: [
+                    { id: 'g-edu', path: eduCopy, tags: [] },
+                    { id: 'g-smb', path: smbCopy, tags: [] },
+                ],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [`${defaultPath}/pzn/edu`, `${defaultPath}/pzn/smb`], multiple: true }],
+            };
+
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, []);
+
+            expect(search.callCount).to.equal(2);
+            expect(
+                search
+                    .getCalls()
+                    .map((call) => call.args[0].query)
+                    .sort(),
+            ).to.deep.equal(['edu', 'smb']);
+            const paths = enriched.references.map((ref) => ref.path).sort();
+            expect(paths).to.deep.equal([eduCopy, smbCopy].sort());
         });
     });
 

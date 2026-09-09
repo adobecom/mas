@@ -928,8 +928,8 @@ export class MerchCard extends LitElement {
         );
         if (!cta) return;
         const pa =
-            productArrangementCode ??
-            new URL(cta.getAttribute('href')).searchParams.get('pa');
+            productArrangementCode ?? cta.value?.[0]?.productArrangementCode;
+        if (!pa) return;
         const mainProductQuantity = items.find(
             (item) => item.productArrangementCode === pa,
         )?.quantity;

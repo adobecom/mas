@@ -314,7 +314,7 @@ export function CheckoutMixin(Base) {
                     : undefined,
             )
                 .catch((e) => {
-                    this.masElement.log?.warn('AUP checkout launch failed');
+                    this.masElement.log?.error('AUP checkout launch failed');
                     return false;
                 })
                 .then((handled) => {

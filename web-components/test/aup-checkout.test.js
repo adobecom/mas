@@ -282,6 +282,63 @@ describe('aup-select checkout routing', () => {
     });
 
     for (const Class of [CheckoutLink, CheckoutButton]) {
+        for (const href of [null, '#', '/checkout', 'https://[invalid']) {
+            it(`syncs ${Class.is} without an explicit PA when href is ${href}`, async () => {
+                const { card, addon, link } = await createCard(Class);
+                if (href === null) {
+                    link.removeAttribute('href');
+                    link.removeAttribute('data-href');
+                } else {
+                    link.setCheckoutUrl(href);
+                }
+                const mainItem = {
+                    productArrangementCode:
+                        link.value[0].productArrangementCode,
+                    quantity: 1,
+                };
+                const update = (items) =>
+                    card.handleAddonAndQuantityUpdate({
+                        detail: { id: 'checkout-modal', items },
+                    });
+                update([
+                    mainItem,
+                    {
+                        productArrangementCode: 'stks_direct_individual',
+                        quantity: 1,
+                    },
+                ]);
+                expect(addon.checked).to.be.true;
+                expect(link.dataset.wcsOsi).to.equal('abm,stock-abm');
+                await link.onceSettled();
+                update([mainItem]);
+                expect(addon.checked).to.be.false;
+                expect(link.dataset.wcsOsi).to.equal('abm');
+            });
+        }
+    }
+
+    for (const checked of [false, true]) {
+        it(`preserves addon selection (${checked}) when the main PA is unavailable`, async () => {
+            const { card, addon, link } = await createCard();
+            addon.checked = checked;
+            link.masElement.value = undefined;
+            card.handleAddonAndQuantityUpdate({
+                detail: {
+                    id: 'checkout-modal',
+                    items: [
+                        {
+                            productArrangementCode: 'stks_direct_individual',
+                            quantity: 1,
+                        },
+                    ],
+                },
+            });
+            expect(addon.checked).to.equal(checked);
+            expect(link.dataset.wcsOsi).to.equal('abm');
+        });
+    }
+
+    for (const Class of [CheckoutLink, CheckoutButton]) {
         for (const href of [
             '#',
             'https://commerce.adobe.com/store/email?items[0][id]=offer',

@@ -147,16 +147,15 @@ export class Pro extends VariantLayout {
     // [slot="legal-text"] in place (never detached): the shadow has no matching
     // slot so it won't render, and merch-card swaps in a fresh layout per render.
     adjustShortDescription() {
-        const text = this.card
-            .querySelector('[slot="legal-text"]')
-            ?.textContent?.trim();
+        const source = this.card.querySelector('[slot="legal-text"]');
+        const text = source?.textContent?.trim();
         if (!text) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m"] [data-template="legal"]',
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
-        planType.textContent = text;
+        planType.innerHTML = source.innerHTML;
         // The legal template appends ". " between the tax label and plan type, but
         // only when it rendered the plan type itself; we inject it, so add the same
         // separator so injected and WCS-sourced lines read alike (MWPW-198626).

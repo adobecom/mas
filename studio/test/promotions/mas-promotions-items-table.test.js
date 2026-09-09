@@ -1934,4 +1934,57 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.selectedCards.set([]);
         });
     });
+
+    describe('promo variation probe re-runs when the edited promotion changes', () => {
+        it('re-probes promo variations when switching to a different promotion with the same selected paths', async () => {
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-one';
+            Store.promotions.selectedCards.set([cardPath]);
+            const promoA = new Fragment({
+                path: '/content/dam/mas/promotions/promo-a',
+                id: 'promo-a-id',
+                fields: [{ name: 'tags', values: ['mas:promotion/promo-a'], multiple: true }],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promoA));
+
+            const cardFragment = {
+                path: cardPath,
+                id: 'card-one-id',
+                title: 'Card one',
+                studioPath: cardPath,
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            };
+            const getFragmentByPath = sandbox.stub().resolves(cardFragment);
+            const search = makeSharedSearchStub(sandbox);
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox
+                .stub(el, 'repository')
+                .get(() => ({ aem: { getFragmentByPath, sites: { cf: { fragments: { search } } } } }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            const callsBeforeSwitch = search.callCount;
+            expect(callsBeforeSwitch).to.be.greaterThan(0);
+
+            const promoB = new Fragment({
+                path: '/content/dam/mas/promotions/promo-b',
+                id: 'promo-b-id',
+                fields: [{ name: 'tags', values: ['mas:promotion/promo-b'], multiple: true }],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promoB));
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+
+            expect(search.callCount).to.be.greaterThan(callsBeforeSwitch);
+
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.inEdit.set(null);
+        });
+    });
 });

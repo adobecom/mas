@@ -43,6 +43,19 @@ function escapeRegExp(value) {
 }
 
 /**
+ * Builds a regex matching a promo-variation copy of a fragment: the copy lives at
+ * `{promotionsRoot}/<promoName…>/<relativeFragmentPath>` with an optional `-<index>` suffix. The
+ * `.+` swallows the arbitrary-depth promoName folder(s), so a single recursive search over the
+ * promotions root can attribute copies back to a fragment by path suffix (capture group 1 = index).
+ * @param {string} promotionsRoot
+ * @param {string} relativeFragmentPath - fragmentPath relative to surface/locale (may contain '/')
+ * @returns {RegExp}
+ */
+function buildPromoVariationSuffixMatcher(promotionsRoot, relativeFragmentPath) {
+    return new RegExp(`^${escapeRegExp(promotionsRoot)}/.+/${escapeRegExp(relativeFragmentPath)}(?:-(\\d+))?$`);
+}
+
+/**
  * Matches a variation search result to its owning default path by full-path identity.
  * The exact variation base path is index 1; a trailing "-N" is a suffixed sibling variation.
  * Exact-base match takes precedence, so a card literally named "…-N" claims its own path
@@ -161,6 +174,31 @@ export function findOverlappingGeoTags(existingVariations, newGeoTags) {
 }
 
 /**
+ * Validates a promo variation's geo tags against its siblings and (optionally) its
+ * promotion project's geos. Throws a UserFriendlyError on the first conflict found.
+ * @param {Array<{ id?: string, pznTags: string[] }>} existingVariations
+ * @param {string[]} geoTags
+ * @param {string[]} [projectGeos] - when provided, geoTags must all be contained in this list
+ */
+export function assertPromoVariationGeoTagsValid(existingVariations, geoTags, projectGeos) {
+    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
+        throw new UserFriendlyError('A variation with no geos already exists for this project.');
+    }
+    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
+    if (overlapping.length) {
+        throw new UserFriendlyError(
+            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
+        );
+    }
+    if (projectGeos) {
+        const notInProject = geoTags.filter((tag) => !projectGeos.includes(tag));
+        if (notInProject.length) {
+            throw new UserFriendlyError(`These geos are not part of the promotion project: ${notInProject.join(', ')}`);
+        }
+    }
+}
+
+/**
  * Finds the next available index: skips indices already used by sibling variations (gaps
  * allowed) and any that would collide with another fragment in the same project.
  * @param {number[]} usedIndices
@@ -229,19 +267,14 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         ...variation,
         pznTags: (variation.pznTags || []).filter((tag) => !preservedPznTags.includes(tag)),
     }));
-    if (!geoTags.length && existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)) {
-        throw new UserFriendlyError(
-            isGroupedVariationSource
-                ? 'A promo variation for this grouped variation fragment already exists.'
-                : 'A variation with no geos already exists for this project.',
-        );
+    if (
+        isGroupedVariationSource &&
+        !geoTags.length &&
+        existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)
+    ) {
+        throw new UserFriendlyError('A promo variation for this grouped variation fragment already exists.');
     }
-    const overlapping = findOverlappingGeoTags(existingGeoTagsByVariation, geoTags);
-    if (overlapping.length) {
-        throw new UserFriendlyError(
-            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
-        );
-    }
+    assertPromoVariationGeoTagsValid(existingGeoTagsByVariation, geoTags);
 
     const nextIndex = getNextAvailablePromoVariationIndex(
         existingVariations.map((variation) => variation.index),
@@ -317,11 +350,7 @@ export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) 
     const promotionsRoot = buildPromotionsRootPath(defaultPath);
     if (!match?.groups?.fragmentPath || !promotionsRoot) return [];
 
-    const segments = match.groups.fragmentPath.split('/');
-    const leafName = segments.pop();
-    const dirPart = segments.join('/');
-    const suffix = dirPart ? `${escapeRegExp(dirPart)}/${escapeRegExp(leafName)}` : escapeRegExp(leafName);
-    const suffixPattern = new RegExp(`^${escapeRegExp(promotionsRoot)}/.+/${suffix}(?:-(\\d+))?$`);
+    const suffixPattern = buildPromoVariationSuffixMatcher(promotionsRoot, match.groups.fragmentPath);
 
     const rawResults = [];
     try {
@@ -384,32 +413,70 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 }
 
 /**
- * Searches promo variations for grouped paths by project tag.
- * Skips the attachment check because grouped paths never appear
- * in a project's 'fragments' field — only the parent card does.
+ * Finds promo variations of a fragment's grouped (pzn) variations across every promotion project.
+ * Grouped paths never appear in a project's 'fragments' field (only the parent card does), so they
+ * can't be filtered by attachment. A recursive scan of the whole promotions root is both slow
+ * (cursor pagination is serial) and wasteful (it returns every promo copy just to keep a handful).
+ * Instead, each grouped copy keeps its source leaf as its node name, so an EDGES full-text search on
+ * that leaf returns only the copies of that variation — a single unpaginated page (verified: all 15
+ * live grouped copies matched, ≤3 results each, no cursor). One such search per grouped variation
+ * runs concurrently; the suffix matcher stays the authoritative filter so any over-match is dropped.
  * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath - the parent card path (shares the surface/locale promotions root)
  * @param {string[]} groupedVariationPaths
- * @param {Array<Object>} promotionProjects
- * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
  */
-async function probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects = []) {
-    if (!aem || !groupedVariationPaths.length) return [];
+async function probeGroupedVariationPromoReferences(aem, defaultPath, groupedVariationPaths = []) {
+    if (!aem || !defaultPath || !groupedVariationPaths.length) return [];
+    const promotionsRoot = buildPromotionsRootPath(defaultPath);
+    if (!promotionsRoot) return [];
 
-    const refsPerProject = await processConcurrently(
-        promotionProjects,
-        async (project) => {
-            const tagId = getPromotionTagFromFragment(project);
-            if (!tagId) return [];
-            const refsPerPath = await processConcurrently(
-                groupedVariationPaths,
-                (path) => probePromoVariationsForFragment(aem, path, tagId),
-                VARIATIONS_CONCURRENCY_LIMIT,
-            );
-            return refsPerPath.flat();
+    const targets = groupedVariationPaths
+        .map((path) => PATH_TOKENS.exec(path)?.groups?.fragmentPath)
+        .filter(Boolean)
+        .map((relPath) => ({
+            matcher: buildPromoVariationSuffixMatcher(promotionsRoot, relPath),
+            leaf: relPath.split('/').pop(),
+        }))
+        .filter((target) => target.leaf);
+    if (!targets.length) return [];
+
+    const resultsPerTarget = await processConcurrently(
+        targets,
+        async ({ matcher, leaf }) => {
+            const found = [];
+            try {
+                for await (const batch of aem.sites.cf.fragments.search(
+                    { path: promotionsRoot, query: leaf },
+                    VARIATION_SEARCH_PAGE_SIZE,
+                )) {
+                    for (const variation of batch) {
+                        if (!variation?.id || !variation?.path) continue;
+                        const match = matcher.exec(variation.path);
+                        if (!match) continue;
+                        const index = match[1] ? Number(match[1]) : 1;
+                        if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) continue;
+                        found.push({
+                            path: variation.path,
+                            index,
+                            id: variation.id,
+                            pznTags: readPznTags(variation),
+                            status: variation.status,
+                            title: variation.title,
+                            model: variation.model,
+                            fields: variation.fields,
+                            tags: variation.tags,
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to search promotions folder for grouped promo variation probe:', error);
+            }
+            return found;
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
-    return refsPerProject.flat();
+    return resultsPerTarget.flat();
 }
 
 /**
@@ -425,7 +492,7 @@ export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, 
 
     const [defaultRefs, groupedRefs] = await Promise.all([
         probePromoVariationReferences(aem, fragmentData.path, promotionProjects),
-        probeGroupedVariationPromoReferences(aem, groupedVariationPaths, promotionProjects),
+        probeGroupedVariationPromoReferences(aem, fragmentData.path, groupedVariationPaths),
     ]);
 
     return mergePromoVariationReferences(fragmentData, [...defaultRefs, ...groupedRefs]);

@@ -82,6 +82,8 @@ class MasSearchAndFilters extends LitElement {
         promotionSurface: { type: String },
         offerFilterOptions: { type: Array },
         offerFilterValue: { type: String },
+        /** If true, don't overwrite productFilter — the consumer controls it (offers for promotions). */
+        externalProductFilter: { type: Boolean },
     };
 
     constructor() {
@@ -112,6 +114,7 @@ class MasSearchAndFilters extends LitElement {
         this.promotionSurface = '';
         this.offerFilterOptions = [];
         this.offerFilterValue = '';
+        this.externalProductFilter = false;
     }
 
     get #isTemplateFilterLocked() {
@@ -181,7 +184,9 @@ class MasSearchAndFilters extends LitElement {
         }
         this.#setFilterIfChanged('marketSegmentFilter', tagsByType.market_segments);
         this.#setFilterIfChanged('customerSegmentFilter', tagsByType.customer_segment);
-        this.#setFilterIfChanged('productFilter', tagsByType.product_code);
+        if (!this.externalProductFilter) {
+            this.#setFilterIfChanged('productFilter', tagsByType.product_code);
+        }
     }
 
     #syncRepositorySearch() {

@@ -1507,29 +1507,62 @@ describe('priceInfo (pre-formatted WCS price)', () => {
             expect(info).to.equal(numeric);
         });
 
-        it('tax-exclusive uses priceInfo.priceWithoutTax, not priceInfo.price', () => {
-            const exclusiveOffer = {
-                ...usRegular,
-                priceDetails: {
-                    price: 69.99,
-                    formatString: usFormat,
-                    usePrecision: true,
-                    taxDisplay: 'TAX_EXCLUSIVE',
-                    taxTerm: 'TAX',
-                },
-            };
-            const numeric = buildPriceHTML([exclusiveOffer], opts);
-            const info = buildPriceHTML(
-                [
-                    withInfo(exclusiveOffer, {
-                        price: 'US$0.00', // wrong value; must be ignored when tax-exclusive
-                        priceWithoutTax: 'US$69.99',
+        // Regression: taxDisplay selects the legal line, never a different number.
+        // WCS sends priceWithoutTax: 0 on offers with no separate net amount (e.g.
+        // trials), so keying the displayed value off taxDisplay renders 0.00.
+        // Real stage payloads, OSI FWEdmk_LYpoGnCR0gQMaS5Rbq9a5vFbVFoNaRT0m7NU.
+        [
+            {
+                name: 'US TAX_EXCLUSIVE',
+                country: 'US',
+                price: 359.88,
+                taxDisplay: 'TAX_EXCLUSIVE',
+                formatString: "'US$'#,##0.00",
+                full: 'US$359.88',
+                withoutTax: 'US$0.00',
+                shown: '359',
+            },
+            {
+                name: 'EG TAX_INCLUSIVE_DETAILS',
+                country: 'EG',
+                price: 8194.32,
+                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                formatString: "'LE' #,##0.00",
+                full: 'LE 8,194.32',
+                withoutTax: 'LE 0.00',
+                shown: '8,194',
+            },
+        ].forEach((c) => {
+            it(`renders the charged price, not the without-tax value (${c.name})`, () => {
+                const trialOffer = {
+                    ...usRegular,
+                    term: 'ANNUAL',
+                    planType: 'PUF',
+                    priceDetails: {
+                        price: c.price,
+                        priceWithoutTax: 0,
+                        formatString: c.formatString,
                         usePrecision: true,
-                    }),
-                ],
-                opts,
-            );
-            expect(info).to.equal(numeric);
+                        taxDisplay: c.taxDisplay,
+                        taxTerm: 'VAT',
+                    },
+                };
+                const trialOpts = { ...opts, country: c.country };
+                const numeric = buildPriceHTML([trialOffer], trialOpts);
+                const info = buildPriceHTML(
+                    [
+                        withInfo(trialOffer, {
+                            price: c.full,
+                            priceWithoutTax: c.withoutTax,
+                            usePrecision: true,
+                        }),
+                    ],
+                    trialOpts,
+                );
+                expect(info).to.equal(numeric);
+                expect(info).to.contain(c.shown);
+                expect(info).to.not.match(/price-integer">0</);
+            });
         });
 
         // Fallback-only in prod today (WCS does not emit priceInfo.priceWithoutDiscount),

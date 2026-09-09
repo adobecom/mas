@@ -292,7 +292,6 @@ const createPriceTemplate =
 
         // India regroups digits client-side (lakh/crore) → numeric path.
         const isIndianPrice = country === 'IN';
-        const taxExclusive = taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE;
 
         // Use WCS's pre-formatted price, except optical (client-divided) and India.
         let formatted;
@@ -305,7 +304,6 @@ const createPriceTemplate =
             formatted = selectPreformattedPrice({
                 priceInfo,
                 showWithoutDiscount,
-                taxExclusive,
                 displayAnnual,
                 promotion,
             });

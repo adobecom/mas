@@ -52,7 +52,8 @@ class MasItemsSelector extends LitElement {
         hidePromoVariations: { type: Boolean, attribute: 'hide-promo-variations' },
         hideGroupedVariations: { type: Boolean, attribute: 'hide-grouped-variations' },
         hideImportUrl: { type: Boolean, attribute: 'hide-import-url' },
-        restrictImportSurface: { type: String, attribute: 'restrict-import-surface' },
+        /** @type {string|string[]} */
+        restrictImportSurface: { attribute: 'restrict-import-surface' },
         /** @type {(fragment: object) => true | string} return true to allow, or an error message to reject */
         validateImportFragment: { type: Function, attribute: false },
         renderTable: { type: Function, attribute: false },

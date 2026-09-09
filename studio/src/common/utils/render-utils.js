@@ -161,17 +161,18 @@ export function stopPropagation(event) {
 
 /**
  * Whether the active items-selection store is currently showing only selected items.
+ * Returns false when no store is bound.
  * @returns {boolean}
  */
 export function isShowingSelected() {
-    return getItemsSelectionStore().showSelected.value;
+    return getItemsSelectionStore({ allowUnset: true })?.showSelected.value ?? false;
 }
 
 /**
- * Flips the active items-selection store's "show selected" flag.
+ * Flips the active items-selection store's "show selected" flag. No-op when no store is bound.
  */
 export function toggleShowSelected() {
-    getItemsSelectionStore().showSelected.set(!isShowingSelected());
+    getItemsSelectionStore({ allowUnset: true })?.showSelected.set(!isShowingSelected());
 }
 
 /**
@@ -184,7 +185,7 @@ export function getToggleSelectedLabel(showingSelection) {
 }
 
 /**
- * Tab label, appending the selection count when viewOnly.
+ * Tab label, appending the selection count when viewOnly. Omits the count when no store is bound.
  * @param {{value: string, label: string}} tab
  * @param {boolean} viewOnly
  * @returns {string}
@@ -192,7 +193,9 @@ export function getToggleSelectedLabel(showingSelection) {
 export function formatTabLabel(tab, viewOnly) {
     if (!viewOnly) return tab.label;
     const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-    const count = getItemsSelectionStore()[`selected${valueUppercase}`].value.length;
+    const store = getItemsSelectionStore({ allowUnset: true });
+    if (!store) return tab.label;
+    const count = store[`selected${valueUppercase}`].value.length;
     return `${tab.label} (${count})`;
 }
 

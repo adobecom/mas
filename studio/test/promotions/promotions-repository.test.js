@@ -405,7 +405,10 @@ describe('promotions-repository', () => {
             const repository = {
                 createFragment: sandbox.stub().resolves(newPromotion),
                 getPromotionsPath: () => '/content/dam/mas/promotions',
-                aem: { sites: { cf: { fragments: { search: makeSearchStub() } } } },
+                aem: {
+                    sites: { cf: { fragments: { search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
             };
 
             const result = await duplicatePromotionProject(repository, makeSourcePromotion(), { title: 'Black Friday copy' });
@@ -419,12 +422,56 @@ describe('promotions-repository', () => {
             expect(addToStoreList).to.be.false;
         });
 
+        it('creates the new promotion tag in AEM before creating the fragment', async () => {
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem: {
+                    sites: { cf: { fragments: { search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
+            };
+
+            await duplicatePromotionProject(repository, makeSourcePromotion(), { title: 'Black Friday copy' });
+
+            expect(repository.aem.tags.create.calledOnce).to.be.true;
+            const [tagPath, slug] = repository.aem.tags.create.firstCall.args;
+            expect(slug).to.equal('black-friday-copy');
+            expect(tagPath).to.include('black-friday-copy');
+            expect(repository.aem.tags.create.calledBefore(repository.createFragment)).to.be.true;
+        });
+
+        it('deletes the newly created tag when fragment creation fails', async () => {
+            const repository = {
+                createFragment: sandbox.stub().rejects(new Error('boom')),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem: {
+                    sites: { cf: { fragments: { search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
+            };
+
+            let thrown = null;
+            try {
+                await duplicatePromotionProject(repository, makeSourcePromotion(), { title: 'Black Friday copy' });
+            } catch (error) {
+                thrown = error;
+            }
+
+            expect(thrown?.message).to.equal('boom');
+            expect(repository.aem.tags.delete.calledOnce).to.be.true;
+            expect(repository.aem.tags.delete.firstCall.args[0]).to.include('black-friday-copy');
+        });
+
         it('does not probe or clone promo variations when duplicateVariations is false', async () => {
             const search = makeSearchStub({ [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }] });
             const repository = {
                 createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
                 getPromotionsPath: () => '/content/dam/mas/promotions',
-                aem: { sites: { cf: { fragments: { search } }, createFragmentCopy: sandbox.stub() } },
+                aem: {
+                    sites: { cf: { fragments: { search }, createFragmentCopy: sandbox.stub() } },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
             };
 
             await duplicatePromotionProject(repository, makeSourcePromotion(), {
@@ -462,6 +509,7 @@ describe('promotions-repository', () => {
                 createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-1' }),
                 wait: sandbox.stub().resolves(),
                 saveTags: sandbox.stub().resolves(),
+                tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
             };
             const repository = {
                 createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
@@ -516,6 +564,7 @@ describe('promotions-repository', () => {
                 createFragmentCopy: sandbox.stub().resolves({ id: 'new-grouped-promo-var' }),
                 wait: sandbox.stub().resolves(),
                 saveTags: sandbox.stub().resolves(),
+                tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
             };
             const repository = {
                 createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),

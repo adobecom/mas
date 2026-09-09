@@ -4,8 +4,8 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
-import { resolveHydratedParentFragment, normalizeKey } from '../utils.js';
-import { buildPromotionDuplicatePayload } from './promotion-editor-utils.js';
+import { resolveHydratedParentFragment } from '../utils.js';
+import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
@@ -231,16 +231,25 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
  * @returns {Promise<Object>}
  */
 export async function duplicatePromotionProject(repository, sourcePromotion, { title, duplicateVariations = false } = {}) {
+    const tag = buildPromotionTagPath(title);
+    if (tag) await repository.aem.tags.create(tag.tagPath, tag.slug);
+
     const payload = {
         ...buildPromotionDuplicatePayload(sourcePromotion, title),
         parentPath: repository.getPromotionsPath(),
         modelId: PROMOTION_MODEL_ID,
     };
-    const newPromotion = await repository.createFragment(payload, false);
-    if (duplicateVariations) {
-        const slug = normalizeKey(title?.trim());
-        const newPromoTagId = slug ? `${TAG_PROMOTION_PREFIX}${slug}` : null;
-        if (newPromoTagId) await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+    let newPromotion;
+    try {
+        newPromotion = await repository.createFragment(payload, false);
+    } catch (error) {
+        if (tag) await repository.aem.tags.delete(tag.tagPath).catch(() => {});
+        throw error;
+    }
+
+    if (duplicateVariations && tag) {
+        const newPromoTagId = `${TAG_PROMOTION_PREFIX}${tag.slug}`;
+        await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
     }
     return newPromotion;
 }

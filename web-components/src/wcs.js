@@ -287,6 +287,7 @@ export function Wcs({ settings }) {
      * @param {string} params.language - The language code
      * @param {boolean} [params.perpetual=false] - Whether to use perpetual offers
      * @param {string} [params.promotionCode=''] - The promotion code
+     * @param {string[]} [params.promotionCodes] - Per-OSI promotion codes, positionally aligned to `wcsOsi`
      * @param {string[]} [params.wcsOsi=[]] - Array of offer selector IDs
      * @returns {Promise<Offer[]>[]} Array of promises resolving to arrays of offers
      * @throws {MasError} When WCS does not provide an offer for a particular OSI
@@ -297,16 +298,25 @@ export function Wcs({ settings }) {
         language,
         perpetual = false,
         promotionCode = '',
+        promotionCodes,
         wcsOsi = [],
     }) {
         const { validCountry, validLanguage, locale } =
             normalizeCountryLanguageAndLocale(country, language, perpetual);
-        const groupKey = [validCountry, validLanguage, promotionCode]
-            .filter((val) => val)
-            .join('-')
-            .toLowerCase();
+        const codes =
+            Array.isArray(promotionCodes) && promotionCodes.length
+                ? promotionCodes
+                : [promotionCode];
 
-        return wcsOsi.map((osi) => {
+        return wcsOsi.map((osi, index) => {
+            // A single code broadcasts to every OSI (backward compatible);
+            // 2+ codes zip positionally, missing positions default to ''.
+            const osiPromotionCode =
+                codes.length === 1 ? codes[0] : (codes[index] ?? '');
+            const groupKey = [validCountry, validLanguage, osiPromotionCode]
+                .filter((val) => val)
+                .join('-')
+                .toLowerCase();
             const cacheKey = `${osi}-${groupKey}`;
             if (cache.has(cacheKey)) {
                 return cache.get(cacheKey);
@@ -326,8 +336,8 @@ export function Wcs({ settings }) {
                     group = { options, promises };
                     queue.set(groupKey, group);
                 }
-                if (promotionCode) {
-                    group.options.promotionCode = promotionCode;
+                if (osiPromotionCode) {
+                    group.options.promotionCode = osiPromotionCode;
                 }
                 group.options.offerSelectorIds.push(osi);
                 group.promises.set(osi, {

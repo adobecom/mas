@@ -9,7 +9,7 @@ import { CheckoutWorkflowStep } from './constants.js';
 
 import { buildCheckoutUrl } from './buildCheckoutUrl.js';
 import { Defaults } from './defaults.js';
-import { toOfferSelectorIds, toQuantity } from './utilities.js';
+import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
 import { MODAL_TYPE_3_IN_1 } from './constants.js';
 
 /**
@@ -66,6 +66,12 @@ export function Checkout({ settings, providers }) {
             Defaults.checkoutWorkflowStep,
         );
 
+        const { wcsOsi: alignedWcsOsi, promotionCodes: alignedPromotionCodes } =
+            toWcsOsiAndPromotionCodes(wcsOsi, promotionCode);
+        const promotionCodes = alignedPromotionCodes.map(
+            (code) => computePromoStatus(code).effectivePromoCode,
+        );
+
         options = omitProperties({
             ...rest,
             extraOptions,
@@ -79,8 +85,9 @@ export function Checkout({ settings, providers }) {
             upgrade: toBoolean(upgrade),
             modal,
             perpetual: toBoolean(perpetual),
-            promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
-            wcsOsi: toOfferSelectorIds(wcsOsi),
+            promotionCode: promotionCodes[0],
+            promotionCodes,
+            wcsOsi: alignedWcsOsi,
             preselectPlan,
         });
         return options;

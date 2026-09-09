@@ -99,10 +99,33 @@ describe('mas-field – ctas rendering', () => {
         expect(link.classList.contains('blue')).to.be.false;
     });
 
-    it('defaults to accent (blue) when link has no variant class', () => {
+    it('renders an unwrapped, unclassed link with no MAS-added style classes (headless "Link" variant)', () => {
         const el = makeField('ctas', '<a data-wcs-osi="ABC">Buy</a>');
+        const footer = el.querySelector('[slot="footer"]');
+        const link = footer.querySelector('a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.parentElement).to.equal(footer);
+    });
+
+    it('preserves the <strong> wrapper around an unclassed link with no MAS-added style classes (headless "Primary button" variant)', () => {
+        const el = makeField(
+            'ctas',
+            '<strong><a data-wcs-osi="ABC">Buy</a></strong>',
+        );
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('blue')).to.be.true;
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.parentElement.tagName).to.equal('STRONG');
+    });
+
+    it('preserves the <em> wrapper around an unclassed link with no MAS-added style classes (headless "Secondary button" variant)', () => {
+        const el = makeField('ctas', '<em><a data-wcs-osi="ABC">Buy</a></em>');
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+        expect(link.parentElement.tagName).to.equal('EM');
     });
 
     it('wraps link text in spectrum-Button-label span', () => {
@@ -1089,9 +1112,11 @@ describe('mas-field – tooltip icon-button rendering', () => {
         );
         const btn = el.querySelector('.icon-button');
         // Force the icon hard against the right edge, then trigger the show handler.
-        el.style.position = 'fixed';
-        el.style.left = `${window.innerWidth - 4}px`;
-        el.style.top = '200px';
+        // mas-field is display:contents (no box), so pin the icon itself, not the wrapper.
+        btn.style.position = 'fixed';
+        btn.style.margin = '0';
+        btn.style.left = `${window.innerWidth - 4}px`;
+        btn.style.top = '200px';
         btn.dispatchEvent(new Event('mouseenter'));
         expect(
             btn.classList.contains('right'),

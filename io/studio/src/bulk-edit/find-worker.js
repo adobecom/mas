@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { buildSearchQuery, buildSearchPaths, searchPages, findMatches, extractLocale } = require('./search.js');
 const { readJob, patchJob, writeReport, readUserCsv, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
 const { filterResultsByUserCsv } = require('./csv.js');
-const { writeJobExports, writeFindFullExport, buildFindReport } = require('./bulk-edit.js');
+const { writeJobExports, writeFindFullExport, buildFindReport, normalizeLimitKey } = require('./bulk-edit.js');
 
 const logger = Core.Logger('bulk-edit-find-worker', { level: 'info' });
 
@@ -65,10 +65,12 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
     const { params = {} } = job;
     const tags = Array.isArray(params.tags) ? params.tags : [];
     const paths = buildSearchPaths(params.surface, params.locale);
+    const matchLimit = normalizeLimitKey(params.limit);
 
     const results = [];
     const byLocale = {};
     try {
+        let capped = false;
         for (const path of paths) {
             const query = buildSearchQuery({
                 path,
@@ -90,7 +92,13 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                 if (stop) return finalizeStop(jobId, stop, results, params);
                 await patchJob(jobId, { total: results.length }, JOB_RUNNING_TTL);
                 await writeReport(jobId, { total: results.length, byLocale: { ...byLocale } }, JOB_RUNNING_TTL);
+
+                if (matchLimit && results.length >= matchLimit) {
+                    capped = true;
+                    break;
+                }
             }
+            if (capped) break;
             const stop = await resolveStop(jobId, runId);
             if (stop) return finalizeStop(jobId, stop, results, params);
         }

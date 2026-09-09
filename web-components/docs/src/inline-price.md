@@ -25,7 +25,7 @@ See [MAS](mas.html#terminology) to learn more.
 | `data-display-recurrence`  | Whether to display the recurrence information (e.g:, /mo)                                               | `true`        | `false`  |
 | `data-display-tax`         | Whether to display tax information                                                                      | `false`       | `false`  |
 | `data-perpetual`           | Whether this is a perpetual offer                                                                       | `false`       | `false`  |
-| `data-promotion-code`      | Flex promotion code to apply, if applicable                                                             |               | `false`  |
+| `data-promotion-code`      | Flex promotion code to apply, if applicable. Supports multiple comma-separated codes for soft bundles.  |               | `false`  |
 | `data-force-tax-exclusive` | Whether to force tax exclusive price, if `false`, it's automatic, driven by country service             | `false`       | `false`  |
 | `data-template`            | One of price, discount, optical, strikethrough, priceAnnual                                             | price         | `false`  |
 | `data-quantity`            | Quantity of the offer, used with volume promotion codes to display either regular or promotional price. | 1             | `false`  |
@@ -55,6 +55,22 @@ When multiple Offer Selector IDs are provided (comma-separated), the prices are 
 
 ::: warning
 **Note**: All OSIs in a soft bundle must resolve successfully. If any OSI fails to resolve, the entire price will fail to render. The `data-quantity` attribute is not supported for soft bundles.
+:::
+
+#### Soft Bundle with Per-OSI Promotion Codes
+
+`data-promotion-code` can also be comma-separated, zipped positionally to `data-wcs-osi` (a single value still applies to every OSI).
+
+```html
+<span
+    is="inline-price"
+    data-wcs-osi="OSI_A,OSI_B"
+    data-promotion-code="PROMO1,"
+></span>
+```
+
+::: warning
+**Note**: An empty entry means no promo for that position; `cancel-context` cancels only that OSI's contextual promo. Extra codes are ignored and missing positions default to no promo. Checkout links use the first OSI's code.
 :::
 
 #### Display Per Unit Price with Tax

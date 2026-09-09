@@ -729,6 +729,13 @@ export default class MasFragmentEditor extends LitElement {
             guard: () => Boolean(this.fragment && this.isPromoVariationFragment()),
             computeKey: () => this.fragment.id,
             load: async () => {
+                // The variation's own mas:promotion/ tag identifies its project, so the picker is
+                // populated on a direct fragment link too, not only when a promotion is open.
+                const promoTagId = getPromotionTagFromFragment(this.fragment) || this.getActivePromotionTagId();
+                const projectGeos = await promotionsRepository.getProjectGeosForTag(promoTagId, () =>
+                    this.repository?.loadPromotions?.(),
+                );
+                if (projectGeos.length) return projectGeos;
                 const promotionId = Store.promotions.inEdit.get()?.get?.()?.id || Store.promotions.promotionId.get();
                 if (!promotionId) return [];
                 const promotion = await this.repository.aem.sites.cf.fragments.getById(promotionId);

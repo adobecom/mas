@@ -1544,6 +1544,47 @@ describe('MasFragmentEditor', () => {
             Store.fragmentEditor.fragmentId.value = originalFragmentId;
         });
 
+        it('loads promo geo options from the fragment promotion tag when no promotion project is open', async () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-deeplink-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            Store.promotions.inEdit.set(null);
+            Store.promotions.promotionId.set(null);
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        getFieldValues: (name) => {
+                            if (name === 'tags') return ['mas:promotion/back-to-school'];
+                            if (name === 'geos') return ['mas:pzn/country/ar', 'mas:pzn/country/fr'];
+                            return [];
+                        },
+                    }),
+                },
+            ]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            Store.fragmentEditor.fragmentId.value = fragment.id;
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: { sites: { cf: { fragments: { search: makeSearchStub(sandbox, {}) } } } },
+                loadPromotions: sandbox.stub().resolves(),
+            }));
+
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(el.promotionGeoOptions).to.deep.equal(['mas:pzn/country/ar', 'mas:pzn/country/fr']);
+
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.fragmentEditor.fragmentId.value = originalFragmentId;
+        });
+
         it('does not render promo variation preview header on default fragment opened from promotion project', () => {
             const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
             const fragment = new Fragment({

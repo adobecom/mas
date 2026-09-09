@@ -141,3 +141,17 @@ describe('banner-blade variant', () => {
         expect(assigned.textContent).to.equal('Banner title');
     });
 });
+
+describe('headless variant', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('tags each headless row value with its slot name', async () => {
+        card = await renderCard('headless', '<h3 slot="heading-xs">Title</h3>');
+        const row = headlessRow(card, 'heading-xs');
+        expect(row).to.exist;
+        expect(
+            row.querySelector('.headless-value').getAttribute('data-slot'),
+        ).to.equal('heading-xs');
+    });
+});

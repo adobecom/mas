@@ -21,7 +21,7 @@ import {
     toBoolean,
 } from '@dexter/tacocat-core';
 import { InlinePrice } from './inline-price.js';
-import { toOfferSelectorIds, toQuantity } from './utilities.js';
+import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
 
 export function Price({ literals, providers, settings }) {
     function collectPriceOptions(overrides, placeholder = null) {
@@ -53,6 +53,12 @@ export function Price({ literals, providers, settings }) {
             ...rest
         } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
 
+        const { wcsOsi: alignedWcsOsi, promotionCodes: alignedPromotionCodes } =
+            toWcsOsiAndPromotionCodes(wcsOsi, promotionCode);
+        const promotionCodes = alignedPromotionCodes.map(
+            (code) => computePromoStatus(code).effectivePromoCode,
+        );
+
         options = omitProperties(
             Object.assign({
                 ...options,
@@ -65,11 +71,11 @@ export function Price({ literals, providers, settings }) {
                 forceTaxExclusive: toBoolean(forceTaxExclusive),
                 perpetual: toBoolean(perpetual),
                 displayAnnual: toBoolean(displayAnnual),
-                promotionCode:
-                    computePromoStatus(promotionCode).effectivePromoCode,
+                promotionCode: promotionCodes[0],
+                promotionCodes,
                 quantity: toQuantity(quantity, Defaults.quantity),
                 alternativePrice: toBoolean(alternativePrice),
-                wcsOsi: toOfferSelectorIds(wcsOsi),
+                wcsOsi: alignedWcsOsi,
             }),
         );
 

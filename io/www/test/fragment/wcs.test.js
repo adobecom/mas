@@ -865,9 +865,7 @@ describe('wcs OSI helpers', function () {
     });
 
     it('scanMasElements scans every entry of a multi-value text/html field', function () {
-        // customFields is the only multi-value rich text field, so Odin returns its `value` as an
-        // array of strings rather than one string (MWPW-206423). Each entry must be scanned and
-        // rewritten in place, or promos never reach prices authored inside a custom field.
+        // customFields is the only multi-value rich text field: `value` is an array (MWPW-206423).
         const fields = {
             customFields: {
                 mimeType: 'text/html',

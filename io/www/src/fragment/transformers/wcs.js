@@ -163,13 +163,11 @@ function scanMasElements(fields, substituteMap, context) {
     if (!fields) return elements;
     for (const [key, field] of Object.entries(fields)) {
         if (key === 'osi') continue;
-        // text/html fields arrive as { mimeType, value } objects (odinSchemaTransform). The one
-        // multi-value rich text field (customFields) holds an array of strings in `value` instead of
-        // a single string, so scan every entry - otherwise promos never reach prices authored inside
-        // a custom field (MWPW-206423).
+        // Odin returns text/html fields as { mimeType, value }. The one multi-value rich text field
+        // (customFields) carries an array of strings in `value` rather than a single string, so scan
+        // every entry - otherwise promos never reach prices authored inside a custom field
+        // (MWPW-206423).
         const fieldValue = typeof field === 'string' ? field : field?.value;
-        const values = Array.isArray(fieldValue) ? fieldValue : [fieldValue];
-        if (!values.some(hasMasElement)) continue;
         let changed = false;
         const replacer = (element, rawOsi) => {
             const isLocked = element.includes('data-locked-osi="true"');
@@ -211,10 +209,9 @@ function scanMasElements(fields, substituteMap, context) {
             changed = true;
             return updated;
         };
-        const rewritten = values.map((value) => (hasMasElement(value) ? value.replace(MAS_ELEMENT_REGEXP, replacer) : value));
-        if (!changed) continue;
-        const updatedValue = Array.isArray(fieldValue) ? rewritten : rewritten[0];
-        fields[key] = typeof field === 'string' ? updatedValue : { ...field, value: updatedValue };
+        const rewriteValue = (value) => (hasMasElement(value) ? value.replace(MAS_ELEMENT_REGEXP, replacer) : value);
+        const rewritten = Array.isArray(fieldValue) ? fieldValue.map(rewriteValue) : rewriteValue(fieldValue);
+        if (changed) fields[key] = typeof field === 'string' ? rewritten : { ...field, value: rewritten };
     }
     return elements;
 }

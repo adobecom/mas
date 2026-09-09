@@ -42,7 +42,6 @@ class MasPromotions extends LitElement {
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
         promotionsData: { type: Array, state: true },
-        promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
@@ -59,7 +58,6 @@ class MasPromotions extends LitElement {
         this.sortDirection = 'asc';
         this.error = null;
         this.promotionsData = Store.promotions?.list?.data?.get() || [];
-        this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.duplicateDialogOpen = false;
@@ -96,7 +94,7 @@ class MasPromotions extends LitElement {
         return repository;
     }
 
-    async connectedCallback() {
+    connectedCallback() {
         super.connectedCallback();
 
         const currentPage = Store.page.get();
@@ -110,9 +108,7 @@ class MasPromotions extends LitElement {
             return;
         }
         this.promotionsData = Store.promotions?.list?.data?.get() || [];
-
-        Store.promotions.list.loading.set(true);
-        await this.loadPromotions();
+        this.loading = true;
     }
 
     disconnectedCallback() {
@@ -131,7 +127,7 @@ class MasPromotions extends LitElement {
     }
 
     get loading() {
-        return this.promotionsLoading;
+        return Store.promotions.list.loading.get() ?? false;
     }
 
     get loadingIndicator() {
@@ -140,14 +136,12 @@ class MasPromotions extends LitElement {
     }
 
     set loading(value = true) {
-        this.promotionsLoading = value;
         Store.promotions.list.loading.set(value);
     }
 
     async loadPromotions() {
         await this.repository.loadPromotions();
         this.promotionsData = Store.promotions.list.data.get() || [];
-        this.promotionsLoading = Store.promotions.list.loading.get() || false;
     }
 
     /**
@@ -183,15 +177,14 @@ class MasPromotions extends LitElement {
     }
 
     renderPromotionsContent() {
-        if (this.promotionsLoading) {
-            return html`<div class="loading-container">${this.loadingIndicator}</div>`;
+        if (this.loading) {
+            return html`<div class="loading-container--flex">${this.loadingIndicator}</div>`;
         }
 
         return this.renderPromotionsTable();
     }
 
     renderPromotionsTable() {
-        this.#handleFilterPromotions(this.filter);
         const filteredPromotions = this.promotionsData;
 
         const columns = [
@@ -211,8 +204,7 @@ class MasPromotions extends LitElement {
             },
             { key: 'actions', label: 'Actions', align: 'center' },
         ];
-
-        if (!filteredPromotions || filteredPromotions.length === 0) {
+        if (!this.loading && (!filteredPromotions || filteredPromotions.length === 0)) {
             return html`
                 <div class="no-promotions-message">
                     <p>No promotions found.</p>
@@ -252,6 +244,7 @@ class MasPromotions extends LitElement {
 
     willUpdate() {
         this.canEdit = canEditPromotions();
+        this.#handleFilterPromotions(this.filter);
     }
 
     render() {

@@ -2,7 +2,12 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
-import { getItemTypeLabel, renderInheritedTagsNotice, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
+import {
+    getItemTypeLabel,
+    renderCopyableValueCell,
+    renderInheritedTagsNotice,
+    shouldIgnoreRowClickForSelection,
+} from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -400,24 +405,11 @@ export class MasCollapsibleTableRow extends LitElement {
 
     renderOfferId(item) {
         const { offerId } = item?.offerData || {};
-        return html`
-            <sp-table-cell class="offer-id">
-                ${offerId
-                    ? html`<overlay-trigger triggered-by="hover">
-                              <div slot="trigger">${offerId}</div>
-                              <sp-tooltip slot="hover-content" placement="bottom"> ${offerId} </sp-tooltip>
-                          </overlay-trigger>
-                          <sp-action-button
-                              icon-only
-                              quiet
-                              aria-label="Copy Offer ID to clipboard"
-                              @click=${(e) => this.#copyToClipboard(e, offerId)}
-                          >
-                              <sp-icon-copy slot="icon"></sp-icon-copy>
-                          </sp-action-button>`
-                    : 'no offer data'}
-            </sp-table-cell>
-        `;
+        return renderCopyableValueCell(this, offerId, {
+            ariaLabel: 'Copy Offer ID to clipboard',
+            successMessage: 'Offer ID copied to clipboard',
+            errorMessage: 'Failed to copy Offer ID',
+        });
     }
 
     renderTags(item) {
@@ -467,29 +459,6 @@ export class MasCollapsibleTableRow extends LitElement {
         if (!tab) return '';
         if (tab === VARIATION_TAB_NAME.GROUPED) return 'Grouped variation';
         return `${tab.slice(0, 1).toUpperCase()}${tab.slice(1, tab.length)}`;
-    }
-
-    async #copyToClipboard(e, text) {
-        e.stopPropagation();
-        try {
-            await navigator.clipboard.writeText(text);
-            this.dispatchEvent(
-                new CustomEvent('show-toast', {
-                    detail: { text: 'Offer ID copied to clipboard', variant: 'positive' },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            this.dispatchEvent(
-                new CustomEvent('show-toast', {
-                    detail: { text: 'Failed to copy Offer ID', variant: 'negative' },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        }
     }
 
     #onRowClickForSelection(e, path) {

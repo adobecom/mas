@@ -310,7 +310,7 @@ class MasPromotionsEditor extends LitElement {
         return {
             path: selectorId,
             id: selectorId,
-            offerData: { offerId: selectorId },
+            offerData: { offerSelectorIds: [selectorId] },
             tags: [],
             fields: [],
         };
@@ -320,7 +320,7 @@ class MasPromotionsEditor extends LitElement {
         const offersByKey = new Map();
         for (const selectorId of Store.promotions.selectedOffers.value) {
             const row = this.#mapPromotionOfferSelectorToRow(selectorId);
-            const key = row.path || row.id || row.offerData?.offerId;
+            const key = row.path ?? row.id;
             if (key) offersByKey.set(key, row);
         }
         if (!offersByKey.size) {

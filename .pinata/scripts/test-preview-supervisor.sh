@@ -142,6 +142,20 @@ scenario() {
 export SHIM_LOG="$WORK"
 export PATH="$BIN:$PATH"
 
+scenario "a missing runtime CLI fails before starting the proxy"
+# Override only command lookup for aem: a globally installed CLI must not make
+# this negative test pass accidentally.
+saved_cmd="$CMD"
+CMD='command() { if [ "$1" = "-v" ] && [ "$2" = "aem" ]; then return 1; fi; return 99; }
+'
+# Only the missing-aem lookup is reached before the expected early exit.
+CMD="${CMD}${saved_cmd}"
+run 4
+check "exits 127" '[ "$status" = "127" ]'
+check "explains runtime provisioning" 'grep -q "Piñata runtime PATH" "$WORK/err"'
+check "never starts the proxy" '[ ! -e "$WORK/npm.log" ]'
+CMD="$saved_cmd"
+
 # ── 1. a port that already has a listener is refused ─────────────────────────
 # Not "a port that answers HTTP": any process holding 8091 would be captured
 # through as if it were ours.

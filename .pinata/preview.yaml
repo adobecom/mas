@@ -26,6 +26,10 @@ local:
     # it in the error. fiesta's process-group reap remains the outer net.
     # `.pinata/scripts/test-preview-supervisor.sh` exercises this script.
     cmd: |
+        if ! command -v aem >/dev/null 2>&1; then
+            echo "AEM CLI is missing from the Piñata runtime PATH; provision @adobe/aem-cli@16.20.5 outside the MAS checkout (see .pinata/README.md)" >&2
+            exit 127
+        fi
         # R10: refuse a port that already has a LISTENER, not merely one that
         # speaks HTTP. A foreign proxy, or a leftover from an interrupted run,
         # would otherwise be captured through as if it were ours.

@@ -20,9 +20,9 @@ ecosystem package.
 
 The migration uses the tested configuration from mas-pinata commit
 `4da6ea3f141e174aead3f158ec9bf3365d53b088`, retargeted to `adobecom/mas`.
-The only additional npm dependency is the pinned AEM CLI needed by the preview
-command. Existing MAS build-tool versions, content mount, application code,
-and CI tests are unchanged.
+The preview CLI is supplied by the Piñata runtime, not by MAS. Both
+`package.json` and `package-lock.json` remain unchanged, as do MAS's content
+mount, application code, and existing CI tests.
 
 The old `.config.json`, issue-triggered agent/SDLC/review workflows, demo
 `restyle-component` workflow, and `justfile` are intentionally not migrated.
@@ -31,12 +31,25 @@ No secrets, generated run history, or shared package copies belong here.
 
 ## Verification
 
-After `npm ci`, command gates use the repository's installed tools. The
-preview runner adds `node_modules/.bin` to PATH so it can find `aem`.
+After `npm ci`, command gates use the repository's installed tools.
 The existing `studio` stage proxy and web-component build scripts are reused.
-Use a supported Node release satisfying the CLI dependency requirements
-(Node 22.22.2+ or 24.15+). The CLI adds transitive dependencies and updates four
-shared transitive versions; MAS's existing direct build-tool versions are retained.
+The preview runner preserves the runtime PATH alongside repository tool paths.
+It fails immediately with setup instructions if `aem` is unavailable.
+
+Provision the preview CLI once in the runtime image or a dedicated tool prefix,
+**outside the MAS checkout**, using a supported Node release (22.22.2+ or 24.15+):
+
+```sh
+# Example runtime image setup; the prefix must be writable during installation.
+npm install --prefix /opt/pinata-tools/aem --no-save --package-lock=false @adobe/aem-cli@16.20.5
+export PATH="/opt/pinata-tools/aem/node_modules/.bin:$PATH"
+aem --version
+```
+
+Persist that PATH in the engine service configuration or container image, not
+just an interactive terminal. For local development, use a dedicated writable
+directory outside MAS instead of `/opt/pinata-tools/aem`. This PR documents the
+runtime prerequisite; it does not install tools into existing runtimes.
 
 ```sh
 python3 -m pip install PyYAML==6.0.2
@@ -79,7 +92,9 @@ Merging these files alone does not route Slack requests to MAS.
    Site tokens must be provisioned by an authorized site administrator; the
    AEM CLI admin token is not a substitute. Do not put credentials in Git.
 5. Check access to the shared `mas-web-components` and `mas-studio` models,
-   the stage author service, and the selected preview surfaces.
+   the stage author service, and the selected preview surfaces. Provision the
+   runtime CLI as described above and verify `aem --version` from the engine's
+   service environment before testing previews.
 6. Run Slack → refinement → planning → changes → verification → PR against
    MAS before switching the default repository.
 

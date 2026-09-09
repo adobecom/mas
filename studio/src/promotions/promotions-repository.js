@@ -286,7 +286,13 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
             attachedFragmentPaths,
         );
         if (!sourceFragment) continue;
-        await promotionVariations.createPromoVariation(aem, sourceFragment.id, newPromoTagId, variation.pznTags || [], []);
+        await promotionVariations.createPromoVariation(
+            aem,
+            sourceFragment.id,
+            newPromoTagId,
+            variation.pznTags || [],
+            attachedFragmentPaths,
+        );
     }
 }
 
@@ -310,6 +316,7 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     let newPromotion;
     try {
         newPromotion = await repository.createFragment(payload, false);
+        if (!newPromotion) throw new Error('Failed to duplicate project.');
     } catch (error) {
         if (tag) await repository.aem.tags.delete(tag.tagPath).catch(() => {});
         throw error;

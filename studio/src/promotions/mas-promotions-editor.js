@@ -873,7 +873,7 @@ class MasPromotionsEditor extends LitElement {
             return;
         }
         this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
-        const projects = await getPromotionProjectsForProbe(async () => {});
+        const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
         this.#duplicateExistingTitles = projects.map((project) => project.getFieldValue('title')).filter(Boolean);
         this.duplicateDialogOpen = true;
     }
@@ -886,7 +886,6 @@ class MasPromotionsEditor extends LitElement {
                 title,
                 duplicateVariations,
             });
-            if (!newPromotion) return;
             clearCaches();
             showToast('Project successfully duplicated.', 'positive');
             Store.promotions.inEdit.set(new FragmentStore(new Promotion(newPromotion)));

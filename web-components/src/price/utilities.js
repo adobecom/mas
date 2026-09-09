@@ -264,10 +264,15 @@ const splitFormattedPrice = (formatted, formatString, usePrecision) => {
  * Picks the pre-formatted WCS string for the value being shown, hiding WCS's
  * field names from callers. Returns undefined when no field applies (e.g.
  * promo-annualized totals, computed on the client), so the caller uses numbers.
+ *
+ * Always the tax-inclusive field, mirroring the numeric path: `taxDisplay` only
+ * selects the "incl./excl. tax" legal line, it never selects a different number
+ * to display. The tax-exclusive fields are not display values — WCS sends
+ * `priceWithoutTax: 0` on offers that carry no separate net amount (e.g.
+ * trials), so keying off `taxDisplay` renders a 0.00 price.
  * @param {object} args
  * @param {object} args.priceInfo - WCS pre-formatted price strings
  * @param {boolean} args.showWithoutDiscount - whether the pre-discount price is shown
- * @param {boolean} args.taxExclusive - whether the tax-exclusive variant is shown
  * @param {boolean} args.displayAnnual - whether the annualized value is shown
  * @param {object} [args.promotion] - active promotion, if any
  * @returns {string | undefined}
@@ -275,22 +280,15 @@ const splitFormattedPrice = (formatted, formatString, usePrecision) => {
 const selectPreformattedPrice = ({
     priceInfo,
     showWithoutDiscount,
-    taxExclusive,
     displayAnnual,
     promotion,
 }) => {
     if (displayAnnual) {
         if (promotion) return undefined;
-        return taxExclusive
-            ? priceInfo.annualized?.annualizedPriceWithoutTax
-            : priceInfo.annualized?.annualizedPrice;
+        return priceInfo.annualized?.annualizedPrice;
     }
-    if (showWithoutDiscount) {
-        return taxExclusive
-            ? priceInfo.priceWithoutDiscountAndTax
-            : priceInfo.priceWithoutDiscount;
-    }
-    return taxExclusive ? priceInfo.priceWithoutTax : priceInfo.price;
+    if (showWithoutDiscount) return priceInfo.priceWithoutDiscount;
+    return priceInfo.price;
 };
 
 // Utilities, specific to tacocat needs.

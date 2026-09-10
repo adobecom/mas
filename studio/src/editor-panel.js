@@ -738,6 +738,12 @@ export default class EditorPanel extends LitElement {
                     allSelected: result.allSelected,
                 });
             } else {
+                if (this.fragment.isStaged) {
+                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                    const resultStaged = await MasPublishStagedDialog.show();
+                    if (!resultStaged.confirmed) return;
+                }
+
                 await this.repository.publishFragment(this.fragment);
             }
         } catch (error) {

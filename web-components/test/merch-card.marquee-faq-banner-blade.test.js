@@ -110,9 +110,10 @@ describe('banner-blade variant', () => {
     it('renders a labeled row with a slot for each mapped field', async () => {
         card = await renderCard(
             'banner-blade',
-            '<div slot="body-xs">Description</div>',
+            '<p slot="heading-xs">Title</p><div slot="body-xs">Description</div>',
         );
         const rows = {
+            'heading-xs': 'Title',
             'body-xs': 'Description',
             footer: 'CTAs',
         };
@@ -123,5 +124,34 @@ describe('banner-blade variant', () => {
                 label,
             );
         }
+    });
+
+    it('renders the Title field in its own row', async () => {
+        card = await renderCard(
+            'banner-blade',
+            '<p slot="heading-xs">Banner title</p>',
+        );
+        const row = headlessRow(card, 'heading-xs');
+        expect(row).to.exist;
+        expect(row.querySelector('.headless-label').textContent).to.equal(
+            'Title',
+        );
+        const slot = row.querySelector('slot[name="heading-xs"]');
+        const [assigned] = slot.assignedElements();
+        expect(assigned.textContent).to.equal('Banner title');
+    });
+});
+
+describe('headless variant', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('tags each headless row value with its slot name', async () => {
+        card = await renderCard('headless', '<h3 slot="heading-xs">Title</h3>');
+        const row = headlessRow(card, 'heading-xs');
+        expect(row).to.exist;
+        expect(
+            row.querySelector('.headless-value').getAttribute('data-slot'),
+        ).to.equal('heading-xs');
     });
 });

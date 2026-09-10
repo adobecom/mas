@@ -7,6 +7,7 @@ import {
 } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -88,6 +89,15 @@ export function priceOptionsProvider(element, options) {
     options[FF_DEFAULTS] = true;
     options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
 
+    // Apply the fragment's resolved price literals (e.g. the locale's plan-type
+    // label), mirroring merch-card — otherwise labels fall back to the built-in
+    // defaults and locale-specific plan types render empty.
+    const priceLiterals = masField?.aemFragment?.data?.priceLiterals;
+    if (priceLiterals) {
+        options.literals ??= {};
+        Object.assign(options.literals, priceLiterals);
+    }
+
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
         options.displayTax = false;
@@ -136,11 +146,19 @@ function registerOptionsProviders(service) {
         return;
     service.providers.price(priceOptionsProvider);
     service.providers.checkout(checkoutOptionsProvider);
+    if (!service.providers.has(planTypeTextOptionsProvider)) {
+        service.providers.price(planTypeTextOptionsProvider);
+    }
 }
 
 const MAS_FIELD_STYLES = `
 mas-field {
-    display: inline;
+    display: contents;
+}
+
+/* An :empty span still counts as a flex gap item under display:contents; hide it. */
+mas-field > [data-role="mas-field-content"]:empty {
+    display: none;
 }
 
 mas-field div[slot="footer"] {
@@ -370,6 +388,10 @@ class MasField extends HTMLElement {
 
     get aemFragment() {
         return this.querySelector('aem-fragment');
+    }
+
+    get osi() {
+        return hostOsi(this);
     }
 
     #ensureContentElement() {
@@ -677,11 +699,6 @@ class MasField extends HTMLElement {
         const isCheckout = !!link.getAttribute('data-wcs-osi');
         if (!isCheckout) return link.cloneNode(true);
 
-        const styleMatch =
-            CHECKOUT_STYLE_PATTERN.exec(link.className ?? '')?.[0] ?? 'accent';
-        const isAccent = styleMatch.startsWith('accent');
-        const isLinkStyle = styleMatch.includes('-link');
-
         const CheckoutLink = customElements.get('checkout-link');
         const button =
             CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
@@ -696,14 +713,34 @@ class MasField extends HTMLElement {
             button.setAttribute(name, value);
         }
         button.firstElementChild?.classList.add('spectrum-Button-label');
-        if (!isLinkStyle) {
-            button.classList.add('button', 'con-button');
-            if (isAccent) button.classList.add('blue');
-            else if (
-                styleMatch.startsWith('primary') &&
-                !styleMatch.includes('-outline')
-            )
-                button.classList.add('fill');
+
+        if (link.className) {
+            // Legacy class-driven system: non-headless CTAs, or headless CTAs authored before
+            // real bold/italic wrapping existed.
+            const styleMatch =
+                CHECKOUT_STYLE_PATTERN.exec(link.className)?.[0] ?? 'accent';
+            const isAccent = styleMatch.startsWith('accent');
+            if (!styleMatch.includes('-link')) {
+                button.classList.add('button', 'con-button');
+                if (isAccent) button.classList.add('blue');
+                else if (
+                    styleMatch.startsWith('primary') &&
+                    !styleMatch.includes('-outline')
+                )
+                    button.classList.add('fill');
+            }
+            return button;
+        }
+
+        // Headless CTAs authored via the 3-option picker never carry a button-style class,
+        // and MAS must not add one either - preserve the real <strong>/<em> wrapper (see
+        // rte-field.js's #marksForHeadlessVariant) around the checkout-link unchanged, so
+        // whatever decorates the surrounding page content is what determines the button style.
+        const parentTag = link.parentElement?.tagName;
+        if (parentTag === 'STRONG' || parentTag === 'EM') {
+            const wrapper = document.createElement(parentTag.toLowerCase());
+            wrapper.append(button);
+            return wrapper;
         }
         return button;
     }

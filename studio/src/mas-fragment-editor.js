@@ -353,18 +353,6 @@ export default class MasFragmentEditor extends LitElement {
             margin: 24px 0;
         }
 
-        #loading-state {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-        }
-
         .empty-state {
             display: flex;
             flex-direction: column;
@@ -558,6 +546,33 @@ export default class MasFragmentEditor extends LitElement {
             width: 100%;
             margin-top: auto;
         }
+
+        .form-skeleton {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding-top: 8px;
+        }
+
+        .skeleton-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .skeleton-field-label {
+            height: 14px;
+            width: 30%;
+        }
+
+        .skeleton-field-input {
+            height: 32px;
+            width: 100%;
+        }
+
+        .skeleton-field-input.tall {
+            height: 72px;
+        }
     `;
 
     // Initialization states: 'idle' | 'loading' | 'ready'
@@ -714,6 +729,13 @@ export default class MasFragmentEditor extends LitElement {
             guard: () => Boolean(this.fragment && this.isPromoVariationFragment()),
             computeKey: () => this.fragment.id,
             load: async () => {
+                // The variation's own mas:promotion/ tag identifies its project, so the picker is
+                // populated on a direct fragment link too, not only when a promotion is open.
+                const promoTagId = getPromotionTagFromFragment(this.fragment) || this.getActivePromotionTagId();
+                const projectGeos = await promotionsRepository.getProjectGeosForTag(promoTagId, () =>
+                    this.repository?.loadPromotions?.(),
+                );
+                if (projectGeos.length) return projectGeos;
                 const promotionId = Store.promotions.inEdit.get()?.get?.()?.id || Store.promotions.promotionId.get();
                 if (!promotionId) return [];
                 const promotion = await this.repository.aem.sites.cf.fragments.getById(promotionId);
@@ -783,6 +805,32 @@ export default class MasFragmentEditor extends LitElement {
                         <div class="skeleton-element skeleton-price"></div>
                         <div class="skeleton-element skeleton-cta"></div>
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Full-editor loading state: a masked shell (form fields + preview) instead of a blocking
+    // spinner, so the editor feels present while init runs. The preview mask is continuous with
+    // the real preview's own skeleton, so only the form column swaps in when the store activates.
+    get editorSkeleton() {
+        return html`
+            ${this.styles}
+            <div id="fragment-editor">
+                <div id="editor-content">
+                    <div id="form-column">
+                        <div class="form-skeleton" aria-hidden="true">
+                            ${[0, 1, 2, 3, 4, 5].map(
+                                (index) => html`
+                                    <div class="skeleton-field">
+                                        <div class="skeleton-element skeleton-field-label"></div>
+                                        <div class="skeleton-element skeleton-field-input ${index % 2 ? '' : 'tall'}"></div>
+                                    </div>
+                                `,
+                            )}
+                        </div>
+                    </div>
+                    ${this.previewSkeleton}
                 </div>
             </div>
         `;
@@ -977,6 +1025,25 @@ export default class MasFragmentEditor extends LitElement {
         ]);
     }
 
+    // Folds background promo-variation refs into the active store once the probe resolves.
+    // Only `references` (+ the list-row re-probe guard flag) are touched, so a card render and
+    // any field edits made while the probe was in flight are preserved (refs aren't user-editable).
+    #applyPromoReferencesWhenReady(fragmentStore, fragmentId, promoMerge) {
+        void promoMerge
+            .then((enriched) => {
+                if (Store.fragmentEditor.fragmentId.get() !== fragmentId) return;
+                const fragment = fragmentStore.get();
+                if (!fragment) return;
+                fragment.references = enriched.references;
+                fragment.promoVariationProbeNotNeeded = true;
+                // Notify re-renders the editor; the recomputed per-block variation counts passed to
+                // mas-related-variations then change (promo 0 -> N), so that prop-driven panel
+                // re-renders even though `fragment` was mutated in place.
+                fragmentStore.notify();
+            })
+            .catch((error) => console.error('Promo variation probe failed:', error));
+    }
+
     // Marks init flow as complete and clears loading state.
     #markInitReady() {
         this.initState = MasFragmentEditor.INIT_STATE.READY;
@@ -1107,8 +1174,11 @@ export default class MasFragmentEditor extends LitElement {
             if (this.repository.search.value.path) {
                 void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
             }
-            let fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
-            fragmentData = await promotionsRepository.mergePromoReferencesIntoFragmentData(
+            const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
+            // Probe promo variations in the background: the merge only adds `references`, which the
+            // card fields and preview don't need. Awaiting it here used to block both for ~2s while
+            // the promotions tree was searched. Its refs are folded in via #applyPromoReferencesWhenReady.
+            const promoMerge = promotionsRepository.mergePromoReferencesIntoFragmentData(
                 this.repository.aem,
                 fragmentData,
                 () => this.repository.loadPromotions(),
@@ -1169,6 +1239,7 @@ export default class MasFragmentEditor extends LitElement {
 
             this.#activateEditorStore(fragmentStore);
             this.dispatchFragmentLoaded();
+            this.#applyPromoReferencesWhenReady(fragmentStore, fragmentId, promoMerge);
 
             // Handle locale-specific placeholder reload for variations
             if (isVariationForStore && !isGroupedVariation) {
@@ -2045,12 +2116,16 @@ export default class MasFragmentEditor extends LitElement {
 
     get relatedVariationsSection() {
         if (!this.fragment || isPromoVariationPath(this.fragment.path)) return nothing;
+        const target = this.relatedVariationsTargetFragment;
         return html`<mas-related-variations
             .fragment=${this.fragment}
-            .targetFragment=${this.relatedVariationsTargetFragment}
+            .targetFragment=${target}
             .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
             .isPromoVariation=${this.isPromoVariationFragment()}
             .repository=${this.repository}
+            .localeVariationCount=${target?.getLocaleVariationCount() ?? 0}
+            .promoVariationCount=${target?.getPromoVariationCount() ?? 0}
+            .groupedVariationCount=${target?.getGroupedVariationCount() ?? 0}
         ></mas-related-variations>`;
     }
 
@@ -2305,26 +2380,8 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     render() {
-        if (!this.fragment) {
-            return html`
-                ${this.styles}
-                <div id="fragment-editor">
-                    <div id="loading-state">
-                        <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                    </div>
-                </div>
-            `;
-        }
-
-        if (this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
-            return html`
-                ${this.styles}
-                <div id="fragment-editor">
-                    <div id="loading-state">
-                        <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                    </div>
-                </div>
-            `;
+        if (!this.fragment || this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
+            return this.editorSkeleton;
         }
 
         const orphanGroupedVariation = this.orphanGroupedVariationState;

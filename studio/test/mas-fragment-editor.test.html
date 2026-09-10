@@ -235,12 +235,14 @@
                         expect(cancelled).to.be.true;
                     });
 
-                    it('renders loading state when no fragment', async () => {
+                    it('renders the masked editor skeleton (not a blocking spinner) when no fragment', async () => {
                         const el = document.createElement('mas-fragment-editor');
                         const host = document.querySelector('sp-theme main');
                         host.append(el);
                         await el.updateComplete;
-                        expect(el.querySelector('#loading-state')).to.exist;
+                        expect(el.querySelector('#loading-state')).to.not.exist;
+                        expect(el.querySelector('.form-skeleton')).to.exist;
+                        expect(el.querySelector('.preview-skeleton')).to.exist;
                         el.remove();
                     });
 

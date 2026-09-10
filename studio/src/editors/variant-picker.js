@@ -10,6 +10,7 @@ export const VARIANT_NAMES = {
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
+    BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -60,6 +61,11 @@ export const VARIANTS = [
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Brand Concierge Product',
+        value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
+        surfaces: [SURFACES.SANDBOX],
     },
     {
         label: 'Segment',

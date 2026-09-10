@@ -49,7 +49,12 @@ function hasValidPreRecordedSnapshot(entries) {
 function mergeCascadedEntries(primaryEntries, secondaryEntries, { useSecondaryVersionId = false } = {}) {
     if (!secondaryEntries.length) return primaryEntries;
     if (!primaryEntries.length) return secondaryEntries;
-    const secondaryById = new Map(secondaryEntries.map((e) => { const p = JSON.parse(e); return [p.fragmentId, p]; }));
+    const secondaryById = new Map(
+        secondaryEntries.map((e) => {
+            const p = JSON.parse(e);
+            return [p.fragmentId, p];
+        }),
+    );
     const primaryIds = new Set();
     const merged = primaryEntries.map((e) => {
         const parsed = JSON.parse(e);

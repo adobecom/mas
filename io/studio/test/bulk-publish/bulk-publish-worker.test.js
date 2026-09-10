@@ -362,10 +362,7 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.publishResolved.resolves([]);
         deps.getProjectLocales.returns([]);
 
-        await worker.runWorker(
-            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' },
-            deps,
-        );
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
 
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
         expect(finalSnapshots).to.have.length(1);

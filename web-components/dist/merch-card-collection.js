@@ -9505,7 +9505,7 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
     color: #000;
     border: 2px solid #000;
 }
-`;var Io="(min-width: 768px)",zo=["heading-s","body-xs","heading-xs"],Do={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},Ve,mr,Dt=class extends y{constructor(){super(...arguments);S(this,Ve,null);S(this,mr,()=>this.resyncOnReflow());g(this,"lastSyncKey",null)}getGlobalCSS(){return Oo}priceOptionsProvider(t,a){t.dataset.template===X&&(a.displayPlanType=!0)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.card.querySelector(`[slot="heading-xs"] ${F}:not([data-template="legal"])`);if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t.options)return;a.setAttribute("data-template","legal"),a.dataset.displayPerUnit="false",t.parentNode.insertBefore(a,t.nextSibling),await a.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook(),window.matchMedia(Io).matches&&requestAnimationFrame(()=>this.syncHeights()))}syncHeights(){this.card.getBoundingClientRect().width<=2||window.matchMedia(Io).matches&&this.syncRowHeights(zo.map(t=>({name:t,getElement:a=>a.querySelector(`[slot="${t}"]`)})))}resyncOnReflow(){let t=this.card.getBoundingClientRect().width;if(t<=2)return;let a=n=>Math.round(this.card.querySelector(n)?.getBoundingClientRect().height||0),i=[Math.round(t),...zo.map(n=>a(`[slot="${n}"]`))].join(":");i!==this.lastSyncKey&&(this.lastSyncKey=i,this.syncHeights())}connectedCallbackHook(){if(this.card.addEventListener(oe,v(this,mr)),typeof ResizeObserver>"u")return;w(this,Ve,new ResizeObserver(()=>this.resyncOnReflow())),v(this,Ve).observe(this.card);let t=this.card.querySelector('[slot="body-xs"]');t&&v(this,Ve).observe(t)}disconnectedCallbackHook(){this.card.removeEventListener(oe,v(this,mr)),v(this,Ve)?.disconnect(),w(this,Ve,null)}renderLayout(){return nd` ${this.badge}
+`;var Io="(min-width: 768px)",zo=["heading-s","body-xs","heading-xs"],Do={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},Ve,mr,Dt=class extends y{constructor(){super(...arguments);S(this,Ve,null);S(this,mr,()=>this.resyncOnReflow());g(this,"lastSyncKey",null)}getGlobalCSS(){return Oo}priceOptionsProvider(t,a){t.dataset.template===X&&(a.displayPlanType=!0)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.card.querySelector(`[slot="heading-xs"] ${F}:not([data-template="legal"])`);if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t.options)return;a.setAttribute("data-template","legal"),a.dataset.displayPerUnit="false",t.parentNode.insertBefore(a,t.nextSibling),await a.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook(),this.flagPriceRow(),window.matchMedia(Io).matches&&requestAnimationFrame(()=>this.syncHeights()))}syncHeights(){this.card.getBoundingClientRect().width<=2||window.matchMedia(Io).matches&&this.syncRowHeights(zo.map(t=>({name:t,getElement:a=>a.querySelector(`[slot="${t}"]`)})))}flagPriceRow(){this.card.toggleAttribute("no-price",!this.card.querySelector('[slot="heading-xs"]'))}resyncOnReflow(){let t=this.card.getBoundingClientRect().width;if(t<=2)return;let a=n=>Math.round(this.card.querySelector(n)?.getBoundingClientRect().height||0),i=[Math.round(t),...zo.map(n=>a(`[slot="${n}"]`))].join(":");i!==this.lastSyncKey&&(this.lastSyncKey=i,this.syncHeights())}connectedCallbackHook(){if(this.card.addEventListener(oe,v(this,mr)),typeof ResizeObserver>"u")return;w(this,Ve,new ResizeObserver(()=>this.resyncOnReflow())),v(this,Ve).observe(this.card);let t=this.card.querySelector('[slot="body-xs"]');t&&v(this,Ve).observe(t)}disconnectedCallbackHook(){this.card.removeEventListener(oe,v(this,mr)),v(this,Ve)?.disconnect(),w(this,Ve,null)}renderLayout(){return nd` ${this.badge}
             <div class="body">
                 <div class="top">
                     <slot name="icons"></slot>
@@ -9529,6 +9529,9 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
                 var(--consonant-merch-card-border-color, #dadada) border-box;
             border: 1px solid transparent;
             border-radius: 16px;
+            /* Fill the grid row so .spacer has slack to absorb. */
+            height: 100%;
+            box-sizing: border-box;
         }
 
         :host([variant='uber-pricing']) .body {
@@ -9537,6 +9540,7 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             gap: 0;
             padding: 24px;
             box-sizing: border-box;
+            height: 100%;
         }
 
         :host([variant='uber-pricing']) .top {
@@ -9568,8 +9572,21 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             );
         }
 
+        /* No price authored: reserve nothing for the price row, else the row's
+           synced min-height leaves a blank band above the CTAs. Chrome rejects
+           :has() inside :host(), so the flag is an attribute (see syncHeights). */
+        :host([variant='uber-pricing'][no-price]) slot[name='heading-xs'] {
+            display: none;
+        }
+
+        :host([variant='uber-pricing'][no-price]) .price-buttons {
+            gap: 0;
+        }
+
+        /* Grows so a shorter card's slack lands here, in one block, instead of
+           spread through the copy — keeps CTAs on the row's shared baseline. */
         :host([variant='uber-pricing']) .spacer {
-            flex: 0 0 24px;
+            flex: 1 0 24px;
         }
 
         /* price -> buttons gap */

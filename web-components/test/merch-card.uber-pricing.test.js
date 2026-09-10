@@ -1,5 +1,9 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import {
+    initMasCommerceService,
+    removeMasCommerceService,
+} from './utilities.js';
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
@@ -282,6 +286,8 @@ describe('UberPricing.postCardUpdateHook', () => {
         new UberPricing({
             isConnected: true,
             updateComplete: Promise.resolve(),
+            querySelector: () => null,
+            toggleAttribute: () => {},
             ...cardOverrides,
         });
 
@@ -356,6 +362,56 @@ describe('UberPricing.syncHeights guards and observer edges', () => {
             layout.disconnectedCallbackHook(); // must not throw with no observer
         } finally {
             window.ResizeObserver = Real;
+        }
+    });
+});
+
+// A card with no authored price must not reserve the row-synced price height:
+// that reservation is the ~80px blank band above the CTAs. The collapse is CSS,
+// so this asserts the rendered slot, which also catches a selector the browser
+// silently drops (:has() inside :host() is invalid and was dropped).
+describe('UberPricing price row collapse', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    const render = async (withPrice) => {
+        const card = document.createElement('merch-card');
+        card.setAttribute('variant', 'uber-pricing');
+        card.innerHTML = `
+            <h3 slot="heading-s">Title</h3>
+            <div slot="body-xs">Copy</div>
+            ${withPrice ? '<p slot="heading-xs">US$9.99/mo</p>' : ''}
+            <div slot="footer"><a href="#">Buy</a></div>`;
+        document.body.appendChild(card);
+        await card.updateComplete;
+        card.variantLayout.flagPriceRow();
+        await card.updateComplete;
+        return card;
+    };
+
+    const priceSlotDisplay = (card) =>
+        getComputedStyle(
+            card.shadowRoot.querySelector('slot[name="heading-xs"]'),
+        ).display;
+
+    it('collapses the price slot only when no price is authored', async () => {
+        const priced = await render(true);
+        const bare = await render(false);
+        try {
+            expect(bare.hasAttribute('no-price'), 'flags the bare card').to.be
+                .true;
+            expect(priced.hasAttribute('no-price'), 'priced card unflagged').to
+                .be.false;
+            expect(
+                priceSlotDisplay(bare),
+                'bare price slot collapsed',
+            ).to.equal('none');
+            expect(priceSlotDisplay(priced), 'priced slot rendered').to.equal(
+                'block',
+            );
+        } finally {
+            priced.remove();
+            bare.remove();
         }
     });
 });

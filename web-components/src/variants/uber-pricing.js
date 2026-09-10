@@ -68,6 +68,7 @@ export class UberPricing extends VariantLayout {
         if (!this.card.isConnected) return;
         if (!this.legalAdjusted) await this.adjustLegal();
         await super.postCardUpdateHook();
+        this.flagPriceRow();
         if (window.matchMedia(SYNC_MIN_WIDTH).matches) {
             requestAnimationFrame(() => this.syncHeights());
         }
@@ -81,6 +82,14 @@ export class UberPricing extends VariantLayout {
                 name: slot,
                 getElement: (card) => card.querySelector(`[slot="${slot}"]`),
             })),
+        );
+    }
+
+    // Cards with no authored price must not reserve the synced price row.
+    flagPriceRow() {
+        this.card.toggleAttribute(
+            'no-price',
+            !this.card.querySelector('[slot="heading-xs"]'),
         );
     }
 
@@ -148,6 +157,9 @@ export class UberPricing extends VariantLayout {
                 var(--consonant-merch-card-border-color, #dadada) border-box;
             border: 1px solid transparent;
             border-radius: 16px;
+            /* Fill the grid row so .spacer has slack to absorb. */
+            height: 100%;
+            box-sizing: border-box;
         }
 
         :host([variant='uber-pricing']) .body {
@@ -156,6 +168,7 @@ export class UberPricing extends VariantLayout {
             gap: 0;
             padding: 24px;
             box-sizing: border-box;
+            height: 100%;
         }
 
         :host([variant='uber-pricing']) .top {
@@ -187,8 +200,21 @@ export class UberPricing extends VariantLayout {
             );
         }
 
+        /* No price authored: reserve nothing for the price row, else the row's
+           synced min-height leaves a blank band above the CTAs. Chrome rejects
+           :has() inside :host(), so the flag is an attribute (see syncHeights). */
+        :host([variant='uber-pricing'][no-price]) slot[name='heading-xs'] {
+            display: none;
+        }
+
+        :host([variant='uber-pricing'][no-price]) .price-buttons {
+            gap: 0;
+        }
+
+        /* Grows so a shorter card's slack lands here, in one block, instead of
+           spread through the copy — keeps CTAs on the row's shared baseline. */
         :host([variant='uber-pricing']) .spacer {
-            flex: 0 0 24px;
+            flex: 1 0 24px;
         }
 
         /* price -> buttons gap */

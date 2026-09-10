@@ -1,4 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { Log } from './log.js';
 
 export function isAupCheckoutSupported(offers, options) {
     return (
@@ -141,6 +142,7 @@ export async function launchAupCheckout(sdk, offers, options, onClose) {
             return parentHandler(name, payload);
         };
     }
+    Log.module('aup-select').debug('Launching workflow:', request);
     const result = await (messageHandler
         ? orchestrator.launchWorkflowInModal(request, messageHandler)
         : orchestrator.launchWorkflowInModal(request));

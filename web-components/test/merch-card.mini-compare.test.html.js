@@ -258,7 +258,7 @@ runTests(async () => {
             const priceElement = { dataset: { template: 'price' } };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.equal(false);
+            expect(priceOptions.displayPerUnit).to.be.undefined;
         });
     });
 
@@ -451,6 +451,13 @@ runTests(async () => {
     });
 
     describe('ETF text (adjustLegal / adjustShortDescription)', () => {
+        let keepInHeadingPriceForAnnual;
+        before(async () => {
+            ({ keepInHeadingPriceForAnnual } = await import(
+                '../src/variants/mini-compare-chart.js'
+            ));
+        });
+
         async function mountCardWithEtf(etfText = 'Fee applies') {
             const mount = document.createElement('div');
             mount.style.cssText =
@@ -465,7 +472,7 @@ runTests(async () => {
                             data-wcs-osi="abm-mult"
                             data-template="price"
                             data-display-per-unit="false"
-                            data-display-tax="false"
+                            data-display-tax="true"
                             data-display-plan-type="true"
                         ></span>
                     </h5>
@@ -609,6 +616,55 @@ runTests(async () => {
                 await card.checkReady();
 
                 expect(variantLayout.legalAdjusted).to.be.false;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price enabled', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const service = document.head.querySelector(
+                    'mas-commerce-service',
+                );
+                const headingPrice = card.querySelector(
+                    '[data-template="price"]',
+                );
+                const legalPrice = card.querySelector(
+                    '[data-template="legal"]',
+                );
+                headingPrice.options.displayTax = true;
+                keepInHeadingPriceForAnnual(
+                    service,
+                    headingPrice,
+                    legalPrice,
+                    'displayTax',
+                );
+                expect(legalPrice.dataset.displayTax).to.equal('false');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price disabled', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const service = document.createElement('mas-commerce-service');
+                service.setAttribute('env', 'stage');
+                const headingPrice = card.querySelector(
+                    '[data-template="price"]',
+                );
+                const legalPrice = card.querySelector(
+                    '[data-template="legal"]',
+                );
+                headingPrice.options.displayTax = true;
+                keepInHeadingPriceForAnnual(
+                    service,
+                    headingPrice,
+                    legalPrice,
+                    'displayTax',
+                );
+                expect(headingPrice.dataset.displayTax).to.equal('false');
             } finally {
                 mount.remove();
             }

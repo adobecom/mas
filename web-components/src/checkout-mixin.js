@@ -21,6 +21,15 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
     t: 'TEAM',
 };
 let aupCheckoutPending = false;
+const checkoutElements = new Set();
+let checkoutAupSelect;
+const updateCheckoutUrls = () => {
+    const aupSelect = getService()?.settings?.aupSelect;
+    if (aupSelect === checkoutAupSelect) return;
+    checkoutAupSelect = aupSelect;
+    checkoutElements.forEach((element) => element.updateCheckoutUrl(aupSelect));
+};
+const checkoutSettingsObserver = new MutationObserver(updateCheckoutUrls);
 
 export function createCheckoutElement(Class, options = {}, innerHTML = '') {
     const service = getService();
@@ -76,11 +85,35 @@ export function CheckoutMixin(Base) {
         connectedCallback() {
             this.masElement.connectedCallback();
             this.addEventListener('click', this.clickHandler);
+            if (!checkoutElements.size) {
+                checkoutAupSelect = getService()?.settings?.aupSelect;
+                checkoutSettingsObserver.observe(document.head, {
+                    subtree: true,
+                    childList: true,
+                    attributes: true,
+                    attributeFilter: ['name', 'content', 'aup-select'],
+                });
+                const service = getService();
+                if (service) {
+                    checkoutSettingsObserver.observe(service, {
+                        attributes: true,
+                        attributeFilter: ['aup-select'],
+                    });
+                }
+                window.addEventListener('popstate', updateCheckoutUrls);
+            }
+            checkoutElements.add(this);
+            this.updateCheckoutUrl();
         }
 
         disconnectedCallback() {
             this.masElement.disconnectedCallback();
             this.removeEventListener('click', this.clickHandler);
+            checkoutElements.delete(this);
+            if (!checkoutElements.size) {
+                checkoutSettingsObserver.disconnect();
+                window.removeEventListener('popstate', updateCheckoutUrls);
+            }
         }
 
         onceSettled() {
@@ -230,6 +263,7 @@ export function CheckoutMixin(Base) {
                     this.setCheckoutUrl('#');
                     this.checkoutActionHandler = handler.bind(this);
                 }
+                this.updateCheckoutUrl();
             }
             if (offers.length) {
                 if (this.masElement.toggleResolved(version, offers, options)) {
@@ -255,11 +289,31 @@ export function CheckoutMixin(Base) {
             }
         }
 
-        setCheckoutUrl() {
-            // to be implemented in the subclass
+        setCheckoutUrl(value) {
+            this.checkoutUrl = value;
+            this.updateCheckoutUrl();
+        }
+
+        updateCheckoutUrl(aupSelect = getService()?.settings?.aupSelect) {
+            if (this.checkoutUrl === undefined) return;
+            const useAup =
+                aupSelect &&
+                this.checkoutUrl &&
+                this.masElement.state === STATE_RESOLVED &&
+                !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
+                !this.hasAttribute('download') &&
+                (!this.target || this.target === '_self') &&
+                isAupCheckoutSupported(this.value, this.options);
+            this.setAttribute(
+                this.isCheckoutLink ? 'href' : 'data-href',
+                useAup ? '#' : this.checkoutUrl,
+            );
         }
 
         handleAupCheckout(e) {
+            this.updateCheckoutUrl(false);
+            // Native checkout needs its destination until the click's default action runs.
+            setTimeout(() => this.updateCheckoutUrl(), 0);
             if (
                 e.defaultPrevented ||
                 e.button !== 0 ||
@@ -290,6 +344,7 @@ export function CheckoutMixin(Base) {
                 ms: this.marketSegment,
             };
             if (!isAupCheckoutSupported(value, options)) return false;
+            this.updateCheckoutUrl();
             e.preventDefault();
             if (aupCheckoutPending) return true;
             const fallback = () => {

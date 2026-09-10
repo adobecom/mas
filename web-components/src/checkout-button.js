@@ -8,10 +8,6 @@ export class CheckoutButton extends CheckoutMixin(HTMLButtonElement) {
         return createCheckoutElement(CheckoutButton, options, innerHTML);
     }
 
-    setCheckoutUrl(value) {
-        this.setAttribute('data-href', value);
-    }
-
     get href() {
         return this.getAttribute('data-href');
     }

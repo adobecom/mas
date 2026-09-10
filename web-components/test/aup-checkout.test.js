@@ -438,6 +438,68 @@ describe('aup-select checkout routing', () => {
 
     for (const Class of [CheckoutLink, CheckoutButton]) {
         describe(Class.is, () => {
+            const hrefAttribute = Class === CheckoutLink ? 'href' : 'data-href';
+
+            it('renders # for AUP and restores the checkout URL as live configuration changes', async () => {
+                await service.registerCheckoutAction(() => undefined);
+                const element = await create(Class);
+                const url = element.checkoutUrl;
+                expect(url).to.include('https://');
+                expect(element.getAttribute(hrefAttribute)).to.equal('#');
+                meta.content = 'off';
+                await Promise.resolve();
+                expect(element.getAttribute(hrefAttribute)).to.equal(url);
+                meta.remove();
+                service.setAttribute('aup-select', 'on');
+                await Promise.resolve();
+                expect(element.getAttribute(hrefAttribute)).to.equal('#');
+                service.removeAttribute('aup-select');
+                await Promise.resolve();
+                expect(element.getAttribute(hrefAttribute)).to.equal(url);
+                meta.content = 'on';
+                document.head.append(meta);
+                await Promise.resolve();
+                expect(element.getAttribute(hrefAttribute)).to.equal('#');
+                const replacement = meta.cloneNode();
+                replacement.content = 'off';
+                meta.replaceWith(replacement);
+                meta = replacement;
+                await Promise.resolve();
+                expect(element.getAttribute(hrefAttribute)).to.equal(url);
+            });
+
+            it('keeps the checkout URL for perpetual offers and download actions', async () => {
+                await service.registerCheckoutAction(() => undefined);
+                const perpetual = await create(Class, {
+                    wcsOsi: 'perpetual',
+                    perpetual: true,
+                });
+                expect(perpetual.getAttribute(hrefAttribute)).to.include(
+                    'https://',
+                );
+                await service.registerCheckoutAction(() => ({
+                    url: 'https://www.adobe.com/download',
+                    className: 'download',
+                }));
+                const download = await create(Class);
+                expect(download.getAttribute(hrefAttribute)).to.equal(
+                    'https://www.adobe.com/download',
+                );
+            });
+
+            it('restores the destination for native checkout when the SDK is missing', async () => {
+                await service.registerCheckoutAction(() => undefined);
+                const element = await create(Class);
+                expect(element.getAttribute(hrefAttribute)).to.equal('#');
+                delete window.aupsdk;
+                const event = new MouseEvent('click', { cancelable: true });
+                expect(element.handleAupCheckout(event)).to.be.false;
+                expect(event.defaultPrevented).to.be.false;
+                expect(element.getAttribute(hrefAttribute)).to.equal(
+                    element.checkoutUrl,
+                );
+            });
+
             it('routes resolved buy checkout without changing the URL or emitting another click', async () => {
                 const element = await create(Class);
                 const href = element.href;

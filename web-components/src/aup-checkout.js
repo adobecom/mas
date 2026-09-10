@@ -1,14 +1,16 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 
+export function isAupCheckoutSupported(offers, options) {
+    return (
+        offers.length > 0 &&
+        !options.perpetual &&
+        !offers.some((offer) => offer.commitment === 'PERPETUAL')
+    );
+}
+
 function getRequest(offers, options) {
-    if (
-        options.perpetual ||
-        offers.some((offer) => offer.commitment === 'PERPETUAL')
-    ) {
-        return;
-    }
+    if (!isAupCheckoutSupported(offers, options)) return;
     const [offer] = offers;
-    if (!offer) return;
     const context = {
         clientId: options.checkoutClientId,
         clientType: 'web',

@@ -523,15 +523,66 @@ describe('aup-select checkout routing', () => {
                         failure === 'context'
                             ? sdk.getOrchestratorContext
                             : launch;
-                    failed.rejects(new Error('SDK unavailable'));
+                    const error = new Error('SDK unavailable');
+                    failed.rejects(error);
+                    const log = sinon.spy(element.masElement.log, 'error');
                     const event = click(element);
                     const replacement = sinon.spy();
                     element.checkoutActionHandler = replacement;
                     await element.aupCheckoutPromise;
                     expect(legacy.calledOnceWithExactly(event)).to.be.true;
                     expect(replacement.called).to.be.false;
+                    expect(
+                        log.calledWithExactly(
+                            'AUP checkout launch failed',
+                            error,
+                        ),
+                    ).to.be.true;
                 });
             }
+
+            for (const failure of ['throws', 'rejects']) {
+                it(`logs a host fallback that ${failure} once and releases checkout`, async () => {
+                    const element = await create(Class);
+                    const error = new Error('Host checkout failed');
+                    const handler = sinon.stub()[failure](error);
+                    element.checkoutActionHandler = handler;
+                    const log = sinon.spy(element.masElement.log, 'error');
+                    launch.resolves({ status: 'no-workflow-found' });
+                    const event = click(element);
+                    await element.aupCheckoutPromise;
+                    expect(handler.calledOnceWithExactly(event)).to.be.true;
+                    expect(
+                        log.calledWithExactly(
+                            'AUP checkout fallback failed',
+                            error,
+                        ),
+                    ).to.be.true;
+                    launch.resolves({ status: 'cancel' });
+                    click(element);
+                    await element.aupCheckoutPromise;
+                    expect(launch.calledTwice).to.be.true;
+                    expect(handler.calledOnce).to.be.true;
+                });
+            }
+
+            it('preserves a resolved empty-offer action without locking subsequent checkout', async () => {
+                const element = await create(Class);
+                element.renderOffers(
+                    [],
+                    { ...element.options, ms: undefined },
+                    {},
+                    { handler: legacy },
+                );
+                expect(element.marketSegment).to.be.undefined;
+                const event = click(element);
+                expect(legacy.calledOnceWithExactly(event)).to.be.true;
+                expect(sdk.getOrchestratorContext.called).to.be.false;
+                const other = await create(Class);
+                click(other);
+                await other.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+            });
 
             it('preserves download checkout actions', async () => {
                 await service.registerCheckoutAction(() => ({
@@ -571,15 +622,41 @@ describe('aup-select checkout routing', () => {
                 expect(launch.calledOnce).to.be.true;
                 meta.content = 'off';
                 click(element);
-                expect(legacy.called).to.be.false;
+                expect(legacy.calledOnce).to.be.true;
                 exit.resolve({ status: 'cancel' });
                 await element.aupCheckoutPromise;
                 meta.content = 'on';
                 click(element);
                 await element.aupCheckoutPromise;
                 expect(launch.calledTwice).to.be.true;
-                expect(legacy.called).to.be.false;
+                expect(legacy.calledOnce).to.be.true;
             });
+
+            for (const bypass of ['perpetual', 'pending', 'missing-sdk']) {
+                it(`preserves ${bypass} checkout while another AUP launch is pending`, async () => {
+                    const context = deferred();
+                    cleanup.push(() =>
+                        context.resolve({ launchWorkflowInModal: launch }),
+                    );
+                    sdk.getOrchestratorContext.returns(context.promise);
+                    const first = await create(Class);
+                    const other = await create(
+                        Class,
+                        bypass === 'perpetual'
+                            ? { wcsOsi: 'perpetual', perpetual: true }
+                            : {},
+                    );
+                    if (bypass === 'pending')
+                        other.masElement.togglePending(other.options);
+                    click(first);
+                    if (bypass === 'missing-sdk') delete window.aupsdk;
+                    const event = click(other);
+                    expect(legacy.calledOnceWithExactly(event)).to.be.true;
+                    expect(sdk.getOrchestratorContext.calledOnce).to.be.true;
+                    context.resolve({ launchWorkflowInModal: launch });
+                    await first.aupCheckoutPromise;
+                });
+            }
 
             for (const status of ['success', 'cancel']) {
                 it(`does not fall back after workflow ${status}`, async () => {
@@ -692,12 +769,13 @@ describe('aup-select checkout routing', () => {
 
     it('retains the clicked offer if the CTA updates while the SDK is loading', async () => {
         const context = deferred();
+        cleanup.push(() => context.resolve({ launchWorkflowInModal: launch }));
         sdk.getOrchestratorContext.returns(context.promise);
         const element = await create();
         click(element);
         element.updateOptions({ wcsOsi: 'stock-m2m' });
         click(element);
-        expect(legacy.called).to.be.false;
+        expect(legacy.calledOnce).to.be.true;
         await element.onceSettled();
         context.resolve({ launchWorkflowInModal: launch });
         await element.aupCheckoutPromise;

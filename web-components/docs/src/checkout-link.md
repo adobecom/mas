@@ -37,6 +37,8 @@ Checkout reads the live boolean `service.settings.aupSelect` on each click. The 
 <mas-commerce-service aup-select="on"></mas-commerce-service>
 ```
 
+When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
+
 Only exact `on` enables routing; the default is disabled. The `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Query and metadata changes take effect on subsequent clicks without reinitializing the service. Removing the query parameter restores metadata or the service attribute; removing metadata restores the service attribute. Storage overrides are ignored.
 
 CTAs launch the `try` intent for a main `TRIAL` offer and `buy` otherwise through `launchWorkflowInModal`, using the SDK's default rendering mode. M@S does not initialize or reconfigure the SDK. The configured checkout client ID is forwarded to orchestration without a client-side allowlist. AUP determines workflow availability; M@S does not exclude promotions, upgrades, multiple offers, addons, quantities, or change-plan steps.
@@ -49,7 +51,7 @@ Checkout workflow params include `step`, `apc`, `ao`, `ctxrturl`, `rtc`, `lo`, `
 
 The [AUP integration contract](https://wiki.corp.adobe.com/spaces/BPS/pages/3985062578/Client+team+integration+details) merges these runtime params with the recommendation, with recommendation values taking precedence. Availability and behavior depend on the host's SDK release and campaign configuration; forwarding a parameter does not guarantee a particular Select experience.
 
-Downloads, modified link clicks, and links targeting another browsing context retain the existing action. If the SDK is unavailable, reports no matching workflow, or launch fails, M@S invokes the saved checkout action once. Workflow completion or cancellation does not trigger fallback. Repeated checkout clicks are suppressed until the SDK reports workflow exit.
+Downloads, modified link clicks, and links targeting another browsing context retain the existing action. If the SDK is unavailable, reports no matching workflow, or launch fails, M@S invokes the saved checkout action once. Workflow completion or cancellation does not trigger fallback. Repeated AUP-eligible checkout clicks are suppressed until the SDK reports workflow exit; clicks that bypass AUP retain their existing behavior. Errors from the saved checkout action are logged without retrying it.
 
 The original link URL and click event remain available to the host's analytics. This also applies to headless CTAs after their `mas-field` wrapper is removed.
 

@@ -4,7 +4,7 @@ import {
     MasElement,
 } from './mas-element.js';
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { launchAupCheckout } from './aup-checkout.js';
+import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
 import { selectOffers, getService } from './utilities.js';
 import { isPromotionActive } from './price/utilities.js';
 import {
@@ -97,7 +97,7 @@ export function CheckoutMixin(Base) {
 
         get marketSegment() {
             const value =
-                this.options?.ms ?? this.value?.[0].marketSegments?.[0];
+                this.options?.ms ?? this.value?.[0]?.marketSegments?.[0];
             return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
         }
 
@@ -141,7 +141,6 @@ export function CheckoutMixin(Base) {
         }
 
         async render(overrides = {}) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             if (!this.dataset.imsCountry) {
@@ -209,7 +208,6 @@ export function CheckoutMixin(Base) {
             checkoutAction = undefined,
             version = undefined,
         ) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
@@ -275,10 +273,6 @@ export function CheckoutMixin(Base) {
             ) {
                 return false;
             }
-            if (aupCheckoutPending) {
-                e.preventDefault();
-                return true;
-            }
             const sdk = window.aupsdk;
             if (
                 this.masElement.state !== STATE_RESOLVED ||
@@ -287,8 +281,6 @@ export function CheckoutMixin(Base) {
             ) {
                 return false;
             }
-            e.preventDefault();
-            aupCheckoutPending = true;
             const { checkoutActionHandler, href, value } = this;
             const card = this.closest('merch-card');
             const id = this.getAttribute('data-modal-id');
@@ -297,11 +289,15 @@ export function CheckoutMixin(Base) {
                 cs: this.customerSegment,
                 ms: this.marketSegment,
             };
+            if (!isAupCheckoutSupported(value, options)) return false;
+            e.preventDefault();
+            if (aupCheckoutPending) return true;
             const fallback = () => {
                 if (checkoutActionHandler) return checkoutActionHandler(e);
                 if (href) window.location.href = href;
             };
             let cartItems;
+            aupCheckoutPending = true;
             this.aupCheckoutPromise = launchAupCheckout(
                 sdk,
                 value,
@@ -312,12 +308,25 @@ export function CheckoutMixin(Base) {
                       }
                     : undefined,
             )
-                .catch((e) => {
-                    this.masElement.log?.error('AUP checkout launch failed');
+                .catch((error) => {
+                    this.masElement.log?.error(
+                        'AUP checkout launch failed',
+                        error,
+                    );
                     return false;
                 })
-                .then((handled) => {
-                    if (!handled) return fallback();
+                .then(async (handled) => {
+                    if (!handled) {
+                        try {
+                            return await fallback();
+                        } catch (error) {
+                            this.masElement.log?.error(
+                                'AUP checkout fallback failed',
+                                error,
+                            );
+                            return;
+                        }
+                    }
                     if (!cartItems) return;
                     try {
                         const pa = value[0].productArrangementCode;
@@ -366,9 +375,10 @@ export function CheckoutMixin(Base) {
                                 },
                             ),
                         );
-                    } catch (e) {
+                    } catch (error) {
                         this.masElement.log?.warn(
                             'AUP checkout cart synchronization failed',
+                            error,
                         );
                     }
                 })
@@ -383,7 +393,6 @@ export function CheckoutMixin(Base) {
         }
 
         updateOptions(options = {}) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const {

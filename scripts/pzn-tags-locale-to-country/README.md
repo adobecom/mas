@@ -3,7 +3,7 @@
 Three scripts, run in order, migrate grouped-variation `pznTags` from per-locale
 (`mas:locale/<xx_YY>`) to per-country (`mas:pzn/country/<cc>`) tags (type 1), and expand the MU/TM/DZ
 umbrella markets into their constituent countries (type 2). A fourth file, `pzn-tag-mapping.mjs`, is a
-shared library the other three import. The xlsx-writer.mjs is a helper that transforms json > xlsx for better readability.
+shared library the other three import. The xlsx-writer.mjs is a helper that transforms json > xlsx for better readability. `variation-links.mjs` is a helper that turns a diff-report `.xlsx` into a `.txt` list of MAS Studio links, one per non-NOOP row.
 
 Two surfaces are in scope, selected with `--surface` (default `acom`). Every `/pzn/` card
 fragment under the selected surface is processed — no filtering. Each surface has its own
@@ -26,6 +26,7 @@ TYPE 1 never runs on `acom-dc` — that surface only gets the umbrella expansion
 | 2. `pzn-tag-diff-report.mjs` | no                             | Pure computation over the inventory: current → target tags per variation, with collision / demotion / ambiguity flags, grouped by parent fragment and by market.                                                                                                                                                                                                                                 |
 | 3. `pzn-tag-applier.mjs`     | **yes**                        | The only writer. Dry-run by default. Versions each fragment before every `If-Match` PUT, batches one market at a time, and supports `--revert`. A PUT that gets HTTP 500 is retried once; rows that still fail are written to a `tmp/mas-pzn-tag-applier-failures-*.json` file with full row context. Pass that failures file back in as `--i-have-reviewed` to retry only the rows that failed. |
 | — `pzn-tag-mapping.mjs`      | no (library, not run directly) | Market and umbrella tables plus `applyLocaleToCountry` / `applyUmbrellaExpansion`, imported by all three scripts above. Pure, no I/O. The localeToCountry table is derived from `getSurfaceLocales('acom')` — do not hand-maintain it.                                                                                                                                                           |
+| — `variation-links.mjs`     | no (writes a sibling `.txt`, not a diff-report writer) | Reads a diff-report `.xlsx` (or a directory of them), filters out `rule === NOOP` rows, and writes `<studio-link>?query=<variationId>` per remaining row into a same-name `.txt`. `.xlsx` only — no `.csv` input.                                                                                                                                                                              |
 
 **Reports go to this folder's own `tmp/` directory, which is gitignored — never into the repo.**
 They carry live content paths, fragment ids and etags. Both read-only scripts refuse an `--out` that resolves anywhere else inside the repository.

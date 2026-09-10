@@ -108,39 +108,14 @@ test.describe('merch-card foreground-time timeout (MWPW-206151)', () => {
         expect(foregroundResult, 'foreground-time timer survives the freeze').toBe('success');
     });
 
-    // End-to-end variant against a real docs page. Left as fixme: it can only turn
-    // green once the Milo host-side autoblock timeouts (merch-card-autoblock.js /
-    // merch.js, still wall-clock at 5000ms — see MWPW-206151) are also made
-    // foreground-aware; until then a freeze during hydration trips Milo's timer
-    // regardless of the mas-side fix. Kept as a runnable scaffold for that follow-up.
-    test.fixme(
-        'real merch-card page: no false timeout after a hydration-window freeze @mas-foreground-timeout-e2e',
-        async ({ page, baseURL }) => {
-            const path = '/drafts/nala/features/merch-card/plans/plans';
-            const masErrors = [];
-            await page.exposeFunction('__recordMasError', (msg) => masErrors.push(msg));
-            await page.addInitScript(() => {
-                document.addEventListener('mas:error', (e) => window.__recordMasError(e.detail?.message ?? 'mas:error'));
-            });
-
-            const cdp = await page.context().newCDPSession(page);
-            await cdp.send('Debugger.enable');
-
-            await page.goto(`${baseURL}${path}`);
-            await page.waitForLoadState('domcontentloaded');
-
-            // Freeze right after the cards start hydrating, for longer than the
-            // (5000ms Milo / 20000ms merch-card) budgets.
-            await page.waitForTimeout(150);
-            await cdp.send('Debugger.pause');
-            await new Promise((r) => setTimeout(r, 6000));
-            await cdp.send('Debugger.resume');
-
-            await page.waitForTimeout(2000);
-            expect(
-                masErrors.filter((m) => /not resolved within|did not initialize/i.test(m)),
-                'no false resolution-timeout after resume',
-            ).toEqual([]);
-        },
-    );
+    // NOTE: a live-page dist E2E was intentionally dropped. Reproducing the field
+    // condition (offer/WCS resolution pending while the page is backgrounded past the
+    // budget) is not tractable against the deployed docs page: a CDP freeze drops the
+    // held sockets, holding the fragment yields an empty card that takes the success
+    // path, and the offer/WCS call isn't cleanly interceptable — every variant
+    // false-passed on the old bundle. Instead: this spec proves the fix LOGIC against
+    // the real shipped source, and the existing "Check for uncommitted changes" step
+    // in .github/workflows/web-components-pr.yaml (runs `npm run build`, then fails if
+    // `git status --porcelain` is non-empty) proves that source is what ships in dist —
+    // i.e. a src change committed without the rebuilt bundle fails CI.
 });

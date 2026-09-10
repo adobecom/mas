@@ -1,0 +1,19 @@
+# PR body and branch naming for harness-authored changes. Unresolvable
+# placeholders fall back as declared below.
+issue_key_pattern: 'MWPW-\d{6}'
+# Jira key first: the IMS regex only accepts MWPW-XXXXXX branch previews.
+branch_pattern: ['{issue_key}', '{title_slug}']
+page: /web-components/docs/merch-card.html
+fallbacks:
+    issue_key: 'Resolves: <!-- link the MWPW Jira ticket, e.g. [MWPW-0000](…) -->'
+    # Keep the Before/After shape honest when a run has no visual evidence.
+    test_urls: |-
+        - Before: https://main--mas--adobecom.aem.page/web-components/docs/merch-card.html?martech=off
+        - After: <!-- no verified visual evidence this run — see the run dashboard -->
+template: |
+    {summary_bullets}
+
+    Resolves: [{issue_key}](https://jira.corp.adobe.com/browse/{issue_key})
+
+    **Test URLs** (the before/after pair the harness visually verified):
+    {test_urls}

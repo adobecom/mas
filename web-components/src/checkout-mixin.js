@@ -4,9 +4,14 @@ import {
     MasElement,
 } from './mas-element.js';
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
 import { selectOffers, getService } from './utilities.js';
 import { isPromotionActive } from './price/utilities.js';
-import { MODAL_TYPE_3_IN_1 } from '../src/constants.js';
+import {
+    EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+    MODAL_TYPE_3_IN_1,
+    STATE_RESOLVED,
+} from '../src/constants.js';
 import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core';
 
 export const CLASS_NAME_DOWNLOAD = 'download';
@@ -15,9 +20,18 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
     e: 'EDU',
     t: 'TEAM',
 };
+let aupCheckoutPending = false;
+const checkoutElements = new Set();
+let checkoutAupSelect;
+const updateCheckoutUrls = () => {
+    const aupSelect = getService()?.settings?.aupSelect;
+    if (aupSelect === checkoutAupSelect) return;
+    checkoutAupSelect = aupSelect;
+    checkoutElements.forEach((element) => element.updateCheckoutUrl(aupSelect));
+};
+const checkoutSettingsObserver = new MutationObserver(updateCheckoutUrls);
 
 export function createCheckoutElement(Class, options = {}, innerHTML = '') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const service = getService();
     if (!service) return null;
     const {
@@ -71,11 +85,37 @@ export function CheckoutMixin(Base) {
         connectedCallback() {
             this.masElement.connectedCallback();
             this.addEventListener('click', this.clickHandler);
+            this.addEventListener('auxclick', this.handleAupModifiedClick);
+            if (!checkoutElements.size) {
+                checkoutAupSelect = getService()?.settings?.aupSelect;
+                checkoutSettingsObserver.observe(document.head, {
+                    subtree: true,
+                    childList: true,
+                    attributes: true,
+                    attributeFilter: ['name', 'content', 'aup-select'],
+                });
+                const service = getService();
+                if (service) {
+                    checkoutSettingsObserver.observe(service, {
+                        attributes: true,
+                        attributeFilter: ['aup-select'],
+                    });
+                }
+                window.addEventListener('popstate', updateCheckoutUrls);
+            }
+            checkoutElements.add(this);
+            this.updateCheckoutUrl();
         }
 
         disconnectedCallback() {
             this.masElement.disconnectedCallback();
             this.removeEventListener('click', this.clickHandler);
+            this.removeEventListener('auxclick', this.handleAupModifiedClick);
+            checkoutElements.delete(this);
+            if (!checkoutElements.size) {
+                checkoutSettingsObserver.disconnect();
+                window.removeEventListener('popstate', updateCheckoutUrls);
+            }
         }
 
         onceSettled() {
@@ -92,7 +132,7 @@ export function CheckoutMixin(Base) {
 
         get marketSegment() {
             const value =
-                this.options?.ms ?? this.value?.[0].marketSegments?.[0];
+                this.options?.ms ?? this.value?.[0]?.marketSegments?.[0];
             return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
         }
 
@@ -136,7 +176,6 @@ export function CheckoutMixin(Base) {
         }
 
         async render(overrides = {}) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             if (!this.dataset.imsCountry) {
@@ -204,7 +243,6 @@ export function CheckoutMixin(Base) {
             checkoutAction = undefined,
             version = undefined,
         ) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
@@ -227,6 +265,7 @@ export function CheckoutMixin(Base) {
                     this.setCheckoutUrl('#');
                     this.checkoutActionHandler = handler.bind(this);
                 }
+                this.updateCheckoutUrl();
             }
             if (offers.length) {
                 if (this.masElement.toggleResolved(version, offers, options)) {
@@ -252,8 +291,175 @@ export function CheckoutMixin(Base) {
             }
         }
 
-        setCheckoutUrl() {
-            // to be implemented in the subclass
+        setCheckoutUrl(value) {
+            this.checkoutUrl = value;
+            this.updateCheckoutUrl();
+        }
+
+        updateCheckoutUrl(aupSelect = getService()?.settings?.aupSelect) {
+            if (this.checkoutUrl === undefined) return;
+            const useAup =
+                aupSelect &&
+                this.checkoutUrl &&
+                this.masElement.state === STATE_RESOLVED &&
+                !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
+                !this.hasAttribute('download') &&
+                (!this.target || this.target === '_self') &&
+                isAupCheckoutSupported(this.value, this.options);
+            this.setAttribute(
+                this.isCheckoutLink ? 'href' : 'data-href',
+                useAup ? '#' : this.checkoutUrl,
+            );
+            return useAup;
+        }
+
+        handleAupModifiedClick(e) {
+            if (
+                (e.metaKey ||
+                    e.ctrlKey ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.button !== 0) &&
+                this.updateCheckoutUrl()
+            ) {
+                e.preventDefault();
+                return true;
+            }
+            return false;
+        }
+
+        handleAupCheckout(e) {
+            if (this.handleAupModifiedClick(e)) return true;
+            this.updateCheckoutUrl(false);
+            // Native checkout needs its destination until the click's default action runs.
+            setTimeout(() => this.updateCheckoutUrl(), 0);
+            if (
+                e.defaultPrevented ||
+                e.button !== 0 ||
+                e.metaKey ||
+                e.ctrlKey ||
+                e.shiftKey ||
+                e.altKey ||
+                this.classList.contains(CLASS_NAME_DOWNLOAD) ||
+                this.hasAttribute('download') ||
+                (this.target && this.target !== '_self')
+            ) {
+                return false;
+            }
+            const sdk = window.aupsdk;
+            if (
+                this.masElement.state !== STATE_RESOLVED ||
+                !getService()?.settings.aupSelect ||
+                typeof sdk?.getOrchestratorContext !== 'function'
+            ) {
+                return false;
+            }
+            const { checkoutActionHandler, href, value } = this;
+            const card = this.closest('merch-card');
+            const id = this.getAttribute('data-modal-id');
+            const options = {
+                ...this.options,
+                cs: this.customerSegment,
+                ms: this.marketSegment,
+            };
+            if (!isAupCheckoutSupported(value, options)) return false;
+            this.updateCheckoutUrl();
+            e.preventDefault();
+            if (aupCheckoutPending) return true;
+            const fallback = () => {
+                if (checkoutActionHandler) return checkoutActionHandler(e);
+                if (href) window.location.href = href;
+            };
+            let cartItems;
+            aupCheckoutPending = true;
+            this.aupCheckoutPromise = launchAupCheckout(
+                sdk,
+                value,
+                options,
+                card && id
+                    ? (items) => {
+                          cartItems = items;
+                      }
+                    : undefined,
+            )
+                .catch((error) => {
+                    this.masElement.log?.error(
+                        'AUP checkout launch failed',
+                        error,
+                    );
+                    return false;
+                })
+                .then(async (handled) => {
+                    if (!handled) {
+                        try {
+                            return await fallback();
+                        } catch (error) {
+                            this.masElement.log?.error(
+                                'AUP checkout fallback failed',
+                                error,
+                            );
+                            return;
+                        }
+                    }
+                    if (!cartItems) return;
+                    try {
+                        const pa = value[0].productArrangementCode;
+                        if (
+                            this.masElement.state !== STATE_RESOLVED ||
+                            this.value[0]?.productArrangementCode !== pa
+                        )
+                            return;
+                        const addonPrices = [
+                            ...card.querySelectorAll(
+                                'merch-addon [is="inline-price"]',
+                            ),
+                        ];
+                        if (
+                            card.addonCheckbox &&
+                            (!addonPrices.length ||
+                                addonPrices.some(
+                                    (price) =>
+                                        price.masElement.state !==
+                                            STATE_RESOLVED ||
+                                        !price.value?.length,
+                                ))
+                        )
+                            return;
+                        const addonOffers = addonPrices.flatMap(
+                            (price) => price.value,
+                        );
+                        const items = cartItems.filter(
+                            (item) =>
+                                item.productArrangementCode === pa ||
+                                addonOffers.some(
+                                    (offer) =>
+                                        offer.productArrangementCode ===
+                                        item.productArrangementCode,
+                                ),
+                        );
+                        card.dispatchEvent(
+                            new CustomEvent(
+                                EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+                                {
+                                    detail: {
+                                        id,
+                                        items,
+                                        productArrangementCode: pa,
+                                    },
+                                },
+                            ),
+                        );
+                    } catch (error) {
+                        this.masElement.log?.warn(
+                            'AUP checkout cart synchronization failed',
+                            error,
+                        );
+                    }
+                })
+                .finally(() => {
+                    aupCheckoutPending = false;
+                });
+            return true;
         }
 
         clickHandler(e) {
@@ -261,7 +467,6 @@ export function CheckoutMixin(Base) {
         }
 
         updateOptions(options = {}) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const {

@@ -18,6 +18,7 @@ import { expect } from './utilities.js';
 
 const mockService = {
     featureFlags: { [FF_DEFAULTS]: true },
+    getAttribute: () => null,
 };
 
 describe('getSettings', () => {
@@ -40,6 +41,7 @@ describe('getSettings', () => {
     it('returns default settings, if called without arguments', () => {
         expect(getSettings(undefined, mockService)).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             locale: `${Defaults.language}_${Defaults.country}`,
             masIOUrl: 'https://www.adobe.com/mas/io',
             quantity: [Defaults.quantity],
@@ -75,6 +77,7 @@ describe('getSettings', () => {
         const config = { commerce: { allowOverride: '' } };
         expect(getSettings(config, mockService)).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             checkoutClientId,
             checkoutWorkflowStep,
             promotionCode,
@@ -127,6 +130,7 @@ describe('getSettings', () => {
             ),
         ).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             forceTaxExclusive: true,
             promotionCode: 'promo1',
             country: 'NO',

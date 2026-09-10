@@ -55,6 +55,110 @@ describe('commerce service', () => {
             });
         });
 
+        describe('AUP Select configuration', () => {
+            let meta;
+            let originalUrl;
+            let storedValues;
+
+            beforeEach(() => {
+                originalUrl = window.location.href;
+                storedValues = [sessionStorage, localStorage].map((storage) =>
+                    storage.getItem('aup-select'),
+                );
+                meta = document.createElement('meta');
+                meta.name = 'aup-select';
+            });
+
+            afterEach(() => {
+                meta.remove();
+                history.replaceState(null, '', originalUrl);
+                [sessionStorage, localStorage].forEach((storage, index) => {
+                    const value = storedValues[index];
+                    if (value === null) storage.removeItem('aup-select');
+                    else storage.setItem('aup-select', value);
+                });
+            });
+
+            it('defaults to disabled and reads the current service attribute', () => {
+                const service = initMasCommerceService();
+                const { settings } = service;
+                expect(settings.aupSelect).to.be.false;
+                service.setAttribute('aup-select', 'on');
+                expect(settings.aupSelect).to.be.true;
+                for (const value of ['off', 'true', 'ON', '']) {
+                    service.setAttribute('aup-select', value);
+                    expect(settings.aupSelect).to.be.false;
+                }
+                service.removeAttribute('aup-select');
+                expect(settings.aupSelect).to.be.false;
+            });
+
+            it('uses live metadata ahead of the service attribute', () => {
+                const service = initMasCommerceService({ 'aup-select': 'off' });
+                const { settings } = service;
+                expect(settings.aupSelect).to.be.false;
+                meta.content = 'on';
+                document.head.append(meta);
+                expect(settings.aupSelect).to.be.true;
+                service.setAttribute('aup-select', 'on');
+                meta.content = 'off';
+                expect(settings.aupSelect).to.be.false;
+                meta.content = '';
+                expect(settings.aupSelect).to.be.false;
+                const replacement = meta.cloneNode();
+                replacement.content = 'on';
+                meta.replaceWith(replacement);
+                meta = replacement;
+                expect(settings.aupSelect).to.be.true;
+                meta.remove();
+                expect(settings.aupSelect).to.be.true;
+                service.removeAttribute('aup-select');
+                expect(settings.aupSelect).to.be.false;
+            });
+
+            for (const value of ['on', 'off']) {
+                it(`ignores storage overrides set to ${value}`, () => {
+                    sessionStorage.setItem('aup-select', value);
+                    localStorage.setItem('aup-select', value);
+                    const service = initMasCommerceService();
+                    const { settings } = service;
+                    expect(settings.aupSelect).to.be.false;
+                    service.setAttribute('aup-select', 'on');
+                    expect(settings.aupSelect).to.be.true;
+                    meta.content = 'off';
+                    document.head.append(meta);
+                    expect(settings.aupSelect).to.be.false;
+                    meta.content = 'on';
+                    expect(settings.aupSelect).to.be.true;
+                });
+            }
+
+            for (const value of ['on', 'off', 'true', 'ON', '']) {
+                it(`uses the live query override ${JSON.stringify(value)} ahead of metadata and the service attribute`, () => {
+                    const enabled = value === 'on';
+                    const fallback = enabled ? 'off' : 'on';
+                    const service = initMasCommerceService({
+                        'aup-select': fallback,
+                    });
+                    const { settings } = service;
+                    meta.content = fallback;
+                    document.head.append(meta);
+                    expect(settings.aupSelect).to.equal(!enabled);
+
+                    const url = new URL(originalUrl);
+                    url.searchParams.set('aup-select', value);
+                    history.replaceState(null, '', url);
+                    expect(settings.aupSelect).to.equal(enabled);
+
+                    url.searchParams.delete('aup-select');
+                    history.replaceState(null, '', url);
+                    expect(settings.aupSelect).to.equal(!enabled);
+                    meta.remove();
+                    expect(settings.aupSelect).to.equal(!enabled);
+                });
+            }
+        });
+
         it('returns "Defaults" object', async () => {
             const instance = initMasCommerceService();
             expect(instance.defaults).to.deep.equal(Defaults);
@@ -151,6 +255,7 @@ describe('commerce service', () => {
 
                 const el = initMasCommerceService({});
                 expect(el.settings).to.deep.equal({
+                    aupSelect: false,
                     checkoutClientId: 'adobe_com',
                     checkoutWorkflowStep: 'email',
                     country: 'US',

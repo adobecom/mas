@@ -23,6 +23,44 @@ See [MAS](mas.html#terminology) to learn more.
 >
 ```
 
+## AUP Select {#aup-select}
+
+To route checkout links and buttons through the host's initialized `window.aupsdk`, add:
+
+```html
+<meta name="aup-select" content="on" />
+```
+
+Checkout reads the live boolean `service.settings.aupSelect` on each click. The settings layer resolves `aup-select` metadata through `getParameter`, falling back to the commerce service's `aup-select` attribute when metadata is absent:
+
+```html
+<mas-commerce-service aup-select="on"></mas-commerce-service>
+```
+
+When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
+
+Only exact `on` enables routing; the default is disabled. The `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Query and metadata changes take effect on subsequent clicks without reinitializing the service. Removing the query parameter restores metadata or the service attribute; removing metadata restores the service attribute. Storage overrides are ignored.
+
+AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Metadata and service attribute changes update rendered destinations; clicks also read the current query configuration. Disabling AUP restores the original destination. Perpetual offers, downloads, and links targeting another window retain their existing URLs.
+
+Command/Ctrl-click, other modified clicks, and middle-click do nothing on AUP-eligible CTAs. They neither launch AUP nor invoke the host's legacy checkout handler.
+
+CTAs launch the `try` intent for a main `TRIAL` offer and `buy` otherwise through `launchWorkflowInModal`, using the SDK's default rendering mode. M@S does not initialize or reconfigure the SDK. The configured checkout client ID is forwarded to orchestration without a client-side allowlist. AUP determines workflow availability; M@S does not exclude promotions, upgrades, multiple offers, addons, quantities, or change-plan steps.
+
+Perpetual offers retain existing checkout: M@S skips AUP when the CTA has `perpetual` enabled or any resolved offer has `commitment: "PERPETUAL"`. AUP Select support is unverified, and the [UCv3 perpetual-offer documentation](https://wiki.corp.adobe.com/spaces/businessservices/pages/2755546592/Perpetual+offers+in+UCv3) records a March 2023 decision not to implement support for existing perpetual products. This exclusion also applies to carts containing both subscription and perpetual offers.
+
+The main resolved offer supplies product arrangement, optional product code, and segments. Checkout options supply country, language, and segment overrides. Optional `svar`, `customerIntent`, and `sid` go in the recommendation context. All resolved offer IDs are passed in the checkout workflow's `items` format (`offerId|quantity,offerId|quantity`), preserving promotional offers and selected addons. Per-item quantities are used when supplied; otherwise the main quantity applies to each item. An explicit `q` overrides those quantities.
+
+Checkout workflow params include `step`, `apc`, `ao`, `ctxrturl`, `rtc`, `lo`, `af`, and the workflow's supported tracking, subscription, authentication, and display parameters. M@S maps `checkoutWorkflowStep` to `step`, `promotionCode` to `apc`, `addonProductArrangementCode` to `ao`, and dotted checkout names such as `so.su` to `soSu`. Explicit workflow parameter names take precedence over these aliases. The return URL defaults to the current page. Internal Select variants and SDK rendering-mode flags are not forwarded.
+
+The [AUP integration contract](https://wiki.corp.adobe.com/spaces/BPS/pages/3985062578/Client+team+integration+details) merges these runtime params with the recommendation, with recommendation values taking precedence. Availability and behavior depend on the host's SDK release and campaign configuration; forwarding a parameter does not guarantee a particular Select experience.
+
+Downloads, modified link clicks, and links targeting another browsing context retain the existing action. If the SDK is unavailable, reports no matching workflow, or launch fails, M@S invokes the saved checkout action once. Workflow completion or cancellation does not trigger fallback. Repeated AUP-eligible checkout clicks are suppressed until the SDK reports workflow exit; clicks that bypass AUP retain their existing behavior. Errors from the saved checkout action are logged without retrying it.
+
+The original link URL and click event remain available to the host's analytics. This also applies to headless CTAs after their `mas-field` wrapper is removed.
+
+On cancellation, M@S uses the SDK's `System/AppClosed` cart report to synchronize the originating card's addon and quantity. Only products matching that card's main offer and authored addon are applied. Product identity comes from resolved offer data, so hash-based host actions and checkout URLs without `pa` can synchronize. If addon offer data is unavailable, the card retains its current state. Cart synchronization errors do not trigger checkout fallback. Host and SDK default message handlers remain in the delegation chain. Addon presentation in Select (`showaddon`: `off`, `checkbox`, or `toggle`) remains controlled by the experience campaign; it does not preselect the card's addon.
+
 ## Attributes {#attributes}
 
 | Attribute                     | Description                                                                                                                                                                                                                                  | Default Value | Required | Provider                |

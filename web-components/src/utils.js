@@ -75,6 +75,10 @@ export function setForegroundTimeout(callback, ms) {
     let remaining = ms;
     let startedAt = performance.now();
     let timer;
+    const fire = () => {
+        clearForegroundTimeout(id);
+        callback();
+    };
     const start = () => {
         startedAt = performance.now();
         timer = setTimeout(fire, remaining);
@@ -87,10 +91,6 @@ export function setForegroundTimeout(callback, ms) {
             start();
         }
     };
-    function fire() {
-        clearForegroundTimeout(id);
-        callback();
-    }
     foregroundTimers.set(id, () => {
         clearTimeout(timer);
         document.removeEventListener('visibilitychange', onVisibilityChange);

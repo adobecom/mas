@@ -18,6 +18,7 @@ import {
     getSlotText,
     debounce,
     setForegroundTimeout,
+    clearForegroundTimeout,
 } from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
 import { normalizeVariant } from './hydrate.js';
@@ -159,13 +160,19 @@ export class MerchCardCollection extends LitElement {
     checkReady() {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return Promise.resolve(true);
-        const timeoutPromise = new Promise((resolve) =>
-            setForegroundTimeout(
+        let timeoutId;
+        const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setForegroundTimeout(
                 () => resolve(false),
                 MERCH_CARD_COLLECTION_LOAD_TIMEOUT,
-            ),
-        );
-        return Promise.race([this.hydrationReady, timeoutPromise]);
+            );
+        });
+        const readyPromise = Promise.race([
+            this.hydrationReady,
+            timeoutPromise,
+        ]);
+        readyPromise.finally(() => clearForegroundTimeout(timeoutId));
+        return readyPromise;
     }
 
     updated(changedProperties) {

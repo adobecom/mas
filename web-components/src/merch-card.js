@@ -38,6 +38,7 @@ import {
     getService,
     printMeasure,
     setForegroundTimeout,
+    clearForegroundTimeout,
     shouldHideStPriceLabels,
 } from './utils.js';
 import { toPromotionCodes } from './utilities.js';
@@ -788,12 +789,13 @@ export class MerchCard extends LitElement {
             await this.variantLayoutPromise;
             this.variantLayoutPromise = undefined;
         }
-        const timeoutPromise = new Promise((resolve) =>
-            setForegroundTimeout(
+        let timeoutId;
+        const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setForegroundTimeout(
                 () => resolve('timeout'),
                 MERCH_CARD_LOAD_TIMEOUT,
-            ),
-        );
+            );
+        });
         if (this.aemFragment) {
             const result = await Promise.race([
                 this.aemFragment.updateComplete,
@@ -804,6 +806,7 @@ export class MerchCard extends LitElement {
                     result === 'timeout'
                         ? `AEM fragment was not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout`
                         : 'AEM fragment cannot be loaded';
+                clearForegroundTimeout(timeoutId);
                 this.#fail(errorMessage, {}, false);
                 return;
             }
@@ -825,6 +828,7 @@ export class MerchCard extends LitElement {
             );
         });
         const result = await Promise.race([successPromise, timeoutPromise]);
+        clearForegroundTimeout(timeoutId);
 
         if (!this.isConnected) return;
 

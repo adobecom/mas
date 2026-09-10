@@ -3,6 +3,7 @@ import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getLocaleByCode, getLocaleCode, getSurfaceLocales } from '../../../io/www/src/fragment/locales.js';
 import { TAG_PROMOTION_PREFIX, VARIATION_TYPES } from '../constants.js';
+import { getCtaEmphasis } from '../rte/link-variant-utils.js';
 import { isPznCountryTagId, isLocaleTagId } from '../common/utils/personalization-utils.js';
 
 /* ---------- pure helpers ---------- */
@@ -83,15 +84,42 @@ export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
     return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
 }
 
-/** Parses CTA HTML and returns an array of `{ text, href, key }` objects, one per anchor.
- *  Uses a <template> element so checkout-link custom elements are never upgraded and their
- *  attributes (href, data-key, data-wcs-osi, …) are preserved exactly as stored. */
+const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Emphasis tag for a parsed CTA anchor: prefers a real <strong>/<em> wrapper - how headless CTAs
+ *  store bold/italic (see rte-field.js's #marksForHeadlessVariant), so Milo can map it to the
+ *  context-appropriate button style - falling back to the variant-class heuristic for CTAs
+ *  authored under the older class-driven button-style system (see {@link getCtaEmphasis}). */
+function ctaEmphasisTag(a) {
+    const parentTag = a.parentElement?.tagName;
+    if (parentTag === 'STRONG') return 'strong';
+    if (parentTag === 'EM') return 'em';
+    const emphasis = getCtaEmphasis(a.getAttribute('class') || '');
+    return emphasis === 'bold' ? 'strong' : emphasis === 'italic' ? 'em' : null;
+}
+
+/** Parses CTA HTML and returns an array of `{ text, href, key, className, formattedText }` objects,
+ *  one per anchor. Uses a <template> element so checkout-link custom elements are never upgraded and
+ *  their attributes (href, data-key, data-wcs-osi, …) are preserved exactly as stored.
+ *  `formattedText` mirrors `text` but wrapped in `<strong>`/`<em>` per {@link ctaEmphasisTag}, for
+ *  callers (e.g. Copy Field) that want to preserve the CTA's visual weight outside the editor. */
 export function parseCtas(html) {
     if (!html || typeof html !== 'string') return [];
     const template = document.createElement('template');
     template.innerHTML = html;
     return [...template.content.querySelectorAll('a')]
-        .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '', key: a.getAttribute('data-key') }))
+        .map((a) => {
+            const text = a.textContent.trim();
+            const tag = ctaEmphasisTag(a);
+            const escaped = escapeHtml(text);
+            return {
+                text,
+                href: a.getAttribute('href') || '',
+                key: a.getAttribute('data-key'),
+                className: a.getAttribute('class') || '',
+                formattedText: tag ? `<${tag}>${escaped}</${tag}>` : escaped,
+            };
+        })
         .filter(({ text, href }) => text || href);
 }
 

@@ -2793,28 +2793,26 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             color: var(--spectrum-gray-600, #8e8e8e);
             font-size: var(--spectrum-font-size-100, 14px);
         }
-    `),$(jo,"properties",{referenceOsi:{type:String,state:!0}});customElements.define("ost-placeholder-panel",jo);me();var Ya=class extends M{constructor(){super(),this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get status(){return Wa(l.storedPromoOverride,l.promotionCode)}render(){let e=this.status,t=!!l.promotionCode,r=l.storedPromoOverride===Jt;return n`
+    `),$(jo,"properties",{referenceOsi:{type:String,state:!0}});customElements.define("ost-placeholder-panel",jo);me();var Ya=class extends M{constructor(){super(),this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get status(){return Wa(l.storedPromoOverride,l.promotionCode)}render(){let e=this.status,t=l.storedPromoOverride===Jt;return n`
             <div class="promo-row">
                 <span class="promo-label">Promotion:</span>
                 <sp-badge data-testid="ost-promo-label" variant=${e.variant}>${e.text}</sp-badge>
-                ${t?n`
-                          <sp-action-button
-                              data-testid="ost-promo-cancel-context"
-                              quiet
-                              size="s"
-                              label=${r?"Restore context promo":"Cancel context promo"}
-                              ?selected=${r}
-                              @click=${()=>l.setPromoCode(r?void 0:Jt)}
-                          >
-                              <sp-icon-cancel slot="icon"></sp-icon-cancel>
-                          </sp-action-button>
-                      `:C}
+                <sp-action-button
+                    data-testid="ost-promo-cancel-context"
+                    quiet
+                    size="s"
+                    label=${t?"Restore context promo":"Cancel context promo"}
+                    ?selected=${t}
+                    @click=${()=>l.setPromoCode(t?void 0:Jt)}
+                >
+                    <sp-icon-cancel slot="icon"></sp-icon-cancel>
+                </sp-action-button>
                 <sp-textfield
                     data-testid="ost-promo-override-input"
                     label="Override"
                     size="s"
-                    value=${r?"":l.storedPromoOverride||""}
-                    @input=${s=>l.setPromoCode(s.target.value)}
+                    value=${l.storedPromoOverride||""}
+                    @input=${r=>l.setPromoCode(r.target.value)}
                 ></sp-textfield>
                 <sp-action-button
                     data-testid="ost-promo-clear"
@@ -2830,7 +2828,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 <sp-checkbox
                     data-testid="ost-lock-osi"
                     ?checked=${l.lockedOsi}
-                    @change=${s=>l.setLockedOsi(s.target.checked)}
+                    @change=${r=>l.setLockedOsi(r.target.checked)}
                     >Lock OSI</sp-checkbox
                 >
             </div>

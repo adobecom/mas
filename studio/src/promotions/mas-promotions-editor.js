@@ -16,6 +16,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    VARIATION_TAB_NAME,
 } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
@@ -28,10 +29,12 @@ import {
     getCreateProjectErrorMessage,
     MODEL_WEB_COMPONENT_MAPPING,
     UserFriendlyError,
+    isUUID,
 } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
-import './mas-promotions-items-selector.js';
+import '../common/components/mas-items-selector.js';
+import '../common/components/mas-search-and-filters.js';
 import './mas-promotions-items-table.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import {
@@ -51,6 +54,10 @@ import {
     handlePromotionOstOfferSelect,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
+    normalizePromotionSearchInput,
+    applyPromotionOfferProductTagsToSearch,
+    collectPromotionOfferProductTags,
+    extractPromotionItemProductCodeTagIds,
     PROMOTION_FIELD_TYPE_MAP,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
@@ -83,6 +90,18 @@ function getPromotionPickerFragmentLabel(data) {
     const { fragmentParts } = getFragmentPartsToUse(data, pathSurface ?? searchSnapshot.path);
     return `${webComponentName}: ${fragmentParts}`;
 }
+
+const OFFER_FILTER_ALL = 'all';
+
+const PROMOTION_VIEW_TABS = [
+    { value: TABLE_TYPE.OFFERS, label: 'Offers' },
+    { value: TABLE_TYPE.CARDS, label: 'Fragments' },
+    { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
+];
+
+const PROMOTION_ITEM_PICKER_ALLOWED_TYPES = [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS];
+const PROMOTION_ITEM_VARIATION_TABS = [VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED];
+const PROMOTION_ITEM_SELECTABLE_TABS = [VARIATION_TAB_NAME.GROUPED];
 
 const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
@@ -127,9 +146,11 @@ class MasPromotionsEditor extends LitElement {
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
         evergreenEnabled: { type: Boolean, state: true },
+        activeFilterOfferId: { type: String, state: true },
     };
 
     #promotionItemsReactive;
+    #promotionOfferFilterReactive;
 
     inEdit = Store.promotions.inEdit;
     promotionId = Store.promotions.promotionId;
@@ -163,6 +184,8 @@ class MasPromotionsEditor extends LitElement {
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
         this.evergreenEnabled = true;
+        this.activeFilterOfferId = '';
+        this.itemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
     }
 
     async connectedCallback() {
@@ -207,6 +230,12 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.offerRecordsHydrated,
             Store.users,
         ]);
+        this.#promotionOfferFilterReactive = new ReactiveController(
+            this,
+            [Store.promotions.selectedOffers],
+            this.#onPromotionOffersFilterChange,
+        );
+        this.#syncOfferProductTagsToFragmentSearch();
     }
 
     disconnectedCallback() {
@@ -1043,7 +1072,7 @@ class MasPromotionsEditor extends LitElement {
         this.#itemsPickerConfirmed = true;
         this.isSelectedItemsOpen = true;
         this.#syncPromotionSelectionFieldsToFragment();
-        const pickerSelector = this.renderRoot.querySelector('.add-items-dialog mas-promotions-items-selector');
+        const pickerSelector = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
         if (pickerSelector?.selectedTab) {
             this.selectedItemsViewTab = pickerSelector.selectedTab;
         } else if (this.#promotionItemsPickerHoldEmptyState) {
@@ -1070,19 +1099,155 @@ class MasPromotionsEditor extends LitElement {
         this.promotionEmptyItemsTab = selected;
     };
 
-    #onPromotionItemsTabChange = (e) => {
+    #onPromotionItemsTabChange = (tab) => {
         this.promotionItemsAddButtonLabel =
-            e.detail?.tab === TABLE_TYPE.COLLECTIONS ? 'Add selected collections' : 'Add selected fragments';
+            tab === TABLE_TYPE.COLLECTIONS ? 'Add selected collections' : 'Add selected fragments';
     };
 
-    #onSelectedItemsViewTabChange = (e) => {
-        this.selectedItemsViewTab = e.detail?.tab ?? TABLE_TYPE.OFFERS;
+    #onSelectedItemsViewTabChange = (tab) => {
+        this.selectedItemsViewTab = tab ?? TABLE_TYPE.OFFERS;
+    };
+
+    get #activeOfferFilterIds() {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        const all = s?.selectedOffers.value ?? [];
+        return this.activeFilterOfferId ? [this.activeFilterOfferId] : all;
+    }
+
+    get #offerFilterOptions() {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        return (s?.selectedOffers.value ?? []).map((id) => ({
+            id,
+            label: Store.promotions.offerRecordsCache.get(id)?.getTagTitle?.('product_code') ?? id,
+        }));
+    }
+
+    get #offerProductTags() {
+        return collectPromotionOfferProductTags(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
+    }
+
+    #onPromotionOffersFilterChange = () => {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        if (this.activeFilterOfferId && !s?.selectedOffers.value.includes(this.activeFilterOfferId)) {
+            this.activeFilterOfferId = '';
+        }
+        this.#syncOfferProductTagsToFragmentSearch();
+    };
+
+    #handleOfferFilterChange = (e) => {
+        e.stopPropagation();
+        const val = e.detail.value;
+        this.activeFilterOfferId = val === OFFER_FILTER_ALL ? '' : (val ?? '');
+        this.#syncOfferProductTagsToFragmentSearch();
+    };
+
+    #syncOfferProductTagsToFragmentSearch = () => {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        if (!s) return [];
+        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
+        const picker = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
+        picker?.searchFilterElements.forEach((el) => {
+            if (el.type === TABLE_TYPE.CARDS) el.productFilter = tags;
+        });
+        if (Store.promotions.itemPickerSurface.get()) {
+            this.repository?.searchFragments?.();
+        }
+        return tags;
+    };
+
+    #surfacePickerLabel(surfaceKey) {
+        const entry = Object.values(SURFACES).find((s) => s.name === surfaceKey);
+        return entry?.label ?? surfaceKey;
+    }
+
+    #onPromotionItemSurfaceChange = (event) => {
+        const value = event.detail?.value ?? event.target?.value ?? event.target?.selectedItem?.value ?? '';
+        if (!value) return;
+        Store.promotions.itemPickerSurface.set(value);
+        Store.fragments.list.data.set([]);
+        Store.fragments.list.hasMore.set(false);
+        const s = Store.promotions;
+        s.allCards.set([]);
+        s.displayCards.set([]);
+        s.groupedVariationsByParent.set(new Map());
+        s.groupedVariationsData.set(new Map());
+        s.allCollections.set([]);
+        s.allCollections.setMeta('loaded', false);
+        s.displayCollections.set([]);
+        this.#syncOfferProductTagsToFragmentSearch();
+        this.repository?.loadAllCollections?.();
+        this.repository?.loadPlaceholders?.();
+    };
+
+    #clearPromotionSearchUuidMeta() {
+        Store.search.removeMeta('uuid-query');
+        Store.search.removeMeta('uuid-path');
+        Store.filters.removeMeta('uuid-query');
+        Store.filters.removeMeta('uuid-locale');
+    }
+
+    #syncPromotionSearchToRepository = (normalized) => {
+        if (isUUID(normalized)) {
+            Store.search.set((prev) => ({ ...prev, query: normalized }));
+            return;
+        }
+        if (!normalized) {
+            this.#clearPromotionSearchUuidMeta();
+            Store.search.set((prev) => ({ ...prev, query: '' }));
+        }
+    };
+
+    #validatePromotionImportFragment = (fragment) => {
+        const selectedOfferIds = Store.promotions.selectedOffers.value;
+        const allowedProductTags = collectPromotionOfferProductTags(Store.promotions.offerRecordsCache, selectedOfferIds);
+        if (!allowedProductTags.length) return 'Select at least one offer before importing.';
+        const fragmentProductTags = extractPromotionItemProductCodeTagIds(fragment.tags);
+        return fragmentProductTags.some((id) => allowedProductTags.includes(id))
+            ? true
+            : 'Fragment does not match any selected offer.';
+    };
+
+    #renderPromotionPickerSearchFilters = (tab, host) => {
+        const showSurfacePicker = this.promotionPickerSurfaces.length > 1;
+        const promotionSurfaceOptions = showSurfacePicker
+            ? this.promotionPickerSurfaces.map((key) => ({ id: key, title: this.#surfacePickerLabel(key) }))
+            : [];
+        const surfacePickerValue =
+            this.itemPickerSurface.value && this.promotionPickerSurfaces.includes(this.itemPickerSurface.value)
+                ? this.itemPickerSurface.value
+                : this.promotionPickerSurfaces[0];
+        return html`
+            <mas-search-and-filters
+                .type=${tab.value}
+                .searchQuery=${tab.value === host.selectedTab ? host.searchQuery : ''}
+                .searchOnly=${false}
+                .promotionSurfaceOptions=${promotionSurfaceOptions}
+                .promotionSurface=${surfacePickerValue ?? ''}
+                .externalProductFilter=${true}
+                .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#offerProductTags : []}
+                .offerFilterOptions=${tab.value === TABLE_TYPE.CARDS ? this.#offerFilterOptions : []}
+                .offerFilterValue=${this.activeFilterOfferId}
+                @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
+                @offer-filter-change=${this.#handleOfferFilterChange}
+            ></mas-search-and-filters>
+        `;
+    };
+
+    #renderPromotionViewTable = (tab, host) => {
+        return html`<mas-promotions-items-table
+            .type=${tab.value}
+            .getDisplayName=${host.getDisplayName}
+            .renderFragmentStatusCell=${host.renderFragmentStatusCell}
+            @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
+            @promotion-offer-removed=${() =>
+                host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
+        ></mas-promotions-items-table>`;
     };
 
     #onPromotionOfferRemoved = () => {
         this.selectedItemsViewTab = TABLE_TYPE.OFFERS;
         this.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
-        const selector = this.renderRoot.querySelector('mas-promotions-items-selector');
+        const selector = this.renderRoot.querySelector('mas-items-selector[view-only]');
         if (selector) selector.selectedTab = TABLE_TYPE.OFFERS;
     };
 
@@ -1132,7 +1297,7 @@ class MasPromotionsEditor extends LitElement {
         this.#cardsSnapshot = Store.promotions.selectedCards.value;
         this.#collectionsSnapshot = Store.promotions.selectedCollections.value;
 
-        const selector = this.renderRoot.querySelector('.add-items-dialog mas-promotions-items-selector');
+        const selector = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
         if (selector) {
             selector.searchQuery = '';
             selector.selectedTab = dialogTab;
@@ -1147,6 +1312,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
         selector?.resetFilters();
+        this.#syncOfferProductTagsToFragmentSearch();
         const cachedCollections = Store.promotions.allCollections.get();
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
             Store.promotions.displayCollections.set(cachedCollections);
@@ -1186,7 +1352,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #toggleSelectedItemsOpen = ({ target }) => {
-        if (target.closest('mas-promotions-items-selector')) return;
+        if (target.closest('mas-items-selector')) return;
         if (target.closest('sp-action-button, sp-button, overlay-trigger')) return;
         this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
     };
@@ -1385,11 +1551,25 @@ class MasPromotionsEditor extends LitElement {
                 @cancel=${this.#cancelItemSelection}
                 @close=${this.#restoreItemsSnapshot}
             >
-                <mas-promotions-items-selector
-                    .fragmentSurfaceOptions=${this.promotionPickerSurfaces}
+                <mas-items-selector
+                    variant="promotions"
+                    .allowedTypes=${PROMOTION_ITEM_PICKER_ALLOWED_TYPES}
+                    .hidePromoVariations=${true}
+                    .hideGroupedVariations=${true}
+                    .variationTabs=${PROMOTION_ITEM_VARIATION_TABS}
+                    .selectableTabs=${PROMOTION_ITEM_SELECTABLE_TABS}
+                    .restrictImportSurface=${this.promotionPickerSurfaces}
+                    .validateImportFragment=${this.#validatePromotionImportFragment}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
-                    @promotion-items-tab-change=${this.#onPromotionItemsTabChange}
-                ></mas-promotions-items-selector>
+                    .renderSearchFilters=${this.#renderPromotionPickerSearchFilters}
+                    .renderData=${{
+                        surfaces: this.promotionPickerSurfaces,
+                        offerFilterId: this.activeFilterOfferId,
+                    }}
+                    .normalizeSearchInput=${normalizePromotionSearchInput}
+                    .onSearchChange=${this.#syncPromotionSearchToRepository}
+                    .onTabChange=${this.#onPromotionItemsTabChange}
+                ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
@@ -1643,14 +1823,17 @@ class MasPromotionsEditor extends LitElement {
                                       </div>
                                   </div>
                                   ${this.isSelectedItemsOpen
-                                      ? html`<mas-promotions-items-selector
+                                      ? html`<mas-items-selector
+                                            variant="promotions"
                                             .viewOnly=${true}
+                                            .customTabs=${PROMOTION_VIEW_TABS}
                                             .selectedTab=${this.selectedItemsViewTab}
                                             .getDisplayName=${getPromotionPickerFragmentLabel}
                                             .renderFragmentStatusCell=${renderFragmentStatusCell}
-                                            @promotion-items-tab-change=${this.#onSelectedItemsViewTabChange}
+                                            .renderTable=${this.#renderPromotionViewTable}
+                                            .onTabChange=${this.#onSelectedItemsViewTabChange}
                                             @promotion-offer-removed=${this.#onPromotionOfferRemoved}
-                                        ></mas-promotions-items-selector>`
+                                        ></mas-items-selector>`
                                       : nothing}
                               </div>`}
                     <mas-promo-codes-manager

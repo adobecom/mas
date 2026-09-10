@@ -35,7 +35,9 @@ import {
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
+import { toPromotionCodes } from './utilities.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -106,6 +108,9 @@ function registerOptionsProviders(masCommerceService) {
     }
     if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
         masCommerceService.providers.checkout(checkoutOptionsProvider);
+    }
+    if (!masCommerceService.providers.has(planTypeTextOptionsProvider)) {
+        masCommerceService.providers.price(planTypeTextOptionsProvider);
     }
 }
 
@@ -989,6 +994,10 @@ export class MerchCard extends LitElement {
         return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
     }
 
+    get osi() {
+        return hostOsi(this);
+    }
+
     get promoPrice() {
         if (!this.querySelector(`span.price-strikethrough`)) return;
         let price = this.querySelector(`.price.price-alternative`);
@@ -1027,10 +1036,10 @@ export class MerchCard extends LitElement {
                 `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`,
             ),
         ]
-            .map((el) => el.dataset.promotionCode)
+            .map((el) => toPromotionCodes(el.dataset.promotionCode)[0])
             .filter(
                 (promotionCode) =>
-                    ![undefined, 'cancel-context'].includes(promotionCode),
+                    ![undefined, '', 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
             return this.contextPromotionCode;

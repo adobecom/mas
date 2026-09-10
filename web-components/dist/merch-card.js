@@ -10011,24 +10011,17 @@ merch-card[variant="mini"] span.renewal-text {
 
 merch-card-collection.uber-pricing {
     display: grid;
-    /* XS: 1 column. */
+    /* XS/SM: 1 column. */
     grid-template-columns: 1fr;
     max-width: 1920px;
     margin-inline: auto;
     gap: 8px;
 }
 
-/* SM: 2 columns. */
-@media screen and (min-width: 480px) {
-    merch-card-collection.uber-pricing {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-/* MD: 3 columns. */
+/* MD: 2 columns. */
 @media screen and (min-width: 768px) {
     merch-card-collection.uber-pricing {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 

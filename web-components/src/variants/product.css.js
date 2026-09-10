@@ -41,8 +41,9 @@ merch-card[variant="product"][id] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
-    content: " ";
+merch-card[variant="product"][id] .price.price-legal .price-unit-type:not(.disabled)::before,
+merch-card[variant="product"][id] .price.price-legal .disabled + span:not(.disabled)::before {
+    content: initial;
 }
 
 merch-card[variant="product"] [slot="footer"] a.con-button.primary {

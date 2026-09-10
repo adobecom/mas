@@ -7,6 +7,8 @@ const {
     getValidatedMasLibsUrl,
     isAllowedMasIOUrl,
     toRelativeAssetUrl,
+    setForegroundTimeout,
+    clearForegroundTimeout,
 } = await import('../src/utils.js');
 
 describe('function "paramsToHash"', () => {
@@ -265,5 +267,63 @@ describe('function "toRelativeAssetUrl"', () => {
         expect(toRelativeAssetUrl(undefined, 'www.adobe.com')).to.equal(
             undefined,
         );
+    });
+});
+
+describe('function "setForegroundTimeout"', () => {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    let visibility;
+    const setVisibility = (state) => {
+        visibility = state;
+        document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    beforeEach(() => {
+        visibility = 'visible';
+        Object.defineProperty(document, 'visibilityState', {
+            configurable: true,
+            get: () => visibility,
+        });
+    });
+
+    afterEach(() => {
+        delete document.visibilityState;
+    });
+
+    it('fires after the budget while the page stays visible', async () => {
+        let fired = false;
+        setForegroundTimeout(() => {
+            fired = true;
+        }, 30);
+        await sleep(70);
+        expect(fired).to.be.true;
+    });
+
+    it('clearForegroundTimeout cancels a pending timer', async () => {
+        let fired = false;
+        const id = setForegroundTimeout(() => {
+            fired = true;
+        }, 30);
+        clearForegroundTimeout(id);
+        await sleep(70);
+        expect(fired).to.be.false;
+    });
+
+    it('clearForegroundTimeout is a no-op for an unknown id', () => {
+        expect(() => clearForegroundTimeout(999999)).to.not.throw();
+    });
+
+    it('pauses the budget while hidden and resumes on show', async () => {
+        let fired = false;
+        setForegroundTimeout(() => {
+            fired = true;
+        }, 60);
+        await sleep(20);
+        setVisibility('hidden');
+        await sleep(150);
+        expect(fired, 'must not fire while hidden').to.be.false;
+        setVisibility('visible');
+        await sleep(120);
+        expect(fired, 'fires after the page is shown again').to.be.true;
     });
 });

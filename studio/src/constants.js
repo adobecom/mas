@@ -69,7 +69,8 @@ export const EVENT_KEYUP = 'keyup';
 
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
-export const EVENT_OST_SELECT = 'ost-select';
+// Avoids event name collision with ost-app.js ('ost-select').
+export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
 export const OPERATIONS = {

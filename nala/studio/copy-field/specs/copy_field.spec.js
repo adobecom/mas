@@ -12,7 +12,9 @@ export default {
             browserParams: '#locale=fr_FR&page=fragment-editor&path=acom&fragmentId=',
             data: {
                 cardid: '7f72b2a4-2ebc-48e6-bcec-4239b5aa35b2',
-                priceField: 'Prices',
+                // Copy Field popover labels now match merch-card-editor.js's field
+                // labels (MWPW-205541), so this is "Product price" not "Prices".
+                priceField: 'Product price',
             },
             tags: '@mas-studio @copy-field',
         },

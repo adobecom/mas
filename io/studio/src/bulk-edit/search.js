@@ -116,9 +116,15 @@ function buildSearchPaths(surface, locale) {
 
 const DEFAULT_SORT = [{ on: 'created', order: 'ASC' }];
 
+const FULLTEXT_SAFE = /^[\p{L}\p{N}\s\-_.,']+$/u;
+
+function shouldUseFullText(find) {
+    return typeof find === 'string' && find.length > 0 && FULLTEXT_SAFE.test(find);
+}
+
 function buildSearchQuery({ path, tags = [], status, find }) {
     const filter = { path, modelIds: BULK_EDIT_MODEL_IDS };
-    if (find) filter.fullText = { text: find, queryMode: 'EDGES' };
+    if (shouldUseFullText(find)) filter.fullText = { text: find, queryMode: 'EDGES' };
     if (tags.length) filter.tags = tags;
     if (status?.length) filter.status = Array.isArray(status) ? status : [status];
     return { sort: DEFAULT_SORT, filter };
@@ -154,6 +160,7 @@ module.exports = {
     findMatchesInScope,
     findMatches,
     buildSearchPaths,
+    shouldUseFullText,
     buildSearchQuery,
     searchPages,
 };

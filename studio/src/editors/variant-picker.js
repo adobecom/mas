@@ -10,6 +10,7 @@ export const VARIANT_NAMES = {
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
+    BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -26,6 +27,9 @@ export const VARIANT_NAMES = {
     HEADLESS: 'headless',
     MEDIA: 'media',
     COMPARE_CHART_COLUMN: 'compare-chart-column',
+    MARQUEE: 'marquee',
+    FAQ: 'faq',
+    BANNER_BLADE: 'banner-blade',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -57,6 +61,11 @@ export const VARIANTS = [
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Brand Concierge Product',
+        value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
+        surfaces: [SURFACES.SANDBOX],
     },
     {
         label: 'Segment',
@@ -125,6 +134,21 @@ export const VARIANTS = [
         label: 'Compare Chart Column',
         value: VARIANT_NAMES.COMPARE_CHART_COLUMN,
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
+    },
+    {
+        label: 'Marquee',
+        value: VARIANT_NAMES.MARQUEE,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'FAQ',
+        value: VARIANT_NAMES.FAQ,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Banner/Blade',
+        value: VARIANT_NAMES.BANNER_BLADE,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
     },
 ];
 

@@ -13,6 +13,7 @@ import {
     resolveContentTypeFilters,
     createKeyedAsyncLoader,
     getCreateProjectErrorMessage,
+    describeVariationsToDelete,
 } from '../src/utils.js';
 import {
     CARD_MODEL_PATH,
@@ -699,5 +700,64 @@ describe('getCreateProjectErrorMessage', () => {
 
     it('returns the generic message when error is undefined', () => {
         expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
+    });
+});
+
+describe('describeVariationsToDelete', () => {
+    const fragment = { path: '/content/dam/mas/sandbox/en_US/my-fragment' };
+    const localePath1 = '/content/dam/mas/sandbox/en_BE/my-fragment';
+    const localePath2 = '/content/dam/mas/sandbox/en_CA/my-fragment';
+    const groupedPath1 = '/content/dam/mas/sandbox/en_US/pzn/my-fragment-a';
+    const groupedPath2 = '/content/dam/mas/sandbox/en_US/pzn/my-fragment-b';
+    const groupedPath3 = '/content/dam/mas/sandbox/en_US/pzn/my-fragment-c';
+    const promoPath1 = '/content/dam/mas/sandbox/en_US/promotions/summer-sale/my-fragment';
+    const promoPath2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-fragment';
+
+    it('lists only locale variations when that is the only category present', () => {
+        expect(describeVariationsToDelete(fragment, [localePath1, localePath2])).to.equal('2 locale variation(s)');
+    });
+
+    it('lists only promo variations when that is the only category present', () => {
+        expect(describeVariationsToDelete(fragment, [promoPath1])).to.equal('1 promo variation(s)');
+    });
+
+    it('combines locale and promo counts, separated by a comma', () => {
+        expect(describeVariationsToDelete(fragment, [localePath1, localePath2, promoPath1])).to.equal(
+            '2 locale, 1 promo variation(s)',
+        );
+    });
+
+    it('combines all three categories when present', () => {
+        expect(
+            describeVariationsToDelete(fragment, [
+                localePath1,
+                groupedPath1,
+                groupedPath2,
+                groupedPath3,
+                promoPath1,
+                promoPath2,
+            ]),
+        ).to.equal('1 locale, 3 grouped, 2 promo variation(s)');
+    });
+
+    it('omits zero-count categories', () => {
+        expect(describeVariationsToDelete(fragment, [groupedPath1, groupedPath2, groupedPath3])).to.equal(
+            '3 grouped variation(s)',
+        );
+    });
+
+    it('defaults variationsToDelete to an empty list when omitted', () => {
+        expect(describeVariationsToDelete(fragment)).to.equal(' variation(s)');
+    });
+
+    it('handles a fragment without a path', () => {
+        expect(describeVariationsToDelete(null, [promoPath1])).to.equal('1 promo variation(s)');
+    });
+
+    it('counts a path missing from fragment.references, unlike listLocaleVariations()', () => {
+        const fragmentWithNoReferences = { ...fragment, references: [] };
+        expect(describeVariationsToDelete(fragmentWithNoReferences, [localePath1, groupedPath1])).to.equal(
+            '1 locale, 1 grouped variation(s)',
+        );
     });
 });

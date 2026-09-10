@@ -34,7 +34,12 @@ import {
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
-import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
+import {
+    getService,
+    printMeasure,
+    setForegroundTimeout,
+    shouldHideStPriceLabels,
+} from './utils.js';
 import { toPromotionCodes } from './utilities.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
@@ -784,7 +789,10 @@ export class MerchCard extends LitElement {
             this.variantLayoutPromise = undefined;
         }
         const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve('timeout'), MERCH_CARD_LOAD_TIMEOUT),
+            setForegroundTimeout(
+                () => resolve('timeout'),
+                MERCH_CARD_LOAD_TIMEOUT,
+            ),
         );
         if (this.aemFragment) {
             const result = await Promise.race([

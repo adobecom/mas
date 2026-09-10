@@ -13,7 +13,12 @@ import {
     EVENT_AEM_LOAD,
     SORT_ORDER,
 } from './constants.js';
-import { getService, getSlotText, debounce } from './utils.js';
+import {
+    getService,
+    getSlotText,
+    debounce,
+    setForegroundTimeout,
+} from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
@@ -155,7 +160,7 @@ export class MerchCardCollection extends LitElement {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return Promise.resolve(true);
         const timeoutPromise = new Promise((resolve) =>
-            setTimeout(
+            setForegroundTimeout(
                 () => resolve(false),
                 MERCH_CARD_COLLECTION_LOAD_TIMEOUT,
             ),

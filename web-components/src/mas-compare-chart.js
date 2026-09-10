@@ -10,6 +10,7 @@ import {
 } from './constants.js';
 import { parseCompareChartTables } from './compare-chart-table-parser.js';
 import { styles } from './mas-compare-chart.css.js';
+import { setForegroundTimeout } from './utils.js';
 
 const MAS_COMPARE_CHART = 'mas-compare-chart';
 const MAS_COMPARE_CHART_LOAD_TIMEOUT = 30000;
@@ -168,7 +169,10 @@ export class MasCompareChart extends LitElement {
         if (!aemFragment) return Promise.resolve(true);
         this.#ensureHydrationReady();
         const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve(false), MAS_COMPARE_CHART_LOAD_TIMEOUT),
+            setForegroundTimeout(
+                () => resolve(false),
+                MAS_COMPARE_CHART_LOAD_TIMEOUT,
+            ),
         );
         return Promise.race([this.#hydrationReady, timeoutPromise]);
     }

@@ -333,6 +333,48 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(JSON.parse(finalSnapshots[1]).fragmentId).to.equal('frag-card'); // cascaded appended
     });
 
+    it('replaces non-null recordSnapshot versionId with createSnapshot versionId in fallback branch', async () => {
+        // Regression: when a grouped variation is added to the parent, updateParentVariations saves
+        // the parent without creating a new explicit version. recordSnapshot finds an older version
+        // (before the variation was added). Reverting to that older version drops the variation from
+        // the parent's `variations` field, causing AEM to delete the orphaned variation.
+        // Fix: fresh path always uses the Pre-bulk-publish versionId from createSnapshot.
+        const parentEntry = JSON.stringify({
+            fragmentId: 'frag-parent',
+            versionId: 'v-old',
+            wasPublished: false,
+            createdAt: '2026-01-01T00:00:00Z',
+        });
+        deps.getProjectSnapshots.returns([]);
+        deps.recordSnapshot.resolves({ entries: [parentEntry], failures: [] });
+        deps.createSnapshot.resolves({
+            entries: [
+                JSON.stringify({
+                    fragmentId: 'frag-parent',
+                    versionId: 'v-pre-bulk',
+                    wasPublished: false,
+                    createdAt: '2026-01-01T00:00:00Z',
+                }),
+            ],
+            expandedPaths: ['/content/dam/parent'],
+            failures: [],
+        });
+        deps.publishResolved.resolves([]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' },
+            deps,
+        );
+
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(finalSnapshots).to.have.length(1);
+        // v-pre-bulk (from createSnapshot) must win over v-old (from recordSnapshot)
+        // so that revert restores the parent to a state that still includes the variation reference
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-pre-bulk');
+        expect(JSON.parse(finalSnapshots[0]).wasPublished).to.equal(false);
+    });
+
     it('publishes expanded paths from pre-recorded branch when includeCards is true', async () => {
         const collPath = '/content/dam/mas/acom/en_US/coll';
         const cardPath = '/content/dam/mas/acom/en_US/card-1';
@@ -447,7 +489,10 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.recordSnapshot).to.have.been.calledOnce;
         expect(deps.createSnapshot).to.have.been.calledOnce;
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
-        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green');
+        // Fresh path always uses the createSnapshot (Pre-bulk-publish) versionId so that
+        // reverting restores the parent to the state that includes any variations added since
+        // the last explicit version (groupedVariation fix).
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-red');
     });
 
     it('publishes card paths recovered from pending snapshot entries on resume with includeCards', async () => {

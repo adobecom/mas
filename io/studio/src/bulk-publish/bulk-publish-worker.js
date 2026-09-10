@@ -36,10 +36,17 @@ function hasValidPreRecordedSnapshot(entries) {
 
 // Merge primary (pre-recorded/green) entries with cascaded entries from createSnapshot.
 // Primary entries take precedence; secondary entries whose fragmentId is not already covered are appended.
-// Exception: if a primary entry has versionId: null and wasPublished: false (new unpublished fragment),
-// fill in the versionId from the secondary entry so revert can restore instead of only unpublishing.
-// Fragments with wasPublished: true are left as-is so the skip path in revertSnapshot is preserved.
-function mergeCascadedEntries(primaryEntries, secondaryEntries) {
+//
+// useSecondaryVersionId=false (pre-recorded path): primary versionId wins for all entries.
+//   Exception: if primary has versionId:null and wasPublished:false, fill from secondary so
+//   revert can restore instead of only unpublishing.
+//
+// useSecondaryVersionId=true (fresh/fallback path): always use the secondary (createSnapshot)
+//   Pre-bulk-publish versionId for every entry that has a secondary match. This ensures the
+//   parent fragment is reverted to the state that includes any variations added since the last
+//   explicit version — restoring the parent to an older version would drop the variation
+//   reference from its `variations` field and cause AEM to delete the orphaned variation.
+function mergeCascadedEntries(primaryEntries, secondaryEntries, { useSecondaryVersionId = false } = {}) {
     if (!secondaryEntries.length) return primaryEntries;
     if (!primaryEntries.length) return secondaryEntries;
     const secondaryById = new Map(secondaryEntries.map((e) => { const p = JSON.parse(e); return [p.fragmentId, p]; }));
@@ -47,8 +54,9 @@ function mergeCascadedEntries(primaryEntries, secondaryEntries) {
     const merged = primaryEntries.map((e) => {
         const parsed = JSON.parse(e);
         primaryIds.add(parsed.fragmentId);
-        if (!parsed.versionId && !parsed.wasPublished && secondaryById.has(parsed.fragmentId)) {
-            return JSON.stringify({ ...parsed, versionId: secondaryById.get(parsed.fragmentId).versionId });
+        const secondary = secondaryById.get(parsed.fragmentId);
+        if (secondary && (useSecondaryVersionId || (!parsed.versionId && !parsed.wasPublished))) {
+            return JSON.stringify({ ...parsed, versionId: secondary.versionId });
         }
         return e;
     });
@@ -157,9 +165,11 @@ async function runWorker(input, deps = {}) {
             includeVariations,
         });
         expandedPaths = snapExpanded;
-        // Same merge: top-level entries come from recordSnapshot (green/null versionIds),
-        // cascaded entries come from createSnapshot (Pre-bulk-publish versionIds).
-        snapshotEntries = mergeCascadedEntries(fresh, snapEntries);
+        // Fresh path: use the Pre-bulk-publish versionId (from createSnapshot) for every entry so
+        // the parent is reverted to the state that includes any variations added since the last
+        // explicit version. wasPublished and other fields are preserved from recordSnapshot.
+        // Cascaded entries (only in snapEntries) are appended as before.
+        snapshotEntries = mergeCascadedEntries(fresh, snapEntries, { useSecondaryVersionId: true });
         snapshotError = [
             formatSnapshotError('SAVE_SNAPSHOT', recordFailures),
             formatSnapshotError('CREATE_SNAPSHOT', snapFailures),

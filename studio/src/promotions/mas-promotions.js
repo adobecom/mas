@@ -130,11 +130,6 @@ class MasPromotions extends LitElement {
         return Store.promotions.list.loading.get() ?? false;
     }
 
-    get loadingIndicator() {
-        if (!this.loading) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-    }
-
     set loading(value = true) {
         Store.promotions.list.loading.set(value);
     }
@@ -178,7 +173,9 @@ class MasPromotions extends LitElement {
 
     renderPromotionsContent() {
         if (this.loading) {
-            return html`<div class="loading-container--flex">${this.loadingIndicator}</div>`;
+            return html`<div class="loading-container--flex">
+                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+            </div>`;
         }
 
         return this.renderPromotionsTable();
@@ -204,7 +201,7 @@ class MasPromotions extends LitElement {
             },
             { key: 'actions', label: 'Actions', align: 'center' },
         ];
-        if (!this.loading && (!filteredPromotions || filteredPromotions.length === 0)) {
+        if (!filteredPromotions || filteredPromotions.length === 0) {
             return html`
                 <div class="no-promotions-message">
                     <p>No promotions found.</p>

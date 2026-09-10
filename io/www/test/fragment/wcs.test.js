@@ -1048,6 +1048,14 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.osi).to.deep.equal(['OSI-A', 'SUB-B']);
     });
 
+    it('updateOffers sets replacedOsi only for substituted elements of an array fields.osi', function () {
+        const { context } = run(
+            { f: { promoMap: {}, substituteMap: { 'OSI-B': 'SUB-B' } } },
+            { id: 'f', fields: { osi: ['OSI-A', 'OSI-B'] } },
+        );
+        expect(context.body.fields.replacedOsi).to.equal('OSI-B');
+    });
+
     it('updateOffers leaves out-of-scope fragments and id-less/null references untouched', function () {
         const { context, elements } = run(
             { 'in-scope': { promoMap: {}, substituteMap: { A: 'SUB-A' } } },

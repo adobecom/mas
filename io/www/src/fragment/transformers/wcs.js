@@ -306,8 +306,14 @@ function updateOffers(context, offerMap = {}) {
                     });
                 }
             }
-            if (originalOwnOsi != null && fields.osi !== originalOwnOsi) {
-                replacedSet.add(originalOwnOsi);
+            if (originalOwnOsi != null) {
+                if (Array.isArray(originalOwnOsi)) {
+                    originalOwnOsi.forEach((osi, i) => {
+                        if (osi !== fields.osi[i]) replacedSet.add(osi);
+                    });
+                } else if (fields.osi !== originalOwnOsi) {
+                    replacedSet.add(originalOwnOsi);
+                }
             }
             if (replacedSet.size > 0) {
                 fields.replacedOsi = [...replacedSet].join(',');

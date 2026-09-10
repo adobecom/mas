@@ -329,7 +329,7 @@ describe('bulk-publish-worker — runWorker', () => {
 
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
         expect(finalSnapshots).to.have.length(2);
-        expect(JSON.parse(finalSnapshots[0]).versionId).to.be.null; // record entry wins (null = new card)
+        expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-pre-bulk'); // secondary versionId fills null
         expect(JSON.parse(finalSnapshots[1]).fragmentId).to.equal('frag-card'); // cascaded appended
     });
 

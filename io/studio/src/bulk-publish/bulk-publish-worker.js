@@ -36,12 +36,24 @@ function hasValidPreRecordedSnapshot(entries) {
 
 // Merge primary (pre-recorded/green) entries with cascaded entries from createSnapshot.
 // Primary entries take precedence; secondary entries whose fragmentId is not already covered are appended.
+// Exception: if a primary entry has versionId: null and wasPublished: false (new unpublished fragment),
+// fill in the versionId from the secondary entry so revert can restore instead of only unpublishing.
+// Fragments with wasPublished: true are left as-is so the skip path in revertSnapshot is preserved.
 function mergeCascadedEntries(primaryEntries, secondaryEntries) {
     if (!secondaryEntries.length) return primaryEntries;
     if (!primaryEntries.length) return secondaryEntries;
-    const primaryIds = new Set(primaryEntries.map((e) => JSON.parse(e).fragmentId));
+    const secondaryById = new Map(secondaryEntries.map((e) => { const p = JSON.parse(e); return [p.fragmentId, p]; }));
+    const primaryIds = new Set();
+    const merged = primaryEntries.map((e) => {
+        const parsed = JSON.parse(e);
+        primaryIds.add(parsed.fragmentId);
+        if (!parsed.versionId && !parsed.wasPublished && secondaryById.has(parsed.fragmentId)) {
+            return JSON.stringify({ ...parsed, versionId: secondaryById.get(parsed.fragmentId).versionId });
+        }
+        return e;
+    });
     const cascaded = secondaryEntries.filter((e) => !primaryIds.has(JSON.parse(e).fragmentId));
-    return [...primaryEntries, ...cascaded];
+    return [...merged, ...cascaded];
 }
 
 function formatSnapshotError(prefix, failures) {

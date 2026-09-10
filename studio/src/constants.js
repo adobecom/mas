@@ -352,6 +352,6 @@ export const STAGED = {
     DIALOG_CONFIRM_TEXT:
         'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
     DIALOG_CONFIRM_MULTIPLE_TEXT:
-        'Some of the selected fragments is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+        'Some of the selected fragments are currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
     DIALOG_TITLE: 'Staged content warning',
 };

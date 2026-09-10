@@ -60,6 +60,22 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     style: 'consonant',
 };
 
+export function keepInHeadingPriceForAnnual(
+    service,
+    headingPrice,
+    legalPrice,
+    optionParam,
+) {
+    if (
+        service?.featureFlags[FF_ANNUAL_PRICE] &&
+        headingPrice.options[optionParam]
+    ) {
+        legalPrice.dataset[optionParam] = 'false';
+    } else if (headingPrice.options[optionParam]) {
+        headingPrice.dataset[optionParam] = 'false';
+    }
+}
+
 export class MiniCompareChart extends VariantLayout {
     constructor(card) {
         super(card);
@@ -605,22 +621,18 @@ export class MiniCompareChart extends VariantLayout {
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
-            if (
-                service.featureFlags[FF_ANNUAL_PRICE] &&
-                headingPrice.options.displayTax
-            ) {
-                legal.dataset.displayTax = 'false';
-            } else if (headingPrice.options.displayTax) {
-                headingPrice.dataset.displayTax = 'false';
-            }
-            if (
-                service.featureFlags[FF_ANNUAL_PRICE] &&
-                headingPrice.options.displayPerUnit
-            ) {
-                legal.dataset.displayPerUnit = 'false';
-            } else if (headingPrice.options.displayPerUnit) {
-                headingPrice.dataset.displayPerUnit = 'false';
-            }
+            keepInHeadingPriceForAnnual(
+                service,
+                headingPrice,
+                legal,
+                'displayTax',
+            );
+            keepInHeadingPriceForAnnual(
+                service,
+                headingPrice,
+                legal,
+                'displayPerUnit',
+            );
 
             legal.setAttribute('data-template', 'legal');
 

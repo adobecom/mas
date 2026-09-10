@@ -2,6 +2,7 @@ import { html, css, unsafeCSS, nothing } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
+import { keepInHeadingPriceForAnnual } from './mini-compare-chart.js';
 import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
 import { getService } from '../utilities.js';
 import {
@@ -323,22 +324,18 @@ export class MiniCompareChartMweb extends VariantLayout {
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
-            if (
-                service.featureFlags[FF_ANNUAL_PRICE] &&
-                headingPrice.options.displayTax
-            ) {
-                legal.dataset.displayTax = 'false';
-            } else if (headingPrice.options.displayTax) {
-                headingPrice.dataset.displayTax = 'false';
-            }
-            if (
-                service.featureFlags[FF_ANNUAL_PRICE] &&
-                headingPrice.options.displayPerUnit
-            ) {
-                legal.dataset.displayPerUnit = 'false';
-            } else if (headingPrice.options.displayPerUnit) {
-                headingPrice.dataset.displayPerUnit = 'false';
-            }
+            keepInHeadingPriceForAnnual(
+                service,
+                headingPrice,
+                legal,
+                'displayTax',
+            );
+            keepInHeadingPriceForAnnual(
+                service,
+                headingPrice,
+                legal,
+                'displayPerUnit',
+            );
 
             legal.setAttribute('data-template', 'legal');
             headingPrice.parentNode.insertBefore(

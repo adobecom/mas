@@ -9,6 +9,51 @@ import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
 import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
 
+/**
+ * True when title's normalizeKey slug collides with an existing one — same check AEM does on `name`, caught upfront instead of via a 409.
+ * @param {string} title
+ * @param {string[]} [existingTitles]
+ * @returns {boolean}
+ */
+export function isPromotionTitleTaken(title, existingTitles = []) {
+    const normalized = normalizeKey(title?.trim());
+    if (!normalized) return false;
+    return existingTitles.some((existing) => normalizeKey(existing?.trim()) === normalized);
+}
+
+/**
+ * Builds a create-fragment payload duplicating a promotion's settings under a new title and
+ * promotion tag. Leaves `fragments` untouched (shared references); promo variations are cloned
+ * separately by `duplicatePromotionProject`.
+ * @param {{ fields: Array<{ name: string, type?: string, multiple?: boolean, values?: unknown[] }> }} sourceFragment
+ * @param {string} title
+ * @returns {{ name: string, title: string, fields: Array<{ name: string, type: string, multiple: boolean, values: unknown[] }> }}
+ */
+export function buildPromotionDuplicatePayload(sourceFragment, title) {
+    const slug = normalizeKey(title?.trim());
+    const newPromotionTagId = slug ? `${TAG_PROMOTION_PREFIX}${slug}` : null;
+    return {
+        name: slug,
+        title,
+        fields: sourceFragment.fields
+            .filter((field) => field.name !== 'collections')
+            .map((field) => ({
+                name: field.name,
+                type: PROMOTION_FIELD_TYPE_MAP[field.name]?.type ?? field.type,
+                multiple: PROMOTION_FIELD_TYPE_MAP[field.name]?.multiple ?? field.multiple ?? false,
+                values:
+                    field.name === 'title'
+                        ? [title]
+                        : field.name === 'tags'
+                          ? [
+                                ...splitPromotionTagsFieldValues(field.values).retained,
+                                ...(newPromotionTagId ? [newPromotionTagId] : []),
+                            ]
+                          : field.values,
+            })),
+    };
+}
+
 export const PROMOTION_FIELD_TYPE_MAP = {
     title: { type: 'text' },
     promoCode: { type: 'text' },

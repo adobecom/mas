@@ -86,4 +86,86 @@ describe('MasPromotionDuplicateDialog', () => {
         const ev = await oneEvent(el, 'duplicate-cancelled');
         expect(ev).to.exist;
     });
+
+    it('defaults duplicateVariations to false when opened', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'X'} .open=${true}></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        expect(el.duplicateVariations).to.be.false;
+    });
+
+    it('resets duplicateVariations to false each time the dialog reopens', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'X'} .open=${false}></mas-promotion-duplicate-dialog>
+        `);
+        el.duplicateVariations = true;
+        el.open = false;
+        await el.updateComplete;
+        el.open = true;
+        await el.updateComplete;
+        expect(el.duplicateVariations).to.be.false;
+    });
+
+    it('includes duplicateVariations in duplicate-confirmed detail', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'Original'} .open=${true}></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        el.duplicateVariations = true;
+        setTimeout(() => el.confirm());
+        const ev = await oneEvent(el, 'duplicate-confirmed');
+        expect(ev.detail.duplicateVariations).to.be.true;
+    });
+
+    it('handleDuplicateVariationsChange updates duplicateVariations from the checkbox', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'X'} .open=${true}></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        el.handleDuplicateVariationsChange({ target: { checked: true } });
+        expect(el.duplicateVariations).to.be.true;
+    });
+
+    it('marks the textfield invalid when newTitle matches an existing title (case-insensitive)', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog
+                .proposedTitle=${'Black Friday copy'}
+                .existingTitles=${['Black Friday Copy']}
+                .open=${true}
+            ></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('invalid')).to.be.true;
+    });
+
+    it('does not mark the textfield invalid for a unique title', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog
+                .proposedTitle=${'Unique Title'}
+                .existingTitles=${['Black Friday']}
+                .open=${true}
+            ></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('invalid')).to.be.false;
+    });
+
+    it('does not dispatch duplicate-confirmed when the title matches an existing title', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog
+                .proposedTitle=${'Black Friday'}
+                .existingTitles=${['Black Friday']}
+                .open=${true}
+            ></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        let dispatched = false;
+        el.addEventListener('duplicate-confirmed', () => {
+            dispatched = true;
+        });
+        el.confirm();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(dispatched).to.be.false;
+    });
 });

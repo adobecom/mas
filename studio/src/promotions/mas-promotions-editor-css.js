@@ -353,7 +353,7 @@ export const styles = [
 
         .confirm-dialog-overlay {
             sp-dialog-wrapper {
-                z-index: 11;
+                z-index: 1000;
             }
         }
 

@@ -643,15 +643,14 @@ export class MasCollapsibleTableRow extends LitElement {
     #getPromoProjectUrl(variation) {
         const promotionTagId = getPromotionTagFromFragment(variation);
         if (!promotionTagId) return null;
-        let projects =
+        const projects =
             Store.promotions.list.data
                 .get()
                 ?.map((store) => store.get())
                 .filter(Boolean) || [];
-        if (!projects.length && Store.promotions.inEdit.get()) {
-            projects = [Store.promotions.inEdit.get()?.value];
-        }
-        const id = findPromotionProjectIdByTag(promotionTagId, projects);
+        const inEditProject = Store.promotions.inEdit.get()?.value;
+        const allProjects = inEditProject ? [...projects, inEditProject] : projects;
+        const id = findPromotionProjectIdByTag(promotionTagId, allProjects);
         if (!id) return null;
         return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
     }

@@ -80,7 +80,11 @@ import {
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
-import { getAllAttachedPromoVariations } from './promotions-repository.js';
+import {
+    duplicatePromotionProject,
+    getAllAttachedPromoVariations,
+    getPromotionProjectsForProbe,
+} from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -163,6 +167,7 @@ class MasPromotionsEditor extends LitElement {
     #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
+    #duplicateExistingTitles = [];
     #boundHandleOstOfferSelect = null;
     #promoCodesManagerLoading = false;
 
@@ -897,15 +902,19 @@ class MasPromotionsEditor extends LitElement {
             return;
         }
         this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
+        const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+        this.#duplicateExistingTitles = projects.map((project) => project.getFieldValue('title')).filter(Boolean);
         this.duplicateDialogOpen = true;
     }
 
-    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+    #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
         this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
-            const newPromotion = await this.repository.createFragment(this.#buildPromotionFragmentPayload(title), false);
-            if (!newPromotion) return;
+            const newPromotion = await duplicatePromotionProject(this.repository, this.fragment, {
+                title,
+                duplicateVariations,
+            });
             clearCaches();
             showToast('Project successfully duplicated.', 'positive');
             Store.promotions.inEdit.set(new FragmentStore(new Promotion(newPromotion)));
@@ -1615,6 +1624,7 @@ class MasPromotionsEditor extends LitElement {
             <mas-promotion-duplicate-dialog
                 .open=${this.duplicateDialogOpen}
                 .proposedTitle=${this.#duplicateProposedTitle}
+                .existingTitles=${this.#duplicateExistingTitles}
                 @duplicate-confirmed=${this.#onDuplicateConfirmed}
                 @duplicate-cancelled=${() => {
                     this.duplicateDialogOpen = false;
@@ -1851,7 +1861,7 @@ class MasPromotionsEditor extends LitElement {
                     ></mas-promo-codes-manager>
                 </div>
             </div>
-            ${this.fragment
+            ${this.fragment && !this.duplicateDialogOpen && !this.confirmDialogConfig
                 ? html`<mas-quick-actions
                       drag-handle-style="bar"
                       .actions=${PROMOTION_QUICK_ACTIONS}

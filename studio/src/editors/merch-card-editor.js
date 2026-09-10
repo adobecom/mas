@@ -97,6 +97,9 @@ const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
     VARIANT_NAMES.BANNER_BLADE,
 ]);
 
+/** Headless and headless-family templates use the 3-option CTA variant picker (Primary button / Secondary button / Link). */
+const HEADLESS_STYLE_CTA_VARIANTS = new Set([VARIANT_NAMES.HEADLESS, VARIANT_NAMES.MARQUEE, VARIANT_NAMES.BANNER_BLADE]);
+
 class MerchCardEditor extends LitElement {
     static properties = {
         currentVariantMapping: { type: Object, attribute: false },
@@ -1903,7 +1906,10 @@ class MerchCardEditor extends LitElement {
                         .value=${form.ctas.values[0] || ''}
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
-                        default-link-style="primary-outline"
+                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(this.fragment.variant)}
+                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(this.fragment.variant)
+                            ? 'primary'
+                            : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}

@@ -282,8 +282,12 @@ const createPriceTemplate =
         } else {
             displayPrice = price;
         }
-        // Which priceInfo string to pick mirrors the number chosen above.
-        const showWithoutDiscount = displayPrice === priceWithoutDiscount;
+        // Which leaf to index must mirror the number formatted below. Optical
+        // always divides `price`, never `displayPrice`, so it is always the
+        // discounted leaf even when a strikethrough context set displayPrice to
+        // priceWithoutDiscount.
+        const showWithoutDiscount =
+            !displayOptical && displayPrice === priceWithoutDiscount;
 
         let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
         if (displayAnnual) {

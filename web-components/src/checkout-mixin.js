@@ -85,6 +85,7 @@ export function CheckoutMixin(Base) {
         connectedCallback() {
             this.masElement.connectedCallback();
             this.addEventListener('click', this.clickHandler);
+            this.addEventListener('auxclick', this.handleAupModifiedClick);
             if (!checkoutElements.size) {
                 checkoutAupSelect = getService()?.settings?.aupSelect;
                 checkoutSettingsObserver.observe(document.head, {
@@ -109,6 +110,7 @@ export function CheckoutMixin(Base) {
         disconnectedCallback() {
             this.masElement.disconnectedCallback();
             this.removeEventListener('click', this.clickHandler);
+            this.removeEventListener('auxclick', this.handleAupModifiedClick);
             checkoutElements.delete(this);
             if (!checkoutElements.size) {
                 checkoutSettingsObserver.disconnect();
@@ -308,9 +310,26 @@ export function CheckoutMixin(Base) {
                 this.isCheckoutLink ? 'href' : 'data-href',
                 useAup ? '#' : this.checkoutUrl,
             );
+            return useAup;
+        }
+
+        handleAupModifiedClick(e) {
+            if (
+                (e.metaKey ||
+                    e.ctrlKey ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.button !== 0) &&
+                this.updateCheckoutUrl()
+            ) {
+                e.preventDefault();
+                return true;
+            }
+            return false;
         }
 
         handleAupCheckout(e) {
+            if (this.handleAupModifiedClick(e)) return true;
             this.updateCheckoutUrl(false);
             // Native checkout needs its destination until the click's default action runs.
             setTimeout(() => this.updateCheckoutUrl(), 0);

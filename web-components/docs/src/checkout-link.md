@@ -43,6 +43,8 @@ Only exact `on` enables routing; the default is disabled. The `aup-select` query
 
 AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Metadata and service attribute changes update rendered destinations; clicks also read the current query configuration. Disabling AUP restores the original destination. Perpetual offers, downloads, and links targeting another window retain their existing URLs.
 
+Command/Ctrl-click, other modified clicks, and middle-click do nothing on AUP-eligible CTAs. They neither launch AUP nor invoke the host's legacy checkout handler.
+
 CTAs launch the `try` intent for a main `TRIAL` offer and `buy` otherwise through `launchWorkflowInModal`, using the SDK's default rendering mode. M@S does not initialize or reconfigure the SDK. The configured checkout client ID is forwarded to orchestration without a client-side allowlist. AUP determines workflow availability; M@S does not exclude promotions, upgrades, multiple offers, addons, quantities, or change-plan steps.
 
 Perpetual offers retain existing checkout: M@S skips AUP when the CTA has `perpetual` enabled or any resolved offer has `commitment: "PERPETUAL"`. AUP Select support is unverified, and the [UCv3 perpetual-offer documentation](https://wiki.corp.adobe.com/spaces/businessservices/pages/2755546592/Perpetual+offers+in+UCv3) records a March 2023 decision not to implement support for existing perpetual products. This exclusion also applies to carts containing both subscription and perpetual offers.

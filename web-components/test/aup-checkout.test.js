@@ -787,13 +787,62 @@ describe('aup-select checkout routing', () => {
         { altKey: true },
         { button: 1 },
     ]) {
-        it(`preserves modified clicks ${JSON.stringify(init)}`, async () => {
+        for (const Class of [CheckoutLink, CheckoutButton]) {
+            it(`ignores modified AUP clicks on ${Class.is}: ${JSON.stringify(init)}`, async () => {
+                const element = await create(Class);
+                const event = click(element, init);
+                expect(event.defaultPrevented).to.be.true;
+                expect(sdk.getOrchestratorContext.called).to.be.false;
+                expect(legacy.called).to.be.false;
+                expect(
+                    element.getAttribute(
+                        Class === CheckoutLink ? 'href' : 'data-href',
+                    ),
+                ).to.equal('#');
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+            });
+        }
+        it(`preserves modified clicks with AUP disabled: ${JSON.stringify(init)}`, async () => {
+            meta.content = 'off';
             const element = await create();
-            click(element, init);
+            const event = click(element, init);
+            expect(legacy.calledOnceWithExactly(event)).to.be.true;
             expect(sdk.getOrchestratorContext.called).to.be.false;
-            expect(legacy.calledOnce).to.be.true;
         });
     }
+
+    it('prevents native middle-click navigation for AUP links', async () => {
+        const element = await create();
+        const event = new MouseEvent('auxclick', {
+            button: 1,
+            bubbles: true,
+            cancelable: true,
+        });
+        element.dispatchEvent(event);
+        expect(event.defaultPrevented).to.be.true;
+        expect(legacy.called).to.be.false;
+        expect(sdk.getOrchestratorContext.called).to.be.false;
+    });
+
+    it('ignores Command-click even before the host SDK is ready', async () => {
+        const element = await create();
+        delete window.aupsdk;
+        const event = click(element, { metaKey: true });
+        expect(event.defaultPrevented).to.be.true;
+        expect(legacy.called).to.be.false;
+    });
+
+    it('preserves Command-click for perpetual checkout', async () => {
+        const element = await create(CheckoutLink, {
+            wcsOsi: 'perpetual',
+            perpetual: true,
+        });
+        const event = click(element, { metaKey: true });
+        expect(legacy.calledOnceWithExactly(event)).to.be.true;
+        expect(sdk.getOrchestratorContext.called).to.be.false;
+    });
 
     it('preserves links with a target or download attribute', async () => {
         const element = await create();

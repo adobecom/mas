@@ -5,8 +5,11 @@
 # its contract against its vendored floor snapshot (.pinata/floor/gates.yaml)
 # in CI.
 #
-# This file is org POLICY and part of the TCB (see .pinata/gates.yaml
-# tcb-guard): the platform team changes it; the self-improvement loop may not.
+# This is a CI snapshot, not an independent protection boundary: changing this
+# file and gates.yaml together can pass the local comparison. At runtime the
+# engine enforces its separately packaged org floor. This repo does not declare
+# a tcb-guard; protecting all .pinata/ edits in pinata-code requires a separate
+# engine change. See ../README.md, "Ownership and configuration protection".
 regeneration:
     # Maximum total producer candidates; tenants inherit or tighten downward.
     max_candidates: 5

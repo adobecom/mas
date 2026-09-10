@@ -94,9 +94,14 @@ local:
         own_hosts: ['--mas--', 'mas.adobe.com']
         params: 'maslibs=local&martech=off'
 
-# Hosts that carry mas pages when a requester pastes a URL: studio deep links
-# and da-cc consumer pages in practice. Live URLs capture on the .page host.
+# This list qualifies pasted/generated URLs and selects authentication settings.
+# Declared surface URLs below are selected directly, not filtered by this list.
+# Public consumer hosts stay on the same host used by their declared surface;
+# only the explicit capture_on entries switch live URLs to a .page host.
 capture_hosts:
+    - '--cc--adobecom.aem.live'
+    - '--da-express-milo--adobecom.aem.live'
+    - '--milo--adobecom.aem.page'
     - '--mas--adobecom.aem.page'
     # Studio deep links are pasted on the production domain. Without this entry
     # the URL is dropped and the gate has nothing to capture. The page is served
@@ -370,10 +375,12 @@ surfaces:
       description: >-
           Production Creative Cloud plans page (en-US baseline), plans cards
           with badges, quantity select and legal labels, hydrated through the
-          mas.adobe.com fragment delivery pipeline. Pick for io/www transformer
-          changes or plans work that needs real production context; the
+          mas.adobe.com fragment delivery pipeline. Pick for plans component
+          changes that need real production context; the
           localized siblings below cover locale-specific rendering.
-      match: 'io/www/src/*'
+      # This only previews changed web components, not a candidate IO service.
+      # IO changes are blocked for manual verification in gates.yaml.
+      match: 'web-components/src/variants/plans*'
 
     - id: cc-plans-fr
       url: https://main--cc--adobecom.aem.live/fr/creativecloud/plans?martech=off
@@ -420,7 +427,8 @@ surfaces:
           BizPro plan cards with VAT legal pricing on the DC ace1205 campaign
           fragment page. Pick for bizpro variant or business-pricing legal
           label changes.
-      match: 'web-components/src/variants/bizpro*'
+      # pro.* includes pro.js/pro.css.js, but not the separate product variant.
+      match: 'web-components/src/variants/pro.*'
 
     - id: express-pricing
       url: https://main--da-express-milo--adobecom.aem.live/jp/express/pricing?martech=off

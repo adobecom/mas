@@ -17,6 +17,19 @@ generated:
 provision: npm ci
 
 gates:
+    io-preview-support:
+        template: protected_paths
+        name: IO changes need manual verification (no candidate IO preview)
+        description: >-
+            IO changes need a separately deployed candidate service before
+            screenshots can verify them. Stop for manual review, even when
+            the same change also touches Studio or web components.
+        paths:
+            - 'io/www'
+            - 'io/studio'
+        blocking: true
+        failure_route: escalate_to_human
+
     lockfiles:
         template: protected_paths
         name: Dependency lockfiles

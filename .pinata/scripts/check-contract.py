@@ -50,6 +50,22 @@ for field in ("org", "product", "repo"):
     if not manifest.get(field):
         errors.append(f"manifest.yaml: missing required field '{field}'")
 
+# An omitted source is explicitly unconfigured, not a claim of ownership.
+# Validate declared references without inventing or assigning repository owners.
+if "owners_from" not in manifest:
+    print("NOTE: repository ownership is not configured (owners_from omitted)")
+else:
+    owner_source = manifest["owners_from"]
+    repo_root = FIESTA.parent.resolve()
+    if not isinstance(owner_source, str) or not owner_source.strip():
+        errors.append("manifest.yaml: owners_from must name a repository-relative ownership file")
+    elif Path(owner_source).is_absolute() or ".." in Path(owner_source).parts:
+        errors.append("manifest.yaml: owners_from must stay inside the repository")
+    else:
+        owner_path = (repo_root / owner_source).resolve()
+        if not owner_path.is_relative_to(repo_root) or not owner_path.is_file():
+            errors.append(f"manifest.yaml: owners_from does not reference a file inside the repository: {owner_source}")
+
 gates = _load("gates.yaml")
 if gates is not None:
     for gate_id, defn in (gates.get("gates") or {}).items():

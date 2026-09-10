@@ -6,7 +6,8 @@
 org: acom
 product: mas
 repo: adobecom/mas
-owners_from: CODEOWNERS
+# Ownership is not configured: this repo has no agreed CODEOWNERS file.
+# Add owners_from only once the team has agreed on an existing ownership file.
 
 # Which shared mental models the planner should consult for M@S work.
 # Selection is tenant-owned; the model content is resolved from the shared

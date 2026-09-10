@@ -76,3 +76,6 @@ mcp-server.log
 
 # raw copy of fragments before update
 scripts/content/fragments
+
+# Python cache from the Piñata configuration tests
+.pinata/scripts/__pycache__/

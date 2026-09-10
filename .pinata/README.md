@@ -17,6 +17,7 @@ ecosystem package.
 | `scripts/check-contract.py`          | Configuration and model-reference checks.                                                              |
 | `scripts/check-dist-sync.sh`         | Rebuild and detect stale web-component bundles/docs.                                                   |
 | `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                         |
+| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                       |
 
 The migration uses the tested configuration from mas-pinata commit
 `4da6ea3f141e174aead3f158ec9bf3365d53b088`, retargeted to `adobecom/mas`.
@@ -32,6 +33,7 @@ No secrets, generated run history, or shared package copies belong here.
 ## Verification
 
 After `npm ci`, command gates use the repository's installed tools.
+This installs the root workspaces, not the separate `io/www` project.
 The existing `studio` stage proxy and web-component build scripts are reused.
 `preview.yaml` declares `@adobe/aem-cli@16.20.5` as a preview tool. The engine
 installs it on demand in this run's scratch directory **outside the checkout**,
@@ -52,6 +54,7 @@ engine change is deployed and a MAS preview has been verified.
 ```sh
 python3 -m pip install PyYAML==6.0.2
 python3 .pinata/scripts/check-contract.py --skip-registry
+python3 -m unittest discover -s .pinata/scripts -p 'test_contract.py' -v
 bash .pinata/scripts/test-preview-supervisor.sh
 bash .pinata/scripts/check-dist-sync.sh
 ```
@@ -70,6 +73,48 @@ The imported gate policy preserves the fork's explicit disabled unit-test
 gate; it does **not** claim unit tests passed. MAS's existing unit-test CI
 remains unchanged and must still pass before merge. Re-enabling that gate is
 a separate policy decision once its order-dependent failures are addressed.
+
+### IO changes require manual verification
+
+The first gate, `io-preview-support`, stops changes under `io/www/` or
+`io/studio/` for human review. It also applies when a change includes Studio
+or web-component files: a working UI preview does not verify changed IO code.
+Pasting a preview URL does not remove this gate. A human approval to continue
+is an explicit exception, not proof that IO was tested automatically.
+
+Current previews load deployed IO services. `maslibs` points at changed web
+components only; `aem.env=stage` selects a deployed Studio service, not the
+candidate's IO code. Before removing this gate, provide a separate `io/www`
+dependency install and tests, deploy candidate IO to an isolated workspace,
+and route previews to it using `mas-io-url` or `io.studio.env` as appropriate.
+No IO deployment or additional dependency installation is added by this PR.
+
+### Ownership and configuration protection
+
+Repository ownership is not configured. There is no agreed CODEOWNERS file,
+so `manifest.yaml` omits `owners_from`; no reviewers or owners are assigned by
+this configuration. The engine schema's default filename is not an ownership
+assignment. Once the team agrees on owners, add the ownership file and an
+explicit reference. The configuration check rejects declared references to
+missing files or files outside the repository.
+
+The vendored `floor/gates.yaml` is a CI comparison snapshot. It is not a
+security boundary: editing it together with `gates.yaml` can pass that local
+comparison. The engine separately enforces its packaged organization minimums
+at runtime. That does not protect every `.pinata/` file from edits. This repo
+does not declare a `tcb-guard`, and mandatory protection of `.pinata/**` in the
+pinata-code workflow remains a separate engine task. Do not treat a green
+configuration check as proof that these files cannot be changed by automation.
+
+### Declared previews and pasted links
+
+The surface catalog selects known pages from the files being changed.
+`capture_hosts` filters pasted/generated URLs and supplies authentication
+settings; it does not filter URLs already declared in that catalog. The public
+CC, Express, and Milo hosts used by the catalog are also listed so those same
+links can be pasted into a request. They retain their declared public host;
+only entries with `capture_on` switch hosts. Authentication credentials remain
+restricted to the existing authentication profiles.
 
 ## Activation outside this PR
 

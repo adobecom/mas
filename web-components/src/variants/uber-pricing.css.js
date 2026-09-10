@@ -5,11 +5,18 @@ export const CSS = `
 
 merch-card-collection.uber-pricing {
     display: grid;
-    /* XS/SM: 1 column. */
+    /* XS: 1 column. */
     grid-template-columns: 1fr;
     max-width: 1920px;
     margin-inline: auto;
     gap: 8px;
+}
+
+/* SM: 1 column. */
+@media screen and (min-width: 480px) {
+    merch-card-collection.uber-pricing {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
 }
 
 /* MD: 2 columns. */

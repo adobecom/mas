@@ -1851,6 +1851,124 @@ describe('priceInfo (WCS pre-split tree)', () => {
             expect(partsOf(info)).to.not.equal('0');
         });
 
+        // JP PUF + STG_MASTESTPROMO (Drew's stage promo code, works on any offer
+        // and country). 50% off, tax-inclusive, so the strikethrough needs
+        // withoutDiscount.withTax and optical must stay on the discounted leaf.
+        describe('discounted offer (stage promo)', () => {
+            const promoOffer = {
+                offerSelectorIds: ['pi-drew'],
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                planType: 'PUF',
+                priceDetails: {
+                    price: 17340,
+                    priceWithoutDiscount: 34680,
+                    priceWithoutDiscountAndTax: 31528,
+                    usePrecision: false,
+                    formatString: "#,##0 '&#20870;'",
+                    taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                    taxTerm: 'TAX',
+                },
+                promotion: {
+                    id: '065a0819-0e29-4a14-a638-ac031808fa1d',
+                    promotionCode: 'STG_MASTESTPROMO',
+                    start: '2026-09-10T16:03:05.000Z',
+                    end: '2099-09-10T15:56:00.000Z',
+                    displaySummary: {
+                        outcomeType: 'PERCENTAGE_DISCOUNT',
+                        duration: 'P1Y',
+                        amount: 50,
+                        minProductQuantity: 1,
+                    },
+                },
+            };
+            const leaf = (integer) => ({
+                integer,
+                full: `${integer} &#20870;`,
+            });
+            const promoInfo = {
+                format: {
+                    currencySymbol: '&#20870;',
+                    usePrecision: false,
+                    isCurrencyFirst: false,
+                    hasCurrencySpace: false,
+                },
+                tax: { display: 'TAX_INCLUSIVE_DETAILS', term: 'TAX' },
+                recurrence: { term: 'ANNUAL' },
+                asIs: {
+                    withDiscount: {
+                        withTax: leaf('17,340'),
+                        withoutTax: leaf('0'),
+                    },
+                    withoutDiscount: {
+                        withTax: leaf('34,680'),
+                        withoutTax: leaf('31,528'),
+                    },
+                },
+                optical: {
+                    withDiscount: {
+                        withTax: leaf('1,445'),
+                        withoutTax: leaf('0'),
+                    },
+                    withoutDiscount: {
+                        withTax: leaf('2,890'),
+                        withoutTax: leaf('2,628'),
+                    },
+                },
+            };
+            const jpOpts = { ...opts, country: 'JP', language: 'ja' };
+
+            [
+                // No promotionCode in scope: promo not applied, regular price shows.
+                {
+                    name: 'price, promo not applied',
+                    extra: {},
+                    shows: '34,680',
+                },
+                {
+                    name: 'strikethrough',
+                    extra: { template: 'strikethrough' },
+                    shows: '34,680',
+                },
+                // Optical always divides `price`, so it stays on the discounted
+                // leaf even when the context wants the pre-discount number.
+                {
+                    name: 'optical per-month',
+                    extra: { template: 'optical' },
+                    shows: '1,445',
+                },
+                // Promo applied renders both prices (struck regular + discounted),
+                // so assert on the whole markup rather than the first span.
+                {
+                    name: 'promo applied',
+                    extra: { promotionCode: 'STG_MASTESTPROMO' },
+                    shows: '17,340',
+                    whole: true,
+                },
+            ].forEach((c) => {
+                it(`${c.name}: tree === numeric`, () => {
+                    const o = { ...jpOpts, ...c.extra };
+                    const numeric = buildPriceHTML([promoOffer], o);
+                    const info = buildPriceHTML(
+                        [withInfo(promoOffer, promoInfo)],
+                        o,
+                    );
+                    expect(info).to.equal(numeric);
+                    expect(c.whole ? info : partsOf(info)).to.contain(c.shows);
+                });
+            });
+
+            it('never renders the 0 without-tax leaf', () => {
+                ['price', 'strikethrough', 'optical'].forEach((template) => {
+                    const info = buildPriceHTML(
+                        [withInfo(promoOffer, promoInfo)],
+                        { ...jpOpts, template },
+                    );
+                    expect(partsOf(info), template).to.not.equal('0');
+                });
+            });
+        });
+
         it('ignores priceInfo when displayFormatted is false', () => {
             const offer = offerFor('US');
             const dfOpts = { ...opts, displayFormatted: false };

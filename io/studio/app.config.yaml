@@ -29,6 +29,16 @@ application:
                         runtime: nodejs:22
                         annotations:
                             require-adobe-auth: false
+                    fragment-usage:
+                        function: src/fragment-usage/usage.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            GRAFANA_SERVICE_TOKEN: $GRAFANA_SERVICE_TOKEN
+                            GRAFANA_SERVICE_URL: $GRAFANA_SERVICE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     updateMembers:
                         function: src/members/update.js
                         web: 'yes'

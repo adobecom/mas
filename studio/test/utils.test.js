@@ -1,5 +1,6 @@
 import { expect } from '@open-wc/testing';
 import {
+    buildBulkPublishProjectDeepLink,
     buildCardsDeepLink,
     generateLinkToUse,
     generateFieldLink,
@@ -272,6 +273,20 @@ describe('buildCardsDeepLink', () => {
         const linkable = [{ model: { path: CARD_MODEL_PATH } }, { model: { path: COLLECTION_MODEL_PATH } }];
         const lines = linkable.map((f) => buildCardsDeepLink(f, 'sandbox', 'content')).filter(Boolean);
         expect(lines).to.deep.equal([]);
+    });
+});
+
+describe('buildBulkPublishProjectDeepLink', () => {
+    it('builds a bulk-publish editor URL by project id', () => {
+        const href = buildBulkPublishProjectDeepLink('proj-123');
+        expect(href).to.include('page=bulkPublishEditor');
+        expect(href).to.include('bulkPublishProjectId=proj-123');
+        expect(href).to.not.include('content-type=');
+    });
+
+    it('returns null when id is missing', () => {
+        expect(buildBulkPublishProjectDeepLink()).to.be.null;
+        expect(buildBulkPublishProjectDeepLink('')).to.be.null;
     });
 });
 

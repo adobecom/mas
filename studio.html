@@ -65,7 +65,11 @@
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
             const ioStudioEnvParam = params.get('io.studio.env') || envOverride;
             const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
-            const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+            // Local-only: point the IO base at an arbitrary personal namespace (e.g. a dev deploy
+            // that landed in 14257-merchatscale-axel rather than masstudio-axel). Never honored off
+            // localhost, so it can't redirect prod Studio to an untrusted runtime host.
+            const ioNamespace = (isLocal && params.get('io.ns')) || `masstudio${ioStudioEnv}`;
+            const ioBaseUrl = `https://14257-${ioNamespace}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
             document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>

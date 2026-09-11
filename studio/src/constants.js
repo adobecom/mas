@@ -157,6 +157,12 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
+// Plain model paths for the project types. The *_MODEL_ID constants above are the base64 of these
+// same paths (the form the fragment-model API uses), but the referencedBy endpoint returns
+// model.path as the plain path — so reference classification matches on these, like cards/collections.
+export const PROMOTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/promotion';
+export const BULK_PUBLISH_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/bulk-publish-project';
+export const TRANSLATION_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/translation-project';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
 export const COMPARE_CHART_FIELD = 'compareChart';
 

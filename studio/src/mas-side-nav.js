@@ -521,6 +521,17 @@ class MasSideNav extends LitElement {
         }));
     }
 
+    /** previewValue() concatenates text nodes with no separator, which runs multiple CTAs
+     *  together (e.g. "Buy nowFree trial"); join each CTA's own text/href with a separator instead. */
+    #previewCtas(values) {
+        const raw = values?.[0];
+        if (!raw) return '';
+        return parseCtas(raw)
+            .map((cta) => cta.text || cta.href)
+            .filter(Boolean)
+            .join(', ');
+    }
+
     /** Resolves a field's display name, preferring the current variant's editorLabel override. */
     #getFieldDisplayName(fieldName, fragment) {
         const variantEditorLabel = getFragmentMapping(fragment?.getFieldValue?.('variant'))?.[fieldName]?.editorLabel;
@@ -550,7 +561,7 @@ class MasSideNav extends LitElement {
         const sourceHasInlinePrices = field.values?.some((v) => typeof v === 'string' && v.includes('inline-price'));
         const resolveSource = displayHasInlinePrices || !sourceHasInlinePrices ? displayValues : field.values;
         const resolvedValues = this.#resolveInlinePricesInValues(resolveSource, resolvedInlinePrices);
-        const preview = previewValue(resolvedValues);
+        const preview = field.name === 'ctas' ? this.#previewCtas(resolvedValues) : previewValue(resolvedValues);
 
         return {
             name: field.name,
@@ -614,7 +625,9 @@ class MasSideNav extends LitElement {
                 </overlay-trigger>
             `;
         }
-        const fields = this.copyableFields.filter((field) => field.name !== 'ctas');
+        const allFields = this.copyableFields;
+        const fields = allFields.filter((field) => field.name !== 'ctas');
+        const ctasFieldRow = allFields.find((field) => field.name === 'ctas');
         const currentCtas = this.copyableCtas;
         const hasCtaItems = currentCtas.length;
         const currentCustomFields = this.copyableCustomFields;
@@ -659,11 +672,19 @@ class MasSideNav extends LitElement {
                                         <sp-menu-item disabled class="copy-section-item">
                                             <span class="copy-section-label">CTAs</span>
                                         </sp-menu-item>
+                                        ${ctasFieldRow ? renderRow({ ...ctasFieldRow, displayName: 'All CTAs' }) : nothing}
+                                        ${ctasFieldRow ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
                                         ${currentCtas.map(
                                             (cta, i) => html`
                                                 ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
                                                 <sp-menu-item
-                                                    @click=${() => this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
+                                                    @click=${() =>
+                                                        this.copyCtaItem(
+                                                            cta.text,
+                                                            cta.index,
+                                                            cta.sourceFragment,
+                                                            cta.formattedText,
+                                                        )}
                                                 >
                                                     <div class="field-entry field-entry-filled">
                                                         <span class="field-label"
@@ -785,8 +806,10 @@ class MasSideNav extends LitElement {
         return cta.getAttribute('data-key') || index;
     }
 
-    /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format). */
-    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
+    /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format).
+     *  `formattedText` (from parseCtas) carries the CTA's variant-derived bold/italic markup
+     *  and is used only for the richText/clipboard label, never the plain-text one. */
+    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment, formattedText) {
         const fragment = sourceFragment;
         if (!fragment) return;
         const ctaId = this.#getCtaKey(fragment, index);
@@ -795,7 +818,8 @@ class MasSideNav extends LitElement {
         const ctaInfo = this.getCtaInfo(ctaId);
         const dashCtaInfo = ctaInfo ? ` - ${ctaInfo}` : '';
         const fieldText = `ctas[${text}${dashCtaInfo}]`;
-        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText);
+        const fieldMarkup = formattedText && formattedText !== text ? `ctas[${formattedText}${dashCtaInfo}]` : undefined;
+        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText, fieldMarkup);
         if (!link) return;
         try {
             await navigator.clipboard.write([

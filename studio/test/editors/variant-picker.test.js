@@ -192,11 +192,12 @@ describe('VariantPicker', () => {
             expect(names).to.include('marquee');
             expect(names).to.include('faq');
             expect(names).to.include('banner-blade');
+            expect(names).to.include('headless');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');
             expect(names).to.not.include('special-offers');
-            expect(names.length).to.equal(12);
+            expect(names.length).to.equal(13);
         });
 
         it('should return all variants for sandbox surface', () => {

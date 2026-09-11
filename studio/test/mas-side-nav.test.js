@@ -1045,6 +1045,21 @@ describe('MasSideNav – Copy Field', () => {
             expect(ctaLabels[1].textContent).to.equal('CTA - 2');
         });
 
+        it('should call copyCtaItem with the CTA details when a current CTA menu item is clicked', () => {
+            const fragment = mockFragment([{ name: 'ctas', values: ['<a href="/buy">Buy now</a>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const copyCtaItemStub = sandbox.stub(el, 'copyCtaItem');
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const ctaMenuItem = [...container.querySelectorAll('.field-label')]
+                .find((label) => label.textContent.startsWith('CTA '))
+                .closest('sp-menu-item');
+            ctaMenuItem.click();
+
+            expect(copyCtaItemStub.calledOnceWith('Buy now', 1, fragment, 'Buy now')).to.be.true;
+        });
+
         it('should not render CTAs section when no ctas in fragment', () => {
             const fragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));

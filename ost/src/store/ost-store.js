@@ -202,6 +202,19 @@ export class OstStore extends EventTarget {
         return 'configure';
     }
 
+    // The offers every list surface renders. A deep-linked open (RTE double-click
+    // on an existing CTA) targets one specific offer, but loadOffers deliberately
+    // searches with the segment filters left at "All", so `offers` holds every
+    // sibling of the same product. Once the deep link has resolved its offer,
+    // narrow the list to it so the author sees only what they opened — Back or a
+    // manual pick clears initialOsi/initialOfferId and restores the full list.
+    get visibleOffers() {
+        if (!this.initialOsi && !this.initialOfferId) return this.offers;
+        if (!this.selectedOffer) return this.offers;
+        const match = this.offers.filter((o) => o.offer_id === this.selectedOffer.offer_id);
+        return match.length > 0 ? match : this.offers;
+    }
+
     // Tab 1 → Tab 2 is gated: single/consult need a product, tryBuy/bundle can
     // advance immediately (the user picks offers on Tab 2).
     get canAdvance() {
@@ -211,7 +224,17 @@ export class OstStore extends EventTarget {
 
     goToOffer() {
         if (!this.canAdvance) return;
-        this.wizardStep = 'offer';
+        this.#batch(() => {
+            this.wizardStep = 'offer';
+            // goToEntitlements cleared the selection on the way out, and coming
+            // back re-selects the same product — so the offers cache key is
+            // unchanged and loadOffers (the only caller of
+            // autoSelectByInitialOsi) never re-runs. Re-apply the still-active
+            // deep link against the offers already in memory so the narrowing
+            // survives a tab round-trip. A user who cleared the deep link
+            // (clearInitialOsi) has no initialOsi left, so nothing is restored.
+            if (!this.selectedOffer) this.autoSelectByInitialOsi(this.offers);
+        });
     }
 
     goToEntitlements() {

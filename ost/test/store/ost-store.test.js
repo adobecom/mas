@@ -431,6 +431,87 @@ describe('OstStore', () => {
         });
     });
 
+    describe('visibleOffers deep-link narrowing', () => {
+        const offers = [
+            { offer_id: 'T1', offer_type: 'TRIAL', commitment: 'YEAR', term: 'MONTHLY', customer_segment: 'INDIVIDUAL' },
+            { offer_id: 'B1', offer_type: 'BASE', commitment: 'YEAR', term: 'MONTHLY', customer_segment: 'INDIVIDUAL' },
+            { offer_id: 'B2', offer_type: 'BASE', commitment: 'MONTH', term: 'MONTHLY', customer_segment: 'TEAM' },
+        ];
+
+        it('narrows to only the deep-linked offer once it is selected', () => {
+            store.setOffers(offers);
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = {
+                offer_type: 'BASE',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customer_segment: 'INDIVIDUAL',
+            };
+            store.autoSelectByInitialOsi(offers);
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['B1']);
+        });
+
+        it('lists every offer when the OST was not deep-link opened', () => {
+            store.setOffers(offers);
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['T1', 'B1', 'B2']);
+        });
+
+        it('restores the full list after the user clicks Back to change the offer', () => {
+            store.setOffers(offers);
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = { offer_type: 'BASE', commitment: 'YEAR', term: 'MONTHLY' };
+            store.autoSelectByInitialOsi(offers);
+            store.goToEntitlements();
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['T1', 'B1', 'B2']);
+        });
+
+        it('restores the full list when the user manually picks a different offer', () => {
+            store.setOffers(offers);
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = { offer_type: 'BASE', commitment: 'YEAR', term: 'MONTHLY' };
+            store.autoSelectByInitialOsi(offers);
+            store.clearInitialOsi();
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['T1', 'B1', 'B2']);
+        });
+
+        it('keeps the deep-linked offer narrowed across a tab round-trip', () => {
+            store.setOffers(offers);
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = {
+                offer_type: 'BASE',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customer_segment: 'INDIVIDUAL',
+            };
+            store.autoSelectByInitialOsi(offers);
+            store.goToEntitlements();
+            store.goToOffer();
+            expect(store.selectedOffer?.offer_id).to.equal('B1');
+            expect(store.selectedOsi).to.equal('deep-osi');
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['B1']);
+        });
+
+        it('does not restore a deep-link selection the user deliberately cleared', () => {
+            store.setOffers(offers);
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = { offer_type: 'BASE', commitment: 'YEAR', term: 'MONTHLY' };
+            store.autoSelectByInitialOsi(offers);
+            store.clearInitialOsi();
+            store.goToEntitlements();
+            store.goToOffer();
+            expect(store.selectedOffer).to.equal(undefined);
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['T1', 'B1', 'B2']);
+        });
+
+        it('lists every offer when a deep link is pending but no offer matched yet', () => {
+            store.setOffers(offers);
+            store.initialOsi = 'deep-osi';
+            expect(store.visibleOffers.map((o) => o.offer_id)).to.deep.equal(['T1', 'B1', 'B2']);
+        });
+    });
+
     describe('tryBuy trial auto-fill', () => {
         let originalFetch;
         beforeEach(() => {

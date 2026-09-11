@@ -125,7 +125,7 @@ export class OstOfferTab extends LitElement {
     }
 
     get offerList() {
-        const offers = store.offers;
+        const offers = store.visibleOffers;
         if (offers.length === 0) {
             return html`<div class="empty-state">No offers found. Adjust your filters on the previous step.</div>`;
         }

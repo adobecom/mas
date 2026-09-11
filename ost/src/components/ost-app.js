@@ -3,6 +3,7 @@ import './ost-entitlements-tab.js';
 import './ost-offer-tab.js';
 import { store } from '../store/ost-store.js';
 import { getOfferSelector } from '../utils/aos-client.js';
+import { isOfferId } from '../utils/offer-utils.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
 const OST_DOCS_URL = 'https://mas.adobe.com/docs/ost/new-ost';
@@ -255,6 +256,9 @@ export class OstApp extends LitElement {
 
     async resolveDeepLinkOffer(id) {
         store.initialOsi = id;
+        // Show the deep-linked id in Tab 1's search field. Without this the
+        // author lands on an empty box with no sign of what was opened.
+        store.setSearch(id, isOfferId(id) ? 'offer' : 'osi');
         try {
             const config = {
                 accessToken: store.accessToken,

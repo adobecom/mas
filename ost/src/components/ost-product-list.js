@@ -218,8 +218,11 @@ export class OstProductList extends LitElement {
         const code = product.arrangement_code || product.code || '';
         // A manual product pick supersedes any deep-linked OSI — otherwise the
         // stale deep link re-resolves on the offer step and flips the product
-        // back to the originally opened one.
+        // back to the originally opened one. Also clear the search text the deep
+        // link seeded, so the field and its badge don't keep showing an OSI that
+        // no longer applies (the render reads searchQuery/searchType back).
         store.clearInitialOsi();
+        store.setSearch('', '');
         store.setProduct(product);
         store.setAosParams({ arrangementCode: code });
     }

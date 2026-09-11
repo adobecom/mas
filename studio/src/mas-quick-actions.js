@@ -24,8 +24,8 @@ const ACTION_CONFIG = {
         title: 'Cancel',
     },
     [QUICK_ACTION.COPY]: {
-        icon: 'sp-icon-code',
-        title: 'Copy code',
+        icon: 'sp-icon-link',
+        title: 'Copy Link',
     },
     [QUICK_ACTION.LOCK]: {
         icon: 'sp-icon-lock-closed',
@@ -253,8 +253,8 @@ class MasQuickActions extends LitElement {
                 return html`<sp-icon-publish slot="icon"></sp-icon-publish>`;
             case 'sp-icon-publish-remove':
                 return html`<sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>`;
-            case 'sp-icon-code':
-                return html`<sp-icon-code slot="icon"></sp-icon-code>`;
+            case 'sp-icon-link':
+                return html`<sp-icon-link slot="icon"></sp-icon-link>`;
             case 'sp-icon-lock-closed':
                 return html`<sp-icon-lock-closed slot="icon"></sp-icon-lock-closed>`;
             case 'sp-icon-undo':

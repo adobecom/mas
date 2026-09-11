@@ -123,6 +123,38 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
     });
 
+    // @studio-ost-mode-bundle-use - Soft Bundle "Use" inserts a joined-OSI price without crashing
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
+        const pageErrors = [];
+        page.on('pageerror', (err) => pageErrors.push(err.message));
+
+        const ost = await openEditorAndOST(page, baseURL, features[4]);
+
+        await test.step('step-1: Soft Bundle mode advances to offers', async () => {
+            await selectAuthoringMode(ost, ost.authoringModeBundle);
+            await advanceToOffer(ost);
+        });
+
+        await test.step('step-2: Select two offers to form a bundle', async () => {
+            await ost.offerCard.nth(0).click();
+            await ost.offerCard.nth(1).click();
+            await expect(await ost.footerUseButton).toBeEnabled();
+        });
+
+        await test.step('step-3: Use inserts a comma-joined-OSI price into the field', async () => {
+            await ost.footerUseButton.click();
+            await expect(await ost.popup).not.toBeVisible();
+            const bundlePrice = editor.prices.locator('span[is="inline-price"]').first();
+            await expect(bundlePrice).toBeVisible();
+            await expect(bundlePrice).toHaveAttribute('data-wcs-osi', /,/);
+        });
+
+        await test.step('step-4: No uncaught page error was thrown during Use', async () => {
+            const marketSegmentCrash = pageErrors.find((m) => /reading '0'|market_segments/.test(m));
+            expect(marketSegmentCrash, `Unexpected page error: ${marketSegmentCrash}`).toBeUndefined();
+        });
+    });
+
     // @studio-ost-mode-no-consult - Consult must not be offered in the authoring-mode picker
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const ost = await openEditorAndOST(page, baseURL, features[3]);

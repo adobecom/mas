@@ -34,5 +34,12 @@ export default {
             data: { product: 'Photoshop' },
             tags: '@mas-studio @ost @ost-e2e @ost-authoring-modes',
         },
+        {
+            tcid: '4',
+            name: '@studio-ost-mode-bundle-use',
+            path: '/studio.html',
+            data: { product: 'Photoshop' },
+            tags: '@mas-studio @ost @ost-e2e @ost-authoring-modes',
+        },
     ],
 };

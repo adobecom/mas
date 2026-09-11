@@ -94,6 +94,19 @@ export function buildPromoVariationPath(defaultPath, promoName, suffixIndex) {
 }
 
 /**
+ * Builds the root folder path for all promotions, independent of specific projects.
+ * @param {string} defaultPath
+ * @returns {string|null}
+ */
+export function buildPromotionsRootPath(defaultPath) {
+    if (!defaultPath) return null;
+    const match = PATH_TOKENS.exec(defaultPath);
+    if (!match?.groups) return null;
+    const { surface, parsedLocale } = match.groups;
+    return `${ROOT_PATH}/${surface}/${parsedLocale}/${PROMOTIONS_PATH_PREFIX.replace(/\/$/, '')}`;
+}
+
+/**
  * Builds the promo variation DAM path from a default fragment path and mas:promotion/ tag.
  * @param {string} defaultPath
  * @param {string} promoTagId
@@ -157,18 +170,29 @@ export function resolveDefaultPathFromPromoVariation(promoPath, promoName) {
 }
 
 /**
- * Returns the first mas:promotion/ tag id from a fragment's tags field or tags array.
+ * @param {Array<{ id?: string }|string>} tagValues
+ * @returns {string|null}
+ */
+function findPromotionTagId(tagValues) {
+    for (const tag of tagValues || []) {
+        const id = normalizeTagId(typeof tag === 'string' ? tag : tag?.id);
+        if (id.startsWith(TAG_PROMOTION_PREFIX)) return id;
+    }
+    return null;
+}
+
+/**
+ * Returns the first mas:promotion/ tag id from a fragment's tags field or tags array. Checks
+ * both sources rather than preferring whichever is merely non-empty: a real Promotion/Card
+ * Fragment's `tags` FIELD holds unrelated model tags (offer_type, plan_type, ...) and is
+ * always non-empty, while the actual mas:promotion/ identity tag lives only in the metadata
+ * `tags` array — so a naive `getFieldValues('tags') ?? tags` never falls through to it.
  * @param {{ getFieldValues?: (name: string) => unknown[], tags?: Array<{ id?: string }|string> }} fragment
  * @returns {string|null}
  */
 export function getPromotionTagFromFragment(fragment) {
     if (!fragment) return null;
-    const tagValues = fragment.getFieldValues?.('tags') ?? fragment.tags ?? [];
-    for (const tag of tagValues) {
-        const id = normalizeTagId(typeof tag === 'string' ? tag : tag?.id);
-        if (id.startsWith(TAG_PROMOTION_PREFIX)) return id;
-    }
-    return null;
+    return findPromotionTagId(fragment.getFieldValues?.('tags')) ?? findPromotionTagId(fragment.tags);
 }
 
 /**
@@ -208,12 +232,7 @@ export function getPromotionInfo(variationFragment) {
 export function fragmentIsPromoVariation(fragment) {
     if (!fragment) return false;
     if (isPromoVariationPath(fragment.path)) return true;
-    const tagValues = fragment.getFieldValues?.('tags') ?? fragment.tags ?? [];
-    for (const tag of tagValues) {
-        const id = normalizeTagId(typeof tag === 'string' ? tag : tag?.id);
-        if (id.startsWith(TAG_PROMOTION_PREFIX)) return true;
-    }
-    return false;
+    return Boolean(getPromotionTagFromFragment(fragment));
 }
 
 /**

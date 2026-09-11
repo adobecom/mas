@@ -258,7 +258,7 @@ runTests(async () => {
             const priceElement = { dataset: { template: 'price' } };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.equal(false);
+            expect(priceOptions.displayPerUnit).to.be.undefined;
         });
     });
 
@@ -286,32 +286,44 @@ runTests(async () => {
             return wi;
         }
 
+        // mini-compare-chart projects whats-included through the
+        // "footer-rows" slot; plans exposes its own "whats-included" slot.
+        const WHATS_INCLUDED_SLOT_BY_VARIANT = {
+            'mini-compare-chart': 'footer-rows',
+            plans: 'whats-included',
+        };
+
         async function mountCard(variant, whatsIncluded) {
             const mount = document.createElement('div');
             mount.style.cssText =
                 'position:absolute;left:-9999px;top:0;width:520px;';
             const card = document.createElement('merch-card');
             card.setAttribute('variant', variant);
-            whatsIncluded.setAttribute('slot', 'whats-included');
+            whatsIncluded.setAttribute(
+                'slot',
+                variant === 'mini-compare-chart'
+                    ? 'footer-rows'
+                    : 'whats-included',
+            );
             card.appendChild(whatsIncluded);
             mount.appendChild(card);
             document.body.appendChild(mount);
             await customElements.whenDefined('merch-card');
             await card.updateComplete;
-            await delay(50);
+            await card.checkReady();
             return { card, mount };
         }
 
         function iconDisplay(card, rowIndex) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }
 
         function bulletIconDisplay(card, rowIndex = 0) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }
@@ -439,6 +451,13 @@ runTests(async () => {
     });
 
     describe('ETF text (adjustLegal / adjustShortDescription)', () => {
+        let keepInHeadingPriceForAnnual;
+        before(async () => {
+            ({ keepInHeadingPriceForAnnual } = await import(
+                '../src/variants/mini-compare-chart.js'
+            ));
+        });
+
         async function mountCardWithEtf(etfText = 'Fee applies') {
             const mount = document.createElement('div');
             mount.style.cssText =
@@ -453,7 +472,7 @@ runTests(async () => {
                             data-wcs-osi="abm-mult"
                             data-template="price"
                             data-display-per-unit="false"
-                            data-display-tax="false"
+                            data-display-tax="true"
                             data-display-plan-type="true"
                         ></span>
                     </h5>
@@ -597,6 +616,55 @@ runTests(async () => {
                 await card.checkReady();
 
                 expect(variantLayout.legalAdjusted).to.be.false;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price enabled', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const service = document.head.querySelector(
+                    'mas-commerce-service',
+                );
+                const headingPrice = card.querySelector(
+                    '[data-template="price"]',
+                );
+                const legalPrice = card.querySelector(
+                    '[data-template="legal"]',
+                );
+                headingPrice.options.displayTax = true;
+                keepInHeadingPriceForAnnual(
+                    service,
+                    headingPrice,
+                    legalPrice,
+                    'displayTax',
+                );
+                expect(legalPrice.dataset.displayTax).to.equal('false');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price disabled', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const service = document.createElement('mas-commerce-service');
+                service.setAttribute('env', 'stage');
+                const headingPrice = card.querySelector(
+                    '[data-template="price"]',
+                );
+                const legalPrice = card.querySelector(
+                    '[data-template="legal"]',
+                );
+                headingPrice.options.displayTax = true;
+                keepInHeadingPriceForAnnual(
+                    service,
+                    headingPrice,
+                    legalPrice,
+                    'displayTax',
+                );
+                expect(headingPrice.dataset.displayTax).to.equal('false');
             } finally {
                 mount.remove();
             }

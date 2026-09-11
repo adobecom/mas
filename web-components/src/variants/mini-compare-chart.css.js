@@ -421,6 +421,13 @@ export const CSS = `
   gap: var(--consonant-merch-spacing-xs);
 }
 
+/* Cap + center the lone card in its wide column at every width */
+.one-merch-card.mini-compare-chart merch-card[variant="mini-compare-chart"],
+.one-merch-card:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
+  max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
+  margin-inline: auto;
+}
+
 .two-merch-cards:has(merch-card[variant="mini-compare-chart"]),
 .three-merch-cards:has(merch-card[variant="mini-compare-chart"]),
 .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
@@ -725,6 +732,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   merch-card[variant="mini-compare-chart"].bullet-list .footer-row-cell-checkmark {
     gap: var(--consonant-merch-spacing-xxs);
   }
+
 }
 
 /* desktop */
@@ -750,6 +758,13 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
     grid-template-columns: repeat(3, var(--consonant-merch-card-mini-compare-chart-width));
     gap: var(--consonant-merch-spacing-m);
+  }
+
+  /* Cap + center each card in its wide column */
+  .two-merch-cards.mini-compare-chart merch-card[variant="mini-compare-chart"],
+  .two-merch-cards:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
+    max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
+    margin-inline: auto;
   }
 }
 

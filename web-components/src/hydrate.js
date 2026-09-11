@@ -1,4 +1,4 @@
-import { SELECTOR_MAS_INLINE_PRICE } from './constants.js';
+import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -12,26 +12,27 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-const TRIAL_ANALYTICS_IDS = new Set([
-    'free-trial',
-    'start-free-trial',
-    'seven-day-trial',
-    'fourteen-day-trial',
-    'thirty-day-trial',
+/** Variants whose CTAs are authored via the 3-option headless picker (see merch-card-editor.js's HEADLESS_STYLE_CTA_VARIANTS). */
+const HEADLESS_STYLE_CTA_VARIANTS = new Set([
+    'headless',
+    'marquee',
+    'banner-blade',
 ]);
+const HEADLESS_CTA_VARIANT_LABELS = { STRONG: 'Primary', EM: 'Secondary' };
 
 /**
  * Normalizes variant names for consistency.
  * Converts any variant starting with 'plans' to just 'plans'.
- * The 'bizpro' variant also normalizes to 'plans' so it shares the plans
- * merch-card-collection column classes and styling (it no longer carries the
- * 'plans' prefix after the rename, so it needs an explicit mapping).
+ * The 'pro' variant also normalizes to 'plans' so it shares the plans
+ * merch-card-collection column classes and styling (it does not carry the
+ * 'plans' prefix, so it needs an explicit mapping).
  * @param {string} variant - The variant name to normalize
  * @returns {string} The normalized variant name
  */
 export function normalizeVariant(variant) {
     if (!variant) return variant;
-    if (variant === 'bizpro') return 'plans';
+    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
+    if (variant === 'pro') return 'plans';
     if (variant.startsWith('plans')) return 'plans';
     return variant;
 }
@@ -98,9 +99,19 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     }
 }
 
-function processBadge(fields, merchCard, mapping) {
+function isMerchBadgeContentEmpty(badgeHtml) {
+    const el = new DOMParser()
+        .parseFromString(badgeHtml, 'text/html')
+        .querySelector('merch-badge');
+    if (!el) return true;
+    if (el.querySelector('span[is="inline-price"]')) return false;
+    return !el.textContent?.trim();
+}
+
+export function processBadge(fields, merchCard, mapping) {
     if (mapping.badge?.slot) {
-        if (fields.badge?.length && !fields.badge?.startsWith('<merch-badge')) {
+        const shouldRenderBadge = fields.badge?.length;
+        if (shouldRenderBadge && !fields.badge?.startsWith('<merch-badge')) {
             let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
             let setBorderColorForBadge = false;
 
@@ -120,6 +131,12 @@ function processBadge(fields, merchCard, mapping) {
             }
 
             fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
+        }
+        if (
+            fields.badge?.startsWith('<merch-badge') &&
+            isMerchBadgeContentEmpty(fields.badge)
+        ) {
+            fields.badge = '';
         }
         appendSlot('badge', fields, merchCard, mapping);
     } else {
@@ -279,6 +296,8 @@ export function processBorderColor(fields, merchCard, variantMapping) {
                 `var(--${fields.borderColor})`,
             );
         }
+    } else {
+        merchCard.style.removeProperty(customBorderColor);
     }
 }
 
@@ -462,18 +481,57 @@ export function processFeatures(fields, merchCard, mapping) {
     processFeaturesLinks(merchCard, mapping);
 }
 
-function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
+/**
+ * Upgrades a headless CTA anchor into a real checkout-link (resolving its commitment
+ * step/modal options) without adding a button-style class, mirroring mas-field.js's
+ * #buildCtaButton. Needed because the "-link" style bypass below normally just reuses the
+ * raw, un-upgraded anchor - fine for a plain link, but a headless Primary/Secondary CTA is
+ * still a real checkout CTA and must resolve through CheckoutLink to get its options.
+ */
+function createHeadlessCheckoutElement(linkElement) {
+    const CheckoutLink = customElements.get('checkout-link');
+    const button =
+        CheckoutLink?.createCheckoutLink(
+            linkElement.dataset,
+            linkElement.innerHTML,
+        ) ?? linkElement;
+    if (button === linkElement) return button;
+    for (const attr of linkElement.attributes) {
+        if (['class', 'is', 'href'].includes(attr.name)) continue;
+        button.setAttribute(attr.name, attr.value);
+    }
+    return button;
+}
+
+function transformLinkToButton(
+    linkElement,
+    merchCard,
+    aemFragmentMapping,
+    isCtaField = false,
+) {
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));
     const originalClassName = linkElement.className || '';
-    const checkoutLinkStyle =
-        CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent';
-    const isAccent = checkoutLinkStyle.includes('accent');
-    const isPrimary = checkoutLinkStyle.includes('primary');
-    const isSecondary = checkoutLinkStyle.includes('secondary');
-    const isOutline = checkoutLinkStyle.includes('-outline');
-    const isLinkStyle = checkoutLinkStyle.includes('-link');
+    const parentTag = linkElement.parentElement?.tagName;
+    // Headless CTAs authored via the 3-option picker never carry a button-style class, and
+    // MAS must not add one either (see rte-field.js's #marksForHeadlessVariant) - only the
+    // real <strong>/<em> wrapper is preserved, unstyled, below. Scoped to the ctas field on a
+    // headless-family card so other fields/variants (which may legitimately have no class and
+    // rely on the accent default) are unaffected.
+    const isHeadlessCta =
+        isCtaField &&
+        !originalClassName &&
+        HEADLESS_STYLE_CTA_VARIANTS.has(merchCard.variant);
+    const checkoutLinkStyle = originalClassName
+        ? (CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent')
+        : 'accent';
+    const isAccent = !isHeadlessCta && checkoutLinkStyle.includes('accent');
+    const isPrimary = !isHeadlessCta && checkoutLinkStyle.includes('primary');
+    const isSecondary =
+        !isHeadlessCta && checkoutLinkStyle.includes('secondary');
+    const isOutline = !isHeadlessCta && checkoutLinkStyle.includes('-outline');
+    const isLinkStyle = isHeadlessCta || checkoutLinkStyle.includes('-link');
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
@@ -490,7 +548,10 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
-        newButtonElement = linkElement;
+        newButtonElement =
+            isHeadlessCta && isCheckoutLink
+                ? createHeadlessCheckoutElement(linkElement)
+                : linkElement;
     } else {
         let variant;
         if (isAccent) {
@@ -517,6 +578,22 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
                       variant,
                       isCheckoutLink,
                   );
+    }
+
+    if (isHeadlessCta) {
+        let ctaElement = newButtonElement;
+        if (parentTag === 'STRONG' || parentTag === 'EM') {
+            const wrapper = document.createElement(parentTag.toLowerCase());
+            wrapper.append(newButtonElement);
+            ctaElement = wrapper;
+        }
+        const label = document.createElement('span');
+        label.className = 'headless-cta-variant-label';
+        label.textContent = HEADLESS_CTA_VARIANT_LABELS[parentTag] ?? 'Link';
+        const item = document.createElement('span');
+        item.className = 'headless-cta-item';
+        item.append(ctaElement, label);
+        return item;
     }
     return newButtonElement;
 }
@@ -604,7 +681,11 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
-        parent.setAttribute('data-plan-type', '');
+        // Preserve an author-authored plan type (e.g. to disambiguate
+        // multiple plan-type blocks); only seed the placeholder if unset.
+        if (!parent.hasAttribute('data-plan-type')) {
+            parent.setAttribute('data-plan-type', '');
+        }
     });
     merchCard.append(addon);
 }
@@ -613,6 +694,30 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     if (fields.addonConfirmation) {
         appendSlot('addonConfirmation', fields, merchCard, mapping);
     }
+}
+
+export function processCustomFields(fields, merchCard, mapping) {
+    const config = mapping?.customFields;
+    if (!config) return;
+    const values = Array.isArray(fields.customFields)
+        ? fields.customFields
+        : fields.customFields
+          ? [fields.customFields]
+          : [];
+    const labels = Array.isArray(fields.customFieldLabels)
+        ? fields.customFieldLabels
+        : fields.customFieldLabels
+          ? [fields.customFieldLabels]
+          : [];
+    values.filter(Boolean).forEach((html, i) => {
+        const label = labels[i];
+        const el = createTag(
+            config.tag,
+            { slot: `custom-field-${i}`, 'data-label': label || '' },
+            html,
+        );
+        merchCard.append(el);
+    });
 }
 
 function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
@@ -842,7 +947,7 @@ export function processCTAs(
     variant,
     settings,
 ) {
-    if (fields.ctas) {
+    if (fields.ctas && aemFragmentMapping.ctas) {
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;
@@ -856,7 +961,7 @@ export function processCTAs(
         const ctas = (
             filteredLinks.length > 0 ? filteredLinks : allCtaLinks
         ).map((cta) =>
-            transformLinkToButton(cta, merchCard, aemFragmentMapping),
+            transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
         );
 
         footer.textContent = '';
@@ -979,7 +1084,8 @@ export async function hydrate(fragment, merchCard) {
         );
     }
 
-    const { id, fields, settings = {}, priceLiterals } = fragment;
+    const { id, fields, settings = {}, priceLiterals, placeholders } = fragment;
+    if (fields.variant === 'bizpro') fields.variant = 'pro'; // TODO(MWPW-200587): remove after content migration
     const { variant } = fields;
     if (!variant)
         throw new Error(`hydrate: no template found in payload ${id}`);
@@ -988,6 +1094,7 @@ export async function hydrate(fragment, merchCard) {
     merchCard.contextPromotionCode = fields.promoCode;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
+    if (placeholders) merchCard.placeholders = placeholders;
     merchCard.id ??= fragment.id;
     if (fragment.variationId)
         merchCard.setAttribute('variation-id', fragment.variationId);
@@ -1030,6 +1137,7 @@ export async function hydrate(fragment, merchCard) {
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
+    processCustomFields(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);
     try {
         processUptLinks(fields, merchCard);

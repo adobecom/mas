@@ -42,6 +42,7 @@ describe('MasSelectedItems', () => {
         Store.translationProjects.cardsByPaths.value = new Map();
         Store.translationProjects.collectionsByPaths.value = new Map();
         Store.translationProjects.placeholdersByPaths.value = new Map();
+        Store.translationProjects.groupedVariationsData.value = new Map();
         setCardVariationsByPaths(new Map());
     };
 
@@ -164,6 +165,37 @@ describe('MasSelectedItems', () => {
             Store.translationProjects.selectedCards.set(['/path/nonexistent']);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
             expect(el.selectedItems).to.deep.equal([]);
+        });
+
+        it('lists a grouped-variation path as its own top-level item by default (translation)', async () => {
+            const card = createMockCard('/content/dam/mas/sandbox/en_US/parent-card', 'Parent Card');
+            const groupedVariation = createMockCard('/content/dam/mas/sandbox/en_US/PA-123/pzn/edu', 'Grouped Variation');
+            setCardsByPaths(new Map([['/content/dam/mas/sandbox/en_US/parent-card', card]]));
+            Store.translationProjects.groupedVariationsData.set(
+                new Map([['/content/dam/mas/sandbox/en_US/PA-123/pzn/edu', groupedVariation]]),
+            );
+            Store.translationProjects.selectedCards.set([
+                '/content/dam/mas/sandbox/en_US/parent-card',
+                '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+            ]);
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            expect(el.selectedItems).to.have.lengthOf(2);
+        });
+
+        it('does not list a grouped-variation path as its own top-level item when hideGroupedVariations is set (promotions)', async () => {
+            const card = createMockCard('/content/dam/mas/sandbox/en_US/parent-card', 'Parent Card');
+            const groupedVariation = createMockCard('/content/dam/mas/sandbox/en_US/PA-123/pzn/edu', 'Grouped Variation');
+            setCardsByPaths(new Map([['/content/dam/mas/sandbox/en_US/parent-card', card]]));
+            Store.translationProjects.groupedVariationsData.set(
+                new Map([['/content/dam/mas/sandbox/en_US/PA-123/pzn/edu', groupedVariation]]),
+            );
+            Store.translationProjects.selectedCards.set([
+                '/content/dam/mas/sandbox/en_US/parent-card',
+                '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+            ]);
+            const el = await fixture(html`<mas-selected-items .hideGroupedVariations=${true}></mas-selected-items>`);
+            expect(el.selectedItems).to.have.lengthOf(1);
+            expect(el.selectedItems[0]).to.equal(card);
         });
     });
 

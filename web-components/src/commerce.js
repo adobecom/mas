@@ -3,6 +3,8 @@ import './checkout-link.js';
 import './checkout-button.js';
 import './upt-link.js';
 import './inline-price.js';
+import './aem-fragment.js';
+import './mas-field.js';
 
 import { CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
 import { Defaults } from './defaults.js';

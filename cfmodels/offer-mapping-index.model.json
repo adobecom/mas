@@ -1,0 +1,6 @@
+{
+    "entries": {
+        "fieldLabel": "Entries",
+        "type": "content-fragment[]"
+    }
+}

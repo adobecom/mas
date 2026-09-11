@@ -10,7 +10,8 @@ import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansCardPage from '../studio/acom/plans/plans.page.js';
-import ACOMBizProCardPage from '../studio/acom/bizpro/bizpro.page.js';
+import ACOMProCardPage from '../studio/acom/pro/pro.page.js';
+import SandboxBrandConciergePage from '../studio/sandbox/brand-concierge/brand-concierge.page.js';
 import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
 import PlaceholdersPage from '../studio/placeholders/placeholders.page.js';
@@ -28,7 +29,8 @@ let fries;
 let trybuywidget;
 let promotedplans;
 let plans;
-let bizpro;
+let pro;
+let brandConcierge;
 let fullPricingExpress;
 let placeholders;
 let versions;
@@ -75,7 +77,8 @@ const masTest = base.extend({
         trybuywidget = new AHTryBuyWidgetPage(page);
         promotedplans = new AHPromotedPlansPage(page);
         plans = new ACOMPlansCardPage(page);
-        bizpro = new ACOMBizProCardPage(page);
+        pro = new ACOMProCardPage(page);
+        brandConcierge = new SandboxBrandConciergePage(page);
         fullPricingExpress = new EXPRESSFullPricingPage(page);
         ost = new OSTPage(page);
         translationEditor = new TranslationEditorPage(page);
@@ -129,7 +132,8 @@ export {
     trybuywidget,
     promotedplans,
     plans,
-    bizpro,
+    pro,
+    brandConcierge,
     fullPricingExpress,
     ost,
     translations,

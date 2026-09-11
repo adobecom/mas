@@ -38,7 +38,7 @@ export function promotionUnpublishShortfallMessage(shortfall) {
 export function promotionDeleteConfirmMessage(title, promoVariationCount) {
     const base = `Are you sure you want to delete the promotion project "${title}"? This action cannot be undone.`;
     if (!promoVariationCount) return base;
-    return `${base} ${promoVariationCount} promo variation(s) will also be deleted.`;
+    return `${base} ${promoVariationCount} promo variation(s) will remain saved but will no longer be associated with this project.`;
 }
 
 export function isPromotionExpiredForPublish(promotionFragment) {

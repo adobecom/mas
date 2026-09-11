@@ -1,8 +1,10 @@
 import { html, nothing } from 'lit';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
-import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { getLocaleByCode, getLocaleCode, getSurfaceLocales } from '../../../io/www/src/fragment/locales.js';
 import { TAG_PROMOTION_PREFIX, VARIATION_TYPES } from '../constants.js';
+import { getCtaEmphasis } from '../rte/link-variant-utils.js';
+import { isPznCountryTagId, isLocaleTagId } from '../common/utils/personalization-utils.js';
 
 /* ---------- pure helpers ---------- */
 
@@ -50,24 +52,99 @@ export function normalizePznTagIds(value) {
     ];
 }
 
-function normalizeGroupedPreviewLocaleCode(tagValue) {
-    const localeCode = tagValue?.split('/').pop()?.trim();
-    return getLocaleByCode(localeCode) ? localeCode : null;
+/**
+ * Resolve a bare `pzn/country/<CC>` tag leaf to the surface's `<lang>_<CC>` locale so a country
+ * tag previews like the equivalent locale tag (e.g. `au` → `en_AU`). Countries served in several
+ * languages (e.g. `CA` → `en_CA`/`fr_CA`) resolve to `preferredLang` when it matches.
+ * @param {string} [leaf] - country segment of a pzn/country tag, e.g. `au`
+ * @param {string} [surface] - e.g. `acom`
+ * @param {string} [preferredLang] - language to prefer for multi-language countries
+ * @returns {string|null}
+ */
+export function countryTagLeafToLocaleCode(leaf, surface, preferredLang) {
+    if (!leaf || !surface) return null;
+    const country = leaf.toUpperCase();
+    const matches = getSurfaceLocales(surface).filter((locale) => locale.country === country);
+    if (!matches.length) return null;
+    return getLocaleCode(matches.find((locale) => locale.lang === preferredLang) ?? matches[0]);
 }
 
-export function groupedPreviewLocales(fragment) {
-    if (!isGroupedVariationFragment(fragment)) return [];
-    const tags = fragment?.getFieldValues?.('pznTags') || [];
-    const localeCodes = [...new Set(tags.map(normalizeGroupedPreviewLocaleCode).filter(Boolean))];
-    return localeCodes.map((code) => {
-        const locale = getLocaleByCode(code);
-        return {
-            code,
-            lang: locale.lang,
-            country: locale.country,
-            label: `${locale.country} (${locale.lang.toUpperCase()})`,
-        };
-    });
+/**
+ * Resolve a pzn tag to a preview locale code: a `pzn/locale/<xx_YY>` tag passes through, a bare
+ * `pzn/country/<CC>` tag maps to the surface locale (see {@link countryTagLeafToLocaleCode}), and
+ * anything else returns null. Single source of truth for every grouped-variation preview consumer.
+ * @param {string} [tag] - pzn tag id or path
+ * @param {string} [surface] - e.g. `acom`
+ * @param {string} [preferredLang] - language to prefer for multi-language countries
+ * @returns {string|null}
+ */
+export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
+    const leaf = tag?.split('/').pop()?.trim();
+    if (getLocaleByCode(leaf)) return leaf;
+    return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
+}
+
+const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Emphasis tag for a parsed CTA anchor: prefers a real <strong>/<em> wrapper - how headless CTAs
+ *  store bold/italic (see rte-field.js's #marksForHeadlessVariant), so Milo can map it to the
+ *  context-appropriate button style - falling back to the variant-class heuristic for CTAs
+ *  authored under the older class-driven button-style system (see {@link getCtaEmphasis}). */
+function ctaEmphasisTag(a) {
+    const parentTag = a.parentElement?.tagName;
+    if (parentTag === 'STRONG') return 'strong';
+    if (parentTag === 'EM') return 'em';
+    const emphasis = getCtaEmphasis(a.getAttribute('class') || '');
+    return emphasis === 'bold' ? 'strong' : emphasis === 'italic' ? 'em' : null;
+}
+
+/** Parses CTA HTML and returns an array of `{ text, href, key, className, formattedText }` objects,
+ *  one per anchor. Uses a <template> element so checkout-link custom elements are never upgraded and
+ *  their attributes (href, data-key, data-wcs-osi, …) are preserved exactly as stored.
+ *  `formattedText` mirrors `text` but wrapped in `<strong>`/`<em>` per {@link ctaEmphasisTag}, for
+ *  callers (e.g. Copy Field) that want to preserve the CTA's visual weight outside the editor. */
+export function parseCtas(html) {
+    if (!html || typeof html !== 'string') return [];
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return [...template.content.querySelectorAll('a')]
+        .map((a) => {
+            const text = a.textContent.trim();
+            const tag = ctaEmphasisTag(a);
+            const escaped = escapeHtml(text);
+            return {
+                text,
+                href: a.getAttribute('href') || '',
+                key: a.getAttribute('data-key'),
+                className: a.getAttribute('class') || '',
+                formattedText: tag ? `<${tag}>${escaped}</${tag}>` : escaped,
+            };
+        })
+        .filter(({ text, href }) => text || href);
+}
+
+/** Reference-key problems in a list of parsed CTAs (see {@link parseCtas}): anchors missing a
+ *  `data-key`, and keys shared by more than one anchor. Both break `cta[<key>]` references. */
+export function getCtaKeyIssues(ctas = []) {
+    const counts = new Map();
+    let missingCount = 0;
+    for (const { key } of ctas) {
+        if (!key) {
+            missingCount += 1;
+            continue;
+        }
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const duplicateKeys = [...counts.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+    return { missingCount, duplicateKeys, hasIssues: missingCount > 0 || duplicateKeys.length > 0 };
+}
+
+/** Human-readable summary of {@link getCtaKeyIssues} counts, e.g. "2 without a reference key, 1 duplicated". */
+export function summarizeCtaKeyIssues({ missingCount = 0, duplicateKeys = [] } = {}) {
+    const parts = [];
+    if (missingCount) parts.push(`${missingCount} without a reference key`);
+    if (duplicateKeys.length) parts.push(`${duplicateKeys.length} duplicated`);
+    return parts.join(', ');
 }
 
 export function listLocaleVariations(fragment) {
@@ -107,6 +184,43 @@ export function hasAnyVariationTabItems(fragment) {
 
 export function getGroupedVariationTagsValue(variationFragment) {
     return pznTagsValue(variationFragment);
+}
+
+// A promo variation cloned from a grouped variation keeps its personalization tag (e.g. mas:pzn/edu)
+// alongside the promo's geo tags in pznTags.
+export function isGeoTag(tag) {
+    if (!tag) return false;
+    return isLocaleTagId(tag) || isPznCountryTagId(tag);
+}
+
+export function getPromoVariationGeoTagsValue(variationFragment) {
+    const values =
+        variationFragment?.getFieldValues?.('pznTags') ||
+        variationFragment?.fields?.find((field) => field.name === 'pznTags')?.values ||
+        [];
+    return values
+        .filter(Boolean)
+        .filter((tag) => isGeoTag(tag))
+        .join(',');
+}
+
+export function getPromoVariationPersonalizationTagsValue(variationFragment) {
+    const values =
+        variationFragment?.getFieldValues?.('pznTags') ||
+        variationFragment?.fields?.find((field) => field.name === 'pznTags')?.values ||
+        [];
+    return values
+        .filter(Boolean)
+        .filter((tag) => !isGeoTag(tag))
+        .join(',');
+}
+
+export function getPromoVariationPersonalizationTagLabels(variationFragment) {
+    return getPromoVariationPersonalizationTagsValue(variationFragment)
+        .split(',')
+        .filter(Boolean)
+        .map((tag) => tag.split('/').pop())
+        .join(', ');
 }
 
 export function getPromotionCode(variationFragment) {

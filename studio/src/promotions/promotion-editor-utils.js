@@ -1,6 +1,7 @@
+import { Fragment } from '../aem/fragment.js';
 import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalization-utils.js';
 import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
-import { COLLECTION_MODEL_PATH, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
@@ -128,37 +129,24 @@ export function parsePromotionSurfacesFieldValues(values) {
 }
 
 /**
- * @param {string[]} allPaths
- * @param {(path: string) => Promise<unknown>} getFragmentByPath
- * @param {string} [collectionModelPath]
- * @returns {Promise<{ cards: string[], cols: string[] }>}
+ * Drops grouped-variation paths whose resolved parent is no longer in the selection — removing a
+ * card from a promo project doesn't cascade to grouped variations curated separately for it.
+ * @param {string[]} selectedCards
+ * @param {(path: string) => Promise<string|null>} resolveParentPath
+ * @returns {Promise<string[]>}
  */
-export async function classifyPromotionPathsForSelection(
-    allPaths,
-    getFragmentByPath,
-    collectionModelPath = COLLECTION_MODEL_PATH,
-) {
-    if (!allPaths.length) {
-        return { cards: [], cols: [] };
-    }
-    const results = await Promise.allSettled(allPaths.map((path) => getFragmentByPath(path)));
-    const cards = [];
-    const cols = [];
-    results.forEach((result, i) => {
-        const path = allPaths[i];
-        if (result.status !== 'fulfilled') {
-            cards.push(path);
-            return;
-        }
-        const modelPath = result.value?.model?.path;
-        if (!modelPath) {
-            cards.push(path);
-            return;
-        }
-        if (modelPath === collectionModelPath) cols.push(path);
-        else cards.push(path);
+export async function pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath) {
+    const groupedPaths = selectedCards.filter((path) => Fragment.isGroupedVariationPath(path));
+    if (!groupedPaths.length) return selectedCards;
+    const selectedSet = new Set(selectedCards);
+    const parentPaths = await Promise.all(groupedPaths.map((path) => resolveParentPath(path)));
+    const orphaned = new Set();
+    groupedPaths.forEach((path, i) => {
+        const parentPath = parentPaths[i];
+        if (parentPath && !selectedSet.has(parentPath)) orphaned.add(path);
     });
-    return { cards, cols };
+    if (!orphaned.size) return selectedCards;
+    return selectedCards.filter((path) => !orphaned.has(path));
 }
 
 /**
@@ -227,7 +215,7 @@ export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedO
     return tags;
 }
 
-function extractPromotionItemProductCodeTagIds(tags) {
+export function extractPromotionItemProductCodeTagIds(tags) {
     if (!Array.isArray(tags)) return [];
     return tags.filter((tag) => tag?.id?.startsWith('mas:product_code/')).map((tag) => tag.id);
 }
@@ -486,7 +474,7 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
         offerSelectorId,
         offer,
         store.selectedOffers,
-        Store.promotions.offerDataCache,
+        Store.promotions.offerRecordsCache,
         productArrangementCode,
     );
     closeOfferSelectorTool();
@@ -494,9 +482,14 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
 }
 
 const PROMOTION_OFFER_SUBSTITUTION_PREFIX = 'substitute';
+const PROMOTION_IGNORE_VARIATIONS_PREFIX = 'ignore-variations';
 
 export function isPromotionOfferSubstitutionEntry(entry) {
     return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_SUBSTITUTION_PREFIX}|`);
+}
+
+export function isPromotionIgnoreVariationsEntry(entry) {
+    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_IGNORE_VARIATIONS_PREFIX}|`);
 }
 
 export function promotionOfferRecordHasDisplayName(cacheEntry) {
@@ -508,7 +501,8 @@ export function promotionOfferRecordHasDisplayName(cacheEntry) {
 export function parsePromotionOffersField(values) {
     const promoExceptions = new Map();
     const offerSubstitutions = new Map();
-    if (!Array.isArray(values)) return { promoExceptions, offerSubstitutions };
+    const ignoredVariations = new Map();
+    if (!Array.isArray(values)) return { promoExceptions, offerSubstitutions, ignoredVariations };
     for (const entry of values) {
         if (!entry) continue;
         if (isPromotionOfferSubstitutionEntry(entry)) {
@@ -519,12 +513,18 @@ export function parsePromotionOffersField(values) {
             }
             continue;
         }
+        if (isPromotionIgnoreVariationsEntry(entry)) {
+            const [, offerId, geoStr = ''] = entry.split('|');
+            const country = formatGeoDisplayLabel(geoStr) || geoStr;
+            if (offerId && country) ignoredVariations.set(`${offerId}|${country}`, true);
+            continue;
+        }
         const [offerId, promoCode, geoStr = ''] = entry.split('|');
         const country = formatGeoDisplayLabel(geoStr) || geoStr;
         if (!offerId || !promoCode || !country) continue;
         promoExceptions.set(`${offerId}|${country}`, promoCode);
     }
-    return { promoExceptions, offerSubstitutions };
+    return { promoExceptions, offerSubstitutions, ignoredVariations };
 }
 
 export function parsePromoCodeExceptions(values) {
@@ -533,6 +533,10 @@ export function parsePromoCodeExceptions(values) {
 
 export function parseOfferSubstitutions(values) {
     return parsePromotionOffersField(values).offerSubstitutions;
+}
+
+export function parseIgnoredVariations(values) {
+    return parsePromotionOffersField(values).ignoredVariations;
 }
 
 export function serializePromoCodeExceptions(map, displayToCq) {
@@ -553,6 +557,17 @@ export function serializeOfferSubstitutions(map, displayToCq) {
     });
 }
 
+export function serializeIgnoredVariations(map, displayToCq) {
+    if (!map?.size) return [];
+    return [...map.entries()]
+        .filter(([, ignored]) => ignored)
+        .map(([key]) => {
+            const [offerId, label] = key.split('|');
+            const geoTag = displayToCq?.get(label) ?? label;
+            return `${PROMOTION_IGNORE_VARIATIONS_PREFIX}|${offerId}|${geoTag}`;
+        });
+}
+
 export function parseSelectedOfferIdsFromOffersField(values) {
     if (!Array.isArray(values)) return [];
     return values
@@ -561,12 +576,19 @@ export function parseSelectedOfferIdsFromOffersField(values) {
         .filter(Boolean);
 }
 
-export function serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, displayToCq) {
+export function serializePromotionOffersField(
+    promoExceptions,
+    offerSubstitutions,
+    ignoredVariations,
+    selectedOfferIds,
+    displayToCq,
+) {
     const selectedLines = Array.isArray(selectedOfferIds) ? selectedOfferIds.filter(Boolean) : [];
     return [
         ...selectedLines,
         ...serializePromoCodeExceptions(promoExceptions, displayToCq),
         ...serializeOfferSubstitutions(offerSubstitutions, displayToCq),
+        ...serializeIgnoredVariations(ignoredVariations, displayToCq),
     ];
 }
 
@@ -659,6 +681,7 @@ export function buildPromotionOffersFieldValues(promotionFragment, selectedOffer
     const parsed = parsePromotionOffersField(offerValues);
     let promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
     let offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
+    let ignoredVariations = overrides.ignoredVariations ?? parsed.ignoredVariations;
     const geos = promotionFragment?.getFieldValues?.('geos') ?? [];
     const displayToCq = new Map(geos.map((g) => [formatGeoDisplayLabel(g), g]).filter(([label]) => label));
     if (geos.length) {
@@ -666,12 +689,17 @@ export function buildPromotionOffersFieldValues(promotionFragment, selectedOffer
         const isValid = (key) => valid.has(key.split('|')[1]);
         promoExceptions = new Map([...promoExceptions].filter(([k]) => isValid(k)));
         offerSubstitutions = new Map([...offerSubstitutions].filter(([k]) => isValid(k)));
+        ignoredVariations = new Map([...ignoredVariations].filter(([k]) => isValid(k)));
     }
-    return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, displayToCq);
+    return serializePromotionOffersField(promoExceptions, offerSubstitutions, ignoredVariations, selectedOfferIds, displayToCq);
 }
 
 export function getEffectiveSubstituteOffer(offerSubstitutions, baseOfferId, country) {
     return offerSubstitutions?.get(`${baseOfferId}|${country}`) ?? null;
+}
+
+export function getEffectiveIgnoreVariations(ignoredVariations, offerId, country) {
+    return ignoredVariations?.get(`${offerId}|${country}`) === true;
 }
 
 export function groupOfferSubstitutionsForOffer(offerSubstitutions, offerKeys, countries, resolveOfferLabel) {

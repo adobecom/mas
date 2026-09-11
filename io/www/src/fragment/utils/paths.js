@@ -18,15 +18,20 @@ function odinId(id, preview) {
     return `${rootURL(preview)}/${id}`;
 }
 
+// Reference hydration modes accepted by `odinReferences`, mapped to the Odin `?references=` query value.
+// `ALL` recurses the whole reference graph; `DIRECT` hydrates only direct references (one level, parent shallow).
+const REFERENCES = { ALL: 'all-hydrated', DIRECT: 'direct-hydrated' };
+
 /**
  * builds a full fetchable url
  * @param {*} id id of the fragment,
- * @param {boolean} allHydrated whether to fetch all references or not
- * @param {boolean} preview preview object if to be used
+ * @param {*} preview preview object if to be used
+ * @param {typeof REFERENCES[keyof typeof REFERENCES]|undefined} references reference hydration mode
+ *   (`REFERENCES.ALL`/`REFERENCES.DIRECT`); omitted skips hydration.
  * @returns full fetchable path to the fragment references
  */
-function odinReferences(id, allHydrated = false, preview) {
-    return `${odinId(id, preview)}${allHydrated ? '?references=all-hydrated' : ''}`;
+function odinReferences(id, preview, references) {
+    return `${odinId(id, preview)}${references ? `?references=${references}` : ''}`;
 }
 
 /**
@@ -44,4 +49,4 @@ function odinUrl(surface, { locale, fragmentPath, preview }) {
     return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, REFERENCES, odinUrl, odinId, odinReferences };

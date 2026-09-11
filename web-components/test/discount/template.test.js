@@ -39,4 +39,60 @@ describe('discount template', () => {
             '<span class="no-discount"></span>',
         );
     });
+
+    const zhHantDiscountLabel = '{remainingPercent, number, ::scale/0.1 .#}折';
+
+    it('uses a locale-provided discountLabel literal instead of the default %', () => {
+        const context = {
+            country: 'TW',
+            language: 'zh-hant',
+            literals: { discountLabel: zhHantDiscountLabel },
+        };
+        expect(
+            createDiscountTemplate()(context, {
+                price: 35,
+                priceWithoutDiscount: 100,
+            }),
+        ).to.equal('<span class="discount">3.5折</span>');
+    });
+
+    it('applies the same discountLabel literal across zh-Hant countries', () => {
+        const literals = { discountLabel: zhHantDiscountLabel };
+        ['TW', 'HK', 'MO'].forEach((country) => {
+            expect(
+                createDiscountTemplate()(
+                    { country, language: 'zh-hant', literals },
+                    { price: 35, priceWithoutDiscount: 100 },
+                ),
+            ).to.equal('<span class="discount">3.5折</span>');
+        });
+    });
+
+    it('renders a single-digit decimal 折 via an ICU number skeleton, with no JS-computed tenths value', () => {
+        const context = {
+            country: 'TW',
+            language: 'zh-hant',
+            literals: { discountLabel: zhHantDiscountLabel },
+        };
+        expect(
+            createDiscountTemplate()(context, {
+                price: 15,
+                priceWithoutDiscount: 100,
+            }),
+        ).to.equal('<span class="discount">1.5折</span>');
+    });
+
+    it('omits a trailing .0 when the remaining percent is an even multiple of ten', () => {
+        const context = {
+            country: 'TW',
+            language: 'zh-hant',
+            literals: { discountLabel: zhHantDiscountLabel },
+        };
+        expect(
+            createDiscountTemplate()(context, {
+                price: 30,
+                priceWithoutDiscount: 100,
+            }),
+        ).to.equal('<span class="discount">3折</span>');
+    });
 });

@@ -346,14 +346,19 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
         this.translationProject.updateField('projectType', [Store.translationProjects.projectType.value]);
         showToast('Updating the project...');
+        let saved;
         try {
-            await this.repository.saveFragment(this.translationProjectStore, false);
-            this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+            saved = await this.repository.saveFragment(this.translationProjectStore, {
+                withToast: false,
+                refetchEtag: false,
+            });
         } catch (error) {
             console.error('Error updating translation project', error);
             showToast('Failed to update translation project.', 'negative');
             return;
         }
+        if (!saved) return;
+        this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         showToast('Translation project updated successfully.', 'positive');
     }
 
@@ -575,10 +580,7 @@ class MasTranslationEditor extends LitElement {
             >
                 <mas-items-selector
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
-                    .variationTabs=${[
-                        { label: 'Promotion', key: VARIATION_TAB_NAME.PROMOTION },
-                        { label: 'Grouped variation', key: VARIATION_TAB_NAME.GROUPED },
-                    ]}
+                    .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
                     .hidePromoVariations=${true}
                     .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>

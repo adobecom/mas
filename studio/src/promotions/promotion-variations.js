@@ -1,12 +1,14 @@
-import { STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX, PZN_FOLDER } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { UserFriendlyError } from '../utils.js';
+import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
+import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
+    buildPromotionsRootPath,
     getFragmentByPathOrNull,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
@@ -15,7 +17,12 @@ import {
 } from './promotion-model.js';
 
 // Max variations allowed per fragment to prevent runaway loops.
+// Kept in sync by hand with the same constant + `-N` suffix convention in
+// io/www/src/fragment/transformers/customize.js (separate runtime, no shared import).
 export const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
+
+// Page size for folder search cursor (generator still walks all pages).
+const VARIATION_SEARCH_PAGE_SIZE = 50;
 
 /**
  * Extracts 'pznTags' values from a raw fragment payload.
@@ -27,24 +34,53 @@ function readPznTags(fragment) {
 }
 
 /**
- * Sequentially probes and returns all existing promo variations for a given fragment.
- * Stops at the first missing index.
- * @param {import('../aem/aem.js').AEM} aem
- * @param {string} defaultPath
- * @param {string} promoTagId
- * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
+ * Escapes regex metacharacters so a path segment can be used as a literal match inside a RegExp.
+ * @param {string} value
+ * @returns {string}
  */
-export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
-    if (!aem || !defaultPath || !promoTagId) return [];
-    const found = [];
-    for (let index = 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
-        const suffixIndex = index === 1 ? undefined : index;
-        const targetPath = buildPromoVariationPathForTag(defaultPath, promoTagId, suffixIndex);
-        if (!targetPath) break;
-        const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, targetPath);
-        if (!variation?.id) break;
-        found.push({
-            path: targetPath,
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Builds a regex matching a promo-variation copy of a fragment: the copy lives at
+ * `{promotionsRoot}/<promoName…>/<relativeFragmentPath>` with an optional `-<index>` suffix. The
+ * `.+` swallows the arbitrary-depth promoName folder(s), so a single recursive search over the
+ * promotions root can attribute copies back to a fragment by path suffix (capture group 1 = index).
+ * @param {string} promotionsRoot
+ * @param {string} relativeFragmentPath - fragmentPath relative to surface/locale (may contain '/')
+ * @returns {RegExp}
+ */
+function buildPromoVariationSuffixMatcher(promotionsRoot, relativeFragmentPath) {
+    return new RegExp(`^${escapeRegExp(promotionsRoot)}/.+/${escapeRegExp(relativeFragmentPath)}(?:-(\\d+))?$`);
+}
+
+/**
+ * Matches a variation search result to its owning default path by full-path identity.
+ * The exact variation base path is index 1; a trailing "-N" is a suffixed sibling variation.
+ * Exact-base match takes precedence, so a card literally named "…-N" claims its own path
+ * rather than being mis-attributed as a suffixed variation of "…".
+ * @param {Object} variation
+ * @param {Map<string, string>} baseToDefaultPath - variation base path -> owning default path
+ * @returns {{ defaultPath: string, variation: { path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array } }|null}
+ */
+function matchVariationByBasePath(variation, baseToDefaultPath) {
+    const path = variation?.path;
+    if (!path || !variation?.id) return null;
+    let defaultPath = baseToDefaultPath.get(path);
+    let index = 1;
+    if (!defaultPath) {
+        const suffixMatch = /^(.*)-(\d+)$/.exec(path);
+        if (!suffixMatch) return null;
+        defaultPath = baseToDefaultPath.get(suffixMatch[1]);
+        if (!defaultPath) return null;
+        index = Number(suffixMatch[2]);
+    }
+    if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) return null;
+    return {
+        defaultPath,
+        variation: {
+            path,
             index,
             id: variation.id,
             pznTags: readPznTags(variation),
@@ -53,9 +89,67 @@ export async function probePromoVariationsForFragment(aem, defaultPath, promoTag
             model: variation.model,
             fields: variation.fields,
             tags: variation.tags,
-        });
+        },
+    };
+}
+
+/**
+ * Probes promo variations for fragments with the same promo tag.
+ * Every variation for a project lives under one promotions/{promoName} subtree, so a single
+ * recursive folder search covers all fragments regardless of how deeply their paths nest —
+ * one request (plus pagination) per surface/locale root instead of one per parent folder.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} defaultPaths
+ * @param {string} promoTagId
+ * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>>}
+ */
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+    const resultsByPath = new Map((defaultPaths || []).map((defaultPath) => [defaultPath, []]));
+    if (!aem || !promoTagId || !defaultPaths?.length) return resultsByPath;
+    const promoName = getPromoNameFromTag(promoTagId);
+    if (!promoName) return resultsByPath;
+
+    const baseToDefaultPath = new Map();
+    const pathsByRoot = new Map();
+    for (const defaultPath of defaultPaths) {
+        const basePath = buildPromoVariationPath(defaultPath, promoName);
+        const promotionsRoot = buildPromotionsRootPath(defaultPath);
+        if (!basePath || !promotionsRoot) continue;
+        baseToDefaultPath.set(basePath, defaultPath);
+        const promoRoot = `${promotionsRoot}/${promoName}`;
+        if (!pathsByRoot.has(promoRoot)) pathsByRoot.set(promoRoot, true);
     }
-    return found;
+
+    await processConcurrently(
+        [...pathsByRoot.keys()],
+        async (promoRoot) => {
+            for await (const batch of aem.sites.cf.fragments.search({ path: promoRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
+                for (const variation of batch) {
+                    const matched = matchVariationByBasePath(variation, baseToDefaultPath);
+                    if (matched) resultsByPath.get(matched.defaultPath).push(matched.variation);
+                }
+            }
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    for (const variations of resultsByPath.values()) {
+        variations.sort((a, b) => a.index - b.index);
+    }
+    return resultsByPath;
+}
+
+/**
+ * Probes all promo variations for a single fragment via paginated folder search (sorted by index).
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @param {string} promoTagId
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
+ */
+export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
+    if (!aem || !defaultPath || !promoTagId) return [];
+    const resultsByPath = await probePromoVariationsForFragments(aem, [defaultPath], promoTagId);
+    return resultsByPath.get(defaultPath) || [];
 }
 
 /**
@@ -80,16 +174,43 @@ export function findOverlappingGeoTags(existingVariations, newGeoTags) {
 }
 
 /**
- * Finds the next available variation index, ensuring it doesn't conflict with
- * other fragments attached to the same promotion project.
- * @param {number} existingCount
+ * Validates a promo variation's geo tags against its siblings and (optionally) its
+ * promotion project's geos. Throws a UserFriendlyError on the first conflict found.
+ * @param {Array<{ id?: string, pznTags: string[] }>} existingVariations
+ * @param {string[]} geoTags
+ * @param {string[]} [projectGeos] - when provided, geoTags must all be contained in this list
+ */
+export function assertPromoVariationGeoTagsValid(existingVariations, geoTags, projectGeos) {
+    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
+        throw new UserFriendlyError('A variation with no geos already exists for this project.');
+    }
+    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
+    if (overlapping.length) {
+        throw new UserFriendlyError(
+            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
+        );
+    }
+    if (projectGeos) {
+        const notInProject = geoTags.filter((tag) => !projectGeos.includes(tag));
+        if (notInProject.length) {
+            throw new UserFriendlyError(`These geos are not part of the promotion project: ${notInProject.join(', ')}`);
+        }
+    }
+}
+
+/**
+ * Finds the next available index: skips indices already used by sibling variations (gaps
+ * allowed) and any that would collide with another fragment in the same project.
+ * @param {number[]} usedIndices
  * @param {string} defaultPath
  * @param {string[]} attachedFragmentPaths
  * @returns {number}
  */
-export function getNextAvailablePromoVariationIndex(existingCount, defaultPath, attachedFragmentPaths = []) {
+export function getNextAvailablePromoVariationIndex(usedIndices, defaultPath, attachedFragmentPaths = []) {
+    const usedSet = new Set(usedIndices);
     const attachedSet = new Set(attachedFragmentPaths);
-    for (let index = existingCount + 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+    for (let index = 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+        if (usedSet.has(index)) continue;
         if (index === 1) return index;
         const collisionPath = buildCandidateCollisionPath(defaultPath, index);
         if (!collisionPath || !attachedSet.has(collisionPath)) return index;
@@ -98,10 +219,10 @@ export function getNextAvailablePromoVariationIndex(existingCount, defaultPath, 
 }
 
 /**
- * Creates a promo variation for a fragment inside promotions/{promoName}/.
+ * Creates a promo variation for a fragment (default or grouped variation) inside promotions/{promoName}/.
  * Supports multiple variations per fragment using unique geo/locale tags (`pznTags`).
  * Adds a numeric suffix ("-<index>") to the path for any subsequent variations to avoid collisions.
- * Cannot create variations from existing promo or grouped variations.
+ * Cannot create variations from an existing promo variation.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} sourceFragmentId
  * @param {string} promoTagId
@@ -122,20 +243,41 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     if (isPromoVariationPath(sourceFragment.path)) {
         throw new UserFriendlyError('Cannot create a promo variation from a promo variation');
     }
-    if (Fragment.isGroupedVariationPath(sourceFragment.path)) {
-        throw new UserFriendlyError('Cannot create a promo variation from a grouped variation');
+
+    const isGroupedVariationSource = Fragment.isGroupedVariationPath(sourceFragment.path);
+
+    // Grouped-variation source: pznTags already has its own personalization tag.
+    // Preserve it on the clone instead of overwriting with the geo selection.
+    const preservedPznTags = isGroupedVariationSource
+        ? (sourceFragment.fields || []).find((field) => field.name === 'pznTags')?.values || []
+        : [];
+
+    // A grouped variation only stores its own overrides, everything else is inherited from the default fragment.
+    // Resolve the effective content first, so the clone matches what's rendered.
+    let effectiveFields = sourceFragment.fields || [];
+    if (isGroupedVariationSource) {
+        const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
+        if (parentFragment) {
+            effectiveFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
+        }
     }
 
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
-    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
-    if (overlapping.length) {
-        throw new UserFriendlyError(
-            `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
-        );
+    const existingGeoTagsByVariation = existingVariations.map((variation) => ({
+        ...variation,
+        pznTags: (variation.pznTags || []).filter((tag) => !preservedPznTags.includes(tag)),
+    }));
+    if (
+        isGroupedVariationSource &&
+        !geoTags.length &&
+        existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)
+    ) {
+        throw new UserFriendlyError('A promo variation for this grouped variation fragment already exists.');
     }
+    assertPromoVariationGeoTagsValid(existingGeoTagsByVariation, geoTags);
 
     const nextIndex = getNextAvailablePromoVariationIndex(
-        existingVariations.length,
+        existingVariations.map((variation) => variation.index),
         sourceFragment.path,
         attachedFragmentPaths,
     );
@@ -149,9 +291,10 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     const fragmentName = targetPath.split('/').pop();
     await aem.sites.cf.fragments.ensureFolderExists(parentFolder);
 
-    const fieldsWithGeoTags = (sourceFragment.fields || []).filter((field) => field.name !== 'pznTags');
-    if (geoTags.length) {
-        fieldsWithGeoTags.push({ name: 'pznTags', type: 'tag', multiple: true, values: geoTags });
+    const fieldsWithGeoTags = effectiveFields.filter((field) => field.name !== 'pznTags');
+    const mergedPznTags = [...new Set([...preservedPznTags, ...geoTags])];
+    if (mergedPznTags.length) {
+        fieldsWithGeoTags.push({ name: 'pznTags', type: 'tag', multiple: true, values: mergedPznTags });
     }
     const fragmentForCopy = { ...sourceFragment, fields: fieldsWithGeoTags };
 
@@ -195,18 +338,70 @@ export function mergePromoVariationReferences(fragmentData, discovered) {
 }
 
 /**
- * Probes every promo variation path for known promotion projects (tag + path; not parent variations field).
- * A single project can have more than one geo-specific variation, so each project is probed for all indices.
+ * Finds promo variations left behind after their source project is deleted.
+ * This method scans the entire promotions/ tree using the fragment's suffix, working regardless of intermediate folder levels.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
+ */
+export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) {
+    if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
+    const match = PATH_TOKENS.exec(defaultPath);
+    const promotionsRoot = buildPromotionsRootPath(defaultPath);
+    if (!match?.groups?.fragmentPath || !promotionsRoot) return [];
+
+    const suffixPattern = buildPromoVariationSuffixMatcher(promotionsRoot, match.groups.fragmentPath);
+
+    const rawResults = [];
+    try {
+        for await (const batch of aem.sites.cf.fragments.search({ path: promotionsRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
+            rawResults.push(...batch);
+        }
+    } catch (error) {
+        console.error('Failed to search promotions folder for orphan probe:', error);
+        return [];
+    }
+
+    return rawResults
+        .map((variation) => {
+            const pathMatch = variation?.path && suffixPattern.exec(variation.path);
+            if (!pathMatch || !variation?.id) return null;
+            const index = pathMatch[1] ? Number(pathMatch[1]) : 1;
+            if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) return null;
+            return {
+                path: variation.path,
+                index,
+                id: variation.id,
+                pznTags: readPznTags(variation),
+                status: variation.status,
+                title: variation.title,
+                model: variation.model,
+                fields: variation.fields,
+                tags: variation.tags,
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.index - b.index);
+}
+
+/**
+ * Only probes projects with defaultPath in their 'fragments' field.
+ * Unattached projects can't have a variation, so they're skipped without a network call.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {Array<Object>} promotionProjects
  * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
  */
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
-    if (!aem || !defaultPath || isPromoVariationPath(defaultPath) || !promotionProjects.length) return [];
+    if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
+
+    const attachedProjects = promotionProjects.filter((project) =>
+        (project.getFieldValues?.('fragments') || []).includes(defaultPath),
+    );
+    if (!attachedProjects.length) return [];
 
     const refsPerProject = await processConcurrently(
-        promotionProjects,
+        attachedProjects,
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
             if (!tagId) return [];
@@ -218,6 +413,73 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 }
 
 /**
+ * Finds promo variations of a fragment's grouped (pzn) variations across every promotion project.
+ * Grouped paths never appear in a project's 'fragments' field (only the parent card does), so they
+ * can't be filtered by attachment. A recursive scan of the whole promotions root is both slow
+ * (cursor pagination is serial) and wasteful (it returns every promo copy just to keep a handful).
+ * Instead, each grouped copy keeps its source leaf as its node name, so an EDGES full-text search on
+ * that leaf returns only the copies of that variation — a single unpaginated page (verified: all 15
+ * live grouped copies matched, ≤3 results each, no cursor). One such search per grouped variation
+ * runs concurrently; the suffix matcher stays the authoritative filter so any over-match is dropped.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath - the parent card path (shares the surface/locale promotions root)
+ * @param {string[]} groupedVariationPaths
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
+ */
+async function probeGroupedVariationPromoReferences(aem, defaultPath, groupedVariationPaths = []) {
+    if (!aem || !defaultPath || !groupedVariationPaths.length) return [];
+    const promotionsRoot = buildPromotionsRootPath(defaultPath);
+    if (!promotionsRoot) return [];
+
+    const targets = groupedVariationPaths
+        .map((path) => PATH_TOKENS.exec(path)?.groups?.fragmentPath)
+        .filter(Boolean)
+        .map((relPath) => ({
+            matcher: buildPromoVariationSuffixMatcher(promotionsRoot, relPath),
+            leaf: relPath.split('/').pop(),
+        }))
+        .filter((target) => target.leaf);
+    if (!targets.length) return [];
+
+    const resultsPerTarget = await processConcurrently(
+        targets,
+        async ({ matcher, leaf }) => {
+            const found = [];
+            try {
+                for await (const batch of aem.sites.cf.fragments.search(
+                    { path: promotionsRoot, query: leaf },
+                    VARIATION_SEARCH_PAGE_SIZE,
+                )) {
+                    for (const variation of batch) {
+                        if (!variation?.id || !variation?.path) continue;
+                        const match = matcher.exec(variation.path);
+                        if (!match) continue;
+                        const index = match[1] ? Number(match[1]) : 1;
+                        if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) continue;
+                        found.push({
+                            path: variation.path,
+                            index,
+                            id: variation.id,
+                            pznTags: readPznTags(variation),
+                            status: variation.status,
+                            title: variation.title,
+                            model: variation.model,
+                            fields: variation.fields,
+                            tags: variation.tags,
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to search promotions folder for grouped promo variation probe:', error);
+            }
+            return found;
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+    return resultsPerTarget.flat();
+}
+
+/**
  * Merges probed promo variation references into a default fragment payload for listPromoVariations().
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragmentData
@@ -226,14 +488,34 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
  */
 export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
-    const discovered = await probePromoVariationReferences(aem, fragmentData.path, promotionProjects);
-    return mergePromoVariationReferences(fragmentData, discovered);
+    const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
+
+    const [defaultRefs, groupedRefs] = await Promise.all([
+        probePromoVariationReferences(aem, fragmentData.path, promotionProjects),
+        probeGroupedVariationPromoReferences(aem, fragmentData.path, groupedVariationPaths),
+    ]);
+
+    return mergePromoVariationReferences(fragmentData, [...defaultRefs, ...groupedRefs]);
+}
+
+const NUMERIC_SUFFIX_LEAF = /-\d+$/;
+
+/**
+ * Ranks a candidate default path: an attached path wins outright; otherwise prefer a leaf
+ * with no numeric suffix (a suffix is usually the variation's own leaf name, e.g.
+ * "my-card-2", not a coincidentally-named default).
+ * @param {string} candidate
+ * @param {Set<string>} attachedSet
+ * @returns {number}
+ */
+function rankDefaultCandidate(candidate, attachedSet) {
+    if (attachedSet.has(candidate)) return 2;
+    return NUMERIC_SUFFIX_LEAF.test(candidate) ? 0 : 1;
 }
 
 /**
- * Resolves the source default fragment for a given promo variation path.
- * Uses `attachedFragmentPaths` to prioritize the correct candidate path if the leaf has a numeric suffix,
- * falling back to the first candidate that exists in AEM.
+ * Resolves the source default fragment for a promo variation path: prefers an attached
+ * path, then the non-suffixed candidate, then the first candidate that exists in AEM.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} promoVariationPath
  * @param {string} [promoVariationId]
@@ -258,7 +540,9 @@ export async function resolveDefaultFragmentForPromoVariation(
     if (!candidates.length) return null;
 
     const attachedSet = new Set(attachedFragmentPaths);
-    const orderedCandidates = [...candidates].sort((a, b) => Number(attachedSet.has(b)) - Number(attachedSet.has(a)));
+    const orderedCandidates = [...candidates].sort(
+        (a, b) => rankDefaultCandidate(b, attachedSet) - rankDefaultCandidate(a, attachedSet),
+    );
 
     for (const candidate of orderedCandidates) {
         const fragment = await getFragmentByPathOrNull(aem.sites.cf.fragments, candidate);
@@ -275,6 +559,42 @@ export async function resolveDefaultFragmentForPromoVariation(
  * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
  * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
  */
+/**
+ * Probes the `pzn` subfolder under a fragment's promo-variation path for promo variations
+ * created from that fragment's own grouped variations.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @param {string} promoName
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
+ */
+async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName) {
+    const basePath = buildPromoVariationPath(defaultPath, promoName);
+    if (!basePath) return [];
+    const groupedFolder = `${basePath}/${PZN_FOLDER}`;
+
+    const rawResults = [];
+    for await (const batch of aem.sites.cf.fragments.search({ path: groupedFolder }, VARIATION_SEARCH_PAGE_SIZE)) {
+        rawResults.push(...batch);
+    }
+    return rawResults
+        .filter((item) => item?.id && item?.path)
+        .map((item) => {
+            const leaf = item.path.split('/').pop();
+            const suffixMatch = leaf.match(/-(\d+)$/);
+            return {
+                path: item.path,
+                index: suffixMatch ? Number(suffixMatch[1]) : 1,
+                id: item.id,
+                pznTags: readPznTags(item),
+                status: item.status,
+                title: item.title,
+                model: item.model,
+                fields: item.fields,
+                tags: item.tags,
+            };
+        });
+}
+
 async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false, onlyPublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];
@@ -282,22 +602,29 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
     const attachedPaths = Array.from(new Set(promotionFragment.getFieldValues?.('fragments') || []));
     if (!attachedPaths.length) return [];
 
-    const resultsPerPath = await processConcurrently(
-        attachedPaths,
-        async (parentPath) => {
-            const variations = await probePromoVariationsForFragment(aem, parentPath, promotionTagId);
-            return variations
-                .filter((variation) => {
-                    if (onlyUnpublished) return variation.status !== STATUS_PUBLISHED;
-                    if (onlyPublished) return variation.status !== STATUS_DRAFT;
-                    return true;
-                })
-                .map((variation) => ({ ...variation, parentPath }));
-        },
-        VARIATIONS_CONCURRENCY_LIMIT,
+    const promoName = getPromoNameFromTag(promotionTagId);
+    const variationsByPath = await probePromoVariationsForFragments(aem, attachedPaths, promotionTagId);
+    const groupedVariationsByPath = new Map(
+        await processConcurrently(
+            attachedPaths,
+            async (parentPath) => [
+                parentPath,
+                promoName ? await probeGroupedVariationPromoVariations(aem, parentPath, promoName) : [],
+            ],
+            VARIATIONS_CONCURRENCY_LIMIT,
+        ),
     );
 
-    return resultsPerPath.flat();
+    return attachedPaths.flatMap((parentPath) => {
+        const combined = [...(variationsByPath.get(parentPath) || []), ...(groupedVariationsByPath.get(parentPath) || [])];
+        return combined
+            .filter((variation) => {
+                if (onlyUnpublished) return variation.status !== STATUS_PUBLISHED;
+                if (onlyPublished) return variation.status !== STATUS_DRAFT;
+                return true;
+            })
+            .map((variation) => ({ ...variation, parentPath }));
+    });
 }
 
 /**
@@ -318,28 +645,6 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
  */
 export async function getPublishedAttachedPromoVariations(aem, promotionFragment) {
     return collectAttachedPromoVariations(aem, promotionFragment, { onlyPublished: true });
-}
-
-/**
- * Deletes every promo variation attached to a promotion project's fragments, regardless of status.
- * Live variations (PUBLISHED or MODIFIED) are unpublished first.
- * @param {import('../aem/aem.js').AEM} aem
- * @param {Object} promotionFragment
- * @returns {Promise<void>}
- */
-export async function deleteAttachedPromoVariations(aem, promotionFragment) {
-    const variations = await collectAttachedPromoVariations(aem, promotionFragment);
-    for (const variation of variations) {
-        try {
-            if (variation.status !== STATUS_DRAFT) {
-                const variationWithEtag = await aem.sites.cf.fragments.getWithEtag(variation.id);
-                if (variationWithEtag) await aem.sites.cf.fragments.unpublish(variationWithEtag);
-            }
-            await aem.sites.cf.fragments.forceDelete({ path: variation.path });
-        } catch (error) {
-            console.error(`Failed to delete promo variation ${variation.path}:`, error);
-        }
-    }
 }
 
 /**

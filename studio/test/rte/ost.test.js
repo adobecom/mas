@@ -104,6 +104,20 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.not.have.property('data-promotion-code');
     });
 
+    it('maps a quantity above 1 to data-quantity', () => {
+        onPlaceholderSelect('test-id', 'price', {}, { quantity: 5 }, null);
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail['data-quantity']).to.equal(5);
+    });
+
+    it('omits data-quantity when quantity is the default of 1', () => {
+        onPlaceholderSelect('test-id', 'price', {}, { quantity: 1 }, null);
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail).to.not.have.property('data-quantity');
+    });
+
     it('should dispatch an event with correct attributes for legal', () => {
         const offerSelectorId = 'test-id';
         const type = 'legal';
@@ -202,6 +216,50 @@ describe('onPlaceholderSelect', () => {
     });
 });
 
+describe('onPlaceholderSelect with mas-ff-defaults on', () => {
+    let dispatchEventStub;
+    let onPlaceholderSelect;
+    let masCommerceService;
+    let resolvePriceTaxFlagsStub;
+
+    before(async () => {
+        masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.featureFlags['mas-ff-defaults'] = true;
+        resolvePriceTaxFlagsStub = sinon.stub(masCommerceService, 'resolvePriceTaxFlags').resolves({});
+
+        ({ onPlaceholderSelect } = await import('../../src/rte/ost.js'));
+        dispatchEventStub = document.getElementById('ost').dispatchEvent;
+    });
+
+    after(() => {
+        masCommerceService.featureFlags['mas-ff-defaults'] = false;
+        resolvePriceTaxFlagsStub.restore();
+    });
+
+    beforeEach(() => {
+        dispatchEventStub.reset();
+        resolvePriceTaxFlagsStub.resetHistory();
+        Store.search.set({});
+    });
+
+    it('does not throw when offer.market_segments is undefined', async () => {
+        const offer = { customer_segment: 'INDIVIDUAL' };
+
+        await onPlaceholderSelect('test-id', 'price', offer, {}, null);
+
+        expect(dispatchEventStub.calledOnce).to.be.true;
+        expect(resolvePriceTaxFlagsStub.getCall(0).args[3]).to.equal(undefined);
+    });
+
+    it('passes the first market segment when present', async () => {
+        const offer = { customer_segment: 'TEAM', market_segments: ['COM', 'EDU'] };
+
+        await onPlaceholderSelect('test-id', 'price', offer, {}, null);
+
+        expect(resolvePriceTaxFlagsStub.getCall(0).args[3]).to.equal('COM');
+    });
+});
+
 describe('openOfferSelectorTool deep-link type parameter', () => {
     let openOfferSelectorTool;
     let openOstStub;
@@ -282,6 +340,12 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(config.authoringFlow).to.be.undefined;
         expect(config.searchOfferSelectorId).to.equal('osi-base');
         expect(config.initialReferenceOsi).to.equal('osi-ref');
+    });
+
+    it('restores quantity from a data-quantity placeholder into offerSelectorPlaceholderOptions', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-1', 'data-quantity': '5' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.offerSelectorPlaceholderOptions.quantity).to.equal('5');
     });
 
     it('passes language and country from authoring locale for en_EG regional variation', () => {

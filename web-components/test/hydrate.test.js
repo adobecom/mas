@@ -25,6 +25,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processBadge,
     processFeatures,
     normalizeVariant,
 } from '../src/hydrate.js';
@@ -36,6 +37,8 @@ import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
+import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
+import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -75,7 +78,11 @@ describe('normalizeVariant', () => {
         expect(normalizeVariant('plans-v2')).to.equal('plans');
     });
 
-    it('normalizes bizpro to plans for shared collection styling', () => {
+    it('normalizes pro to plans for shared collection styling', () => {
+        expect(normalizeVariant('pro')).to.equal('plans');
+    });
+
+    it('still normalizes legacy bizpro to plans', () => {
         expect(normalizeVariant('bizpro')).to.equal('plans');
     });
 
@@ -176,6 +183,15 @@ describe('processCTAs', async () => {
 
         expect(merchCard.append.called).to.be.false;
         expect(merchCard.shadowRoot.append.called).to.be.false;
+    });
+
+    it('should not throw when fields.ctas has leftover content but the variant mapping has no ctas slot (e.g. FAQ)', async () => {
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Click me</a>',
+        };
+
+        expect(() => processCTAs(fields, merchCard, {})).to.not.throw();
+        expect(merchCard.append.called).to.be.false;
     });
 
     it('should create spectrum css buttons by default (merchCard.spectrum=css)', async () => {
@@ -367,6 +383,139 @@ describe('processCTAs', async () => {
         });
         const footer = getFooterElement(merchCard);
         expect(footer.children).to.have.lengthOf(2);
+    });
+});
+
+describe('processCTAs - headless CTA variant labels', async () => {
+    let merchCard;
+    let aemFragmentMapping;
+
+    beforeEach(async () => {
+        merchCard = mockMerchCard();
+        aemFragmentMapping = {
+            ctas: {
+                slot: 'footer',
+                size: 'm',
+            },
+        };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('labels a <strong>-wrapped CTA as Primary on a headless card', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<strong><a href="#">Buy now</a></strong>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('strong a')).to.exist;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+    });
+
+    it('labels an <em>-wrapped CTA as Secondary', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<em><a href="#">Learn more</a></em>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('em a')).to.exist;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Secondary');
+    });
+
+    it('labels a bare CTA (no strong/em wrapper) as Link', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<a href="#">Contact us</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('strong, em')).to.not.exist;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Link');
+    });
+
+    it('wraps each of multiple headless CTAs in its own labeled item', async () => {
+        merchCard.variant = 'headless';
+        const fields = {
+            ctas: '<strong><a href="#">Buy now</a></strong><em><a href="#">Learn more</a></em>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const items = footer.querySelectorAll('.headless-cta-item');
+        expect(items).to.have.lengthOf(2);
+        expect(
+            items[0].querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+        expect(
+            items[1].querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Secondary');
+    });
+
+    ['marquee', 'banner-blade'].forEach((variant) => {
+        it(`applies the same variant labeling to the ${variant} template`, async () => {
+            merchCard.variant = variant;
+            const fields = { ctas: '<strong><a href="#">Buy now</a></strong>' };
+
+            processCTAs(fields, merchCard, aemFragmentMapping);
+
+            const footer = getFooterElement(merchCard);
+            const item = footer.querySelector('.headless-cta-item');
+            expect(item).to.exist;
+            expect(
+                item.querySelector('.headless-cta-variant-label').textContent,
+            ).to.equal('Primary');
+        });
+    });
+
+    it('resolves a headless checkout CTA to a real checkout-link, preserving its commitment step/modal options and data-key', async () => {
+        merchCard.variant = 'marquee';
+        const fields = {
+            ctas: '<strong><a href="#" data-key="cta1" data-wcs-osi="abm" data-checkout-workflow-step="segmentation" data-modal="true">Free trial</a></strong>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const link = footer.querySelector('a[data-wcs-osi]');
+        expect(link.getAttribute('data-key')).to.equal('cta1');
+        expect(link.masElement).to.exist;
+        await link.onceSettled();
+        expect(link.options.checkoutWorkflowStep).to.equal('segmentation');
+        expect(link.options.modal).to.be.ok;
+    });
+
+    it('does not label CTAs that carry an authored style class, even on a headless card', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<a href="#" class="accent">Buy now</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
+    });
+
+    it('does not label CTAs on variants outside the headless-style set', async () => {
+        merchCard.variant = 'plans';
+        const fields = { ctas: '<a href="#">Buy now</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
     });
 });
 
@@ -751,16 +900,16 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
+    it('injects merch-addon at slot="addon" for pro variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
 
         const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
         const fragment = {
-            id: 'bizpro-addon',
+            id: 'pro-addon',
             fields: {
-                variant: 'bizpro',
+                variant: 'pro',
                 cardTitle: 'Creative Cloud Pro',
                 prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
@@ -771,6 +920,26 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('hydrates a legacy bizpro fragment as pro', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const fragment = {
+            id: 'legacy-bizpro',
+            fields: {
+                variant: 'bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.variant).to.equal('pro');
+        expect(litCard.getAttribute('variant')).to.equal('pro');
         litCard.remove();
     });
 
@@ -908,6 +1077,18 @@ describe('MerchCard promotionCode getter', () => {
 
     it('returns undefined when no descendant and no contextPromotionCode is set', () => {
         expect(card.promotionCode).to.be.undefined;
+    });
+
+    it('reads only the first entry of a bundle placeholder comma-separated code', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild('promo1,');
+        expect(card.promotionCode).to.equal('promo1');
+    });
+
+    it('falls back to contextPromotionCode when the bundle placeholder has no promo for its first OSI', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild(',cancel-context');
+        expect(card.promotionCode).to.equal('CTX_PROMO');
     });
 });
 
@@ -1353,6 +1534,24 @@ describe('processBorderColor', () => {
             ),
         ).to.equal('transparent');
     });
+
+    it('should clear a stale border color left over from a previous hydration', () => {
+        merchCard.style.setProperty(
+            '--consonant-merch-card-border-color',
+            'var(--spectrum-blue-400)',
+        );
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor({ borderColor: '' }, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.be.empty;
+    });
 });
 
 describe('processWhatsIncludedDividerColor', () => {
@@ -1593,6 +1792,90 @@ describe('processTrialBadge', () => {
         expect(badge).to.exist;
         await delay(50);
         expect(badge.getAttribute('variant')).to.equal('another-variant');
+    });
+});
+
+describe('processBadge', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should not append a badge when text is empty on full-pricing-express', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not honor a stray mapping.badge.alwaysRender flag', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        const mapping = {
+            ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+            badge: {
+                ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING.badge,
+                alwaysRender: true,
+            },
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not append a badge when text is empty on simplified-pricing-express', () => {
+        const fields = { badge: '', variant: 'simplified-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not double-wrap when badge already contains merch-badge markup', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express">Sale</merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelectorAll('merch-badge').length).to.equal(1);
+    });
+
+    it('should not append a legacy merch-badge tag that has no text or price content', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express" background-color="spectrum-blue-400" border-color="spectrum-blue-400"></merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should still append a legacy merch-badge tag that only wraps an inline price', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express"><span is="inline-price">$9.99</span></merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"] merch-badge')).to.exist;
     });
 });
 

@@ -1,0 +1,14 @@
+{
+    "geos": {
+        "fieldLabel": "Geos",
+        "type": "tag[]"
+    },
+    "sourceoffer": {
+        "fieldLabel": "sourceOffer",
+        "type": "string"
+    },
+    "targetoffer": {
+        "fieldLabel": "targetOffer",
+        "type": "string"
+    }
+}

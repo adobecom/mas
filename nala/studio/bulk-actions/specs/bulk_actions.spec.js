@@ -10,7 +10,7 @@ export default {
         },
         {
             tcid: '1',
-            name: '@studio-action-menu-copy-code',
+            name: '@studio-action-menu-copy-link',
             path: '/studio.html',
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio @bulk-actions @action-menu',

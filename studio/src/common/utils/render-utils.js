@@ -1,9 +1,18 @@
 import { html, nothing } from 'lit';
-import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, DICTIONARY_MODEL_PATH } from '../../constants.js';
+import {
+    FRAGMENT_STATUS,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    PAGE_NAMES,
+    DICTIONARY_MODEL_PATH,
+    BASELINE_VARIATION,
+} from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
-import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
+import { generateLinkToUse, extractSurfaceFromPath } from '../../utils.js';
 import { isPromoVariationPath } from '../../promotions/promotion-model.js';
+import { toggleSidebarIcon } from '../../icons.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
@@ -18,7 +27,7 @@ export function getStudioFragmentDisplayPath(fragment) {
         page === PAGE_NAMES.PROMOTIONS_EDITOR
             ? Store.promotions.itemPickerSurface.get() || extractSurfaceFromPath(fragment?.path) || Store.search.get().path
             : extractSurfaceFromPath(fragment?.path) || Store.search.get().path;
-    return generateCodeToUse(fragment, path, page)?.authorPath || '';
+    return generateLinkToUse(fragment, path, page)?.authorPath || '';
 }
 
 /**
@@ -113,6 +122,21 @@ export function shouldIgnoreRowClickForSelection(event) {
 }
 
 /**
+ * Renders the baseline-variation notice shown when a promotion
+ * variation has no tags of its own and inherits the project's tags.
+ * @returns {import('lit').TemplateResult}
+ */
+export function renderInheritedTagsNotice() {
+    return html`<div class="text-with-tooltip">
+        ${BASELINE_VARIATION.TEXT}
+        <overlay-trigger placement="top" triggered-by="hover">
+            <div slot="trigger"><sp-icon-info size="s"></sp-icon-info></div>
+            <sp-tooltip slot="hover-content" placement="top">${BASELINE_VARIATION.TOOLTIP_TEXT}</sp-tooltip>
+        </overlay-trigger>
+    </div>`;
+}
+
+/**
  * Returns a display title for an item (card, collection, or placeholder).
  * @param {Object} item
  * @param {number} [maxLength=54]
@@ -125,4 +149,71 @@ export function getItemTitle(item, maxLength = 54) {
         return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
     }
     return item.key || item.getFieldValue?.('key') || '-';
+}
+
+/**
+ * Stops an event from bubbling further (used for internal overlay/popover events).
+ * @param {Event} event
+ */
+export function stopPropagation(event) {
+    event.stopPropagation();
+}
+
+/**
+ * Whether the active items-selection store is currently showing only selected items.
+ * Returns false when no store is bound.
+ * @returns {boolean}
+ */
+export function isShowingSelected() {
+    return getItemsSelectionStore({ allowUnset: true })?.showSelected.value ?? false;
+}
+
+/**
+ * Flips the active items-selection store's "show selected" flag. No-op when no store is bound.
+ */
+export function toggleShowSelected() {
+    getItemsSelectionStore({ allowUnset: true })?.showSelected.set(!isShowingSelected());
+}
+
+/**
+ * Label for the selected-items toggle button.
+ * @param {boolean} showingSelection
+ * @returns {string}
+ */
+export function getToggleSelectedLabel(showingSelection) {
+    return showingSelection ? 'Hide selection' : 'Selected items';
+}
+
+/**
+ * Tab label, appending the selection count when viewOnly. Omits the count when no store is bound.
+ * @param {{value: string, label: string}} tab
+ * @param {boolean} viewOnly
+ * @returns {string}
+ */
+export function formatTabLabel(tab, viewOnly) {
+    if (!viewOnly) return tab.label;
+    const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
+    const store = getItemsSelectionStore({ allowUnset: true });
+    if (!store) return tab.label;
+    const count = store[`selected${valueUppercase}`].value.length;
+    return `${tab.label} (${count})`;
+}
+
+/**
+ * Renders the floating "Selected items" / "Hide selection" toggle button.
+ * @param {{count: number, showingSelection: boolean, onToggle: () => void}} options
+ * @returns {import('lit').TemplateResult}
+ */
+export function renderSelectionToggle({ count, showingSelection, onToggle }) {
+    const toggleLabel = getToggleSelectedLabel(showingSelection);
+    return html`
+        <div class="selected-items-count">
+            <sp-button variant="secondary" @click=${onToggle} ?disabled=${!count} class="ghost-button">
+                <sp-icon slot="icon" label=${toggleLabel} class=${showingSelection ? 'flipped' : ''}>
+                    ${toggleSidebarIcon}
+                </sp-icon>
+                ${toggleLabel} (${count})
+            </sp-button>
+        </div>
+    `;
 }

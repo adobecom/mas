@@ -66,7 +66,10 @@ describe('getSettings', () => {
         url.searchParams.set('commerce.env', 'STAGE');
         url.searchParams.set('quantity', '2');
         url.searchParams.set('wcsApiKey', 'testapikey');
-        url.searchParams.set('mas-io-url', 'https://mycustomurl');
+        url.searchParams.set(
+            'mas-io-url',
+            'https://custom.adobeioruntime.net/mas/io',
+        );
         window.history.replaceState({}, '', url.toString());
 
         const config = { commerce: { allowOverride: '' } };
@@ -86,10 +89,18 @@ describe('getSettings', () => {
             quantity: [2],
             wcsApiKey: 'testapikey',
             locale: 'en_US',
-            masIOUrl: 'https://mycustomurl',
+            masIOUrl: 'https://custom.adobeioruntime.net/mas/io',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
         });
+    });
+
+    it('falls back to the default when mas-io-url is not allowlisted', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mas-io-url', 'https://mycustomurl');
+        window.history.replaceState({}, '', url.toString());
+        const settings = getSettings({}, mockService);
+        expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
     });
 
     it('uses document metadata and storage', () => {
@@ -306,6 +317,24 @@ describe('getLocaleSettings', () => {
             locale: 'en_GB',
             language: Defaults.language,
             country: 'GB',
+        });
+    });
+
+    it('maps Puerto Rico to US country while keeping es_PR locale (MWPW-203596)', () => {
+        const result = getLocaleSettings({ locale: 'es_PR' });
+        expect(result).to.deep.equal({
+            locale: 'es_PR',
+            language: 'es',
+            country: 'US',
+        });
+    });
+
+    it('maps explicit PR country to US', () => {
+        const result = getLocaleSettings({ locale: 'es_PR', country: 'PR' });
+        expect(result).to.deep.equal({
+            locale: 'es_PR',
+            language: 'es',
+            country: 'US',
         });
     });
 });

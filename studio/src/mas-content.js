@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
-import { VARIANTS } from './editors/variant-picker.js';
+import { RECOGNIZED_VARIANT_NAMES } from './editors/variant-picker.js';
 import Store from './store.js';
 import { isUUID } from './utils.js';
 import './mas-fragment.js';
@@ -18,8 +18,6 @@ import {
     mergeParentTableSelection,
     stripNestedVariationSelectControls,
 } from './mas-content-table-selection.js';
-
-const variantValues = VARIANTS.map((v) => v.value);
 
 export const cardSkeleton = () =>
     html`<div class="render-fragment-placeholder" aria-busy="true">
@@ -174,7 +172,8 @@ class MasContent extends LitElement {
             const value = fragmentStore.get();
             if (!value) return false;
             if (fragmentStore.new) return true;
-            if (value.model?.path === CARD_MODEL_PATH && !variantValues.includes(fragmentStore.value.variant)) return false;
+            if (value.model?.path === CARD_MODEL_PATH && !RECOGNIZED_VARIANT_NAMES.has(fragmentStore.value.variant))
+                return false;
             return true;
         });
         if (visibleFragments.length === 0) {

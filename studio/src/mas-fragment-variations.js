@@ -7,8 +7,9 @@ import { extractLocaleFromPath, showToast, createKeyedAsyncLoader } from './util
 import router from './router.js';
 import {
     getGroupedVariationTagsValue,
+    getPromoVariationGeoTagsValue,
+    getPromoVariationPersonalizationTagLabels,
     getPromotionCode,
-    hasAnyVariationTabItems,
     listGroupedVariations,
     listLocaleVariations,
     VARIATION_TABS,
@@ -18,12 +19,13 @@ import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import {
     findPromotionProjectIdByTag,
-    getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,
     getPromotionInfo,
 } from './promotions/promotion-model.js';
 import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
+import { probeOrphanedPromoVariationsForFragment } from './promotions/promotion-variations.js';
+import { renderInheritedTagsNotice } from './common/utils/render-utils.js';
 
 const styleElement = document.createElement('style');
 styleElement.setAttribute('data-mas-fragment-variations', '');
@@ -43,7 +45,8 @@ class MasFragmentVariations extends LitElement {
         duplicatePznTags: { type: Array, state: true },
         duplicateLoading: { type: Boolean, state: true },
         selectedTab: { type: String, state: true },
-        promotionGeosByTag: { type: Object, state: true },
+        orphanPromoVariations: { type: Array, state: true },
+        orphanPromoVariationsLoading: { type: Boolean, state: true },
     };
 
     reactiveController = new ReactiveController(this, [
@@ -62,10 +65,11 @@ class MasFragmentVariations extends LitElement {
         this.duplicatePznTags = [];
         this.duplicateLoading = false;
         this.selectedTab = Store.fragments.variationSearchTab.get() || 'locale';
-        this.promotionGeosByTag = new Map();
+        this.orphanPromoVariations = [];
+        this.orphanPromoVariationsLoading = false;
     }
 
-    #promotionGeosFallbackLoader = createKeyedAsyncLoader();
+    #orphanPromoVariationsLoader = createKeyedAsyncLoader();
 
     createRenderRoot() {
         return this;
@@ -97,39 +101,24 @@ class MasFragmentVariations extends LitElement {
         if (highlightId && this.#hasVariationInParent(highlightId)) {
             this.scrollToHighlightedVariation();
         }
-        void this.#loadPromotionGeosFallback();
+        void this.#loadOrphanPromoVariationsFallback();
     }
 
-    async #loadPromotionGeosFallback() {
-        const tagsNeeded = this.fragment
-            ? [
-                  ...new Set(
-                      this.promoVariations
-                          .filter((variation) => !getGroupedVariationTagsValue(variation))
-                          .map((variation) => getPromotionTagFromFragment(variation))
-                          .filter(Boolean),
-                  ),
-              ]
-            : [];
-        await this.#promotionGeosFallbackLoader({
-            guard: () =>
-                Boolean(this.fragment && this.hasPromoVariations && this.repository?.loadPromotions && tagsNeeded.length),
-            computeKey: () => tagsNeeded.slice().sort().join('|'),
-            load: async () => {
-                const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
-                const geosByTag = new Map(this.promotionGeosByTag);
-                for (const tag of tagsNeeded) {
-                    const project = projects.find(
-                        (candidate) =>
-                            getPromotionTagFromFragment(candidate) === tag &&
-                            (candidate.getFieldValues?.('fragments') ?? []).includes(this.fragment.path),
-                    );
-                    geosByTag.set(tag, project?.getFieldValues?.('geos') || []);
-                }
-                return geosByTag;
+    async #loadOrphanPromoVariationsFallback() {
+        const aem = this.repository?.aem;
+        await this.#orphanPromoVariationsLoader({
+            guard: () => Boolean(this.fragment?.path && aem),
+            computeKey: () => this.fragment.path,
+            load: () => {
+                this.orphanPromoVariationsLoading = true;
+                return probeOrphanedPromoVariationsForFragment(aem, this.fragment.path);
             },
-            apply: (geosByTag) => {
-                this.promotionGeosByTag = geosByTag;
+            apply: (discovered) => {
+                this.orphanPromoVariations = discovered;
+                this.orphanPromoVariationsLoading = false;
+            },
+            reset: () => {
+                this.orphanPromoVariationsLoading = false;
             },
         });
     }
@@ -174,7 +163,10 @@ class MasFragmentVariations extends LitElement {
     }
 
     get promoVariations() {
-        return this.fragment.listPromoVariations();
+        const known = this.fragment.listPromoVariations();
+        if (!this.orphanPromoVariations.length) return known;
+        const knownPaths = new Set(known.map((variation) => variation.path));
+        return [...known, ...this.orphanPromoVariations.filter((variation) => !knownPaths.has(variation.path))];
     }
 
     get hasLocaleVariations() {
@@ -191,6 +183,10 @@ class MasFragmentVariations extends LitElement {
 
     get hasAnyVariations() {
         return this.hasLocaleVariations || this.hasPromoVariations || this.hasGroupedVariations;
+    }
+
+    get isLoading() {
+        return this.loading || this.orphanPromoVariationsLoading;
     }
 
     get repository() {
@@ -441,7 +437,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     get promotionVariationsTemplate() {
-        if (this.loading) {
+        if (this.isLoading) {
             return html`
                 <div class="loading-container">
                     <sp-progress-circle indeterminate size="l"></sp-progress-circle>
@@ -464,10 +460,8 @@ class MasFragmentVariations extends LitElement {
                         const isExpanded = this.isPromoVariationExpanded(variationFragment.id);
                         const isHighlighted = this.isVariationHighlighted(variationFragment.id);
                         const { promotionName } = getPromotionInfo(variationFragment);
-                        const ownGeosValue = getGroupedVariationTagsValue(variationFragment);
-                        const promoTagId = getPromotionTagFromFragment(variationFragment);
-                        const fallbackGeos = this.promotionGeosByTag.get(promoTagId) || [];
-                        const geosValue = ownGeosValue || fallbackGeos.filter(Boolean).join(',');
+                        const isGroupedVariation = Fragment.isGroupedVariationPath(variationFragment.path);
+                        const geosValue = getPromoVariationGeoTagsValue(variationFragment);
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted
@@ -491,14 +485,34 @@ class MasFragmentVariations extends LitElement {
                                           </div>
                                           <div class="tags-group">
                                               <span class="field-label">Geos variation tags</span>
-                                              <aem-tag-picker-field
-                                                  namespace="/content/cq:tags/mas"
-                                                  display-value
-                                                  top="locale,pzn"
-                                                  value="${geosValue}"
-                                                  readonly
-                                              ></aem-tag-picker-field>
+                                              ${geosValue
+                                                  ? html`<aem-tag-picker-field
+                                                        namespace="/content/cq:tags/mas"
+                                                        display-value
+                                                        top="locale,pzn"
+                                                        value="${geosValue}"
+                                                        readonly
+                                                    ></aem-tag-picker-field>`
+                                                  : renderInheritedTagsNotice()}
                                           </div>
+                                          <div class="promo-code-field">
+                                              <span class="field-label">Applies to</span>
+                                              <span class="field-value"
+                                                  >${isGroupedVariation ? 'Grouped variation' : 'Default fragment'}</span
+                                              >
+                                          </div>
+                                          ${isGroupedVariation
+                                              ? html`
+                                                    <div class="promo-code-field">
+                                                        <span class="field-label">Grouped variation tags</span>
+                                                        <span class="field-value"
+                                                            >${getPromoVariationPersonalizationTagLabels(
+                                                                variationFragment,
+                                                            )}</span
+                                                        >
+                                                    </div>
+                                                `
+                                              : nothing}
                                       </div>
                                   `
                                 : nothing}
@@ -516,7 +530,7 @@ class MasFragmentVariations extends LitElement {
 
         return html`
             <div class="expanded-content">
-                ${this.loading
+                ${this.isLoading
                     ? html`<h3 class="expanded-title">Loading Variations...</h3>`
                     : this.hasAnyVariations
                       ? html`<h3 class="expanded-title">Variations</h3>`

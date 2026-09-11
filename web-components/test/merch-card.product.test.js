@@ -164,6 +164,92 @@ describe('Product.adjustLegal', () => {
         await layout.adjustLegal(); // must not throw — exits early
         expect(layout.legalAdjusted).to.be.true;
     });
+
+    function makeHeadingPrice(template) {
+        const clone = document.createElement('span');
+        clone.onceSettled = () => Promise.resolve();
+        const container = document.createElement('div');
+        return {
+            clone,
+            container,
+            price: {
+                cloneNode: () => clone,
+                onceSettled: () => Promise.resolve(),
+                options: {},
+                dataset: { template },
+                closest: () => container,
+            },
+        };
+    }
+
+    it('suppresses plan type on the legal clone for optical prices', async () => {
+        const { clone, container, price } = makeHeadingPrice('optical');
+        await makeLayout({ id: 'card-1', headingPrice: price }).adjustLegal();
+        expect(clone.getAttribute('data-template')).to.equal('legal');
+        expect(clone.dataset.displayPerUnit).to.equal('false');
+        expect(clone.dataset.displayPlanType).to.equal('false');
+        expect(container.contains(clone)).to.be.true;
+    });
+
+    it('keeps plan type on the legal clone for plain prices', async () => {
+        const { clone, price } = makeHeadingPrice('price');
+        await makeLayout({ id: 'card-1', headingPrice: price }).adjustLegal();
+        expect(clone.dataset.displayPlanType).to.be.undefined;
+    });
+});
+
+// ── Product.mainPrice ─────────────────────────────────────────────────────────
+
+describe('Product.mainPrice', () => {
+    function layoutWith(template) {
+        const card = document.createElement('div');
+        card.innerHTML = `<div slot="heading-xs"><span is="inline-price" data-wcs-osi="x" data-template="${template}"></span></div>`;
+        const layout = Object.create(Product.prototype);
+        layout.card = card;
+        return layout;
+    }
+
+    it('matches a standard price', () => {
+        expect(layoutWith('price').mainPrice).to.exist;
+    });
+
+    it('matches a promo (optical) price', () => {
+        expect(layoutWith('optical').mainPrice).to.exist;
+    });
+
+    it('ignores the legal price clone', () => {
+        expect(layoutWith('legal').mainPrice).to.be.null;
+    });
+});
+
+// ── Product.toggleAddon ───────────────────────────────────────────────────────
+
+describe('Product.toggleAddon', () => {
+    function makeLayout(mainPrice) {
+        const layout = Object.create(Product.prototype);
+        layout.card = document.createElement('div');
+        Object.defineProperty(layout, 'mainPrice', {
+            get: () => mainPrice,
+            configurable: true,
+        });
+        Object.defineProperty(layout, 'headingXSSlot', {
+            get: () => layout.card,
+            configurable: true,
+        });
+        return layout;
+    }
+
+    it('synthesizes a Free heading when there is no main price', () => {
+        const layout = makeLayout(null);
+        layout.toggleAddon(document.createElement('div')); // unchecked
+        expect(layout.card.querySelector('#free')).to.exist;
+    });
+
+    it('keeps the price when an optical price is present', () => {
+        const layout = makeLayout(document.createElement('span'));
+        layout.toggleAddon(document.createElement('div'));
+        expect(layout.card.querySelector('#free')).to.be.null;
+    });
 });
 
 // ── Product.renderLayout ──────────────────────────────────────────────────────

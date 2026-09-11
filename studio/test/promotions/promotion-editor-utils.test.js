@@ -3,7 +3,7 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
-    classifyPromotionPathsForSelection,
+    pruneOrphanedGroupedVariationSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
@@ -35,6 +35,10 @@ import {
     parseSelectedOfferIdsFromOffersField,
     parsePromotionSurfacesFieldValues,
     getEffectiveSubstituteOffer,
+    getEffectiveIgnoreVariations,
+    parseIgnoredVariations,
+    serializeIgnoredVariations,
+    isPromotionIgnoreVariationsEntry,
     groupOfferSubstitutionsForOffer,
     serializePromotionSurfacesForAem,
     serializePromoCodeExceptions,
@@ -43,7 +47,6 @@ import {
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
 } from '../../src/promotions/promotion-editor-utils.js';
-import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
@@ -158,6 +161,33 @@ describe('promotion-editor-utils', () => {
             const values = buildPromotionOffersFieldValues(p, ['osi-1']);
             expect(values).to.include('osi-1|CODE|US');
             expect(values).to.include('substitute|osi-1|osi-2|CA_en');
+        });
+
+        it('preserves ignore-variations lines while updating selected offer ids', () => {
+            const p = makePromotionFragment({
+                offers: ['osi-1', 'ignore-variations|osi-1|CA_en'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1', 'osi-3']);
+            expect(values).to.include('osi-3');
+            expect(values).to.include('ignore-variations|osi-1|CA_en');
+        });
+
+        it('removes ignore-variations lines for geos no longer in the geos field', () => {
+            const p = makePromotionFragment({
+                geos: ['mas:locale/en_AU'],
+                offers: ['ignore-variations|osi-1|en_AU', 'ignore-variations|osi-1|en_GB'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/en_AU');
+            expect(values).to.not.include('ignore-variations|osi-1|en_GB');
+        });
+
+        it('applies ignoredVariations override when provided', () => {
+            const p = makePromotionFragment({ geos: ['mas:locale/CA_en'], offers: ['osi-1'] });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1'], {
+                ignoredVariations: new Map([['osi-1|CA_en', true]]),
+            });
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/CA_en');
         });
     });
 
@@ -279,40 +309,37 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('classifyPromotionPathsForSelection', () => {
-        it('returns empty buckets for empty paths', async () => {
-            const out = await classifyPromotionPathsForSelection([], () => Promise.resolve({}));
-            expect(out).to.deep.equal({ cards: [], cols: [] });
+    describe('pruneOrphanedGroupedVariationSelection', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/parent-card';
+        const groupedPath = '/content/dam/mas/sandbox/en_US/parent-card/pzn/edu';
+        const otherCardPath = '/content/dam/mas/sandbox/en_US/other-card';
+
+        it('drops a grouped variation whose parent is no longer selected', async () => {
+            const selectedCards = [groupedPath, otherCardPath];
+            const resolveParentPath = async (path) => (path === groupedPath ? parentPath : null);
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal([otherCardPath]);
         });
 
-        it('classifies collection model as collections and others as cards', async () => {
-            const getFragmentByPath = (path) => {
-                if (path === '/col') return Promise.resolve({ model: { path: COLLECTION_MODEL_PATH } });
-                return Promise.resolve({ model: { path: '/other' } });
-            };
-            const out = await classifyPromotionPathsForSelection(['/card', '/col'], getFragmentByPath);
-            expect(out.cards).to.deep.equal(['/card']);
-            expect(out.cols).to.deep.equal(['/col']);
+        it('keeps a grouped variation whose parent is still selected', async () => {
+            const selectedCards = [parentPath, groupedPath];
+            const resolveParentPath = async (path) => (path === groupedPath ? parentPath : null);
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal(selectedCards);
         });
 
-        it('falls back to cards for rejected fetches', async () => {
-            const out = await classifyPromotionPathsForSelection([fetchFailed], () => Promise.reject(new Error('x')));
-            expect(out.cards).to.deep.equal([fetchFailed]);
-            expect(out.cols).to.deep.equal([]);
+        it('keeps a grouped variation whose parent could not be resolved', async () => {
+            const selectedCards = [groupedPath];
+            const resolveParentPath = async () => null;
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.deep.equal(selectedCards);
         });
 
-        it('falls back to cards for fulfilled fragments without model path', async () => {
-            const out = await classifyPromotionPathsForSelection(['/no-model'], () => Promise.resolve(null));
-            expect(out.cards).to.deep.equal(['/no-model']);
-            expect(out.cols).to.deep.equal([]);
-        });
-
-        it('respects custom collection model path', async () => {
-            const custom = '/custom/collection';
-            const getFragmentByPath = () => Promise.resolve({ model: { path: custom } });
-            const out = await classifyPromotionPathsForSelection(['/p'], getFragmentByPath, custom);
-            expect(out.cols).to.deep.equal(['/p']);
-            expect(out.cards).to.deep.equal([]);
+        it('returns the same array unchanged when there are no grouped-variation paths', async () => {
+            const selectedCards = [parentPath, otherCardPath];
+            const resolveParentPath = async () => null;
+            const out = await pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath);
+            expect(out).to.equal(selectedCards);
         });
     });
 
@@ -573,7 +600,7 @@ describe('promotion-editor-utils', () => {
         it('serializePromotionOffersField includes selected offer ids as bare lines', () => {
             const promo = new Map([['osi-1|CA_en', 'OVERRIDE']]);
             const subs = new Map();
-            const lines = serializePromotionOffersField(promo, subs, ['osi-1', 'osi-2']);
+            const lines = serializePromotionOffersField(promo, subs, new Map(), ['osi-1', 'osi-2']);
             expect(lines).to.include('osi-1');
             expect(lines).to.include('osi-2');
             expect(lines).to.include('osi-1|OVERRIDE|CA_en');
@@ -592,9 +619,56 @@ describe('promotion-editor-utils', () => {
         it('parseSelectedOfferIdsFromOffersField round-trips with serializePromotionOffersField', () => {
             const promo = new Map([['osi-1|CA_en', 'OVERRIDE']]);
             const selectedIds = ['osi-1', 'osi-2'];
-            const lines = serializePromotionOffersField(promo, new Map(), selectedIds);
+            const lines = serializePromotionOffersField(promo, new Map(), new Map(), selectedIds);
             const parsed = parseSelectedOfferIdsFromOffersField(lines);
             expect(parsed).to.deep.equal(['osi-1', 'osi-2']);
+        });
+
+        it('parsePromotionOffersField parses ignore-variations lines into a map', () => {
+            const { ignoredVariations, promoExceptions, offerSubstitutions } = parsePromotionOffersField([
+                'osi-1',
+                'ignore-variations|osi-1|CA_en',
+            ]);
+            expect(ignoredVariations.get('osi-1|CA_en')).to.be.true;
+            expect(promoExceptions.size).to.equal(0);
+            expect(offerSubstitutions.size).to.equal(0);
+        });
+
+        it('isPromotionIgnoreVariationsEntry detects ignore-variations lines only', () => {
+            expect(isPromotionIgnoreVariationsEntry('ignore-variations|osi-1|CA_en')).to.be.true;
+            expect(isPromotionIgnoreVariationsEntry('substitute|osi-1|osi-2|US')).to.be.false;
+            expect(isPromotionIgnoreVariationsEntry('osi-1|CODE|US')).to.be.false;
+        });
+
+        it('ignore-variations lines round-trip through serialize/parse', () => {
+            const ignored = new Map([['osi-1|CA_en', true]]);
+            const lines = serializeIgnoredVariations(ignored);
+            expect(lines).to.deep.equal(['ignore-variations|osi-1|CA_en']);
+            expect(parseIgnoredVariations(lines).get('osi-1|CA_en')).to.be.true;
+        });
+
+        it('serializeIgnoredVariations drops unchecked entries and maps geo labels to cq tags', () => {
+            const ignored = new Map([
+                ['osi-1|CA_en', true],
+                ['osi-2|US', false],
+            ]);
+            const displayToCq = new Map([['CA_en', 'mas:locale/CA_en']]);
+            expect(serializeIgnoredVariations(ignored, displayToCq)).to.deep.equal([
+                'ignore-variations|osi-1|mas:locale/CA_en',
+            ]);
+        });
+
+        it('getEffectiveIgnoreVariations returns the per-offer/country flag', () => {
+            const ignored = parseIgnoredVariations(['ignore-variations|osi-1|CA_en']);
+            expect(getEffectiveIgnoreVariations(ignored, 'osi-1', 'CA_en')).to.be.true;
+            expect(getEffectiveIgnoreVariations(ignored, 'osi-1', 'US')).to.be.false;
+        });
+
+        it('serializePromotionOffersField appends ignore-variations lines', () => {
+            const ignored = new Map([['osi-1|CA_en', true]]);
+            const lines = serializePromotionOffersField(new Map(), new Map(), ignored, ['osi-1']);
+            expect(lines).to.include('osi-1');
+            expect(lines).to.include('ignore-variations|osi-1|CA_en');
         });
 
         it('getEffectiveSubstituteOffer returns substitute selector id', () => {
@@ -1090,7 +1164,7 @@ describe('promotion-editor-utils', () => {
     describe('handlePromotionOstOfferSelect', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
-            Store.promotions.offerDataCache.clear();
+            Store.promotions.offerRecordsCache.clear();
             setItemsSelectionStore(Store.promotions);
         });
 
@@ -1107,7 +1181,7 @@ describe('promotion-editor-utils', () => {
             });
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
-            expect(Store.promotions.offerDataCache.has('phsp-osi')).to.be.true;
+            expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.true;
         });
 
         it('returns false and does not duplicate when offer is already selected', async () => {

@@ -699,6 +699,36 @@ describe('Router', () => {
         });
     });
 
+    describe('status filter hash param', () => {
+        it('should sync status from hash to store on start', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,PUBLISHED';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT,PUBLISHED');
+        });
+
+        it('should drop unknown statuses coming from the hash', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,BOGUS';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT');
+        });
+
+        it('should sync status from store to hash', async () => {
+            mockLocation.hash = '#page=content';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: 'DRAFT' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('status=DRAFT');
+        });
+
+        it('should remove status from hash when the filter is cleared', async () => {
+            mockLocation.hash = '#page=content&status=DRAFT';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: undefined }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('status=');
+        });
+    });
+
     describe('navigateToFragmentEditor', () => {
         it('should navigate to fragment editor', async () => {
             await router.navigateToFragmentEditor('test-id');
@@ -1056,6 +1086,12 @@ describe('Router', () => {
         it('returns true when tags are removed after closing the promotion item picker', () => {
             const prev = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
             const next = '#page=promotions-editor&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when the status filter changes on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&status=DRAFT';
             expect(promoHashIsSearchSync(prev, next)).to.be.true;
         });
     });

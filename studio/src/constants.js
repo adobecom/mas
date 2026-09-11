@@ -141,10 +141,7 @@ export const PAGE_NAMES = {
     OFFER_MAPPING: 'offer-mapping',
 };
 
-export const TAG_STATUS_PUBLISHED = 'mas:status/published';
-export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
-export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
 export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
@@ -293,7 +290,17 @@ export const FRAGMENT_STATUS = {
     PUBLISHED: 'PUBLISHED',
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
+    NEW: 'NEW',
+    UNPUBLISHED: 'UNPUBLISHED',
 };
+
+export const FRAGMENT_STATUS_OPTIONS = [
+    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
+    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
+    { id: FRAGMENT_STATUS.NEW, title: 'New' },
+    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
+    { id: FRAGMENT_STATUS.UNPUBLISHED, title: 'Unpublished' },
+];
 
 export const TABLE_TYPE = {
     OFFERS: 'offers',

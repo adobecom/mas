@@ -334,9 +334,9 @@ export function pruneOrphanedPromotionSelectionAfterOfferRemoval({
     };
 }
 
-export function normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode) {
+export function normalizePromotionOfferData(offer, productArrangementCode) {
     const base = offer && typeof offer === 'object' ? { ...offer } : {};
-    const offerId = base.offerId ?? base.offer_id ?? offerSelectorId;
+    const offerId = base.offerId ?? base.offer_id;
     const arrangementCode = productArrangementCode ?? base.product_arrangement_code ?? base.productArrangementCode;
     delete base.offer_id;
     return {
@@ -354,7 +354,7 @@ export function normalizePromotionOfferData(offer, offerSelectorId, productArran
  * @returns {object}
  */
 export function buildPromotionOfferRecord(offerSelectorId, offer, productArrangementCode) {
-    const offerData = normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode);
+    const offerData = normalizePromotionOfferData(offer, productArrangementCode);
     const tags = buildOfferTags(offer, offerData.product_arrangement_code);
     const mnemonicIcon = resolveOfferMnemonicIconUrl(offer);
     const fields = mnemonicIcon ? [{ name: 'mnemonicIcon', values: [mnemonicIcon] }] : [];
@@ -412,6 +412,7 @@ export async function resolvePromotionOfferRecord(offerSelectorId, country) {
         resolvedOffer = await resolvePromotionWcsOffer(offerSelectorId, country);
     } catch {
         resolvedOffer = null;
+        console.error("Couldn't resolve offer selector id", offerSelectorId);
     }
     const arrangementCode = resolvedOffer?.product_arrangement_code ?? resolvedOffer?.productArrangementCode;
     return buildPromotionOfferRecord(offerSelectorId, resolvedOffer, arrangementCode);
@@ -717,14 +718,14 @@ export function groupOfferSubstitutionsForOffer(offerSubstitutions, offerKeys, c
             }
         }
         if (!substituteSelectorId) continue;
-        const label = resolveOfferLabel?.(substituteSelectorId) ?? substituteSelectorId;
-        if (!groups.has(label)) groups.set(label, []);
-        groups.get(label).push(country);
+        if (!groups.has(substituteSelectorId)) groups.set(substituteSelectorId, []);
+        groups.get(substituteSelectorId).push(country);
     }
 
     return [...groups.entries()]
-        .map(([offerLabel, countryList]) => ({
-            offerLabel,
+        .map(([offerId, countryList]) => ({
+            offerId,
+            offerLabel: resolveOfferLabel?.(offerId) ?? offerId,
             countries: countryList,
             countriesLabel: countryList.join(', '),
         }))
@@ -762,22 +763,6 @@ export function groupCountriesByPromoCodeForOffer(exceptions, offerKeys, countri
             countriesLabel: countryList.join(', '),
         }))
         .sort((a, b) => a.promoCode.localeCompare(b.promoCode));
-}
-
-function getDistinctPromoCodesForOffer(exceptions, offerId, countries, defaultPromoCode) {
-    if (!offerId) return [];
-    const codes = new Set();
-    const locales = Array.isArray(countries) && countries.length ? countries : [''];
-    for (const country of locales) {
-        const code = getEffectivePromoCode(exceptions, offerId, country, defaultPromoCode);
-        if (code) codes.add(code);
-    }
-    return [...codes];
-}
-
-export function countDistinctPromoCodesForOffer(exceptions, offerId, countries, defaultPromoCode) {
-    const codes = getDistinctPromoCodesForOffer(exceptions, offerId, countries, defaultPromoCode);
-    return codes.length;
 }
 
 export function groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode) {

@@ -168,6 +168,7 @@ export class MasRepository extends LitElement {
         return applyFragmentListFilters(fragmentStores, {
             page: this.page.value,
             personalizationFilterEnabled: this.filters.value.personalizationFilterEnabled,
+            variationPresence: this.filters.value.variationPresence,
         });
     }
 
@@ -450,6 +451,8 @@ export class MasRepository extends LitElement {
         const locale = this.filters.value.locale;
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const metaPersonalizationOn = dataStore.getMeta('personalizationFilterEnabled') === true;
+        const variationPresence = this.filters.value.variationPresence ?? null;
+        const metaVariationPresence = dataStore.getMeta('variationPresence') ?? null;
         let resolvedLocale = locale;
         let resolvedPath = path;
 
@@ -504,7 +507,8 @@ export class MasRepository extends LitElement {
             currentData?.length > 0 &&
             currentPath === path &&
             currentLocale === locale &&
-            metaPersonalizationOn === personalizationOn;
+            metaPersonalizationOn === personalizationOn &&
+            metaVariationPresence === variationPresence;
 
         const identicalFilters =
             sameSurface && currentQuery === query && currentTags === tagsString && currentCreatedBy === createdByString;
@@ -635,7 +639,8 @@ export class MasRepository extends LitElement {
                 if (
                     (currentFragment?.value?.id === query || alreadyResolvedVariation) &&
                     dataStore.get()?.length === 1 &&
-                    metaPersonalizationOn === personalizationOn
+                    metaPersonalizationOn === personalizationOn &&
+                    metaVariationPresence === variationPresence
                 ) {
                     Store.fragments.list.loading.set(false);
                     Store.fragments.list.firstPageLoaded.set(true);
@@ -808,6 +813,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', tagsString);
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
+            dataStore.setMeta('variationPresence', variationPresence);
             if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                 dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
             }

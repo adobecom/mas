@@ -2,8 +2,11 @@ import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
+import { VARIATION_PRESENCE, VARIATION_PRESENCE_LABELS } from '../fragments/fragment-list-filters.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
+
+const VARIATION_PRESENCE_DEFAULT = 'all';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -172,6 +175,18 @@ class MasFilterPanel extends LitElement {
         return Store.filters.get().personalizationFilterEnabled === true;
     }
 
+    get #variationPresence() {
+        return Store.filters.get().variationPresence || VARIATION_PRESENCE_DEFAULT;
+    }
+
+    #handleVariationPresenceChange(e) {
+        const value = e.target.value;
+        Store.filters.set((prev) => ({
+            ...prev,
+            variationPresence: value === VARIATION_PRESENCE_DEFAULT ? undefined : value,
+        }));
+    }
+
     #onPersonalizationToggleEnabled(e) {
         const enabled = e.detail.enabled;
         Store.filters.set((prev) => ({
@@ -254,6 +269,7 @@ class MasFilterPanel extends LitElement {
             ...prev,
             tags: '',
             personalizationFilterEnabled: false,
+            variationPresence: undefined,
         }));
 
         Store.createdByUsers.set([]);
@@ -397,6 +413,25 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                     @personalization-toggle-change=${this.#onPersonalizationToggleEnabled}
                 ></aem-tag-picker-field>
+
+                <sp-picker
+                    class="variation-presence-filter"
+                    size="m"
+                    label="Has variation?"
+                    .value=${this.#variationPresence}
+                    @change=${this.#handleVariationPresenceChange}
+                >
+                    <sp-menu-item value=${VARIATION_PRESENCE_DEFAULT}>All cards</sp-menu-item>
+                    <sp-menu-item value=${VARIATION_PRESENCE.PROMO}
+                        >${VARIATION_PRESENCE_LABELS[VARIATION_PRESENCE.PROMO]}</sp-menu-item
+                    >
+                    <sp-menu-item value=${VARIATION_PRESENCE.GROUPED}
+                        >${VARIATION_PRESENCE_LABELS[VARIATION_PRESENCE.GROUPED]}</sp-menu-item
+                    >
+                    <sp-menu-item value=${VARIATION_PRESENCE.NONE}
+                        >${VARIATION_PRESENCE_LABELS[VARIATION_PRESENCE.NONE]}</sp-menu-item
+                    >
+                </sp-picker>
 
                 <mas-user-picker
                     label="Created by"

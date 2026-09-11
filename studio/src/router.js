@@ -537,7 +537,7 @@ export class Router extends EventTarget {
         const normalizedOnStart = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
-        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
+        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled', 'variationPresence'], {
             locale: 'en_US',
             personalizationFilterEnabled: false,
         });

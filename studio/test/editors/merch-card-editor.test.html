@@ -331,6 +331,30 @@
                         expect(editor.mnemonics).to.have.length(1);
                     });
 
+                    // A variation inherits its variant, so is-headless-cta follows the effective
+                    // variant, not the variation's own empty one.
+                    it('inherits the headless CTA picker from a headless-family parent', async () => {
+                        await setupTestEnvironment({ variant: [] }, 'headless-cta');
+
+                        const headlessParent = new Fragment(
+                            structuredClone({
+                                ...parentWithAllFields,
+                                fields: parentWithAllFields.fields.map((field) =>
+                                    field.name === 'variant' ? { ...field, values: ['marquee'] } : field,
+                                ),
+                            }),
+                        );
+                        editor.localeDefaultFragment = headlessParent;
+                        editor.requestUpdate();
+                        await editor.updateComplete;
+
+                        expect(editor.getEffectiveFieldValue('variant')).to.equal('marquee');
+                        const ctas = editor.querySelector('rte-field#ctas');
+                        expect(ctas).to.exist;
+                        expect(ctas.hasAttribute('is-headless-cta')).to.be.true;
+                        expect(ctas.getAttribute('default-link-style')).to.equal('primary');
+                    });
+
                     it('removes inherited badge values and restores it via override indicator', async () => {
                         await setupTestEnvironment();
                         expect(editor.getFieldState('badge')).to.equal('inherited');

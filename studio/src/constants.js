@@ -238,6 +238,11 @@ export const SURFACES = {
         label: 'Adobe Home',
         name: 'adobe-home',
     },
+    BRAND_CONCIERGE: {
+        label: 'Brand Concierge',
+        name: 'brand-concierge',
+        checkoutClientId: 'acom_bc',
+    },
     CCD: {
         label: 'CCD',
         name: 'ccd',
@@ -302,7 +307,7 @@ export const TABLE_TYPE = {
     PLACEHOLDERS: 'placeholders',
 };
 
-export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
+export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala', 'brand-concierge'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';

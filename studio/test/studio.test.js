@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { nothing } from 'lit';
 import { PAGE_NAMES } from '../src/constants.js';
+import Store from '../src/store.js';
 import '../src/studio.js';
 
 const PAGE_GETTERS = [
@@ -53,6 +54,36 @@ describe('MasStudio – page getters', () => {
             }
         });
     }
+});
+
+describe('MasStudio – renderCommerceService', () => {
+    let el;
+    let commerceServiceEl;
+    let originalSearch;
+
+    beforeEach(() => {
+        originalSearch = Store.search.get();
+        commerceServiceEl = document.createElement('mas-commerce-service');
+        document.body.append(commerceServiceEl);
+        el = document.createElement('mas-studio');
+    });
+
+    afterEach(() => {
+        commerceServiceEl.remove();
+        Store.search.set(originalSearch);
+    });
+
+    it("sets checkout-client-id from the surface's registered client id", () => {
+        Store.search.set({ ...Store.search.get(), path: 'brand-concierge' });
+        el.renderCommerceService();
+        expect(document.querySelector('mas-commerce-service').getAttribute('checkout-client-id')).to.equal('acom_bc');
+    });
+
+    it('omits checkout-client-id for surfaces without a registered client id', () => {
+        Store.search.set({ ...Store.search.get(), path: 'acom' });
+        el.renderCommerceService();
+        expect(document.querySelector('mas-commerce-service').hasAttribute('checkout-client-id')).to.be.false;
+    });
 });
 
 describe('MasStudio – disconnectedCallback', () => {

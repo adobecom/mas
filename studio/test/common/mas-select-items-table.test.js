@@ -436,6 +436,16 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             expect(el.itemsToDisplay).to.deep.equal([]);
         });
+
+        it('reads the store captured at connect, not a global swapped in by another editor afterward', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
+            setItemsSelectionStore(Store.compareChart);
+            expect(() => el.itemsToDisplay).to.not.throw();
+            expect(el.itemsToDisplay.map((c) => c.path)).to.deep.equal(['/path/card1']);
+        });
     });
 
     describe('rendering - loading state', () => {
@@ -957,6 +967,21 @@ describe('MasSelectItemsTable', () => {
             el.disconnectedCallback();
 
             expect(el.processAbortController).to.be.null;
+        });
+
+        it('does not throw unsubscribing the collections-ready listener after the global store was swapped by another editor', async () => {
+            // type="collections" with an empty, not-yet-loaded store takes the
+            // subscribe branch in connectedCallback, arming #collectionsReadyUnsub.
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            // Simulate another owner claiming the shared items-selection-store
+            // singleton before this table's own disconnectedCallback runs (e.g. a
+            // nested owner like mas-compare-chart-editor pushing its own slice
+            // while this table's ancestor is still mid-teardown).
+            setItemsSelectionStore(Store.compareChart);
+
+            expect(() => el.disconnectedCallback()).to.not.throw();
         });
     });
 

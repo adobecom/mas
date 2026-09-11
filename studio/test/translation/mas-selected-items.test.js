@@ -43,7 +43,7 @@ describe('MasSelectedItems', () => {
         Store.translationProjects.collectionsByPaths.value = new Map();
         Store.translationProjects.placeholdersByPaths.value = new Map();
         Store.translationProjects.groupedVariationsData.value = new Map();
-        setCardVariationsByPaths(new Map());
+        setCardVariationsByPaths(new Map(), Store.translationProjects);
     };
 
     const setCardsByPaths = (map) => {

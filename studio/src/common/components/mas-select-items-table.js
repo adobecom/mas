@@ -2,8 +2,8 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-select-items-table.css.js';
 import Store from '../../store.js';
-import { getItemsSelectionStore } from '../items-selection-store.js';
 import StoreController from '../../reactivity/store-controller.js';
+import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
 import '../../translation/mas-collapsible-table-row.js';
 import { TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
@@ -46,6 +46,7 @@ class MasSelectItemsTable extends LitElement {
     loading = new StoreController(this, Store.fragments.list.loading);
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
     #collectionsReadyUnsub = null;
+    itemsSelection = new ItemsSelectionController(this);
 
     constructor() {
         super();
@@ -97,9 +98,9 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.pendingCards = null;
         if (this.viewOnly && !this.viewOnlyFragmentsFetchedByParent) {
             if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
-                this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
+                this.viewOnlyLoading = !!this.itemsSelection.value.selectedPlaceholders.value?.length;
                 this.dataSubscription = loadSelectedPlaceholders(
-                    getItemsSelectionStore().selectedPlaceholders.value,
+                    this.itemsSelection.value.selectedPlaceholders.value,
                     (items) => {
                         this.viewOnlyFragments = items;
                         if (!Store.placeholders.list.loading.get()) {
@@ -117,15 +118,16 @@ class MasSelectItemsTable extends LitElement {
                         this.viewOnlyFragments = items;
                     },
                     getDisplayName: this.getDisplayName,
+                    store: this.itemsSelection.value,
                 }).finally(() => {
                     this.viewOnlyLoading = false;
                 });
             }
         } else {
             if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
-                this.dataSubscription = loadAllPlaceholders();
+                this.dataSubscription = loadAllPlaceholders(this.itemsSelection.value);
             } else if (this.effectiveType === TABLE_TYPE.COLLECTIONS) {
-                const collectionsStore = getItemsSelectionStore().allCollections;
+                const collectionsStore = this.itemsSelection.value.allCollections;
                 if (collectionsStore.getMeta('loaded') || collectionsStore.get()?.length > 0) {
                     this.dataReady = true;
                 } else {
@@ -140,6 +142,7 @@ class MasSelectItemsTable extends LitElement {
                 }
                 this.dataSubscription = loadAllFragments(this.effectiveType, this.repository, this.dataState, {
                     getDisplayName: this.getDisplayName,
+                    store: this.itemsSelection.value,
                 });
             } else {
                 this.dataSubscription = loadAllFragments(this.effectiveType, this.repository, this.dataState, {
@@ -147,16 +150,17 @@ class MasSelectItemsTable extends LitElement {
                     onReady: () => {
                         this.dataReady = true;
                     },
+                    store: this.itemsSelection.value,
                 });
             }
         }
         this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
             Store.fragments.list.loading,
             Store.placeholders.list.loading,
-            getItemsSelectionStore()[`selected${this.typeUppercased}`],
+            this.itemsSelection.value[`selected${this.typeUppercased}`],
         ]);
         this[`display${this.typeUppercased}StoreController`] = new ReactiveController(this, [
-            getItemsSelectionStore()[`display${this.typeUppercased}`],
+            this.itemsSelection.value[`display${this.typeUppercased}`],
         ]);
     }
 
@@ -200,8 +204,7 @@ class MasSelectItemsTable extends LitElement {
         this.processAbortController?.abort();
         this.processAbortController = null;
         if (this.#collectionsReadyUnsub) {
-            const selectionStore = getItemsSelectionStore({ allowUnset: true });
-            selectionStore?.allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            this.itemsSelection.value?.allCollections.unsubscribe(this.#collectionsReadyUnsub);
             this.#collectionsReadyUnsub = null;
         }
     }
@@ -224,7 +227,7 @@ class MasSelectItemsTable extends LitElement {
      * under their parent card's tab, not as top-level rows (persisting in the store).
      */
     get #topLevelSelectedPaths() {
-        const paths = getItemsSelectionStore()[`selected${this.typeUppercased}`].value ?? [];
+        const paths = this.itemsSelection.value?.[`selected${this.typeUppercased}`].value ?? [];
         return this.hideGroupedVariations && this.effectiveType === TABLE_TYPE.CARDS
             ? paths.filter((path) => !Fragment.isGroupedVariationPath(path))
             : paths;
@@ -247,15 +250,14 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get itemsToDisplay() {
-        const store = getItemsSelectionStore({ allowUnset: true });
+        const store = this.itemsSelection.value;
         if (!store) return [];
         const items = this.viewOnly ? this.viewOnlyFragments : store[`display${this.typeUppercased}`].value;
         return this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
     }
 
     get selectedInTable() {
-        const store = getItemsSelectionStore({ allowUnset: true });
-        return new Set(store?.[`selected${this.typeUppercased}`].value || []);
+        return new Set(this.itemsSelection.value?.[`selected${this.typeUppercased}`].value || []);
     }
 
     get loadedPaths() {
@@ -280,7 +282,7 @@ class MasSelectItemsTable extends LitElement {
 
     #toggleSelectAll(e) {
         e.stopPropagation();
-        const store = getItemsSelectionStore()[`selected${this.typeUppercased}`];
+        const store = this.itemsSelection.value[`selected${this.typeUppercased}`];
         const current = new Set(store.value);
         if (this.selectAllChecked) {
             this.loadedPaths.forEach((p) => current.delete(p));
@@ -360,7 +362,7 @@ class MasSelectItemsTable extends LitElement {
         const newSelected = this.selectedInTable.has(path)
             ? [...this.selectedInTable].filter((selectedPath) => selectedPath !== path)
             : [...this.selectedInTable, path];
-        getItemsSelectionStore()[`selected${this.typeUppercased}`].set(newSelected);
+        this.itemsSelection.value[`selected${this.typeUppercased}`].set(newSelected);
     }
 
     #onRowClickForSelection(e, path) {

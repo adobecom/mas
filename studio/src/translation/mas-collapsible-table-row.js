@@ -3,9 +3,9 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
 import { getItemTypeLabel, renderInheritedTagsNotice, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
-import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
 import {
     getPromotionInfo,
@@ -51,6 +51,9 @@ export class MasCollapsibleTableRow extends LitElement {
     #promoLoadInProgress = false;
     #loadToken = 0;
     #referencesLoaded = false;
+    itemsSelection = new ItemsSelectionController(this);
+    variationsController = null;
+    selectedCardsController = null;
 
     constructor() {
         super();
@@ -62,13 +65,26 @@ export class MasCollapsibleTableRow extends LitElement {
         this.promoVariationsLoaded = false;
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
-        this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
-        this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
         this.promoVariations = [];
+    }
+
+    #registerStores() {
+        const store = this.itemsSelection.value;
+        if (this.variationsController) {
+            this.variationsController.updateStores([store.groupedVariationsByParent]);
+        } else {
+            this.variationsController = new ReactiveController(this, [store.groupedVariationsByParent]);
+        }
+        if (this.selectedCardsController) {
+            this.selectedCardsController.updateStores([store.selectedCards]);
+        } else {
+            this.selectedCardsController = new ReactiveController(this, [store.selectedCards]);
+        }
     }
 
     connectedCallback() {
         super.connectedCallback();
+        this.#registerStores();
         if (!this.tabs) {
             this.tabs = [VARIATION_TAB_NAME.LOCALE, VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED];
         }
@@ -112,11 +128,11 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get topLevelCardVariationsByPaths() {
-        return getItemsSelectionStore().groupedVariationsByParent.value.get(this.topLevelCard.path) || new Map();
+        return this.itemsSelection.value.groupedVariationsByParent.value.get(this.topLevelCard.path) || new Map();
     }
 
     get selectedCards() {
-        return getItemsSelectionStore().selectedCards.value || [];
+        return this.itemsSelection.value.selectedCards.value || [];
     }
 
     get cells() {
@@ -499,11 +515,11 @@ export class MasCollapsibleTableRow extends LitElement {
 
     #toggleSelect = (e, path) => {
         e.stopPropagation();
-        const current = getItemsSelectionStore().selectedCards.value || [];
+        const current = this.itemsSelection.value.selectedCards.value || [];
         if (current.includes(path)) {
-            getItemsSelectionStore().selectedCards.set(current.filter((p) => p !== path));
+            this.itemsSelection.value.selectedCards.set(current.filter((p) => p !== path));
         } else {
-            getItemsSelectionStore().selectedCards.set([...current, path]);
+            this.itemsSelection.value.selectedCards.set([...current, path]);
         }
     };
 
@@ -511,11 +527,11 @@ export class MasCollapsibleTableRow extends LitElement {
         e.stopPropagation();
         if (!['grouped', 'promo'].includes(variationType)) return;
         const paths = this[`${variationType}VariationPaths`];
-        const current = getItemsSelectionStore().selectedCards.value || [];
+        const current = this.itemsSelection.value.selectedCards.value || [];
         if (this[`all${variationType.charAt(0).toUpperCase() + variationType.slice(1)}VariationsSelected`]) {
-            getItemsSelectionStore().selectedCards.set(current.filter((p) => !paths.includes(p)));
+            this.itemsSelection.value.selectedCards.set(current.filter((p) => !paths.includes(p)));
         } else {
-            getItemsSelectionStore().selectedCards.set([...new Set([...current, ...paths])]);
+            this.itemsSelection.value.selectedCards.set([...new Set([...current, ...paths])]);
         }
     }
 
@@ -546,6 +562,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 const promoOnly = new Fragment(mergedFragmentData).listPromoVariations();
                 const enriched = await enrichPromoVariations(promoOnly, this.topLevelCard, {
                     getDisplayName: this.getDisplayName,
+                    store: this.itemsSelection.value,
                 });
                 if (token !== this.#loadToken) return;
                 this.promoVariationsLoaded = true;
@@ -582,17 +599,18 @@ export class MasCollapsibleTableRow extends LitElement {
             }
         }
         if (this.isGroupedVariation) {
-            if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
+            if (this.itemsSelection.value.groupedVariationsData.value?.get(this.topLevelCard.path)) return;
             this.#groupedActiveLoadCount++;
             this.isLoadingGroupedVariations = true;
             fetchVariationByPath(this.topLevelCard.path, this.repository, {
                 getDisplayName: this.getDisplayName,
+                store: this.itemsSelection.value,
             }).finally(() => {
                 this.isLoadingGroupedVariations = --this.#groupedActiveLoadCount > 0;
             });
         } else {
             if (
-                getItemsSelectionStore().groupedVariationsByParent.value?.has(this.topLevelCard.path) ||
+                this.itemsSelection.value.groupedVariationsByParent.value?.has(this.topLevelCard.path) ||
                 !this.variationPaths.length
             )
                 return;
@@ -600,6 +618,7 @@ export class MasCollapsibleTableRow extends LitElement {
             this.isLoadingGroupedVariations = true;
             loadCardVariations(this.topLevelCard.path, this.variationPaths, this.repository, {
                 getDisplayName: this.getDisplayName,
+                store: this.itemsSelection.value,
             }).finally(() => {
                 this.isLoadingGroupedVariations = --this.#groupedActiveLoadCount > 0;
             });
@@ -632,9 +651,9 @@ export class MasCollapsibleTableRow extends LitElement {
             : html`<sp-table-row class="variation-details-row">
                   <sp-table-cell class="table-icon-cell"></sp-table-cell>
                   <sp-table-cell class="table-icon-cell"></sp-table-cell>
-                  ${this.renderPromoCode(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
+                  ${this.renderPromoCode(this.itemsSelection.value.groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
-                  ${this.renderTags(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
+                  ${this.renderTags(this.itemsSelection.value.groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
                   <sp-table-cell></sp-table-cell>
               </sp-table-row>`;

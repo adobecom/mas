@@ -4,7 +4,6 @@ import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
 import { ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
-import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
 import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
@@ -200,14 +199,14 @@ export function collectPromotionOfferProductTags(offerDataCache, selectedOfferId
 }
 
 /**
- * Applies selected-offer product tags to the active items-selection filters store (or Store.filters) for AEM fragment search.
+ * Applies selected-offer product tags to a filters store (defaults to Store.filters) for AEM fragment search.
  * @param {Map<string, { tags?: Array<{ id?: string }> }>} offerDataCache
  * @param {string[]} selectedOfferIds
+ * @param {Object} [filtersStore] - Filters store slice to write into; defaults to Store.filters
  * @returns {string[]}
  */
-export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedOfferIds) {
+export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedOfferIds, filtersStore = Store.filters) {
     const tags = collectPromotionOfferProductTags(offerDataCache, selectedOfferIds);
-    const filtersStore = getItemsSelectionStore({ allowUnset: true })?.filters ?? Store.filters;
     filtersStore.set((prev) => ({
         ...prev,
         tags: tags.length ? tags.join(',') : undefined,
@@ -465,11 +464,11 @@ export function addPromotionOfferFromOst(offerSelectorId, offer, selectedOffersS
 /**
  * Handles OST Use for promotions offers selection.
  * @param {CustomEvent} event
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<boolean>}
  */
-export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId, offer } = {} } = {}) {
+export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId, offer } = {} } = {}, store) {
     const productArrangementCode = await resolvePromotionOfferProductArrangementCode(offerSelectorId, offer);
-    const store = getItemsSelectionStore();
     const added = addPromotionOfferFromOst(
         offerSelectorId,
         offer,

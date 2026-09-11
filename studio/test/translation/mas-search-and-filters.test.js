@@ -104,6 +104,17 @@ describe('MasSearchAndFilters', () => {
             expect(Store.search.get()).to.equal(globalSearch);
             expect(Store.filters.get()).to.equal(globalFilters);
         });
+
+        it('writes to the store captured at connect on disconnect, even if the global store was swapped by another editor', async () => {
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set([{ path: '/a' }]);
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
+            await el.updateComplete;
+            setItemsSelectionStore(Store.compareChart);
+            expect(() => el.remove()).to.not.throw();
+            expect(Store.promotions.displayCards.get()).to.deep.equal(Store.promotions.allCards.get());
+        });
     });
 
     describe('initialization', () => {

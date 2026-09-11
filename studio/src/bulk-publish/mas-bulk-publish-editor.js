@@ -519,7 +519,7 @@ class MasBulkPublishEditor extends LitElement {
         Store.bulkPublishProjects.displayCards.set([]);
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
-        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.bulkPublishProjects);
         this.itemsSelectorOpen = true;
     }
 

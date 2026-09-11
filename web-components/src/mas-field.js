@@ -8,6 +8,7 @@ import {
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
+import { applyTrialAriaLabel, resolveCardName } from './hydrate.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -729,6 +730,10 @@ class MasField extends HTMLElement {
      * classes that merch-card hydration applies.
      */
     #buildCtaButton(link) {
+        if (TRIAL_ANALYTICS_IDS.has(link.dataset.analyticsId)) {
+            applyTrialAriaLabel(link, resolveCardName(this.#fields ?? {}));
+        }
+
         const isCheckout = !!link.getAttribute('data-wcs-osi');
         if (!isCheckout) return link.cloneNode(true);
 

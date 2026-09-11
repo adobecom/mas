@@ -1293,6 +1293,57 @@ describe('mas-field – hideTrialCTAs setting', () => {
     });
 });
 
+describe('mas-field – trial CTA aria-label', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    function makeCtasField(ctasHtml, cardName) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { cardName, ctas: ctasHtml } },
+            }),
+        );
+        return el;
+    }
+
+    it('sets a distinguishing aria-label on a free-trial CTA when a card name is present', () => {
+        const el = makeCtasField(
+            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-analytics-id="free-trial">Free trial</a>',
+            'Creative Cloud Pro',
+        );
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.getAttribute('aria-label')).to.equal(
+            'Free trial for Creative Cloud Pro',
+        );
+    });
+
+    it('does not set an aria-label on a non-trial CTA', () => {
+        const el = makeCtasField(
+            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-analytics-id="buy-now">Buy now</a>',
+            'Creative Cloud Pro',
+        );
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.hasAttribute('aria-label')).to.be.false;
+    });
+
+    it('does not set an aria-label when no card name is available', () => {
+        const el = makeCtasField(
+            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-analytics-id="free-trial">Free trial</a>',
+        );
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.hasAttribute('aria-label')).to.be.false;
+    });
+});
+
 describe('mas-field – hidden attribute when render resolves to empty', () => {
     afterEach(() => {
         document.body

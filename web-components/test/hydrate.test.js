@@ -28,6 +28,8 @@ import {
     processBadge,
     processFeatures,
     normalizeVariant,
+    resolveCardName,
+    applyTrialAriaLabel,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -383,6 +385,144 @@ describe('processCTAs', async () => {
         });
         const footer = getFooterElement(merchCard);
         expect(footer.children).to.have.lengthOf(2);
+    });
+
+    it('sets a distinguishing aria-label on a free-trial CTA when a card name is present', async () => {
+        const fields = {
+            cardName: 'Creative Cloud Pro',
+            ctas: '<a href="#" data-analytics-id="free-trial" class="primary-outline">Free trial</a>',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping);
+        const footer = getFooterElement(merchCard);
+        expect(footer.firstChild.getAttribute('aria-label')).to.equal(
+            'Free trial for Creative Cloud Pro',
+        );
+    });
+
+    it('does not set an aria-label on a non-trial CTA', async () => {
+        const fields = {
+            cardName: 'Creative Cloud Pro',
+            ctas: '<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a>',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping);
+        const footer = getFooterElement(merchCard);
+        expect(footer.firstChild.hasAttribute('aria-label')).to.be.false;
+    });
+
+    it('does not set an aria-label when no card name is available', async () => {
+        const fields = {
+            ctas: '<a href="#" data-analytics-id="free-trial" class="primary-outline">Free trial</a>',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping);
+        const footer = getFooterElement(merchCard);
+        expect(footer.firstChild.hasAttribute('aria-label')).to.be.false;
+    });
+
+    it('preserves the aria-label on a checkout free-trial CTA rebuilt into a consonant button', async () => {
+        merchCard.consonant = true;
+        const fields = {
+            cardName: 'Creative Cloud Pro',
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" data-analytics-id="free-trial" class="accent">Free trial</a>',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping);
+        const footer = getFooterElement(merchCard);
+        expect(footer.firstChild.getAttribute('aria-label')).to.equal(
+            'Free trial for Creative Cloud Pro',
+        );
+    });
+
+    it('preserves the aria-label on a checkout free-trial CTA rebuilt into an swc button', async () => {
+        merchCard.spectrum = 'swc';
+        const fields = {
+            cardName: 'Creative Cloud Pro',
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" data-analytics-id="free-trial" class="accent">Free trial</a>',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping);
+        const footer = getFooterElement(merchCard);
+        expect(footer.firstChild.getAttribute('aria-label')).to.equal(
+            'Free trial for Creative Cloud Pro',
+        );
+    });
+
+    it('preserves the aria-label on a checkout free-trial CTA rebuilt into a css spectrum button', async () => {
+        const fields = {
+            cardName: 'Creative Cloud Pro',
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" data-analytics-id="free-trial" class="accent">Free trial</a>',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping);
+        const footer = getFooterElement(merchCard);
+        expect(footer.firstChild.getAttribute('aria-label')).to.equal(
+            'Free trial for Creative Cloud Pro',
+        );
+    });
+});
+
+describe('resolveCardName', () => {
+    it('returns cardName as plain text', () => {
+        expect(resolveCardName({ cardName: 'Creative Cloud Pro' })).to.equal(
+            'Creative Cloud Pro',
+        );
+    });
+
+    it('falls back to cardTitle when cardName is absent', () => {
+        expect(resolveCardName({ cardTitle: 'Creative Cloud Pro' })).to.equal(
+            'Creative Cloud Pro',
+        );
+    });
+
+    it('strips markup and collapses whitespace', () => {
+        expect(
+            resolveCardName({
+                cardTitle: '<strong>Creative  \n Cloud</strong> Pro',
+            }),
+        ).to.equal('Creative Cloud Pro');
+    });
+
+    it('returns an empty string when neither field is usable', () => {
+        expect(resolveCardName({})).to.equal('');
+        expect(resolveCardName({ cardTitle: '   ' })).to.equal('');
+    });
+});
+
+describe('applyTrialAriaLabel', () => {
+    it('sets aria-label combining link text and card name', () => {
+        const cta = document.createElement('a');
+        cta.textContent = 'Free trial';
+        applyTrialAriaLabel(cta, 'Creative Cloud Pro');
+        expect(cta.getAttribute('aria-label')).to.equal(
+            'Free trial for Creative Cloud Pro',
+        );
+    });
+
+    it('does not set aria-label when cardName is empty', () => {
+        const cta = document.createElement('a');
+        cta.textContent = 'Free trial';
+        applyTrialAriaLabel(cta, '');
+        expect(cta.hasAttribute('aria-label')).to.be.false;
+    });
+
+    it('preserves an author-supplied aria-label', () => {
+        const cta = document.createElement('a');
+        cta.textContent = 'Free trial';
+        cta.setAttribute('aria-label', 'Custom label');
+        applyTrialAriaLabel(cta, 'Creative Cloud Pro');
+        expect(cta.getAttribute('aria-label')).to.equal('Custom label');
+    });
+
+    it('does not duplicate wording when the link text already contains the card name', () => {
+        const cta = document.createElement('a');
+        cta.textContent = 'Free trial for Creative Cloud Pro';
+        applyTrialAriaLabel(cta, 'Creative Cloud Pro');
+        expect(cta.hasAttribute('aria-label')).to.be.false;
+    });
+
+    it('does not mutate textContent or href', () => {
+        const cta = document.createElement('a');
+        cta.href = 'https://example.com/trial';
+        cta.textContent = 'Free trial';
+        applyTrialAriaLabel(cta, 'Creative Cloud Pro');
+        expect(cta.textContent).to.equal('Free trial');
+        expect(cta.getAttribute('href')).to.equal('https://example.com/trial');
     });
 });
 

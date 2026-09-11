@@ -101,6 +101,7 @@ describe('mas-bulk-publish (methods)', () => {
         sandbox.stub(router, 'navigateToPage').callsFake(navigateStub);
 
         repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('base-url', 'http://localhost:3000');
         repositoryEl.getBulkPublishParentPath = sandbox
             .stub()
             .callsFake((surface) => `/content/dam/mas/${surface}/bulk-publish-projects`);

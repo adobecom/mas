@@ -1,10 +1,12 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES, STAGED } from './constants.js';
+import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
-import { generateLinkToUse } from './utils.js';
+import { generateLinkToUse, showToast } from './utils.js';
+import { privacyServicesIcon } from './icons.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -13,6 +15,11 @@ class MasSelectionPanel extends LitElement {
             left: 50%;
             transform: translateX(-50%);
             z-index: 9999;
+        }
+
+        .button-staged svg {
+            position: relative;
+            top: 5px;
         }
     `;
 
@@ -152,10 +159,63 @@ class MasSelectionPanel extends LitElement {
             }
         }
 
+        const anyStaged = [...hydratedFragments, ...allCards, ...allVariations].some((fragment) => {
+            let staged = false;
+            if (!staged && fragmentIds.includes(fragment.id)) {
+                const fragmentObj = new Fragment(fragment);
+                if (fragmentObj.isStaged) staged = true;
+            }
+            return staged;
+        });
+        if (anyStaged) {
+            const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+            const result = await MasPublishStagedDialog.show(true);
+            if (!result.confirmed) return;
+        }
+
         const success = await this.repository.bulkPublishFragments(fragmentIds);
         if (success) {
             this.selectionStore.set([]);
         }
+    }
+
+    async handleMarkStaged() {
+        if (!this.repository) {
+            console.error('Repository not found');
+            return;
+        }
+
+        const savedIds = [];
+        const savedFragments = [];
+        await Promise.all(
+            this.selection.map(async (id) => {
+                const data = await this.repository.aem.sites.cf.fragments.getById(id);
+                const fragment = new Fragment(data);
+                if (fragment.isStaged) return;
+                const oldTags = fragment.getFieldValues('tags') || [];
+                const tags = [...oldTags];
+                tags.push(STAGED.TAG);
+                fragment.updateField('tags', tags);
+                savedFragments[id] = await this.repository.aem.sites.cf.fragments.save(fragment);
+                savedIds.push(id);
+            }),
+        );
+
+        Store.fragments.list.data.set((prev) => {
+            return [...prev].map((fragmentStore) => {
+                const fragment = fragmentStore.get();
+                if (savedIds.includes(fragment?.id)) {
+                    const tags = fragment.getFieldValues('tags') || [];
+                    tags.push(STAGED.TAG);
+                    fragment.updateField('tags', tags);
+                    fragment.tags = savedFragments[fragment.id]?.tags || fragment.tags;
+                }
+                return fragmentStore;
+            });
+        });
+
+        this.selectionStore.set([]);
+        showToast('Fragments marked as Staged.', 'positive');
     }
 
     handleUnpublish(event) {
@@ -223,6 +283,17 @@ class MasSelectionPanel extends LitElement {
                           <sp-icon-folder-add slot="icon"></sp-icon-folder-add>
                           <sp-tooltip self-managed placement="top">Copy to folder</sp-tooltip>
                       </sp-action-button>`
+                : nothing}
+            ${count > 0
+                ? html`<sp-action-button
+                      slot="buttons"
+                      class="button-staged"
+                      label="Mark as Staged"
+                      @click=${this.handleMarkStaged}
+                  >
+                      ${privacyServicesIcon}
+                      <sp-tooltip self-managed placement="top">Mark as Staged</sp-tooltip>
+                  </sp-action-button>`
                 : nothing}
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>

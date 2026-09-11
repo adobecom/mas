@@ -1,4 +1,8 @@
 **/logs/
+.pinata/docs/
+.pinata/logs/
+.pinata/specs/
+.pinata/state/
 helix-importer-ui
 .DS_Store
 *.bak
@@ -73,3 +77,5 @@ mcp-server.log
 # raw copy of fragments before update
 scripts/content/fragments
 
+# Python cache from the Piñata configuration tests
+.pinata/scripts/__pycache__/

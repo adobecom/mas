@@ -7,10 +7,22 @@ import {
     getItemTitle,
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
+    renderInheritedTagsNotice,
+    isShowingSelected,
+    toggleShowSelected,
+    getToggleSelectedLabel,
+    formatTabLabel,
 } from '../../../src/common/utils/render-utils.js';
-import { generateCodeToUse } from '../../../src/utils.js';
+import { generateLinkToUse } from '../../../src/utils.js';
 import Store from '../../../src/store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
+import { setItemsSelectionStore } from '../../../src/common/items-selection-store.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    DICTIONARY_MODEL_PATH,
+    FRAGMENT_STATUS,
+    BASELINE_VARIATION,
+} from '../../../src/constants.js';
 
 describe('render-utils', () => {
     describe('renderFragmentStatusCell', () => {
@@ -86,6 +98,12 @@ describe('render-utils', () => {
             );
         });
 
+        it('returns Grouped variation for a promo variation created from a grouped variation', () => {
+            expect(
+                getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card/pzn/edu' }),
+            ).to.equal('Grouped variation');
+        });
+
         it('returns Placeholder for dictionary model', () => {
             expect(getItemTypeLabel({ model: { path: `${DICTIONARY_MODEL_PATH}/foo` } })).to.equal('Placeholder');
         });
@@ -145,7 +163,7 @@ describe('render-utils', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
-            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateCodeToUse(fragment, 'acom', 'content').authorPath);
+            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
             expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
         });
 
@@ -198,6 +216,24 @@ describe('render-utils', () => {
         });
     });
 
+    describe('renderInheritedTagsNotice', () => {
+        it('renders the baseline-variation text and tooltip content', () => {
+            const container = document.createElement('div');
+            render(renderInheritedTagsNotice(), container);
+            expect(container.querySelector('.text-with-tooltip')).to.exist;
+            expect(container.textContent).to.include(BASELINE_VARIATION.TEXT);
+            const tooltip = container.querySelector('sp-tooltip');
+            expect(tooltip?.textContent.trim()).to.equal(BASELINE_VARIATION.TOOLTIP_TEXT);
+        });
+
+        it('renders the info icon inside the overlay trigger slot', () => {
+            const container = document.createElement('div');
+            render(renderInheritedTagsNotice(), container);
+            const trigger = container.querySelector('div[slot="trigger"]');
+            expect(trigger?.querySelector('sp-icon-info')).to.exist;
+        });
+    });
+
     describe('shouldIgnoreRowClickForSelection', () => {
         const fakeEvent = (...nodes) => ({ composedPath: () => nodes });
 
@@ -240,6 +276,60 @@ describe('render-utils', () => {
             sibling.classList.add('expand-button');
             const cell = document.createElement('sp-table-cell');
             expect(shouldIgnoreRowClickForSelection(fakeEvent(cell))).to.be.false;
+        });
+    });
+
+    describe('selector toggle helpers', () => {
+        beforeEach(() => {
+            setItemsSelectionStore(Store.translationProjects);
+            Store.translationProjects.showSelected.set(false);
+            Store.translationProjects.selectedCards.set([]);
+        });
+
+        afterEach(() => {
+            Store.translationProjects.showSelected.set(false);
+            Store.translationProjects.selectedCards.set([]);
+            setItemsSelectionStore(null);
+        });
+
+        describe('isShowingSelected', () => {
+            it('reflects the current store value', () => {
+                expect(isShowingSelected()).to.be.false;
+                Store.translationProjects.showSelected.set(true);
+                expect(isShowingSelected()).to.be.true;
+            });
+        });
+
+        describe('toggleShowSelected', () => {
+            it('flips the store value', () => {
+                toggleShowSelected();
+                expect(Store.translationProjects.showSelected.get()).to.be.true;
+                toggleShowSelected();
+                expect(Store.translationProjects.showSelected.get()).to.be.false;
+            });
+        });
+
+        describe('getToggleSelectedLabel', () => {
+            it('returns "Selected items" when not showing selection', () => {
+                expect(getToggleSelectedLabel(false)).to.equal('Selected items');
+            });
+
+            it('returns "Hide selection" when showing selection', () => {
+                expect(getToggleSelectedLabel(true)).to.equal('Hide selection');
+            });
+        });
+
+        describe('formatTabLabel', () => {
+            const tab = { value: 'cards', label: 'Fragments' };
+
+            it('returns the plain label when not viewOnly', () => {
+                expect(formatTabLabel(tab, false)).to.equal('Fragments');
+            });
+
+            it('appends the selection count when viewOnly', () => {
+                Store.translationProjects.selectedCards.set(['/path/a', '/path/b']);
+                expect(formatTabLabel(tab, true)).to.equal('Fragments (2)');
+            });
         });
     });
 });

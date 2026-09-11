@@ -2,13 +2,22 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
-import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
+import { getItemTypeLabel, renderInheritedTagsNotice, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
-import { getPromotionInfo, getPromotionTagFromFragment, findPromotionProjectIdByTag } from '../promotions/promotion-model.js';
-import { getGroupedVariationTagsValue } from '../editors/variation-utils.js';
+import {
+    getPromotionInfo,
+    getPromotionTagFromFragment,
+    findPromotionProjectIdByTag,
+    isPromoVariationPath,
+} from '../promotions/promotion-model.js';
+import {
+    getGroupedVariationTagsValue,
+    getPromoVariationGeoTagsValue,
+    getPromoVariationPersonalizationTagLabels,
+} from '../editors/variation-utils.js';
 import Store from '../store.js';
 import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
 import '../aem/aem-tag-picker-field.js';
@@ -34,6 +43,7 @@ export class MasCollapsibleTableRow extends LitElement {
         promoVariationsFetchedByParent: { type: Object },
         renderActionsCell: { type: Function },
         renderPreviewCell: { type: Function },
+        groupedVariationsManageOnly: { type: Boolean },
     };
 
     #groupedActiveLoadCount = 0;
@@ -48,6 +58,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.renderFragmentStatusCell = () => nothing;
         this.renderActionsCell = null;
         this.renderPreviewCell = null;
+        this.groupedVariationsManageOnly = false;
         this.promoVariationsLoaded = false;
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
@@ -153,67 +164,87 @@ export class MasCollapsibleTableRow extends LitElement {
                 <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
             </div>`;
         }
-        const filteredVariationPaths = this.groupedVariationPaths;
-        const isSelectable = this.selectableTabs.includes(VARIATION_TAB_NAME.GROUPED);
-        return filteredVariationPaths.length === 0
-            ? html`<div class="empty-grouped-variations">No grouped variations found</div>`
-            : html`<sp-table>
-                  ${isSelectable
-                      ? html` <sp-table-row class="select-all-row">
+        const manageOnly = this.groupedVariationsManageOnly;
+        const filteredVariationPaths = manageOnly
+            ? this.groupedVariationPaths.filter((path) => this.selectedCards.includes(path))
+            : this.groupedVariationPaths;
+        const isSelectable = !manageOnly && this.selectableTabs.includes(VARIATION_TAB_NAME.GROUPED);
+        if (filteredVariationPaths.length === 0) {
+            return html`<div class="empty-grouped-variations">
+                ${manageOnly ? 'No grouped variations selected' : 'No grouped variations found'}
+            </div>`;
+        }
+        return html`<sp-table>
+            ${isSelectable
+                ? html` <sp-table-row class="select-all-row">
+                      <sp-table-cell class="table-icon-cell">
+                          <sp-checkbox
+                              ?checked=${this.allGroupedVariationsSelected}
+                              ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
+                              @change=${(e) => this.#toggleSelectAllVariations(e, 'grouped')}
+                          ></sp-checkbox>
+                      </sp-table-cell>
+                      <sp-table-cell class="select-all-label" colspan="5">
+                          <span>Select all</span>
+                          <span class="fragment-count">${filteredVariationPaths.length} fragment(s)</span>
+                      </sp-table-cell>
+                  </sp-table-row>`
+                : nothing}
+            <sp-table-body>
+                ${repeat(filteredVariationPaths, (variationPath) => {
+                    const variation = this.topLevelCardVariationsByPaths.get(variationPath);
+                    const isSelected = this.selectedCards.includes(variationPath);
+                    const isExpanded = this.expandedVariationsPaths.has(variationPath);
+                    return html` <sp-table-row
+                            value=${variationPath}
+                            ?selected=${isSelected}
+                            aria-selected=${isSelected ? 'true' : 'false'}
+                            @click=${isSelectable ? (event) => this.#onRowClickForSelection(event, variationPath) : null}
+                        >
                             <sp-table-cell class="table-icon-cell">
-                                <sp-checkbox
-                                    ?checked=${this.allGroupedVariationsSelected}
-                                    ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
-                                    @change=${(e) => this.#toggleSelectAllVariations(e, 'grouped')}
-                                ></sp-checkbox>
+                                <sp-button
+                                    class="expand-button"
+                                    icon-only
+                                    quiet
+                                    variant="secondary"
+                                    @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
+                                >
+                                    ${isExpanded
+                                        ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                        : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                                </sp-button>
                             </sp-table-cell>
-                            <sp-table-cell class="select-all-label" colspan="5">
-                                <span>Select all</span>
-                                <span class="fragment-count">${filteredVariationPaths.length} fragment(s)</span>
-                            </sp-table-cell>
-                        </sp-table-row>`
-                      : nothing}
-                  <sp-table-body>
-                      ${repeat(filteredVariationPaths, (variationPath) => {
-                          const variation = this.topLevelCardVariationsByPaths.get(variationPath);
-                          const isSelected = this.selectedCards.includes(variationPath);
-                          const isExpanded = this.expandedVariationsPaths.has(variationPath);
-                          return html` <sp-table-row
-                                  value=${variationPath}
-                                  ?selected=${isSelected}
-                                  aria-selected=${isSelected ? 'true' : 'false'}
-                                  @click=${isSelectable ? (event) => this.#onRowClickForSelection(event, variationPath) : null}
-                              >
-                                  <sp-table-cell class="table-icon-cell">
-                                      <sp-button
-                                          class="expand-button"
-                                          icon-only
-                                          quiet
-                                          variant="secondary"
-                                          @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
-                                      >
-                                          ${isExpanded
-                                              ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
-                                              : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
-                                      </sp-button>
-                                  </sp-table-cell>
 
-                                  ${isSelectable
-                                      ? html`<sp-table-cell class="table-icon-cell"
-                                            ><sp-checkbox
-                                                value=${variationPath}
-                                                ?checked=${isSelected}
-                                                @change=${(event) => this.#toggleSelect(event, variationPath)}
-                                            ></sp-checkbox>
-                                        </sp-table-cell>`
-                                      : nothing}
-                                  ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
-                              </sp-table-row>
+                            ${isSelectable
+                                ? html`<sp-table-cell class="table-icon-cell"
+                                      ><sp-checkbox
+                                          value=${variationPath}
+                                          ?checked=${isSelected}
+                                          @change=${(event) => this.#toggleSelect(event, variationPath)}
+                                      ></sp-checkbox>
+                                  </sp-table-cell>`
+                                : nothing}
+                            ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
+                            ${this.renderActionsCell
+                                ? this.renderActionsCell(variation)
+                                : manageOnly
+                                  ? html`<sp-table-cell class="table-icon-cell">
+                                        <sp-action-button
+                                            quiet
+                                            icon-only
+                                            aria-label="Remove grouped variation from this promotion"
+                                            @click=${(e) => this.#toggleSelect(e, variationPath)}
+                                        >
+                                            <sp-icon-close slot="icon"></sp-icon-close>
+                                        </sp-action-button>
+                                    </sp-table-cell>`
+                                  : nothing}
+                        </sp-table-row>
 
-                              ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
-                      })}
-                  </sp-table-body>
-              </sp-table>`;
+                        ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
+                })}
+            </sp-table-body>
+        </sp-table>`;
     }
 
     get localeTabTemplate() {
@@ -399,16 +430,19 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderGeosTags(item) {
-        const geosValue = getGroupedVariationTagsValue(item) || '';
+        const geosValue =
+            (this.renderActionsCell ? getPromoVariationGeoTagsValue(item) : getGroupedVariationTagsValue(item)) || '';
         return html`<sp-table-cell class="details-cell">
             <div class="details-label">Geos variation tags</div>
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                display-value
-                top="locale,pzn"
-                value="${geosValue}"
-                readonly
-            ></aem-tag-picker-field>
+            ${geosValue
+                ? html`<aem-tag-picker-field
+                      namespace="/content/cq:tags/mas"
+                      display-value
+                      top="locale,pzn"
+                      value="${geosValue}"
+                      readonly
+                  ></aem-tag-picker-field>`
+                : renderInheritedTagsNotice()}
         </sp-table-cell>`;
     }
 
@@ -425,7 +459,8 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderItemType(item) {
-        return html`<sp-table-cell>${getItemTypeLabel(item)}</sp-table-cell>`;
+        const label = this.renderActionsCell && isPromoVariationPath(item?.path) ? 'Promotion' : getItemTypeLabel(item);
+        return html`<sp-table-cell>${label}</sp-table-cell>`;
     }
 
     #getTabLabel(tab) {
@@ -641,8 +676,18 @@ export class MasCollapsibleTableRow extends LitElement {
                 </div>
             </sp-table-cell>
             ${this.renderGeosTags(variation)}
-            <sp-table-cell></sp-table-cell>
-            <sp-table-cell></sp-table-cell>
+            ${this.renderActionsCell
+                ? html`<sp-table-cell class="details-cell">
+                      <div class="details-label">Applies to</div>
+                      <div>${Fragment.isGroupedVariationPath(variation.path) ? 'Grouped variation' : 'Default fragment'}</div>
+                  </sp-table-cell>`
+                : html`<sp-table-cell></sp-table-cell>`}
+            ${this.renderActionsCell && Fragment.isGroupedVariationPath(variation.path)
+                ? html`<sp-table-cell class="details-cell">
+                      <div class="details-label">Grouped variation tags</div>
+                      <div>${getPromoVariationPersonalizationTagLabels(variation)}</div>
+                  </sp-table-cell>`
+                : html`<sp-table-cell></sp-table-cell>`}
         </sp-table-row>`;
     }
 

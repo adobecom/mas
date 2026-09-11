@@ -211,7 +211,11 @@ describe('MiniCompareChart.adjustAddon', () => {
 // ── MiniCompareChart.adjustShortDescription ───────────────────────────────────
 
 describe('MiniCompareChart.adjustShortDescription', () => {
-    function makeLayout({ bodyXxs = null, planType = null } = {}) {
+    function makeLayout({
+        bodyXxs = null,
+        planType = null,
+        headingMPriceSlot = null,
+    } = {}) {
         const layout = Object.create(MiniCompareChart.prototype);
         layout.card = {
             querySelector: (sel) => {
@@ -222,6 +226,14 @@ describe('MiniCompareChart.adjustShortDescription', () => {
                 }
                 return null;
             },
+            shadowRoot: headingMPriceSlot
+                ? {
+                      querySelector: (sel) =>
+                          sel.includes('heading-m-price')
+                              ? { assignedElements: () => [headingMPriceSlot] }
+                              : null,
+                  }
+                : null,
         };
         return layout;
     }
@@ -289,5 +301,90 @@ describe('MiniCompareChart.adjustShortDescription', () => {
         layout.adjustShortDescription();
         layout.adjustShortDescription();
         expect(planType.querySelectorAll('em').length).to.equal(1);
+    });
+
+    it('builds a fallback price-plan-type when there is no legal price', () => {
+        const headingMPriceSlot = document.createElement('p');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>Fee applies</p>';
+        const layout = makeLayout({
+            bodyXxs,
+            planType: null,
+            headingMPriceSlot,
+        });
+        layout.adjustShortDescription();
+        const fallback = headingMPriceSlot.querySelector(
+            '.price-legal[data-fallback]',
+        );
+        expect(fallback).to.exist;
+        const planType = fallback.querySelector('.price-plan-type');
+        expect(planType.classList.contains('disabled')).to.be.true;
+        expect(planType.querySelector('em').textContent).to.include(
+            'Fee applies',
+        );
+    });
+
+    it('reuses the existing fallback instead of creating a second one', () => {
+        const headingMPriceSlot = document.createElement('p');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>Fee applies</p>';
+        const layout = makeLayout({
+            bodyXxs,
+            planType: null,
+            headingMPriceSlot,
+        });
+        layout.adjustShortDescription();
+        layout.adjustShortDescription();
+        expect(
+            headingMPriceSlot.querySelectorAll('.price-legal[data-fallback]')
+                .length,
+        ).to.equal(1);
+    });
+
+    it('does nothing and does not throw when there is no heading-m-price slot to anchor a fallback', () => {
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>Fee applies</p>';
+        const layout = makeLayout({ bodyXxs, planType: null });
+        layout.adjustShortDescription();
+        expect(bodyXxs.querySelector('em')).to.be.null;
+    });
+
+    it('migrates short description from the fallback to a real legal price once it resolves', () => {
+        const headingMPriceSlot = document.createElement('p');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>Fee applies</p>';
+
+        let planType = null;
+        const layout = Object.create(MiniCompareChart.prototype);
+        layout.card = {
+            querySelector: (sel) => {
+                if (sel.includes('body-xxs')) return bodyXxs;
+                if (sel.includes('data-template="legal"')) {
+                    if (!planType) return null;
+                    return { querySelector: () => planType };
+                }
+                return null;
+            },
+            shadowRoot: {
+                querySelector: (sel) =>
+                    sel.includes('heading-m-price')
+                        ? { assignedElements: () => [headingMPriceSlot] }
+                        : null,
+            },
+        };
+
+        layout.adjustShortDescription();
+        expect(
+            headingMPriceSlot.querySelector('.price-legal[data-fallback] em'),
+        ).to.exist;
+
+        planType = document.createElement('span');
+        layout.adjustShortDescription();
+
+        expect(headingMPriceSlot.querySelector('.price-legal[data-fallback]'))
+            .to.be.null;
+        const em = planType.querySelector('em');
+        expect(em).to.exist;
+        expect(em.textContent).to.include('Fee applies');
     });
 });

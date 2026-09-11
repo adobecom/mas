@@ -19,7 +19,7 @@ async function fetchMaskAtLocale(context, surface, locale, mask) {
     const url = odinUrl(surface, { locale, fragmentPath: `${MASKS_FOLDER}/${mask}`, preview });
     const { id, status } = await getFragmentId(context, url, `mask-id-${locale}`);
     if (status !== 200) return null;
-    const response = await fetch(odinReferences(id, false, preview), context, `mask-${locale}`);
+    const response = await fetch(odinReferences(id, preview), context, `mask-${locale}`);
     if (response.status !== 200) return null;
     return skimFragmentFromReferences(response.body);
 }

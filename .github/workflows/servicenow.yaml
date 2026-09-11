@@ -141,7 +141,7 @@ jobs:
             - name: Install dependencies
               if: steps.cmr_row.outcome == 'success'
               run: |
-                  python -m pip install --upgrade pip requests timedelta
+                  python -m pip install --upgrade pip requests
 
             - name: Retrieve transaction ID from PR Comments (${{ matrix.path }})
               id: retrieve-transactionId-step

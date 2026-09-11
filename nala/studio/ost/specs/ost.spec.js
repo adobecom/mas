@@ -204,5 +204,18 @@ export default {
             },
             tags: '@mas-studio @ost @ost-e2e',
         },
+        {
+            tcid: '17',
+            name: '@studio-ost-team-offer-per-unit-default',
+            path: '/studio.html',
+            data: {
+                teamOffer: {
+                    osi: 'KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM',
+                    offerId: '7B3FB5E4F8662A207A960BAFB6B1C21C',
+                },
+                expectedPerUnit: 'par licence',
+            },
+            tags: '@mas-studio @ost @ost-e2e',
+        },
     ],
 };

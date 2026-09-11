@@ -7,12 +7,14 @@ import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
 import { getItemTypeLabel } from '../utils/render-utils.js';
 import { fetchUnresolvedVariations } from '../utils/items-loader.js';
 import { noItemsSelectedIcon } from '../../icons.js';
+import { Fragment } from '../../aem/fragment.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
     static properties = {
         getDisplayName: { type: Function },
         loading: { type: Boolean },
+        hideGroupedVariations: { type: Boolean },
     };
 
     #lastFetchedSelectedCardsKey = null;
@@ -21,6 +23,7 @@ class MasSelectedItems extends LitElement {
         super();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.loading = false;
+        this.hideGroupedVariations = false;
         this.storeController = new ReactiveController(this, [
             getItemsSelectionStore().showSelected,
             getItemsSelectionStore().selectedCards,
@@ -64,8 +67,11 @@ class MasSelectedItems extends LitElement {
     }
 
     get selectedItems() {
-        const cards = getItemsSelectionStore()
-            .selectedCards.value?.map(
+        const selectedCardPaths = this.hideGroupedVariations
+            ? getItemsSelectionStore().selectedCards.value?.filter((path) => !Fragment.isGroupedVariationPath(path))
+            : getItemsSelectionStore().selectedCards.value;
+        const cards = selectedCardPaths
+            ?.map(
                 (path) =>
                     getItemsSelectionStore().cardsByPaths.value?.get(path) ??
                     getItemsSelectionStore().groupedVariationsData.value?.get(path),

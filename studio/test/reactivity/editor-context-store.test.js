@@ -74,6 +74,10 @@ describe('Reactivity Stores', () => {
         });
 
         describe('loadFragmentContext', () => {
+            beforeEach(() => {
+                sandbox.stub(window, 'fetch').resolves(new Response(JSON.stringify({ detail: 'not found' }), { status: 404 }));
+            });
+
             it('should return early when no search path', async () => {
                 sandbox.restore();
                 sandbox = sinon.createSandbox();

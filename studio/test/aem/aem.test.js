@@ -92,7 +92,59 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: deleteFragment', () => {
+        it('calls deleteAndUnpublish endpoint with If-Match header', async () => {
+            let capturedUrl;
+            let capturedOptions;
+            window.fetch = async (url, options) => {
+                capturedUrl = url;
+                capturedOptions = options;
+                return { ok: true, status: 202 };
+            };
+
+            await aem.deleteFragment({ id: 'frag-123', etag: '"etag-abc"' });
+
+            expect(capturedUrl).to.include('/cf/fragments/frag-123/deleteAndUnpublish');
+            expect(capturedOptions.method).to.equal('DELETE');
+            expect(capturedOptions.headers['If-Match']).to.equal('"etag-abc"');
+        });
+
+        it('throws when response is not ok', async () => {
+            window.fetch = async () => ({ ok: false, status: 412, statusText: 'Precondition Failed' });
+
+            try {
+                await aem.deleteFragment({ id: 'frag-123', etag: '"etag-abc"' });
+                expect.fail('should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('412');
+            }
+        });
+    });
+
     describe('method: saveFragment', () => {
+        it('uses stored etag without fresh GET when refetchEtag is false', async () => {
+            const fetchCalls = [];
+            let putHeaders;
+            window.fetch = async (url, options) => {
+                fetchCalls.push(options?.method ?? 'GET');
+                if (options?.method === 'PUT') putHeaders = options.headers;
+                return {
+                    ok: true,
+                    headers: { get: () => 'server-etag' },
+                    json: async () => ({ id: 'f1', etag: 'server-etag', modified: 2 }),
+                };
+            };
+
+            await aem.saveFragment(
+                { id: 'f1', etag: 'stored-etag', title: 't', description: 'd', fields: [] },
+                { refetchEtag: false },
+            );
+
+            expect(fetchCalls).to.have.lengthOf(2);
+            expect(fetchCalls[0]).to.equal('PUT');
+            expect(putHeaders['If-Match']).to.equal('stored-etag');
+        });
+
         it('strips empty values from multi-value reference fields but preserves clear sentinels elsewhere', async () => {
             let putBody;
             window.fetch = async (url, options) => {

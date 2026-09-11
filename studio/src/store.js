@@ -2,6 +2,7 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED 
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
+import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
 import { MasksStore } from './masks/masks-store.js';
 
 let editorContextInstance = null;
@@ -34,6 +35,12 @@ const Store = {
                 editorContextInstance = new EditorContextStore(null);
             }
             return editorContextInstance;
+        },
+        itemsSelection: {
+            groupedVariationsByParent: new ReactiveStore(new Map()),
+            groupedVariationsData: new ReactiveStore(new Map()),
+            offerDataCache: new Map(),
+            cardsByPaths: new ReactiveStore(new Map()),
         },
     },
     operation: new ReactiveStore(),
@@ -83,6 +90,7 @@ const Store = {
         previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
+    offerMapping: new OfferMappingStore(),
     masks: new MasksStore(),
     profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
@@ -125,6 +133,9 @@ const Store = {
         // Offers-table display records ({ path, id, offerData, tags, fields, getTagTitle }) keyed by offer selector id.
         // Kept separate from offerDataCache so the two shapes never collide under the same OSI key.
         offerRecordsCache: new Map(),
+        // Bumped whenever offerRecordsCache is (re)hydrated; offer-derived UI subscribes to
+        // this so it can refresh once records land, since the cache itself is a plain Map.
+        offerRecordsHydrated: new ReactiveStore(0),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),
 
@@ -146,13 +157,12 @@ const Store = {
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
     },
-    previewDictionary: function () {
-        const locale = Store.localeOrRegion();
+    previewDictionary: function (locale = Store.localeOrRegion()) {
         return Store.placeholders.previewByLocale.value[locale];
     },
-    /** True when the active locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
-    previewDictionaryReady: function () {
-        const d = Store.previewDictionary();
+    /** True when the given locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
+    previewDictionaryReady: function (locale = Store.localeOrRegion()) {
+        const d = Store.previewDictionary(locale);
         return d != null && Object.keys(d).length > 0;
     },
     removeRegionOverride: function () {
@@ -302,6 +312,7 @@ function pageValidator(value) {
         PAGE_NAMES.ADVANCED_TOOLS,
         PAGE_NAMES.MASKS,
         PAGE_NAMES.MASKS_EDITOR,
+        PAGE_NAMES.OFFER_MAPPING,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

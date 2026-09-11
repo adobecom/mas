@@ -5,6 +5,7 @@ import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
+    buildPromotionsRootPath,
     canProbePromoVariationsForFragment,
     findPromotionProjectIdByTag,
     fragmentIsPromoVariation,
@@ -114,6 +115,17 @@ describe('promotion-model', () => {
 
         it('returns null when default path is already a promo variation', () => {
             expect(buildPromoVariationPath(promoVariationPath, 'black-friday')).to.be.null;
+        });
+    });
+
+    describe('buildPromotionsRootPath', () => {
+        it('builds the promotions root folder for a default fragment path', () => {
+            expect(buildPromotionsRootPath(defaultPath)).to.equal('/content/dam/mas/sandbox/en_US/promotions');
+        });
+
+        it('returns null when defaultPath is missing or invalid', () => {
+            expect(buildPromotionsRootPath('')).to.be.null;
+            expect(buildPromotionsRootPath('not-a-dam-path')).to.be.null;
         });
     });
 
@@ -253,6 +265,14 @@ describe('promotion-model', () => {
         it('returns null when the fragment has neither getFieldValues nor tags', () => {
             expect(getPromotionTagFromFragment({})).to.be.null;
         });
+
+        it('falls back to the tags array when the tags field is non-empty but unrelated (real Promotion fragment shape)', () => {
+            const fragment = {
+                getFieldValues: (name) => (name === 'tags' ? ['offer_type/one-time', 'plan_type/individual'] : []),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            expect(getPromotionTagFromFragment(fragment)).to.equal('mas:promotion/black-friday');
+        });
     });
 
     describe('fragmentIsPromoVariation', () => {
@@ -260,6 +280,15 @@ describe('promotion-model', () => {
             expect(fragmentIsPromoVariation({ path: promoVariationPath })).to.be.true;
             expect(fragmentIsPromoVariation({ tags: [{ id: 'mas:promotion/sale' }] })).to.be.true;
             expect(fragmentIsPromoVariation({ path: defaultPath })).to.be.false;
+        });
+
+        it('falls back to the tags array when the tags field is non-empty but unrelated (real Promotion fragment shape)', () => {
+            const fragment = {
+                path: defaultPath,
+                getFieldValues: (name) => (name === 'tags' ? ['offer_type/one-time'] : []),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            expect(fragmentIsPromoVariation(fragment)).to.be.true;
         });
     });
 

@@ -115,6 +115,7 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 - `inline-heading`
 - `mini-compare-chart`
 - `plans`
+- `pro`
 - `product`
 - `segment`
 - `special-offers`

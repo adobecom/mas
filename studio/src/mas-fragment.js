@@ -50,19 +50,7 @@ class MasFragment extends LitElement {
         this.expanded = true;
 
         const fragment = this.fragmentStore.value;
-        // Fetch references if not yet loaded
-        if (this.repository && !fragment.references?.length) {
-            this.loadingReferences = true;
-
-            try {
-                await this.repository.refreshFragment(this.fragmentStore);
-            } catch (error) {
-                console.error('Failed to load references:', error);
-                showToast('Failed to load references', 'negative');
-            } finally {
-                this.loadingReferences = false;
-            }
-        }
+        await this.refreshReferences(fragment);
 
         // Wait for Lit to finish rendering
         await this.updateComplete;
@@ -91,6 +79,23 @@ class MasFragment extends LitElement {
         );
     }
 
+    async refreshReferences(fragment) {
+        if (!fragment || !this.repository) return;
+        if (!fragment.references?.length || !fragment.promoVariationProbeNotNeeded) {
+            this.loadingReferences = true;
+
+            try {
+                await this.repository.refreshFragment(this.fragmentStore);
+                this.requestUpdate();
+            } catch (error) {
+                console.error('Failed to load references:', error);
+                showToast('Failed to load references', 'negative');
+            } finally {
+                this.loadingReferences = false;
+            }
+        }
+    }
+
     async toggleExpand(e) {
         e?.stopPropagation();
         const newExpandedState = !this.expanded;
@@ -105,18 +110,8 @@ class MasFragment extends LitElement {
         }
 
         const fragment = this.fragmentStore.value;
-        if (newExpandedState && this.repository && !fragment.references?.length) {
-            this.loadingReferences = true;
-
-            try {
-                await this.repository.refreshFragment(this.fragmentStore);
-                this.requestUpdate();
-            } catch (error) {
-                console.error('Failed to load references:', error);
-                showToast('Failed to load references', 'negative');
-            } finally {
-                this.loadingReferences = false;
-            }
+        if (newExpandedState) {
+            await this.refreshReferences(fragment);
         }
 
         if (Store.selecting.get()) {

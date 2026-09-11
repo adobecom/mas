@@ -104,6 +104,20 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.not.have.property('data-promotion-code');
     });
 
+    it('maps a quantity above 1 to data-quantity', () => {
+        onPlaceholderSelect('test-id', 'price', {}, { quantity: 5 }, null);
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail['data-quantity']).to.equal(5);
+    });
+
+    it('omits data-quantity when quantity is the default of 1', () => {
+        onPlaceholderSelect('test-id', 'price', {}, { quantity: 1 }, null);
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail).to.not.have.property('data-quantity');
+    });
+
     it('should dispatch an event with correct attributes for legal', () => {
         const offerSelectorId = 'test-id';
         const type = 'legal';
@@ -326,6 +340,12 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(config.authoringFlow).to.be.undefined;
         expect(config.searchOfferSelectorId).to.equal('osi-base');
         expect(config.initialReferenceOsi).to.equal('osi-ref');
+    });
+
+    it('restores quantity from a data-quantity placeholder into offerSelectorPlaceholderOptions', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-1', 'data-quantity': '5' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.offerSelectorPlaceholderOptions.quantity).to.equal('5');
     });
 
     it('passes language and country from authoring locale for en_EG regional variation', () => {

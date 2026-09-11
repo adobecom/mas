@@ -1,4 +1,8 @@
 **/logs/
+.pinata/docs/
+.pinata/logs/
+.pinata/specs/
+.pinata/state/
 helix-importer-ui
 .DS_Store
 *.bak
@@ -30,6 +34,8 @@ nala/.auth/
 .claude/*
 !.claude/commands/
 !.claude/commands/**
+extension/.claude/
+extension/mas-studio-extension.zip
 .logs/
 .scout
 .specify/
@@ -49,13 +55,16 @@ config.json
 MerchAtScale-*.json
 masStudio-*.json
 .env*
-.aio
+.aio*
 .cursor
 .superpowers/
 
 
 # Worktree documentation (per-ticket, not committed)
 /docs/
+
+# pznTags migration scratch reports (live content paths/etags, never committed)
+/scripts/pzn-tags-locale-to-country/tmp/
 
 # web-components specific
 !web-components/dist
@@ -64,3 +73,9 @@ web-components/mas.json
 web-components/stats.json
 *.jsonl
 mcp-server.log
+
+# raw copy of fragments before update
+scripts/content/fragments
+
+# Python cache from the Piñata configuration tests
+.pinata/scripts/__pycache__/

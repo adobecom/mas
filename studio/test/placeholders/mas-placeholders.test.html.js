@@ -11,6 +11,10 @@ import '../../src/placeholders/mas-placeholders.js';
 import '../../src/mas-repository.js';
 import '../../src/rte/rte-field.js';
 import '../../src/mas-fragment-status.js';
+import '../../src/placeholders/mas-placeholders-item.js';
+import { Placeholder } from '../../src/aem/placeholder.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import { render } from 'lit';
 import { PAGE_NAMES } from '../../src/constants.js';
 
 runTests(async () => {
@@ -155,6 +159,39 @@ runTests(async () => {
             element.onSave();
             await elementUpdated(element);
             expect(refreshSpy.calledOnce).to.be.true;
+        });
+
+        it('renders the rich-text placeholder editor as an rte-field with the icon (tooltip) action enabled', function () {
+            const placeholder = new Placeholder({
+                fields: [
+                    { name: 'key', values: ['legal-disclaimer'] },
+                    { name: 'value', values: [] },
+                    { name: 'richTextValue', values: ['<p>disclaimer</p>'] },
+                ],
+            });
+            const item = document.createElement('mas-placeholders-item');
+            item.placeholderStore = new FragmentStore(placeholder);
+            item.editing = true;
+            // Render only the value cell into a detached container (no connect, no Store row deps).
+            const container = document.createElement('div');
+            render(item.valueCell, container);
+            const rte = container.querySelector('rte-field');
+            expect(rte, 'rich-text placeholder uses an rte-field when editing').to.exist;
+            expect(rte.hasAttribute('icon'), 'icon (tooltip) action enabled').to.be.true;
+            expect(rte.hasAttribute('link'), 'link action still enabled').to.be.true;
+        });
+
+        // MWPW-203852: creating a placeholder freshly (rich text) must also expose the icon (tooltip) action.
+        it('renders the creation modal rich-text editor as an rte-field with the icon (tooltip) action enabled', function () {
+            const modal = document.createElement('mas-placeholders-creation-modal');
+            modal.placeholder = { key: '', isRichText: true, value: '' };
+            // Render the template into a detached container (no connect, no dialog/locale-picker side effects).
+            const container = document.createElement('div');
+            render(modal.render(), container);
+            const rte = container.querySelector('rte-field');
+            expect(rte, 'rich-text creation editor uses an rte-field').to.exist;
+            expect(rte.hasAttribute('icon'), 'icon (tooltip) action enabled').to.be.true;
+            expect(rte.hasAttribute('link'), 'link action still enabled').to.be.true;
         });
     });
 });

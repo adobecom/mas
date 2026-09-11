@@ -32,7 +32,7 @@ import {
     DELETE_SVG,
     REVERT_SVG,
 } from './bulk-publish-icons.js';
-import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+import { generateLinkToUse, showToast, normalizeKey } from '../utils.js';
 import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
@@ -100,16 +100,12 @@ class MasBulkPublishEditor extends LitElement {
     #abortController = null;
     #validateId = 0;
     #discardResolve = null;
-    #projectReactivity = new ReactiveController(this, []);
-    #observedProject = null;
+    #loadingItems = false;
+    #currentProjectId = null;
+    #projectStoreController = new ReactiveController(this, []);
+    #subscribedProject = null;
 
-    willUpdate() {
-        const store = this.project instanceof FragmentStore ? this.project : null;
-        if (store !== this.#observedProject) {
-            this.#observedProject = store;
-            this.#projectReactivity.updateStores(store ? [store] : []);
-        }
-    }
+    saveSnapshotFn = null;
 
     constructor() {
         super();
@@ -146,6 +142,7 @@ class MasBulkPublishEditor extends LitElement {
                     await this.updateComplete;
                     if (this.urls && !this.items.length) this.validate();
                     else if (this.items.length) this.reEnrichItems();
+                    else this.#loadItemDetails();
                 }
             } catch {
                 if (!signal.aborted) {
@@ -165,6 +162,63 @@ class MasBulkPublishEditor extends LitElement {
         }
     }
 
+    async #loadItemDetails() {
+        const paths = this.getFields('fragments');
+        if (!paths.length || this.localItems !== null || this.#loadingItems) return;
+        this.#loadingItems = true;
+        try {
+            const surface = Store.search.get()?.path;
+            const { signal } = this.#abortController;
+            const CONCURRENCY = 5;
+            const items = new Array(paths.length).fill(null);
+            for (let i = 0; i < paths.length; i += CONCURRENCY) {
+                if (signal.aborted) return;
+                const batch = paths.slice(i, i + CONCURRENCY);
+                const results = await Promise.all(
+                    batch.map(async (path) => {
+                        try {
+                            const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
+                            const fragment = new Fragment(rawFragment);
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            return {
+                                url: path,
+                                fragmentId: fragment.id,
+                                path: fragment.path,
+                                authorPath: authorPath || null,
+                                href: href || null,
+                                status: 'valid',
+                                alreadyPublished: fragment.status === STATUS_PUBLISHED,
+                            };
+                        } catch {
+                            return { url: path, path, status: 'valid' };
+                        }
+                    }),
+                );
+                results.forEach((result, j) => {
+                    items[i + j] = result;
+                });
+            }
+            if (signal.aborted || this.localItems !== null) return;
+            this.localItems = items;
+        } finally {
+            this.#loadingItems = false;
+        }
+    }
+
+    updated() {
+        const project = this.project;
+        const newId = project?.id ?? null;
+        if (newId !== this.#currentProjectId) {
+            this.localItems = null;
+            this.#currentProjectId = newId;
+        }
+        if (project !== this.#subscribedProject) {
+            this.#subscribedProject = project;
+            const stores = project?.subscribe ? [project] : [];
+            this.#projectStoreController.updateStores(stores);
+        }
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#abortController?.abort();
@@ -176,7 +230,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get token() {
-        return window.adobeIMS?.getAccessToken()?.token;
+        return sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
     }
 
     get ioBaseUrl() {
@@ -278,8 +332,8 @@ class MasBulkPublishEditor extends LitElement {
 
     get publishBlockedReason() {
         if (this.isNewProject) return PUBLISH_BLOCKED_REASON.UNSAVED;
-        if (!this.hasValidItems) return '';
         if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return PUBLISH_BLOCKED_REASON.ALREADY_PUBLISHED;
+        if (!this.hasValidItems) return '';
         if (this.allAlreadyPublished) return PUBLISH_BLOCKED_REASON.ALL_ITEMS_PUBLISHED;
         return '';
     }
@@ -335,14 +389,17 @@ class MasBulkPublishEditor extends LitElement {
             ]);
         }
         if (this.isPublishing) {
-            return new Set([
+            const disabled = new Set([
                 QUICK_ACTION.SAVE,
                 QUICK_ACTION.DUPLICATE,
                 QUICK_ACTION.PUBLISH,
-                QUICK_ACTION.REVERT,
                 QUICK_ACTION.LOCK,
                 QUICK_ACTION.DELETE,
             ]);
+            if (!this.getFields('snapshots').length) {
+                disabled.add(QUICK_ACTION.REVERT);
+            }
+            return disabled;
         }
         if (this.isPublished) {
             return new Set([QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH]);
@@ -375,10 +432,13 @@ class MasBulkPublishEditor extends LitElement {
             const nextStatus = locking ? BULK_PUBLISH_STATUS.LOCKED : BULK_PUBLISH_STATUS.DRAFT;
             try {
                 this.project.updateField('status', [nextStatus]);
-                const saved = await this.repository.saveFragment(this.project, false);
+                const saved = await this.repository.saveFragment(this.project, {
+                    withToast: false,
+                    refetchEtag: false,
+                    errorMessage: 'Failed to lock/unlock project.',
+                });
                 if (!saved) {
                     this.project.updateField('status', [prevStatus]);
-                    showToast('Failed to lock/unlock project.', 'negative');
                     return;
                 }
                 showToast(locking ? 'Project locked.' : 'Project unlocked.', 'positive');
@@ -398,9 +458,10 @@ class MasBulkPublishEditor extends LitElement {
         this.confirmOpen = false;
     }
 
-    handleConfirmPublish() {
+    handleConfirmPublish(e) {
         this.confirmOpen = false;
-        this.publish();
+        const { includeVariations = false, includeCards = false } = e?.detail ?? {};
+        this.publish(includeVariations, includeCards);
     }
 
     setProjectField(name, value) {
@@ -533,6 +594,20 @@ class MasBulkPublishEditor extends LitElement {
         this.#discardResolve = null;
     }
 
+    async #recordSnapshotAfterSave(project) {
+        const { saveSnapshot } = await import('./bulk-publish-store.js');
+        try {
+            await saveSnapshot({
+                project,
+                token: this.token,
+                ioBaseUrl: this.ioBaseUrl,
+                saveSnapshotFn: this.saveSnapshotFn,
+            });
+        } catch (err) {
+            console.error('Failed to record snapshot after save:', err);
+        }
+    }
+
     async saveBulkProject() {
         await this.#withPendingAction(QUICK_ACTION.SAVE, async () => {
             this.ensureSurface();
@@ -555,6 +630,8 @@ class MasBulkPublishEditor extends LitElement {
                     Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
+                    const createdProject = Store.bulkPublishProjects.inEdit.get();
+                    await this.#recordSnapshotAfterSave(createdProject);
                 } else {
                     const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
@@ -569,10 +646,15 @@ class MasBulkPublishEditor extends LitElement {
                     this.project.updateField('items', [buildItemsMetadata(this.items)]);
                     this.project.updateField('fragments', validPaths);
                     this.project.updateField('locales', this.locales);
-                    const saved = await this.repository.saveFragment(this.project, false);
-                    if (!saved) throw new Error('Save returned empty response');
+                    const saved = await this.repository.saveFragment(this.project, {
+                        withToast: false,
+                        refetchEtag: false,
+                        errorMessage: 'Failed to save the project.',
+                    });
+                    if (!saved) return;
                     this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');
+                    await this.#recordSnapshotAfterSave(this.project);
                 }
             } catch (err) {
                 console.error('Failed to save bulk publish project:', err);
@@ -644,7 +726,7 @@ class MasBulkPublishEditor extends LitElement {
                     ? await this.repository.getFragmentById(item.fragmentId)
                     : await this.repository.aem.sites.cf.fragments.getByPath(item.path);
                 const fragment = new Fragment(rawFragment);
-                const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                 return {
                     ...item,
                     fragmentId: fragment.id || item.fragmentId,
@@ -697,7 +779,7 @@ class MasBulkPublishEditor extends LitElement {
                             duplicateCount++;
                         } else {
                             existingIds.add(fragment.id);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             results[i] = {
                                 url: raw,
                                 fragmentId: fragment.id,
@@ -794,17 +876,21 @@ class MasBulkPublishEditor extends LitElement {
         }
     }
 
-    async publish() {
+    async publish(includeVariations = false, includeCards = false) {
         if (this.hasChanges) await this.saveBulkProject();
         if (!this.canStartPublishing) return;
         try {
             const outcome = await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
                 const { startPublishing } = await import('./bulk-publish-store.js');
+                const aemBaseUrl = this.repository?.aem?.baseUrl;
                 return startPublishing({
                     project: this.project,
                     token: this.token,
                     ioBaseUrl: this.ioBaseUrl,
+                    aemOdinEndpoint: aemBaseUrl?.startsWith('http://localhost') ? undefined : aemBaseUrl,
                     repository: this.repository,
+                    includeVariations,
+                    includeCards,
                 });
             });
             this.requestUpdate();

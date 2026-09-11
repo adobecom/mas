@@ -92,6 +92,56 @@ describe('ost-placeholder-options', () => {
         expect(Boolean(cb(el, 'displayFormatted'))).to.be.false;
     });
 
+    const quantityField = (el) => el.shadowRoot.querySelector('merch-quantity-select[data-testid="ost-quantity-input"]');
+
+    it('hides the quantity field until Options is expanded', async () => {
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        expect(quantityField(el)).to.be.null;
+        await expand(el);
+        expect(quantityField(el)).to.exist;
+    });
+
+    it('renders a merch-quantity-select seeded from the store quantity', async () => {
+        store.placeholderOptions = { ...store.placeholderOptions, quantity: 3 };
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
+        expect(Number(quantityField(el).getAttribute('default-value'))).to.equal(3);
+    });
+
+    it('updates the store quantity on the merch-quantity-select change event', async () => {
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
+        quantityField(el).dispatchEvent(
+            new CustomEvent('merch-quantity-selector:change', { detail: { option: 5 }, bubbles: true }),
+        );
+        expect(store.getEffectiveOptions('price').quantity).to.equal(5);
+    });
+
+    describe('on the checkout tab', () => {
+        beforeEach(() => {
+            store.placeholderTab = 'checkout';
+        });
+        afterEach(() => {
+            store.placeholderTab = 'price';
+        });
+
+        it('reveals the quantity field but no disable checkboxes when expanded', async () => {
+            const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+            await expand(el);
+            expect(quantityField(el)).to.exist;
+            expect(el.shadowRoot.querySelector('sp-checkbox')).to.be.null;
+        });
+
+        it('updates the store quantity on change', async () => {
+            const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+            await expand(el);
+            quantityField(el).dispatchEvent(
+                new CustomEvent('merch-quantity-selector:change', { detail: { option: 4 }, bubbles: true }),
+            );
+            expect(store.getEffectiveOptions('checkoutUrl').quantity).to.equal(4);
+        });
+    });
+
     describe('every Disable checkbox drives its option (5 keys)', () => {
         const optionBoxes = [
             { key: 'displayRecurrence', default: true },

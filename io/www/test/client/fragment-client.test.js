@@ -111,21 +111,29 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
+        // Start from a clean dictionary cache: the preceding card test hits the default 404 stub for
+        // acom/en_US, which is now negative-cached (empty) — clear it so this test's acom stub is used.
+        clearCaches();
+        // Placeholders resolve from the acom baseline (direct-hydrated). The sandbox region overlay
+        // has no dictionary index → short-circuits empty.
         fetchStub
-            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/acom/en_US/dictionary/index`)
             .returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
-            .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
+            .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=direct-hydrated`)
             .returns(createResponse(200, mockPlaceholders));
+        fetchStub
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .returns(createResponse(200, {}));
         const output = await previewFragment(mockCollectionData.id, {
             surface: 'sandbox',
             locale: 'en_US',
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
-        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.exist;
+        expect(localStorageStub.getItem('dictionary-base-acom-en_US')).to.exist;
         clearCaches();
-        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+        expect(localStorageStub.getItem('dictionary-base-acom-en_US')).to.be.null;
     });
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {
@@ -207,6 +215,66 @@ describe('FragmentClient', () => {
         expect(result).to.have.property('fields');
     });
 
+    it('uses the page commerce service stage WCS config for preview requests', async () => {
+        const serviceElement = {
+            getAttribute: (name) => ({ locale: 'en_US', country: 'US' })[name] ?? null,
+            settings: {
+                env: 'STAGE',
+                wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage',
+                landscape: 'PUBLISHED',
+            },
+        };
+        const originalQuery = globalThis.document.head.querySelector;
+        globalThis.document.head.querySelector = (sel) => (sel === 'mas-commerce-service' ? serviceElement : null);
+        try {
+            const result = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(result.wcsConfiguration).to.deep.equal([
+                { wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', env: 'stage', landscape: 'ALL' },
+            ]);
+        } finally {
+            globalThis.document.head.querySelector = originalQuery;
+        }
+    });
+
+    it('uses the page commerce service prod WCS config for preview requests', async () => {
+        const serviceElement = {
+            getAttribute: (name) => ({ locale: 'en_US', country: 'US' })[name] ?? null,
+            settings: {
+                env: 'PRODUCTION',
+                wcsURL: 'https://www.adobe.com/web_commerce_artifact',
+                landscape: 'PUBLISHED',
+            },
+        };
+        const originalQuery = globalThis.document.head.querySelector;
+        globalThis.document.head.querySelector = (sel) => (sel === 'mas-commerce-service' ? serviceElement : null);
+        try {
+            const result = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(result.wcsConfiguration).to.deep.equal([
+                { wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod', landscape: 'PUBLISHED' },
+            ]);
+        } finally {
+            globalThis.document.head.querySelector = originalQuery;
+        }
+    });
+
+    it('omits X-Request-ID from preview fetches to avoid a CORS preflight', async () => {
+        fetchStub.resetHistory();
+        await previewFragment(mockCardFragment.id, { surface: 'sandbox', locale: 'en_US' });
+        const calls = fetchStub.getCalls();
+        expect(calls.length).to.be.greaterThan(0);
+        calls.forEach((call) => {
+            expect(call.args[1]?.headers ?? {}).to.not.have.property('X-Request-ID');
+        });
+    });
+
     it('runs the mask transformer when mask option is supplied', async () => {
         const maskByPathUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/masks/promo`;
         const maskId = 'mask-frag-id';
@@ -242,6 +310,18 @@ describe('FragmentClient', () => {
         } finally {
             delete storage['configuration'];
             resetConfigCache();
+        }
+    });
+
+    it('clears caches on load when mas.cache=off is present in the URL', async () => {
+        localStorageStub.setItem('dictionary-sandbox-en_US', 'stale-value');
+        const previousLocation = globalThis.window.location;
+        globalThis.window.location = { search: '?mas.cache=off' };
+        try {
+            await import(`../../../../studio/libs/fragment-client.js?cachebust=${Date.now()}-${Math.random()}`);
+            expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+        } finally {
+            globalThis.window.location = previousLocation;
         }
     });
 

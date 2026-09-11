@@ -15,6 +15,7 @@ import {
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
+import { Fragment } from '../../aem/fragment.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -36,6 +37,9 @@ class MasSelectItemsTable extends LitElement {
         renderPreviewCell: { type: Function },
         promoVariationsFetchedByParent: { type: Object },
         viewOnlyFragmentsFetchedByParent: { type: Boolean },
+        groupedVariationsManageOnly: { type: Boolean },
+        hideGroupedVariations: { type: Boolean },
+        viewOnlyHasMore: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -65,10 +69,29 @@ class MasSelectItemsTable extends LitElement {
         this.renderPreviewCell = null;
         this.hidePromoVariations = false;
         this.viewOnlyFragmentsFetchedByParent = false;
+        this.groupedVariationsManageOnly = false;
+        this.hideGroupedVariations = false;
+        this.viewOnlyHasMore = false;
     }
+
+    // Lazy "load more" for the viewOnly (already-selected) list: observe a sentinel and
+    // ask the parent for the next window as it scrolls into view. Non-viewOnly paging
+    // stays on the repository cursor (see updated()).
+    #viewOnlyScrollObserver = null;
+    #observedSentinel = null;
 
     connectedCallback() {
         super.connectedCallback();
+        this.#viewOnlyScrollObserver = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) {
+                    this.dispatchEvent(new CustomEvent('view-only-load-more', { bubbles: true, composed: true }));
+                }
+            },
+            // `closest` can't cross the shadow boundary this table lives behind, so fall back
+            // to the single app-level scroll container (as mas-fragment-render does).
+            { root: this.closest('.main-container') ?? document.querySelector('.main-container'), rootMargin: '200px' },
+        );
         this.dataState.abortController = new AbortController();
         this.dataState.isProcessingCards = false;
         this.dataState.pendingCards = null;
@@ -85,20 +108,16 @@ class MasSelectItemsTable extends LitElement {
                     },
                 );
             } else {
-                this.viewOnlyLoading = !!getItemsSelectionStore()[`selected${this.typeUppercased}`].value?.length;
+                const topLevelPaths = this.#topLevelSelectedPaths;
+                this.viewOnlyLoading = !!topLevelPaths.length;
                 this.processAbortController = new AbortController();
-                loadSelectedFragments(
-                    getItemsSelectionStore()[`selected${this.typeUppercased}`].value,
-                    this.effectiveType,
-                    this.repository,
-                    {
-                        signal: this.processAbortController.signal,
-                        onItems: (items) => {
-                            this.viewOnlyFragments = items;
-                        },
-                        getDisplayName: this.getDisplayName,
+                loadSelectedFragments(topLevelPaths, this.effectiveType, this.repository, {
+                    signal: this.processAbortController.signal,
+                    onItems: (items) => {
+                        this.viewOnlyFragments = items;
                     },
-                ).finally(() => {
+                    getDisplayName: this.getDisplayName,
+                }).finally(() => {
                     this.viewOnlyLoading = false;
                 });
             }
@@ -157,10 +176,25 @@ class MasSelectItemsTable extends LitElement {
         if (loadingJustCompleted && this.hasMore.value && !this.viewOnly && this.effectiveType !== TABLE_TYPE.PLACEHOLDERS) {
             this.repository?.loadNextPage();
         }
+
+        if (this.viewOnly) {
+            const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
+            if (sentinel && sentinel !== this.#observedSentinel) {
+                this.#viewOnlyScrollObserver?.disconnect();
+                this.#viewOnlyScrollObserver?.observe(sentinel);
+                this.#observedSentinel = sentinel;
+            } else if (!sentinel && this.#observedSentinel) {
+                this.#viewOnlyScrollObserver?.disconnect();
+                this.#observedSentinel = null;
+            }
+        }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#viewOnlyScrollObserver?.disconnect();
+        this.#viewOnlyScrollObserver = null;
+        this.#observedSentinel = null;
         this.dataSubscription?.unsubscribe();
         this.dataState.abortController?.abort();
         this.processAbortController?.abort();
@@ -183,6 +217,17 @@ class MasSelectItemsTable extends LitElement {
 
     get effectiveType() {
         return this.type || this.getAttribute('type') || TABLE_TYPE.CARDS;
+    }
+
+    /**
+     * When hideGroupedVariations is set (promos only), grouped variations appear only
+     * under their parent card's tab, not as top-level rows (persisting in the store).
+     */
+    get #topLevelSelectedPaths() {
+        const paths = getItemsSelectionStore()[`selected${this.typeUppercased}`].value ?? [];
+        return this.hideGroupedVariations && this.effectiveType === TABLE_TYPE.CARDS
+            ? paths.filter((path) => !Fragment.isGroupedVariationPath(path))
+            : paths;
     }
 
     get isLoading() {
@@ -342,6 +387,7 @@ class MasSelectItemsTable extends LitElement {
                             .renderActionsCell=${this.renderActionsCell}
                             .renderPreviewCell=${this.renderPreviewCell}
                             .promoVariationsFetchedByParent=${this.promoVariationsFetchedByParent}
+                            .groupedVariationsManageOnly=${this.groupedVariationsManageOnly}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -404,8 +450,15 @@ class MasSelectItemsTable extends LitElement {
         }
     }
 
-    get loadingMoreIndicator() {
-        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
+    get #showScrollSentinel() {
+        return this.viewOnly ? this.viewOnlyHasMore : this.hasMore.value;
+    }
+
+    get #loadingMoreIndicator() {
+        const loadingMore = this.viewOnly
+            ? this.viewOnlyLoading && this.itemsToDisplay.length > 0
+            : this.loading.value && this.firstPageLoaded.value;
+        if (!loadingMore) return nothing;
         return html`<div class="loading-more">
             <sp-progress-circle indeterminate size="s"></sp-progress-circle>
             <span>Loading more items…</span>
@@ -432,9 +485,14 @@ class MasSelectItemsTable extends LitElement {
     render() {
         const fetching = this.loading.value;
         const loadingFirstPage = !this.viewOnly && fetching && !this.firstPageLoaded.value;
-        const showSkeleton = this.isLoading || loadingFirstPage;
+        // In viewOnly mode keep already-rendered rows while the next window loads — only
+        // show the full skeleton on the initial (empty) load.
+        const showSkeleton = (this.isLoading || loadingFirstPage) && (!this.viewOnly || this.itemsToDisplay.length === 0);
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
-        const showTable = !showEmpty && (showSkeleton || !this.isLoading);
+        // Keep the table mounted whenever there are rows to show — during a viewOnly
+        // load-more `isLoading` is true while existing rows remain, and gating on it here
+        // would unmount the whole section until the next window resolves.
+        const showTable = !showEmpty && (showSkeleton || this.itemsToDisplay.length > 0);
 
         return html`
             ${showEmpty ? html`<p>No items found.</p>` : nothing}
@@ -461,7 +519,8 @@ class MasSelectItemsTable extends LitElement {
                           )}
                       </sp-table-head>
                       <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
-                      ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
+                      ${this.#showScrollSentinel ? html`<div class="scroll-sentinel"></div>` : nothing}
+                      ${this.#loadingMoreIndicator}
                   </sp-table>`
                 : nothing}
         `;

@@ -57,3 +57,8 @@ export function canAccessSettings(surface) {
 export function canAccessMasks(surface) {
     return canAccessSettings(surface);
 }
+
+/** Offer mapping is an advanced, per-surface capability gated like settings (for now). */
+export function canAccessOfferMapping(surface) {
+    return canAccessSettings(surface);
+}

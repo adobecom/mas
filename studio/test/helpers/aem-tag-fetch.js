@@ -29,3 +29,16 @@ export const stubAemTagQueryFetch = (sandbox, body = emptyTagQuery) => {
         return asTagQueryResponse(body);
     });
 };
+
+/**
+ * Stubs aem.sites.cf.fragments.search as an async generator keyed by folder path.
+ * Tests use this instead of getByPath because probePromoVariationsForFragment resolves variations via a single folder search rather than individual paths.
+ * @param {{ stub: Function }} stubber - a sinon sandbox instance, or the sinon module itself
+ * @param {Object<string, Array>} [itemsByFolder] - search results keyed by the requested folder path
+ * @returns {import('sinon').SinonStub}
+ */
+export function makeSearchStub(stubber, itemsByFolder = {}) {
+    return stubber.stub().callsFake(async function* (query) {
+        yield itemsByFolder[query?.path] || [];
+    });
+}

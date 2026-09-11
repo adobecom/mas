@@ -23,7 +23,14 @@ async function main(params) {
         });
         const workerResult = await invokeAsyncAction(
             workerActionName,
-            { projectId: params.projectId, publishedBy: params.publishedBy || '', authToken },
+            {
+                projectId: params.projectId,
+                publishedBy: params.publishedBy || '',
+                authToken,
+                aemOdinEndpoint: odinEndpoint,
+                includeCards: params.includeCards || false,
+                includeVariations: params.includeVariations || false,
+            },
             params,
         );
 

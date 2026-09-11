@@ -255,6 +255,37 @@ describe('MasSearchAndFilters', () => {
             expect(el.templateFilter).to.deep.equal([]);
         });
 
+        it('resyncs productFilter from the store on reconnect by default', async () => {
+            Store.translationProjects.filters.set({
+                locale: 'en_US',
+                tags: 'mas:product_code/photoshop',
+                personalizationFilterEnabled: false,
+            });
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
+            el.disconnectedCallback();
+            Store.translationProjects.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
+            el.connectedCallback();
+            expect(el.productFilter).to.deep.equal([]);
+        });
+
+        it('does not let a stale store overwrite an externally-managed productFilter on reconnect', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .externalProductFilter=${true}
+                    .productFilter=${['mas:product_code/photoshop']}
+                ></mas-search-and-filters>`,
+            );
+            expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
+            el.disconnectedCallback();
+            // This is the state the shared store is left in after "Import via URL" disconnects (mas-search-and-filters).
+            // It restores the store to what it was before the offer tag was added.
+            Store.translationProjects.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
+            el.connectedCallback();
+            expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
+        });
+
         it('should initialize statusFilter as empty', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             expect(el.statusFilter).to.deep.equal([]);
@@ -991,6 +1022,22 @@ describe('MasSearchAndFilters', () => {
             el.templateFilter = ['plans'];
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+        });
+
+        it('should match stored bizpro cards when the Pro template is selected', async () => {
+            const legacy = createMockFragment({
+                path: '/content/dam/mas/acom/en_US/legacy-pro',
+                fields: [{ name: 'variant', values: ['bizpro'] }],
+            });
+            Store.translationProjects.allCards.set([
+                legacy,
+                createMockFragment({ fields: [{ name: 'variant', values: ['catalog'] }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.templateFilter = ['pro'];
+            await el.updateComplete;
+
+            expect(Store.translationProjects.displayCards.get()).to.deep.equal([legacy]);
         });
 
         it('should filter by status', async () => {

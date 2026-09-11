@@ -56,6 +56,58 @@ export function wait(ms = 1000) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const foregroundTimers = new Map();
+let foregroundTimerId = 0;
+
+/**
+ * setTimeout that only counts down *foreground* time, i.e. time during which
+ * document.visibilityState === 'visible'. A plain setTimeout burns its budget
+ * against the wall clock, so work in a backgrounded tab or a paused in-app
+ * webview (the paid-social cohort in MWPW-206151) trips the timeout on resume,
+ * even though the work it races only ran for a few ms. Drop-in for the
+ * setTimeout/clearTimeout pair: pause the budget while hidden, resume on show.
+ * @param {() => void} callback invoked once the foreground budget elapses
+ * @param {number} ms foreground budget in milliseconds
+ * @returns {number} id to pass to clearForegroundTimeout
+ */
+export function setForegroundTimeout(callback, ms) {
+    const id = ++foregroundTimerId;
+    let remaining = ms;
+    let startedAt = performance.now();
+    let timer;
+    const fire = () => {
+        clearForegroundTimeout(id);
+        callback();
+    };
+    const start = () => {
+        startedAt = performance.now();
+        timer = setTimeout(fire, remaining);
+    };
+    const onVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            clearTimeout(timer);
+            remaining -= performance.now() - startedAt;
+        } else {
+            start();
+        }
+    };
+    foregroundTimers.set(id, () => {
+        clearTimeout(timer);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (document.visibilityState !== 'hidden') start();
+    return id;
+}
+
+/** Cancels a timer started with setForegroundTimeout. */
+export function clearForegroundTimeout(id) {
+    const dispose = foregroundTimers.get(id);
+    if (!dispose) return;
+    dispose();
+    foregroundTimers.delete(id);
+}
+
 /**
  * Calls given `getConfig` every time new instance of the commerce service is activated,
  * passing new instance as the only argument.
@@ -140,4 +192,93 @@ export function shouldHideStPriceLabels(element) {
         nextElSibling?.isInlinePrice &&
         nextElSibling?.dataset?.template === 'price'
     );
+}
+
+const MASLIBS_PATTERN =
+    /^([a-z0-9]+(-[a-z0-9]+)*)(--([a-z0-9]+(-[a-z0-9]+)*)){0,2}$/;
+const MASLIBS_MAX_LENGTH = 100;
+const MASLIBS_EXTENSIONS = ['live', 'page'];
+
+/**
+ * Validates the maslibs parameter and returns the base URL for MAS libraries.
+ * Only branch, branch--repo and branch--repo--owner shapes are allowed, so
+ * the resulting host always stays under aem.live / aem.page.
+ * @param {string} masLibs raw maslibs parameter value
+ * @param {string} extension aem domain extension: 'live' (default) or 'page'
+ * @returns {string|null} base URL, or null if either value is missing or invalid
+ */
+export function getValidatedMasLibsUrl(masLibs, extension = 'live') {
+    if (!masLibs || masLibs.trim() === '') return null;
+    if (!MASLIBS_EXTENSIONS.includes(extension)) return null;
+    const value = masLibs.trim().toLowerCase();
+    if (value === 'local') return 'http://localhost:3000';
+    if (value.length > MASLIBS_MAX_LENGTH || !MASLIBS_PATTERN.test(value)) {
+        return null;
+    }
+    const branch = value.includes('--') ? value : `${value}--mas--adobecom`;
+    let url;
+    try {
+        url = new URL(`https://${branch}.aem.${extension}`);
+    } catch {
+        // stricter URL parsers (e.g. Node) reject invalid punycode labels
+        return null;
+    }
+    if (!url.hostname.endsWith(`.aem.${extension}`)) return null;
+    return url.origin;
+}
+
+const ASSET_PROD_HOSTS = ['www.adobe.com', 'www.stage.adobe.com'];
+
+/**
+ * Rewrites an aem.live/aem.page asset URL to a relative path when the current
+ * page is served from a production/stage adobe.com host, so preview-domain
+ * URLs accidentally authored into content don't leak into production markup.
+ * @param {string} url
+ * @param {string} currentHostname defaults to window.location.hostname (injectable for tests)
+ * @returns {string} the relative path if rewritten, otherwise the original url
+ */
+export function toRelativeAssetUrl(
+    url,
+    currentHostname = window.location.hostname,
+) {
+    if (!url) return url;
+    if (!ASSET_PROD_HOSTS.includes(currentHostname)) return url;
+    try {
+        const parsed = new URL(url, `https://${currentHostname}`);
+        if (!/\.aem\.(live|page)$/.test(parsed.hostname)) return url;
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+        return url;
+    }
+}
+
+const MAS_IO_ALLOWED_HOSTS = [
+    'adobe.com',
+    'adobeioruntime.net',
+    'aem.live',
+    'aem.page',
+];
+const MAS_IO_LOCAL_HOSTS = ['localhost', '127.0.0.1'];
+
+/**
+ * Checks that a mas-io-url value points to an Adobe-controlled host.
+ * The URL becomes the base of fragment requests carrying the WCS api key,
+ * so an attacker-controlled host would leak the key.
+ * @param {string} urlString
+ * @returns {boolean}
+ */
+export function isAllowedMasIOUrl(urlString) {
+    try {
+        const url = new URL(urlString);
+        if (MAS_IO_LOCAL_HOSTS.includes(url.hostname)) {
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        }
+        if (url.protocol !== 'https:') return false;
+        return MAS_IO_ALLOWED_HOSTS.some(
+            (host) =>
+                url.hostname === host || url.hostname.endsWith(`.${host}`),
+        );
+    } catch {
+        return false;
+    }
 }

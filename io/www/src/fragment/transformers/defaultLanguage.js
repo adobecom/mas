@@ -1,6 +1,6 @@
 import { fetch, getFragmentId } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { odinReferences, odinUrl } from '../utils/paths.js';
+import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { getDefaultLocaleCode, getLocaleCode, getRegionLocales, parseLocaleCode } from '../locales.js';
 
 /**
@@ -31,7 +31,7 @@ export async function getDefaultLanguageVariation(context) {
         if (status != 200) {
             return { status, message };
         }
-        const defaultLocaleUrl = odinReferences(defaultLocaleId, true, preview);
+        const defaultLocaleUrl = odinReferences(defaultLocaleId, preview, REFERENCES.ALL);
         const response = await fetch(defaultLocaleUrl, context, 'default-locale-fragment');
         if (response.status != 200 || !response.body) {
             /* c8 ignore next */

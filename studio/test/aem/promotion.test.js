@@ -391,6 +391,31 @@ describe('Promotion', () => {
         });
     });
 
+    describe('promotionEnvironment getter', () => {
+        it('returns test when surfaces field is empty', () => {
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionEnvironment).to.equal('test');
+        });
+
+        it('returns test when surfaces only contain sandbox and nala', () => {
+            mockFragmentData.fields.find((f) => f.name === 'surfaces').values = ['sandbox', 'nala'];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionEnvironment).to.equal('test');
+        });
+
+        it('returns production when surfaces contain a production surface', () => {
+            mockFragmentData.fields.find((f) => f.name === 'surfaces').values = ['acom'];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionEnvironment).to.equal('production');
+        });
+
+        it('returns production when surfaces mix production and sandbox', () => {
+            mockFragmentData.fields.find((f) => f.name === 'surfaces').values = ['sandbox', 'ccd'];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionEnvironment).to.equal('production');
+        });
+    });
+
     describe('isPromotionModified', () => {
         it('returns true when fragment status is MODIFIED', () => {
             mockFragmentData.status = 'MODIFIED';

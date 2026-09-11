@@ -203,11 +203,33 @@ export const features = [
             title: 'CCD Apps Teams',
             regularPrice: 'A$157.99/mo',
             annualPrice: 'A$1,895.88/yr',
-            unitText: 'per license',
+            unitText: 'per licence',
             promotionCode: undefined,
             planTypeText: 'Annual, billed monthly',
             recurrenceText: '/mo',
         },
         tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
+    },
+];
+
+export const settingsFeatures = [
+    {
+        tcid: '8',
+        name: '@MAS-Settings-hideTrialCTAs-country-KR',
+        path: `${DOCS_GALLERY_PATH.CCD_MINI.US}?country=KR&language=en`,
+        data: {
+            fragment: '03a36f0f-3e5d-4881-ae6b-273c517c9d38',
+        },
+        tags: '@mas-docs @ccd-mini @settings @hideTrialCTAs @country @regression',
+    },
+    {
+        tcid: '9',
+        name: '@MAS-Settings-hideTrialCTAs-country-US',
+        path: `${DOCS_GALLERY_PATH.CCD_MINI.US}?country=US&language=en`,
+        data: {
+            fragment: '03a36f0f-3e5d-4881-ae6b-273c517c9d38',
+            trialCta: 'Free trial',
+        },
+        tags: '@mas-docs @ccd-mini @settings @hideTrialCTAs @country @regression',
     },
 ];

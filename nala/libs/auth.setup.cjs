@@ -33,8 +33,7 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
         timeout: 10_000,
     });
 
-    heading = await page.locator('.spectrum-Heading1,.Heading-1', { hasText: 'Enter your password' }).first().innerText();
-    expect(heading).toBe('Enter your password');
+    await expect(page.locator('#PasswordPage-PasswordField')).toBeVisible({ timeout: 45000 });
     await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
     await page.locator('[data-id=PasswordPage-ContinueButton]').click();
 

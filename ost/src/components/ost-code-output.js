@@ -81,6 +81,9 @@ export class OstCodeOutput extends LitElement {
         if (store.storedPromoOverride) {
             optionParts.push(`promotionCode="${store.storedPromoOverride}"`);
         }
+        if (store.lockedOsi) {
+            optionParts.push(`lockedOsi="true"`);
+        }
         if (optionParts.length > 0) {
             parts.push(optionParts.join(' '));
         }
@@ -134,6 +137,9 @@ export class OstCodeOutput extends LitElement {
             options.ctaText = checkoutCtrl.ctaText || checkoutCtrl.defaultCtaText;
         }
 
+        if (store.lockedOsi) {
+            options.lockedOsi = true;
+        }
         options.workflow = 'UCv3';
         options.marketSegment = store.aosParams.marketSegment || 'COM';
         options.clientId = store.checkoutClientId;

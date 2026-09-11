@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { VARIANTS } from '../../editors/variant-picker.js';
+import { isVariantMatch, VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
@@ -81,6 +81,8 @@ class MasSearchAndFilters extends LitElement {
         promotionSurface: { type: String },
         offerFilterOptions: { type: Array },
         offerFilterValue: { type: String },
+        /** If true, don't overwrite productFilter — the consumer controls it (offers for promotions). */
+        externalProductFilter: { type: Boolean },
     };
 
     constructor() {
@@ -111,6 +113,7 @@ class MasSearchAndFilters extends LitElement {
         this.promotionSurface = '';
         this.offerFilterOptions = [];
         this.offerFilterValue = '';
+        this.externalProductFilter = false;
     }
 
     get #isTemplateFilterLocked() {
@@ -180,7 +183,9 @@ class MasSearchAndFilters extends LitElement {
         }
         this.#setFilterIfChanged('marketSegmentFilter', tagsByType.market_segments);
         this.#setFilterIfChanged('customerSegmentFilter', tagsByType.customer_segment);
-        this.#setFilterIfChanged('productFilter', tagsByType.product_code);
+        if (!this.externalProductFilter) {
+            this.#setFilterIfChanged('productFilter', tagsByType.product_code);
+        }
     }
 
     #syncRepositorySearch() {
@@ -872,7 +877,7 @@ class MasSearchAndFilters extends LitElement {
             if (hasTemplate) {
                 const variantField = fragment.fields?.find((field) => field.name === 'variant');
                 if (!variantField?.values?.length) return false;
-                if (!variantField.values.some((value) => this.templateFilter.includes(value))) return false;
+                if (!variantField.values.some((value) => isVariantMatch(this.templateFilter, value))) return false;
             }
             if (hasStatus) {
                 if (!this.statusFilter.includes(fragment.status)) return false;

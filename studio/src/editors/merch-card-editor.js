@@ -1519,9 +1519,9 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('variant')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="cardName">
-                        <sp-field-label for="card-name">Card name</sp-field-label>
+                        <sp-field-label for="card-name">Deep linking name</sp-field-label>
                         <sp-textfield
-                            placeholder="Enter card name"
+                            placeholder="Enter deep linking name"
                             id="card-name"
                             data-field="cardName"
                             data-field-state="${this.getFieldState('cardName')}"

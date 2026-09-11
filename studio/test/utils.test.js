@@ -1,6 +1,8 @@
 import { expect } from '@open-wc/testing';
 import {
     buildCardsDeepLink,
+    buildPlaceholderStudioLink,
+    buildPlaceholderStudioLinks,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -272,6 +274,35 @@ describe('buildCardsDeepLink', () => {
         const linkable = [{ model: { path: CARD_MODEL_PATH } }, { model: { path: COLLECTION_MODEL_PATH } }];
         const lines = linkable.map((f) => buildCardsDeepLink(f, 'sandbox', 'content')).filter(Boolean);
         expect(lines).to.deep.equal([]);
+    });
+});
+
+describe('buildPlaceholderStudioLink', () => {
+    it('builds the placeholder deep link with encoded values', () => {
+        const href = buildPlaceholderStudioLink({ key: 'my-key', path: 'nala', locale: 'en_US' });
+        expect(href).to.equal(
+            `${location.origin}${location.pathname}#content-type=placeholder&page=placeholders&path=nala&locale=en_US&search=my-key`,
+        );
+    });
+
+    it('starts with the current document origin and pathname, not a hardcoded host', () => {
+        const href = buildPlaceholderStudioLink({ key: 'my-key', path: 'nala', locale: 'en_US' });
+        expect(href.startsWith(`${location.origin}${location.pathname}#`)).to.be.true;
+    });
+
+    it('percent-encodes special characters in the key', () => {
+        const href = buildPlaceholderStudioLink({ key: 'addon demo & test', path: 'sandbox', locale: 'en_US' });
+        expect(href).to.include(`search=${encodeURIComponent('addon demo & test')}`);
+        expect(href).to.not.include('search=addon demo & test');
+    });
+});
+
+describe('buildPlaceholderStudioLinks', () => {
+    it('builds one link per key, in input order', () => {
+        const links = buildPlaceholderStudioLinks(['key-a', 'key-b'], { path: 'nala', locale: 'en_US' });
+        expect(links).to.have.length(2);
+        expect(links[0]).to.include('search=key-a');
+        expect(links[1]).to.include('search=key-b');
     });
 });
 

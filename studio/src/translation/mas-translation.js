@@ -6,6 +6,7 @@ import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES } from '../constants.js';
 import { showToast } from '../utils.js';
+import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
 
 const translationSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -22,6 +23,7 @@ class MasTranslation extends LitElement {
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         columns: { type: Set, state: true },
+        searchQuery: { type: String, state: true },
     };
 
     constructor() {
@@ -32,6 +34,7 @@ class MasTranslation extends LitElement {
         ]);
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.searchQuery = '';
         this.columns = new Set([
             { key: 'title', label: 'Translation Project' },
             { key: 'status', label: 'Status' },
@@ -49,8 +52,20 @@ class MasTranslation extends LitElement {
         return document.querySelector('mas-repository');
     }
 
-    get translationProjectsData() {
+    get #allTranslationProjectsData() {
         return Store.translationProjects?.list?.data?.get() || [];
+    }
+
+    get translationProjectsData() {
+        return filterBySearchQuery(
+            this.#allTranslationProjectsData,
+            this.searchQuery?.trim(),
+            (translationProject) => translationProject.get().title || '',
+        );
+    }
+
+    handleSearch(e) {
+        this.searchQuery = handleSearchInput(e);
     }
 
     get confirmDialog() {
@@ -237,7 +252,7 @@ class MasTranslation extends LitElement {
             Store.translationProjects.list.loading.set(true);
             showToast('Deleting translation project...');
             await this.repository.deleteFragment(translationProject, { startToast: false, endToast: false });
-            const updatedTranslationProjects = this.translationProjectsData.filter(
+            const updatedTranslationProjects = this.#allTranslationProjectsData.filter(
                 (project) => project.get().id !== translationProject.get().id,
             );
             Store.translationProjects.list.data.set(updatedTranslationProjects);
@@ -278,7 +293,7 @@ class MasTranslation extends LitElement {
     }
 
     #sortBySentOn({ detail: { sortKey, sortDirection } }) {
-        const translationProjects = [...this.translationProjectsData].sort((a, b) => {
+        const translationProjects = [...this.#allTranslationProjectsData].sort((a, b) => {
             const dateA = a.get().getFieldValue('submissionDate');
             const dateB = b.get().getFieldValue('submissionDate');
             if (!dateA && !dateB) return 0;
@@ -303,7 +318,13 @@ class MasTranslation extends LitElement {
                     </sp-button>
                 </div>
                 <div class="translation-toolbar">
-                    <sp-search size="m" placeholder="Search" disabled></sp-search>
+                    <sp-search
+                        size="m"
+                        placeholder="Search"
+                        .value=${this.searchQuery}
+                        @input=${this.handleSearch}
+                        @change=${this.handleSearch}
+                    ></sp-search>
                     <div>${this.translationProjectsData.length} result(s)</div>
                 </div>
                 ${this.confirmDialog}

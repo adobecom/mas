@@ -10,11 +10,21 @@ const SETTINGS_ACCESS_GROUP_BY_SURFACE = new Map([
     ['acom-cc', 'GRP-ODIN-MAS-ACOM-CC-POWERUSERS'],
     ['acom-dc', 'GRP-ODIN-MAS-ACOM-DC-POWERUSERS'],
     ['adobe-home', 'GRP-ODIN-MAS-AH-POWERUSERS'],
+    ['brand-concierge', 'GRP-ODIN-MAS-BRAND-CONCIERGE-POWERUSERS'],
     ['ccd', 'GRP-ODIN-MAS-CCD-POWERUSERS'],
     ['express', 'GRP-ODIN-MAS-EXPRESS-POWERUSERS'],
 ]);
 
 const ADMIN_ONLY_SETTINGS_SURFACES = new Set(['commerce', 'sandbox', 'nala']);
+
+/**
+ * Surface path segment → LDAP groups allowed to edit that surface's cards.
+ * Surfaces absent from this map keep today's unrestricted card-authoring behavior;
+ * only surfaces that need card-type-scoped authors (e.g. brand-concierge) are listed here.
+ */
+const CARD_EDIT_GROUPS_BY_SURFACE = new Map([
+    ['brand-concierge', ['GRP-ODIN-MAS-BRAND-CONCIERGE-EDITORS', 'GRP-ODIN-MAS-BRAND-CONCIERGE-POWERUSERS']],
+]);
 
 function normalizeSurface(surface) {
     if (!surface) return '';
@@ -61,4 +71,19 @@ export function canAccessMasks(surface) {
 /** Offer mapping is an advanced, per-surface capability gated like settings (for now). */
 export function canAccessOfferMapping(surface) {
     return canAccessSettings(surface);
+}
+
+/**
+ * Card authoring access, scoped by card type/surface. Surfaces not present in
+ * CARD_EDIT_GROUPS_BY_SURFACE remain unrestricted (admins always allowed); read
+ * access to every surface's cards is unaffected since this only gates editing.
+ */
+export function canEditSurfaceCards(surface) {
+    const groups = getCurrentUserNormalizedGroups();
+    if (!groups) return false;
+    if (groups.includes(MAS_ADMIN_GROUP.toUpperCase())) return true;
+    const key = normalizeSurface(surface);
+    const requiredGroups = CARD_EDIT_GROUPS_BY_SURFACE.get(key);
+    if (!requiredGroups) return true;
+    return requiredGroups.some((group) => groups.includes(group.toUpperCase()));
 }

@@ -35,6 +35,11 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
     if (pzn) fragmentParams.pzn = pzn;
     if (country) fragmentParams.country = country;
 
+    // A fragment invoke or price hydration must never hang the whole activation to its
+    // platform timeout: bound each with a deadline so a stall fails fast (see MWPW agent hang).
+    const deadline = (ms, label) =>
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} exceeded ${ms}ms`)), ms));
+
     let result;
     try {
         const client = openwhiskFactory({
@@ -42,12 +47,15 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
             apihost: params.__ow_api_host,
             namespace: params.__ow_namespace,
         });
-        result = await client.actions.invoke({
-            name: fragmentActionName(params),
-            params: fragmentParams,
-            blocking: true,
-            result: true,
-        });
+        result = await Promise.race([
+            client.actions.invoke({
+                name: fragmentActionName(params),
+                params: fragmentParams,
+                blocking: true,
+                result: true,
+            }),
+            deadline(20000, 'fragment invoke'),
+        ]);
     } catch (error) {
         return response(502, { message: `failed to invoke fragment action: ${error.message}` });
     }
@@ -56,10 +64,8 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
         return response(result.statusCode, { message: `fragment action returned ${result.statusCode}` });
     }
 
-    return response(200, {
-        ...(await flattenOffer(parseFragmentBody(result))),
-        pzn: pzn ?? null,
-    });
+    const flat = await Promise.race([flattenOffer(parseFragmentBody(result)), deadline(15000, 'price hydration')]);
+    return response(200, { ...flat, pzn: pzn ?? null });
 }
 
 export { main };

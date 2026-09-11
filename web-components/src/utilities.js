@@ -218,6 +218,8 @@ export function toWcsOsiAndPromotionCodes(osiValue, promotionCodeValue) {
  * @returns
  */
 export function getService() {
+    /* c8 ignore next */
+    if (typeof document === 'undefined') return null;
     return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
 }
 

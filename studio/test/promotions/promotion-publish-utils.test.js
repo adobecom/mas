@@ -127,9 +127,12 @@ describe('promotion-publish-utils', () => {
         const [title, message, options] = showDialog.firstCall.args;
         expect(title).to.equal(UNPUBLISHED_PROMO_VARIATIONS_DIALOG.title);
         expect(message).to.equal(unpublishedPromoVariationsPublishMessage(1));
-        expect(options.confirmText).to.equal('Publish together');
+        expect(options.confirmText).to.equal('Publish');
         expect(options.cancelText).to.equal('Cancel');
         expect(options.variant).to.equal('confirmation');
+        expect(options.question).to.equal('Publish them together with the project?');
+        expect(options.checkboxLabel).to.equal('Publish promo variations');
+        expect(options.checkboxDefault).to.be.false;
     });
 
     it('returns variation paths when user confirms publish together', async () => {
@@ -162,6 +165,26 @@ describe('promotion-publish-utils', () => {
         const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
         expect(showDialog.firstCall.args[1]).to.equal(unpublishedPromoVariationsPublishMessage(2));
+    });
+
+    it('excludes variation paths when user confirms but unchecks the publish promo variations checkbox', async () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const promoPath = `${promoFolder}/my-card`;
+        const search = makeSearchStub({
+            [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' }],
+        });
+        const aem = { sites: { cf: { fragments: { search } } } };
+        const promotionFragment = {
+            getFieldValues: sinon.stub().callsFake((name) => {
+                if (name === 'fragments') return [parentPath];
+                return undefined;
+            }),
+            tags: [{ id: 'mas:promotion/black-friday' }],
+        };
+        const showDialog = sinon.stub().resolves({ confirmed: true, checked: false });
+        const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
+        expect(result).to.deep.equal({ confirmed: true, variationPaths: [] });
     });
 
     it('exposes shortfall message when some promo variations are omitted from unpublish', () => {
@@ -222,9 +245,12 @@ describe('promotion-publish-utils', () => {
         const [title, message, options] = showDialog.firstCall.args;
         expect(title).to.equal(PUBLISHED_PROMO_VARIATIONS_DIALOG.title);
         expect(message).to.equal(publishedPromoVariationsUnpublishMessage(1));
-        expect(options.confirmText).to.equal('Unpublish together');
+        expect(options.confirmText).to.equal('Unpublish');
         expect(options.cancelText).to.equal('Cancel');
         expect(options.variant).to.equal('confirmation');
+        expect(options.question).to.equal('Unpublish them together with the project?');
+        expect(options.checkboxLabel).to.equal('Unpublish promo variations');
+        expect(options.checkboxDefault).to.be.false;
     });
 
     it('returns variation paths when user confirms unpublish together, including modified ones', async () => {
@@ -256,15 +282,35 @@ describe('promotion-publish-utils', () => {
         const showDialog = sinon.stub().resolves(true);
         const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
-        expect(showDialog.firstCall.args[1]).to.equal(publishedPromoVariationsUnpublishMessage(2));
+    });
+
+    it('excludes variation paths when user confirms unpublish but unchecks the checkbox', async () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const promoPath = `${promoFolder}/my-card`;
+        const search = makeSearchStub({
+            [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' }],
+        });
+        const aem = { sites: { cf: { fragments: { search } } } };
+        const promotionFragment = {
+            getFieldValues: sinon.stub().callsFake((name) => {
+                if (name === 'fragments') return [parentPath];
+                return undefined;
+            }),
+            tags: [{ id: 'mas:promotion/black-friday' }],
+        };
+        const showDialog = sinon.stub().resolves({ confirmed: true, checked: false });
+        const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
+        expect(result).to.deep.equal({ confirmed: true, variationPaths: [] });
     });
 
     describe('publishPromotionProject', () => {
         it('publishes only the promotion when there are no variation paths', async () => {
             const publish = sinon.stub().resolves();
+            const getWithEtag = sinon.stub().withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish } } } },
+                aem: { sites: { cf: { fragments: { publish, getWithEtag } } } },
                 processError: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
@@ -272,18 +318,19 @@ describe('promotion-publish-utils', () => {
             const ok = await publishPromotionProject(repo, promotion, []);
 
             expect(ok).to.be.true;
-            expect(publish.calledOnceWith(promotion, [])).to.be.true;
+            expect(publish.calledOnceWith({ id: 'promo-1', etag: 'etag-promo' }, [])).to.be.true;
             expect(repo.operation.set.firstCall.args[0]).to.equal(OPERATIONS.PUBLISH);
             expect(repo.operation.set.lastCall.args[0]).to.equal(null);
         });
 
         it('calls processError with project message when publish fails', async () => {
             const publishError = new Error('publish failed');
+            const getWithEtag = sinon.stub().withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
             const publish = sinon.stub().rejects(publishError);
             const processError = sinon.stub();
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish } } } },
+                aem: { sites: { cf: { fragments: { publish, getWithEtag } } } },
                 processError,
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
@@ -295,79 +342,50 @@ describe('promotion-publish-utils', () => {
             expect(repo.operation.set.lastCall.args[0]).to.equal(null);
         });
 
-        it('publishes promotion and variations together in one request', async () => {
-            const promotionPath = '/content/dam/mas/promotions/project';
+        it('publishes promotion and its promo variations individually', async () => {
             const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';
-            const publishFragments = sinon.stub().resolves();
+            const publish = sinon.stub().resolves();
             const getWithEtag = sinon.stub();
-            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
-            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', path: variationPath, etag: 'etag-var' });
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
+            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-var' });
+            const getByPath = sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath });
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: {
-                    sites: {
-                        cf: {
-                            fragments: {
-                                publish: sinon.stub(),
-                                publishFragments,
-                                getWithEtag,
-                                getByPath: sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath }),
-                            },
-                        },
-                    },
-                },
+                aem: { sites: { cf: { fragments: { publish, getWithEtag, getByPath } } } },
                 processError: sinon.stub(),
             };
-            const promotion = { id: 'promo-1', path: promotionPath };
+            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
 
             const ok = await publishPromotionProject(repo, promotion, [variationPath]);
 
             expect(ok).to.be.true;
-            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
-            expect(publishFragments.calledOnce).to.be.true;
-            const [fragments, statuses] = publishFragments.firstCall.args;
-            expect(fragments).to.have.lengthOf(2);
-            expect(fragments[0].path).to.equal(promotionPath);
-            expect(fragments[1].path).to.equal(variationPath);
-            expect(statuses).to.deep.equal([]);
+            expect(publish.calledTwice).to.be.true;
+            expect(publish.firstCall.calledWith({ id: 'promo-1', etag: 'etag-promo' }, [])).to.be.true;
+            expect(publish.secondCall.calledWith({ id: 'var-1', etag: 'etag-var' }, [])).to.be.true;
         });
 
-        it('publishes only resolved variations when some getByPath lookups fail', async () => {
-            const promotionPath = '/content/dam/mas/promotions/project';
+        it('publishes only resolved variations and reports a shortfall when some lookups fail', async () => {
             const foundPath = '/content/dam/mas/acom/en_US/promotions/sale/card-a';
             const missingPath = '/content/dam/mas/acom/en_US/promotions/sale/card-b';
-            const publishFragments = sinon.stub().resolves();
+            const publish = sinon.stub().resolves();
             const getWithEtag = sinon.stub();
-            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
-            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', path: foundPath, etag: 'etag-a' });
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
+            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', etag: 'etag-a' });
             const getByPath = sinon.stub();
             getByPath.withArgs(foundPath).resolves({ id: 'var-a', path: foundPath });
             getByPath.withArgs(missingPath).rejects(new Error('not found'));
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: {
-                    sites: {
-                        cf: {
-                            fragments: {
-                                publish: sinon.stub(),
-                                publishFragments,
-                                getWithEtag,
-                                getByPath,
-                            },
-                        },
-                    },
-                },
+                aem: { sites: { cf: { fragments: { publish, getWithEtag, getByPath } } } },
                 processError: sinon.stub(),
             };
-            const promotion = { id: 'promo-1', path: promotionPath };
+            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
 
             const ok = await publishPromotionProject(repo, promotion, [foundPath, missingPath]);
 
             expect(ok).to.be.true;
-            const [fragments] = publishFragments.firstCall.args;
-            expect(fragments).to.have.lengthOf(2);
-            expect(fragments[0].path).to.equal(promotionPath);
-            expect(fragments[1].path).to.equal(foundPath);
+            expect(publish.calledTwice).to.be.true;
+            expect(publish.secondCall.calledWith({ id: 'var-a', etag: 'etag-a' }, [])).to.be.true;
         });
     });
 

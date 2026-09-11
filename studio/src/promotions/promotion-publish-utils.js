@@ -105,25 +105,31 @@ export function canPublishPromotionNow(promotionFragment, options = {}) {
 }
 
 export const UNPUBLISHED_PROMO_VARIATIONS_DIALOG = {
-    title: 'Unpublished promo variations',
-    confirmText: 'Publish together',
+    title: 'Published promo variations',
+    confirmText: 'Publish',
     cancelText: 'Cancel',
     variant: 'confirmation',
+    question: 'Publish them together with the project?',
+    checkboxLabel: 'Publish promo variations',
+    checkboxDefault: false,
 };
 
 export function unpublishedPromoVariationsPublishMessage(count) {
-    return `This project has ${count} attached promo variation(s) that are not published. Publish them together with the project?`;
+    return `This project has ${count} attached promo variation(s) that are not published.`;
 }
 
 export const PUBLISHED_PROMO_VARIATIONS_DIALOG = {
-    title: 'Published promo variations',
-    confirmText: 'Unpublish together',
+    title: 'Unpublished promo variations',
+    confirmText: 'Unpublish',
     cancelText: 'Cancel',
     variant: 'confirmation',
+    question: 'Unpublish them together with the project?',
+    checkboxLabel: 'Unpublish promo variations',
+    checkboxDefault: false,
 };
 
 export function publishedPromoVariationsUnpublishMessage(count) {
-    return `This project has ${count} attached promo variation(s) that are published. Unpublish them together with the project?`;
+    return `This project has ${count} attached promo variation(s) that are published.`;
 }
 
 /**
@@ -144,14 +150,20 @@ async function confirmActionAgainstPromoVariations(
         return { confirmed: true, variationPaths: [] };
     }
     const message = buildMessage(variations.length);
-    const confirmed = await showDialog(dialogConfig.title, message, {
+    const dialogResult = await showDialog(dialogConfig.title, message, {
         confirmText: dialogConfig.confirmText,
         cancelText: dialogConfig.cancelText,
         variant: dialogConfig.variant,
+        question: dialogConfig.question,
+        checkboxLabel: dialogConfig.checkboxLabel,
+        checkboxDefault: dialogConfig.checkboxDefault,
     });
+    const isCheckboxResult = dialogResult !== null && typeof dialogResult === 'object';
+    const confirmed = isCheckboxResult ? !!dialogResult.confirmed : !!dialogResult;
+    const includeVariations = isCheckboxResult ? !!dialogResult.checked : confirmed;
     return {
-        confirmed: !!confirmed,
-        variationPaths: confirmed ? variations.map((variation) => variation.path) : [],
+        confirmed,
+        variationPaths: confirmed && includeVariations ? variations.map((variation) => variation.path) : [],
     };
 }
 
@@ -191,34 +203,38 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
  * @returns {Promise<boolean>}
  */
 export async function publishPromotionProject(repository, promotionFragment, promoVariationPaths = []) {
-    const publishReferencesWithStatus = [];
     try {
         repository.operation.set(OPERATIONS.PUBLISH);
-        if (!promoVariationPaths.length) {
-            await repository.aem.sites.cf.fragments.publish(promotionFragment, publishReferencesWithStatus);
-        } else {
-            const promotionWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
-            if (!promotionWithEtag) {
-                throw new Error('Failed to fetch promotion for publish');
-            }
-            const fragments = [promotionWithEtag];
-            for (const path of promoVariationPaths) {
-                const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
-                if (!variation?.id) continue;
-                const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id);
-                if (variationWithEtag) fragments.push(variationWithEtag);
-            }
-            await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
-            const expectedFragmentCount = promoVariationPaths.length + 1;
-            const shortfall = expectedFragmentCount - fragments.length;
-            if (shortfall > 0) {
-                showToast(promotionPublishShortfallMessage(shortfall), 'info');
-            } else {
-                showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
-            }
-            return true;
+        const promotionWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
+        if (!promotionWithEtag) {
+            throw new Error('Failed to fetch promotion for publish');
         }
-        showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
+        await repository.aem.sites.cf.fragments.publish(promotionWithEtag, []);
+
+        let shortfall = 0;
+        for (const path of promoVariationPaths) {
+            const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
+            if (!variation?.id) {
+                shortfall += 1;
+                continue;
+            }
+            const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id);
+            if (!variationWithEtag) {
+                shortfall += 1;
+                continue;
+            }
+            try {
+                await repository.aem.sites.cf.fragments.publish(variationWithEtag, []);
+            } catch {
+                shortfall += 1;
+            }
+        }
+
+        if (shortfall > 0) {
+            showToast(promotionPublishShortfallMessage(shortfall), 'info');
+        } else {
+            showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
+        }
         return true;
     } catch (error) {
         repository.processError(error, PROMOTION_PUBLISH_ERROR_MESSAGE);

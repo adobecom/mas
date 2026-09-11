@@ -603,6 +603,10 @@ describe('MasPromotionsEditor', () => {
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
             const publish = sandbox.stub().resolves();
+            const getWithEtag = sandbox
+                .stub()
+                .withArgs('promo-modified')
+                .resolves({ id: 'promo-modified', etag: 'etag-promo' });
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -618,6 +622,7 @@ describe('MasPromotionsEditor', () => {
                                     }),
                                 ),
                                 publish,
+                                getWithEtag,
                             },
                         },
                     },
@@ -1276,6 +1281,10 @@ describe('MasPromotionsEditor', () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion(promoOverrides)));
             const publish = sandbox.stub().resolves();
+            const getWithEtag = sandbox
+                .stub()
+                .withArgs(promoOverrides.id)
+                .resolves({ id: promoOverrides.id, etag: 'etag-promo' });
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -1284,6 +1293,7 @@ describe('MasPromotionsEditor', () => {
                                 getById: sandbox.stub().resolves(null),
                                 publish,
                                 publishFragments: sandbox.stub().resolves(),
+                                getWithEtag,
                                 search: makeSearchStub(),
                             },
                         },

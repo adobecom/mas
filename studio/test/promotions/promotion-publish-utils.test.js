@@ -307,10 +307,9 @@ describe('promotion-publish-utils', () => {
     describe('publishPromotionProject', () => {
         it('publishes only the promotion when there are no variation paths', async () => {
             const publish = sinon.stub().resolves();
-            const getWithEtag = sinon.stub().withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish, getWithEtag } } } },
+                aem: { sites: { cf: { fragments: { publish } } } },
                 processError: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
@@ -318,19 +317,18 @@ describe('promotion-publish-utils', () => {
             const ok = await publishPromotionProject(repo, promotion, []);
 
             expect(ok).to.be.true;
-            expect(publish.calledOnceWith({ id: 'promo-1', etag: 'etag-promo' }, [])).to.be.true;
+            expect(publish.calledOnceWith(promotion, [])).to.be.true;
             expect(repo.operation.set.firstCall.args[0]).to.equal(OPERATIONS.PUBLISH);
             expect(repo.operation.set.lastCall.args[0]).to.equal(null);
         });
 
         it('calls processError with project message when publish fails', async () => {
             const publishError = new Error('publish failed');
-            const getWithEtag = sinon.stub().withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
             const publish = sinon.stub().rejects(publishError);
             const processError = sinon.stub();
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish, getWithEtag } } } },
+                aem: { sites: { cf: { fragments: { publish } } } },
                 processError,
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
@@ -342,98 +340,79 @@ describe('promotion-publish-utils', () => {
             expect(repo.operation.set.lastCall.args[0]).to.equal(null);
         });
 
-        it('publishes promotion and its promo variations individually', async () => {
+        it('publishes promotion and variations together in one request', async () => {
+            const promotionPath = '/content/dam/mas/promotions/project';
             const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';
-            const publish = sinon.stub().resolves();
+            const publishFragments = sinon.stub().resolves();
             const getWithEtag = sinon.stub();
-            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
-            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-var' });
-            const getByPath = sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath });
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
+            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', path: variationPath, etag: 'etag-var' });
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish, getWithEtag, getByPath } } } },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish: sinon.stub(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath: sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath }),
+                            },
+                        },
+                    },
+                },
                 processError: sinon.stub(),
             };
-            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
+            const promotion = { id: 'promo-1', path: promotionPath };
 
             const ok = await publishPromotionProject(repo, promotion, [variationPath]);
 
             expect(ok).to.be.true;
-            expect(publish.calledTwice).to.be.true;
-            expect(publish.calledWith({ id: 'promo-1', etag: 'etag-promo' }, [])).to.be.true;
-            expect(publish.calledWith({ id: 'var-1', etag: 'etag-var' }, [])).to.be.true;
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+            expect(publishFragments.calledOnce).to.be.true;
+            const [fragments, statuses] = publishFragments.firstCall.args;
+            expect(fragments).to.have.lengthOf(2);
+            expect(fragments[0].path).to.equal(promotionPath);
+            expect(fragments[1].path).to.equal(variationPath);
+            expect(statuses).to.deep.equal([]);
         });
 
-        it('publishes only resolved variations and reports a shortfall when some lookups fail', async () => {
+        it('publishes only resolved variations when some getByPath lookups fail', async () => {
+            const promotionPath = '/content/dam/mas/promotions/project';
             const foundPath = '/content/dam/mas/acom/en_US/promotions/sale/card-a';
             const missingPath = '/content/dam/mas/acom/en_US/promotions/sale/card-b';
-            const publish = sinon.stub().resolves();
+            const publishFragments = sinon.stub().resolves();
             const getWithEtag = sinon.stub();
-            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
-            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', etag: 'etag-a' });
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
+            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', path: foundPath, etag: 'etag-a' });
             const getByPath = sinon.stub();
             getByPath.withArgs(foundPath).resolves({ id: 'var-a', path: foundPath });
             getByPath.withArgs(missingPath).rejects(new Error('not found'));
             const repo = {
                 operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish, getWithEtag, getByPath } } } },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish: sinon.stub(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath,
+                            },
+                        },
+                    },
+                },
                 processError: sinon.stub(),
             };
-            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
+            const promotion = { id: 'promo-1', path: promotionPath };
 
             const ok = await publishPromotionProject(repo, promotion, [foundPath, missingPath]);
 
             expect(ok).to.be.true;
-            expect(publish.calledTwice).to.be.true;
-            expect(publish.calledWith({ id: 'var-a', etag: 'etag-a' }, [])).to.be.true;
-        });
-
-        it('reports a shortfall without aborting other publishes when one variation publish call fails', async () => {
-            const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';
-            const getWithEtag = sinon.stub();
-            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
-            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-var' });
-            const getByPath = sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath });
-            const publish = sinon.stub();
-            publish.withArgs({ id: 'promo-1', etag: 'etag-promo' }, []).resolves();
-            publish.withArgs({ id: 'var-1', etag: 'etag-var' }, []).rejects(new Error('activation failed'));
-            const repo = {
-                operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish, getWithEtag, getByPath } } } },
-                processError: sinon.stub(),
-            };
-            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
-
-            const ok = await publishPromotionProject(repo, promotion, [variationPath]);
-
-            expect(ok).to.be.true;
-            expect(publish.calledTwice).to.be.true;
-        });
-
-        it('publishes variations concurrently in chunks larger than a single request', async () => {
-            const variationPaths = Array.from(
-                { length: 12 },
-                (_, i) => `/content/dam/mas/acom/en_US/promotions/sale/card-${i}`,
-            );
-            const publish = sinon.stub().resolves();
-            const getWithEtag = sinon.stub();
-            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
-            const getByPath = sinon.stub();
-            variationPaths.forEach((path, i) => {
-                getByPath.withArgs(path).resolves({ id: `var-${i}`, path });
-                getWithEtag.withArgs(`var-${i}`).resolves({ id: `var-${i}`, etag: `etag-${i}` });
-            });
-            const repo = {
-                operation: { set: sinon.stub() },
-                aem: { sites: { cf: { fragments: { publish, getWithEtag, getByPath } } } },
-                processError: sinon.stub(),
-            };
-            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
-
-            const ok = await publishPromotionProject(repo, promotion, variationPaths);
-
-            expect(ok).to.be.true;
-            expect(publish.callCount).to.equal(13);
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments).to.have.lengthOf(2);
+            expect(fragments[0].path).to.equal(promotionPath);
+            expect(fragments[1].path).to.equal(foundPath);
         });
     });
 

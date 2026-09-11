@@ -195,59 +195,42 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
     });
 }
 
-const PROMO_PUBLISH_CHUNK_SIZE = 10;
-
 /**
- * Publishes the promotion project and, when provided, its promo variation paths.
- * Each fragment is published individually (concurrently, in chunks) so a failure on one
- * path is reported instead of silently swallowed by a single bulk request.
+ * Publishes the promotion project and, when provided, unpublished promo variation paths in one AEM request.
  * @param {object} repository
  * @param {object} promotionFragment
  * @param {string[]} promoVariationPaths
  * @returns {Promise<boolean>}
  */
 export async function publishPromotionProject(repository, promotionFragment, promoVariationPaths = []) {
+    const publishReferencesWithStatus = [];
     try {
         repository.operation.set(OPERATIONS.PUBLISH);
-        const promotionWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
-        if (!promotionWithEtag) {
-            throw new Error('Failed to fetch promotion for publish');
-        }
-        await repository.aem.sites.cf.fragments.publish(promotionWithEtag, []);
-
-        let shortfall = 0;
-        const resolved = [];
-        for (let i = 0; i < promoVariationPaths.length; i += PROMO_PUBLISH_CHUNK_SIZE) {
-            const chunk = promoVariationPaths.slice(i, i + PROMO_PUBLISH_CHUNK_SIZE);
-            const fetched = await Promise.all(
-                chunk.map(async (path) => {
-                    const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
-                    if (!variation?.id) return null;
-                    return repository.aem.sites.cf.fragments.getWithEtag(variation.id).catch(() => null);
-                }),
-            );
-            fetched.forEach((result) => {
-                if (result) resolved.push(result);
-                else shortfall += 1;
-            });
-        }
-
-        for (let i = 0; i < resolved.length; i += PROMO_PUBLISH_CHUNK_SIZE) {
-            const chunk = resolved.slice(i, i + PROMO_PUBLISH_CHUNK_SIZE);
-            await Promise.all(
-                chunk.map((ref) =>
-                    repository.aem.sites.cf.fragments.publish(ref, []).catch(() => {
-                        shortfall += 1;
-                    }),
-                ),
-            );
-        }
-
-        if (shortfall > 0) {
-            showToast(promotionPublishShortfallMessage(shortfall), 'info');
+        if (!promoVariationPaths.length) {
+            await repository.aem.sites.cf.fragments.publish(promotionFragment, publishReferencesWithStatus);
         } else {
-            showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
+            const promotionWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
+            if (!promotionWithEtag) {
+                throw new Error('Failed to fetch promotion for publish');
+            }
+            const fragments = [promotionWithEtag];
+            for (const path of promoVariationPaths) {
+                const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
+                if (!variation?.id) continue;
+                const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id);
+                if (variationWithEtag) fragments.push(variationWithEtag);
+            }
+            await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            const expectedFragmentCount = promoVariationPaths.length + 1;
+            const shortfall = expectedFragmentCount - fragments.length;
+            if (shortfall > 0) {
+                showToast(promotionPublishShortfallMessage(shortfall), 'info');
+            } else {
+                showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
+            }
+            return true;
         }
+        showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
         return true;
     } catch (error) {
         repository.processError(error, PROMOTION_PUBLISH_ERROR_MESSAGE);

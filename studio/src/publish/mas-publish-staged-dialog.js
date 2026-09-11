@@ -1,7 +1,13 @@
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing, css } from 'lit';
 import { STAGED } from '../constants.js';
 
 class MasPublishStagedDialog extends LitElement {
+    static styles = css`
+        sp-dialog-wrapper {
+            z-index: 3;
+        }
+    `;
+
     static properties = {
         open: { type: Boolean },
         multiselect: { type: Boolean },

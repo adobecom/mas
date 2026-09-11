@@ -795,7 +795,6 @@ describe('wcs OSI substitution', function () {
         context.promoScopeById = { 'frag-1': scope({ 'OSI-A': 'SUB-A', 'OSI-B': 'SUB-B' }) };
         fetchStub
             .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-A%2CSUB-B')))
-
             .returns(createResponse(200, stubbedOffer('substituted')));
 
         context = await wcs.process(context);
@@ -813,7 +812,6 @@ describe('wcs OSI substitution', function () {
         context.promoScopeById = { 'frag-1': scope({ 'OSI-A': 'SUB-A' }) };
         fetchStub
             .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-A%2COSI-B')))
-
             .returns(createResponse(200, stubbedOffer('substituted')));
 
         context = await wcs.process(context);

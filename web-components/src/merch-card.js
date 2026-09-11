@@ -287,8 +287,9 @@ export class MerchCard extends LitElement {
 
     set lockedOsi(value) {
         this.#lockedOsi = value;
-        if (value) {
-            this.setAttribute('data-locked-osi', value);
+        const attrValue = Array.isArray(value) ? value.join(',') : value;
+        if (attrValue) {
+            this.setAttribute('data-locked-osi', attrValue);
         } else {
             this.removeAttribute('data-locked-osi');
         }

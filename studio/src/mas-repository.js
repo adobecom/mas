@@ -1138,7 +1138,7 @@ export class MasRepository extends LitElement {
 
             const searchOptions = {
                 path: promotionsPath,
-                sort: [{ on: 'created', order: 'ASC' }],
+                sort: [{ on: 'created', order: 'DESC' }],
             };
 
             if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();

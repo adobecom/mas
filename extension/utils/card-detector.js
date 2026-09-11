@@ -6,11 +6,22 @@ const URL_SEGMENT_ALIASES = {
     hk: { lang: 'zh', country: 'HK' },
 };
 
+const SELECTOR_CARD = 'merch-card, merch-card-collection';
+
 // Mirrors SELECTOR_MAS_INLINE_PRICE / SELECTOR_MAS_CHECKOUT_LINK in web-components/src/constants.js.
 // The extension has no build step to import that module, so these are kept in sync manually.
 const SELECTOR_BARE_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
 const SELECTOR_BARE_CTA = 'a[is="checkout-link"][data-wcs-osi], button[is="checkout-button"][data-wcs-osi]';
 const SELECTOR_BARE_ELEMENT = `${SELECTOR_BARE_INLINE_PRICE}, ${SELECTOR_BARE_CTA}`;
+
+// <mas-field> renders one field of a fragment inline, outside any merch-card.
+// It stamps fragment-id on itself once the fragment resolves, and on the commerce
+// elements it renders, so both the field and its prices/CTAs trace back to a fragment.
+const SELECTOR_MAS_FIELD = 'mas-field';
+const SELECTOR_MAS_FIELD_CONTENT = ':scope > [data-role="mas-field-content"]';
+
+// Everything the extension badges, so an added subtree is walked once.
+const SELECTOR_DETECTABLE = `${SELECTOR_CARD}, ${SELECTOR_BARE_ELEMENT}, ${SELECTOR_MAS_FIELD}`;
 
 class CardDetector {
     constructor() {
@@ -21,8 +32,8 @@ class CardDetector {
         this.maxCards = 200;
         this.pendingCards = [];
         this.idleHandle = null;
-        this.bareElementIds = new WeakMap();
-        this.bareElementCounter = 0;
+        this.elementIds = new WeakMap();
+        this.elementCounter = 0;
     }
 
     onCardDetected(callback) {
@@ -132,7 +143,7 @@ class CardDetector {
 
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const elements = document.querySelectorAll('merch-card, merch-card-collection');
+        const elements = document.querySelectorAll(SELECTOR_CARD);
         const cards = [];
         const collections = [];
         for (const el of elements) {
@@ -149,24 +160,36 @@ class CardDetector {
             if (this.detectedCards.size >= this.maxCards) break;
             this.processBareElement(el);
         }
+
+        const fields = document.querySelectorAll(SELECTOR_MAS_FIELD);
+        for (const el of fields) {
+            if (this.detectedCards.size >= this.maxCards) break;
+            this.processMasField(el);
+        }
     }
 
     startObserving() {
         const enqueue = (node) => {
             if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.tagName === 'MERCH-CARD' || node.tagName === 'MERCH-CARD-COLLECTION') {
-                    this.pendingCards.push(node);
-                } else if (node.matches?.(SELECTOR_BARE_ELEMENT)) {
-                    this.pendingCards.push(node);
-                }
-                node.querySelectorAll?.('merch-card, merch-card-collection').forEach((c) => this.pendingCards.push(c));
-                node.querySelectorAll?.(SELECTOR_BARE_ELEMENT).forEach((c) => this.pendingCards.push(c));
-            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            if (node.matches?.(SELECTOR_DETECTABLE)) this.pendingCards.push(node);
+            node.querySelectorAll?.(SELECTOR_DETECTABLE).forEach((c) => this.pendingCards.push(c));
+        };
+
+        // A mas-field renders its content asynchronously, and a text-only field (a title,
+        // say) adds no element node the walk above would match. Re-queue the owning field
+        // on any mutation inside it so it is picked up once its fragment resolves.
+        const enqueueFieldOwner = (target) => {
+            if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
+            const owner = target?.closest?.(SELECTOR_MAS_FIELD);
+            if (owner && !this.elementIds.has(owner)) this.pendingCards.push(owner);
         };
 
         this.observer = new MutationObserver((mutations) => {
-            mutations.forEach((m) => m.addedNodes.forEach(enqueue));
+            mutations.forEach((m) => {
+                m.addedNodes.forEach(enqueue);
+                enqueueFieldOwner(m.target);
+            });
             this.scheduleProcessing();
         });
 
@@ -193,6 +216,8 @@ class CardDetector {
                 const card = this.pendingCards.shift();
                 if (card.tagName === 'MERCH-CARD' || card.tagName === 'MERCH-CARD-COLLECTION') {
                     await this.processCard(card);
+                } else if (card.tagName === 'MAS-FIELD') {
+                    this.processMasField(card);
                 } else {
                     this.processBareElement(card);
                 }
@@ -225,7 +250,9 @@ class CardDetector {
         const promotion = this.readPromotion(cardElement, elementType);
         const cardData = {
             element: cardElement,
+            anchorElement: cardElement,
             fragmentId: fragmentId,
+            sourceFragmentId: fragmentId,
             variant: variant,
             elementType: elementType,
             cardName: this.extractCardName(cardElement, aemFragment),
@@ -269,12 +296,24 @@ class CardDetector {
     }
 
     isInsideCard(element) {
-        return typeof element.closest === 'function' && element.closest('merch-card, merch-card-collection') !== null;
+        return typeof element.closest === 'function' && element.closest(SELECTOR_CARD) !== null;
+    }
+
+    /**
+     * The AEM fragment an element came from, or null when it is a standalone offer.
+     * mas-field stamps fragment-id on the elements it renders, so a price survives
+     * Milo unwrapping its <mas-field>; the ancestor lookup covers the wrapped case.
+     */
+    resolveSourceFragmentId(element) {
+        const stamped = element.getAttribute?.('fragment-id');
+        if (stamped) return stamped;
+        const owner = element.closest?.(SELECTOR_MAS_FIELD);
+        return owner?.getAttribute('fragment-id') || null;
     }
 
     processBareElement(element) {
+        if (this.elementIds.has(element)) return;
         if (this.isInsideCard(element)) return;
-        if (this.bareElementIds.has(element)) return;
 
         const elementType = this.classifyBareElementType(element);
         if (!elementType) return;
@@ -284,8 +323,8 @@ class CardDetector {
 
         if (this.detectedCards.size >= this.maxCards) return;
 
-        const id = `${elementType}-${++this.bareElementCounter}`;
-        this.bareElementIds.set(element, id);
+        const id = `${elementType}-${++this.elementCounter}`;
+        this.elementIds.set(element, id);
 
         const localeInfo = this.pageLocale || this.getPageLocale();
         const promotion = this.readPromotion(element, elementType);
@@ -294,8 +333,10 @@ class CardDetector {
 
         const elementData = {
             element,
+            anchorElement: element,
             id,
             fragmentId: id,
+            sourceFragmentId: this.resolveSourceFragmentId(element),
             osi,
             elementType,
             displayText,
@@ -310,13 +351,59 @@ class CardDetector {
         this.dispatchCardDetectedEvent(elementData);
     }
 
+    /**
+     * Records a <mas-field> that renders a plain content field (title, description).
+     * Fields that render prices or CTAs are skipped: the commerce element inside is
+     * detected instead, so a single spot on the page never gets two badges.
+     */
+    processMasField(element) {
+        if (this.elementIds.has(element)) return;
+        if (this.isInsideCard(element)) return;
+        if (element.querySelector(SELECTOR_BARE_ELEMENT)) return;
+
+        // Absent until the backing fragment resolves; a later mutation retries.
+        const sourceFragmentId = element.getAttribute('fragment-id');
+        if (!sourceFragmentId) return;
+
+        if (this.detectedCards.size >= this.maxCards) return;
+
+        const id = `field-${++this.elementCounter}`;
+        this.elementIds.set(element, id);
+
+        const localeInfo = this.pageLocale || this.getPageLocale();
+        const fieldName = element.getAttribute('field') || 'field';
+        const displayText = (element.textContent || '').trim();
+        // mas-field is display:contents, so it has no box of its own to anchor a badge to.
+        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || element;
+
+        const elementData = {
+            element,
+            anchorElement,
+            id,
+            fragmentId: id,
+            sourceFragmentId,
+            variant: fieldName,
+            elementType: 'field',
+            displayText,
+            cardName: displayText || fieldName,
+            promotion: this.readPromotion(element, 'field'),
+            boundingRect: anchorElement.getBoundingClientRect(),
+            locale: localeInfo.locale,
+            country: localeInfo.country,
+        };
+
+        this.detectedCards.set(id, elementData);
+        this.dispatchCardDetectedEvent(elementData);
+    }
+
     getAllCards() {
         const cards = [];
         this.detectedCards.forEach((cardData) => {
-            const rect = cardData.element.getBoundingClientRect();
+            const rect = cardData.anchorElement.getBoundingClientRect();
             cardData.promotion = this.readPromotion(cardData.element, cardData.elementType);
             cards.push({
                 fragmentId: cardData.fragmentId,
+                sourceFragmentId: cardData.sourceFragmentId,
                 variant: cardData.variant,
                 elementType: cardData.elementType,
                 cardName: cardData.cardName,
@@ -329,7 +416,7 @@ class CardDetector {
                 failed: cardData.failed,
                 promotion: cardData.promotion,
                 boundingRect: rect,
-                isVisible: this.isElementVisible(cardData.element),
+                isVisible: this.isElementVisible(cardData.anchorElement),
                 locale: cardData.locale,
                 country: cardData.country,
             });
@@ -354,13 +441,14 @@ class CardDetector {
     highlightCard(fragmentId) {
         const cardData = this.detectedCards.get(fragmentId);
         if (cardData) {
-            cardData.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            cardData.element.style.outline = '3px solid #ff0000';
-            cardData.element.style.outlineOffset = '4px';
+            const target = cardData.anchorElement;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.style.outline = '3px solid #ff0000';
+            target.style.outlineOffset = '4px';
 
             setTimeout(() => {
-                cardData.element.style.outline = '';
-                cardData.element.style.outlineOffset = '';
+                target.style.outline = '';
+                target.style.outlineOffset = '';
             }, 3000);
         }
     }

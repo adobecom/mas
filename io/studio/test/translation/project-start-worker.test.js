@@ -14,6 +14,7 @@ describe('Translation project-start worker', function () {
     let getJobPayload;
     let deleteJobPayload;
     let patchProjectSummary;
+    let putTaskIndex;
     let removeJob;
     let acquireWorkerSlot;
     let renewWorkerSlot;
@@ -35,6 +36,7 @@ describe('Translation project-start worker', function () {
         getJobPayload = sinon.stub();
         deleteJobPayload = sinon.stub().resolves();
         patchProjectSummary = sinon.stub().resolves();
+        putTaskIndex = sinon.stub().resolves();
         removeJob = sinon.stub().resolves();
         acquireWorkerSlot = sinon.stub();
         renewWorkerSlot = sinon.stub().resolves({ renewed: true });
@@ -56,6 +58,7 @@ describe('Translation project-start worker', function () {
                 getJobPayload,
                 deleteJobPayload,
                 patchProjectSummary,
+                putTaskIndex,
             },
             './queue.js': {
                 removeJob,
@@ -183,6 +186,166 @@ describe('Translation project-start worker', function () {
             sinon.match.any,
         );
         expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
+        expect(result).to.deep.equal({
+            statusCode: 200,
+            body: { message: 'ok' },
+        });
+    });
+
+    it('should index the GLaaS task and bootstrap locale progress for a translation project', async () => {
+        getJobPayload.resolves({
+            projectId: 'project-1',
+            authToken: 'token-1',
+            surface: 'acom',
+            translationFlow: 'transcreation',
+        });
+        prepareProjectStart.resolves({
+            projectType: 'translation',
+            translationData: {
+                title: 'my-project',
+                itemsToTranslate: ['/content/dam/mas/acom/en_US/a', '/content/dam/mas/acom/en_US/b'],
+                itemsToSync: [],
+                locales: ['fr_FR', 'de_DE'],
+            },
+            batchSize: 5,
+            responseMessage: 'ok',
+        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        runSyncAndLocStage.resolves({ message: 'ok' });
+
+        await worker.main({
+            jobId: 'job-1',
+            __ow_activation_id: 'activation-1',
+            odinEndpoint: 'https://odin.example.com',
+        });
+
+        expect(putTaskIndex).to.have.been.calledOnceWith(
+            'my-project',
+            'project-1',
+            { projectId: 'project-1', title: 'my-project', submittedAt: sinon.match.string },
+            { params: sinon.match.any },
+        );
+        expect(patchProjectSummary).to.have.been.calledWith(
+            'project-1',
+            {
+                locales: {
+                    targetLocales: ['fr_FR', 'de_DE'],
+                    progress: {
+                        fr_FR: {
+                            status: 'PENDING',
+                            completedAt: null,
+                            fragments: {
+                                '/content/dam/mas/acom/en_US/a': { status: 'PENDING', updatedAt: null },
+                                '/content/dam/mas/acom/en_US/b': { status: 'PENDING', updatedAt: null },
+                            },
+                            completed: 0,
+                            total: 2,
+                        },
+                        de_DE: {
+                            status: 'PENDING',
+                            completedAt: null,
+                            fragments: {
+                                '/content/dam/mas/acom/en_US/a': { status: 'PENDING', updatedAt: null },
+                                '/content/dam/mas/acom/en_US/b': { status: 'PENDING', updatedAt: null },
+                            },
+                            completed: 0,
+                            total: 2,
+                        },
+                    },
+                    completed: 0,
+                    total: 2,
+                },
+            },
+            { params: sinon.match.any, updatedAt: sinon.match.string },
+        );
+    });
+
+    it('should not index or bootstrap locale progress for a rollout-only project', async () => {
+        getJobPayload.resolves({
+            projectId: 'project-1',
+            authToken: 'token-1',
+        });
+        prepareProjectStart.resolves({
+            projectType: 'rollout',
+            translationData: {
+                title: 'my-rollout',
+                itemsToTranslate: ['/content/dam/mas/acom/en_US/a'],
+                itemsToSync: [],
+                locales: ['fr_FR'],
+            },
+            batchSize: 5,
+            responseMessage: 'ok',
+        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        runSyncAndLocStage.resolves({ message: 'ok' });
+
+        await worker.main({ jobId: 'job-1' });
+
+        expect(putTaskIndex).to.not.have.been.called;
+        expect(patchProjectSummary).to.not.have.been.calledWith('project-1', sinon.match.has('locales'), sinon.match.any);
+    });
+
+    it('should seed locale tracking only after ASYNC_PROCESSING is patched and synced', async () => {
+        getJobPayload.resolves({
+            projectId: 'project-1',
+            authToken: 'token-1',
+        });
+        prepareProjectStart.resolves({
+            projectType: 'translation',
+            translationData: {
+                title: 'my-project',
+                itemsToTranslate: ['/content/dam/mas/acom/en_US/a'],
+                itemsToSync: [],
+                locales: ['fr_FR'],
+            },
+            batchSize: 5,
+            responseMessage: 'ok',
+        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        runSyncAndLocStage.resolves({ message: 'ok' });
+
+        await worker.main({ jobId: 'job-1', odinEndpoint: 'https://odin.example.com' });
+
+        const asyncProcessingCallIndex = patchProjectSummary
+            .getCalls()
+            .findIndex((call) => call.args[1]?.status === 'ASYNC_PROCESSING');
+        const localesCallIndex = patchProjectSummary.getCalls().findIndex((call) => call.args[1]?.locales);
+
+        expect(asyncProcessingCallIndex).to.be.at.least(0);
+        expect(localesCallIndex).to.be.at.least(0);
+        expect(localesCallIndex).to.be.greaterThan(asyncProcessingCallIndex);
+    });
+
+    it('should not mark the project FAILED when seeding locale tracking throws after a successful handoff', async () => {
+        getJobPayload.resolves({
+            projectId: 'project-1',
+            authToken: 'token-1',
+        });
+        prepareProjectStart.resolves({
+            projectType: 'translation',
+            translationData: {
+                title: 'my-project',
+                itemsToTranslate: ['/content/dam/mas/acom/en_US/a'],
+                itemsToSync: [],
+                locales: ['fr_FR'],
+            },
+            batchSize: 5,
+            responseMessage: 'ok',
+        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        runSyncAndLocStage.resolves({ message: 'ok' });
+        putTaskIndex.rejects(new Error('state unavailable'));
+
+        const result = await worker.main({ jobId: 'job-1' });
+
+        expect(patchProjectSummary).to.not.have.been.calledWith(
+            'project-1',
+            sinon.match({ status: 'FAILED' }),
+            sinon.match.any,
+        );
+        expect(mockLogger.warn).to.have.been.calledWith(
+            'Failed to seed locale tracking for project project-1: state unavailable',
+        );
         expect(result).to.deep.equal({
             statusCode: 200,
             body: { message: 'ok' },
@@ -340,6 +503,108 @@ describe('Translation project-start worker', function () {
         await worker.removeJobFromQueueOrWarn('job-1');
 
         expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to remove job job-1 from queue: remove failed');
+    });
+
+    it('should build an empty-progress skeleton per target locale', () => {
+        const result = worker.buildInitialLocaleProgress(['fr_FR'], ['/content/dam/mas/acom/en_US/a']);
+
+        expect(result).to.deep.equal({
+            targetLocales: ['fr_FR'],
+            progress: {
+                fr_FR: {
+                    status: 'PENDING',
+                    completedAt: null,
+                    fragments: {
+                        '/content/dam/mas/acom/en_US/a': { status: 'PENDING', updatedAt: null },
+                    },
+                    completed: 0,
+                    total: 1,
+                },
+            },
+            completed: 0,
+            total: 1,
+        });
+    });
+
+    it('should skip indexing and progress bootstrap when translationData has no title', async () => {
+        await worker.seedLocaleTracking(
+            'project-1',
+            { itemsToTranslate: [], locales: ['fr_FR'] },
+            '2026-01-01T00:00:00.000Z',
+            {},
+        );
+
+        expect(putTaskIndex).to.not.have.been.called;
+        expect(patchProjectSummary).to.not.have.been.called;
+    });
+
+    it('should skip indexing and progress bootstrap when translationData has no locales', async () => {
+        await worker.seedLocaleTracking(
+            'project-1',
+            { title: 'my-project', itemsToTranslate: [], locales: [] },
+            '2026-01-01T00:00:00.000Z',
+            {},
+        );
+
+        expect(putTaskIndex).to.not.have.been.called;
+        expect(patchProjectSummary).to.not.have.been.called;
+    });
+
+    it('should track placeholder and grouped-variation paths the same as any other fragment', async () => {
+        await worker.seedLocaleTracking(
+            'project-1',
+            {
+                title: 'my-project',
+                itemsToTranslate: [
+                    '/content/dam/mas/acom/en_US/a',
+                    '/content/dam/mas/acom/en_US/dictionary/placeholder1',
+                    '/content/dam/mas/acom/en_US/pzn/variation1',
+                ],
+                locales: ['fr_FR'],
+            },
+            '2026-01-01T00:00:00.000Z',
+            {},
+        );
+
+        expect(patchProjectSummary).to.have.been.calledOnceWith(
+            'project-1',
+            {
+                locales: {
+                    targetLocales: ['fr_FR'],
+                    progress: {
+                        fr_FR: {
+                            status: 'PENDING',
+                            completedAt: null,
+                            fragments: {
+                                '/content/dam/mas/acom/en_US/a': { status: 'PENDING', updatedAt: null },
+                                '/content/dam/mas/acom/en_US/dictionary/placeholder1': { status: 'PENDING', updatedAt: null },
+                                '/content/dam/mas/acom/en_US/pzn/variation1': { status: 'PENDING', updatedAt: null },
+                            },
+                            completed: 0,
+                            total: 3,
+                        },
+                    },
+                    completed: 0,
+                    total: 1,
+                },
+            },
+            { params: {}, updatedAt: '2026-01-01T00:00:00.000Z' },
+        );
+    });
+
+    it('should log a warning and not throw when seeding locale tracking fails', async () => {
+        putTaskIndex.rejects(new Error('state unavailable'));
+
+        await worker.seedLocaleTrackingOrWarn(
+            'project-1',
+            { title: 'my-project', itemsToTranslate: ['/content/dam/mas/acom/en_US/a'], locales: ['fr_FR'] },
+            '2026-01-01T00:00:00.000Z',
+            {},
+        );
+
+        expect(mockLogger.warn).to.have.been.calledOnceWith(
+            'Failed to seed locale tracking for project project-1: state unavailable',
+        );
     });
 
     it('should expose fallback error messages for worker helper responses', () => {

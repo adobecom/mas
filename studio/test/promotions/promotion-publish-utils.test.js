@@ -414,6 +414,49 @@ describe('promotion-publish-utils', () => {
             expect(fragments[0].path).to.equal(promotionPath);
             expect(fragments[1].path).to.equal(foundPath);
         });
+
+        it('skips a resolved variation that has content validation errors instead of publishing it', async () => {
+            const promotionPath = '/content/dam/mas/promotions/project';
+            const invalidPath = '/content/dam/mas/acom/en_US/promotions/sale/card-invalid';
+            const validPath = '/content/dam/mas/acom/en_US/promotions/sale/card-valid';
+            const publishFragments = sinon.stub().resolves();
+            const getWithEtag = sinon.stub();
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
+            getWithEtag.withArgs('var-invalid').resolves({
+                id: 'var-invalid',
+                path: invalidPath,
+                etag: 'etag-invalid',
+                validationStatus: [{ property: 'fields.promoText.values[0]', message: 'Maximum length exceeded' }],
+            });
+            getWithEtag.withArgs('var-valid').resolves({ id: 'var-valid', path: validPath, etag: 'etag-valid' });
+            const getByPath = sinon.stub();
+            getByPath.withArgs(invalidPath).resolves({ id: 'var-invalid', path: invalidPath });
+            getByPath.withArgs(validPath).resolves({ id: 'var-valid', path: validPath });
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish: sinon.stub(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath,
+                            },
+                        },
+                    },
+                },
+                processError: sinon.stub(),
+            };
+            const promotion = { id: 'promo-1', path: promotionPath };
+
+            const ok = await publishPromotionProject(repo, promotion, [invalidPath, validPath]);
+
+            expect(ok).to.be.true;
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments).to.have.lengthOf(2);
+            expect(fragments.map((fragment) => fragment.path)).to.deep.equal([promotionPath, validPath]);
+        });
     });
 
     describe('unpublishPromotionProject', () => {

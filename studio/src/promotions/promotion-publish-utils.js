@@ -196,6 +196,16 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
 }
 
 /**
+ * Promos with unresolved validation errors are blocked from AEM activation upfront.
+ * The workflow fails silently otherwise, so we skip it early instead of trusting the publish response.
+ * @param {{ validationStatus?: Array<unknown> }} fragment
+ * @returns {boolean}
+ */
+function hasValidationErrors(fragment) {
+    return Array.isArray(fragment?.validationStatus) && fragment.validationStatus.length > 0;
+}
+
+/**
  * Publishes the promotion project and, when provided, unpublished promo variation paths in one AEM request.
  * @param {object} repository
  * @param {object} promotionFragment
@@ -218,7 +228,8 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
                 if (!variation?.id) continue;
                 const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id);
-                if (variationWithEtag) fragments.push(variationWithEtag);
+                if (!variationWithEtag || hasValidationErrors(variationWithEtag)) continue;
+                fragments.push(variationWithEtag);
             }
             await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
             const expectedFragmentCount = promoVariationPaths.length + 1;

@@ -1,6 +1,6 @@
 const { Core } = require('@adobe/aio-sdk');
 const { buildSiblingActionName, invokeAsyncAction } = require('../common.js');
-const { getJobPayload, deleteJobPayload, patchProjectSummary } = require('./state.js');
+const { getJobPayload, deleteJobPayload, patchProjectSummary, putTaskIndex } = require('./state.js');
 const { removeJob } = require('./queue.js');
 const { acquireWorkerSlot, renewWorkerSlot, releaseWorkerSlot, DEFAULT_CAPACITY } = require('./worker-slots.js');
 const {
@@ -8,6 +8,7 @@ const {
     runSyncAndLocStage,
     isProjectStartError,
     updateProjectStatus,
+    ROLLOUT_PROJECT_TYPE,
 } = require('./project-start-service.js');
 
 const logger = Core.Logger('translation-worker', { level: 'info' });
@@ -15,6 +16,7 @@ const RUNNING_STATUS = 'RUNNING';
 const ASYNC_PROCESSING_STATUS = 'ASYNC_PROCESSING';
 const QUEUED_STATUS = 'QUEUED';
 const FAILED_STATUS = 'FAILED';
+const PENDING_STATUS = 'PENDING';
 const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';
 const DEFAULT_SLOT_RENEW_INTERVAL_MS = 30 * 1000;
 
@@ -78,6 +80,7 @@ async function main(params) {
         const { etag: runningStatusEtag } =
             (await syncProjectFragmentStatus(payload.projectId, RUNNING_STATUS, workerParams.authToken, workerParams)) ?? {};
 
+        const submittedAt = new Date().toISOString();
         const dispatchResult = await runSyncAndLocStage(context);
 
         const heartbeatError = await stopHeartbeat(heartbeat);
@@ -94,6 +97,10 @@ async function main(params) {
             workerParams,
             runningStatusEtag,
         );
+
+        if (context.projectType !== ROLLOUT_PROJECT_TYPE) {
+            await seedLocaleTrackingOrWarn(payload.projectId, context.translationData, submittedAt, params);
+        }
 
         return {
             statusCode: 200,
@@ -323,6 +330,47 @@ async function patchAsyncProcessingSummary(projectId, params = {}) {
     );
 }
 
+async function seedLocaleTrackingOrWarn(projectId, translationData, submittedAt, params = {}) {
+    try {
+        await seedLocaleTracking(projectId, translationData, submittedAt, params);
+    } catch (error) {
+        logger.warn(`Failed to seed locale tracking for project ${projectId}: ${error.message}`);
+    }
+}
+
+async function seedLocaleTracking(projectId, translationData = {}, submittedAt, params = {}) {
+    const { title, itemsToTranslate = [], locales = [] } = translationData;
+    if (!title || locales.length === 0) {
+        return;
+    }
+
+    await putTaskIndex(title, projectId, { projectId, title, submittedAt }, { params });
+    await patchProjectSummary(
+        projectId,
+        { locales: buildInitialLocaleProgress(locales, itemsToTranslate) },
+        { params, updatedAt: submittedAt },
+    );
+}
+
+function buildInitialLocaleProgress(locales, itemsToTranslate) {
+    const progress = {};
+    for (const locale of locales) {
+        progress[locale] = {
+            status: PENDING_STATUS,
+            completedAt: null,
+            fragments: Object.fromEntries(itemsToTranslate.map((path) => [path, { status: PENDING_STATUS, updatedAt: null }])),
+            completed: 0,
+            total: itemsToTranslate.length,
+        };
+    }
+    return {
+        targetLocales: locales,
+        progress,
+        completed: 0,
+        total: locales.length,
+    };
+}
+
 async function markProjectQueued(projectId, params = {}) {
     return patchProjectSummary(
         projectId,
@@ -375,6 +423,9 @@ module.exports = {
     patchWorkerStartedSummary,
     patchRunningSummary,
     patchAsyncProcessingSummary,
+    seedLocaleTracking,
+    seedLocaleTrackingOrWarn,
+    buildInitialLocaleProgress,
     markProjectQueued,
     releaseWorkerSlotOrWarn,
     deleteJobPayloadOrWarn,
@@ -384,5 +435,7 @@ module.exports = {
     RUNNING_STATUS,
     ASYNC_PROCESSING_STATUS,
     FAILED_STATUS,
+    PENDING_STATUS,
+    ROLLOUT_PROJECT_TYPE,
     DEFAULT_SLOT_RENEW_INTERVAL_MS,
 };

@@ -301,6 +301,35 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
 }
 
 /**
+ * Placeholders deep link for a single placeholder key, pre-filling the Placeholders
+ * page search so the recipient lands directly on that placeholder.
+ * @param {{ key: string, path?: string, locale?: string }} params
+ * @returns {string}
+ */
+export function buildPlaceholderStudioLink({ key, path, locale }) {
+    const hash = [
+        ['content-type', 'placeholder'],
+        ['page', 'placeholders'],
+        ['path', path],
+        ['locale', locale],
+        ['search', key],
+    ]
+        .map(([name, value]) => `${name}=${encodeURIComponent(value ?? '')}`)
+        .join('&');
+    return `${location.origin}${location.pathname}#${hash}`;
+}
+
+/**
+ * Placeholders deep links for multiple placeholder keys, in the given order.
+ * @param {string[]} keys
+ * @param {{ path?: string, locale?: string }} params
+ * @returns {string[]}
+ */
+export function buildPlaceholderStudioLinks(keys, { path, locale }) {
+    return keys.map((key) => buildPlaceholderStudioLink({ key, path, locale }));
+}
+
+/**
  * Parses pasted multi-line URLs
  * @param {string} text
  * @returns {{ contentType: string, fragmentId: string }[]}

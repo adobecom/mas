@@ -1,6 +1,21 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { Log } from './log.js';
 
+// A hung host SDK call would otherwise leave aupCheckoutPending stuck true and
+// silently no-op every checkout CTA on the page for the rest of its life.
+const HOST_TIMEOUT_MS = 20000;
+
+function withTimeout(promise, stage, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Error(`AUP host timed out: ${stage}`)),
+            ms,
+        );
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export function isAupCheckoutSupported(offers, options) {
     return (
         offers.length > 0 &&
@@ -112,10 +127,20 @@ function getRequest(offers, options) {
     };
 }
 
-export async function launchAupCheckout(sdk, offers, options, onClose) {
+export async function launchAupCheckout(
+    sdk,
+    offers,
+    options,
+    onClose,
+    timeout = HOST_TIMEOUT_MS,
+) {
     const request = getRequest(offers, options);
     if (!request) return false;
-    const orchestrator = await sdk.getOrchestratorContext();
+    const orchestrator = await withTimeout(
+        sdk.getOrchestratorContext(),
+        'getOrchestratorContext',
+        timeout,
+    );
     if (typeof orchestrator?.launchWorkflowInModal !== 'function') return false;
     let items;
     let messageHandler;
@@ -143,9 +168,13 @@ export async function launchAupCheckout(sdk, offers, options, onClose) {
         };
     }
     Log.module('aup-select').debug('Launching workflow:', request);
-    const result = await (messageHandler
-        ? orchestrator.launchWorkflowInModal(request, messageHandler)
-        : orchestrator.launchWorkflowInModal(request));
+    const result = await withTimeout(
+        messageHandler
+            ? orchestrator.launchWorkflowInModal(request, messageHandler)
+            : orchestrator.launchWorkflowInModal(request),
+        'launchWorkflowInModal',
+        timeout,
+    );
     if (result?.status === 'cancel') {
         if (
             Array.isArray(items) &&

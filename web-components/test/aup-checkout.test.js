@@ -748,6 +748,36 @@ describe('aup-select checkout routing', () => {
         });
     }
 
+    for (const stage of ['getOrchestratorContext', 'launchWorkflowInModal']) {
+        it(`rejects when the host ${stage} never settles`, async () => {
+            const offers = [
+                {
+                    offerId: 'o1',
+                    offerType: 'COM',
+                    productArrangementCode: 'pac',
+                },
+            ];
+            const hang = new Promise(() => {});
+            const hostSdk = {
+                getOrchestratorContext:
+                    stage === 'getOrchestratorContext'
+                        ? () => hang
+                        : async () => ({ launchWorkflowInModal: () => hang }),
+            };
+            let error;
+            await launchAupCheckout(
+                hostSdk,
+                offers,
+                { language: 'en' },
+                undefined,
+                20,
+            ).catch((reason) => {
+                error = reason;
+            });
+            expect(error).to.be.an('error');
+        });
+    }
+
     for (const value of ['', 'true', 'ON', 'off']) {
         it(`does not opt in for metadata value ${JSON.stringify(value)}`, async () => {
             meta.content = value;
@@ -770,6 +800,19 @@ describe('aup-select checkout routing', () => {
         service.setAttribute('aup-select', 'off');
         click(element);
         expect(legacy.calledTwice).to.be.true;
+    });
+
+    it('re-syncs checkout hrefs on browser back/forward', async () => {
+        const element = await create();
+        expect(element.getAttribute('href')).to.equal('#');
+        const { pathname, search } = window.location;
+        history.pushState(null, '', `${pathname}?aup-select=off`);
+        try {
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            expect(element.getAttribute('href')).to.not.equal('#');
+        } finally {
+            history.replaceState(null, '', pathname + search);
+        }
     });
 
     it('does not accept the old metadata name', async () => {

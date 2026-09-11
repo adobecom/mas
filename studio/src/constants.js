@@ -147,9 +147,10 @@ export const PAGE_NAMES = {
  * namespace, so point a developer workspace at it with ?io.studio.env=
  * rather than editing this.
  *
- * One namespace serves every assistant package — MerchAtScaleStudio (ai-chat,
- * ost-products-read), MerchAtScaleMCP and MerchAtScaleKnowledge — so all three
- * URLs are derived from this one base.
+ * One namespace serves the assistant: MerchAtScaleStudio (ai-chat,
+ * ost-products-read) and MerchAtScaleMCP must both be deployed to it, and both
+ * URLs are derived from this one base. MerchAtScaleKnowledge is not fetched
+ * over HTTP at all — the corpus ships inside the ai-chat action.
  */
 export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
 

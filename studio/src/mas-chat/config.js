@@ -16,10 +16,10 @@ function isLocalhostHostname(hostname) {
  * whatever environment the page was loaded for, instead of a namespace baked
  * into the bundle.
  *
- * This assumes MerchAtScaleStudio, MerchAtScaleMCP and MerchAtScaleKnowledge are
- * all deployed to that one namespace. When they are not, the missing package
- * answers with a 404 that carries no CORS headers, and the browser reports it as
- * "Failed to fetch" rather than as a status.
+ * MerchAtScaleStudio and MerchAtScaleMCP must both be deployed to that
+ * namespace. When one is missing, it answers with a 404 that carries no CORS
+ * headers, so the browser reports it as "Failed to fetch" rather than as a
+ * status — which reads as a network fault rather than a missing deployment.
  */
 function ioStudioBaseURL() {
     const fromMeta = document.querySelector('meta[name="io-base-url"]')?.content;

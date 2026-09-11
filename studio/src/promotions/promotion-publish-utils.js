@@ -105,25 +105,31 @@ export function canPublishPromotionNow(promotionFragment, options = {}) {
 }
 
 export const UNPUBLISHED_PROMO_VARIATIONS_DIALOG = {
-    title: 'Unpublished promo variations',
-    confirmText: 'Publish together',
+    title: 'Published promo variations',
+    confirmText: 'Publish',
     cancelText: 'Cancel',
     variant: 'confirmation',
+    question: 'Publish them together with the project?',
+    checkboxLabel: 'Publish promo variations',
+    checkboxDefault: false,
 };
 
 export function unpublishedPromoVariationsPublishMessage(count) {
-    return `This project has ${count} attached promo variation(s) that are not published. Publish them together with the project?`;
+    return `This project has ${count} attached promo variation(s) that are not published.`;
 }
 
 export const PUBLISHED_PROMO_VARIATIONS_DIALOG = {
-    title: 'Published promo variations',
-    confirmText: 'Unpublish together',
+    title: 'Unpublished promo variations',
+    confirmText: 'Unpublish',
     cancelText: 'Cancel',
     variant: 'confirmation',
+    question: 'Unpublish them together with the project?',
+    checkboxLabel: 'Unpublish promo variations',
+    checkboxDefault: false,
 };
 
 export function publishedPromoVariationsUnpublishMessage(count) {
-    return `This project has ${count} attached promo variation(s) that are published. Unpublish them together with the project?`;
+    return `This project has ${count} attached promo variation(s) that are published.`;
 }
 
 /**
@@ -144,14 +150,20 @@ async function confirmActionAgainstPromoVariations(
         return { confirmed: true, variationPaths: [] };
     }
     const message = buildMessage(variations.length);
-    const confirmed = await showDialog(dialogConfig.title, message, {
+    const dialogResult = await showDialog(dialogConfig.title, message, {
         confirmText: dialogConfig.confirmText,
         cancelText: dialogConfig.cancelText,
         variant: dialogConfig.variant,
+        question: dialogConfig.question,
+        checkboxLabel: dialogConfig.checkboxLabel,
+        checkboxDefault: dialogConfig.checkboxDefault,
     });
+    const isCheckboxResult = dialogResult !== null && typeof dialogResult === 'object';
+    const confirmed = isCheckboxResult ? !!dialogResult.confirmed : !!dialogResult;
+    const includeVariations = isCheckboxResult ? !!dialogResult.checked : confirmed;
     return {
-        confirmed: !!confirmed,
-        variationPaths: confirmed ? variations.map((variation) => variation.path) : [],
+        confirmed,
+        variationPaths: confirmed && includeVariations ? variations.map((variation) => variation.path) : [],
     };
 }
 
@@ -184,6 +196,16 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
 }
 
 /**
+ * Promos with unresolved validation errors are blocked from AEM activation upfront.
+ * The workflow fails silently otherwise, so we skip it early instead of trusting the publish response.
+ * @param {{ validationStatus?: Array<unknown> }} fragment
+ * @returns {boolean}
+ */
+function hasValidationErrors(fragment) {
+    return Array.isArray(fragment?.validationStatus) && fragment.validationStatus.length > 0;
+}
+
+/**
  * Publishes the promotion project and, when provided, unpublished promo variation paths in one AEM request.
  * @param {object} repository
  * @param {object} promotionFragment
@@ -206,7 +228,8 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
                 if (!variation?.id) continue;
                 const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id);
-                if (variationWithEtag) fragments.push(variationWithEtag);
+                if (!variationWithEtag || hasValidationErrors(variationWithEtag)) continue;
+                fragments.push(variationWithEtag);
             }
             await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
             const expectedFragmentCount = promoVariationPaths.length + 1;

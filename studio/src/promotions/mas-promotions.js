@@ -45,6 +45,7 @@ class MasPromotions extends LitElement {
         promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        dialogCheckboxChecked: { type: Boolean, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
     };
@@ -62,6 +63,7 @@ class MasPromotions extends LitElement {
         this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.dialogCheckboxChecked = false;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.reactiveController = new ReactiveController(this, [
@@ -158,12 +160,21 @@ class MasPromotions extends LitElement {
      * @returns {Promise<boolean>} - True if confirmed, false if canceled
      */
     async #showDialog(title, message, options = {}) {
+        const {
+            confirmText = 'OK',
+            cancelText = 'Cancel',
+            variant = 'primary',
+            question = null,
+            checkboxLabel = null,
+            checkboxDefault = false,
+        } = options;
+
         if (this.isDialogOpen) {
-            return false;
+            return checkboxLabel ? { confirmed: false, checked: false } : false;
         }
 
         this.isDialogOpen = true;
-        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
+        this.dialogCheckboxChecked = checkboxDefault;
 
         return new Promise((resolve) => {
             this.confirmDialogConfig = {
@@ -172,11 +183,13 @@ class MasPromotions extends LitElement {
                 confirmText,
                 cancelText,
                 variant,
+                question,
+                checkboxLabel,
                 onConfirm: () => {
-                    resolve(true);
+                    resolve(checkboxLabel ? { confirmed: true, checked: this.dialogCheckboxChecked } : true);
                 },
                 onCancel: () => {
-                    resolve(false);
+                    resolve(checkboxLabel ? { confirmed: false, checked: false } : false);
                 },
             };
         });
@@ -454,7 +467,8 @@ class MasPromotions extends LitElement {
     renderConfirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
 
-        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
+        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant, question, checkboxLabel } =
+            this.confirmDialogConfig;
 
         return html`
             <div class="confirm-dialog-overlay">
@@ -478,6 +492,16 @@ class MasPromotions extends LitElement {
                     }}
                 >
                     <div>${message}</div>
+                    ${question ? html`<div>${question}</div>` : nothing}
+                    ${checkboxLabel
+                        ? html`<sp-checkbox
+                              .checked=${this.dialogCheckboxChecked}
+                              @change=${(e) => {
+                                  this.dialogCheckboxChecked = e.target.checked;
+                              }}
+                              >${checkboxLabel}</sp-checkbox
+                          >`
+                        : nothing}
                 </sp-dialog-wrapper>
             </div>
         `;

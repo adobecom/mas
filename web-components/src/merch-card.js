@@ -279,6 +279,37 @@ export class MerchCard extends LitElement {
         }
     }
 
+    #lockedOsi;
+
+    get lockedOsi() {
+        return this.#lockedOsi;
+    }
+
+    set lockedOsi(value) {
+        this.#lockedOsi = value;
+        const attrValue = Array.isArray(value) ? value.join(',') : value;
+        if (attrValue) {
+            this.setAttribute('data-locked-osi', attrValue);
+        } else {
+            this.removeAttribute('data-locked-osi');
+        }
+    }
+
+    #replacedOsi;
+
+    get replacedOsi() {
+        return this.#replacedOsi;
+    }
+
+    set replacedOsi(value) {
+        this.#replacedOsi = value;
+        if (value) {
+            this.setAttribute('data-replaced-osi', value);
+        } else {
+            this.removeAttribute('data-replaced-osi');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;

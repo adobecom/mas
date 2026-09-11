@@ -13,6 +13,7 @@ import {
     formatAnnualPrice,
     makeSpacesAroundNonBreaking,
     isPromotionActive,
+    selectPreformattedPrice,
 } from './utilities.js';
 
 export const defaultLiterals = {
@@ -244,6 +245,7 @@ const createPriceTemplate =
             term,
             usePrecision,
             promotion,
+            priceInfo,
         } = {},
         attributes = {},
     ) => {
@@ -280,16 +282,38 @@ const createPriceTemplate =
         } else {
             displayPrice = price;
         }
+        // Which leaf to index must mirror the number formatted below. Optical
+        // always divides `price`, never `displayPrice`, so it is always the
+        // discounted leaf even when a strikethrough context set displayPrice to
+        // priceWithoutDiscount.
+        const showWithoutDiscount =
+            !displayOptical && displayPrice === priceWithoutDiscount;
 
         let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
         if (displayAnnual) {
             method = formatAnnualPrice;
         }
+
+        // India regroups digits client-side (lakh/crore) on the numeric path.
+        // WCS already groups them ("1,11,744"), so this only guards the fallback.
+        const isIndianPrice = country === 'IN';
+
+        // WCS pre-split parts; undefined leaf → numeric fallback below.
+        const preformatted =
+            priceInfo && toBoolean(displayFormatted)
+                ? selectPreformattedPrice({
+                      priceInfo,
+                      showWithoutDiscount,
+                      displayAnnual,
+                      displayOptical,
+                      promotion,
+                  })
+                : undefined;
         const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
             commitment,
             formatString,
             instant,
-            isIndianPrice: country === 'IN',
+            isIndianPrice,
             originalPrice: price,
             priceWithoutDiscount,
             price: displayOptical ? price : displayPrice,
@@ -297,6 +321,8 @@ const createPriceTemplate =
             quantity,
             term,
             usePrecision,
+            preformatted,
+            priceInfoFormat: priceInfo?.format,
         });
 
         let accessibleLabel = '',

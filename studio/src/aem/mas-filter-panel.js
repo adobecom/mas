@@ -349,6 +349,7 @@ class MasFilterPanel extends LitElement {
                     namespace="/content/cq:tags/mas"
                     top="variant"
                     label="Template"
+                    surface=${Store.surface()}
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.variant)}

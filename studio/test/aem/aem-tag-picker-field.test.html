@@ -404,6 +404,35 @@
                         expect(expressCheckbox.textContent).to.not.include('Adobe Express');
                     });
 
+                    it('renders variant values for the given surface', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker12', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const nmbOptions = aemTagPicker.shadowRoot.querySelectorAll('sp-checkbox').length;
+                        expect(nmbOptions).to.equal(3);
+                    });
+
+                    it('renders variant values for the given surface and search', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker13', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
+                        spSearch.value = 'plans';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+
+                        const nmbOptions = aemTagPicker.shadowRoot.querySelectorAll('sp-checkbox').length;
+                        expect(nmbOptions).to.equal(5);
+                    });
+
                     it('filters checkbox list while typing in search', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
                         await aemTagPicker.loadTags();
@@ -910,6 +939,24 @@
                 label="Select a product"
                 selection="checkbox-tags"
                 display-value
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker12">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="variant"
+                surface="express"
+                label="Select a template"
+                selection="checkbox-tags"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker13">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="variant"
+                surface="sandbox"
+                label="Select a template"
+                selection="checkbox-tags"
             ></aem-tag-picker-field>
         </template>
         <template id="tagPickerProductCode">

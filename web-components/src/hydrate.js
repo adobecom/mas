@@ -208,6 +208,29 @@ export function processTitle(fields, merchCard, titleConfig) {
     appendSlot('cardTitle', fields, merchCard, { cardTitle: titleConfig });
 }
 
+/**
+ * Plain-text product name used to disambiguate same-text CTAs (e.g. "Free trial")
+ * across cards. Reuses the fields already consumed by processCardName/processTitle.
+ */
+export function resolveCardName(fields) {
+    const raw = fields.cardName || fields.cardTitle || '';
+    if (typeof raw !== 'string') return '';
+    return clearTags(raw).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Sets a distinguishing aria-label on a CTA anchor, e.g. "Free trial for Creative
+ * Cloud Pro". No-ops when there's nothing useful to add or an author already set
+ * an aria-label, so it can't fabricate a label or duplicate existing wording.
+ */
+export function applyTrialAriaLabel(cta, cardName) {
+    if (!cardName || cta.hasAttribute('aria-label')) return;
+    const linkText = cta.textContent?.trim();
+    if (!linkText) return;
+    if (linkText.toLowerCase().includes(cardName.toLowerCase())) return;
+    cta.setAttribute('aria-label', `${linkText} for ${cardName}`);
+}
+
 export function processSubtitle(fields, merchCard, mapping) {
     appendSlot('subtitle', fields, merchCard, mapping);
 }
@@ -578,6 +601,20 @@ function transformLinkToButton(
                       variant,
                       isCheckoutLink,
                   );
+    }
+
+    // Some button-creation paths above (checkout-flavored consonant/swc buttons)
+    // rebuild a fresh element from the CTA's dataset/innerHTML rather than reusing
+    // linkElement, which drops any aria-label set on it earlier in processCTAs.
+    if (
+        newButtonElement !== linkElement &&
+        linkElement.hasAttribute('aria-label') &&
+        !newButtonElement.hasAttribute('aria-label')
+    ) {
+        newButtonElement.setAttribute(
+            'aria-label',
+            linkElement.getAttribute('aria-label'),
+        );
     }
 
     if (isHeadlessCta) {
@@ -953,6 +990,12 @@ export function processCTAs(
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
         const allCtaLinks = [...footer.querySelectorAll('a')];
+        const cardName = resolveCardName(fields);
+        allCtaLinks.forEach((cta) => {
+            if (TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId)) {
+                applyTrialAriaLabel(cta, cardName);
+            }
+        });
         const filteredLinks = settings?.hideTrialCTAs
             ? allCtaLinks.filter(
                   (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),

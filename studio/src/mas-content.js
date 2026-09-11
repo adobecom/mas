@@ -18,6 +18,7 @@ import {
     mergeParentTableSelection,
     stripNestedVariationSelectControls,
 } from './mas-content-table-selection.js';
+import { GROUP_BY_NONE, GROUP_BY_OPTIONS, groupFragmentStores } from './fragments/fragment-grouping.js';
 
 export const cardSkeleton = () =>
     html`<div class="render-fragment-placeholder" aria-busy="true">
@@ -42,6 +43,8 @@ const tableSkeletonRow = () =>
 class MasContent extends LitElement {
     static properties = {
         tableSelects: { type: String, state: true },
+        groupBy: { type: String, state: true },
+        collapsedGroups: { type: Object, state: true },
     };
 
     createRenderRoot() {
@@ -54,6 +57,8 @@ class MasContent extends LitElement {
         this.subscriptions = [];
         this.observedSentinel = null;
         this.wasLoading = false;
+        this.groupBy = GROUP_BY_NONE;
+        this.collapsedGroups = new Set();
     }
 
     #handleTableSelectionRefresh = () => {
@@ -288,35 +293,110 @@ class MasContent extends LitElement {
         `;
     }
 
+    #handleGroupByChange(groupBy) {
+        if (groupBy === this.groupBy) return;
+        this.groupBy = groupBy;
+        this.collapsedGroups = new Set();
+    }
+
+    #toggleGroupCollapse(name) {
+        const collapsedGroups = new Set(this.collapsedGroups);
+        if (collapsedGroups.has(name)) {
+            collapsedGroups.delete(name);
+        } else {
+            collapsedGroups.add(name);
+        }
+        this.collapsedGroups = collapsedGroups;
+    }
+
+    get groupByControl() {
+        return html`
+            <div class="fragment-group-by-control">
+                <sp-field-label>Group by</sp-field-label>
+                <sp-action-group selects="single" compact quiet aria-label="Group by" selected='["${this.groupBy}"]'>
+                    ${GROUP_BY_OPTIONS.map(
+                        ({ value, label }) =>
+                            html`<sp-action-button value=${value} @click=${() => this.#handleGroupByChange(value)}
+                                >${label}</sp-action-button
+                            >`,
+                    )}
+                </sp-action-group>
+            </div>
+        `;
+    }
+
+    #renderTableBodyGroupedByAttribute(fragmentStores) {
+        const groups = groupFragmentStores(fragmentStores, this.groupBy);
+        return html`${repeat(
+            groups,
+            (group) => group.name,
+            (group) => {
+                const collapsed = this.collapsedGroups.has(group.name);
+                return html`
+                    <sp-table-row class="fragment-group-header">
+                        <sp-table-cell class="fragment-group-header-cell">
+                            <sp-button
+                                icon-only
+                                quiet
+                                variant="secondary"
+                                aria-label="${collapsed ? 'Expand' : 'Collapse'} ${group.name} group"
+                                @click=${() => this.#toggleGroupCollapse(group.name)}
+                            >
+                                ${collapsed
+                                    ? html`<sp-icon-chevron-right></sp-icon-chevron-right>`
+                                    : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                            </sp-button>
+                            ${group.name} (${group.stores.length})
+                        </sp-table-cell>
+                    </sp-table-row>
+                    ${collapsed
+                        ? nothing
+                        : repeat(
+                              group.stores,
+                              (fragmentStore) => fragmentStore.get().path,
+                              (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+                          )}
+                `;
+            },
+        )}`;
+    }
+
     get tableView() {
         if (!this.firstPageLoaded.value) {
-            return html`<sp-table emphasized scroller>
-                <sp-table-head>
-                    <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    <sp-table-head-cell class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell class="title">Fragment Title</sp-table-head-cell>
-                    <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
-                    <sp-table-head-cell class="price">Price</sp-table-head-cell>
-                    <sp-table-head-cell class="status">Status</sp-table-head-cell>
-                    <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
-                    <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
-                </sp-table-head>
-                <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
-            </sp-table>`;
+            return html`${this.groupByControl}
+                <sp-table emphasized scroller>
+                    <sp-table-head>
+                        <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
+                        <sp-table-head-cell class="name">Path</sp-table-head-cell>
+                        <sp-table-head-cell class="title">Fragment Title</sp-table-head-cell>
+                        <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
+                        <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
+                        <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                        <sp-table-head-cell class="price">Price</sp-table-head-cell>
+                        <sp-table-head-cell class="status">Status</sp-table-head-cell>
+                        <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
+                        <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
+                </sp-table>`;
         }
         const visibleFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
         const personalizationOn = Store.filters.get().personalizationFilterEnabled === true;
-        const body = personalizationOn
-            ? this.#renderTableBodyGrouped(visibleFragments)
-            : repeat(
-                  visibleFragments,
-                  (fragmentStore) => fragmentStore.get().path,
-                  (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
-              );
+        let body;
+        if (this.groupBy !== GROUP_BY_NONE) {
+            body = this.#renderTableBodyGroupedByAttribute(visibleFragments);
+        } else if (personalizationOn) {
+            body = this.#renderTableBodyGrouped(visibleFragments);
+        } else {
+            body = repeat(
+                visibleFragments,
+                (fragmentStore) => fragmentStore.get().path,
+                (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+            );
+        }
 
-        return html`<sp-table
+        return html`${this.groupByControl}
+            <sp-table
                 emphasized
                 scroller
                 selects=${this.tableSelects}

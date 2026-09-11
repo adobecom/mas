@@ -391,6 +391,45 @@ describe('mcp-client', () => {
     });
 
     describe('executeStudioOperation', () => {
+        it('preserves the resolved selector data consumed by release continuation', async () => {
+            fetchStub.resolves({
+                ok: true,
+                json: async () => ({
+                    success: true,
+                    operation: 'resolve_offer_selector',
+                    offerSelectorId: 'selected-osi',
+                    offers: [{ product_arrangement_code: 'PA-1636' }],
+                    selector: { product_arrangement_code: 'PA-1636' },
+                    checkoutUrl: 'https://example.com/checkout',
+                    studioLinks: {},
+                }),
+            });
+
+            const result = await executeStudioOperation('resolve_offer_selector', { offerSelectorId: 'selected-osi' });
+
+            expect(result.rawResult?.selector?.product_arrangement_code).to.equal('PA-1636');
+        });
+
+        it('preserves a partially failed release result', async () => {
+            fetchStub.resolves({
+                ok: true,
+                json: async () => ({
+                    success: false,
+                    cards: [
+                        { success: true, card: { id: 'created-card' } },
+                        { success: false, error: 'Creation failed', card: { variant: 'catalog' } },
+                    ],
+                    count: 2,
+                    successCount: 1,
+                    product: { name: 'Test product' },
+                }),
+            });
+
+            const result = await executeStudioOperation('create_release_cards', {});
+
+            expect(result.success).to.equal(false);
+        });
+
         it('maps publish_card result correctly', async () => {
             fetchStub.resolves({
                 ok: true,

@@ -1129,6 +1129,40 @@ async function main(params) {
             }
         }
 
+        // Recover before operation handling so a retry uses the same validation
+        // and dispatch path as the initial response.
+        // A guided step offering nothing to do ends the flow where it stands.
+        // Asking the model not to narrate has failed repeatedly, so re-ask once
+        // naming the failure, and if that narrates too, attach a control. The
+        // user is never left with a sentence and no way to answer it.
+        // Rollback: DEAD_END_RETRY=off.
+        if (isDeadEndGuidedStep(parsedResponse) && releaseIntent && params.DEAD_END_RETRY !== 'off') {
+            console.log(JSON.stringify({ phase: 'dead-end-step', req: requestId, retrying: true }));
+            const retry = await foundryClient.sendWithContext(
+                [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
+                'That reply gave the user nothing to act on: no operation ran and there was no button, ' +
+                    'product list or input prompt. Do not describe an action you can take — take it. ' +
+                    'Emit the mcp_operation for the step you are on, or a guided_step whose buttonGroup ' +
+                    'carries options or an inputHint, or open_ost if the Offer Selector Tool is needed.',
+                guidedToolMode ? GUIDED_CARD_CREATION_TOOL_PROMPT : effectiveSystemPrompt,
+                enrichedContext,
+                maxTokens,
+                guidedToolMode ? { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE } : { thinking },
+            );
+            logUsageMetric(retry, params, foundryClient.modelId);
+            if (retry.success && (retry.message || retry.toolUse)) {
+                const retryPayload = guidedToolMode && retry.toolUse ? extractGuidedTool(retry) : null;
+                const retryText = retryPayload ? `\`\`\`json\n${JSON.stringify(retryPayload, null, 2)}\n\`\`\`` : retry.message;
+                const retryParsed = parseAIResponse(retryText);
+                if (!retryParsed.parseError) {
+                    parsedResponse = retryParsed;
+                    response = { ...response, message: retryText };
+                }
+            }
+            // Whatever came back, the user gets something to press.
+            parsedResponse = withDeadEndRecovery(parsedResponse);
+        }
+
         // Attach the shadow envelope only when the text actually contained a
         // valid one: guided-flow JSON has no intent field, so its coerced
         // ASK_USER fallback must never ship — the frontend dispatcher would
@@ -1328,38 +1362,6 @@ async function main(params) {
                     ],
                 },
             };
-        }
-
-        // A guided step offering nothing to do ends the flow where it stands.
-        // Asking the model not to narrate has failed repeatedly, so re-ask once
-        // naming the failure, and if that narrates too, attach a control. The
-        // user is never left with a sentence and no way to answer it.
-        // Rollback: DEAD_END_RETRY=off.
-        if (isDeadEndGuidedStep(parsedResponse) && releaseIntent && params.DEAD_END_RETRY !== 'off') {
-            console.log(JSON.stringify({ phase: 'dead-end-step', req: requestId, retrying: true }));
-            const retry = await foundryClient.sendWithContext(
-                [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
-                'That reply gave the user nothing to act on: no operation ran and there was no button, ' +
-                    'product list or input prompt. Do not describe an action you can take — take it. ' +
-                    'Emit the mcp_operation for the step you are on, or a guided_step whose buttonGroup ' +
-                    'carries options or an inputHint, or open_ost if the Offer Selector Tool is needed.',
-                guidedToolMode ? GUIDED_CARD_CREATION_TOOL_PROMPT : effectiveSystemPrompt,
-                enrichedContext,
-                maxTokens,
-                guidedToolMode ? { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE } : { thinking },
-            );
-            logUsageMetric(retry, params, foundryClient.modelId);
-            if (retry.success && (retry.message || retry.toolUse)) {
-                const retryPayload = guidedToolMode && retry.toolUse ? extractGuidedTool(retry) : null;
-                const retryText = retryPayload ? `\`\`\`json\n${JSON.stringify(retryPayload, null, 2)}\n\`\`\`` : retry.message;
-                const retryParsed = parseAIResponse(retryText);
-                if (!retryParsed.parseError) {
-                    parsedResponse = retryParsed;
-                    response = { ...response, message: retryText };
-                }
-            }
-            // Whatever came back, the user gets something to press.
-            parsedResponse = withDeadEndRecovery(parsedResponse);
         }
 
         if (parsedResponse.type === 'guided_step') {

@@ -379,6 +379,70 @@ describe('ai-chat/index main handler', () => {
         });
     });
 
+    describe('dead-end operation recovery', () => {
+        for (const nativeGuided of ['on', 'off']) {
+            it(`returns the retry operation through the ${nativeGuided === 'on' ? 'native' : 'text'} guided path`, async () => {
+                const step = { type: 'guided_step', flowId: 'release', message: 'Let me look that up.' };
+                const operation = {
+                    type: 'mcp_operation',
+                    flowId: 'release',
+                    mcpTool: 'list_products',
+                    mcpParams: { searchText: 'creative cloud pro' },
+                    message: 'Looking up the product.',
+                };
+                if (nativeGuided === 'on') {
+                    sendStub.onCall(0).resolves({ ...textResponse(''), toolUse: { name: 'emit_guided_step', input: step } });
+                    sendStub
+                        .onCall(1)
+                        .resolves({ ...textResponse(''), toolUse: { name: 'emit_mcp_operation', input: operation } });
+                } else {
+                    sendStub.onCall(0).resolves(textResponse(JSON.stringify(step)));
+                    sendStub.onCall(1).resolves(textResponse(JSON.stringify(operation)));
+                }
+
+                const result = await main(
+                    makeParams({
+                        message: 'create cards for creative cloud pro',
+                        intentHint: 'release',
+                        NATIVE_GUIDED: nativeGuided,
+                    }),
+                );
+
+                expect(result.body).to.include({ type: 'mcp_operation', flowId: 'release', mcpTool: 'list_products' });
+                expect(result.body.mcpParams).to.deep.equal({ searchText: 'creative cloud pro' });
+                expect(sendStub.callCount).to.equal(2);
+            });
+        }
+
+        it('validates an operation returned by the dead-end retry', async () => {
+            sendStub.onCall(0).resolves(
+                textResponse(
+                    JSON.stringify({
+                        type: 'guided_step',
+                        flowId: 'release',
+                        message: 'Let me look that up.',
+                    }),
+                ),
+            );
+            sendStub.onCall(1).resolves(
+                textResponse(
+                    JSON.stringify({
+                        type: 'mcp_operation',
+                        flowId: 'release',
+                        mcpTool: 'unsupported_tool',
+                        mcpParams: {},
+                        message: 'Running.',
+                    }),
+                ),
+            );
+
+            const result = await main(makeParams({ message: 'create cards', intentHint: 'release', NATIVE_GUIDED: 'off' }));
+
+            expect(result.body.type).to.equal('error');
+            expect(result.body.message).to.include('Invalid MCP tool');
+        });
+    });
+
     describe('native guided tools (release flow)', () => {
         function guidedToolResponse(name, input) {
             return {

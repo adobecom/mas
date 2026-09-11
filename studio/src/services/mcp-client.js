@@ -282,6 +282,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 offers: result.offers || [],
                 checkoutUrl: result.checkoutUrl,
                 studioLinks: result.studioLinks,
+                rawResult: result,
             };
 
         case 'get_product_by_arrangement_code': {
@@ -372,7 +373,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 result.message ||
                 `${mcpTool.replace(/_/g, ' ')} completed${items.length > 0 ? ` — ${items.length} result${items.length !== 1 ? 's' : ''}` : ''}.`;
             return {
-                success: true,
+                success: result.success ?? true,
                 operation: mcpTool,
                 message: fallbackMessage,
                 results: items,

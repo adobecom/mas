@@ -18,10 +18,6 @@ import ReactiveController from './reactivity/reactive-controller.js';
 const EVENT_MAS_READY = 'mas:ready';
 const EVENT_MAS_ERROR = 'mas:error';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
-const FIELD_SOURCE = {
-    CURRENT: 'current',
-    INHERITED: 'inherited',
-};
 /** Renders a preview string, converting <s>…</s> segments to Lit <s> elements. */
 function renderPreview(preview) {
     if (!preview?.includes('<s>')) return preview;
@@ -510,40 +506,19 @@ class MasSideNav extends LitElement {
         return !!fragmentId && !!this.fragmentEditor?.editorContextStore?.isVariation?.(fragmentId);
     }
 
-    /** Individual CTA items extracted from the ctas field, split by source for variations. */
+    /** Individual CTA items extracted from the ctas field. */
     get copyableCtas() {
         const fragment = this.fragmentEditor?.fragment;
-        if (!fragment?.fields) return { current: [], inherited: [] };
+        if (!fragment?.fields) return [];
 
         const ctasField = fragment.fields.find((f) => f.name === 'ctas');
-        const current =
-            ctasField && !fragment.isValueEmpty(ctasField.values)
-                ? parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
-                      ...cta,
-                      index: i + 1,
-                      source: FIELD_SOURCE.CURRENT,
-                      sourceFragment: fragment,
-                  }))
-                : [];
+        if (!ctasField || fragment.isValueEmpty(ctasField.values)) return [];
 
-        const fragmentId = fragment?.id;
-        if (!this.#isVariationFragment(fragmentId) || current.length) {
-            return { current, inherited: [] };
-        }
-
-        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
-        const baseCtasField = baseFragment?.fields?.find((f) => f.name === 'ctas');
-        const inherited =
-            baseCtasField && !baseFragment.isValueEmpty(baseCtasField.values)
-                ? parseCtas(baseCtasField.values[0]).map((cta, i) => ({
-                      ...cta,
-                      index: i + 1,
-                      source: FIELD_SOURCE.INHERITED,
-                      sourceFragment: baseFragment,
-                  }))
-                : [];
-
-        return { current, inherited };
+        return parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
+            ...cta,
+            index: i + 1,
+            sourceFragment: fragment,
+        }));
     }
 
     /** Resolves a field's display name, preferring the current variant's editorLabel override. */
@@ -567,7 +542,7 @@ class MasSideNav extends LitElement {
         });
     }
 
-    #buildCopyableField(field, source, sourceFragment, resolvedInlinePrices) {
+    #buildCopyableField(field, sourceFragment, resolvedInlinePrices) {
         const displayValues = this.#getDisplayValues(field);
         // If the previewStore resolved inline-prices to text, fall back to the original
         // field values which preserve data-template attributes for strikethrough detection.
@@ -581,7 +556,6 @@ class MasSideNav extends LitElement {
             name: field.name,
             displayName: this.#getFieldDisplayName(field.name, sourceFragment),
             preview,
-            source,
             sourceFragment,
         };
     }
@@ -589,39 +563,18 @@ class MasSideNav extends LitElement {
     /**
      * Fragment fields with display names and value previews, including empty ones so authors
      * can copy a link to an empty placeholder (e.g. inject promo-only content where the default
-     * is blank). Non-empty fields are emphasized in the UI. For a variation an empty own-field
-     * means "inherit", so those still fall through to the base fragment as inherited entries.
+     * is blank). Non-empty fields are emphasized in the UI.
      */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
-        const isVariation = this.#isVariationFragment(fragment?.id);
-        const currentFields = this.#sortFieldsByVariantOrder(
+        return this.#sortFieldsByVariantOrder(
             fragment.fields
-                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && (!isVariation || !fragment.isValueEmpty(f.values)))
-                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment, resolvedInlinePrices)),
+                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name))
+                .map((f) => this.#buildCopyableField(f, fragment, resolvedInlinePrices)),
             fragment,
         );
-
-        if (!isVariation) {
-            return currentFields;
-        }
-
-        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
-        if (!baseFragment?.fields?.length) {
-            return currentFields;
-        }
-
-        const currentFieldNames = new Set(currentFields.map((field) => field.name));
-        const inheritedFields = this.#sortFieldsByVariantOrder(
-            baseFragment.fields
-                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
-                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices)),
-            baseFragment,
-        );
-
-        return [...currentFields, ...inheritedFields];
     }
 
     getCtaInfo(key) {
@@ -662,9 +615,9 @@ class MasSideNav extends LitElement {
             `;
         }
         const fields = this.copyableFields.filter((field) => field.name !== 'ctas');
-        const { current: currentCtas } = this.copyableCtas;
+        const currentCtas = this.copyableCtas;
         const hasCtaItems = currentCtas.length;
-        const { current: currentCustomFields } = this.copyableCustomFields;
+        const currentCustomFields = this.copyableCustomFields;
         const hasCustomFields = currentCustomFields.length;
         const renderRow = ({ name, displayName, preview, sourceFragment }) => html`
             <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
@@ -803,38 +756,23 @@ class MasSideNav extends LitElement {
         return clone.innerHTML;
     }
 
-    /** Individual custom field items extracted from customFields/customFieldLabels, split by source for variations. */
+    /** Individual custom field items extracted from customFields/customFieldLabels. */
     get copyableCustomFields() {
         const fragment = this.fragmentEditor?.fragment;
-        if (!fragment?.fields) return { current: [], inherited: [] };
+        if (!fragment?.fields) return [];
 
         const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
         const valuesField = fragment.fields.find((f) => f.name === 'customFields');
         const labelsField = fragment.fields.find((f) => f.name === 'customFieldLabels');
 
-        const buildItems = (vals, lbls, source, sourceFragment) =>
-            (vals ?? [])
-                .map((v, i) => {
-                    const liveHtml = source === FIELD_SOURCE.CURRENT ? this.#getResolvedCustomFieldSlotHtml(i) : undefined;
-                    const resolved = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
-                    const value = previewValue([resolved]);
-                    return { value, label: lbls?.[i] || '', index: i + 1, source, sourceFragment };
-                })
-                .filter(({ value }) => value);
-
-        const current = buildItems(valuesField?.values, labelsField?.values, FIELD_SOURCE.CURRENT, fragment);
-
-        const fragmentId = fragment?.id;
-        if (!this.#isVariationFragment(fragmentId) || current.length) {
-            return { current, inherited: [] };
-        }
-
-        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
-        const baseValuesField = baseFragment?.fields?.find((f) => f.name === 'customFields');
-        const baseLabelsField = baseFragment?.fields?.find((f) => f.name === 'customFieldLabels');
-        const inherited = buildItems(baseValuesField?.values, baseLabelsField?.values, FIELD_SOURCE.INHERITED, baseFragment);
-
-        return { current, inherited };
+        return (valuesField?.values ?? [])
+            .map((v, i) => {
+                const liveHtml = this.#getResolvedCustomFieldSlotHtml(i);
+                const resolved = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
+                const value = previewValue([resolved]);
+                return { value, label: labelsField?.values?.[i] || '', index: i + 1, sourceFragment: fragment };
+            })
+            .filter(({ value }) => value);
     }
 
     #getCtaKey(fragment, index) {

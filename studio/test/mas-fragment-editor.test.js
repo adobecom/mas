@@ -596,6 +596,115 @@ describe('MasFragmentEditor', () => {
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
         });
 
+        it('does not retry a failed fragment fetch on a later re-render', async () => {
+            mockRepo.aem.sites.cf.fragments.getById.rejects(new Error('boom'));
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+
+            await el.initFragment();
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(1);
+
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(1);
+        });
+
+        it('re-attempts a previously-failed id after navigating to a different id and back', async () => {
+            mockRepo.aem.sites.cf.fragments.getById.rejects(new Error('boom'));
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+
+            await el.initFragment();
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(1);
+
+            // Same id, no navigation: still suppressed.
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(1);
+
+            // Navigate to a different card that loads fine. (A stub that also failed here
+            // would overwrite the single-slot marker to the new id and mask the bug this
+            // test exists to catch, so this one must succeed.)
+            mockRepo.aem.sites.cf.fragments.getById.withArgs('other-id').resolves(createFragmentData({ id: 'other-id' }));
+            Store.fragmentEditor.fragmentId.value = 'other-id';
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(2);
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
+
+            // Back to the originally-failed id: the marker was cleared on the way out,
+            // so this is a fresh attempt, not a suppressed retry.
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(3);
+        });
+
+        it('lets a fragment that recovers after a prior failure load and stay loadable', async () => {
+            mockRepo.aem.sites.cf.fragments.getById.rejects(new Error('boom'));
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+
+            await el.initFragment();
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(1);
+
+            // Visit a different card that loads fine (must not fail here, or the single-slot
+            // marker would get overwritten to 'other-id' and mask what this test checks).
+            mockRepo.aem.sites.cf.fragments.getById.withArgs('other-id').resolves(createFragmentData({ id: 'other-id' }));
+            Store.fragmentEditor.fragmentId.value = 'other-id';
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(2);
+
+            // The author fixed the original fragment too.
+            mockRepo.aem.sites.cf.fragments.getById.withArgs('broken-id').resolves(createFragmentData({ id: 'broken-id' }));
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(3);
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
+            expect(el.inEdit.get()?.get()?.id).to.equal('broken-id');
+
+            // A later inEdit reset for the SAME, now-successful id (e.g. a locale switch)
+            // must still be able to re-initialize -- the earlier failure must not have
+            // left the id permanently blacklisted.
+            Store.fragments.inEdit.value = null;
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(mockRepo.refreshFragment.called).to.be.true;
+            // It's cached now, so this re-init comes from the list store, not another fetch.
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(3);
+        });
+
+        it('clears the failed marker on a successful initialization, with no id change at all', async () => {
+            mockRepo.aem.sites.cf.fragments.getById.rejects(new Error('boom'));
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+
+            await el.initFragment();
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(1);
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.IDLE);
+
+            // Same id, now resolves. Call initFragment() directly -- the same path
+            // connectedCallback/tests use, which bypasses #shouldInitFragment() -- so
+            // #shouldInitFragment()'s own id-change clear (fragmentId never changes here,
+            // and willUpdate() is never called) cannot be what clears the marker. Only
+            // #markInitReady()'s explicit clear can.
+            mockRepo.aem.sites.cf.fragments.getById.resolves(createFragmentData({ id: 'broken-id' }));
+            await el.initFragment();
+
+            expect(mockRepo.aem.sites.cf.fragments.getById.callCount).to.equal(2);
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
+            expect(el.inEdit.get()?.get()?.id).to.equal('broken-id');
+
+            // Clear inEdit (e.g. locale switch) with the id still unchanged, then go
+            // through the real guard for the first time in this test.
+            Store.fragments.inEdit.value = null;
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(mockRepo.refreshFragment.called).to.be.true;
+        });
+
         describe('background promo-variation probe', () => {
             const defaultPath = '/content/dam/mas/sandbox/en_US/frag';
             const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';

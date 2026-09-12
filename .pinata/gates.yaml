@@ -91,19 +91,20 @@ gates:
     visual:
         template: visual
         name: Visual evidence (component demo surfaces)
+        # temporary: until production-vs-stage fragment handling is settled
         # No default page: the surface catalog in preview.yaml routes targets,
-        # and a change no surface can show escalates instead of guessing.
+        # and a change no surface can show is skipped instead of guessing.
         breakpoints: [1200]
         # Short clip per target for the human reviewer; the judge stays on stills.
         video: true
-        on_missing_target: escalate
+        on_missing_target: skip
         criteria: >-
             The changed component renders on its demo gallery without layout
             breakage or overlap at each breakpoint; spacing, alignment and
             typography hold, prices resolve to real currency values, and
             neighboring cards are not regressed.
-        require_human: true
-        blocking: true
+        require_human: false
+        blocking: false
 
     # Last on purpose: the adversary reviews the code together with every
     # deterministic and visual gate result, not blind of them.

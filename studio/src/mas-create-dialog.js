@@ -231,10 +231,22 @@ export class MasCreateDialog extends LitElement {
         const modelId =
             this.type === 'merch-card' ? TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD] : TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION];
 
+        const masRepository = document.querySelector('mas-repository');
+        let title = this.title;
+        if (this.type === 'merch-card') {
+            title = await masRepository.resolveUniqueTitleInPath({
+                title,
+                scopeKey: masRepository.parentPath,
+            });
+            if (title !== this.title) {
+                showToast(`Title adjusted to "${title}" to keep it unique in this Path.`);
+            }
+        }
+
         const fragmentData = {
             modelId,
-            title: this.title,
-            name: this.normalizeFragmentName(this.title),
+            title,
+            name: this.normalizeFragmentName(title),
         };
         if (this.type === 'merch-card') {
             fragmentData.data = {
@@ -243,14 +255,13 @@ export class MasCreateDialog extends LitElement {
                 compatVersion: COMPAT_VERSION,
             };
         } else {
-            fragmentData.data = { label: this.title };
+            fragmentData.data = { label: title };
             if (this.type === COMPARE_CHART_CREATE_TYPE) {
                 fragmentData.data[COMPARE_CHART_FIELD] = DEFAULT_COMPARE_CHART_HTML;
                 fragmentData.tags = [TAG_COMPARE_CHART];
             }
         }
 
-        const masRepository = document.querySelector('mas-repository');
         const firstName = fragmentData.name;
         let nmbOfTries = 0;
         let created = false;

@@ -628,6 +628,7 @@ export default class MasFragmentEditor extends LitElement {
     #pendingDiscardPromise = null;
     #translatedLocalesRequest = null;
     #pendingVariationParents = new Map();
+    #pendingPromoRefresh = null;
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
     #itemsSelectionStoreSnapshot = null;
@@ -1119,9 +1120,13 @@ export default class MasFragmentEditor extends LitElement {
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
         }
-        this.repository.refreshFragment(existingStore).then(() => {
-            this.dispatchFragmentLoaded();
-        });
+        const refreshPromise = this.repository.refreshFragment(existingStore);
+        this.#pendingPromoRefresh = { fragmentId, promise: refreshPromise };
+        refreshPromise
+            .then(() => this.dispatchFragmentLoaded())
+            .finally(() => {
+                if (this.#pendingPromoRefresh?.fragmentId === fragmentId) this.#pendingPromoRefresh = null;
+            });
 
         if (isGroupedVariation) {
             const parentLocale =
@@ -1267,6 +1272,7 @@ export default class MasFragmentEditor extends LitElement {
 
     async initFragment() {
         const fragmentId = this.fragmentId;
+        this.#pendingPromoRefresh = null;
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
@@ -1540,16 +1546,19 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async deleteFragment() {
-        if (!this.editorContextStore.isVariation(this.fragment.id)) {
-            const fieldVariations = this.fragment.getVariations();
-            let promoVariationPaths;
-            try {
-                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
-            } catch (error) {
-                console.error('Failed to probe promo variations:', error);
-                showToast('Failed to check for promo variations. Please try again.', 'negative');
-                return;
+        const isVariation = this.editorContextStore.isVariation(this.fragment.id);
+        if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
+            if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
+                try {
+                    await this.#pendingPromoRefresh.promise;
+                } catch (error) {
+                    console.error('Failed to probe promo variations:', error);
+                    showToast('Failed to check for promo variations. Please try again.', 'negative');
+                    return;
+                }
             }
+            const promoVariationPaths = this.fragment.listPromoVariations().map((variation) => variation.path);
+            const fieldVariations = isVariation ? [] : this.fragment.getVariations();
             this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         } else {
             this.variationsToDelete = [];
@@ -1566,6 +1575,13 @@ export default class MasFragmentEditor extends LitElement {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 if (localeDefaultFragment) {
                     await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
+                }
+                for (const promoVariationPath of this.variationsToDelete) {
+                    try {
+                        await this.repository.aem.sites.cf.fragments.forceDelete({ path: promoVariationPath });
+                    } catch (error) {
+                        console.error(`Failed to delete promo variation ${promoVariationPath}:`, error);
+                    }
                 }
                 let deleted = await this.repository.deleteFragment(this.fragment, {
                     startToast: false,

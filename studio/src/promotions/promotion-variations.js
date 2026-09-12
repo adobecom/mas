@@ -3,6 +3,7 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
+import { INHERITED_SETTINGS_FIELDS } from '../reactivity/preview-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import {
     buildCandidateCollisionPath,
@@ -258,7 +259,16 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     if (isGroupedVariationSource) {
         const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
         if (parentFragment) {
-            effectiveFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
+            const mergedFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
+            // A model field is always present on AEM fragments, even when unset (values: ['']).
+            // Check for an actual value, not just presence.
+            const hasOwnValue = (field) => (field?.values || []).some((value) => value !== '' && value != null);
+            const ownFieldNamesWithValue = new Set(
+                (sourceFragment.fields || []).filter(hasOwnValue).map((field) => field.name),
+            );
+            effectiveFields = mergedFields.filter(
+                (field) => !INHERITED_SETTINGS_FIELDS.has(field.name) || ownFieldNamesWithValue.has(field.name),
+            );
         }
     }
 
@@ -421,17 +431,35 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
  * that leaf returns only the copies of that variation — a single unpaginated page (verified: all 15
  * live grouped copies matched, ≤3 results each, no cursor). One such search per grouped variation
  * runs concurrently; the suffix matcher stays the authoritative filter so any over-match is dropped.
+ * With `onlyAttached`, `groupedVariationPaths` are pre-filtered to the ones a project actually lists
+ * in its own 'fragments' field before searching; otherwise every grouped path is searched (needed
+ * for cascade-delete, which must find every leftover copy regardless of current attachment).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath - the parent card path (shares the surface/locale promotions root)
  * @param {string[]} groupedVariationPaths
+ * @param {Array<Object>} [promotionProjects]
+ * @param {{ onlyAttached?: boolean }} [options]
  * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
  */
-async function probeGroupedVariationPromoReferences(aem, defaultPath, groupedVariationPaths = []) {
+async function probeGroupedVariationPromoReferences(
+    aem,
+    defaultPath,
+    groupedVariationPaths = [],
+    promotionProjects = [],
+    { onlyAttached = false } = {},
+) {
     if (!aem || !defaultPath || !groupedVariationPaths.length) return [];
     const promotionsRoot = buildPromotionsRootPath(defaultPath);
     if (!promotionsRoot) return [];
 
-    const targets = groupedVariationPaths
+    const pathsToSearch = onlyAttached
+        ? groupedVariationPaths.filter((path) =>
+              promotionProjects.some((project) => (project.getFieldValues?.('fragments') || []).includes(path)),
+          )
+        : groupedVariationPaths;
+    if (!pathsToSearch.length) return [];
+
+    const targets = pathsToSearch
         .map((path) => PATH_TOKENS.exec(path)?.groups?.fragmentPath)
         .filter(Boolean)
         .map((relPath) => ({
@@ -484,15 +512,23 @@ async function probeGroupedVariationPromoReferences(aem, defaultPath, groupedVar
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragmentData
  * @param {Array<Object>} promotionProjects
+ * @param {{ onlyAttachedGroupedVariations?: boolean }} [options]
  * @returns {Promise<Object>}
  */
-export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
+export async function mergePromoReferencesForDefaultFragment(
+    aem,
+    fragmentData,
+    promotionProjects = [],
+    { onlyAttachedGroupedVariations = false } = {},
+) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
     const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
 
     const [defaultRefs, groupedRefs] = await Promise.all([
         probePromoVariationReferences(aem, fragmentData.path, promotionProjects),
-        probeGroupedVariationPromoReferences(aem, fragmentData.path, groupedVariationPaths),
+        probeGroupedVariationPromoReferences(aem, fragmentData.path, groupedVariationPaths, promotionProjects, {
+            onlyAttached: onlyAttachedGroupedVariations,
+        }),
     ]);
 
     return mergePromoVariationReferences(fragmentData, [...defaultRefs, ...groupedRefs]);

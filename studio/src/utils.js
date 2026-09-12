@@ -633,12 +633,12 @@ export function describeVariationsToDelete(fragment, variationsToDelete = []) {
     let promoCount = 0;
 
     for (const path of variationsToDelete) {
-        if (path.includes(`/${PZN_FOLDER}/`)) {
-            if (isVariationPathInParentLocaleFamily(surface, currentLocale, path)) groupedCount += 1;
-            continue;
-        }
         if (isPromoVariationPath(path)) {
             promoCount += 1;
+            continue;
+        }
+        if (path.includes(`/${PZN_FOLDER}/`)) {
+            if (isVariationPathInParentLocaleFamily(surface, currentLocale, path)) groupedCount += 1;
             continue;
         }
         const pathGroups = surface && currentLocale && fragmentPath ? path.match(PATH_TOKENS)?.groups : null;

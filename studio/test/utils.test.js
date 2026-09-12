@@ -760,4 +760,11 @@ describe('describeVariationsToDelete', () => {
             '1 locale, 1 grouped variation(s)',
         );
     });
+
+    it('counts a promo variation generated from a grouped variation as promo', () => {
+        const promoFromGroupedPath = '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/smb/my-fragment';
+        expect(describeVariationsToDelete(fragment, [groupedPath1, promoFromGroupedPath])).to.equal(
+            '1 grouped, 1 promo variation(s)',
+        );
+    });
 });

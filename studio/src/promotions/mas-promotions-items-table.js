@@ -217,7 +217,8 @@ class MasPromotionsItemsTable extends LitElement {
             return;
         }
         const paths = this.selectedPaths;
-        const key = paths.slice().sort().join('|');
+        const keySource = this.type === TABLE_TYPE.CARDS ? getItemsSelectionStore().selectedCards.value : paths;
+        const key = keySource.slice().sort().join('|');
         if (key === this.#loadedPathsKey) return;
         this.#loadedPathsKey = key;
         this.#loadSelected(paths);
@@ -269,11 +270,11 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #probeAllPromoVariations(paths) {
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return { map: new Map(), failed: false };
         try {
-            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
+            return { map: await probePromoVariationsForFragments(this.repository.aem, paths, promoTag), failed: false };
         } catch {
-            return new Map();
+            return { map: new Map(), failed: true };
         }
     }
 
@@ -329,32 +330,48 @@ class MasPromotionsItemsTable extends LitElement {
         const geosByPath = new Map(scopedEntries(previousGeos));
         const variationsByPath = new Map(scopedEntries(previousVariations));
         const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
-        const probedByPath = (await this.#promoVariationProbe) ?? new Map();
+        const initialProbe = (await this.#promoVariationProbe) ?? { map: new Map(), failed: false };
+        const probedByPath = initialProbe.map;
+        const selectedGroupedVariationPaths = new Set(getItemsSelectionStore().selectedCards.value);
+        const preservePrevious = (path) => {
+            if (previousGeos.has(path)) {
+                geosByPath.set(path, previousGeos.get(path) || []);
+                variationsByPath.set(path, previousVariations.get(path) || []);
+                if (previousEmptyGeoPaths.has(path)) emptyGeoPaths.add(path);
+            }
+        };
         if (signal.aborted) return;
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
                 const groupedVariationPaths = new Fragment(item)
                     .getVariations()
-                    .filter((path) => Fragment.isGroupedVariationPath(path));
+                    .filter((path) => Fragment.isGroupedVariationPath(path) && selectedGroupedVariationPaths.has(path));
                 let allVariations = [];
+                let missingPaths = [];
                 try {
-                    const missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
+                    missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
                     if (missingPaths.length) {
                         const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
                         for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
                     allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);
                 } catch {
-                    if (previousGeos.has(item.path)) {
-                        geosByPath.set(item.path, previousGeos.get(item.path) || []);
-                        variationsByPath.set(item.path, previousVariations.get(item.path) || []);
-                        if (previousEmptyGeoPaths.has(item.path)) emptyGeoPaths.add(item.path);
-                    }
+                    preservePrevious(item.path);
                     return;
                 }
                 if (signal.aborted) return;
-                if (!allVariations.length) return;
+                if (!allVariations.length) {
+                    //  Empty result is only trustworthy if this item had its own fresh probe, not just the (possibly failed) bulk one.
+                    if (initialProbe.failed && !missingPaths.length) {
+                        preservePrevious(item.path);
+                    } else {
+                        geosByPath.delete(item.path);
+                        variationsByPath.delete(item.path);
+                        emptyGeoPaths.delete(item.path);
+                    }
+                    return;
+                }
                 const enrichedVariations = await enrichPromoVariations(allVariations, item, {
                     getDisplayName: this.getDisplayName,
                 });

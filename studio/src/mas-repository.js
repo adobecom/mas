@@ -38,6 +38,7 @@ import {
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
+    TAG_MERCH_CARD,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
@@ -65,6 +66,7 @@ import {
 } from './utils/variation-search.js';
 import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
+import { computeUniqueTitle, getFragmentTitleScope } from './utils/unique-fragment-title.js';
 
 let fragmentCache;
 
@@ -1472,6 +1474,38 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Resolves a Fragment Title that is unique among card fragments in the same
+     * AEM folder (`scopeKey`), suffixing it with `-1`, `-2`, etc. as needed.
+     * Never throws: a lookup failure degrades to returning `title` unchanged so a
+     * save is never blocked by this check.
+     * @param {Object} options
+     * @param {string} options.title - The desired Fragment Title
+     * @param {string} options.scopeKey - Folder path to scope the uniqueness check to
+     * @param {string} [options.excludeId] - A fragment id to ignore (e.g. the clone's own id)
+     * @returns {Promise<string>}
+     */
+    async resolveUniqueTitleInPath({ title, scopeKey, excludeId } = {}) {
+        if (!title || !scopeKey) return title;
+        try {
+            const cursor = await this.aem.sites.cf.fragments.search({
+                path: scopeKey,
+                modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD]],
+            });
+            const existingTitles = [];
+            for await (const page of cursor) {
+                for (const item of page) {
+                    if (excludeId && item.id === excludeId) continue;
+                    if (getFragmentTitleScope(item) !== scopeKey) continue;
+                    if (item.title) existingTitles.push(item.title);
+                }
+            }
+            return computeUniqueTitle(title, existingTitles);
+        } catch {
+            return title;
+        }
+    }
+
+    /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async copyFragment(updatedTitle, osi, tags = []) {
@@ -1483,10 +1517,21 @@ export class MasRepository extends LitElement {
                 result.fields = [];
             }
             const needsCompatSave = ensureCompatVersionOnMerchCardFieldList(result.model?.path, result.fields);
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi || needsCompatSave;
+
+            const requestedTitle = updatedTitle || result.title;
+            let resolvedTitle = requestedTitle;
+            if (result.model?.path === CARD_MODEL_PATH) {
+                resolvedTitle = await this.resolveUniqueTitleInPath({
+                    title: requestedTitle,
+                    scopeKey: getFragmentTitleScope(result),
+                    excludeId: result.id,
+                });
+            }
+
+            const needsSave = (resolvedTitle && resolvedTitle !== result.title) || osi || needsCompatSave;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
+                if (resolvedTitle && resolvedTitle !== result.title) {
+                    result.title = resolvedTitle;
                 }
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {
@@ -1494,6 +1539,9 @@ export class MasRepository extends LitElement {
                     }
                 });
                 savedResult = await this.aem.sites.cf.fragments.save(result);
+            }
+            if (resolvedTitle !== requestedTitle) {
+                showToast(`Title adjusted to "${resolvedTitle}" to keep it unique in this Path.`);
             }
             if (tags.length) {
                 savedResult.newTags = tags;

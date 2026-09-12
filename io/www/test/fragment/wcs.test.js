@@ -1018,6 +1018,19 @@ describe('wcs OSI helpers', function () {
         expect(updateOffers({ body: { id: 'f', fields: { osi: 'A' } } })).to.deep.equal([]);
         expect(updateOffers({ promoScopeById: {} })).to.deep.equal([]);
     });
+
+    it('collects OSIs from a settings-sourced addon that is not authored as a card field', function () {
+        const elements = updateOffers({
+            body: {
+                fields: { osi: 'OWN' },
+                settings: {
+                    displayAnnual: true,
+                    addon: '<span is="inline-price" data-template="price" data-wcs-osi="ADDON"></span>',
+                },
+            },
+        });
+        expect(elements.map((element) => element.osi)).to.include('ADDON');
+    });
 });
 
 describe('offer-mapping fallback (MWPW-203764)', function () {

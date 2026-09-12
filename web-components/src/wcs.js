@@ -9,7 +9,7 @@ import {
     SUPPORTED_COUNTRIES,
 } from './constants.js';
 
-import { PlanType, applyPlanType } from '@dexter/tacocat-core';
+import { PlanType, applyPlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
 import { Log } from './log.js';
 import { MasError } from './mas-error.js';
 import { masFetch } from './utils/mas-fetch.js';

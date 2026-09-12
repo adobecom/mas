@@ -52,7 +52,7 @@ local:
         fi
         cleanup() { kill $proxy_pid $aem_pid 2>/dev/null; }
         trap cleanup EXIT INT TERM
-        PROXY_PORT=8091 npm --prefix studio run proxy:stage &
+        PROXY_PORT=8091 npm --prefix studio run proxy &
         proxy_pid=$!
         # Each probe is BOUNDED. A listener that accepts and then answers nothing
         # — the proxy itself, once it wedges — parks an unbounded curl forever,
@@ -85,7 +85,7 @@ local:
     # to prod without it. Base params override a pasted link's own aem.env, so
     # automated captures are stage-pinned deterministically; non-Studio pages
     # ignore the param.
-    url: 'http://localhost:3000{page}?proxy.port=8091&aem.env=stage'
+    url: 'http://localhost:3000{page}?proxy.port=8091&aem.env=prod'
     # Foreign consumer pages stay remote on the public content host and pull
     # web components from this server via maslibs=local. studio.html is listed as
     # an own host instead: it loads its code by relative path, so only serving it

@@ -627,6 +627,8 @@ export default class MasFragmentEditor extends LitElement {
     discardPromiseResolver;
     #pendingDiscardPromise = null;
     #translatedLocalesRequest = null;
+    #failedFragmentId = null;
+    #lastSeenFragmentId = null;
     #pendingVariationParents = new Map();
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
@@ -788,7 +790,14 @@ export default class MasFragmentEditor extends LitElement {
 
     // Returns true when editor should lazily initialize the fragment for the current route.
     #shouldInitFragment() {
+        // A failed id is retried once per navigation: leaving it (even briefly, for
+        // another card) and coming back clears the marker and re-arms the retry.
+        if (this.fragmentId !== this.#lastSeenFragmentId) {
+            this.#lastSeenFragmentId = this.fragmentId;
+            this.#failedFragmentId = null;
+        }
         if (!this.fragmentId || this.initState === MasFragmentEditor.INIT_STATE.LOADING) return false;
+        if (this.fragmentId === this.#failedFragmentId) return false;
         const currentInEdit = this.inEdit.get();
         if (!currentInEdit) return true;
         return currentInEdit.get()?.id !== this.fragmentId;
@@ -1047,6 +1056,7 @@ export default class MasFragmentEditor extends LitElement {
     // Marks init flow as complete and clears loading state.
     #markInitReady() {
         this.initState = MasFragmentEditor.INIT_STATE.READY;
+        this.#failedFragmentId = null;
         Store.fragmentEditor.loading.set(false);
     }
 
@@ -1260,6 +1270,7 @@ export default class MasFragmentEditor extends LitElement {
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
             showToast(`Failed to load fragment: ${error.message}`, 'negative');
+            this.#failedFragmentId = fragmentId;
             this.initState = MasFragmentEditor.INIT_STATE.IDLE;
             Store.fragmentEditor.loading.set(false);
         }
@@ -1272,6 +1283,9 @@ export default class MasFragmentEditor extends LitElement {
             console.error('No fragment ID in store');
             return;
         }
+        // Keeps #shouldInitFragment's change-detection in sync when initFragment runs
+        // via a path that doesn't go through it first (e.g. directly after construction).
+        this.#lastSeenFragmentId = fragmentId;
 
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
 

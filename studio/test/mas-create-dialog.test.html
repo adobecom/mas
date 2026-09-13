@@ -90,10 +90,16 @@
                         const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
                         createButton.click();
                         await dialog.updateComplete;
+                        // The duplicate-title check (MWPW-188932) adds a fetch hop before the create
+                        // POST, so wait a tick for the whole chain to settle before asserting on it.
+                        await delay();
 
-                        // Verify fetch was called with correct parameters
+                        // Verify fetch was called with correct parameters. The duplicate-title check
+                        // (MWPW-188932) issues its own lookup request first, so find the create POST
+                        // rather than assuming it is the first fetch call.
                         expect(fetchStub.called).to.be.true;
-                        const fetchCall = fetchStub.getCall(0);
+                        const fetchCall = fetchStub.getCalls().find((call) => call.args[1]?.method === 'POST');
+                        expect(fetchCall).to.exist;
                         expect(fetchCall.args[0]).to.include('/test/mocks/adobe/sites/cf/fragments');
 
                         // Verify it was a POST request with correct data

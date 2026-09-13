@@ -37,6 +37,7 @@ import {
     BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
+    TAG_MERCH_CARD,
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
@@ -65,8 +66,11 @@ import {
 } from './utils/variation-search.js';
 import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
+import { resolveUniqueTitle, buildRenameNotice } from './fragment-title-uniqueness.js';
 
 let fragmentCache;
+
+const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD];
 
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
@@ -1301,6 +1305,46 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Returns the titles already used by other card fragments in the given folder, so a new/renamed/cloned
+     * title can be checked for uniqueness within that path. Scoped to merch-card fragments only, since that
+     * is the only content type where duplicate titles cause author confusion (MWPW-188932).
+     * Degrades to `null` on any lookup failure so a save is never blocked by this check.
+     * @param {string} folderPath
+     * @param {string} [excludeFragmentId] - Fragment being saved, excluded from its own collision check
+     * @returns {Promise<Set<string>|null>}
+     */
+    async #listCardTitlesInPath(folderPath, excludeFragmentId) {
+        if (!folderPath) return null;
+        try {
+            const fragments = await this.searchFragmentList({ path: folderPath, modelIds: [CARD_MODEL_ID] }, 50);
+            const titles = new Set();
+            for (const fragment of fragments) {
+                if (fragment.id === excludeFragmentId) continue;
+                if (fragment.title) titles.add(fragment.title);
+            }
+            return titles;
+        } catch (error) {
+            console.error('Could not check for duplicate fragment titles:', error?.message || error);
+            return null;
+        }
+    }
+
+    /**
+     * @param {Object} params
+     * @param {string} params.title
+     * @param {string} params.folderPath
+     * @param {string} [params.excludeFragmentId]
+     * @returns {Promise<{ title: string, renamed: boolean }>}
+     */
+    async #resolveCardTitleForSave({ title, folderPath, excludeFragmentId }) {
+        return resolveUniqueTitle({
+            title,
+            listTitles: () => this.#listCardTitlesInPath(folderPath, excludeFragmentId),
+            notify: (finalTitle) => showToast(buildRenameNotice(finalTitle), 'info'),
+        });
+    }
+
+    /**
      * @param {object} fragmentData
      * @param {boolean} withToast
      * @returns {Promise<Fragment>}
@@ -1321,12 +1365,19 @@ export class MasRepository extends LitElement {
             }
 
             const fields = this.createFieldsFromData(data, fragmentData.fields || []);
+            const parentPath = fragmentData.parentPath || this.parentPath;
+
+            let title = fragmentData.title;
+            if (fragmentData.modelId === CARD_MODEL_ID) {
+                ({ title } = await this.#resolveCardTitleForSave({ title, folderPath: parentPath }));
+            }
 
             const result = await this.aem.sites.cf.fragments.create({
                 ...fragmentData,
+                title,
                 description: fragmentData.description || '',
                 fields,
-                parentPath: fragmentData.parentPath || this.parentPath,
+                parentPath,
             });
             let latest = await this.aem.sites.cf.fragments.getById(result.id);
             const tags = tagsToSave ?? fragmentData.data?.tags;
@@ -1402,6 +1453,19 @@ export class MasRepository extends LitElement {
             fragmentToSave.fields = [];
         }
         ensureCompatVersionOnMerchCardFieldList(fragmentToSave.model?.path, fragmentToSave.fields);
+
+        // Only re-check uniqueness when the title actually changed on a top-level card save;
+        // pre-existing duplicates and unrelated field edits must never be touched.
+        const persistedTitle = fragment.initialValue?.title;
+        if (!parentFragment && fragmentToSave.model?.path === CARD_MODEL_PATH && fragmentToSave.title !== persistedTitle) {
+            const folderPath = fragmentToSave.path?.split('/').slice(0, -1).join('/');
+            const { title } = await this.#resolveCardTitleForSave({
+                title: fragmentToSave.title,
+                folderPath,
+                excludeFragmentId: fragmentToSave.id,
+            });
+            fragmentToSave.title = title;
+        }
 
         try {
             if (fragmentIsPromoVariation(fragment)) {
@@ -1483,10 +1547,23 @@ export class MasRepository extends LitElement {
                 result.fields = [];
             }
             const needsCompatSave = ensureCompatVersionOnMerchCardFieldList(result.model?.path, result.fields);
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi || needsCompatSave;
+
+            // Resolved before the needsSave decision so a clone that reuses the source title
+            // verbatim (the most common duplicate-title case) still forces a save with the suffix.
+            let resolvedTitle = updatedTitle || result.title;
+            if (result.model?.path === CARD_MODEL_PATH) {
+                const folderPath = result.path?.split('/').slice(0, -1).join('/');
+                ({ title: resolvedTitle } = await this.#resolveCardTitleForSave({
+                    title: resolvedTitle,
+                    folderPath,
+                    excludeFragmentId: result.id,
+                }));
+            }
+
+            const needsSave = resolvedTitle !== result.title || osi || needsCompatSave;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
+                if (resolvedTitle !== result.title) {
+                    result.title = resolvedTitle;
                 }
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {

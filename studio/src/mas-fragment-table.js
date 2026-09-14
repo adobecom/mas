@@ -86,9 +86,9 @@ class MasFragmentTable extends LitElement {
 
     update(changedProperties) {
         if (changedProperties.has('fragmentStore') || changedProperties.has('nested')) {
-            const stores = [this.fragmentStore];
+            const stores = [this.fragmentStore, Store.selection];
             if (this.nested) {
-                stores.push(Store.selecting, Store.selection);
+                stores.push(Store.selecting);
             }
             this.#reactiveController.updateStores(stores);
         }
@@ -228,6 +228,7 @@ class MasFragmentTable extends LitElement {
                 : ''}
             <sp-table-row
                 value="${this.nested ? '' : data.id}"
+                ?selected=${!this.nested && this.isVariationSelected}
                 class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''} ${this.nested &&
                 Store.selecting.get()
                     ? 'selectable-row'

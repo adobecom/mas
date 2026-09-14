@@ -3,14 +3,17 @@ import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import './mas-fragment-variations.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import Store from './store.js';
+import Store, { toggleSelection } from './store.js';
 import router from './router.js';
 import { styles } from './mas-fragment.css.js';
 import { MasRepository } from './mas-repository.js';
 import { showToast } from './utils.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 
 const tooltipTimeout = new ReactiveStore(null);
+// Deferred so a second click of a double click (which opens the editor) can cancel it.
+const SELECTION_CLICK_DELAY = 300;
 
 class MasFragment extends LitElement {
     static properties = {
@@ -22,6 +25,8 @@ class MasFragment extends LitElement {
 
     static styles = [styles];
 
+    #selectionClickTimeout;
+
     constructor() {
         super();
         this.expanded = false;
@@ -30,6 +35,11 @@ class MasFragment extends LitElement {
 
     createRenderRoot() {
         return this;
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        clearTimeout(this.#selectionClickTimeout);
     }
 
     reactiveController = new ReactiveController(this, [Store.selecting, Store.selection, Store.fragments.expandedId]);
@@ -70,6 +80,16 @@ class MasFragment extends LitElement {
 
     handleClick(event) {
         if (Store.selecting.value) return;
+        if (shouldIgnoreRowClickForSelection(event)) return;
+
+        if (event.detail <= 1) {
+            clearTimeout(this.#selectionClickTimeout);
+            const fragmentId = this.fragmentStore.value?.id;
+            this.#selectionClickTimeout = setTimeout(() => {
+                toggleSelection(fragmentId);
+            }, SELECTION_CLICK_DELAY);
+        }
+
         clearTimeout(tooltipTimeout.get());
         const currentTarget = event.currentTarget;
         tooltipTimeout.set(
@@ -127,6 +147,7 @@ class MasFragment extends LitElement {
 
     async edit(event) {
         if (Store.selecting.value) return;
+        clearTimeout(this.#selectionClickTimeout);
         // Remove tooltip
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');

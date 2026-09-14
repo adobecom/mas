@@ -143,6 +143,8 @@ export function sumOffers(offers) {
     return {
         ...firstOffer,
         offerSelectorIds: offers.flatMap((o) => o.offerSelectorIds || []),
+        // Summed price has no WCS string → drop priceInfo, render numeric sum.
+        priceInfo: undefined,
         priceDetails: {
             ...firstOffer.priceDetails,
             ...summedPrices,

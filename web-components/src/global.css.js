@@ -306,23 +306,6 @@ merch-card span[is='inline-price'] {
     display: inline-block;
 }
 
-.annual-price-new-line > span[is="inline-price"] {
-  line-height: var(--consonant-merch-card-body-m-line-height);
-}
-
-.annual-price-new-line > span[is="inline-price"] > .price-annual-prefix {
-  font-size: 0;
-  line-height: 0;
-}
-
-.annual-price-new-line > span[is="inline-price"] .price:not(.price-annual) {
-  display: block;
-}
-
-.annual-price-new-line > span[is="inline-price"] > .price-annual::before {
-  content: '(';
-}
-
 merch-card [slot^='heading-'],
 merch-card span[class^='heading-'] {
     color: var(--consonant-merch-card-heading-color);
@@ -1093,5 +1076,103 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }
 }
 
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: 16px;
+  line-height: 16px;
+  font-weight: 400;
+}
+
+merch-card[annualized][variant="mini-compare-chart"] [slot="heading-m-price"] {
+  display: flex;
+  flex-direction: column;
+}
+
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-suffix {
+  font-size: 16px;
+  line-height: 16px;
+  font-weight: 400;
+}
+
+merch-card[annualized] span[is='inline-price'],
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"][data-template="price"] {
+  display: inline;
+}
+
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough {
+  color: #ff0000;
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[annualized]:is([variant="simplified-pricing-express"], [variant="full-pricing-express"]) [slot='price'] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant^="plans"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] p {
+  font-size: 24px;
+  line-height: 30px;
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] p:has([data-template="strikethrough"]) {
+  font-size: 14px;
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price.price-annual span,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
+    font-size: 14px;
+    font-weight: 400;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    letter-spacing: 0;
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price.price-annual span,
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-suffix,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual span,
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual span,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: 18px;
+  font-weight: 400;
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] span.price.price-annual:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal),
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: 14px;
+  line-height: 1.5;
+  position: relative;
+  top: -3px;
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child,
+merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:first-child {
+  display: inline;
+}
 `;
 document.head.appendChild(styles);

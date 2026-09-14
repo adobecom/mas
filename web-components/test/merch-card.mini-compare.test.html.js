@@ -258,7 +258,7 @@ runTests(async () => {
             const priceElement = { dataset: { template: 'price' } };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.be.undefined;
+            expect(priceOptions.displayPerUnit).to.be.false;
         });
     });
 
@@ -622,52 +622,52 @@ runTests(async () => {
         });
 
         it('keepInHeadingPriceForAnnual with annual price enabled', async () => {
-            const { card, mount } = await mountCardWithEtf();
-            try {
-                const service = document.head.querySelector(
-                    'mas-commerce-service',
-                );
-                const headingPrice = card.querySelector(
-                    '[data-template="price"]',
-                );
-                const legalPrice = card.querySelector(
-                    '[data-template="legal"]',
-                );
-                headingPrice.options.displayTax = true;
-                keepInHeadingPriceForAnnual(
-                    service,
-                    headingPrice,
-                    legalPrice,
-                    'displayTax',
-                );
-                expect(legalPrice.dataset.displayTax).to.equal('false');
-            } finally {
-                mount.remove();
-            }
+            const card = {
+                settings: {
+                    displayAnnual: true,
+                },
+            };
+            const headingPrice = {
+                options: {
+                    displayTax: true,
+                },
+            };
+            const legalPrice = {
+                dataset: {
+                    displayTax: true,
+                },
+            };
+            keepInHeadingPriceForAnnual(
+                card,
+                headingPrice,
+                legalPrice,
+                'displayTax',
+            );
+            expect(legalPrice.dataset.displayTax).to.equal('false');
         });
 
         it('keepInHeadingPriceForAnnual with annual price disabled', async () => {
-            const { card, mount } = await mountCardWithEtf();
-            try {
-                const service = document.createElement('mas-commerce-service');
-                service.setAttribute('env', 'stage');
-                const headingPrice = card.querySelector(
-                    '[data-template="price"]',
-                );
-                const legalPrice = card.querySelector(
-                    '[data-template="legal"]',
-                );
-                headingPrice.options.displayTax = true;
-                keepInHeadingPriceForAnnual(
-                    service,
-                    headingPrice,
-                    legalPrice,
-                    'displayTax',
-                );
-                expect(headingPrice.dataset.displayTax).to.equal('false');
-            } finally {
-                mount.remove();
-            }
+            const card = {
+                settings: {
+                    displayAnnual: false,
+                },
+            };
+            const headingPrice = {
+                options: {
+                    displayTax: true,
+                },
+                dataset: {
+                    displayTax: true,
+                },                
+            };
+            const legalPrice = {};
+            keepInHeadingPriceForAnnual(
+                card,
+                headingPrice,
+                legalPrice,
+                'displayTax',
+            );
+            expect(headingPrice.dataset.displayTax).to.equal('false');
         });
     });
 });

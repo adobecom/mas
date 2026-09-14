@@ -58,15 +58,19 @@ describe('MasSideNav – Copy Field', () => {
             expect(el.copyableFields).to.deep.equal([]);
         });
 
-        it('should filter out empty-value fields', () => {
+        it('should include empty-value fields so authors can copy empty placeholders', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'description', values: [] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const names = el.copyableFields.map((f) => f.name);
+            const fields = el.copyableFields;
+            const names = fields.map((f) => f.name);
             expect(names).to.include('cardTitle');
-            expect(names).to.not.include('description');
+            expect(names).to.include('description');
+            // Non-empty fields carry a preview (emphasized in the popover); empty ones do not.
+            expect(fields.find((f) => f.name === 'cardTitle').preview).to.be.ok;
+            expect(fields.find((f) => f.name === 'description').preview).to.not.be.ok;
         });
 
         it('should include only allowlisted copy fields', () => {
@@ -433,174 +437,42 @@ describe('MasSideNav – Copy Field', () => {
             expect(descriptionField.preview).to.equal('<s>US$199.99</s> then US$99.99');
             expect(descriptionField.preview).to.not.include('Regularly at');
         });
-
-        it('should include non-empty inherited base fields for variations', () => {
-            const sourceFragment = mockFragment(
-                [
-                    { name: 'cardTitle', values: ['Creative Cloud ARG'] },
-                    { name: 'showSecureLabel', values: ['true'] },
-                ],
-                { id: 'variation-123' },
-            );
-            const baseFragment = mockFragment(
-                [
-                    { name: 'cardTitle', values: ['Creative Cloud'] },
-                    { name: 'description', values: ['{{secure-label}}'] },
-                    { name: 'ctas', values: ['<strong><a href="/plans">Buy now</a></strong>'] },
-                    { name: 'subtitle', values: ['creativity and design'] },
-                ],
-                { id: 'base-123' },
-            );
-            const previewFragment = mockFragment([{ name: 'description', values: ['Secure transaction'] }], {
-                id: 'variation-123',
-            });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
-
-            const fields = el.copyableFields;
-            const inheritedNames = fields.filter((f) => f.source === 'inherited').map((f) => f.name);
-            expect(inheritedNames).to.include('description');
-            expect(inheritedNames).to.include('ctas');
-            expect(inheritedNames).to.include('subtitle');
-            expect(inheritedNames).to.not.include('cardTitle');
-            expect(fields.find((f) => f.name === 'description').preview).to.equal('Secure transaction');
-            expect(fields.find((f) => f.name === 'subtitle').preview).to.equal('creativity and design');
-        });
-
-        it('should exclude non-allowlisted inherited fields', () => {
-            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Variation title'] }], { id: 'variation-123' });
-            const baseFragment = mockFragment(
-                [
-                    { name: 'description', values: ['Included description'] },
-                    { name: 'quantitySelect', values: ['true'] },
-                    { name: 'perUnitLabel', values: ['per license'] },
-                    { name: 'showPlanType', values: ['true'] },
-                ],
-                { id: 'base-123' },
-            );
-            const previewFragment = mockFragment([{ name: 'description', values: ['Resolved description'] }], {
-                id: 'variation-123',
-            });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
-
-            const names = el.copyableFields.map((f) => f.name);
-            expect(names).to.include('description');
-            expect(names).to.not.include('quantitySelect');
-            expect(names).to.not.include('perUnitLabel');
-            expect(names).to.not.include('showPlanType');
-        });
-
-        it('should return only current fields when variation base fragment has no fields', () => {
-            const variationFragment = mockFragment([{ name: 'cardTitle', values: ['Variation'] }], {
-                id: 'variation-123',
-            });
-            const baseFragment = mockFragment([], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-            const fields = el.copyableFields;
-            expect(fields.every((f) => f.source === 'current')).to.be.true;
-            expect(fields.some((f) => f.name === 'cardTitle')).to.be.true;
-        });
     });
 
     describe('copyableCtas', () => {
-        it('should return empty arrays when no fragment editor', () => {
+        it('should return empty array when no fragment editor', () => {
             editorStub.withArgs('mas-fragment-editor').returns(null);
-            expect(el.copyableCtas).to.deep.equal({ current: [], inherited: [] });
+            expect(el.copyableCtas).to.deep.equal([]);
         });
 
-        it('should return current CTAs for non-variation fragment', () => {
+        it('should return CTAs for the fragment', () => {
             const fragment = mockFragment([{ name: 'ctas', values: ['<a href="/buy">Buy now</a>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(1);
-            expect(current[0].text).to.equal('Buy now');
-            expect(current[0].href).to.equal('/buy');
-            expect(current[0].index).to.equal(1);
-            expect(current[0].source).to.equal('current');
-            expect(inherited).to.have.length(0);
+            const ctas = el.copyableCtas;
+            expect(ctas).to.have.length(1);
+            expect(ctas[0].text).to.equal('Buy now');
+            expect(ctas[0].href).to.equal('/buy');
+            expect(ctas[0].index).to.equal(1);
         });
 
-        it('should return inherited CTAs for variation with empty current ctas', () => {
-            const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(0);
-            expect(inherited).to.have.length(1);
-            expect(inherited[0].text).to.equal('Base CTA');
-            expect(inherited[0].source).to.equal('inherited');
-            expect(inherited[0].index).to.equal(1);
-        });
-
-        it('should return current CTAs and no inherited when variation has its own CTAs', () => {
-            const variationFragment = mockFragment([{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }], {
-                id: 'variation-123',
-            });
-            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(1);
-            expect(current[0].href).to.equal('/v');
-            expect(inherited).to.have.length(0);
-        });
-
-        it('should return empty arrays when fragment has no ctas field', () => {
+        it('should return empty array when fragment has no ctas field', () => {
             const fragment = mockFragment([{ name: 'cardTitle', values: ['Title'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(0);
-            expect(inherited).to.have.length(0);
+            expect(el.copyableCtas).to.have.length(0);
         });
 
-        it('should return empty current when ctas field has empty values', () => {
+        it('should return empty array when ctas field has empty values', () => {
             const fragment = mockFragment([{ name: 'ctas', values: [] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(0);
-            expect(inherited).to.have.length(0);
+            expect(el.copyableCtas).to.have.length(0);
         });
 
-        it('should return empty inherited when base fragment has no ctas field for variation', () => {
-            const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment([{ name: 'cardTitle', values: ['Title'] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(0);
-            expect(inherited).to.have.length(0);
-        });
-
-        it('should return empty inherited when base ctas values are empty for variation', () => {
-            const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment([{ name: 'ctas', values: [] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-            const { current, inherited } = el.copyableCtas;
-            expect(current).to.have.length(0);
-            expect(inherited).to.have.length(0);
-        });
-
-        it('should include href-only CTAs in current when text is empty', () => {
+        it('should include href-only CTAs when text is empty', () => {
             const fragment = mockFragment([{ name: 'ctas', values: ['<a href="/buy"></a>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const { current } = el.copyableCtas;
-            expect(current).to.have.length(1);
-            expect(current[0].href).to.equal('/buy');
+            const ctas = el.copyableCtas;
+            expect(ctas).to.have.length(1);
+            expect(ctas[0].href).to.equal('/buy');
         });
     });
 
@@ -630,9 +502,9 @@ describe('MasSideNav – Copy Field', () => {
             editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
             editorStub.withArgs('mas-fragment-editor').returns(editor);
 
-            const { current } = el.copyableCustomFields;
-            expect(current).to.have.length(1);
-            expect(current[0].value).to.include('US$69.99/mo');
+            const customFields = el.copyableCustomFields;
+            expect(customFields).to.have.length(1);
+            expect(customFields[0].value).to.include('US$69.99/mo');
         });
 
         it('should decode &nbsp; and preserve strikethrough when rendering the custom field row', () => {
@@ -653,7 +525,7 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
-            const fieldValue = container.querySelector('.field-value');
+            const fieldValue = container.querySelector('.field-value:not(.field-value-empty)');
             expect(fieldValue.textContent).to.not.include('&nbsp;');
             expect(fieldValue.querySelector('s').textContent).to.equal('US$69.99/mo');
         });
@@ -687,10 +559,10 @@ describe('MasSideNav – Copy Field', () => {
             editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
             editorStub.withArgs('mas-fragment-editor').returns(editor);
 
-            const { current } = el.copyableCustomFields;
-            expect(current[0].value).to.not.include('Regularly at');
-            expect(current[0].value).to.include('US$69.99/mo');
-            expect(current[0].value).to.include('US$34.99/mo');
+            const customFields = el.copyableCustomFields;
+            expect(customFields[0].value).to.not.include('Regularly at');
+            expect(customFields[0].value).to.include('US$69.99/mo');
+            expect(customFields[0].value).to.include('US$34.99/mo');
         });
 
         it('should not leak resolved text from an unrelated inline-price element on the card', () => {
@@ -728,14 +600,14 @@ describe('MasSideNav – Copy Field', () => {
             editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
             editorStub.withArgs('mas-fragment-editor').returns(editor);
 
-            const { current } = el.copyableCustomFields;
-            expect(current[0].value).to.include('US$69.99/mo');
-            expect(current[0].value).to.not.include('per license');
+            const customFields = el.copyableCustomFields;
+            expect(customFields[0].value).to.include('US$69.99/mo');
+            expect(customFields[0].value).to.not.include('per license');
         });
 
-        it('should return empty arrays when no fragment editor', () => {
+        it('should return empty array when no fragment editor', () => {
             editorStub.withArgs('mas-fragment-editor').returns(null);
-            expect(el.copyableCustomFields).to.deep.equal({ current: [], inherited: [] });
+            expect(el.copyableCustomFields).to.deep.equal([]);
         });
     });
 
@@ -977,7 +849,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(trigger.hasAttribute('disabled')).to.be.true;
         });
 
-        it('should render one menu item per copyable field plus the JSON-LD Schema item', () => {
+        it('should render one menu item per copyable field plus the whole-CTAs row and the JSON-LD Schema item', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'description', values: ['Great plan'] },
@@ -987,8 +859,21 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
+            // 2 fields + the empty whole-CTAs field row + JSON-LD Schema.
             const items = container.querySelectorAll('sp-menu-item');
-            expect(items.length).to.equal(3);
+            expect(items.length).to.equal(4);
+        });
+
+        it('should render the whole CTAs field as an empty copyable row when there are no CTAs', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const ctasRow = [...container.querySelectorAll('sp-menu-item')].find((item) => item.textContent.includes('CTAs'));
+            expect(ctasRow).to.exist;
+            expect(ctasRow.querySelector('.field-value-empty')).to.exist;
         });
 
         it('should render copy field menu inside a scroll container', () => {
@@ -1003,35 +888,28 @@ describe('MasSideNav – Copy Field', () => {
             expect(scrollContainer.querySelector('sp-menu')).to.exist;
         });
 
-        it('should render inherited fields under an inherited section for variations', () => {
+        it('should disable Copy Field with an explanatory tooltip for variations', () => {
             const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
                 id: 'variation-123',
             });
             const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
                 id: 'base-123',
             });
-            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
-                id: 'variation-123',
-            });
             editorStub
                 .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
+                .returns(mockEditor(sourceFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
 
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
-            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
-                item.textContent.includes('Inherited from base fragment'),
-            );
-            expect(inheritedSection).to.exist;
-            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
-                item.textContent.includes('Overridden in this variation'),
-            );
-            expect(overriddenSection).to.exist;
 
-            const overriddenRows = container.querySelectorAll('.field-entry-overridden');
-            expect(overriddenRows.length).to.equal(1);
+            const trigger = container.querySelector('mas-side-nav-item[label="Copy Field"]');
+            expect(trigger).to.exist;
+            expect(trigger.hasAttribute('disabled')).to.be.true;
+            // No copyable field menu is rendered for variations — direct references are not allowed.
+            expect(container.querySelector('sp-menu')).to.not.exist;
+            const tooltip = container.querySelector('sp-tooltip');
+            expect(tooltip).to.exist;
+            expect(tooltip.textContent).to.include('base');
         });
 
         it('should render strikethrough text in overlay previews for old-price content', () => {
@@ -1085,20 +963,11 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('should clear default focused menu item when opened by pointer', async () => {
-            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
-                id: 'variation-123',
-            });
-            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
-                id: 'base-123',
-            });
-            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
-                id: 'variation-123',
-            });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
+            const fragment = mockFragment([
+                { name: 'cardTitle', values: ['Creative Cloud'] },
+                { name: 'description', values: ['creativity and design'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
 
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
@@ -1119,20 +988,11 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('should keep focused menu item when opened without pointer interaction', async () => {
-            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
-                id: 'variation-123',
-            });
-            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
-                id: 'base-123',
-            });
-            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
-                id: 'variation-123',
-            });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
+            const fragment = mockFragment([
+                { name: 'cardTitle', values: ['Creative Cloud'] },
+                { name: 'description', values: ['creativity and design'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
 
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
@@ -1148,31 +1008,6 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(focusedItem.hasAttribute('focused')).to.be.true;
             expect(focusedItem.blur.called).to.be.false;
-        });
-
-        it('should not render inherited section for non-variation fragments', () => {
-            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
-            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }]);
-            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
-                id: 'base-123',
-            });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(sourceFragment, previewFragment, { isVariation: false, localeDefaultFragment: baseFragment }),
-                );
-
-            const container = document.createElement('div');
-            render(el.copyFieldButton, container);
-            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
-                item.textContent.includes('Inherited from base fragment'),
-            );
-            expect(inheritedSection).to.not.exist;
-            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
-                item.textContent.includes('Overridden in this variation'),
-            );
-            expect(overriddenSection).to.not.exist;
-            expect(container.querySelectorAll('.field-entry-overridden').length).to.equal(0);
         });
 
         it('should render CTAs section for non-variation fragment with ctas', () => {
@@ -1193,44 +1028,6 @@ describe('MasSideNav – Copy Field', () => {
             // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
             const fieldLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent === 'CTAs');
             expect(fieldLabels).to.have.length(0);
-        });
-
-        it('should render overridden CTA section for variation with current CTAs', () => {
-            const variationFragment = mockFragment([{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }], {
-                id: 'variation-123',
-            });
-            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-
-            const container = document.createElement('div');
-            render(el.copyFieldButton, container);
-
-            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
-                (item) =>
-                    item.classList.contains('overridden-section') && item.textContent.includes('Overridden in this variation'),
-            );
-            expect(overriddenSection).to.exist;
-            const ctaEntries = [...container.querySelectorAll('.field-entry-overridden')];
-            expect(ctaEntries.length).to.be.greaterThan(0);
-        });
-
-        it('should render inherited CTA section for variation without current CTAs', () => {
-            const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-
-            const container = document.createElement('div');
-            render(el.copyFieldButton, container);
-
-            const inheritedCtaSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
-                (item) =>
-                    item.classList.contains('inherited-section') && item.textContent.includes('Inherited from base fragment'),
-            );
-            expect(inheritedCtaSection).to.exist;
         });
 
         it('should render multiple CTAs with correct index labels and dividers', () => {
@@ -1263,24 +1060,6 @@ describe('MasSideNav – Copy Field', () => {
             expect(copyCtaItemStub.calledOnceWith('Buy now', 1, fragment, 'Buy now')).to.be.true;
         });
 
-        it('should call copyCtaItem with the base fragment when an inherited CTA menu item is clicked', () => {
-            const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-            const copyCtaItemStub = sandbox.stub(el, 'copyCtaItem');
-
-            const container = document.createElement('div');
-            render(el.copyFieldButton, container);
-            const ctaMenuItem = [...container.querySelectorAll('.field-label')]
-                .find((label) => label.textContent.startsWith('CTA '))
-                .closest('sp-menu-item');
-            ctaMenuItem.click();
-
-            expect(copyCtaItemStub.calledOnceWith('Base CTA', 1, baseFragment, 'Base CTA')).to.be.true;
-        });
-
         it('should not render CTAs section when no ctas in fragment', () => {
             const fragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
@@ -1290,66 +1069,6 @@ describe('MasSideNav – Copy Field', () => {
 
             const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
             expect(ctaLabel).to.not.exist;
-        });
-
-        it('should render overridden Custom Fields section for variation with current custom fields', () => {
-            const variationFragment = mockFragment(
-                [
-                    { name: 'customFields', values: ['Variation value'] },
-                    { name: 'customFieldLabels', values: ['Custom 1'] },
-                ],
-                { id: 'variation-123' },
-            );
-            const baseFragment = mockFragment(
-                [
-                    { name: 'customFields', values: ['Base value'] },
-                    { name: 'customFieldLabels', values: ['Custom 1'] },
-                ],
-                { id: 'base-123' },
-            );
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-
-            const container = document.createElement('div');
-            render(el.copyFieldButton, container);
-
-            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
-                (item) =>
-                    item.classList.contains('overridden-section') && item.textContent.includes('Overridden in this variation'),
-            );
-            expect(overriddenSection).to.exist;
-            const customFieldEntries = [...container.querySelectorAll('.field-entry-overridden')].filter((entry) =>
-                entry.textContent.includes('Custom 1'),
-            );
-            expect(customFieldEntries.length).to.be.greaterThan(0);
-        });
-
-        it('should render inherited Custom Fields section for variation without current custom fields', () => {
-            const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment(
-                [
-                    { name: 'customFields', values: ['Base value'] },
-                    { name: 'customFieldLabels', values: ['Custom 1'] },
-                ],
-                { id: 'base-123' },
-            );
-            editorStub
-                .withArgs('mas-fragment-editor')
-                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
-
-            const container = document.createElement('div');
-            render(el.copyFieldButton, container);
-
-            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
-                (item) =>
-                    item.classList.contains('inherited-section') && item.textContent.includes('Inherited from base fragment'),
-            );
-            expect(inheritedSection).to.exist;
-            const fieldValue = [...container.querySelectorAll('.field-value')].find((el) =>
-                el.textContent.includes('Base value'),
-            );
-            expect(fieldValue).to.exist;
         });
     });
 

@@ -7,7 +7,7 @@ import { PAGE_NAMES } from '../constants.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { showToast } from '../utils.js';
+import { showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
@@ -24,6 +24,7 @@ import {
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
 import { duplicatePromotionProject, getAllAttachedPromoVariations } from './promotions-repository.js';
+import { buildDuplicatePromotionToastArgs, getPromotionTitles } from './promotion-editor-utils.js';
 
 const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'production', label: 'Production' },
@@ -592,7 +593,7 @@ class MasPromotions extends LitElement {
         const fragment = promotion.get();
         this.#duplicateProposedTitle = `${fragment.getFieldValue('title')} copy`;
         this.#duplicateFragment = fragment;
-        this.#duplicateExistingTitles = this.promotionsData.map((p) => p.get().getFieldValue('title')).filter(Boolean);
+        this.#duplicateExistingTitles = getPromotionTitles((Store.promotions.list.data.get() || []).map((p) => p.get()));
         this.duplicateDialogOpen = true;
     }
 
@@ -602,12 +603,16 @@ class MasPromotions extends LitElement {
         this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
-            await duplicatePromotionProject(this.repository, fragment, { title, duplicateVariations });
+            const { failedVariations } = await duplicatePromotionProject(this.repository, fragment, {
+                title,
+                duplicateVariations,
+            });
             clearCaches();
-            showToast('Project successfully duplicated.', 'positive');
+            showToast(...buildDuplicatePromotionToastArgs(failedVariations));
             await this.loadPromotions();
-        } catch {
-            showToast('Failed to duplicate project.', 'negative');
+        } catch (error) {
+            console.error('Error duplicating promotion:', error);
+            showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
         } finally {
             this.duplicating = false;
         }

@@ -168,4 +168,53 @@ describe('MasPromotionDuplicateDialog', () => {
         await new Promise((r) => setTimeout(r, 20));
         expect(dispatched).to.be.false;
     });
+
+    it('does not dispatch duplicate-confirmed when newTitle is whitespace-only', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'Original'} .open=${true}></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        el.newTitle = '   ';
+        let dispatched = false;
+        el.addEventListener('duplicate-confirmed', () => {
+            dispatched = true;
+        });
+        el.confirm();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(dispatched).to.be.false;
+    });
+
+    it('does not dispatch duplicate-confirmed when newTitle is symbols-only', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'Original'} .open=${true}></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        el.newTitle = '!!!';
+        let dispatched = false;
+        el.addEventListener('duplicate-confirmed', () => {
+            dispatched = true;
+        });
+        el.confirm();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(dispatched).to.be.false;
+    });
+
+    it('does not dispatch duplicate-confirmed when newTitle is empty and the fallback proposedTitle is already taken', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog
+                .proposedTitle=${'Black Friday'}
+                .existingTitles=${['Black Friday']}
+                .open=${true}
+            ></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        el.newTitle = '';
+        let dispatched = false;
+        el.addEventListener('duplicate-confirmed', () => {
+            dispatched = true;
+        });
+        el.confirm();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(dispatched).to.be.false;
+    });
 });

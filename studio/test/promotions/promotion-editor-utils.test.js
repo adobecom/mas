@@ -47,6 +47,8 @@ import {
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
     isPromotionTitleTaken,
+    buildDuplicatePromotionToastArgs,
+    getPromotionTitles,
     buildPromotionDuplicatePayload,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
@@ -1270,6 +1272,52 @@ describe('promotion-editor-utils', () => {
 
         it('treats titles differing only by punctuation as equivalent, matching normalizeKey', () => {
             expect(isPromotionTitleTaken('Q3 FY26 BTSPromo LATM!', ['Q3-FY26-BTSPromo-LATM'])).to.be.true;
+        });
+    });
+
+    describe('buildDuplicatePromotionToastArgs', () => {
+        it('returns a positive success toast when there are no failed variations', () => {
+            expect(buildDuplicatePromotionToastArgs([])).to.deep.equal(['Project successfully duplicated.', 'positive']);
+            expect(buildDuplicatePromotionToastArgs()).to.deep.equal(['Project successfully duplicated.', 'positive']);
+        });
+
+        it('returns a warning toast with singular wording for exactly one failed variation', () => {
+            expect(buildDuplicatePromotionToastArgs([{ path: '/a', error: new Error('x') }])).to.deep.equal([
+                'Project duplicated, 1 variation failed.',
+                'warning',
+            ]);
+        });
+
+        it('returns a warning toast with plural wording for multiple failed variations', () => {
+            const failed = [
+                { path: '/a', error: new Error('x') },
+                { path: '/b', error: new Error('y') },
+            ];
+            expect(buildDuplicatePromotionToastArgs(failed)).to.deep.equal([
+                'Project duplicated, 2 variations failed.',
+                'warning',
+            ]);
+        });
+    });
+
+    describe('getPromotionTitles', () => {
+        it('extracts the title field value from each project', () => {
+            const projects = [{ getFieldValue: () => 'Black Friday' }, { getFieldValue: () => 'Cyber Monday' }];
+            expect(getPromotionTitles(projects)).to.deep.equal(['Black Friday', 'Cyber Monday']);
+        });
+
+        it('filters out projects with an empty or missing title', () => {
+            const projects = [
+                { getFieldValue: () => 'Black Friday' },
+                { getFieldValue: () => '' },
+                { getFieldValue: () => null },
+            ];
+            expect(getPromotionTitles(projects)).to.deep.equal(['Black Friday']);
+        });
+
+        it('returns an empty array when projects is empty or missing', () => {
+            expect(getPromotionTitles([])).to.deep.equal([]);
+            expect(getPromotionTitles()).to.deep.equal([]);
         });
     });
 

@@ -582,7 +582,8 @@ describe('promotions-repository', () => {
 
             const result = await duplicatePromotionProject(repository, makeSourcePromotion(), { title: 'Black Friday copy' });
 
-            expect(result).to.deep.equal(newPromotion);
+            expect(result.newPromotion).to.deep.equal(newPromotion);
+            expect(result.failedVariations).to.deep.equal([]);
             expect(repository.createFragment.calledOnce).to.be.true;
             const [payload, addToStoreList] = repository.createFragment.firstCall.args;
             expect(payload.parentPath).to.equal('/content/dam/mas/promotions');
@@ -725,6 +726,86 @@ describe('promotions-repository', () => {
             expect(newTags).to.not.include('mas:promotion/black-friday');
         });
 
+        it('reports a failed variation clone via failedVariations instead of throwing, since the project already exists', async () => {
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }] });
+            const getById = sandbox.stub();
+            getById
+                .withArgs('existing-var')
+                .resolves({ id: 'existing-var', path: promoVariationPath, tags: [{ id: 'mas:promotion/black-friday' }] });
+            getById.withArgs('default-frag-1').resolves({ id: 'default-frag-1', path: defaultPath, tags: [] });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            search,
+                            getByPath: sandbox
+                                .stub()
+                                .withArgs(defaultPath)
+                                .resolves({ id: 'default-frag-1', path: defaultPath, fields: [] }),
+                            getById,
+                            ensureFolderExists: sandbox.stub().resolves(),
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().rejects(new Error('AEM write conflict')),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+                tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+            };
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem,
+            };
+
+            const result = await duplicatePromotionProject(repository, makeSourcePromotion(), {
+                title: 'Black Friday copy',
+                duplicateVariations: true,
+            });
+
+            expect(result.newPromotion).to.deep.equal({ id: 'new-promo-1' });
+            expect(result.failedVariations).to.have.lengthOf(1);
+            expect(result.failedVariations[0].path).to.equal(promoVariationPath);
+            expect(result.failedVariations[0].error.message).to.equal('AEM write conflict');
+            expect(repository.aem.tags.delete.called).to.be.false;
+        });
+
+        it('reports a variation whose default fragment cannot be resolved via failedVariations, instead of silently skipping it', async () => {
+            const search = makeSearchStub({
+                [promoFolder]: [
+                    { id: 'existing-var', path: promoVariationPath, fields: [], tags: [{ id: 'mas:promotion/black-friday' }] },
+                ],
+            });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            search,
+                            getByPath: sandbox.stub().resolves(null),
+                            ensureFolderExists: sandbox.stub().resolves(),
+                        },
+                    },
+                },
+                tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+            };
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem,
+            };
+
+            const result = await duplicatePromotionProject(repository, makeSourcePromotion(), {
+                title: 'Black Friday copy',
+                duplicateVariations: true,
+            });
+
+            expect(result.newPromotion).to.deep.equal({ id: 'new-promo-1' });
+            expect(result.failedVariations).to.have.lengthOf(1);
+            expect(result.failedVariations[0].path).to.equal(promoVariationPath);
+            expect(result.failedVariations[0].error.message).to.include('Could not resolve the default fragment');
+        });
+
         it('clones a promo variation sourced from a PZN variation using that PZN fragment as source, not the default', async () => {
             const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
             const groupedPromoPath = `${groupedPromoFolder}/edu`;
@@ -774,7 +855,7 @@ describe('promotions-repository', () => {
                 duplicateVariations: true,
             });
 
-            expect(getById.calledWith('grouped-source-id')).to.be.true;
+            expect(aem.createFragmentCopy.firstCall.args[0].id).to.equal('grouped-source-id');
             expect(getById.calledWith('default-frag-1')).to.be.false;
         });
 

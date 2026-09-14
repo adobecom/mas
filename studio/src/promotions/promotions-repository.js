@@ -270,46 +270,62 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
  * Clones each promo variation attached to `sourcePromotion` under `newPromoTagId` into independent
  * fragments, resolving each one's actual source (default fragment or pzn variation).
  * Runs sequentially since createPromoVariation resolves sibling-index/geo collisions against current AEM state per source fragment.
+ * Failed variations are skipped, not thrown.
+ * The project already exists in AEM by this point and throwing would block retry (title already taken).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} sourcePromotion
  * @param {string} newPromoTagId
- * @returns {Promise<void>}
+ * @returns {Promise<Array<{ path: string, error: Error }>>}
  */
 async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTagId) {
     const existingVariations = await promotionVariations.getAllAttachedPromoVariations(aem, sourcePromotion);
     const attachedFragmentPaths = sourcePromotion.getFieldValues?.('fragments') || [];
+    const failedVariations = [];
     for (const variation of existingVariations) {
-        const sourceFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(
-            aem,
-            variation.path,
-            variation.id,
-            attachedFragmentPaths,
-        );
-        if (!sourceFragment) continue;
-        await promotionVariations.createPromoVariation(
-            aem,
-            sourceFragment.id,
-            newPromoTagId,
-            variation.pznTags || [],
-            attachedFragmentPaths,
-        );
+        try {
+            const sourceFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+                aem,
+                variation.path,
+                variation.id,
+                attachedFragmentPaths,
+                getPromotionTagFromFragment(variation),
+            );
+            if (!sourceFragment) {
+                throw new Error(`Could not resolve the default fragment for promo variation ${variation.path}`);
+            }
+            await promotionVariations.createPromoVariation(
+                aem,
+                sourceFragment.id,
+                newPromoTagId,
+                variation.pznTags || [],
+                attachedFragmentPaths,
+                sourceFragment,
+            );
+        } catch (error) {
+            console.error('Error cloning promo variation:', error);
+            failedVariations.push({ path: variation.path, error });
+        }
     }
+    return failedVariations;
 }
 
 /**
  * Duplicates a promotion project's settings and title/tag under a new name.
  * When `duplicateVariations` is true, also clones every attached promo variation as an independent fragment.
+ * Variation clone failures are reported back via `failedVariations` instead of throwing, since the
+ * project has already been created by that point.
  * @param {{ createFragment: Function, getPromotionsPath: () => string, aem: import('../aem/aem.js').AEM }} repository
  * @param {Object} sourcePromotion
  * @param {{ title: string, duplicateVariations?: boolean }} options
- * @returns {Promise<Object>}
+ * @returns {Promise<{ newPromotion: Object, failedVariations: Array<{ path: string, error: Error }> }>}
  */
 export async function duplicatePromotionProject(repository, sourcePromotion, { title, duplicateVariations = false } = {}) {
     const tag = buildPromotionTagPath(title);
     if (tag) await repository.aem.tags.create(tag.tagPath, tag.slug);
+    const newPromoTagId = tag ? `${TAG_PROMOTION_PREFIX}${tag.slug}` : null;
 
     const payload = {
-        ...buildPromotionDuplicatePayload(sourcePromotion, title),
+        ...buildPromotionDuplicatePayload(sourcePromotion, title, tag?.slug),
         parentPath: repository.getPromotionsPath(),
         modelId: PROMOTION_MODEL_ID,
     };
@@ -322,9 +338,9 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
         throw error;
     }
 
-    if (duplicateVariations && tag) {
-        const newPromoTagId = `${TAG_PROMOTION_PREFIX}${tag.slug}`;
-        await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+    let failedVariations = [];
+    if (duplicateVariations && newPromoTagId) {
+        failedVariations = await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
     }
-    return newPromotion;
+    return { newPromotion, failedVariations };
 }

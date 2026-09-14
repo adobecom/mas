@@ -58,6 +58,8 @@ import {
     applyPromotionOfferProductTagsToSearch,
     collectPromotionOfferProductTags,
     extractPromotionItemProductCodeTagIds,
+    buildDuplicatePromotionToastArgs,
+    getPromotionTitles,
     PROMOTION_FIELD_TYPE_MAP,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
@@ -891,7 +893,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleDuplicatePromotion() {
-        if (!this.fragment?.id || this.isNewPromotion) return;
+        if (!this.fragment?.id || this.isNewPromotion || this.duplicating) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
             showToast('Save your changes before duplicating.', 'info');
             return;
@@ -901,22 +903,30 @@ class MasPromotionsEditor extends LitElement {
             showToast(validationMessage, 'negative');
             return;
         }
-        this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
-        const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
-        this.#duplicateExistingTitles = projects.map((project) => project.getFieldValue('title')).filter(Boolean);
-        this.duplicateDialogOpen = true;
+        this.duplicating = true;
+        try {
+            this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
+            const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            this.#duplicateExistingTitles = getPromotionTitles(projects);
+            this.duplicateDialogOpen = true;
+        } catch (error) {
+            console.error('Error loading promotion projects for duplicate check:', error);
+            showToast('Failed to prepare duplicate dialog.', 'negative');
+        } finally {
+            this.duplicating = false;
+        }
     }
 
     #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
         this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
-            const newPromotion = await duplicatePromotionProject(this.repository, this.fragment, {
+            const { newPromotion, failedVariations } = await duplicatePromotionProject(this.repository, this.fragment, {
                 title,
                 duplicateVariations,
             });
             clearCaches();
-            showToast('Project successfully duplicated.', 'positive');
+            showToast(...buildDuplicatePromotionToastArgs(failedVariations));
             Store.promotions.inEdit.set(new FragmentStore(new Promotion(newPromotion)));
             Store.promotions.promotionId.set(newPromotion.id);
             this.isNewPromotion = false;
@@ -928,7 +938,7 @@ class MasPromotionsEditor extends LitElement {
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
             console.error('Error duplicating promotion:', error);
-            showToast('Failed to duplicate project.', 'negative');
+            showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
         } finally {
             this.duplicating = false;
         }

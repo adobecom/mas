@@ -228,15 +228,23 @@ export function getNextAvailablePromoVariationIndex(usedIndices, defaultPath, at
  * @param {string} promoTagId
  * @param {string[]} [geoTags]
  * @param {string[]} [attachedFragmentPaths]
+ * @param {Object} [preloadedSourceFragment]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], attachedFragmentPaths = []) {
+export async function createPromoVariation(
+    aem,
+    sourceFragmentId,
+    promoTagId,
+    geoTags = [],
+    attachedFragmentPaths = [],
+    preloadedSourceFragment = null,
+) {
     const promoName = getPromoNameFromTag(promoTagId);
     if (!promoName) {
         throw new UserFriendlyError('Invalid promotion tag');
     }
 
-    const sourceFragment = await aem.sites.cf.fragments.getById(sourceFragmentId);
+    const sourceFragment = preloadedSourceFragment ?? (await aem.sites.cf.fragments.getById(sourceFragmentId));
     if (!sourceFragment) {
         throw new Error('Failed to fetch source fragment');
     }
@@ -520,6 +528,7 @@ function rankDefaultCandidate(candidate, attachedSet) {
  * @param {string} promoVariationPath
  * @param {string} [promoVariationId]
  * @param {string[]} [attachedFragmentPaths]
+ * @param {string} [knownPromoTagId]
  * @returns {Promise<Object|null>}
  */
 export async function resolveDefaultFragmentForPromoVariation(
@@ -527,9 +536,10 @@ export async function resolveDefaultFragmentForPromoVariation(
     promoVariationPath,
     promoVariationId,
     attachedFragmentPaths = [],
+    knownPromoTagId = null,
 ) {
-    let promoTag = null;
-    if (promoVariationId) {
+    let promoTag = knownPromoTagId;
+    if (!promoTag && promoVariationId) {
         const variation = await aem.sites.cf.fragments.getById(promoVariationId);
         promoTag = getPromotionTagFromFragment(variation);
     }

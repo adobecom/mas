@@ -1743,7 +1743,7 @@ describe('MasCollapsibleTableRow', () => {
             );
         });
 
-        it('falls back to Store.promotions.inEdit when the list has other projects but not this one (e.g. a just-duplicated project)', async () => {
+        it('resolves project from Store.promotions.inEdit when it is not in the list (e.g. a just-duplicated project)', async () => {
             Store.promotions.list.data.set([
                 { get: () => ({ id: 'unrelated-project', tags: [{ id: 'mas:promotion/other' }] }) },
             ]);

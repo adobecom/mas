@@ -1,10 +1,26 @@
 import { LitElement, html, nothing, css } from 'lit';
 import { isPromotionTitleTaken } from './promotion-editor-utils.js';
+import { normalizeKey } from '../utils.js';
 
 class MasPromotionDuplicateDialog extends LitElement {
     static styles = css`
         sp-dialog-wrapper {
             z-index: 1000;
+            --mod-dialog-min-inline-size: 420px;
+            --mod-dialog-confirm-padding-grid: 24px;
+        }
+
+        p {
+            margin: 0 0 8px;
+        }
+
+        p:not(:first-child) {
+            margin-top: 24px;
+        }
+
+        sp-textfield {
+            width: 100%;
+            --spectrum-textfield-input-line-height: 20px;
         }
     `;
 
@@ -32,18 +48,26 @@ class MasPromotionDuplicateDialog extends LitElement {
         }
     }
 
+    get resolvedTitle() {
+        return this.newTitle || this.proposedTitle;
+    }
+
     get isTitleTaken() {
-        return isPromotionTitleTaken(this.newTitle, this.existingTitles);
+        return isPromotionTitleTaken(this.resolvedTitle, this.existingTitles);
+    }
+
+    get isTitleInvalid() {
+        return !normalizeKey(this.resolvedTitle?.trim()) || this.isTitleTaken;
     }
 
     confirm() {
-        if (this.isTitleTaken) return;
+        if (this.isTitleInvalid) return;
         this.dispatchEvent(
             new CustomEvent('duplicate-confirmed', {
                 bubbles: true,
                 composed: true,
                 detail: {
-                    title: this.newTitle || this.proposedTitle,
+                    title: this.resolvedTitle,
                     duplicateVariations: this.duplicateVariations,
                 },
             }),
@@ -64,6 +88,8 @@ class MasPromotionDuplicateDialog extends LitElement {
 
     render() {
         if (!this.open) return nothing;
+        const titleTaken = this.isTitleTaken;
+        const titleInvalid = !normalizeKey(this.resolvedTitle?.trim()) || titleTaken;
         return html`
             <sp-dialog-wrapper
                 open
@@ -83,9 +109,13 @@ class MasPromotionDuplicateDialog extends LitElement {
                     @input=${this.handleInput}
                     placeholder="Project name"
                     autofocus
-                    ?invalid=${this.isTitleTaken}
+                    ?invalid=${titleInvalid}
                 >
-                    ${this.isTitleTaken ? html`<span slot="negative-help-text">The title already exists.</span>` : nothing}
+                    ${titleInvalid
+                        ? html`<span slot="negative-help-text"
+                              >${titleTaken ? 'The title already exists.' : 'Please enter a valid title.'}</span
+                          >`
+                        : nothing}
                 </sp-textfield>
                 <p>Do you want to include promo variations?</p>
                 <sp-checkbox .checked=${this.duplicateVariations} @change=${this.handleDuplicateVariationsChange}>

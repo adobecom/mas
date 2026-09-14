@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, LitElement } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -1936,6 +1936,15 @@ describe('MasPromotionsItemsTable', () => {
     });
 
     describe('promo variation probe re-runs when the edited promotion changes', () => {
+        let el;
+
+        afterEach(() => {
+            el?.remove();
+            el = null;
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.inEdit.set(null);
+        });
+
         it('re-probes promo variations when switching to a different promotion with the same selected paths', async () => {
             const cardPath = '/content/dam/mas/sandbox/en_US/card-one';
             Store.promotions.selectedCards.set([cardPath]);
@@ -1958,18 +1967,16 @@ describe('MasPromotionsItemsTable', () => {
             };
             const getFragmentByPath = sandbox.stub().resolves(cardFragment);
             const search = makeSharedSearchStub(sandbox);
-            const el = new MasPromotionsItemsTable();
+            el = new MasPromotionsItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox
                 .stub(el, 'repository')
                 .get(() => ({ aem: { getFragmentByPath, sites: { cf: { fragments: { search } } } } }));
             document.body.appendChild(el);
             await el.updateComplete;
-            await new Promise((r) => setTimeout(r, 80));
-            await el.updateComplete;
+            await waitUntil(() => search.callCount > 0, 'search should probe promo variations for promo-a');
 
             const callsBeforeSwitch = search.callCount;
-            expect(callsBeforeSwitch).to.be.greaterThan(0);
 
             const promoB = new Fragment({
                 path: '/content/dam/mas/promotions/promo-b',
@@ -1978,13 +1985,7 @@ describe('MasPromotionsItemsTable', () => {
             });
             Store.promotions.inEdit.set(new FragmentStore(promoB));
             await el.updateComplete;
-            await new Promise((r) => setTimeout(r, 80));
-
-            expect(search.callCount).to.be.greaterThan(callsBeforeSwitch);
-
-            el.remove();
-            Store.promotions.selectedCards.set([]);
-            Store.promotions.inEdit.set(null);
+            await waitUntil(() => search.callCount > callsBeforeSwitch, 'search should re-probe promo variations for promo-b');
         });
     });
 });

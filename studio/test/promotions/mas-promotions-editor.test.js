@@ -1759,6 +1759,13 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('duplicate quick action', () => {
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.promotionId.set(null);
+            Store.promotions.selectedCards.set([]);
+        });
+
         it('loads the promotions list before opening the dialog on a cold-start session (list not fetched yet)', async () => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');
@@ -1807,11 +1814,6 @@ describe('MasPromotionsEditor', () => {
             expect(loadPromotions.calledOnce).to.be.true;
             const dialog = el.renderRoot.querySelector('mas-promotion-duplicate-dialog');
             expect(dialog.existingTitles).to.include('Original copy');
-
-            Store.promotions.list.data.set([]);
-            Store.promotions.list.data.removeMeta('listFetched');
-            Store.promotions.promotionId.set(null);
-            Store.promotions.selectedCards.set([]);
         });
 
         it('hides the floating quick-actions toolbar while the duplicate dialog is open', async () => {

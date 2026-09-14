@@ -22,15 +22,35 @@ export function isPromotionTitleTaken(title, existingTitles = []) {
 }
 
 /**
- * Builds a create-fragment payload duplicating a promotion's settings under a new title and
- * promotion tag. Leaves `fragments` untouched (shared references); promo variations are cloned
- * separately by `duplicatePromotionProject`.
+ * Extracts non-empty titles from a list of promotion project fragments, for the duplicate-title check.
+ * @param {Array<{ getFieldValue: (name: string) => unknown }>} [projects]
+ * @returns {string[]}
+ */
+export function getPromotionTitles(projects = []) {
+    return projects.map((project) => project.getFieldValue('title')).filter(Boolean);
+}
+
+/**
+ * Builds the `showToast(message, variant)` args for a completed project duplication,
+ * warning about any promo variations that failed to clone.
+ * @param {Array<{ path: string, error: Error }>} [failedVariations]
+ * @returns {[string, 'positive'|'warning']}
+ */
+export function buildDuplicatePromotionToastArgs(failedVariations = []) {
+    if (!failedVariations.length) return ['Project successfully duplicated.', 'positive'];
+    const count = failedVariations.length;
+    return [`Project duplicated, ${count} variation${count === 1 ? '' : 's'} failed.`, 'warning'];
+}
+
+/**
+ * Builds a create-fragment payload for duplicating a promotion under a new title, tag, and slug.
+ * Leaves `fragments` untouched; variations are cloned separately by `duplicatePromotionProject`.
  * @param {{ fields: Array<{ name: string, type?: string, multiple?: boolean, values?: unknown[] }> }} sourceFragment
  * @param {string} title
+ * @param {string} [slug]
  * @returns {{ name: string, title: string, fields: Array<{ name: string, type: string, multiple: boolean, values: unknown[] }> }}
  */
-export function buildPromotionDuplicatePayload(sourceFragment, title) {
-    const slug = normalizeKey(title?.trim());
+export function buildPromotionDuplicatePayload(sourceFragment, title, slug = normalizeKey(title?.trim())) {
     const newPromotionTagId = slug ? `${TAG_PROMOTION_PREFIX}${slug}` : null;
     return {
         name: slug,

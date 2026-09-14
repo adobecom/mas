@@ -1,0 +1,119 @@
+# M@S verification gates. When this file is present the harness runs these
+# in place of its built-in set; commands run in the worktree.
+
+# Producer rebuild budget for gates that route to regenerate; the acom floor
+# caps it at 5 and tenants may only tighten it.
+regeneration:
+    max_candidates: 5
+
+# Checked-in build outputs that ship with any src change. dist-sync rebuilds
+# and compares them; the adversary skips them by default.
+generated:
+    - 'web-components/dist/**'
+    - 'web-components/docs/**'
+
+# Command gates need the pinned devDeps. CI's extra milo#stage install is
+# vestigial — nothing here imports milo.
+provision: npm ci
+
+gates:
+    io-preview-support:
+        template: protected_paths
+        name: IO changes need manual verification (no candidate IO preview)
+        description: >-
+            IO changes need a separately deployed candidate service before
+            screenshots can verify them. Stop for manual review, even when
+            the same change also touches Studio or web components.
+        paths:
+            - 'io/www'
+            - 'io/studio'
+        blocking: true
+        failure_route: escalate_to_human
+
+    lockfiles:
+        template: protected_paths
+        name: Dependency lockfiles
+        # An npm install during a code change rewrites these as a side effect.
+        # Dependency bumps are their own ticket.
+        paths:
+            - 'package-lock.json'
+            - '*/package-lock.json'
+        blocking: true
+        failure_route: escalate_to_human
+
+    lint:
+        template: command
+        name: ESLint (changed files)
+        # Diff-scoped: upstream CI doesn't lint and the tree carries old violations.
+        cmd: npx eslint {js_files}
+        blocking: true
+        failure_route: repair_loop
+        repair:
+            cmd: npx eslint {js_files} --fix
+
+    format:
+        template: command
+        name: Prettier formatting check
+        # Same repo-wide check as CI's check-formatting workflow.
+        cmd: npx prettier --check .
+        blocking: true
+        failure_route: repair_loop
+        # The tree is prettier-clean at base, so failures are always in the
+        # changed files; writing only those keeps the repair inside its boundary.
+        repair:
+            cmd: npx prettier --write {changed_files} --ignore-unknown
+
+    # unit-tests: DISABLED 2026-08-17 (operator decision). `npm test` across the
+    # workspaces is order-dependent/flaky (web-components merch-card.adjustAddon
+    # "(global CSS)" suites, mas-promotions-items-table): every run escalated on
+    # failures that pass on the base branch and pass with the candidate applied
+    # in isolation. Re-enable once the suites are stable:
+    #   unit-tests:
+    #     template: command
+    #     name: Unit suites, all workspaces
+    #     cmd: npm test
+    #     timeout_s: 600
+    #     blocking: true
+    #     failure_route: regenerate
+
+    dist-sync:
+        template: command
+        name: Built artifacts in sync (web-components)
+        # Demo pages load the checked-in dist/mas.js, so a stale bundle hides
+        # src changes from the visual gate. Mirrors CI's web-components-pr check.
+        cmd: bash .pinata/scripts/check-dist-sync.sh
+        timeout_s: 300
+        blocking: true
+        # A repair step can't rebuild the bundle (the missing dist files sit
+        # outside its mutation boundary), so the producer redoes the candidate.
+        failure_route: regenerate
+
+    visual:
+        template: visual
+        name: Visual evidence (component demo surfaces)
+        # No default page: the surface catalog in preview.yaml routes targets,
+        # and a change no surface can show escalates instead of guessing.
+        breakpoints: [1200]
+        # Short clip per target for the human reviewer; the judge stays on stills.
+        video: true
+        on_missing_target: escalate
+        criteria: >-
+            The changed component renders on its demo gallery without layout
+            breakage or overlap at each breakpoint; spacing, alignment and
+            typography hold, prices resolve to real currency values, and
+            neighboring cards are not regressed.
+        require_human: true
+        blocking: true
+
+    # Last on purpose: the adversary reviews the code together with every
+    # deterministic and visual gate result, not blind of them.
+    adversary:
+        template: adversary
+        name: Adversarial review — independent merge gate (INV-4)
+        description: >-
+            Independent-model review of the diff before merge, required by the
+            acom org floor. Skips honestly when no adversary model is reachable.
+        blocking: true
+        # Follow the floor's 2026-07-06 posture: bounded producer rebuild with the
+        # concerns as feedback, human review only at round exhaustion.
+        failure_route: regenerate

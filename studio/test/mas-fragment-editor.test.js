@@ -1107,6 +1107,7 @@ describe('MasFragmentEditor', () => {
                 deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                 removeFromParentVariations: sandbox.stub().resolves(),
+                forceDeletePromoVariations: sandbox.stub().resolves([]),
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);
             // Bypass structuredClone
@@ -1216,16 +1217,32 @@ describe('MasFragmentEditor', () => {
         it('force-deletes staged promo variations when confirming delete of a grouped variation', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
-            mockRepo.aem = { sites: { cf: { fragments: { forceDelete: sandbox.stub().resolves() } } } };
+            mockRepo.forceDeletePromoVariations = sandbox.stub().resolves([]);
             el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
 
             await el.confirmDelete();
 
             expect(
-                mockRepo.aem.sites.cf.fragments.forceDelete.calledOnceWith({
-                    path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
-                }),
+                mockRepo.forceDeletePromoVariations.calledOnceWith([
+                    '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+                ]),
             ).to.be.true;
+        });
+
+        it('warns instead of claiming success when a staged promo variation fails to force-delete', async () => {
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            mockRepo.forceDeletePromoVariations = sandbox
+                .stub()
+                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment']);
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
+            const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+
+            await el.confirmDelete();
+
+            expect(mockRepo.deleteFragment.called).to.be.true;
+            expect(toastEmitSpy.calledWithMatch({ variant: 'warning' })).to.be.true;
+            expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
         });
     });
 

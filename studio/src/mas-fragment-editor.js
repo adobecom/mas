@@ -1124,8 +1124,9 @@ export default class MasFragmentEditor extends LitElement {
         this.#pendingPromoRefresh = { fragmentId, promise: refreshPromise };
         refreshPromise
             .then(() => this.dispatchFragmentLoaded())
+            .catch((error) => console.error('Failed to refresh fragment:', error))
             .finally(() => {
-                if (this.#pendingPromoRefresh?.fragmentId === fragmentId) this.#pendingPromoRefresh = null;
+                if (this.#pendingPromoRefresh?.promise === refreshPromise) this.#pendingPromoRefresh = null;
             });
 
         if (isGroupedVariation) {
@@ -1188,6 +1189,12 @@ export default class MasFragmentEditor extends LitElement {
                 fragmentData,
                 () => this.repository.loadPromotions(),
             );
+            this.#pendingPromoRefresh = { fragmentId, promise: promoMerge };
+            promoMerge
+                .catch(() => {})
+                .finally(() => {
+                    if (this.#pendingPromoRefresh?.promise === promoMerge) this.#pendingPromoRefresh = null;
+                });
             const fragment = new Fragment(fragmentData);
 
             snapFilterToPathDefault(fragment.path);
@@ -1576,13 +1583,7 @@ export default class MasFragmentEditor extends LitElement {
                 if (localeDefaultFragment) {
                     await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
                 }
-                for (const promoVariationPath of this.variationsToDelete) {
-                    try {
-                        await this.repository.aem.sites.cf.fragments.forceDelete({ path: promoVariationPath });
-                    } catch (error) {
-                        console.error(`Failed to delete promo variation ${promoVariationPath}:`, error);
-                    }
-                }
+                const failedPromoVariations = await this.repository.forceDeletePromoVariations(this.variationsToDelete);
                 let deleted = await this.repository.deleteFragment(this.fragment, {
                     startToast: false,
                     endToast: false,
@@ -1599,10 +1600,17 @@ export default class MasFragmentEditor extends LitElement {
                     this.deleteInProgress = false;
                     return;
                 }
+                if (failedPromoVariations.length > 0) {
+                    showToast(
+                        `Fragment deleted but ${failedPromoVariations.length} promo variation(s) failed to delete`,
+                        'warning',
+                    );
+                } else {
+                    showToast('Fragment successfully deleted.', 'positive');
+                }
             } else {
                 await this.repository.deleteFragmentWithVariations(this.fragment);
             }
-            showToast('Fragment successfully deleted.', 'positive');
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
             await router.navigateToPage(wasPromoVariation ? PAGE_NAMES.PROMOTIONS_EDITOR : PAGE_NAMES.CONTENT)();

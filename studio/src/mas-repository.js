@@ -1729,6 +1729,25 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Force-deletes each of the given promo variation paths, collecting failures instead of
+     * throwing, so callers can still delete the parent and surface a partial-failure warning.
+     * @param {string[]} paths
+     * @returns {Promise<string[]>} Paths that failed to delete
+     */
+    async forceDeletePromoVariations(paths) {
+        const failedVariations = [];
+        for (const path of paths) {
+            try {
+                await this.aem.sites.cf.fragments.forceDelete({ path });
+            } catch (error) {
+                console.error(`Failed to delete promo variation ${path}:`, error);
+                failedVariations.push(path);
+            }
+        }
+        return failedVariations;
+    }
+
+    /**
      * Deletes a fragment and all its variations (locale, grouped, and promo)
      * @param {Fragment} fragment - The parent fragment to delete
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}

@@ -588,13 +588,7 @@ export default class EditorPanel extends LitElement {
                 if (parent) {
                     await this.repository.removeFromParentVariations(parent, this.fragment.path);
                 }
-                for (const promoVariationPath of this.variationsToDelete) {
-                    try {
-                        await this.repository.aem.sites.cf.fragments.forceDelete({ path: promoVariationPath });
-                    } catch (error) {
-                        console.error(`Failed to delete promo variation ${promoVariationPath}:`, error);
-                    }
-                }
+                const failedPromoVariations = await this.repository.forceDeletePromoVariations(this.variationsToDelete);
                 let deleted = await this.repository.deleteFragment(this.fragment, {
                     startToast: false,
                     endToast: false,
@@ -610,7 +604,14 @@ export default class EditorPanel extends LitElement {
                     showToast('Failed to delete fragment', 'negative');
                     return;
                 }
-                showToast('Fragment successfully deleted.', 'positive');
+                if (failedPromoVariations.length > 0) {
+                    showToast(
+                        `Fragment deleted but ${failedPromoVariations.length} promo variation(s) failed to delete`,
+                        'warning',
+                    );
+                } else {
+                    showToast('Fragment successfully deleted.', 'positive');
+                }
             } else {
                 await this.repository.deleteFragmentWithVariations(this.fragment);
             }

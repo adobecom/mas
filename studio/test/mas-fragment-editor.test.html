@@ -1079,6 +1079,7 @@
                                 deleteFragment: sandbox.stub().resolves(true),
                                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                                 removeFromParentVariations: sandbox.stub().resolves(),
+                                forceDeletePromoVariations: sandbox.stub().resolves([]),
                             };
                             sandbox.stub(el, 'repository').get(() => mockRepo);
                             // Bypass structuredClone

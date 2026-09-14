@@ -64,10 +64,7 @@ export function keepInHeadingPriceForAnnual(
     legalPrice,
     optionParam,
 ) {
-    if (
-        card.settings?.displayAnnual &&
-        headingPrice?.options[optionParam]
-    ) {
+    if (card.settings?.displayAnnual && headingPrice?.options[optionParam]) {
         legalPrice.dataset[optionParam] = 'false';
     } else if (headingPrice?.options[optionParam]) {
         headingPrice.dataset[optionParam] = 'false';

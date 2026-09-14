@@ -658,7 +658,7 @@ runTests(async () => {
                 },
                 dataset: {
                     displayTax: true,
-                },                
+                },
             };
             const legalPrice = {};
             keepInHeadingPriceForAnnual(

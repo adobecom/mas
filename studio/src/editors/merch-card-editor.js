@@ -16,6 +16,7 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
+import { buildPictureHtml, extractImageUrl, isSupportedImageUrl } from './image-url.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
@@ -111,6 +112,7 @@ class MerchCardEditor extends LitElement {
         disabledPromoGeoOptions: { type: Array, attribute: false },
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
+        imageUrlInvalid: { type: Boolean, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -147,6 +149,7 @@ class MerchCardEditor extends LitElement {
         this.lastMnemonicState = null;
         this.fieldsReady = false;
         this.previewLocaleOverride = null;
+        this.imageUrlInvalid = false;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -1737,6 +1740,29 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
+                ${this.currentVariantMapping?.image
+                    ? html`
+                          <sp-field-group class="toggle" id="image">
+                              <sp-field-label for="image-url">Image</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page image URL"
+                                  id="image-url"
+                                  data-field="image"
+                                  data-field-state="${this.getFieldState('image')}"
+                                  ?invalid="${this.imageUrlInvalid}"
+                                  value="${extractImageUrl(form.image?.values?.[0] ?? '')}"
+                                  @change="${this.#handleImageUpdate}"
+                              >
+                                  ${this.imageUrlInvalid
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page image URL.</sp-help-text
+                                        >`
+                                      : nothing}
+                              </sp-textfield>
+                              ${this.renderFieldStatusIndicator('image')}
+                          </sp-field-group>
+                      `
+                    : nothing}
                 <div class="section-title">Price and Promo</div>
                 <sp-field-group class="toggle" id="prices">
                     <sp-field-label for="prices">Product price</sp-field-label>
@@ -2654,6 +2680,23 @@ class MerchCardEditor extends LitElement {
                 value: transformedValue,
                 dataset: {
                     field: 'perUnitLabel',
+                },
+            },
+        };
+
+        this.#handleFragmentUpdate(syntheticEvent);
+    };
+
+    #handleImageUpdate = (event) => {
+        const url = event.target.value.trim();
+        this.imageUrlInvalid = Boolean(url) && !isSupportedImageUrl(url);
+        if (this.imageUrlInvalid) return;
+
+        const syntheticEvent = {
+            target: {
+                value: url ? buildPictureHtml(url) : '',
+                dataset: {
+                    field: 'image',
                 },
             },
         };

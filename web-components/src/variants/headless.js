@@ -19,6 +19,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     trialBadge: { tag: 'div', slot: 'trial-badge' },
     prices: { tag: 'p', slot: 'prices' },
     backgroundImage: { tag: 'div', slot: 'bg-image' },
+    image: { tag: 'picture', slot: 'image' },
     ctas: { slot: 'footer', size: 'm' },
     addon: true,
     secureLabel: true,
@@ -36,6 +37,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
  */
 const HEADLESS_FIELDS = [
     { slot: 'bg-image', label: 'Background Image' },
+    { slot: 'image', label: 'Image' },
     { slot: 'badge', label: 'Badge' },
     { slot: 'icons', label: 'Mnemonic icon' },
     { slot: 'heading-xs', label: 'Title' },

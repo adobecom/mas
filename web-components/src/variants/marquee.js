@@ -5,6 +5,7 @@ import { CSS, headlessRowStyle } from './headless.css.js';
 /** AEM fragment field → slot mapping so hydrate() can populate all Marquee slots. */
 export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
+    image: { tag: 'picture', slot: 'image' },
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'p', slot: 'short-description' },
@@ -17,6 +18,7 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
  * Labels match the editor (merch-card-editor.js). Order defines render order.
  */
 const MARQUEE_FIELDS = [
+    { slot: 'image', label: 'Image' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Product description' },
     { slot: 'short-description', label: 'Short Description' },

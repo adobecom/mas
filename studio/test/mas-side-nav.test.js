@@ -108,6 +108,29 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('osi');
         });
 
+        it('includes the image field with the source URL as preview', () => {
+            const url = 'https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png';
+            const picture =
+                `<source type="image/webp" srcset="${url}?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">` +
+                `<img loading="lazy" alt="" src="${url}?width=750&format=png&optimize=medium">`;
+            const fragment = mockFragment([{ name: 'image', values: [picture] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const image = el.copyableFields.find((f) => f.name === 'image');
+            expect(image).to.exist;
+            expect(image.displayName).to.equal('Image');
+            expect(image.preview).to.equal(url);
+        });
+
+        it('includes the backgroundImage field with the URL as preview', () => {
+            const url = 'https://www.adobe.com/media/bg.png';
+            const fragment = mockFragment([{ name: 'backgroundImage', values: [url] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const bg = el.copyableFields.find((f) => f.name === 'backgroundImage');
+            expect(bg).to.exist;
+            expect(bg.displayName).to.equal('Background Image');
+            expect(bg.preview).to.equal(url);
+        });
+
         it('should not include mapped fields that are not allowlisted', () => {
             const fragment = mockFragment([
                 { name: 'variant', values: ['plans'] },

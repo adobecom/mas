@@ -9,6 +9,7 @@ import { CSS, headlessRowStyle } from './headless.css.js';
  */
 export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
+    image: { tag: 'picture', slot: 'image' },
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },
@@ -19,6 +20,7 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
  * only, no card). Labels match the editor (merch-card-editor.js). Order defines render order.
  */
 const BANNER_BLADE_FIELDS = [
+    { slot: 'image', label: 'Image' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Description' },
     { slot: 'footer', label: 'CTAs' },

@@ -57,6 +57,10 @@
         "type": "string",
         "maxLength": 255
     },
+    "image": {
+        "fieldLabel": "Image",
+        "type": "long-text"
+    },
     "cardTitle": {
         "fieldLabel": "Card title",
         "type": "string",

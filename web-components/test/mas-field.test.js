@@ -4,6 +4,7 @@ import '../src/mas-field.js';
 import {
     checkoutOptionsProvider,
     priceOptionsProvider,
+    renderImageMarkup,
 } from '../src/mas-field.js';
 import { FF_DEFAULTS } from '../src/constants.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
@@ -1426,5 +1427,93 @@ describe('mas-field osi getter', () => {
             value: { data: { fields: { osi: 'FIELD' } } },
         });
         expect(field.osi).to.equal('FIELD');
+    });
+});
+
+const IMAGE_INNER =
+    '<source type="image/webp" srcset="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">' +
+    '<source type="image/webp" srcset="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=750&format=webply&optimize=medium">' +
+    '<img loading="lazy" alt="" src="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium">';
+
+describe('renderImageMarkup', () => {
+    const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
+
+    it('wraps inner markup in a <picture>, preserving all sources', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
+        );
+        const picture = doc.querySelector('picture');
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('leaves *.aem.page URLs untouched off prod', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
+        );
+        expect(doc.querySelector('img').getAttribute('src')).to.contain(
+            'main--da-cc--adobecom.aem.page',
+        );
+    });
+
+    it('rewrites *.aem.page origins to the prod origin on adobe.com', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, {
+                hostname: 'www.adobe.com',
+                origin: 'https://www.adobe.com',
+            }),
+        );
+        const img = doc.querySelector('img');
+        expect(img.getAttribute('src')).to.equal(
+            'https://www.adobe.com/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium',
+        );
+        doc.querySelectorAll('source').forEach((s) => {
+            expect(s.getAttribute('srcset')).to.contain(
+                'https://www.adobe.com/cc-shared/fragments/media_1.png',
+            );
+            expect(s.getAttribute('srcset')).to.not.contain('aem.page');
+        });
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(renderImageMarkup('', { hostname: 'www.adobe.com' })).to.equal(
+            '',
+        );
+    });
+});
+
+describe('mas-field – image rendering', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders image as a <picture data-role> content root (no wrapping span)', () => {
+        const el = makeField('image', IMAGE_INNER);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img')).to.exist;
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
+            .exist;
+    });
+
+    it('renders backgroundImage as a <picture data-role> with a single <img>', () => {
+        const url = 'https://main--da-cc--adobecom.aem.page/media/bg.png';
+        const el = makeField('backgroundImage', url);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(0);
+        const img = picture.querySelector('img');
+        expect(img).to.exist;
+        expect(img.getAttribute('src')).to.equal(url);
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
+            .exist;
     });
 });

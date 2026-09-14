@@ -12,6 +12,7 @@ import {
     getFragmentMapping,
 } from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
+import { extractImageUrl } from './editors/image-url.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -316,6 +317,8 @@ class MasSideNav extends LitElement {
         'callout',
         'subtitle',
         'ctas',
+        'image',
+        'backgroundImage',
     ]);
 
     #getPreviewCard() {
@@ -554,6 +557,14 @@ class MasSideNav extends LitElement {
     }
 
     #buildCopyableField(field, sourceFragment, resolvedInlinePrices) {
+        if (field.name === 'image') {
+            return {
+                name: field.name,
+                displayName: this.#getFieldDisplayName(field.name, sourceFragment),
+                preview: extractImageUrl(field.values?.[0] ?? ''),
+                sourceFragment,
+            };
+        }
         const displayValues = this.#getDisplayValues(field);
         // If the previewStore resolved inline-prices to text, fall back to the original
         // field values which preserve data-template attributes for strikethrough detection.

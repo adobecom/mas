@@ -1,6 +1,7 @@
 import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
+import { rewriteImageUrlsForProd } from './image-markup.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -399,6 +400,13 @@ export function processBackgroundImage(
             ),
         );
     }
+}
+
+export function processImage(fields, merchCard, mapping) {
+    if (fields.image) {
+        fields.image = rewriteImageUrlsForProd(fields.image);
+    }
+    appendSlot('image', fields, merchCard, mapping);
 }
 
 /**
@@ -1125,6 +1133,7 @@ export async function hydrate(fragment, merchCard) {
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);
     processBackgroundImage(fields, merchCard, mapping.backgroundImage);
+    processImage(fields, merchCard, mapping);
     processBackgroundColor(
         fields,
         merchCard,

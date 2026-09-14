@@ -1,6 +1,13 @@
 const { Core } = require('@adobe/aio-sdk');
 const { buildSiblingActionName, invokeAsyncAction } = require('../common.js');
-const { getJobPayload, deleteJobPayload, patchProjectSummary, putTaskIndex } = require('./state.js');
+const {
+    getJobPayload,
+    deleteJobPayload,
+    patchProjectSummary,
+    putTaskIndex,
+    getProjectSummary,
+    PENDING,
+} = require('./state.js');
 const { removeJob } = require('./queue.js');
 const { acquireWorkerSlot, renewWorkerSlot, releaseWorkerSlot, DEFAULT_CAPACITY } = require('./worker-slots.js');
 const {
@@ -16,7 +23,6 @@ const RUNNING_STATUS = 'RUNNING';
 const ASYNC_PROCESSING_STATUS = 'ASYNC_PROCESSING';
 const QUEUED_STATUS = 'QUEUED';
 const FAILED_STATUS = 'FAILED';
-const PENDING_STATUS = 'PENDING';
 const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';
 const DEFAULT_SLOT_RENEW_INTERVAL_MS = 30 * 1000;
 
@@ -344,6 +350,11 @@ async function seedLocaleTracking(projectId, translationData = {}, submittedAt, 
         return;
     }
 
+    const summary = await getProjectSummary(projectId);
+    if (summary?.locales) {
+        return;
+    }
+
     await putTaskIndex(title, projectId, { projectId, title, submittedAt }, { params });
     await patchProjectSummary(
         projectId,
@@ -356,9 +367,9 @@ function buildInitialLocaleProgress(locales, itemsToTranslate) {
     const progress = {};
     for (const locale of locales) {
         progress[locale] = {
-            status: PENDING_STATUS,
+            status: PENDING,
             completedAt: null,
-            fragments: Object.fromEntries(itemsToTranslate.map((path) => [path, { status: PENDING_STATUS, updatedAt: null }])),
+            fragments: Object.fromEntries(itemsToTranslate.map((path) => [path, { status: PENDING, updatedAt: null }])),
             completed: 0,
             total: itemsToTranslate.length,
         };
@@ -435,7 +446,6 @@ module.exports = {
     RUNNING_STATUS,
     ASYNC_PROCESSING_STATUS,
     FAILED_STATUS,
-    PENDING_STATUS,
     ROLLOUT_PROJECT_TYPE,
     DEFAULT_SLOT_RENEW_INTERVAL_MS,
 };

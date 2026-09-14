@@ -15,6 +15,7 @@ describe('Translation project-start worker', function () {
     let deleteJobPayload;
     let patchProjectSummary;
     let putTaskIndex;
+    let getProjectSummary;
     let removeJob;
     let acquireWorkerSlot;
     let renewWorkerSlot;
@@ -37,6 +38,7 @@ describe('Translation project-start worker', function () {
         deleteJobPayload = sinon.stub().resolves();
         patchProjectSummary = sinon.stub().resolves();
         putTaskIndex = sinon.stub().resolves();
+        getProjectSummary = sinon.stub().resolves(null);
         removeJob = sinon.stub().resolves();
         acquireWorkerSlot = sinon.stub();
         renewWorkerSlot = sinon.stub().resolves({ renewed: true });
@@ -59,6 +61,7 @@ describe('Translation project-start worker', function () {
                 deleteJobPayload,
                 patchProjectSummary,
                 putTaskIndex,
+                getProjectSummary,
             },
             './queue.js': {
                 removeJob,
@@ -280,6 +283,53 @@ describe('Translation project-start worker', function () {
         runSyncAndLocStage.resolves({ message: 'ok' });
 
         await worker.main({ jobId: 'job-1' });
+
+        expect(putTaskIndex).to.not.have.been.called;
+        expect(patchProjectSummary).to.not.have.been.calledWith('project-1', sinon.match.has('locales'), sinon.match.any);
+    });
+
+    it('should not reseed locale tracking when the project summary already has a locales field', async () => {
+        getJobPayload.resolves({
+            projectId: 'project-1',
+            authToken: 'token-1',
+            surface: 'acom',
+            translationFlow: 'transcreation',
+        });
+        prepareProjectStart.resolves({
+            projectType: 'translation',
+            translationData: {
+                title: 'my-project',
+                itemsToTranslate: ['/content/dam/mas/acom/en_US/a'],
+                itemsToSync: [],
+                locales: ['fr_FR'],
+            },
+            batchSize: 5,
+            responseMessage: 'ok',
+        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        runSyncAndLocStage.resolves({ message: 'ok' });
+        getProjectSummary.resolves({
+            locales: {
+                targetLocales: ['fr_FR'],
+                progress: {
+                    fr_FR: {
+                        status: 'COMPLETED',
+                        completedAt: '2026-01-01T00:00:00.000Z',
+                        fragments: {},
+                        completed: 1,
+                        total: 1,
+                    },
+                },
+                completed: 1,
+                total: 1,
+            },
+        });
+
+        await worker.main({
+            jobId: 'job-1',
+            __ow_activation_id: 'activation-1',
+            odinEndpoint: 'https://odin.example.com',
+        });
 
         expect(putTaskIndex).to.not.have.been.called;
         expect(patchProjectSummary).to.not.have.been.calledWith('project-1', sinon.match.has('locales'), sinon.match.any);

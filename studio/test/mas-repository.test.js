@@ -484,19 +484,6 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.processError.called).to.be.false;
         });
 
-        it('loadAllCollections bails without fetching when no store is provided', async () => {
-            const repository = createFullRepository();
-            const originalSearch = structuredClone(Store.search.get());
-            Store.search.set({ ...originalSearch, path: 'acom' });
-            repository.searchFragmentList = sandbox.stub().resolves([]);
-            try {
-                await repository.loadAllCollections();
-                expect(repository.searchFragmentList.called).to.be.false;
-            } finally {
-                Store.search.set(originalSearch);
-            }
-        });
-
         it('loadAllCollections in PROMOTIONS_EDITOR searches without locale in path', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');

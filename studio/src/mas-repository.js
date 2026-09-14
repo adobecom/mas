@@ -1058,10 +1058,6 @@ export class MasRepository extends LitElement {
     }
 
     async loadAllCollections(store) {
-        if (!store) {
-            console.warn('loadAllCollections: store is null or undefined');
-            return;
-        }
         const surfaceKey =
             this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
                 ? this.#promotionsItemPickerSurfaceOrNavPath()

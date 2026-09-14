@@ -1,5 +1,4 @@
 import { expect } from '@esm-bundle/chai';
-import sinon from 'sinon';
 import {
     getItemsSelectionStore,
     setItemsSelectionStore,
@@ -82,31 +81,6 @@ describe('items-selection-store', () => {
             pushItemsSelectionStore(slice);
             expect(() => popItemsSelectionStore(Symbol('unknown'))).to.not.throw();
             expect(getItemsSelectionStore()).to.equal(slice);
-        });
-
-        it('warns when a non-topmost owner is released', () => {
-            const warnStub = sinon.stub(console, 'warn');
-            try {
-                const tokenA = pushItemsSelectionStore({ name: 'a' });
-                pushItemsSelectionStore({ name: 'b' });
-                popItemsSelectionStore(tokenA);
-                expect(warnStub.calledOnce).to.be.true;
-            } finally {
-                warnStub.restore();
-            }
-        });
-
-        it('does not warn when owners release in LIFO order', () => {
-            const warnStub = sinon.stub(console, 'warn');
-            try {
-                const tokenA = pushItemsSelectionStore({ name: 'a' });
-                const tokenB = pushItemsSelectionStore({ name: 'b' });
-                popItemsSelectionStore(tokenB);
-                popItemsSelectionStore(tokenA);
-                expect(warnStub.called).to.be.false;
-            } finally {
-                warnStub.restore();
-            }
         });
     });
 });

@@ -43,19 +43,13 @@ export function pushItemsSelectionStore(slice) {
 
 /**
  * Releases ownership claimed via pushItemsSelectionStore. The active store is always
- * whatever is now topmost on the stack once this owner is removed.
+ * whatever is now topmost on the stack once this owner is removed. Owners may release
+ * out of stack order — e.g. an ancestor editor disconnects before a nested child editor
+ * that pushed after it — so the stack always self-heals regardless of release order.
  * @param {symbol} token
  */
 export function popItemsSelectionStore(token) {
     const index = ownershipStack.findIndex((entry) => entry.token === token);
     if (index === -1) return;
-    const wasTopmost = index === ownershipStack.length - 1;
     ownershipStack.splice(index, 1);
-    if (!wasTopmost) {
-        console.warn(
-            'popItemsSelectionStore: released owner was not the topmost claim. ' +
-                'This indicates two owners overlapped out of stack order — check for a ' +
-                'connect-before-disconnect race between editors.',
-        );
-    }
 }

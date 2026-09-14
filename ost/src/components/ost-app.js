@@ -272,18 +272,27 @@ export class OstApp extends LitElement {
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (!code) return;
 
-            // Keep every segment filter at its "All" default: the resolved
-            // offer's attributes are stashed so autoSelectByInitialOsi can pick
-            // the matching offer out of the unfiltered list.
-            store.initialOsiAttributes = {
+            const attributes = {
                 commitment: result.commitment,
                 term: result.term,
                 customer_segment: result.customer_segment,
                 market_segment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
                 offer_type: result.offer_type,
             };
+            store.initialOsiAttributes = attributes;
             store.setOsi(id);
-            store.setAosParams({ arrangementCode: code });
+            // Load the offer's own entitlements into the Tab 1 filters, as an
+            // offer-ID search does (ost-search resolveOfferId). Each filter only
+            // narrows to a value the offer defines, so the offer stays in its own
+            // result list. The seeded OSI search then lists only this product.
+            store.setAosParams({
+                arrangementCode: code,
+                customerSegment: attributes.customer_segment || '',
+                marketSegment: attributes.market_segment || '',
+                offerType: attributes.offer_type || '',
+                commitment: attributes.commitment || '',
+                term: attributes.term || '',
+            });
             // setAosParams/setProduct trigger loadOffers, which selects the offer
             // matching this OSI via autoSelectByInitialOsi — the single, store-owned
             // resolution path (no competing state-changed listener that could

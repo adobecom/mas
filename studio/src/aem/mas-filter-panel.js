@@ -30,6 +30,7 @@ class MasFilterPanel extends LitElement {
     static properties = {
         tagsByType: { type: Object, state: true },
         selectedStatuses: { type: Array, state: true },
+        pendingStatuses: { type: Array, state: true },
     };
 
     static styles = css`
@@ -74,17 +75,39 @@ class MasFilterPanel extends LitElement {
         }
 
         .status-filter-popover {
-            padding: 12px;
+            min-width: 248px;
+            border-radius: 10px;
+        }
+
+        .status-filter-content {
+            padding: 8px;
         }
 
         .checkbox-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            max-height: 300px;
+            gap: 2px;
+            max-height: 246px;
             overflow-y: auto;
-            min-width: 150px;
             padding-inline-start: 4px;
+        }
+
+        .checkbox-list sp-checkbox {
+            height: 40px;
+            align-items: center;
+        }
+
+        .status-filter-footer {
+            display: flex;
+            align-items: center;
+            justify-content: end;
+            gap: 8px;
+            height: 40px;
+            padding: 8px;
+        }
+
+        .status-filter-footer span {
+            flex: 1;
         }
     `;
 
@@ -99,6 +122,7 @@ class MasFilterPanel extends LitElement {
             ...EMPTY_TAGS,
         };
         this.selectedStatuses = [];
+        this.pendingStatuses = [];
     }
 
     firstUpdated() {
@@ -121,6 +145,7 @@ class MasFilterPanel extends LitElement {
         };
         const filters = Store.filters.get();
         this.selectedStatuses = filters.status ? filters.status.split(',') : [];
+        this.pendingStatuses = this.selectedStatuses;
         if (!filters.tags) return;
         this.tagsByType = filters.tags.split(',').reduce(
             (acc, tag) => {
@@ -273,17 +298,40 @@ class MasFilterPanel extends LitElement {
         this.#updateFiltersParams();
     }
 
-    #handleStatusChange(optionId, e) {
-        const checked = e.target.checked;
-        const selected = checked
-            ? [...this.selectedStatuses, optionId]
-            : this.selectedStatuses.filter((status) => status !== optionId);
+    get #statusTrigger() {
+        return this.shadowRoot.querySelector('overlay-trigger[data-filter-type="status"]');
+    }
 
-        this.selectedStatuses = selected;
+    #setStatuses(statuses) {
+        this.selectedStatuses = statuses;
+        this.pendingStatuses = statuses;
         Store.filters.set((prev) => ({
             ...prev,
-            status: selected.join(',') || undefined,
+            status: statuses.join(',') || undefined,
         }));
+    }
+
+    #handleStatusChange(optionId, e) {
+        this.pendingStatuses = e.target.checked
+            ? [...this.pendingStatuses, optionId]
+            : this.pendingStatuses.filter((status) => status !== optionId);
+    }
+
+    #applyStatuses() {
+        this.#setStatuses(this.pendingStatuses);
+        this.#statusTrigger.open = false;
+    }
+
+    #resetPendingStatuses() {
+        this.pendingStatuses = [];
+    }
+
+    #discardPendingStatuses() {
+        this.pendingStatuses = this.selectedStatuses;
+    }
+
+    #handleStatusDelete(e) {
+        this.#setStatuses(this.selectedStatuses.filter((status) => status !== e.target.value));
     }
 
     #handleRefresh() {
@@ -303,6 +351,7 @@ class MasFilterPanel extends LitElement {
 
         this.tagsByType = { ...EMPTY_TAGS };
         this.selectedStatuses = [];
+        this.pendingStatuses = [];
         this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
             tagPicker.clear();
         });
@@ -338,26 +387,41 @@ class MasFilterPanel extends LitElement {
     #renderStatusPicker() {
         const selectedCount = this.selectedStatuses.length;
         const displayLabel = selectedCount > 0 ? `Status (${selectedCount})` : 'Status';
+        const pendingCount = this.pendingStatuses.length;
 
         return html`
-            <overlay-trigger class="status-filter-trigger" placement="bottom" data-filter-type="status">
+            <overlay-trigger
+                class="status-filter-trigger"
+                placement="bottom"
+                data-filter-type="status"
+                @sp-closed=${this.#discardPendingStatuses}
+            >
                 <sp-action-button slot="trigger" quiet aria-label="Status">
                     ${displayLabel}
                     <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
                 <sp-popover slot="click-content" class="status-filter-popover">
-                    <div class="checkbox-list">
-                        ${FRAGMENT_STATUS_OPTIONS.map(
-                            (option) => html`
-                                <sp-checkbox
-                                    value=${option.id}
-                                    ?checked=${this.selectedStatuses.includes(option.id)}
-                                    @change=${(e) => this.#handleStatusChange(option.id, e)}
-                                >
-                                    ${option.title}
-                                </sp-checkbox>
-                            `,
-                        )}
+                    <div class="status-filter-content">
+                        <div class="checkbox-list">
+                            ${FRAGMENT_STATUS_OPTIONS.map(
+                                (option) => html`
+                                    <sp-checkbox
+                                        value=${option.id}
+                                        .checked=${this.pendingStatuses.includes(option.id)}
+                                        @change=${(e) => this.#handleStatusChange(option.id, e)}
+                                    >
+                                        ${option.title}
+                                    </sp-checkbox>
+                                `,
+                            )}
+                        </div>
+                        <div class="status-filter-footer">
+                            <span>${pendingCount} ${pendingCount === 1 ? 'status' : 'statuses'} selected</span>
+                            <sp-button size="s" variant="secondary" treatment="outline" @click=${this.#resetPendingStatuses}>
+                                Reset
+                            </sp-button>
+                            <sp-button size="s" @click=${this.#applyStatuses}>Apply</sp-button>
+                        </div>
                     </div>
                 </sp-popover>
             </overlay-trigger>
@@ -484,6 +548,15 @@ class MasFilterPanel extends LitElement {
                     (tag) => html`
                         <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
                             >${tag.title}</sp-tag
+                        >
+                    `,
+                )}
+                ${repeat(
+                    FRAGMENT_STATUS_OPTIONS.filter((option) => this.selectedStatuses.includes(option.id)),
+                    (option) => option.id,
+                    (option) => html`
+                        <sp-tag size="s" deletable @delete=${this.#handleStatusDelete} .value=${option.id}
+                            >${option.title}</sp-tag
                         >
                     `,
                 )}

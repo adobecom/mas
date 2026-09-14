@@ -52,6 +52,23 @@
                 await delay(50);
             }
 
+            function statusCheckbox(filterPanel, status) {
+                return filterPanel.shadowRoot.querySelector(`[data-filter-type="status"] sp-checkbox[value="${status}"]`);
+            }
+
+            async function toggleStatus(filterPanel, status, checked) {
+                const checkbox = statusCheckbox(filterPanel, status);
+                checkbox.checked = checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await filterPanel.updateComplete;
+            }
+
+            async function clickStatusFooterButton(filterPanel, label) {
+                const buttons = filterPanel.shadowRoot.querySelectorAll('[data-filter-type="status"] sp-button');
+                [...buttons].find((button) => button.textContent.trim() === label).click();
+                await filterPanel.updateComplete;
+            }
+
             runTests(async () => {
                 let fetchPromise;
                 const originalFetch = window.fetch;
@@ -83,7 +100,7 @@
                         expect(Store.filters.get().personalizationFilterEnabled).to.be.false;
                     });
 
-                    it('renders the five publication statuses and writes them to Store.filters.status', async function () {
+                    it('renders the five publication statuses as checkboxes instead of a tag picker', async function () {
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
@@ -97,15 +114,69 @@
                             filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="status"]'),
                             'no status tag picker',
                         ).to.not.exist;
+                    });
 
-                        const draftCheckbox = [...picker.querySelectorAll('sp-checkbox')].find(
-                            (item) => item.getAttribute('value') === 'DRAFT',
-                        );
-                        draftCheckbox.checked = true;
-                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                    it('Should not update the store until Apply is clicked', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
-                        expect(Store.filters.get().status).to.equal('DRAFT');
+                        await toggleStatus(filterPanel, 'DRAFT', true);
+
+                        expect(Store.filters.get().status).to.be.undefined;
+                    });
+
+                    it('Should uncheck pending statuses when the popover Reset is clicked', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await toggleStatus(filterPanel, 'DRAFT', true);
+
+                        await clickStatusFooterButton(filterPanel, 'Reset');
+
+                        expect(statusCheckbox(filterPanel, 'DRAFT').checked).to.be.false;
+                    });
+
+                    it('Should discard unapplied statuses when the popover closes', async function () {
+                        Store.filters.set({ tags: '', status: 'DRAFT' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await toggleStatus(filterPanel, 'NEW', true);
+
+                        filterPanel.shadowRoot
+                            .querySelector('[data-filter-type="status"]')
+                            .dispatchEvent(new Event('sp-closed'));
+                        await filterPanel.updateComplete;
+
+                        expect(statusCheckbox(filterPanel, 'NEW').checked).to.be.false;
+                        expect(statusCheckbox(filterPanel, 'DRAFT').checked).to.be.true;
+                    });
+
+                    it('Should render a chip for each applied status', async function () {
+                        Store.filters.set({ tags: '', status: 'DRAFT,MODIFIED' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await filterPanel.updateComplete;
+
+                        const labels = [...filterPanel.shadowRoot.querySelectorAll('sp-tag')].map((tag) =>
+                            tag.textContent.trim(),
+                        );
+
+                        expect(labels).to.include.members(['Draft', 'Modified']);
+                    });
+
+                    it('Should remove a status from the store when its chip is deleted', async function () {
+                        Store.filters.set({ tags: '', status: 'DRAFT,MODIFIED' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await filterPanel.updateComplete;
+                        const draftChip = [...filterPanel.shadowRoot.querySelectorAll('sp-tag')].find(
+                            (tag) => tag.value === 'DRAFT',
+                        );
+
+                        draftChip.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+                        await filterPanel.updateComplete;
+
+                        expect(Store.filters.get().status).to.equal('MODIFIED');
+                        expect(statusCheckbox(filterPanel, 'DRAFT').checked).to.be.false;
                     });
 
                     it('Should update tags when a tag is selected', async function () {
@@ -119,35 +190,22 @@
                         expect(filterPanel.tagsByType.offer_type).to.have.lengthOf(1);
                     });
 
-                    it('Should update store when a status checkbox is checked', async function () {
+                    it('Should update store when a status is checked and applied', async function () {
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
+                        await toggleStatus(filterPanel, 'DRAFT', true);
 
-                        const statusPicker = filterPanel.shadowRoot.querySelector('[data-filter-type="status"]');
-                        expect(statusPicker).to.not.be.null;
+                        await clickStatusFooterButton(filterPanel, 'Apply');
 
-                        const draftCheckbox = [...statusPicker.querySelectorAll('sp-checkbox')].find(
-                            (item) => item.getAttribute('value') === 'DRAFT',
-                        );
-                        draftCheckbox.checked = true;
-                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-                        await filterPanel.updateComplete;
-
-                        const storeState = await Store.filters.get();
-                        expect(storeState.status).to.equal('DRAFT');
+                        expect(Store.filters.get().status).to.equal('DRAFT');
                     });
 
                     it('Should clear status filter when reset is clicked', async function () {
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
-                        const statusPicker = filterPanel.shadowRoot.querySelector('[data-filter-type="status"]');
-                        const draftCheckbox = [...statusPicker.querySelectorAll('sp-checkbox')].find(
-                            (item) => item.getAttribute('value') === 'DRAFT',
-                        );
-                        draftCheckbox.checked = true;
-                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-                        await filterPanel.updateComplete;
+                        await toggleStatus(filterPanel, 'DRAFT', true);
+                        await clickStatusFooterButton(filterPanel, 'Apply');
                         expect(Store.filters.get().status).to.equal('DRAFT');
 
                         // Click reset button
@@ -166,13 +224,8 @@
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
-                        const statusPicker = filterPanel.shadowRoot.querySelector('[data-filter-type="status"]');
-                        const draftCheckbox = [...statusPicker.querySelectorAll('sp-checkbox')].find(
-                            (item) => item.getAttribute('value') === 'DRAFT',
-                        );
-                        draftCheckbox.checked = true;
-                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-                        await filterPanel.updateComplete;
+                        await toggleStatus(filterPanel, 'DRAFT', true);
+                        await clickStatusFooterButton(filterPanel, 'Apply');
 
                         // Add offer type tag
                         const offerTypePicker = filterPanel.shadowRoot.querySelector('aem-tag-picker-field[top="offer_type"]');
@@ -182,14 +235,9 @@
                         expect(Store.filters.get().status).to.equal('DRAFT');
 
                         // Change status selection
-                        draftCheckbox.checked = false;
-                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-                        const newCheckbox = [...statusPicker.querySelectorAll('sp-checkbox')].find(
-                            (item) => item.getAttribute('value') === 'NEW',
-                        );
-                        newCheckbox.checked = true;
-                        newCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-                        await filterPanel.updateComplete;
+                        await toggleStatus(filterPanel, 'DRAFT', false);
+                        await toggleStatus(filterPanel, 'NEW', true);
+                        await clickStatusFooterButton(filterPanel, 'Apply');
 
                         const storeState = await Store.filters.get();
                         expect(storeState.tags).to.include('mas:offer_type/base');

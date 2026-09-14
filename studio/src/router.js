@@ -276,7 +276,7 @@ export class Router extends EventTarget {
                     if (targetPage !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
-                        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                        Store.filters.set((prev) => ({ ...prev, tags: undefined, status: undefined }));
                     }
                     if (
                         (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&

@@ -451,6 +451,13 @@ describe('Router', () => {
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
 
+        it('should clear the status filter when navigating away from the content page', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            Store.filters.set({ locale: 'en_US', status: 'MODIFIED' });
+            await router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
+            expect(Store.filters.value.status).to.be.undefined;
+        });
+
         it('should check for unsaved changes when on fragment editor', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));

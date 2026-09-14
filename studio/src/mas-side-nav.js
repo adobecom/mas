@@ -18,13 +18,6 @@ import ReactiveController from './reactivity/reactive-controller.js';
 const EVENT_MAS_READY = 'mas:ready';
 const EVENT_MAS_ERROR = 'mas:error';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
-const FIELD_SOURCE = {
-    CURRENT: 'current',
-    INHERITED: 'inherited',
-};
-const OVERRIDDEN_SECTION_LABEL = 'Overridden in this variation';
-const INHERITED_SECTION_LABEL = 'Inherited from base fragment';
-
 /** Renders a preview string, converting <s>…</s> segments to Lit <s> elements. */
 function renderPreview(preview) {
     if (!preview?.includes('<s>')) return preview;
@@ -85,25 +78,10 @@ class MasSideNav extends LitElement {
             padding: 2px 0;
         }
 
-        .field-entry-overridden {
-            border-inline-start: 2px solid #7da0ff;
-            padding-inline-start: 8px;
-        }
-
         .copy-section-item {
             --mod-menu-item-min-height: 28px;
             --mod-menu-item-top-edge-to-text: 6px;
             --mod-menu-item-bottom-edge-to-text: 6px;
-        }
-
-        .copy-section-item.overridden-section {
-            --mod-menu-item-background-color-default: #eef4ff;
-            --mod-menu-item-label-content-color-disabled: #2c5fda;
-        }
-
-        .copy-section-item.inherited-section {
-            --mod-menu-item-background-color-default: #f3f5f7;
-            --mod-menu-item-label-content-color-disabled: #5b6676;
         }
 
         .copy-section-label {
@@ -114,16 +92,6 @@ class MasSideNav extends LitElement {
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-        }
-
-        .overridden-section .copy-section-label::before,
-        .inherited-section .copy-section-label::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
-            background: currentColor;
-            opacity: 0.85;
         }
 
         .copy-field-scroll {
@@ -143,6 +111,18 @@ class MasSideNav extends LitElement {
         .field-value {
             font-weight: 600;
             word-break: break-word;
+        }
+
+        /* Emphasize fields that have content; keep empty placeholders muted. */
+        .field-entry-filled .field-label {
+            font-weight: 700;
+            color: #6e6e6e;
+        }
+
+        .field-value-empty {
+            font-weight: 400;
+            font-style: italic;
+            opacity: 0.6;
         }
     `;
 
@@ -526,40 +506,19 @@ class MasSideNav extends LitElement {
         return !!fragmentId && !!this.fragmentEditor?.editorContextStore?.isVariation?.(fragmentId);
     }
 
-    /** Individual CTA items extracted from the ctas field, split by source for variations. */
+    /** Individual CTA items extracted from the ctas field. */
     get copyableCtas() {
         const fragment = this.fragmentEditor?.fragment;
-        if (!fragment?.fields) return { current: [], inherited: [] };
+        if (!fragment?.fields) return [];
 
         const ctasField = fragment.fields.find((f) => f.name === 'ctas');
-        const current =
-            ctasField && !fragment.isValueEmpty(ctasField.values)
-                ? parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
-                      ...cta,
-                      index: i + 1,
-                      source: FIELD_SOURCE.CURRENT,
-                      sourceFragment: fragment,
-                  }))
-                : [];
+        if (!ctasField || fragment.isValueEmpty(ctasField.values)) return [];
 
-        const fragmentId = fragment?.id;
-        if (!this.#isVariationFragment(fragmentId) || current.length) {
-            return { current, inherited: [] };
-        }
-
-        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
-        const baseCtasField = baseFragment?.fields?.find((f) => f.name === 'ctas');
-        const inherited =
-            baseCtasField && !baseFragment.isValueEmpty(baseCtasField.values)
-                ? parseCtas(baseCtasField.values[0]).map((cta, i) => ({
-                      ...cta,
-                      index: i + 1,
-                      source: FIELD_SOURCE.INHERITED,
-                      sourceFragment: baseFragment,
-                  }))
-                : [];
-
-        return { current, inherited };
+        return parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
+            ...cta,
+            index: i + 1,
+            sourceFragment: fragment,
+        }));
     }
 
     /** previewValue() concatenates text nodes with no separator, which runs multiple CTAs
@@ -594,7 +553,7 @@ class MasSideNav extends LitElement {
         });
     }
 
-    #buildCopyableField(field, source, sourceFragment, resolvedInlinePrices) {
+    #buildCopyableField(field, sourceFragment, resolvedInlinePrices) {
         const displayValues = this.#getDisplayValues(field);
         // If the previewStore resolved inline-prices to text, fall back to the original
         // field values which preserve data-template attributes for strikethrough detection.
@@ -608,43 +567,25 @@ class MasSideNav extends LitElement {
             name: field.name,
             displayName: this.#getFieldDisplayName(field.name, sourceFragment),
             preview,
-            source,
             sourceFragment,
         };
     }
 
-    /** Non-empty fragment fields with display names and value previews. */
+    /**
+     * Fragment fields with display names and value previews, including empty ones so authors
+     * can copy a link to an empty placeholder (e.g. inject promo-only content where the default
+     * is blank). Non-empty fields are emphasized in the UI.
+     */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
-        const currentFields = this.#sortFieldsByVariantOrder(
+        return this.#sortFieldsByVariantOrder(
             fragment.fields
-                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !fragment.isValueEmpty(f.values))
-                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment, resolvedInlinePrices)),
+                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name))
+                .map((f) => this.#buildCopyableField(f, fragment, resolvedInlinePrices)),
             fragment,
         );
-
-        const fragmentId = fragment?.id;
-        if (!this.#isVariationFragment(fragmentId)) {
-            return currentFields;
-        }
-
-        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
-        if (!baseFragment?.fields?.length) {
-            return currentFields;
-        }
-
-        const currentFieldNames = new Set(currentFields.map((field) => field.name));
-        const inheritedFields = this.#sortFieldsByVariantOrder(
-            baseFragment.fields
-                .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
-                .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices))
-                .filter((f) => !!f.preview),
-            baseFragment,
-        );
-
-        return [...currentFields, ...inheritedFields];
     }
 
     getCtaInfo(key) {
@@ -665,34 +606,40 @@ class MasSideNav extends LitElement {
     /** Copy Field popover listing fragment fields with preview values. */
     get copyFieldButton() {
         const loading = this.variationDataLoading || Store.fragmentEditor.loading.get();
-        const isVariation = this.#isVariationFragment(this.fragmentEditor?.fragment?.id);
-        const currentFields = this.copyableFields.filter(
-            (field) => field.source === FIELD_SOURCE.CURRENT && field.name !== 'ctas',
-        );
-        const inheritedFields = this.copyableFields.filter(
-            (field) => field.source === FIELD_SOURCE.INHERITED && field.name !== 'ctas',
-        );
-        const showOverriddenSection = isVariation && currentFields.length;
-        const showInheritedSection = inheritedFields.length;
-        const { current: currentCtas, inherited: inheritedCtas } = this.copyableCtas;
-        const showCtaOverriddenSection = isVariation && currentCtas.length;
-        const showCtaInheritedSection = inheritedCtas.length;
-        const hasCtas = currentCtas.length || inheritedCtas.length;
-        const ctasFieldRow = this.copyableFields.find((f) => f.name === 'ctas');
-        const { current: currentCustomFields, inherited: inheritedCustomFields } = this.copyableCustomFields;
-        const showCustomFieldOverriddenSection = isVariation && currentCustomFields.length;
-        const showCustomFieldInheritedSection = inheritedCustomFields.length;
-        const hasCustomFields = currentCustomFields.length || inheritedCustomFields.length;
-        const renderRow = ({ name, displayName, preview, source, sourceFragment }) => html`
+        const fragment = this.fragmentEditor?.fragment;
+        // Copy Field is disabled for variations: a field link must target a stable
+        // fragment, and a variation would either reference itself (direct references
+        // to variations are not allowed) or silently fall through to its base
+        // fragment. Authors should copy the field link from the base (default
+        // locale) fragment instead.
+        if (this.#isVariationFragment(fragment?.id)) {
+            return html`
+                <overlay-trigger placement="right" offset="8">
+                    <mas-side-nav-item label="Copy Field" disabled slot="trigger">
+                        <sp-icon-copy slot="icon"></sp-icon-copy>
+                    </mas-side-nav-item>
+                    <sp-tooltip slot="hover-content" placement="right">
+                        Variations can't be referenced directly. Copy the field link from its base (default locale) fragment
+                        instead.
+                    </sp-tooltip>
+                </overlay-trigger>
+            `;
+        }
+        const allFields = this.copyableFields;
+        const fields = allFields.filter((field) => field.name !== 'ctas');
+        const ctasFieldRow = allFields.find((field) => field.name === 'ctas');
+        const currentCtas = this.copyableCtas;
+        const hasCtaItems = currentCtas.length;
+        const currentCustomFields = this.copyableCustomFields;
+        const hasCustomFields = currentCustomFields.length;
+        const renderRow = ({ name, displayName, preview, sourceFragment }) => html`
             <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
-                ${preview
-                    ? html`<div
-                          class="field-entry ${isVariation && source === FIELD_SOURCE.CURRENT ? 'field-entry-overridden' : ''}"
-                      >
-                          <span class="field-label">${displayName}</span>
-                          <span class="field-value">${renderPreview(preview)}</span>
-                      </div>`
-                    : displayName}
+                <div class="field-entry ${preview ? 'field-entry-filled' : ''}">
+                    <span class="field-label">${displayName}</span>
+                    ${preview
+                        ? html`<span class="field-value">${renderPreview(preview)}</span>`
+                        : html`<span class="field-value field-value-empty">Empty</span>`}
+                </div>
             </sp-menu-item>
         `;
         return html`
@@ -713,111 +660,54 @@ class MasSideNav extends LitElement {
                 <sp-popover slot="click-content" direction="right" tip>
                     <div class="copy-field-scroll">
                         <sp-menu>
-                            ${showOverriddenSection
-                                ? html`<sp-menu-item disabled class="copy-section-item overridden-section">
-                                      <span class="copy-section-label">${OVERRIDDEN_SECTION_LABEL}</span>
-                                  </sp-menu-item>`
-                                : nothing}
-                            ${currentFields.map(
+                            ${fields.map(
                                 (field, i) =>
                                     html`${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}${renderRow(field)}`,
                             )}
-                            ${showInheritedSection
-                                ? html`
-                                      ${currentFields.length || showOverriddenSection
-                                          ? html`<sp-menu-divider></sp-menu-divider>`
-                                          : nothing}
-                                      <sp-menu-item disabled class="copy-section-item inherited-section">
-                                          <span class="copy-section-label">${INHERITED_SECTION_LABEL}</span>
-                                      </sp-menu-item>
-                                      ${inheritedFields.map(
-                                          (field, i) =>
-                                              html`${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}${renderRow(
-                                                  field,
-                                              )}`,
-                                      )}
-                                  `
-                                : nothing}
-                            ${hasCtas
-                                ? html`
-                                      <sp-menu-divider></sp-menu-divider>
-                                      <sp-menu-item disabled class="copy-section-item">
-                                          <span class="copy-section-label">CTAs</span>
-                                      </sp-menu-item>
-                                      ${ctasFieldRow ? renderRow({ ...ctasFieldRow, displayName: 'All CTAs' }) : nothing}
-                                      ${ctasFieldRow ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                      ${showCtaOverriddenSection
-                                          ? html`<sp-menu-item disabled class="copy-section-item overridden-section">
-                                                <span class="copy-section-label">${OVERRIDDEN_SECTION_LABEL}</span>
-                                            </sp-menu-item>`
-                                          : nothing}
-                                      ${currentCtas.map(
-                                          (cta, i) => html`
-                                              ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                              <sp-menu-item
-                                                  @click=${() =>
-                                                      this.copyCtaItem(
-                                                          cta.text,
-                                                          cta.index,
-                                                          cta.sourceFragment,
-                                                          cta.formattedText,
-                                                      )}
-                                              >
-                                                  <div
-                                                      class="field-entry ${showCtaOverriddenSection
-                                                          ? 'field-entry-overridden'
-                                                          : ''}"
-                                                  >
-                                                      <span class="field-label"
-                                                          >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
-                                                      >
-                                                      <span class="field-value">${cta.text || cta.href}</span>
-                                                  </div>
-                                              </sp-menu-item>
-                                          `,
-                                      )}
-                                      ${showCtaInheritedSection
-                                          ? html`
-                                                ${currentCtas.length ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                                <sp-menu-item disabled class="copy-section-item inherited-section">
-                                                    <span class="copy-section-label">${INHERITED_SECTION_LABEL}</span>
-                                                </sp-menu-item>
-                                                ${inheritedCtas.map(
-                                                    (cta, i) => html`
-                                                        ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                                        <sp-menu-item
-                                                            @click=${() =>
-                                                                this.copyCtaItem(
-                                                                    cta.text,
-                                                                    cta.index,
-                                                                    cta.sourceFragment,
-                                                                    cta.formattedText,
-                                                                )}
+                            ${fields.length ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                            ${!fragment
+                                ? nothing
+                                : hasCtaItems
+                                  ? html`
+                                        <sp-menu-item disabled class="copy-section-item">
+                                            <span class="copy-section-label">CTAs</span>
+                                        </sp-menu-item>
+                                        ${ctasFieldRow ? renderRow({ ...ctasFieldRow, displayName: 'All CTAs' }) : nothing}
+                                        ${ctasFieldRow ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                        ${currentCtas.map(
+                                            (cta, i) => html`
+                                                ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                                <sp-menu-item
+                                                    @click=${() =>
+                                                        this.copyCtaItem(
+                                                            cta.text,
+                                                            cta.index,
+                                                            cta.sourceFragment,
+                                                            cta.formattedText,
+                                                        )}
+                                                >
+                                                    <div class="field-entry field-entry-filled">
+                                                        <span class="field-label"
+                                                            >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
                                                         >
-                                                            <div class="field-entry">
-                                                                <span class="field-label"
-                                                                    >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
-                                                                >
-                                                                <span class="field-value">${cta.text || cta.href}</span>
-                                                            </div>
-                                                        </sp-menu-item>
-                                                    `,
-                                                )}
-                                            `
-                                          : nothing}
-                                  `
-                                : nothing}
+                                                        <span class="field-value">${cta.text || cta.href}</span>
+                                                    </div>
+                                                </sp-menu-item>
+                                            `,
+                                        )}
+                                    `
+                                  : renderRow({
+                                        name: 'ctas',
+                                        displayName: MasSideNav.FIELD_DISPLAY_NAMES.ctas,
+                                        preview: '',
+                                        sourceFragment: fragment,
+                                    })}
                             ${hasCustomFields
                                 ? html`
                                       <sp-menu-divider></sp-menu-divider>
                                       <sp-menu-item disabled class="copy-section-item">
                                           <span class="copy-section-label">Custom Fields</span>
                                       </sp-menu-item>
-                                      ${showCustomFieldOverriddenSection
-                                          ? html`<sp-menu-item disabled class="copy-section-item overridden-section">
-                                                <span class="copy-section-label">${OVERRIDDEN_SECTION_LABEL}</span>
-                                            </sp-menu-item>`
-                                          : nothing}
                                       ${currentCustomFields.map(
                                           (cf, i) => html`
                                               ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
@@ -825,43 +715,13 @@ class MasSideNav extends LitElement {
                                                   @click=${() =>
                                                       this.copyCustomFieldItem(cf.label, cf.index, cf.sourceFragment)}
                                               >
-                                                  <div
-                                                      class="field-entry ${showCustomFieldOverriddenSection
-                                                          ? 'field-entry-overridden'
-                                                          : ''}"
-                                                  >
+                                                  <div class="field-entry">
                                                       <span class="field-label">${cf.label || `Custom Field ${cf.index}`}</span>
                                                       <span class="field-value">${renderPreview(cf.value)}</span>
                                                   </div>
                                               </sp-menu-item>
                                           `,
                                       )}
-                                      ${showCustomFieldInheritedSection
-                                          ? html`
-                                                ${currentCustomFields.length
-                                                    ? html`<sp-menu-divider></sp-menu-divider>`
-                                                    : nothing}
-                                                <sp-menu-item disabled class="copy-section-item inherited-section">
-                                                    <span class="copy-section-label">${INHERITED_SECTION_LABEL}</span>
-                                                </sp-menu-item>
-                                                ${inheritedCustomFields.map(
-                                                    (cf, i) => html`
-                                                        ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                                        <sp-menu-item
-                                                            @click=${() =>
-                                                                this.copyCustomFieldItem(cf.label, cf.index, cf.sourceFragment)}
-                                                        >
-                                                            <div class="field-entry">
-                                                                <span class="field-label"
-                                                                    >${cf.label || `Custom Field ${cf.index}`}</span
-                                                                >
-                                                                <span class="field-value">${renderPreview(cf.value)}</span>
-                                                            </div>
-                                                        </sp-menu-item>
-                                                    `,
-                                                )}
-                                            `
-                                          : nothing}
                                   `
                                 : nothing}
                             <sp-menu-divider></sp-menu-divider>
@@ -917,38 +777,23 @@ class MasSideNav extends LitElement {
         return clone.innerHTML;
     }
 
-    /** Individual custom field items extracted from customFields/customFieldLabels, split by source for variations. */
+    /** Individual custom field items extracted from customFields/customFieldLabels. */
     get copyableCustomFields() {
         const fragment = this.fragmentEditor?.fragment;
-        if (!fragment?.fields) return { current: [], inherited: [] };
+        if (!fragment?.fields) return [];
 
         const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
         const valuesField = fragment.fields.find((f) => f.name === 'customFields');
         const labelsField = fragment.fields.find((f) => f.name === 'customFieldLabels');
 
-        const buildItems = (vals, lbls, source, sourceFragment) =>
-            (vals ?? [])
-                .map((v, i) => {
-                    const liveHtml = source === FIELD_SOURCE.CURRENT ? this.#getResolvedCustomFieldSlotHtml(i) : undefined;
-                    const resolved = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
-                    const value = previewValue([resolved]);
-                    return { value, label: lbls?.[i] || '', index: i + 1, source, sourceFragment };
-                })
-                .filter(({ value }) => value);
-
-        const current = buildItems(valuesField?.values, labelsField?.values, FIELD_SOURCE.CURRENT, fragment);
-
-        const fragmentId = fragment?.id;
-        if (!this.#isVariationFragment(fragmentId) || current.length) {
-            return { current, inherited: [] };
-        }
-
-        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
-        const baseValuesField = baseFragment?.fields?.find((f) => f.name === 'customFields');
-        const baseLabelsField = baseFragment?.fields?.find((f) => f.name === 'customFieldLabels');
-        const inherited = buildItems(baseValuesField?.values, baseLabelsField?.values, FIELD_SOURCE.INHERITED, baseFragment);
-
-        return { current, inherited };
+        return (valuesField?.values ?? [])
+            .map((v, i) => {
+                const liveHtml = this.#getResolvedCustomFieldSlotHtml(i);
+                const resolved = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
+                const value = previewValue([resolved]);
+                return { value, label: labelsField?.values?.[i] || '', index: i + 1, sourceFragment: fragment };
+            })
+            .filter(({ value }) => value);
     }
 
     #getCtaKey(fragment, index) {

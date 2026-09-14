@@ -132,6 +132,12 @@ function getSettings(config = {}, service) {
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
+        aupSelect:
+            getParameter(
+                'aup-select',
+                { 'aup-select': service.getAttribute('aup-select') },
+                { search: true, storage: false },
+            ) === 'on',
         displayOldPrice,
         checkoutClientId,
         checkoutWorkflowStep,

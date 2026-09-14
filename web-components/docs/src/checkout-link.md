@@ -31,7 +31,7 @@ To route checkout links and buttons through the host's initialized `window.aupsd
 <meta name="aup-select" content="on" />
 ```
 
-Checkout reads the live boolean `service.settings.aupSelect` on each click. The settings layer resolves `aup-select` metadata through `getParameter`, falling back to the commerce service's `aup-select` attribute when metadata is absent:
+The commerce service resolves `service.settings.aupSelect` during initialization from `aup-select` metadata, falling back to its `aup-select` attribute when metadata is absent:
 
 ```html
 <mas-commerce-service aup-select="on"></mas-commerce-service>
@@ -39,9 +39,9 @@ Checkout reads the live boolean `service.settings.aupSelect` on each click. The 
 
 When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
 
-Only exact `on` enables routing; the default is disabled. The `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Query and metadata changes take effect on subsequent clicks without reinitializing the service. Removing the query parameter restores metadata or the service attribute; removing metadata restores the service attribute. Storage overrides are ignored.
+Only exact `on` enables routing; the default is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Storage overrides are ignored.
 
-AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Metadata and service attribute changes update rendered destinations; clicks also read the current query configuration. Disabling AUP restores the original destination. Perpetual offers, downloads, and links targeting another window retain their existing URLs.
+AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Perpetual offers, downloads, and links targeting another window retain their existing URLs.
 
 Command/Ctrl-click, other modified clicks, and middle-click do nothing on AUP-eligible CTAs. They neither launch AUP nor invoke the host's legacy checkout handler.
 

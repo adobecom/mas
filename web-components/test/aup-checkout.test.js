@@ -47,13 +47,13 @@ describe('aup-select checkout routing', () => {
         };
         window.aupsdk = sdk;
         legacy = sinon.spy((event) => event.preventDefault());
-        service = initMasCommerceService({}, () => ({ handler: legacy }));
         container = document.createElement('div');
         document.body.append(container);
         meta = document.createElement('meta');
         meta.name = 'aup-select';
         meta.content = 'on';
         document.head.append(meta);
+        service = initMasCommerceService({}, () => ({ handler: legacy }));
     });
 
     afterEach(async () => {
@@ -440,23 +440,6 @@ describe('aup-select checkout routing', () => {
         describe(Class.is, () => {
             const hrefAttribute = Class === CheckoutLink ? 'href' : 'data-href';
 
-            it('reads live configuration on each click', async () => {
-                const element = await create(Class);
-                click(element);
-                await element.aupCheckoutPromise;
-                expect(launch.calledOnce).to.be.true;
-                expect(legacy.called).to.be.false;
-
-                meta.content = 'off';
-                const legacyEvent = click(element);
-                expect(legacy.calledOnceWithExactly(legacyEvent)).to.be.true;
-
-                meta.content = 'on';
-                click(element);
-                await element.aupCheckoutPromise;
-                expect(launch.calledTwice).to.be.true;
-            });
-
             it('keeps the checkout URL for perpetual offers and download actions', async () => {
                 await service.registerCheckoutAction(() => undefined);
                 const perpetual = await create(Class, {
@@ -529,30 +512,6 @@ describe('aup-select checkout routing', () => {
                 await element.aupCheckoutPromise;
                 expect(launch.firstCall.args[0].intent).to.equal('try');
                 expect(launch.firstCall.args[0].params.ot).to.equal('TRIAL');
-            });
-
-            it('reads metadata at each click, including late insertion, replacement, and removal', async () => {
-                meta.remove();
-                const element = await create(Class);
-                click(element);
-                expect(legacy.callCount).to.equal(1);
-                document.head.append(meta);
-                click(element);
-                await element.aupCheckoutPromise;
-                expect(launch.callCount).to.equal(1);
-                meta.content = 'off';
-                click(element);
-                expect(legacy.callCount).to.equal(2);
-                const replacement = meta.cloneNode();
-                replacement.content = 'on';
-                meta.replaceWith(replacement);
-                meta = replacement;
-                click(element);
-                await element.aupCheckoutPromise;
-                expect(launch.callCount).to.equal(2);
-                meta.remove();
-                click(element);
-                expect(legacy.callCount).to.equal(3);
             });
 
             it('falls back synchronously when the host SDK is not ready, and uses it on a later click', async () => {
@@ -671,16 +630,12 @@ describe('aup-select checkout routing', () => {
                 click(element);
                 await opened.promise;
                 expect(launch.calledOnce).to.be.true;
-                meta.content = 'off';
-                click(element);
-                expect(legacy.calledOnce).to.be.true;
                 exit.resolve({ status: 'cancel' });
                 await element.aupCheckoutPromise;
-                meta.content = 'on';
                 click(element);
                 await element.aupCheckoutPromise;
                 expect(launch.calledTwice).to.be.true;
-                expect(legacy.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
             });
 
             for (const bypass of ['perpetual', 'pending', 'missing-sdk']) {
@@ -770,6 +725,8 @@ describe('aup-select checkout routing', () => {
     for (const value of ['', 'true', 'ON', 'off']) {
         it(`does not opt in for metadata value ${JSON.stringify(value)}`, async () => {
             meta.content = value;
+            removeMasCommerceService();
+            service = initMasCommerceService({}, () => ({ handler: legacy }));
             const element = await create();
             click(element);
             expect(sdk.getOrchestratorContext.called).to.be.false;
@@ -777,22 +734,23 @@ describe('aup-select checkout routing', () => {
         });
     }
 
-    it('routes using live commerce service configuration without metadata', async () => {
+    it('routes using commerce service initialization without metadata', async () => {
         meta.remove();
+        removeMasCommerceService();
+        service = initMasCommerceService({ 'aup-select': 'on' }, () => ({
+            handler: legacy,
+        }));
         const element = await create();
-        click(element);
-        expect(legacy.calledOnce).to.be.true;
-        service.setAttribute('aup-select', 'on');
         click(element);
         await element.aupCheckoutPromise;
         expect(launch.calledOnce).to.be.true;
-        service.setAttribute('aup-select', 'off');
-        click(element);
-        expect(legacy.calledTwice).to.be.true;
+        expect(legacy.called).to.be.false;
     });
 
     it('does not accept the old metadata name', async () => {
         meta.name = 'mas-select';
+        removeMasCommerceService();
+        service = initMasCommerceService({}, () => ({ handler: legacy }));
         const element = await create();
         click(element);
         expect(legacy.calledOnce).to.be.true;
@@ -825,6 +783,8 @@ describe('aup-select checkout routing', () => {
         }
         it(`preserves modified clicks with AUP disabled: ${JSON.stringify(init)}`, async () => {
             meta.content = 'off';
+            removeMasCommerceService();
+            service = initMasCommerceService({}, () => ({ handler: legacy }));
             const element = await create();
             const event = click(element, init);
             expect(legacy.calledOnceWithExactly(event)).to.be.true;

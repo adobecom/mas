@@ -393,9 +393,8 @@
 
                         await editorPanel.confirmDelete();
 
-                        expect(
-                            forceDeleteSpy.calledOnceWith(['/content/dam/mas/sandbox/en_US/promotions/summer/promo-fail']),
-                        ).to.be.true;
+                        expect(forceDeleteSpy.calledOnceWith(['/content/dam/mas/sandbox/en_US/promotions/summer/promo-fail']))
+                            .to.be.true;
                         expect(toastEmitSpy.calledWithMatch({ variant: 'warning' })).to.be.true;
                         expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
                     });

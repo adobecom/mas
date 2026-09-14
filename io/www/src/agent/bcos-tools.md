@@ -16,13 +16,13 @@ confirmed.
 GET /mas/io/agent?productName=<name>&locale=<locale>[&api_key=<key>][&pzn=<pzn>][&country=<country>]
 ```
 
-| Parameter | Required | Description |
-| --- | --- | --- |
-| `productName` | yes | Product intent resolved case-insensitively through the static product map. |
-| `locale` | yes | Locale passed to the `fragment` action. |
-| `api_key` | no | Passed to the `fragment` action when supplied. |
-| `pzn` | no | Pricing zone passed to the `fragment` action and echoed as `null` when omitted. |
-| `country` | no | Country passed to the `fragment` action. |
+| Parameter     | Required | Description                                                                     |
+| ------------- | -------- | ------------------------------------------------------------------------------- |
+| `productName` | yes      | Product intent resolved case-insensitively through the static product map.      |
+| `locale`      | yes      | Locale passed to the `fragment` action.                                         |
+| `api_key`     | no       | Passed to the `fragment` action when supplied.                                  |
+| `pzn`         | no       | Pricing zone passed to the `fragment` action and echoed as `null` when omitted. |
+| `country`     | no       | Country passed to the `fragment` action.                                        |
 
 `locale` and `country` come from the page's `mas-commerce-service` element — the
 web page (or BC agent) reads them there and passes them through. They are page
@@ -65,31 +65,31 @@ Fragment-level promotion codes follow the web-component compatibility rules:
 
 The action returns HTTP 200 with one JSON offer record.
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `fragment` | string | Resolved fragment ID. |
-| `productName` | string | Hydrated card title. |
-| `pzn` | string or null | Requested pricing zone. |
-| `badge` | string or null | Card badge text. |
-| `cta_label` | string or null | Authored CTA text; checkout URLs are not hydrated. |
-| `terms_url` | string or null | Authored offer-terms URL when present. |
-| `customer_segment` | string | Customer segment derived from fragment tags when present. |
-| `title` | string | Card title. |
-| `subtitle` | string | Card subtitle. |
-| `promoText` | string | Promotional copy. |
-| `shortDescription` | string | Short card description. |
-| `description` | string | Description after inline prices are hydrated and markup is stripped. |
-| `callout` | string | Card callout text. |
-| `promoPrice` | string | Main promotional display price. |
-| `regularPrice` | string | Main regular or strikethrough display price. |
-| `annualPrice` | string | Main annual display price when rendered. |
-| `planTypeText` | string | Authored plan-type text. |
-| `taxText` | string | Authored tax text. |
-| `recurrenceText` | string | Authored billing-frequency text. |
-| `unitText` | string | Authored unit text. |
-| `seeTermsInfo` | object | `{ analyticsId, href, text }` for the authored terms link. |
-| `renewalText` | string | Authored renewal text. |
-| `promoDurationText` | string | Authored promotion-duration text. |
+| Field               | Type           | Description                                                          |
+| ------------------- | -------------- | -------------------------------------------------------------------- |
+| `fragment`          | string         | Resolved fragment ID.                                                |
+| `productName`       | string         | Hydrated card title.                                                 |
+| `pzn`               | string or null | Requested pricing zone.                                              |
+| `badge`             | string or null | Card badge text.                                                     |
+| `cta_label`         | string or null | Authored CTA text; checkout URLs are not hydrated.                   |
+| `terms_url`         | string or null | Authored offer-terms URL when present.                               |
+| `customer_segment`  | string         | Customer segment derived from fragment tags when present.            |
+| `title`             | string         | Card title.                                                          |
+| `subtitle`          | string         | Card subtitle.                                                       |
+| `promoText`         | string         | Promotional copy.                                                    |
+| `shortDescription`  | string         | Short card description.                                              |
+| `description`       | string         | Description after inline prices are hydrated and markup is stripped. |
+| `callout`           | string         | Card callout text.                                                   |
+| `promoPrice`        | string         | Main promotional display price.                                      |
+| `regularPrice`      | string         | Main regular or strikethrough display price.                         |
+| `annualPrice`       | string         | Main annual display price when rendered.                             |
+| `planTypeText`      | string         | Authored plan-type text.                                             |
+| `taxText`           | string         | Authored tax text.                                                   |
+| `recurrenceText`    | string         | Authored billing-frequency text.                                     |
+| `unitText`          | string         | Authored unit text.                                                  |
+| `seeTermsInfo`      | object         | `{ analyticsId, href, text }` for the authored terms link.           |
+| `renewalText`       | string         | Authored renewal text.                                               |
+| `promoDurationText` | string         | Authored promotion-duration text.                                    |
 
 Optional string and object fields are omitted from serialized JSON when their
 value is unavailable.
@@ -98,13 +98,13 @@ Other non-excluded MAS tags may also appear as tag-derived top-level fields.
 
 ## Errors
 
-| Status | Condition |
-| --- | --- |
-| 400 | `productName` is missing. |
-| 400 | `locale` is missing. |
-| 404 | The product is not in the static product map. |
+| Status          | Condition                                         |
+| --------------- | ------------------------------------------------- |
+| 400             | `productName` is missing.                         |
+| 400             | `locale` is missing.                              |
+| 404             | The product is not in the static product map.     |
 | upstream status | The `fragment` action returns a non-200 response. |
-| 502 | Invoking the `fragment` action throws. |
+| 502             | Invoking the `fragment` action throws.            |
 
 ## BCOS registration
 

@@ -6,6 +6,8 @@ import Store from './store.js';
 import router from './router.js';
 import { AEM, filterByTags } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
+import { normalizeTagId } from './aem/tag-id-utils.js';
+import { getCachedTagTitle } from './aem/tag-cache.js';
 import Events from './events.js';
 import {
     debounce,
@@ -14,6 +16,7 @@ import {
     UserFriendlyError,
     extractLocaleFromPath,
     extractSurfaceFromPath,
+    getFragmentPartsToUse,
     isUUID,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
@@ -37,6 +40,7 @@ import {
     BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
+    TAG_MERCH_CARD,
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
@@ -65,6 +69,7 @@ import {
 } from './utils/variation-search.js';
 import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
+import { normalizeTitleForCompare, resolveUniqueTitle, splitBaseAndSuffix } from './common/utils/unique-title-utils.js';
 
 let fragmentCache;
 
@@ -317,6 +322,98 @@ export class MasRepository extends LitElement {
             }
         }
         return fragments;
+    }
+
+    /**
+     * Computes the composite "Path" shown in the Studio content table (e.g. "SANDBOX / Catalog")
+     * for a merch-card, so duplicate-title checks can be scoped to cards sharing that same Path.
+     * Returns null when the input isn't a card or the composite can't be derived, so callers fail
+     * open instead of mis-scoping the check.
+     * @param {object} cardLike - Fragment instance, raw AEM fragment data, or a { model, fields, tags } probe
+     * @returns {string|null}
+     */
+    #cardTagPath(cardLike) {
+        const surfacePath = this.search.value.path;
+        if (!surfacePath || cardLike?.model?.path !== CARD_MODEL_PATH) return null;
+        try {
+            const probe = typeof cardLike?.getField === 'function' ? cardLike : new Fragment(cardLike);
+            return getFragmentPartsToUse(probe, surfacePath).fragmentParts || null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Normalizes raw tag ids (or already-resolved tag objects) into `{ id, title }` pairs so
+     * `#cardTagPath` can compute a card's tag Path before it has been persisted, falling back to
+     * the in-memory tag taxonomy cache for a title when one isn't already known.
+     */
+    #normalizeTagsForProbe(rawTags = []) {
+        return rawTags
+            .map((rawTag) => {
+                const id = normalizeTagId(rawTag?.id ?? rawTag);
+                if (!id) return null;
+                return { id, title: rawTag?.title ?? getCachedTagTitle(id) };
+            })
+            .filter(Boolean);
+    }
+
+    /**
+     * Fail-open lookup for existing card titles sharing `tagPath`. Never rethrows and never
+     * calls processError: any failure, abort, or timeout must let the save proceed with the
+     * title as typed rather than block the author.
+     * @returns {Promise<string[]|null>} taken titles in the same tag Path, or null when unknown
+     */
+    async #findTakenTitlesInTagPath({ typedTitle, tagPath, excludeIds = [], timeoutMs = 8000 }) {
+        if (!tagPath) return null;
+        const { base } = splitBaseAndSuffix(typedTitle);
+        if (!base) return null;
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const results = await this.searchFragmentList(
+                {
+                    path: this.parentPath,
+                    modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD]],
+                    query: base,
+                },
+                50,
+                controller,
+            );
+            return results
+                .filter((fragment) => !excludeIds.includes(fragment.id) && !excludeIds.includes(fragment.path))
+                .filter((fragment) => this.#cardTagPath(fragment) === tagPath)
+                .map((fragment) => fragment.title)
+                .filter(Boolean);
+        } catch {
+            return null;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    /**
+     * Resolves the title to persist for a card create/save/clone. Titles unique within their
+     * tag Path and unchanged re-saves pass through untouched; a taken title gets the lowest free
+     * `-#` suffix. Never blocks the save: an unknown/failed lookup returns the typed title as-is.
+     * @returns {Promise<{ finalTitle: string, adjusted: boolean }>}
+     */
+    async #resolveTitleForSave({ typedTitle, tagPath, excludeIds = [], previousTitle }) {
+        const typed = (typedTitle || '').trim();
+        if (!typed) return { finalTitle: typedTitle, adjusted: false };
+        if (previousTitle !== undefined && normalizeTitleForCompare(previousTitle) === normalizeTitleForCompare(typed)) {
+            return { finalTitle: typed, adjusted: false };
+        }
+
+        const takenTitles = await this.#findTakenTitlesInTagPath({ typedTitle: typed, tagPath, excludeIds });
+        if (takenTitles === null) return { finalTitle: typed, adjusted: false };
+
+        const { finalTitle, adjusted } = resolveUniqueTitle(typed, takenTitles);
+        if (adjusted) {
+            showToast(`A card named "${typed}" already exists in this path. Saved as "${finalTitle}".`);
+        }
+        return { finalTitle, adjusted };
     }
 
     #skipVariant(variants, item) {
@@ -1322,8 +1419,18 @@ export class MasRepository extends LitElement {
 
             const fields = this.createFieldsFromData(data, fragmentData.fields || []);
 
+            const cardModelPath = fragmentData.modelId === TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD] ? CARD_MODEL_PATH : null;
+            const probeTags = this.#normalizeTagsForProbe(tagsToSave ?? data?.tags ?? []);
+            const tagPath = this.#cardTagPath({
+                model: { path: cardModelPath },
+                fields: fragmentData.fields || [],
+                tags: probeTags,
+            });
+            const { finalTitle } = await this.#resolveTitleForSave({ typedTitle: fragmentData.title, tagPath });
+
             const result = await this.aem.sites.cf.fragments.create({
                 ...fragmentData,
+                title: finalTitle,
                 description: fragmentData.description || '',
                 fields,
                 parentPath: fragmentData.parentPath || this.parentPath,
@@ -1412,6 +1519,17 @@ export class MasRepository extends LitElement {
                     () => this.loadPromotions(),
                 );
             }
+            if (!parentFragment) {
+                // Variations intentionally share their parent's title; only top-level cards are checked.
+                const { finalTitle } = await this.#resolveTitleForSave({
+                    typedTitle: fragmentToSave.title,
+                    tagPath: this.#cardTagPath(fragmentToSave),
+                    excludeIds: [fragment.id, fragment.path],
+                    previousTitle: fragment.initialValue?.title,
+                });
+                fragmentToSave.title = finalTitle;
+            }
+
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
             if (!savedFragment) throw new Error('Invalid fragment.');
 
@@ -1483,10 +1601,23 @@ export class MasRepository extends LitElement {
                 result.fields = [];
             }
             const needsCompatSave = ensureCompatVersionOnMerchCardFieldList(result.model?.path, result.fields);
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi || needsCompatSave;
+
+            const probeTagIds = tags.length ? tags : result.tags || [];
+            const tagPath = this.#cardTagPath({
+                model: result.model,
+                fields: result.fields,
+                tags: this.#normalizeTagsForProbe(probeTagIds),
+            });
+            const { finalTitle } = await this.#resolveTitleForSave({
+                typedTitle: updatedTitle || result.title,
+                tagPath,
+                excludeIds: [result.id, result.path],
+            });
+
+            const needsSave = (finalTitle && finalTitle !== result.title) || osi || needsCompatSave;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
+                if (finalTitle && finalTitle !== result.title) {
+                    result.title = finalTitle;
                 }
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {

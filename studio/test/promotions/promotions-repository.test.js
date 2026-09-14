@@ -771,6 +771,31 @@ describe('promotions-repository', () => {
             expect(repository.aem.tags.delete.called).to.be.false;
         });
 
+        it('does not throw or roll back the already-created project when discovering attached promo variations fails entirely', async () => {
+            const sourcePromotion = {
+                ...makeSourcePromotion(),
+                getFieldValues: sandbox.stub().throws(new Error('boom')),
+            };
+            const repository = {
+                createFragment: sandbox.stub().resolves({ id: 'new-promo-1' }),
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                aem: {
+                    sites: { cf: { fragments: { search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
+            };
+
+            const result = await duplicatePromotionProject(repository, sourcePromotion, {
+                title: 'Black Friday copy',
+                duplicateVariations: true,
+            });
+
+            expect(result.newPromotion).to.deep.equal({ id: 'new-promo-1' });
+            expect(result.failedVariations).to.have.lengthOf(1);
+            expect(result.failedVariations[0].error.message).to.equal('boom');
+            expect(repository.aem.tags.delete.called).to.be.false;
+        });
+
         it('reports a variation whose default fragment cannot be resolved via failedVariations, instead of silently skipping it', async () => {
             const search = makeSearchStub({
                 [promoFolder]: [

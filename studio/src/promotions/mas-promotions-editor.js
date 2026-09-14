@@ -1025,6 +1025,9 @@ class MasPromotionsEditor extends LitElement {
         if (this.promotionPublish) {
             disabled.add(QUICK_ACTION.UNPUBLISH);
         }
+        if (this.duplicating) {
+            disabled.add(QUICK_ACTION.DUPLICATE);
+        }
         return disabled;
     }
 

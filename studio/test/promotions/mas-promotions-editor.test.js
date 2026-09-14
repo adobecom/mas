@@ -5,7 +5,14 @@ import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
-import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    EVENT_OST_OFFER_SELECT,
+    PAGE_NAMES,
+    QUICK_ACTION,
+    TABLE_TYPE,
+    TAG_PROMOTION_PREFIX,
+} from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
 import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
@@ -1764,6 +1771,23 @@ describe('MasPromotionsEditor', () => {
             Store.promotions.list.data.removeMeta('listFetched');
             Store.promotions.promotionId.set(null);
             Store.promotions.selectedCards.set([]);
+        });
+
+        it('disables the Duplicate quick action while a duplication is in progress', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+
+            expect(el.disabledPromotionQuickActions.has(QUICK_ACTION.DUPLICATE)).to.be.false;
+
+            el.duplicating = true;
+            await el.updateComplete;
+            expect(el.disabledPromotionQuickActions.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+
+            el.duplicating = false;
+            await el.updateComplete;
+            expect(el.disabledPromotionQuickActions.has(QUICK_ACTION.DUPLICATE)).to.be.false;
         });
 
         it('loads the promotions list before opening the dialog on a cold-start session (list not fetched yet)', async () => {

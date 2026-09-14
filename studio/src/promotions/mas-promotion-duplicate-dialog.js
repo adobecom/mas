@@ -56,8 +56,12 @@ class MasPromotionDuplicateDialog extends LitElement {
         return isPromotionTitleTaken(this.resolvedTitle, this.existingTitles);
     }
 
+    #isTitleInvalidFor(titleTaken) {
+        return !normalizeKey(this.resolvedTitle?.trim()) || titleTaken;
+    }
+
     get isTitleInvalid() {
-        return !normalizeKey(this.resolvedTitle?.trim()) || this.isTitleTaken;
+        return this.#isTitleInvalidFor(this.isTitleTaken);
     }
 
     confirm() {
@@ -89,7 +93,7 @@ class MasPromotionDuplicateDialog extends LitElement {
     render() {
         if (!this.open) return nothing;
         const titleTaken = this.isTitleTaken;
-        const titleInvalid = !normalizeKey(this.resolvedTitle?.trim()) || titleTaken;
+        const titleInvalid = this.#isTitleInvalidFor(titleTaken);
         return html`
             <sp-dialog-wrapper
                 open

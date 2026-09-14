@@ -340,7 +340,12 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
 
     let failedVariations = [];
     if (duplicateVariations && newPromoTagId) {
-        failedVariations = await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+        try {
+            failedVariations = await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+        } catch (error) {
+            console.error('Error cloning attached promo variations:', error);
+            failedVariations = [{ path: 'attached promo variations', error }];
+        }
     }
     return { newPromotion, failedVariations };
 }

@@ -959,7 +959,9 @@ export class MerchCard extends LitElement {
         return this.querySelector('[slot="price"]');
     }
 
-    handleAddonAndQuantityUpdate({ detail: { id, items } }) {
+    handleAddonAndQuantityUpdate({
+        detail: { id, items, productArrangementCode },
+    }) {
         if (!id || !items?.length) return;
         const parentTab = this.closest('[role="tabpanel"][hidden="true"]');
         if (parentTab) return;
@@ -968,8 +970,9 @@ export class MerchCard extends LitElement {
             (link) => link.getAttribute('data-modal-id') === id,
         );
         if (!cta) return;
-        const url = new URL(cta.getAttribute('href'));
-        const pa = url.searchParams.get('pa');
+        const pa =
+            productArrangementCode ?? cta.value?.[0]?.productArrangementCode;
+        if (!pa) return;
         const mainProductQuantity = items.find(
             (item) => item.productArrangementCode === pa,
         )?.quantity;

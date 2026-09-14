@@ -359,7 +359,7 @@ async function seedLocaleTracking(projectId, translationData = {}, submittedAt, 
     await patchProjectSummary(
         projectId,
         { locales: buildInitialLocaleProgress(locales, itemsToTranslate) },
-        { params, updatedAt: submittedAt },
+        { params, updatedAt: new Date().toISOString() },
     );
 }
 

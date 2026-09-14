@@ -638,8 +638,9 @@ describe('Translation project-start worker', function () {
                     total: 1,
                 },
             },
-            { params: {}, updatedAt: '2026-01-01T00:00:00.000Z' },
+            { params: {}, updatedAt: sinon.match.string },
         );
+        expect(patchProjectSummary.lastCall.args[2].updatedAt).to.not.equal('2026-01-01T00:00:00.000Z');
     });
 
     it('should log a warning and not throw when seeding locale tracking fails', async () => {

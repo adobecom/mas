@@ -21,15 +21,6 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
     t: 'TEAM',
 };
 let aupCheckoutPending = false;
-const checkoutElements = new Set();
-let checkoutAupSelect;
-const updateCheckoutUrls = () => {
-    const aupSelect = getService()?.settings?.aupSelect;
-    if (aupSelect === checkoutAupSelect) return;
-    checkoutAupSelect = aupSelect;
-    checkoutElements.forEach((element) => element.updateCheckoutUrl(aupSelect));
-};
-const checkoutSettingsObserver = new MutationObserver(updateCheckoutUrls);
 
 export function createCheckoutElement(Class, options = {}, innerHTML = '') {
     const service = getService();
@@ -86,24 +77,6 @@ export function CheckoutMixin(Base) {
             this.masElement.connectedCallback();
             this.addEventListener('click', this.clickHandler);
             this.addEventListener('auxclick', this.handleAupModifiedClick);
-            if (!checkoutElements.size) {
-                checkoutAupSelect = getService()?.settings?.aupSelect;
-                checkoutSettingsObserver.observe(document.head, {
-                    subtree: true,
-                    childList: true,
-                    attributes: true,
-                    attributeFilter: ['name', 'content', 'aup-select'],
-                });
-                const service = getService();
-                if (service) {
-                    checkoutSettingsObserver.observe(service, {
-                        attributes: true,
-                        attributeFilter: ['aup-select'],
-                    });
-                }
-                window.addEventListener('popstate', updateCheckoutUrls);
-            }
-            checkoutElements.add(this);
             this.updateCheckoutUrl();
         }
 
@@ -111,11 +84,6 @@ export function CheckoutMixin(Base) {
             this.masElement.disconnectedCallback();
             this.removeEventListener('click', this.clickHandler);
             this.removeEventListener('auxclick', this.handleAupModifiedClick);
-            checkoutElements.delete(this);
-            if (!checkoutElements.size) {
-                checkoutSettingsObserver.disconnect();
-                window.removeEventListener('popstate', updateCheckoutUrls);
-            }
         }
 
         onceSettled() {

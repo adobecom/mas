@@ -440,32 +440,21 @@ describe('aup-select checkout routing', () => {
         describe(Class.is, () => {
             const hrefAttribute = Class === CheckoutLink ? 'href' : 'data-href';
 
-            it('renders # for AUP and restores the checkout URL as live configuration changes', async () => {
-                await service.registerCheckoutAction(() => undefined);
+            it('reads live configuration on each click', async () => {
                 const element = await create(Class);
-                const url = element.checkoutUrl;
-                expect(url).to.include('https://');
-                expect(element.getAttribute(hrefAttribute)).to.equal('#');
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
+
                 meta.content = 'off';
-                await Promise.resolve();
-                expect(element.getAttribute(hrefAttribute)).to.equal(url);
-                meta.remove();
-                service.setAttribute('aup-select', 'on');
-                await Promise.resolve();
-                expect(element.getAttribute(hrefAttribute)).to.equal('#');
-                service.removeAttribute('aup-select');
-                await Promise.resolve();
-                expect(element.getAttribute(hrefAttribute)).to.equal(url);
+                const legacyEvent = click(element);
+                expect(legacy.calledOnceWithExactly(legacyEvent)).to.be.true;
+
                 meta.content = 'on';
-                document.head.append(meta);
-                await Promise.resolve();
-                expect(element.getAttribute(hrefAttribute)).to.equal('#');
-                const replacement = meta.cloneNode();
-                replacement.content = 'off';
-                meta.replaceWith(replacement);
-                meta = replacement;
-                await Promise.resolve();
-                expect(element.getAttribute(hrefAttribute)).to.equal(url);
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledTwice).to.be.true;
             });
 
             it('keeps the checkout URL for perpetual offers and download actions', async () => {
@@ -800,19 +789,6 @@ describe('aup-select checkout routing', () => {
         service.setAttribute('aup-select', 'off');
         click(element);
         expect(legacy.calledTwice).to.be.true;
-    });
-
-    it('re-syncs checkout hrefs on browser back/forward', async () => {
-        const element = await create();
-        expect(element.getAttribute('href')).to.equal('#');
-        const { pathname, search } = window.location;
-        history.pushState(null, '', `${pathname}?aup-select=off`);
-        try {
-            window.dispatchEvent(new PopStateEvent('popstate'));
-            expect(element.getAttribute('href')).to.not.equal('#');
-        } finally {
-            history.replaceState(null, '', pathname + search);
-        }
     });
 
     it('does not accept the old metadata name', async () => {

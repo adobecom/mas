@@ -1,4 +1,4 @@
-import { toBoolean } from '@dexter/tacocat-core';
+import { toBoolean } from '@dexter/tacocat-core/src/utilities.js';
 
 import {
     cssClassNames as templateCssClassNames,

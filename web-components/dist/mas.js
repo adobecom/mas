@@ -11797,6 +11797,7 @@ merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-p
   display: inline;
 }
 
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough span {
   color: #ff0000;
 }

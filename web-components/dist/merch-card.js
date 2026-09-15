@@ -3512,7 +3512,7 @@ merch-card[variant^="plans"] [slot="footer"] .con-button > span {
     min-width: unset;
 }
 
-merch-card[variant^="plans"] merch-addon p[data-plan-type] span[data-template="price"] {
+merch-card[variant^="plans"] merch-addon span[data-template="price"] {
     display: none;
 }
 

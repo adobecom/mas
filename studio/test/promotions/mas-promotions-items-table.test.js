@@ -1884,6 +1884,59 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.selectedCards.set([]);
         });
 
+        it('keeps the card own promo variation when the bulk probe fails even though a selected grouped variation gets a fresh (empty) re-probe', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* (query) {
+                if (query?.path !== promoFolder) {
+                    yield [];
+                    return;
+                }
+                searchCallCount += 1;
+                if (searchCallCount === 1) {
+                    yield [{ id: 'existing-var-id', path: promoVariationPath }];
+                    return;
+                }
+                if (searchCallCount === 2) {
+                    throw new Error('bulk probe network blip');
+                }
+                yield [];
+            });
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: { search },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
+
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
         it('shows error toast when createPromoVariation fails', async () => {
             const toastStub = sandbox.stub(Events.toast, 'emit');
             setupPromotionInEdit();

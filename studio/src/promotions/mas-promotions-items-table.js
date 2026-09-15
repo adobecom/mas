@@ -270,11 +270,11 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #probeAllPromoVariations(paths) {
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return { map: new Map(), failed: false };
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
         try {
-            return { map: await probePromoVariationsForFragments(this.repository.aem, paths, promoTag), failed: false };
+            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
         } catch {
-            return { map: new Map(), failed: true };
+            return new Map();
         }
     }
 
@@ -330,8 +330,7 @@ class MasPromotionsItemsTable extends LitElement {
         const geosByPath = new Map(scopedEntries(previousGeos));
         const variationsByPath = new Map(scopedEntries(previousVariations));
         const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
-        const initialProbe = (await this.#promoVariationProbe) ?? { map: new Map(), failed: false };
-        const probedByPath = initialProbe.map;
+        const probedByPath = (await this.#promoVariationProbe) ?? new Map();
         const selectedGroupedVariationPaths = new Set(getItemsSelectionStore().selectedCards.value);
         const preservePrevious = (path) => {
             if (previousGeos.has(path)) {
@@ -362,8 +361,8 @@ class MasPromotionsItemsTable extends LitElement {
                 }
                 if (signal.aborted) return;
                 if (!allVariations.length) {
-                    //  Empty result is only trustworthy if this item had its own fresh probe, not just the (possibly failed) bulk one.
-                    if (initialProbe.failed && !missingPaths.length) {
+                    // Trust an empty result only if this item's own path was actually probed.
+                    if (!probedByPath.has(item.path)) {
                         preservePrevious(item.path);
                     } else {
                         geosByPath.delete(item.path);

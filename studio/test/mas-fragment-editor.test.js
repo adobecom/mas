@@ -1104,10 +1104,8 @@ describe('MasFragmentEditor', () => {
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
-                removeFromParentVariations: sandbox.stub().resolves(),
-                forceDeletePromoVariations: sandbox.stub().resolves([]),
+                deleteVariationFragment: sandbox.stub().resolves({ deleted: true, failedVariations: [] }),
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);
             // Bypass structuredClone
@@ -1125,38 +1123,23 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.deleteFragmentWithVariations.calledOnce).to.be.true;
         });
 
-        it('confirms delete for variation via the reference-aware delete (no force) when it succeeds', async () => {
+        it('delegates variation delete to the repository with the locale default parent and staged promo variations', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
+
             await el.confirmDelete();
-            expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
+
             expect(
-                mockRepo.deleteFragment.calledOnceWith(sinon.match.object, {
-                    startToast: false,
-                    endToast: false,
+                mockRepo.deleteVariationFragment.calledOnceWith(sinon.match.object, {
+                    localeDefaultFragment: { id: 'parent' },
+                    promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
                 }),
             ).to.be.true;
         });
 
-        it('falls back to force delete for a variation only when the reference-aware delete fails', async () => {
-            mockRepo.deleteFragment = sandbox.stub();
-            mockRepo.deleteFragment.onFirstCall().resolves(false);
-            mockRepo.deleteFragment.onSecondCall().resolves(true);
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
-            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
-            await el.confirmDelete();
-            expect(mockRepo.deleteFragment.callCount).to.equal(2);
-            expect(
-                mockRepo.deleteFragment.secondCall.calledWith(sinon.match.object, {
-                    force: true,
-                    startToast: false,
-                    endToast: false,
-                }),
-            ).to.be.true;
-        });
-
-        it('shows a failure toast and does not navigate away when both delete attempts fail for a variation', async () => {
-            mockRepo.deleteFragment = sandbox.stub().resolves(false);
+        it('shows a failure toast and does not navigate away when the repository reports the delete failed', async () => {
+            mockRepo.deleteVariationFragment = sandbox.stub().resolves({ deleted: false, failedVariations: [] });
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
             const navigateSpy = sandbox.stub().resolves();
@@ -1165,7 +1148,6 @@ describe('MasFragmentEditor', () => {
 
             await el.confirmDelete();
 
-            expect(mockRepo.deleteFragment.callCount).to.equal(2);
             expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
             expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
             expect(navigateSpy.called).to.be.false;
@@ -1214,33 +1196,33 @@ describe('MasFragmentEditor', () => {
             expect(el.variationsToDelete).to.deep.equal([]);
         });
 
-        it('force-deletes staged promo variations when confirming delete of a grouped variation', async () => {
+        it('stages promo variations to delete when confirming delete of a grouped variation', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
-            mockRepo.forceDeletePromoVariations = sandbox.stub().resolves([]);
             el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
 
             await el.confirmDelete();
 
             expect(
-                mockRepo.forceDeletePromoVariations.calledOnceWith([
-                    '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
-                ]),
+                mockRepo.deleteVariationFragment.calledOnceWith(sinon.match.object, {
+                    localeDefaultFragment: { id: 'parent' },
+                    promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+                }),
             ).to.be.true;
         });
 
         it('warns instead of claiming success when a staged promo variation fails to force-delete', async () => {
+            mockRepo.deleteVariationFragment = sandbox.stub().resolves({
+                deleted: true,
+                failedVariations: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
-            mockRepo.forceDeletePromoVariations = sandbox
-                .stub()
-                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment']);
             el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
             const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
 
             await el.confirmDelete();
 
-            expect(mockRepo.deleteFragment.called).to.be.true;
             expect(toastEmitSpy.calledWithMatch({ variant: 'warning' })).to.be.true;
             expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
         });

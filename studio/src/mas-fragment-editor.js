@@ -1580,36 +1580,22 @@ export default class MasFragmentEditor extends LitElement {
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
-                if (localeDefaultFragment) {
-                    await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
-                }
-                const failedPromoVariations = await this.repository.forceDeletePromoVariations(this.variationsToDelete);
-                let deleted = await this.repository.deleteFragment(this.fragment, {
-                    startToast: false,
-                    endToast: false,
+                const { deleted, failedVariations } = await this.repository.deleteVariationFragment(this.fragment, {
+                    localeDefaultFragment,
+                    promoVariationPaths: this.variationsToDelete,
                 });
-                if (!deleted) {
-                    deleted = await this.repository.deleteFragment(this.fragment, {
-                        force: true,
-                        startToast: false,
-                        endToast: false,
-                    });
-                }
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
                     this.deleteInProgress = false;
                     return;
                 }
-                if (failedPromoVariations.length > 0) {
-                    showToast(
-                        `Fragment deleted but ${failedPromoVariations.length} promo variation(s) failed to delete`,
-                        'warning',
-                    );
+                if (failedVariations.length > 0) {
+                    showToast(`Fragment deleted but ${failedVariations.length} promo variation(s) failed to delete`, 'warning');
                 } else {
                     showToast('Fragment successfully deleted.', 'positive');
                 }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
             }
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');

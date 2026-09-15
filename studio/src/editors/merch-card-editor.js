@@ -1906,10 +1906,8 @@ class MerchCardEditor extends LitElement {
                         .value=${form.ctas.values[0] || ''}
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
-                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(this.fragment.variant)}
-                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(this.fragment.variant)
-                            ? 'primary'
-                            : 'primary-outline'}"
+                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)}
+                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? 'primary' : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}

@@ -1868,7 +1868,11 @@ export class MasRepository extends LitElement {
             return { deleted: false, failedVariations: [] };
         }
         if (localeDefaultFragment) {
-            await this.removeFromParentVariations(localeDefaultFragment, fragment.path);
+            try {
+                await this.removeFromParentVariations(localeDefaultFragment, fragment.path);
+            } catch (error) {
+                console.error('Failed to remove variation from parent variations field:', error);
+            }
         }
         const failedVariations = await this.forceDeletePromoVariations(promoVariationPaths);
         return { deleted, failedVariations };

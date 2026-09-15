@@ -217,7 +217,7 @@ class MasPromotionsItemsTable extends LitElement {
             return;
         }
         const paths = this.selectedPaths;
-        const key = paths.slice().sort().join('|');
+        const key = `${this.#promotionTagId ?? ''}|${paths.slice().sort().join('|')}`;
         if (key === this.#loadedPathsKey) return;
         this.#loadedPathsKey = key;
         this.#loadSelected(paths);

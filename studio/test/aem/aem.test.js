@@ -34,6 +34,54 @@ describe('aem.js', () => {
         });
     });
 
+    describe('searchFragment status filter', () => {
+        function captureQuery() {
+            const captured = {};
+            window.fetch = async (url) => {
+                const params = new URLSearchParams(url.split('?')[1]);
+                captured.query = JSON.parse(params.get('query'));
+                return { ok: true, status: 200, json: async () => ({ items: [], cursor: null }) };
+            };
+            return captured;
+        }
+
+        let originalFetch;
+        beforeEach(() => {
+            originalFetch = window.fetch;
+        });
+        afterEach(() => {
+            window.fetch = originalFetch;
+        });
+
+        it('serializes an array of statuses verbatim', async () => {
+            const captured = captureQuery();
+            const cursor = aem.sites.cf.fragments.search({ path: '/x', status: ['DRAFT', 'NEW'] });
+            await cursor.next();
+            expect(captured.query.filter.status).to.deep.equal(['DRAFT', 'NEW']);
+        });
+
+        it('wraps a single string status into an array', async () => {
+            const captured = captureQuery();
+            const cursor = aem.sites.cf.fragments.search({ path: '/x', status: 'PUBLISHED' });
+            await cursor.next();
+            expect(captured.query.filter.status).to.deep.equal(['PUBLISHED']);
+        });
+
+        it('omits the status key when the array is empty', async () => {
+            const captured = captureQuery();
+            const cursor = aem.sites.cf.fragments.search({ path: '/x', status: [] });
+            await cursor.next();
+            expect(captured.query.filter).to.not.have.property('status');
+        });
+
+        it('omits the status key when status is undefined', async () => {
+            const captured = captureQuery();
+            const cursor = aem.sites.cf.fragments.search({ path: '/x' });
+            await cursor.next();
+            expect(captured.query.filter).to.not.have.property('status');
+        });
+    });
+
     describe('method: searchFragment', () => {
         it('should fetch content fragments with multiple calls', async () => {
             window.fetch = async (url) => {

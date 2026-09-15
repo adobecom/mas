@@ -355,6 +355,7 @@ export function normalizePromotionOfferData(offer, productArrangementCode) {
  */
 export function buildPromotionOfferRecord(offerSelectorId, offer, productArrangementCode) {
     const offerData = normalizePromotionOfferData(offer, productArrangementCode);
+    offerData.offerSelectorIds = [offerSelectorId];
     const tags = buildOfferTags(offer, offerData.product_arrangement_code);
     const mnemonicIcon = resolveOfferMnemonicIconUrl(offer);
     const fields = mnemonicIcon ? [{ name: 'mnemonicIcon', values: [mnemonicIcon] }] : [];

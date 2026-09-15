@@ -388,20 +388,17 @@ describe('MasPromotionsItemsTable', () => {
         expect(cells[0].textContent.trim()).to.equal('-');
     });
 
-    it('#renderDefaultOsiCell renders comma-joined offerSelectorIds with a copy button', async () => {
+    it('#renderDefaultOsiCell renders offerSelectorIds from a resolved offer record with a copy button', async () => {
         Store.promotions.selectedOffers.set(['osi-multi']);
-        Store.promotions.offerRecordsCache.set('osi-multi', {
-            path: 'osi-multi',
-            id: 'osi-multi',
-            offerData: { offerSelectorIds: ['osi-multi', 'osi-multi-2'] },
-            tags: [],
-            fields: [],
-        });
+        Store.promotions.offerRecordsCache.set(
+            'osi-multi',
+            buildPromotionOfferRecord('osi-multi', { product_code: 'PHSP', offer_id: 'wcs-1' }),
+        );
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
         const cells = el.shadowRoot.querySelectorAll('sp-table-row[value="osi-multi"] .offer-id-cell');
         const defaultOsiCell = cells[1];
-        expect(defaultOsiCell.textContent).to.include('osi-multi, osi-multi-2');
+        expect(defaultOsiCell.textContent).to.include('osi-multi');
         expect(defaultOsiCell.querySelector('sp-action-button[aria-label="Copy default OSI to clipboard"]')).to.exist;
     });
 

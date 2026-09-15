@@ -798,7 +798,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     #buildGroupRows(offer, groups, groupType, fieldName, valueKey = fieldName) {
         return groups.map((group, index) => {
-            const countries = [...group.countries].sort((a, b) => a.localeCompare(b)).map((country) => country.toUpperCase());
+            const countries = group.countries.map((country) => country.toUpperCase()).sort((a, b) => a.localeCompare(b));
             return {
                 ...offer,
                 groupType,

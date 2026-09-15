@@ -27,13 +27,14 @@ export const features = [
     },
     {
         tcid: '2',
-        name: '@MAS-BrandConcierge-no-badge-card',
+        name: '@MAS-BrandConcierge-second-card',
         path: DOCS_GALLERY_PATH.BRAND_CONCIERGE,
         data: {
             id: 'ce25f8f8-f8a3-4567-9af8-aee76c1dd96b',
             variant: 'brand-concierge-product',
-            title: 'Adobe Premiere Pro',
-            description: 'Professional video and film editing.',
+            title: 'Photoshop',
+            badge: 'Save 50%',
+            description: 'Get 20+ apps, including Photoshop, Illustrator, and Premiere',
             cta: 'Buy now',
         },
         tags: '@mas-docs @mas-brand-concierge @commerce @smoke @regression @milo',

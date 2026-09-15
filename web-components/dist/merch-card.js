@@ -10109,6 +10109,12 @@ merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-alternative {
     display: block;
 }
 
+merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-strikethrough {
+    font-weight: 700;
+    text-decoration: line-through;
+    color: #5c5c5c;
+}
+
 merch-card[variant="uber-pricing"] span[data-template="legal"] {
     display: block;
     font-style: italic;

@@ -561,7 +561,8 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        const fieldVariations = this.fragment?.getVariations() || [];
+        const isVariation = this.fragment && this.editorContextStore.isVariation(this.fragment.id);
+        const fieldVariations = !isVariation && this.fragment ? this.fragment.getVariations() : [];
         let promoVariationPaths = [];
         if (this.fragment) {
             try {
@@ -580,31 +581,25 @@ export default class EditorPanel extends LitElement {
         this.showDeleteDialog = false;
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
-                let parent = this.localeDefaultFragment;
-                if (!parent) {
-                    parent = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                let localeDefaultFragment = this.localeDefaultFragment;
+                if (!localeDefaultFragment) {
+                    localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 }
-                if (parent) {
-                    await this.repository.removeFromParentVariations(parent, this.fragment.path);
-                }
-                let deleted = await this.repository.deleteFragment(this.fragment, {
-                    startToast: false,
-                    endToast: false,
+                const { deleted, failedVariations } = await this.repository.deleteVariationFragment(this.fragment, {
+                    localeDefaultFragment,
+                    promoVariationPaths: this.variationsToDelete,
                 });
-                if (!deleted) {
-                    deleted = await this.repository.deleteFragment(this.fragment, {
-                        force: true,
-                        startToast: false,
-                        endToast: false,
-                    });
-                }
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
                     return;
                 }
-                showToast('Fragment successfully deleted.', 'positive');
+                if (failedVariations.length > 0) {
+                    showToast(`Fragment deleted but ${failedVariations.length} promo variation(s) failed to delete`, 'warning');
+                } else {
+                    showToast('Fragment successfully deleted.', 'positive');
+                }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
             }
             this.#closeEditorAfterDelete();
         } catch (error) {

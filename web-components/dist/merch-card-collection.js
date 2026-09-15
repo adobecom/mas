@@ -9398,16 +9398,21 @@ merch-card-collection.uber-pricing {
     gap: 8px;
 }
 
-/* MD: 2 columns. */
+/* MD: 2 columns. Studio uses <merch-card-collection>; milo/preview wraps cards
+   in .N-merch-cards grid containers, so both selector families are covered. */
 @media screen and ${L} {
-    merch-card-collection.uber-pricing {
+    merch-card-collection.uber-pricing,
+    .two-merch-cards:has(merch-card[variant='uber-pricing']),
+    .three-merch-cards:has(merch-card[variant='uber-pricing']),
+    .four-merch-cards:has(merch-card[variant='uber-pricing']) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 /* LG/XL: 4 columns. */
 @media screen and ${Xe} {
-    merch-card-collection.uber-pricing {
+    merch-card-collection.uber-pricing,
+    .four-merch-cards:has(merch-card[variant='uber-pricing']) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }

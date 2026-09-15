@@ -357,7 +357,8 @@ export const styles = [
             }
         }
 
-        .duplicating-overlay {
+        .duplicating-overlay,
+        .publishing-overlay {
             position: fixed;
             inset: 0;
             display: flex;

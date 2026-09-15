@@ -1625,6 +1625,11 @@ class MasPromotionsEditor extends LitElement {
                       <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
                   </div>`
                 : nothing}
+            ${this.promotionPublish
+                ? html`<div class="publishing-overlay">
+                      <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                  </div>`
+                : nothing}
             <mas-promotion-duplicate-dialog
                 .open=${this.duplicateDialogOpen}
                 .proposedTitle=${this.#duplicateProposedTitle}

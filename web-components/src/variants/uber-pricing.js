@@ -13,14 +13,9 @@ const SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs'];
 export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     mnemonics: { size: 'l' },
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
-    allowedBadgeColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-gray-700-plans',
-        'spectrum-green-900-plans',
-        'gradient-purple-blue',
-    ],
+    // Badge is plain white text on the black header strip; the merch-badge pill
+    // styling is stripped in uber-pricing.css.js (no color variants / border).
+    badge: { tag: 'div', slot: 'badge' },
     title: { tag: 'h3', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
@@ -130,15 +125,14 @@ export class UberPricing extends VariantLayout {
     }
 
     renderLayout() {
-        return html` ${this.badge}
-            <div class="body">
-                <div class="top">
-                    <slot name="icons"></slot>
-                    <slot name="badge"></slot>
-                    <div class="copy">
-                        <slot name="heading-s"></slot>
-                        <slot name="body-xs"></slot>
-                    </div>
+        return html` <div class="header">
+                <slot name="icons"></slot>
+                <slot name="badge"></slot>
+            </div>
+            <div class="panel">
+                <div class="copy">
+                    <slot name="heading-s"></slot>
+                    <slot name="body-xs"></slot>
                 </div>
                 <div class="spacer"></div>
                 <div class="price-buttons">
@@ -152,29 +146,44 @@ export class UberPricing extends VariantLayout {
     static variantStyle = css`
         :host([variant='uber-pricing']) {
             font-weight: 400;
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
+            display: flex;
+            flex-direction: column;
+            background: var(--uber-frame-bg, #fff);
+            border: 1px solid var(--uber-frame-border, #dadada);
             border-radius: 16px;
+            overflow: hidden;
+            /* 4px frame = 1px border + 3px padding; host bg shows through. */
+            padding: 3px;
             /* Fill the grid row so .spacer has slack to absorb. */
             height: 100%;
             box-sizing: border-box;
         }
 
-        :host([variant='uber-pricing']) .body {
+        /* Mnemonic + badge share one centered row on the header strip. The strip
+           shows the host background: white by default, black once framed (badge
+           authored or a CTA hovered) — triggers live in uber-pricing.css.js. */
+        :host([variant='uber-pricing']) .header {
             display: flex;
-            flex-direction: column;
-            gap: 0;
-            padding: 24px;
-            box-sizing: border-box;
-            height: 100%;
+            align-items: center;
+            gap: 12px;
+            padding: 24px 24px 32px;
         }
 
-        :host([variant='uber-pricing']) .top {
+        :host([variant='uber-pricing']) .header slot[name='icons'] {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* White content panel; the host's 4px padding exposes the frame around
+           it (and the header strip) in the framed state. */
+        :host([variant='uber-pricing']) .panel {
+            flex: 1 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-sizing: border-box;
         }
 
         :host([variant='uber-pricing']) .copy {
@@ -231,13 +240,6 @@ export class UberPricing extends VariantLayout {
             justify-content: stretch;
             align-items: stretch;
             flex-wrap: nowrap;
-        }
-
-        :host([variant='uber-pricing']) #badge {
-            border-radius: 4px 0 0 4px;
-            font-weight: 400;
-            line-height: 21px;
-            padding: 2px 10px 3px;
         }
     `;
 }

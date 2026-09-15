@@ -37,11 +37,30 @@ merch-card[variant="uber-pricing"] {
     width: 100%;
     max-width: 474px;
     min-width: 261px;
+    --uber-frame-bg: #fff;
+    --uber-frame-border: #dadada;
 }
 
+/* Framed look: black header strip + black border around the white panel.
+   Persistent when a badge is authored; mirrored on CTA hover so an unbadged
+   card takes on the same look while a footer link is hovered. */
+merch-card[variant="uber-pricing"]:has([slot="badge"]),
 merch-card[variant="uber-pricing"]:has([slot="footer"] a:hover) {
-    --consonant-merch-card-border-color: #000;
-    box-shadow: inset 0 0 0 3px #000;
+    --uber-frame-bg: #000;
+    --uber-frame-border: #000;
+}
+
+/* Strip the merch-badge pill: plain white text on the header strip. The
+   --merch-badge-* props are set inline by merch-badge, so !important is needed. */
+merch-card[variant="uber-pricing"] merch-badge {
+    --merch-badge-background-color: transparent !important;
+    --merch-badge-border: none !important;
+    --merch-badge-color: #fff !important;
+    --merch-badge-padding: 0 !important;
+    inset-inline-start: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 20px;
 }
 
 merch-card[variant="uber-pricing"] [slot="heading-s"] {
@@ -75,6 +94,13 @@ merch-card[variant="uber-pricing"] [slot="heading-xs"] {
 
 merch-card[variant="uber-pricing"] [slot="heading-xs"] p {
     margin: 0;
+}
+
+/* Figma stacks the prices: current price drops below the strikethrough.
+   Blocking the alternative (not the strikethrough) keeps the joining nbsp as a
+   harmless trailing space instead of indenting the second line. */
+merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-alternative {
+    display: block;
 }
 
 merch-card[variant="uber-pricing"] span[data-template="legal"] {

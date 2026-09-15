@@ -10715,11 +10715,30 @@ merch-card[variant="uber-pricing"] {
     width: 100%;
     max-width: 474px;
     min-width: 261px;
+    --uber-frame-bg: #fff;
+    --uber-frame-border: #dadada;
 }
 
+/* Framed look: black header strip + black border around the white panel.
+   Persistent when a badge is authored; mirrored on CTA hover so an unbadged
+   card takes on the same look while a footer link is hovered. */
+merch-card[variant="uber-pricing"]:has([slot="badge"]),
 merch-card[variant="uber-pricing"]:has([slot="footer"] a:hover) {
-    --consonant-merch-card-border-color: #000;
-    box-shadow: inset 0 0 0 3px #000;
+    --uber-frame-bg: #000;
+    --uber-frame-border: #000;
+}
+
+/* Strip the merch-badge pill: plain white text on the header strip. The
+   --merch-badge-* props are set inline by merch-badge, so !important is needed. */
+merch-card[variant="uber-pricing"] merch-badge {
+    --merch-badge-background-color: transparent !important;
+    --merch-badge-border: none !important;
+    --merch-badge-color: #fff !important;
+    --merch-badge-padding: 0 !important;
+    inset-inline-start: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 20px;
 }
 
 merch-card[variant="uber-pricing"] [slot="heading-s"] {
@@ -10753,6 +10772,13 @@ merch-card[variant="uber-pricing"] [slot="heading-xs"] {
 
 merch-card[variant="uber-pricing"] [slot="heading-xs"] p {
     margin: 0;
+}
+
+/* Figma stacks the prices: current price drops below the strikethrough.
+   Blocking the alternative (not the strikethrough) keeps the joining nbsp as a
+   harmless trailing space instead of indenting the second line. */
+merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-alternative {
+    display: block;
 }
 
 merch-card[variant="uber-pricing"] span[data-template="legal"] {
@@ -10797,15 +10823,14 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
     color: #000;
     border: 2px solid #000;
 }
-`;var hp="(min-width: 768px)",pp=["heading-s","body-xs","heading-xs"],mp={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},zt,Aa,di=class extends C{constructor(){super(...arguments);E(this,zt,null);E(this,Aa,()=>this.resyncOnReflow());g(this,"lastSyncKey",null)}getGlobalCSS(){return dp}priceOptionsProvider(e,i){e.dataset.template===J&&(i.displayPlanType=!0)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.card.querySelector(`[slot="heading-xs"] ${R}:not([data-template="legal"])`);if(!e)return;let i=e.cloneNode(!0);if(await e.onceSettled(),!e.options)return;i.setAttribute("data-template","legal"),i.dataset.displayPerUnit="false",e.parentNode.insertBefore(i,e.nextSibling),await i.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook(),this.flagPriceRow(),window.matchMedia(hp).matches&&requestAnimationFrame(()=>this.syncHeights()))}syncHeights(){this.card.getBoundingClientRect().width<=2||window.matchMedia(hp).matches&&this.syncRowHeights(pp.map(e=>({name:e,getElement:i=>i.querySelector(`[slot="${e}"]`)})))}flagPriceRow(){this.card.toggleAttribute("no-price",!this.card.querySelector('[slot="heading-xs"]'))}resyncOnReflow(){let e=this.card.getBoundingClientRect().width;if(e<=2)return;let i=n=>Math.round(this.card.querySelector(n)?.getBoundingClientRect().height||0),a=[Math.round(e),...pp.map(n=>i(`[slot="${n}"]`))].join(":");a!==this.lastSyncKey&&(this.lastSyncKey=a,this.syncHeights())}connectedCallbackHook(){if(this.card.addEventListener(me,d(this,Aa)),typeof ResizeObserver>"u")return;y(this,zt,new ResizeObserver(()=>this.resyncOnReflow())),d(this,zt).observe(this.card);let e=this.card.querySelector('[slot="body-xs"]');e&&d(this,zt).observe(e)}disconnectedCallbackHook(){this.card.removeEventListener(me,d(this,Aa)),d(this,zt)?.disconnect(),y(this,zt,null)}renderLayout(){return f` ${this.badge}
-            <div class="body">
-                <div class="top">
-                    <slot name="icons"></slot>
-                    <slot name="badge"></slot>
-                    <div class="copy">
-                        <slot name="heading-s"></slot>
-                        <slot name="body-xs"></slot>
-                    </div>
+`;var hp="(min-width: 768px)",pp=["heading-s","body-xs","heading-xs"],mp={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge"},title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},zt,Aa,di=class extends C{constructor(){super(...arguments);E(this,zt,null);E(this,Aa,()=>this.resyncOnReflow());g(this,"lastSyncKey",null)}getGlobalCSS(){return dp}priceOptionsProvider(e,i){e.dataset.template===J&&(i.displayPlanType=!0)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.card.querySelector(`[slot="heading-xs"] ${R}:not([data-template="legal"])`);if(!e)return;let i=e.cloneNode(!0);if(await e.onceSettled(),!e.options)return;i.setAttribute("data-template","legal"),i.dataset.displayPerUnit="false",e.parentNode.insertBefore(i,e.nextSibling),await i.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook(),this.flagPriceRow(),window.matchMedia(hp).matches&&requestAnimationFrame(()=>this.syncHeights()))}syncHeights(){this.card.getBoundingClientRect().width<=2||window.matchMedia(hp).matches&&this.syncRowHeights(pp.map(e=>({name:e,getElement:i=>i.querySelector(`[slot="${e}"]`)})))}flagPriceRow(){this.card.toggleAttribute("no-price",!this.card.querySelector('[slot="heading-xs"]'))}resyncOnReflow(){let e=this.card.getBoundingClientRect().width;if(e<=2)return;let i=n=>Math.round(this.card.querySelector(n)?.getBoundingClientRect().height||0),a=[Math.round(e),...pp.map(n=>i(`[slot="${n}"]`))].join(":");a!==this.lastSyncKey&&(this.lastSyncKey=a,this.syncHeights())}connectedCallbackHook(){if(this.card.addEventListener(me,d(this,Aa)),typeof ResizeObserver>"u")return;y(this,zt,new ResizeObserver(()=>this.resyncOnReflow())),d(this,zt).observe(this.card);let e=this.card.querySelector('[slot="body-xs"]');e&&d(this,zt).observe(e)}disconnectedCallbackHook(){this.card.removeEventListener(me,d(this,Aa)),d(this,zt)?.disconnect(),y(this,zt,null)}renderLayout(){return f` <div class="header">
+                <slot name="icons"></slot>
+                <slot name="badge"></slot>
+            </div>
+            <div class="panel">
+                <div class="copy">
+                    <slot name="heading-s"></slot>
+                    <slot name="body-xs"></slot>
                 </div>
                 <div class="spacer"></div>
                 <div class="price-buttons">
@@ -10816,29 +10841,44 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             <slot></slot>`}};zt=new WeakMap,Aa=new WeakMap,g(di,"variantStyle",k`
         :host([variant='uber-pricing']) {
             font-weight: 400;
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
+            display: flex;
+            flex-direction: column;
+            background: var(--uber-frame-bg, #fff);
+            border: 1px solid var(--uber-frame-border, #dadada);
             border-radius: 16px;
+            overflow: hidden;
+            /* 4px frame = 1px border + 3px padding; host bg shows through. */
+            padding: 3px;
             /* Fill the grid row so .spacer has slack to absorb. */
             height: 100%;
             box-sizing: border-box;
         }
 
-        :host([variant='uber-pricing']) .body {
+        /* Mnemonic + badge share one centered row on the header strip. The strip
+           shows the host background: white by default, black once framed (badge
+           authored or a CTA hovered) — triggers live in uber-pricing.css.js. */
+        :host([variant='uber-pricing']) .header {
             display: flex;
-            flex-direction: column;
-            gap: 0;
-            padding: 24px;
-            box-sizing: border-box;
-            height: 100%;
+            align-items: center;
+            gap: 12px;
+            padding: 24px 24px 32px;
         }
 
-        :host([variant='uber-pricing']) .top {
+        :host([variant='uber-pricing']) .header slot[name='icons'] {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* White content panel; the host's 4px padding exposes the frame around
+           it (and the header strip) in the framed state. */
+        :host([variant='uber-pricing']) .panel {
+            flex: 1 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-sizing: border-box;
         }
 
         :host([variant='uber-pricing']) .copy {
@@ -10895,13 +10935,6 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             justify-content: stretch;
             align-items: stretch;
             flex-wrap: nowrap;
-        }
-
-        :host([variant='uber-pricing']) #badge {
-            border-radius: 4px 0 0 4px;
-            font-weight: 400;
-            line-height: 21px;
-            padding: 2px 10px 3px;
         }
     `);var eo=new Map,up=new WeakMap,gp=new Map,U=(t,r,e=null,i=null,a)=>{eo.set(t,{class:r,fragmentMapping:e,style:i,collectionOptions:a})};U("catalog",Gr,Sh,Gr.variantStyle);U("image",mr);U("inline-heading",Vn);U("mini-compare-chart",Vr,Lh,Vr.variantStyle);U("mini-compare-chart-mweb",jr,Mh,jr.variantStyle);U("plans",ke,jn,ke.variantStyle,ke.collectionOptions);U("plans-students",ke,Nh,ke.variantStyle,ke.collectionOptions);U("plans-education",ke,Oh,ke.variantStyle,ke.collectionOptions);U("plans-v2",Rt,Ih,Rt.variantStyle,Rt.collectionOptions);U("pro",va,Hh,va.variantStyle);U("product",Xr,qh,Xr.variantStyle);U("brand-concierge-product",Qr,Vh,Qr.variantStyle);U("segment",Zr,Wh,Zr.variantStyle);U("media",Jr,Kh,Jr.variantStyle);U("headless",ii,tp,ii.variantStyle);U("special-offers",ei,Qh,ei.variantStyle);U("simplified-pricing-express",ti,nc,ti.variantStyle);U("full-pricing-express",Ea,oc,Ea.variantStyle);U("mini",ai,ip,ai.variantStyle);U("image",mr,Ch,mr.variantStyle);U("compare-chart-column",ni,cc,ni.variantStyle);U("fries",oi,lc,oi.variantStyle);U("marquee",si,sp,si.variantStyle);U("faq",ci,cp,ci.variantStyle);U("banner-blade",li,lp,li.variantStyle);U("uber-pricing",di,mp,di.variantStyle);var _f=(t,r,e)=>{try{let i=gp.get(t.variant);if(i||(i=new CSSStyleSheet,i.replaceSync(r.cssText),gp.set(t.variant,i)),e?.styleSheet&&e.styleSheet!==i){let a=t.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);a!==-1&&t.shadowRoot.adoptedStyleSheets.splice(a,1)}return t.shadowRoot.adoptedStyleSheets.includes(i)||t.shadowRoot.adoptedStyleSheets.push(i),{styleSheet:i}}catch{let a=document.createElement("style");a.textContent=r.cssText,a.setAttribute("data-variant-style",t.variant);let n=e?.styleElement||t.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),t.shadowRoot.appendChild(a),{styleElement:a}}},dc=t=>{let r=eo.get(t.variant);if(!r)return;let{class:e,style:i}=r,a=up.get(t);if(a?.appliedVariant===t.variant)return new e(t);let n=i?_f(t,i,a):{};return up.set(t,{appliedVariant:t.variant,...n}),new e(t)};function Gn(t){return eo.get(t)?.fragmentMapping}function fp(t){return eo.get(t)?.collectionOptions}var bp=document.createElement("style");bp.innerHTML=`
 :root {

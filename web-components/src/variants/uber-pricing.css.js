@@ -1,3 +1,5 @@
+import { TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+
 export const CSS = `
 .collection-container:has(merch-card[variant='uber-pricing']) {
     display: block;
@@ -12,22 +14,15 @@ merch-card-collection.uber-pricing {
     gap: 8px;
 }
 
-/* SM: 1 column. */
-@media screen and (min-width: 480px) {
-    merch-card-collection.uber-pricing {
-        grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-}
-
 /* MD: 2 columns. */
-@media screen and (min-width: 768px) {
+@media screen and ${TABLET_UP} {
     merch-card-collection.uber-pricing {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 /* LG/XL: 4 columns. */
-@media screen and (min-width: 1280px) {
+@media screen and ${C2_DESKTOP_UP} {
     merch-card-collection.uber-pricing {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }

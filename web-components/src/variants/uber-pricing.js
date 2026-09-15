@@ -6,8 +6,9 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { CSS } from './uber-pricing.css.js';
+import { TABLET_UP } from '../media.js';
 
-const SYNC_MIN_WIDTH = '(min-width: 768px)';
+const SYNC_MIN_WIDTH = TABLET_UP;
 const SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs'];
 
 export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {

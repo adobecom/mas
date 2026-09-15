@@ -9499,7 +9499,6 @@ merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-strikethrough {
 
 merch-card[variant="uber-pricing"] span[data-template="legal"] {
     display: block;
-    font-style: italic;
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;

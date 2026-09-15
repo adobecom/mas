@@ -1578,6 +1578,32 @@ describe('MasPromotionsEditor', () => {
             expect(el.promoManagerOffers).to.have.length(1);
             expect(el.promoManagerOffers[0].path).to.equal('offer-1');
         });
+
+        it('builds a placeholder row with offerSelectorIds for an uncached offer selector id', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-2', title: 'T', geos: ['mas:geo/usa'] })));
+            const el = await mountEditor();
+            await el.updateComplete;
+            Store.promotions.selectedOffers.set(['uncached-osi']);
+            await el.updateComplete;
+
+            const manageBtn = [...el.renderRoot.querySelectorAll('sp-action-button')].find((b) =>
+                b.textContent.includes('Manage'),
+            );
+            manageBtn.click();
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(el.promoManagerOffers).to.deep.equal([
+                {
+                    path: 'uncached-osi',
+                    id: 'uncached-osi',
+                    offerData: { offerSelectorIds: ['uncached-osi'] },
+                    tags: [],
+                    fields: [],
+                },
+            ]);
+        });
     });
 
     describe('confirmDialog', () => {

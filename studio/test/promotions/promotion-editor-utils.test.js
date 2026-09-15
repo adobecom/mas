@@ -1,10 +1,10 @@
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
     pruneOrphanedGroupedVariationSelection,
-    countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
     buildPromotionTagPath,
@@ -567,12 +567,6 @@ describe('promotion-editor-utils', () => {
             expect(getEffectivePromoCode(exceptions, 'offer-1', 'US', 'DEFAULT')).to.equal('DEFAULT');
         });
 
-        it('countDistinctPromoCodesForOffer counts unique codes across geos', () => {
-            const exceptions = parsePromoCodeExceptions(['offer-1|OVERRIDE|CA_en']);
-            const count = countDistinctPromoCodesForOffer(exceptions, 'offer-1', ['CA_en', 'US'], 'DEFAULT');
-            expect(count).to.equal(2);
-        });
-
         it('parsePromotionOffersField splits promo and offer substitution lines', () => {
             const { promoExceptions, offerSubstitutions } = parsePromotionOffersField([
                 'offer-1|OVERRIDE|CA_en',
@@ -677,7 +671,7 @@ describe('promotion-editor-utils', () => {
             expect(getEffectiveSubstituteOffer(subs, 'offer-1', 'US')).to.be.null;
         });
 
-        it('groupOfferSubstitutionsForOffer groups countries by substitute label', () => {
+        it('groupOfferSubstitutionsForOffer groups countries by substitute selector id', () => {
             const subs = parseOfferSubstitutions([
                 'substitute|offer-1|regional-osi|IN',
                 'substitute|offer-1|regional-osi|CA_en',
@@ -686,8 +680,20 @@ describe('promotion-editor-utils', () => {
                 id === 'regional-osi' ? 'Regional CC Pro' : id,
             );
             expect(groups).to.deep.equal([
-                { offerLabel: 'Regional CC Pro', countries: ['IN', 'CA_en'], countriesLabel: 'IN, CA_en' },
+                {
+                    offerId: 'regional-osi',
+                    offerLabel: 'Regional CC Pro',
+                    countries: ['IN', 'CA_en'],
+                    countriesLabel: 'IN, CA_en',
+                },
             ]);
+        });
+
+        it('groupOfferSubstitutionsForOffer keeps two selector ids separate even when they resolve to the same label', () => {
+            const subs = parseOfferSubstitutions(['substitute|offer-1|osi-a|IN', 'substitute|offer-1|osi-b|CA_en']);
+            const groups = groupOfferSubstitutionsForOffer(subs, ['offer-1'], ['IN', 'CA_en'], () => 'Same Label');
+            expect(groups).to.have.lengthOf(2);
+            expect(groups.map((g) => g.offerId).sort()).to.deep.equal(['osi-a', 'osi-b']);
         });
     });
 
@@ -825,14 +831,28 @@ describe('promotion-editor-utils', () => {
 
     describe('normalizePromotionOfferData', () => {
         it('normalizes offer_id to offerId and product arrangement code', () => {
-            const data = normalizePromotionOfferData(
-                { product_code: 'PHSP', offer_id: 'wcs-123', productArrangementCode: 'PA-9' },
-                'phsp-osi',
-                undefined,
-            );
+            const data = normalizePromotionOfferData({
+                product_code: 'PHSP',
+                offer_id: 'wcs-123',
+                productArrangementCode: 'PA-9',
+            });
             expect(data.offerId).to.equal('wcs-123');
             expect(data.offer_id).to.be.undefined;
             expect(data.product_arrangement_code).to.equal('PA-9');
+        });
+
+        it('sets a product arrangement code from function params', () => {
+            const data = normalizePromotionOfferData(
+                {
+                    product_code: 'PHSP',
+                    offer_id: 'wcs-123',
+                    productArrangementCode: 'PA-9',
+                },
+                'new-pa-code',
+            );
+            expect(data.offerId).to.equal('wcs-123');
+            expect(data.offer_id).to.be.undefined;
+            expect(data.product_arrangement_code).to.equal('new-pa-code');
         });
     });
 
@@ -881,6 +901,7 @@ describe('promotion-editor-utils', () => {
                 'PA-1',
             );
             expect(entry.getFieldValue('mnemonicIcon')).to.equal('https://example.com/phsp.svg');
+            expect(entry.offerData.offerId).to.be.undefined;
         });
     });
 
@@ -1101,6 +1122,21 @@ describe('promotion-editor-utils', () => {
             expect(captured[1]).to.deep.equal({ country: 'DE', language: 'MULT' });
         });
 
+        it('logs and falls back to a cache entry when commerce service throws', async () => {
+            const consoleErrorStub = sinon.stub(console, 'error');
+            const mockService = document.createElement('mas-commerce-service');
+            mockService.collectPriceOptions = () => {
+                throw new Error('boom');
+            };
+            mockService.resolveOfferSelectors = () => [Promise.resolve([])];
+            document.body.appendChild(mockService);
+            const entry = await resolvePromotionOfferRecord('osi-broken');
+            document.body.removeChild(mockService);
+            consoleErrorStub.restore();
+            expect(consoleErrorStub.calledWith("Couldn't resolve offer selector id", 'osi-broken')).to.be.true;
+            expect(entry?.id).to.equal('osi-broken');
+        });
+
         it('normalizes camelCase WCS fields into offer tags', async () => {
             const wcsOffer = {
                 offerType: 'BASE',
@@ -1119,6 +1155,7 @@ describe('promotion-editor-utils', () => {
             expect(entry.tags.find((t) => t.id === 'mas:plan_type/abm')).to.exist;
             expect(entry.tags.find((t) => t.id === 'mas:customer_segment/individual')).to.exist;
             expect(entry.tags.find((t) => t.id === 'mas:market_segment/com')).to.exist;
+            expect(entry.offerData.offerId).to.be.undefined;
         });
     });
 

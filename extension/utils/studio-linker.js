@@ -30,15 +30,6 @@ class StudioLinker {
             fragmentId: variation.id || null,
         });
     }
-
-    copyLinkToClipboard(fragmentId, options = {}) {
-        const locale = options.locale || 'en_US';
-        const path = options.path || '/content/dam/mas';
-        const params = new URLSearchParams({ page: 'content', query: fragmentId, locale, path });
-        const link = `https://mas.adobe.com/studio.html#${params.toString()}`;
-        navigator.clipboard.writeText(link).catch(() => {});
-        return link;
-    }
 }
 
 if (typeof window !== 'undefined') {

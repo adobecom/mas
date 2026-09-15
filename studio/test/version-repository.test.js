@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { VersionRepository } from '../src/version-repository.js';
+import { VersionRepository, resolveVersionActor } from '../src/version-repository.js';
 import Events from '../src/events.js';
 
 describe('VersionRepository', () => {
@@ -82,6 +82,82 @@ describe('VersionRepository', () => {
 
             expect(result.currentVersion.created).to.be.a('string');
             expect(result.currentVersion.createdBy).to.equal('System');
+        });
+
+        it('should fall back to the human actor in history when the fragment audit trail shows a system actor', async () => {
+            const fragment = {
+                id: 'fragment-1',
+                modified: '2024-01-15T10:00:00Z',
+                modifiedBy: 'workflow-process-service',
+            };
+            const versionsResponse = {
+                items: [
+                    { id: 'v1', version: '2.0', created: '2024-01-15T09:59:00Z', createdBy: 'alice@example.com' },
+                    { id: 'v2', version: '1.0', created: '2024-01-14T10:00:00Z', createdBy: 'alice@example.com' },
+                ],
+            };
+
+            mockRepository.aem.sites.cf.fragments.getById.resolves(fragment);
+            mockRepository.aem.sites.cf.fragments.getVersions.resolves(versionsResponse);
+
+            const result = await versionRepository.loadVersionHistory('fragment-1');
+
+            expect(result.currentVersion.createdBy).to.equal('alice@example.com');
+            expect(result.versions.some((version) => version.createdBy === 'workflow-process-service')).to.be.false;
+        });
+
+        it('should fall back to the system label when no human actor is recorded anywhere in the history', async () => {
+            const fragment = {
+                id: 'fragment-1',
+                modified: '2024-01-15T10:00:00Z',
+                modifiedBy: 'workflow-process-service',
+            };
+            const versionsResponse = {
+                items: [{ id: 'v1', version: '1.0', created: '2024-01-14T10:00:00Z', createdBy: 'workflow-process-service' }],
+            };
+
+            mockRepository.aem.sites.cf.fragments.getById.resolves(fragment);
+            mockRepository.aem.sites.cf.fragments.getVersions.resolves(versionsResponse);
+
+            const result = await versionRepository.loadVersionHistory('fragment-1');
+
+            expect(result.currentVersion.createdBy).to.equal('System');
+            expect(result.versions[1].createdBy).to.equal('System');
+        });
+
+        it('should keep a human-authored historical version attributed to its own user ID', async () => {
+            const fragment = { id: 'fragment-1', modified: '2024-01-15T10:00:00Z', modifiedBy: 'bob@example.com' };
+            const versionsResponse = {
+                items: [{ id: 'v1', version: '1.0', created: '2024-01-14T10:00:00Z', createdBy: 'alice@example.com' }],
+            };
+
+            mockRepository.aem.sites.cf.fragments.getById.resolves(fragment);
+            mockRepository.aem.sites.cf.fragments.getVersions.resolves(versionsResponse);
+
+            const result = await versionRepository.loadVersionHistory('fragment-1');
+
+            expect(result.versions[1].createdBy).to.equal('alice@example.com');
+        });
+    });
+
+    describe('resolveVersionActor', () => {
+        it('returns the entry own actor when it is human', () => {
+            const entries = [{ createdBy: 'alice@example.com' }, { createdBy: 'workflow-process-service' }];
+            expect(resolveVersionActor(entries, 0)).to.equal('alice@example.com');
+        });
+
+        it('skips system actors and returns the nearest human actor found later in the list', () => {
+            const entries = [
+                { createdBy: 'workflow-process-service' },
+                { createdBy: 'workflow-process-service' },
+                { createdBy: 'alice@example.com' },
+            ];
+            expect(resolveVersionActor(entries, 0)).to.equal('alice@example.com');
+        });
+
+        it('returns the system label when no human actor exists', () => {
+            const entries = [{ createdBy: 'workflow-process-service' }, { createdBy: null }];
+            expect(resolveVersionActor(entries, 0)).to.equal('System');
         });
     });
 

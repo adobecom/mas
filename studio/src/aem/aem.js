@@ -473,11 +473,29 @@ class AEM {
     }
 
     /**
+     * Record a version of the fragment under the caller's own session before handing off
+     * to an async workflow (e.g. publish/unpublish), so the version history has an entry
+     * attributed to the real initiating user rather than only the workflow's own account
+     * (e.g. workflow-process-service). Failures here must never block the actual operation.
+     * @param {Object} fragment
+     * @param {string} comment
+     * @returns {Promise<void>}
+     */
+    async #recordActorVersion(fragment, comment) {
+        try {
+            await this.createFragmentVersion(fragment.id, { comment });
+        } catch (error) {
+            console.error('Failed to record actor version:', error);
+        }
+    }
+
+    /**
      * Publish a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}
      */
     async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED']) {
+        await this.#recordActorVersion(fragment, 'Published');
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
@@ -505,6 +523,7 @@ class AEM {
      * @returns {Promise<void>}
      */
     async unpublishFragment(fragment) {
+        await this.#recordActorVersion(fragment, 'Unpublished');
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {

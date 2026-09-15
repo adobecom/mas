@@ -1,5 +1,34 @@
 import Events from './events.js';
 
+// AEM's asynchronous publish/unpublish workflow records this technical account as the
+// actor for the version it creates, masking whoever actually triggered the action.
+export const SYSTEM_ACTORS = new Set(['workflow-process-service']);
+
+function actorOf(entry) {
+    return entry?.createdBy || entry?.created?.by || null;
+}
+
+function isHumanActor(actor) {
+    return Boolean(actor) && !SYSTEM_ACTORS.has(actor);
+}
+
+/**
+ * Resolve the actor to display for the version at `index`, preferring a human actor.
+ * Falls back to the nearest more-recent-to-oldest entry with a human actor (e.g. a
+ * version recorded under the initiating user's own session, see AEM.publishFragment)
+ * so a system account never masks the real person who triggered the action.
+ * @param {Array} entries - Versions ordered from most recent to oldest
+ * @param {number} index - Index of the entry to resolve within `entries`
+ * @returns {string} The resolved actor, or 'System' when only a system actor is known
+ */
+export function resolveVersionActor(entries, index) {
+    for (let i = index; i < entries.length; i++) {
+        const actor = actorOf(entries[i]);
+        if (isHumanActor(actor)) return actor;
+    }
+    return 'System';
+}
+
 /**
  * Repository for version-related data operations.
  * Handles loading, saving, and restoring fragment versions.
@@ -38,7 +67,7 @@ export class VersionRepository {
                 id: 'current',
                 version: 'Current',
                 created: modifiedDate,
-                createdBy: fragment.modifiedBy || fragment.modified?.by || 'System',
+                createdBy: fragment.modifiedBy || fragment.modified?.by || null,
                 isCurrent: true,
             };
 
@@ -46,13 +75,19 @@ export class VersionRepository {
             const versionsResponse = await this.repository.aem.sites.cf.fragments.getVersions(fragmentId);
             const historicalVersions = versionsResponse?.items || [];
 
-            // Combine current version with historical versions
-            const versions = [currentVersion, ...historicalVersions];
+            // Combine current version with historical versions, then resolve each entry's
+            // actor so a system account (e.g. the async publish workflow) never masks the
+            // real person who triggered the action.
+            const rawVersions = [currentVersion, ...historicalVersions];
+            const versions = rawVersions.map((version, index) => ({
+                ...version,
+                createdBy: resolveVersionActor(rawVersions, index),
+            }));
 
             return {
                 fragment,
                 versions,
-                currentVersion,
+                currentVersion: versions[0],
             };
         } catch (error) {
             console.error('Failed to load version history:', error);

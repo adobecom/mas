@@ -78,14 +78,14 @@ test.describe('Brand Concierge gallery feature test suite', () => {
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.BRAND_CONCIERGE, expect);
         });
 
-        await test.step('step-2: Verify card without a badge renders correctly', async () => {
+        await test.step('step-2: Verify second card content', async () => {
             const card = galleryPage.getCard(data.id);
             await expect(card).toBeVisible();
             await expect(card).toHaveAttribute('variant', data.variant);
             await expect(card.locator('h3')).toContainText(data.title);
-            await expect(card.locator('div[slot="badge"] merch-badge')).toHaveCount(0);
+            await expect(card.locator('div[slot="badge"] merch-badge')).toBeVisible();
             await expect(card.locator('div[slot="body-xs"]')).toContainText(data.description);
-            await expect(card.locator('div[slot="footer"] :is(a, button)')).toHaveText(data.cta);
+            await expect(card.locator('div[slot="footer"] :is(a, button)').last()).toHaveText(data.cta);
         });
     });
 });

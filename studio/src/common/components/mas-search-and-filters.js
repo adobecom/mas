@@ -4,7 +4,13 @@ import { isVariantMatch, VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
 import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
-import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, FILTER_TYPE, FRAGMENT_STATUS, PAGE_NAMES, TABLE_TYPE } from '../../constants.js';
+import {
+    AEM_TAG_PATH_PRODUCT_CODE_ROOT,
+    FILTER_TYPE,
+    FRAGMENT_STATUS_OPTIONS,
+    PAGE_NAMES,
+    TABLE_TYPE,
+} from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
 import { ensureNamespaceTags, getNamespaceCache, getNamespaceInflight } from '../../aem/tag-cache.js';
@@ -26,12 +32,6 @@ const EMPTY_TAGS_BY_TYPE = {
 };
 const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
 const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];
-
-const STATUS_OPTIONS = [
-    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
-    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
-    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
-];
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -297,7 +297,7 @@ class MasSearchAndFilters extends LitElement {
             unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
         if (!this.searchOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
-            this.statusOptions = STATUS_OPTIONS;
+            this.statusOptions = FRAGMENT_STATUS_OPTIONS;
         }
     }
 

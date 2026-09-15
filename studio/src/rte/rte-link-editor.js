@@ -493,8 +493,12 @@ export class RteLinkEditor extends LitElement {
             target: this.target,
             variant: this.variant,
             analyticsId: this.analyticsId,
-            ariaLabel: this.ariaLabel,
         };
+
+        // Only include ariaLabel if it has a value
+        if (this.ariaLabel) {
+            data.ariaLabel = this.ariaLabel;
+        }
 
         if (this.showCtaReference) {
             data.ctaRef = this.ctaRef;

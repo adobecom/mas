@@ -25,6 +25,7 @@ import {
 } from './promotion-publish-utils.js';
 import { getAllAttachedPromoVariations } from './promotions-repository.js';
 import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
+import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
 
 const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'production', label: 'Production' },
@@ -43,6 +44,7 @@ class MasPromotions extends LitElement {
         error: { type: String, state: true },
         promotionsData: { type: Array, state: true },
         promotionsLoading: { type: Boolean, state: true },
+        searchQuery: { type: String, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
@@ -60,6 +62,7 @@ class MasPromotions extends LitElement {
         this.error = null;
         this.promotionsData = Store.promotions?.list?.data?.get() || [];
         this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
+        this.searchQuery = '';
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.duplicateDialogOpen = false;
@@ -190,9 +193,27 @@ class MasPromotions extends LitElement {
         return this.renderPromotionsTable();
     }
 
+    get filteredPromotions() {
+        let list = Store.promotions?.list?.data?.get() || [];
+
+        if (this.filter !== 'all') {
+            list = list.filter((promotion) => promotion.value?.promotionListFilterKey === this.filter);
+        }
+
+        if (this.environmentFilter.length) {
+            list = list.filter((promotion) => this.environmentFilter.includes(promotion.value?.promotionEnvironment));
+        }
+
+        return filterBySearchQuery(list, this.searchQuery, (promotion) => promotion.get().title || '');
+    }
+
+    #handleSearchInput(event) {
+        event.stopPropagation();
+        this.searchQuery = handleSearchInput(event);
+    }
+
     renderPromotionsTable() {
-        this.#handleFilterPromotions(this.filter);
-        const filteredPromotions = this.promotionsData;
+        const filteredPromotions = this.filteredPromotions;
 
         const columns = [
             { key: 'title', label: 'Promotion' },
@@ -255,10 +276,11 @@ class MasPromotions extends LitElement {
     }
 
     render() {
+        const resultCount = this.filteredPromotions.length;
         return html`
             <div class="promotions-container">
                 <div class="promotions-header">
-                    <sp-search size="m" placeholder="Search"></sp-search>
+                    <h1 class="promotions-page-header">Promotions</h1>
                     ${this.canEdit
                         ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                               <sp-icon-add slot="icon"></sp-icon-add>
@@ -269,8 +291,22 @@ class MasPromotions extends LitElement {
 
                 ${this.renderError()}
 
-                <div class="promotions-segmented-control-container">
-                    <sp-action-group selects="single" emphasized size="m" justified selected='["${this.filter}"]'>
+                <div class="promotions-filter-bar">
+                    <div class="search-field-container">
+                        <sp-search
+                            size="m"
+                            placeholder="Search"
+                            .value=${this.searchQuery}
+                            ?disabled=${this.promotionsLoading}
+                            @input=${(e) => this.#handleSearchInput(e)}
+                            @change=${(e) => this.#handleSearchInput(e)}
+                        ></sp-search>
+                    </div>
+                    <div class="result-count">
+                        <span class="result-count-value">${resultCount}</span>
+                        <span class="result-count-label">${resultCount === 1 ? 'result' : 'results'}</span>
+                    </div>
+                    <sp-action-group selects="single" emphasized size="m" selected='["${this.filter}"]'>
                         ${repeat(
                             this.filterOptions,
                             (filter) =>
@@ -304,7 +340,6 @@ class MasPromotions extends LitElement {
                             <sp-icon-filter></sp-icon-filter><span>Filters:</span>
                             ${this.renderEnvironmentFilterPicker}
                         </div>
-                        <div class="result-count-container">${(this.promotionsData || []).length} results</div>
                     </div>
                     ${this.renderAppliedEnvironmentFilters()}
                 </div>
@@ -626,23 +661,8 @@ class MasPromotions extends LitElement {
     };
 
     #handleFilterPromotions(filter) {
-        // reset promotions data
-        this.promotionsData = Store.promotions.list.data.get() || [];
         this.filter = filter;
         Store.promotions.list.filter.set(filter);
-
-        if (filter !== 'all') {
-            const filteredPromotions = this.promotionsData.filter(
-                (promotion) => promotion.value?.promotionListFilterKey === filter,
-            );
-            this.promotionsData = filteredPromotions;
-        }
-
-        if (this.environmentFilter.length) {
-            this.promotionsData = this.promotionsData.filter((promotion) =>
-                this.environmentFilter.includes(promotion.value?.promotionEnvironment),
-            );
-        }
     }
 
     #handleEnvironmentCheckboxChange(value, e) {
@@ -654,17 +674,14 @@ class MasPromotions extends LitElement {
         } else {
             this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
         }
-        this.#handleFilterPromotions(this.filter);
     }
 
     #handleEnvironmentTagDelete = ({ target: { value } }) => {
         this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
-        this.#handleFilterPromotions(this.filter);
     };
 
     #clearEnvironmentFilter = () => {
         this.environmentFilter = [];
-        this.#handleFilterPromotions(this.filter);
     };
 }
 

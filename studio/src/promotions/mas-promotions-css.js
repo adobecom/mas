@@ -26,6 +26,56 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
+    .promotions-page-header {
+        font-size: 25px;
+        font-weight: 700;
+        line-height: 30px;
+        margin: 0;
+        color: var(--spectrum-gray-900, #000);
+    }
+
+    .promotions-filter-bar {
+        display: flex;
+        width: 1148px;
+        height: 32px;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 24px;
+    }
+
+    .search-field-container {
+        display: flex;
+        width: 246px;
+        min-width: 112px;
+        flex-direction: column;
+        align-items: flex-start;
+        flex-shrink: 0;
+    }
+
+    .search-field-container sp-search {
+        width: 100%;
+    }
+
+    .result-count {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        font-size: 12px;
+        line-height: 150%;
+        letter-spacing: 0;
+        white-space: nowrap;
+    }
+
+    .result-count-value {
+        color: #292929;
+        font-weight: 700;
+    }
+
+    .result-count-label {
+        color: #505050;
+        font-weight: 400;
+    }
+
     .environment-filter-picker {
         display: flex;
     }
@@ -58,10 +108,6 @@ export const styles = css`
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-    }
-
-    .promotions-segmented-control-container {
-        margin-bottom: 24px;
     }
 
     .promotions-filters-container {

@@ -3,11 +3,13 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
+import searchStyles from './mas-promotions-search.css.js';
+import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
 import { PAGE_NAMES, PROMOTION_MODEL_ID, STAGED } from '../constants.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { normalizeKey, showToast, UserFriendlyError } from '../utils.js';
+import { normalizeKey, showToast } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
@@ -32,17 +34,16 @@ const ENVIRONMENT_FILTER_OPTIONS = [
 ];
 
 class MasPromotions extends LitElement {
-    static styles = styles;
+    static styles = [styles, searchStyles];
 
     static properties = {
         filter: { type: String, state: true },
         filterOptions: { type: Array, state: true },
         environmentFilter: { type: Array, state: true },
+        searchTerm: { type: String, state: true },
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
-        promotionsData: { type: Array, state: true },
-        promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
@@ -55,11 +56,10 @@ class MasPromotions extends LitElement {
         this.filter = Store.promotions?.list?.filter?.get() || 'active';
         this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
         this.environmentFilter = ['production'];
+        this.searchTerm = '';
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
-        this.promotionsData = Store.promotions?.list?.data?.get() || [];
-        this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.duplicateDialogOpen = false;
@@ -109,7 +109,6 @@ class MasPromotions extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
-        this.promotionsData = Store.promotions?.list?.data?.get() || [];
 
         Store.promotions.list.loading.set(true);
         await this.loadPromotions();
@@ -130,6 +129,18 @@ class MasPromotions extends LitElement {
         `;
     }
 
+    /**
+     * Always reads the current list from the store, so store updates triggered
+     * by any flow (not just this component's own loadPromotions call) are reflected.
+     */
+    get promotionsData() {
+        return Store.promotions?.list?.data?.get() || [];
+    }
+
+    get promotionsLoading() {
+        return Store.promotions?.list?.loading?.get() || false;
+    }
+
     get loading() {
         return this.promotionsLoading;
     }
@@ -140,14 +151,11 @@ class MasPromotions extends LitElement {
     }
 
     set loading(value = true) {
-        this.promotionsLoading = value;
         Store.promotions.list.loading.set(value);
     }
 
     async loadPromotions() {
         await this.repository.loadPromotions();
-        this.promotionsData = Store.promotions.list.data.get() || [];
-        this.promotionsLoading = Store.promotions.list.loading.get() || false;
     }
 
     /**
@@ -190,9 +198,37 @@ class MasPromotions extends LitElement {
         return this.renderPromotionsTable();
     }
 
+    /**
+     * Derives the rows to display from the store's promotions data by applying the status
+     * filter, the environment filter, and the live search term, without mutating any state.
+     * @returns {Array}
+     */
+    get displayedPromotions() {
+        let promotions = this.promotionsData || [];
+
+        if (this.filter !== 'all') {
+            promotions = promotions.filter((promotion) => promotion.value?.promotionListFilterKey === this.filter);
+        }
+
+        if (this.environmentFilter.length) {
+            promotions = promotions.filter((promotion) =>
+                this.environmentFilter.includes(promotion.value?.promotionEnvironment),
+            );
+        }
+
+        return filterBySearchQuery(promotions, this.searchTerm, (promotion) => {
+            const promo = promotion.get();
+            return [promo.title, promo.getFieldValue?.('promoCode'), promo.path].filter(Boolean).join(' ');
+        });
+    }
+
+    #handleSearchInput(e) {
+        e.stopPropagation();
+        this.searchTerm = handleSearchInput(e);
+    }
+
     renderPromotionsTable() {
-        this.#handleFilterPromotions(this.filter);
-        const filteredPromotions = this.promotionsData;
+        const filteredPromotions = this.displayedPromotions;
 
         const columns = [
             { key: 'title', label: 'Promotion' },
@@ -265,13 +301,29 @@ class MasPromotions extends LitElement {
         return html`
             <div class="promotions-container">
                 <div class="promotions-header">
-                    <sp-search size="m" placeholder="Search"></sp-search>
+                    <h1 class="promotions-page-title">Promotions</h1>
                     ${this.canEdit
                         ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                               <sp-icon-add slot="icon"></sp-icon-add>
                               Create promotion project
                           </sp-button>`
                         : nothing}
+                </div>
+
+                <div class="promotions-search-row">
+                    <div class="promotions-search-field">
+                        <sp-search
+                            size="m"
+                            placeholder="Search"
+                            .value=${this.searchTerm}
+                            ?disabled=${this.promotionsLoading}
+                            @input=${(e) => this.#handleSearchInput(e)}
+                        ></sp-search>
+                    </div>
+                    <div class="promotions-results-count">
+                        <span class="results-count-number">${this.displayedPromotions.length}</span>
+                        <span class="results-count-label">${this.displayedPromotions.length === 1 ? 'result' : 'results'}</span>
+                    </div>
                 </div>
 
                 ${this.renderError()}
@@ -311,7 +363,6 @@ class MasPromotions extends LitElement {
                             <sp-icon-filter></sp-icon-filter><span>Filters:</span>
                             ${this.renderEnvironmentFilterPicker}
                         </div>
-                        <div class="result-count-container">${(this.promotionsData || []).length} results</div>
                     </div>
                     ${this.renderAppliedEnvironmentFilters()}
                 </div>
@@ -591,7 +642,6 @@ class MasPromotions extends LitElement {
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
             if (tagPath) await this.repository.aem.tags.delete(tagPath);
             const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
-            this.promotionsData = updatedPromotions;
             Store.promotions.list.data.set(updatedPromotions);
             showToast('Promotion campaign successfully deleted.', 'positive');
         } catch (error) {
@@ -642,23 +692,8 @@ class MasPromotions extends LitElement {
     };
 
     #handleFilterPromotions(filter) {
-        // reset promotions data
-        this.promotionsData = Store.promotions.list.data.get() || [];
         this.filter = filter;
         Store.promotions.list.filter.set(filter);
-
-        if (filter !== 'all') {
-            const filteredPromotions = this.promotionsData.filter(
-                (promotion) => promotion.value?.promotionListFilterKey === filter,
-            );
-            this.promotionsData = filteredPromotions;
-        }
-
-        if (this.environmentFilter.length) {
-            this.promotionsData = this.promotionsData.filter((promotion) =>
-                this.environmentFilter.includes(promotion.value?.promotionEnvironment),
-            );
-        }
     }
 
     #handleEnvironmentCheckboxChange(value, e) {
@@ -670,18 +705,17 @@ class MasPromotions extends LitElement {
         } else {
             this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
         }
-        this.#handleFilterPromotions(this.filter);
     }
 
     #handleEnvironmentTagDelete = ({ target: { value } }) => {
         this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
-        this.#handleFilterPromotions(this.filter);
     };
 
     #clearEnvironmentFilter = () => {
         this.environmentFilter = [];
-        this.#handleFilterPromotions(this.filter);
     };
 }
+
+export default MasPromotions;
 
 customElements.define('mas-promotions', MasPromotions);

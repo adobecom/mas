@@ -182,6 +182,23 @@ describe('MasPromotionsEditor', () => {
         await el.updateComplete;
     }
 
+    describe('publishing overlay', () => {
+        it('shows a progress circle while promotionPublish is true and hides it otherwise', async () => {
+            const el = await mountEditor();
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+
+            el.promotionPublish = true;
+            await el.updateComplete;
+            const overlay = el.renderRoot.querySelector('.publishing-overlay');
+            expect(overlay).to.not.be.null;
+            expect(overlay.querySelector('sp-progress-circle')).to.not.be.null;
+
+            el.promotionPublish = false;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+        });
+    });
+
     describe('selectedItemsCount', () => {
         it('sums selected offers, cards and collections from the promotions store', async () => {
             const el = await mountEditor();

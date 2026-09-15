@@ -135,6 +135,7 @@ class MasPromotionsEditor extends LitElement {
         isCreated: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        dialogCheckboxChecked: { type: Boolean, state: true },
         isSelectedItemsOpen: { type: Boolean, state: true },
         promoCodesManagerOpen: { type: Boolean, state: true },
         promoManagerOffers: { type: Array, state: true },
@@ -173,6 +174,7 @@ class MasPromotionsEditor extends LitElement {
         this.isCreated = false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.dialogCheckboxChecked = false;
         this.isSelectedItemsOpen = true;
         this.promoCodesManagerOpen = false;
         this.promoManagerOffers = [];
@@ -1022,12 +1024,21 @@ class MasPromotionsEditor extends LitElement {
      * @returns {Promise<boolean>} - True if confirmed, false if canceled
      */
     async #showDialog(title, message, options = {}) {
+        const {
+            confirmText = 'OK',
+            cancelText = 'Cancel',
+            variant = 'primary',
+            question = null,
+            checkboxLabel = null,
+            checkboxDefault = false,
+        } = options;
+
         if (this.isDialogOpen) {
-            return false;
+            return checkboxLabel ? { confirmed: false, checked: false } : false;
         }
 
         this.isDialogOpen = true;
-        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
+        this.dialogCheckboxChecked = checkboxDefault;
 
         return new Promise((resolve) => {
             this.confirmDialogConfig = {
@@ -1036,11 +1047,13 @@ class MasPromotionsEditor extends LitElement {
                 confirmText,
                 cancelText,
                 variant,
+                question,
+                checkboxLabel,
                 onConfirm: () => {
-                    resolve(true);
+                    resolve(checkboxLabel ? { confirmed: true, checked: this.dialogCheckboxChecked } : true);
                 },
                 onCancel: () => {
-                    resolve(false);
+                    resolve(checkboxLabel ? { confirmed: false, checked: false } : false);
                 },
             };
         });
@@ -1612,6 +1625,11 @@ class MasPromotionsEditor extends LitElement {
                       <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
                   </div>`
                 : nothing}
+            ${this.promotionPublish
+                ? html`<div class="publishing-overlay">
+                      <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                  </div>`
+                : nothing}
             <mas-promotion-duplicate-dialog
                 .open=${this.duplicateDialogOpen}
                 .proposedTitle=${this.#duplicateProposedTitle}
@@ -1907,7 +1925,8 @@ class MasPromotionsEditor extends LitElement {
     get confirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
 
-        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
+        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant, question, checkboxLabel } =
+            this.confirmDialogConfig;
 
         return html`
             <div class="confirm-dialog-overlay">
@@ -1931,6 +1950,16 @@ class MasPromotionsEditor extends LitElement {
                     }}
                 >
                     <div>${message}</div>
+                    ${question ? html`<div>${question}</div>` : nothing}
+                    ${checkboxLabel
+                        ? html`<sp-checkbox
+                              .checked=${this.dialogCheckboxChecked}
+                              @change=${(e) => {
+                                  this.dialogCheckboxChecked = e.target.checked;
+                              }}
+                              >${checkboxLabel}</sp-checkbox
+                          >`
+                        : nothing}
                 </sp-dialog-wrapper>
             </div>
         `;

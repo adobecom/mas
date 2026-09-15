@@ -10122,7 +10122,7 @@ merch-card[variant="uber-pricing"] span[data-template="legal"] {
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;
-    color: #000;
+    color: #5c5c5c;
 }
 
 merch-card[variant="uber-pricing"] [slot="footer"] {

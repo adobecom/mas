@@ -18,6 +18,7 @@ overlay_pattern: 'https://main--mas--adobecom.aem.page{page}?maslibs={branch}--m
 # worktree. Port 3000 is what maslibs=local resolves to in consumer bootstraps.
 # Galleries hydrate from prod services (mas/io, WCS) so they render fully here.
 local:
+    serves: stage
     # Studio's author proxy runs alongside aem up. proxy:stage points it at the
     # stage author, so automated captures never read or write production content,
     # and PROXY_PORT moves it off 8080 where the harness gateway already listens.
@@ -93,6 +94,17 @@ local:
     consumer_overlay:
         own_hosts: ['--mas--', 'mas.adobe.com']
         params: 'maslibs=local&martech=off'
+
+content_environments:
+    stage:
+        url_match: ['aem.env=stage']
+    production:
+        url_match: ['mas.adobe.com', 'aem.env=prod']
+content_probes:
+    - path: '/adobe/sites/cf/fragments/'
+      status: 404
+      meaning: 'The item the ticket links to does not exist in the stage author.'
+      next_step: 'Ask for a stage copy of the item, or check it by hand in production.'
 
 # This list qualifies pasted/generated URLs and selects authentication settings.
 # Declared surface URLs below are selected directly, not filtered by this list.

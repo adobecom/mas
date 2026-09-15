@@ -6430,10 +6430,15 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             border-bottom-right-radius: 7px;
         }
 
-        :host([variant='pro']) .license-select-option:hover,
         :host([variant='pro']) .license-select-option.highlighted,
         :host([variant='pro']) .license-select-option.selected {
             background: var(--consonant-merch-card-pro-control-hover-bg);
+        }
+
+        /* Pointer hover gets its own darker fill (WCAG contrast), kept apart
+           from the keyboard-highlight/selected background above. */
+        :host([variant='pro']) .license-select-option:hover {
+            background: #949494;
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own

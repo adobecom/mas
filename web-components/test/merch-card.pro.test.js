@@ -1213,6 +1213,54 @@ describe('pro license dropdown keyboard navigation', () => {
     });
 });
 
+describe('pro license option hover background', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>';
+
+    it('darkens only the pointer-hover rule, leaving the keyboard-highlight/selected rule on the shared token', async () => {
+        card = await renderCard(QS);
+        const rules = [
+            ...[...card.shadowRoot.adoptedStyleSheets].flatMap((s) => [
+                ...s.cssRules,
+            ]),
+            ...[...card.shadowRoot.querySelectorAll('style')].flatMap((s) => [
+                ...s.sheet.cssRules,
+            ]),
+        ];
+
+        // The darker gray must live on its own :hover rule, not on the
+        // combined highlighted/selected rule (MWPW-206807).
+        const hoverRule = rules.find(
+            (r) =>
+                r.selectorText?.includes('.license-select-option:hover') &&
+                !r.selectorText?.includes('.highlighted') &&
+                !r.selectorText?.includes('.selected'),
+        );
+        expect(hoverRule, 'a dedicated hover rule exists').to.exist;
+        expect(hoverRule.style.backgroundColor).to.equal(
+            'rgb(148, 148, 148)',
+        );
+
+        const sharedRule = rules.find(
+            (r) =>
+                r.selectorText?.includes(
+                    '.license-select-option.highlighted',
+                ) &&
+                r.selectorText?.includes('.license-select-option.selected'),
+        );
+        expect(
+            sharedRule,
+            'the highlighted/selected rule keeps the shared token',
+        ).to.exist;
+        expect(sharedRule.style.backgroundColor).to.equal(
+            'var(--consonant-merch-card-pro-control-hover-bg)',
+        );
+    });
+});
+
 describe('pro license label pluralization', () => {
     let card;
     afterEach(() => card?.remove());

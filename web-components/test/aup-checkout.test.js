@@ -619,7 +619,7 @@ describe('aup-select checkout routing', () => {
                 expect(legacy.called).to.be.false;
             });
 
-            it('suppresses repeated clicks until workflow exit, then allows reopening', async () => {
+            it('keeps workflows open beyond 20 seconds and suppresses repeated clicks until exit', async () => {
                 const exit = deferred();
                 const opened = deferred();
                 cleanup.push(() => exit.resolve({ status: 'cancel' }));
@@ -628,12 +628,22 @@ describe('aup-select checkout routing', () => {
                     return exit.promise;
                 });
                 const element = await create(Class);
-                click(element);
-                click(element);
-                await opened.promise;
-                expect(launch.calledOnce).to.be.true;
-                exit.resolve({ status: 'cancel' });
-                await element.aupCheckoutPromise;
+                const clock = sinon.useFakeTimers({
+                    toFake: ['setTimeout', 'clearTimeout'],
+                });
+                try {
+                    click(element);
+                    await opened.promise;
+                    await clock.tickAsync(60000);
+                    expect(legacy.called).to.be.false;
+                    click(element);
+                    expect(launch.calledOnce).to.be.true;
+                    expect(sdk.getOrchestratorContext.calledOnce).to.be.true;
+                    exit.resolve({ status: 'cancel' });
+                    await element.aupCheckoutPromise;
+                } finally {
+                    clock.restore();
+                }
                 click(element);
                 await element.aupCheckoutPromise;
                 expect(launch.calledTwice).to.be.true;
@@ -694,35 +704,32 @@ describe('aup-select checkout routing', () => {
         });
     }
 
-    for (const stage of ['getOrchestratorContext', 'launchWorkflowInModal']) {
-        it(`rejects when the host ${stage} never settles`, async () => {
-            const offers = [
-                {
-                    offerId: 'o1',
-                    offerType: 'COM',
-                    productArrangementCode: 'pac',
-                },
-            ];
-            const hang = new Promise(() => {});
-            const hostSdk = {
-                getOrchestratorContext:
-                    stage === 'getOrchestratorContext'
-                        ? () => hang
-                        : async () => ({ launchWorkflowInModal: () => hang }),
-            };
-            let error;
-            await launchAupCheckout(
-                hostSdk,
-                offers,
-                { language: 'en' },
-                undefined,
-                20,
-            ).catch((reason) => {
-                error = reason;
-            });
-            expect(error).to.be.an('error');
+    it('rejects when the host getOrchestratorContext never settles', async () => {
+        const offers = [
+            {
+                offerId: 'o1',
+                offerType: 'COM',
+                productArrangementCode: 'pac',
+            },
+        ];
+        const hostSdk = {
+            getOrchestratorContext: () => new Promise(() => {}),
+        };
+        let error;
+        await launchAupCheckout(
+            hostSdk,
+            offers,
+            { language: 'en' },
+            undefined,
+            20,
+        ).catch((reason) => {
+            error = reason;
         });
-    }
+        expect(error).to.be.an('error');
+        expect(error.message).to.equal(
+            'AUP host timed out: getOrchestratorContext',
+        );
+    });
 
     for (const value of ['', 'true', 'ON', 'off']) {
         it(`does not opt in for metadata value ${JSON.stringify(value)}`, async () => {

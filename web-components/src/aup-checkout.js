@@ -1,7 +1,7 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { Log } from './log.js';
 
-// A hung host SDK call would otherwise leave aupCheckoutPending stuck true and
+// A hung context lookup would otherwise leave aupCheckoutPending stuck true and
 // silently no-op every checkout CTA on the page for the rest of its life.
 const HOST_TIMEOUT_MS = 20000;
 
@@ -170,13 +170,10 @@ export async function launchAupCheckout(
         };
     }
     Log.module('aup-select').debug('Launching workflow:', request);
-    const result = await withTimeout(
-        messageHandler
-            ? orchestrator.launchWorkflowInModal(request, messageHandler)
-            : orchestrator.launchWorkflowInModal(request),
-        'launchWorkflowInModal',
-        timeout,
-    );
+    // This promise settles when the user exits, not when the dialog opens.
+    const result = await (messageHandler
+        ? orchestrator.launchWorkflowInModal(request, messageHandler)
+        : orchestrator.launchWorkflowInModal(request));
     if (result?.status === 'cancel') {
         if (
             Array.isArray(items) &&

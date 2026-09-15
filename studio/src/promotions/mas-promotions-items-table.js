@@ -5,7 +5,7 @@ import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js'
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
-import { applySearchSurfaceFromPath, renderCopyableValue, renderCopyableValueCell } from '../common/utils/render-utils.js';
+import { applySearchSurfaceFromPath, renderCopyableValueCell } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';

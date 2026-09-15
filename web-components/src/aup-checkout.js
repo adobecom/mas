@@ -49,6 +49,7 @@ function getRequest(offers, options) {
         lang: new URL(applyPageLocaleToCheckoutUrl(localeUrl)).searchParams.get(
             'lang',
         ),
+        nr: 'stable',
         ctxrturl: options.ctxrturl ?? window.location.href,
         ot: offer.offerType,
         items: offers
@@ -124,6 +125,7 @@ function getRequest(offers, options) {
         intent: offer.offerType === 'TRIAL' ? 'try' : 'buy',
         context,
         params,
+        enableRenderIn: 'iframe',
     };
 }
 

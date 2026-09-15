@@ -468,11 +468,16 @@ describe('MasSearchAndFilters', () => {
             });
         });
 
-        it('renders a Status filter with Published/Draft/Modified options', async () => {
+        it('renders the same five Status options as the fragments table', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
-            expect(el.statusOptions.map((o) => o.id)).to.have.members(['PUBLISHED', 'DRAFT', 'MODIFIED']);
-            expect(el.statusOptions.map((o) => o.title)).to.have.members(['Published', 'Draft', 'Modified']);
+            expect(el.statusOptions.map((o) => o.title)).to.deep.equal([
+                'Published',
+                'Draft',
+                'New',
+                'Modified',
+                'Unpublished',
+            ]);
         });
 
         it('does not populate Status options when searchOnly is true', async () => {
@@ -931,6 +936,7 @@ describe('MasSearchAndFilters', () => {
                 locale: 'en_US',
                 tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
+                status: undefined,
             });
         });
 
@@ -1322,6 +1328,7 @@ describe('MasSearchAndFilters', () => {
                 locale: 'en_US',
                 tags: 'mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
+                status: undefined,
             });
         });
     });

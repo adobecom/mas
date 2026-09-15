@@ -314,7 +314,7 @@ mas-field .icon-button.hide-tooltip::after {
     }
 }
 
-.table .row-heading .col-heading .pricing {
+.table .row-heading .col-heading .pricing:has(.price-annual-prefix) {
   display: flex;
   flex-direction: column;
 }
@@ -335,11 +335,11 @@ mas-field .icon-button.hide-tooltip::after {
   display: none;
 }
 
-.pricing.has-pricing-after .price:not(.price-annual) {
+.pricing.has-pricing-after:has(.price-annual-prefix) .price:not(.price-annual) {
   display: block;
 }
 
-.pricing.has-pricing-after .price-annual::before {
+.pricing.has-pricing-after .price-annual-prefix + .price-annual::before {
   content: '(';
 }
 `;

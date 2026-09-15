@@ -46,15 +46,29 @@ describe('MasPromotionDuplicateDialog', () => {
         expect(ev.detail.title).to.equal('My Custom Name');
     });
 
-    it('falls back to proposedTitle in duplicate-confirmed when newTitle is empty', async () => {
+    it('does not dispatch duplicate-confirmed when newTitle is cleared to empty', async () => {
         const el = await fixture(html`
             <mas-promotion-duplicate-dialog .proposedTitle=${'Fallback Title'} .open=${true}></mas-promotion-duplicate-dialog>
         `);
         await el.updateComplete;
         el.newTitle = '';
-        setTimeout(() => el.confirm());
-        const ev = await oneEvent(el, 'duplicate-confirmed');
-        expect(ev.detail.title).to.equal('Fallback Title');
+        let dispatched = false;
+        el.addEventListener('duplicate-confirmed', () => {
+            dispatched = true;
+        });
+        el.confirm();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(dispatched).to.be.false;
+    });
+
+    it('marks the textfield invalid when newTitle is cleared to empty', async () => {
+        const el = await fixture(html`
+            <mas-promotion-duplicate-dialog .proposedTitle=${'Fallback Title'} .open=${true}></mas-promotion-duplicate-dialog>
+        `);
+        await el.updateComplete;
+        el.newTitle = '';
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('invalid')).to.be.true;
     });
 
     it('dispatches duplicate-cancelled when cancel() is called', async () => {

@@ -22,6 +22,18 @@ class MasPromotionDuplicateDialog extends LitElement {
             width: 100%;
             --spectrum-textfield-input-line-height: 20px;
         }
+
+        .validation-message {
+            display: block;
+            margin-top: var(--spectrum-spacing-100, 8px);
+            color: var(--spectrum-negative-color, red);
+            font-size: var(--spectrum-font-size-75, 12px);
+            visibility: hidden;
+        }
+
+        .validation-message.is-visible {
+            visibility: visible;
+        }
     `;
 
     static properties = {
@@ -48,16 +60,12 @@ class MasPromotionDuplicateDialog extends LitElement {
         }
     }
 
-    get resolvedTitle() {
-        return this.newTitle || this.proposedTitle;
-    }
-
     get isTitleTaken() {
-        return isPromotionTitleTaken(this.resolvedTitle, this.existingTitles);
+        return isPromotionTitleTaken(this.newTitle, this.existingTitles);
     }
 
     #isTitleInvalidFor(titleTaken) {
-        return !normalizeKey(this.resolvedTitle?.trim()) || titleTaken;
+        return !normalizeKey(this.newTitle?.trim()) || titleTaken;
     }
 
     get isTitleInvalid() {
@@ -71,7 +79,7 @@ class MasPromotionDuplicateDialog extends LitElement {
                 bubbles: true,
                 composed: true,
                 detail: {
-                    title: this.resolvedTitle,
+                    title: this.newTitle,
                     duplicateVariations: this.duplicateVariations,
                 },
             }),
@@ -114,13 +122,10 @@ class MasPromotionDuplicateDialog extends LitElement {
                     placeholder="Project name"
                     autofocus
                     ?invalid=${titleInvalid}
+                ></sp-textfield>
+                <span class="validation-message ${titleInvalid ? 'is-visible' : ''}"
+                    >${titleTaken ? 'The title already exists.' : 'Please enter a valid title.'}</span
                 >
-                    ${titleInvalid
-                        ? html`<span slot="negative-help-text"
-                              >${titleTaken ? 'The title already exists.' : 'Please enter a valid title.'}</span
-                          >`
-                        : nothing}
-                </sp-textfield>
                 <p>Do you want to include promo variations?</p>
                 <sp-checkbox .checked=${this.duplicateVariations} @change=${this.handleDuplicateVariationsChange}>
                     Duplicate promo variations

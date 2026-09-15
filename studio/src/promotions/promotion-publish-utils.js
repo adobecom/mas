@@ -231,7 +231,14 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 if (!variationWithEtag || hasValidationErrors(variationWithEtag)) continue;
                 fragments.push(variationWithEtag);
             }
-            await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            const resolvedVariationCount = fragments.length - 1;
+            try {
+                await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            } catch {
+                await repository.aem.sites.cf.fragments.publish(promotionWithEtag, publishReferencesWithStatus);
+                showToast(promotionPublishShortfallMessage(resolvedVariationCount), 'info');
+                return true;
+            }
             const expectedFragmentCount = promoVariationPaths.length + 1;
             const shortfall = expectedFragmentCount - fragments.length;
             if (shortfall > 0) {

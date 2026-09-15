@@ -415,6 +415,42 @@ describe('promotion-publish-utils', () => {
             expect(fragments[1].path).to.equal(foundPath);
         });
 
+        it('falls back to publishing only the project when the batch publish call fails, and reports a full shortfall', async () => {
+            const promotionPath = '/content/dam/mas/promotions/project';
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';
+            const publish = sinon.stub().resolves();
+            const publishFragments = sinon.stub().rejects(new Error('workflow rejected'));
+            const getWithEtag = sinon.stub();
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
+            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', path: variationPath, etag: 'etag-var' });
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish,
+                                publishFragments,
+                                getWithEtag,
+                                getByPath: sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath }),
+                            },
+                        },
+                    },
+                },
+                processError: sinon.stub(),
+            };
+            const promotion = { id: 'promo-1', path: promotionPath };
+
+            const ok = await publishPromotionProject(repo, promotion, [variationPath]);
+
+            expect(ok).to.be.true;
+            expect(publishFragments.calledOnce).to.be.true;
+            expect(publish.calledOnce).to.be.true;
+            expect(publish.firstCall.args[0]).to.deep.equal({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
+            expect(repo.processError.called).to.be.false;
+            expect(repo.operation.set.lastCall.args[0]).to.equal(null);
+        });
+
         it('skips a resolved variation that has content validation errors instead of publishing it', async () => {
             const promotionPath = '/content/dam/mas/promotions/project';
             const invalidPath = '/content/dam/mas/acom/en_US/promotions/sale/card-invalid';

@@ -4,7 +4,7 @@ import { launchAupCheckout } from '../src/aup-checkout.js';
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
-import { unmockIms } from './mocks/ims.js';
+import { mockIms, unmockIms } from './mocks/ims.js';
 import {
     expect,
     sinon,
@@ -36,6 +36,7 @@ describe('aup-select checkout routing', () => {
 
     beforeEach(async () => {
         await mockFetch(withWcs);
+        await mockIms();
         mockLana();
         cleanup = [];
         previousSdk = window.aupsdk;

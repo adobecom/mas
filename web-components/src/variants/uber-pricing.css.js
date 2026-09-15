@@ -1,4 +1,4 @@
-import { TABLET_UP, XL_DESKTOP_UP } from '../media.js';
+import { TABLET_UP, C2_DESKTOP_UP, XL_DESKTOP_UP } from '../media.js';
 
 export const CSS = `
 .collection-container:has(merch-card[variant='uber-pricing']) {
@@ -22,6 +22,15 @@ merch-card-collection.uber-pricing {
     .three-merch-cards:has(merch-card[variant='uber-pricing']),
     .four-merch-cards:has(merch-card[variant='uber-pricing']) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* LG: 3 columns. */
+@media screen and ${C2_DESKTOP_UP} {
+    merch-card-collection.uber-pricing,
+    .three-merch-cards:has(merch-card[variant='uber-pricing']),
+    .four-merch-cards:has(merch-card[variant='uber-pricing']) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 

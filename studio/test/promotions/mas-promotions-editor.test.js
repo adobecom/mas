@@ -1840,6 +1840,56 @@ describe('MasPromotionsEditor', () => {
             expect(dialog.existingTitles).to.include('Original copy');
         });
 
+        it('shows a failure toast and keeps the dialog closed when loading promotion projects rejects', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.promotionId.set('dup-1');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-1';
+            const fragmentData = makeFragmentData({
+                id: 'dup-1',
+                title: 'Original',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Original'] },
+                    { name: 'promoCode', type: 'text', values: [''] },
+                    { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/original'] },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
+                ],
+            });
+            Store.promotions.selectedCards.set([cardPath]);
+            const loadPromotions = sandbox.stub().rejects(new Error('network down'));
+            const repo = makeRepo({
+                loadPromotions,
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(fragmentData), search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves() },
+                },
+            });
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const el = new MasPromotionsEditor();
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+            expect(el.isNewPromotion).to.be.false;
+
+            el.renderRoot
+                .querySelector('mas-quick-actions')
+                .dispatchEvent(new CustomEvent('duplicate', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+
+            expect(loadPromotions.calledOnce).to.be.true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to prepare duplicate dialog.' })))
+                .to.be.true;
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(el.duplicating).to.be.false;
+        });
+
         it('hides the floating quick-actions toolbar while the duplicate dialog is open', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));

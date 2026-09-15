@@ -238,6 +238,7 @@ async function waitForPromoVariationIndexed(aem, defaultPath, promoTagId, create
         if (siblings.some((sibling) => sibling.path === createdPath)) return;
         await aem.wait(INDEX_POLL_INTERVAL_MS);
     }
+    console.warn(`Promo variation ${createdPath} was not indexed after ${INDEX_POLL_MAX_ATTEMPTS} attempts.`);
 }
 
 /**

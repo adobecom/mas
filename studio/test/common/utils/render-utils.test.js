@@ -6,6 +6,7 @@ import {
     renderPromotionStatusCell,
     renderCopyableValue,
     renderCopyableValueCell,
+    copyToClipboardWithToast,
     getItemTypeLabel,
     getItemTitle,
     shouldIgnoreRowClickForSelection,
@@ -185,6 +186,49 @@ describe('render-utils', () => {
             container.querySelector('sp-action-button[aria-label="Copy value"]').click();
             const detail = await toastPromise;
             expect(detail).to.deep.equal({ text: 'Copy failed', variant: 'negative' });
+        });
+    });
+
+    describe('copyToClipboardWithToast', () => {
+        let sandbox;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+        });
+
+        it('stops event propagation', async () => {
+            const host = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const event = { stopPropagation: sinon.spy() };
+            await copyToClipboardWithToast(host, event, 'VAL');
+            expect(event.stopPropagation.calledOnce).to.be.true;
+        });
+
+        it('dispatches the default success message on a successful copy', async () => {
+            const host = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const toastPromise = new Promise((resolve) => {
+                host.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            await copyToClipboardWithToast(host, { stopPropagation: sinon.spy() }, 'VAL');
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copied to clipboard', variant: 'positive' });
+        });
+
+        it('dispatches the default error message when the clipboard write fails', async () => {
+            const host = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('denied'));
+            sandbox.stub(console, 'error');
+            const toastPromise = new Promise((resolve) => {
+                host.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            await copyToClipboardWithToast(host, { stopPropagation: sinon.spy() }, 'VAL');
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Failed to copy', variant: 'negative' });
         });
     });
 

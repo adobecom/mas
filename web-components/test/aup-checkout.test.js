@@ -494,11 +494,13 @@ describe('aup-select checkout routing', () => {
                         },
                         params: {
                             lang: 'en',
+                            nr: 'stable',
                             ctxrturl: window.location.href,
                             ot: 'BASE',
                             items: `${element.value[0].offerId}|1`,
                             step: 'email',
                         },
+                        enableRenderIn: 'iframe',
                     },
                 ]);
                 expect(element.href).to.equal(href);
@@ -994,6 +996,7 @@ describe('aup-select checkout routing', () => {
             },
             params: {
                 lang: 'en',
+                nr: 'stable',
                 ctxrturl: 'https://www.adobe.com/plans',
                 ot: 'BASE',
                 items: `${element.value[0].offerId}|1`,
@@ -1002,6 +1005,7 @@ describe('aup-select checkout routing', () => {
                 lo: 'sl',
                 af: 'feature',
             },
+            enableRenderIn: 'iframe',
         });
     });
 

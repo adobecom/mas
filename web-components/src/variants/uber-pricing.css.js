@@ -7,8 +7,10 @@ export const CSS = `
 
 merch-card-collection.uber-pricing {
     display: grid;
-    /* XS: 1 column. */
-    grid-template-columns: 1fr;
+    /* XS: 1 column. Tracks cap at the 474px card max and center, so surplus space
+       falls outside the grid instead of gapping each capped card. */
+    grid-template-columns: minmax(261px, 474px);
+    justify-content: center;
     max-width: 1920px;
     margin-inline: auto;
     gap: 8px;
@@ -21,7 +23,7 @@ merch-card-collection.uber-pricing {
     .two-merch-cards:has(merch-card[variant='uber-pricing']),
     .three-merch-cards:has(merch-card[variant='uber-pricing']),
     .four-merch-cards:has(merch-card[variant='uber-pricing']) {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(261px, 474px));
     }
 }
 
@@ -30,7 +32,7 @@ merch-card-collection.uber-pricing {
     merch-card-collection.uber-pricing,
     .three-merch-cards:has(merch-card[variant='uber-pricing']),
     .four-merch-cards:has(merch-card[variant='uber-pricing']) {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(261px, 474px));
     }
 }
 
@@ -38,7 +40,7 @@ merch-card-collection.uber-pricing {
 @media screen and ${XL_DESKTOP_UP} {
     merch-card-collection.uber-pricing,
     .four-merch-cards:has(merch-card[variant='uber-pricing']) {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(261px, 474px));
     }
 }
 

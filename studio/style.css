@@ -534,6 +534,11 @@ sp-table-row.price-failed {
     background-color: var(--merch-color-error-background);
 }
 
+sp-table-row[selected] {
+    --mod-table-row-background-color: var(--spectrum-blue-200);
+    --spectrum-table-cell-background-color: var(--spectrum-blue-200);
+}
+
 sp-table-cell {
     display: flex;
     align-items: center;

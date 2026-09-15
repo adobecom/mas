@@ -913,11 +913,12 @@ class MasSearchAndFilters extends LitElement {
     }
 
     renderCount() {
+        const count = getItemsSelectionStore()[`display${this.typeUppercased}`].value.length;
         return html`<div class="result-count">
             ${this.isLoading
                 ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
-                : html`${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length}
-                  result${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
+                : html`<span class="result-count-value">${count}</span>
+                      <span class="result-count-label">result${count !== 1 ? 's' : ''}</span>`}
         </div>`;
     }
 

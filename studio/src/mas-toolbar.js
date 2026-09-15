@@ -122,9 +122,20 @@ class MasToolbar extends LitElement {
             border-radius: 2px;
         }
 
+        #search-field {
+            display: flex;
+        }
+
         sp-search {
             flex-grow: 1;
             max-width: 400px;
+            border-radius: 16px;
+            border: 2px solid var(--Palette-gray-300, #dadada);
+            background: var(--Palette-gray-25, #fff);
+            --mod-search-border-radius: 16px;
+            --mod-search-border-width: 2px;
+            --mod-search-border-color-default: var(--Palette-gray-300, #dadada);
+            --mod-search-background-color: var(--Palette-gray-25, #fff);
         }
 
         #search-results-label {
@@ -255,6 +266,11 @@ class MasToolbar extends LitElement {
                     : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
+        </div>`;
+    }
+
+    get searchField() {
+        return html`<div id="search-field">
             <sp-search
                 label="Search"
                 placeholder="Search"
@@ -378,7 +394,7 @@ class MasToolbar extends LitElement {
     render() {
         return html`<div id="toolbar">
                 <div id="actions">${this.searchAndFilterControls} ${this.contentManagementControls} ${this.selectionPanel}</div>
-                ${this.filtersPanel}${this.searchResultsLabel}
+                ${this.filtersPanel}${this.searchField}${this.searchResultsLabel}
             </div>
             <mas-selection-panel
                 ?open=${this.selecting.value}

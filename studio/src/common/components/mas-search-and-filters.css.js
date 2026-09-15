@@ -21,9 +21,18 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 6px;
-        color: var(--spectrum-gray-700);
-        font-size: 14px;
         white-space: nowrap;
+    }
+
+    .result-count-value,
+    .result-count-label {
+        color: var(--Alias-content-neutral-default, #292929);
+        font-family: var(--Font-family-Sans-serif, 'Adobe Clean Spectrum VF');
+        font-size: var(--Font-size-75, 12px);
+        font-style: normal;
+        font-weight: 400;
+        line-height: 150%;
+        letter-spacing: var(--Letter-spacing, 0);
     }
 
     .filters {

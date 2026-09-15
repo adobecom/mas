@@ -12,7 +12,7 @@ const SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs'];
 
 export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
-    mnemonics: { size: 'l' },
+    mnemonics: { size: 's' },
     // Badge is plain white text on the black header strip; the merch-badge pill
     // styling is stripped in uber-pricing.css.js (no color variants / border).
     badge: { tag: 'div', slot: 'badge' },

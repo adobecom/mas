@@ -58,9 +58,9 @@ merch-card[variant="uber-pricing"] merch-badge {
     --merch-badge-color: #fff !important;
     --merch-badge-padding: 0 !important;
     inset-inline-start: 0;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
-    line-height: 20px;
+    line-height: 18px;
 }
 
 merch-card[variant="uber-pricing"] [slot="heading-s"] {

@@ -33,6 +33,8 @@ class MasSelectionPanel extends LitElement {
         onUnpublish: { type: Function, attribute: false },
         onCopyToFolder: { type: Function, attribute: false },
         onCopyStudioLinks: { type: Function, attribute: false },
+        copyStudioLinksLabel: { type: String, attribute: false },
+        copyStudioLinksTooltip: { type: String, attribute: false },
     };
 
     constructor() {
@@ -47,6 +49,8 @@ class MasSelectionPanel extends LitElement {
         this.onUnpublish = null;
         this.onCopyToFolder = null;
         this.onCopyStudioLinks = null;
+        this.copyStudioLinksLabel = 'Copy Studio Link(s)';
+        this.copyStudioLinksTooltip = 'Copy link(s) to open in Studio editor';
 
         this.close = this.close.bind(this);
     }
@@ -302,9 +306,9 @@ class MasSelectionPanel extends LitElement {
                   </sp-action-button>`
                 : nothing}
             ${count > 0 && this.onCopyStudioLinks
-                ? html`<sp-action-button slot="buttons" label="Copy Studio Link(s)" @click=${this.handleCopyStudioLinks}>
+                ? html`<sp-action-button slot="buttons" label=${this.copyStudioLinksLabel} @click=${this.handleCopyStudioLinks}>
                       <sp-icon-copy slot="icon"></sp-icon-copy>
-                      <sp-tooltip self-managed placement="top">Copy link(s) to open in Studio editor</sp-tooltip>
+                      <sp-tooltip self-managed placement="top">${this.copyStudioLinksTooltip}</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0

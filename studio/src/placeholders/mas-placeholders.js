@@ -9,7 +9,7 @@ import Events from '../events.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment } from './mas-placeholders-repository.js';
 import '../mas-selection-panel.js';
-import { showToast } from '../utils.js';
+import { showToast, buildPlaceholderStudioLinks } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { clearCaches } from '../../libs/fragment-client.js';
@@ -56,6 +56,7 @@ class MasPlaceholders extends LitElement {
         this.toggleCreationModal = this.toggleCreationModal.bind(this);
         this.onDeleted = this.onDeleted.bind(this);
         this.onBulkDelete = this.onBulkDelete.bind(this);
+        this.onCopyStudioLinks = this.onCopyStudioLinks.bind(this);
         this.updatePending = this.updatePending.bind(this);
     }
 
@@ -273,6 +274,24 @@ class MasPlaceholders extends LitElement {
         this.handleSelectionPanelClose();
     }
 
+    /** @param {string[]} keys */
+    async onCopyStudioLinks(keys) {
+        if (!keys?.length) return;
+
+        const links = buildPlaceholderStudioLinks(keys, {
+            path: Store.surface(),
+            locale: Store.localeOrRegion(),
+        });
+
+        try {
+            await navigator.clipboard.writeText(links.join('\n'));
+            showToast(`Copied ${links.length} link${links.length > 1 ? 's' : ''} to clipboard`, 'positive');
+        } catch (e) {
+            console.error(e);
+            showToast('Failed to copy to clipboard', 'negative');
+        }
+    }
+
     handleSelectionPanelClose() {
         Store.placeholders.selection.set([]);
         this.refresh();
@@ -349,6 +368,9 @@ class MasPlaceholders extends LitElement {
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
                 .onDelete=${this.onBulkDelete}
+                .onCopyStudioLinks=${this.onCopyStudioLinks}
+                .copyStudioLinksLabel=${'Copy Code'}
+                .copyStudioLinksTooltip=${'Copy link(s) to find this placeholder in Studio'}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
         `;

@@ -1,4 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { MODAL_TYPE_3_IN_1 } from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
@@ -35,6 +36,13 @@ function getRequest(offers, options) {
         cs: options.cs,
         ms: options.ms,
     };
+    if (
+        context.clientId !== 'doc_cloud' &&
+        Object.values(MODAL_TYPE_3_IN_1).includes(options.modal)
+    ) {
+        context.clientId =
+            options.modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
+    }
     const preselectPlan = options.preselectPlan?.toLowerCase();
     if (preselectPlan === 'edu') context.ms = 'EDU';
     if (preselectPlan === 'team') context.cs = 'TEAM';

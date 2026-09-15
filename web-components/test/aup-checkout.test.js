@@ -953,21 +953,32 @@ describe('aup-select checkout routing', () => {
         });
     }
 
-    it('forwards the configured client ID without an allowlist', async () => {
-        removeMasCommerceService();
-        service = initMasCommerceService(
-            { 'checkout-client-id': 'other-client' },
-            () => ({ handler: legacy }),
-        );
-        const element = await create();
-        click(element);
-        await element.aupCheckoutPromise;
-        expect(launch.calledOnce).to.be.true;
-        expect(launch.firstCall.args[0].context.clientId).to.equal(
-            'other-client',
-        );
-        expect(legacy.called).to.be.false;
-    });
+    for (const [modal, clientId, expected] of [
+        [undefined, 'other-client', 'other-client'],
+        ['true', 'other-client', 'other-client'],
+        ['crm', 'other-client', 'creative'],
+        ['twp', 'other-client', 'mini_plans'],
+        ['d2p', 'other-client', 'mini_plans'],
+        ['crm', 'doc_cloud', 'doc_cloud'],
+        ['twp', 'doc_cloud', 'doc_cloud'],
+        ['d2p', 'doc_cloud', 'doc_cloud'],
+    ]) {
+        it(`maps client ${clientId} with modal ${modal} to ${expected}`, async () => {
+            removeMasCommerceService();
+            service = initMasCommerceService(
+                { 'checkout-client-id': clientId },
+                () => ({ handler: legacy }),
+            );
+            const element = await create(CheckoutLink, { modal });
+            click(element);
+            await element.aupCheckoutPromise;
+            expect(launch.calledOnce).to.be.true;
+            expect(launch.firstCall.args[0].context.clientId).to.equal(
+                expected,
+            );
+            expect(legacy.called).to.be.false;
+        });
+    }
 
     it('maps optional context and params without forwarding internal variants or mode flags', async () => {
         const element = await create(CheckoutLink, {

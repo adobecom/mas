@@ -1113,7 +1113,9 @@
                         });
 
                         it('shows a failure toast and does not navigate away when the repository reports the delete failed', async () => {
-                            mockRepo.deleteVariationFragment = sandbox.stub().resolves({ deleted: false, failedVariations: [] });
+                            mockRepo.deleteVariationFragment = sandbox
+                                .stub()
+                                .resolves({ deleted: false, failedVariations: [] });
                             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
                             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
                             const navigateSpy = sandbox.stub().resolves();

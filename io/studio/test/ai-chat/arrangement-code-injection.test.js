@@ -106,3 +106,103 @@ describe('ai-chat/arrangement code injection — envelope shape', () => {
         expect(filled.message, 'the rest of the body survives').to.equal('Resolving offer...');
     });
 });
+
+/**
+ * The flow the history scan cannot serve.
+ *
+ * On OST-first the user hands over an offer without ever picking a product, so
+ * nothing in the conversation names one: working out which product the offer
+ * belongs to is the request itself. The scan returns null, get_offer_by_id goes
+ * out bare, and AOS answers with an unfiltered page. Reported as:
+ *
+ *   Failed to execute get_offer_by_id: AOS does not filter by offer id, and
+ *   A4508ECDB04ABC04D36761D73E06EC5D was not in the unfiltered results.
+ *
+ * The client held the answer the whole time. OST hands the whole offer back and
+ * mas-chat-input sends it as context.offer, carrying product_arrangement_code.
+ */
+describe('ai-chat/arrangement code injection — the OST-first flow', () => {
+    let resolveArrangementCodeFromContext;
+    let withResolvedArrangementCode;
+
+    before(async () => {
+        ({ resolveArrangementCodeFromContext, withResolvedArrangementCode } = await import(
+            '../../src/ai-chat/operations-handler.js'
+        ));
+    });
+
+    const OFFER_ID = 'A4508ECDB04ABC04D36761D73E06EC5D';
+    const ostOffer = { offer_id: OFFER_ID, product_arrangement_code: 'PA-1930', commitment: 'YEAR', term: 'MONTHLY' };
+    // The whole transcript on an OST-first turn. It names no product.
+    const ostHistory = [{ role: 'user', content: `Offer ID: ${OFFER_ID}` }];
+
+    it('takes the product from the offer OST handed back', () => {
+        expect(resolveArrangementCodeFromContext({ offer: ostOffer })).to.equal('PA-1930');
+    });
+
+    it('reads the camelCase spellings the payload also uses', () => {
+        expect(resolveArrangementCodeFromContext({ offer: { arrangementCode: 'PA-2244' } })).to.equal('PA-2244');
+        expect(resolveArrangementCodeFromContext({ offer: { productArrangementCode: 'PA-77' } })).to.equal('PA-77');
+    });
+
+    it('finds nothing when there is no offer to read', () => {
+        expect(resolveArrangementCodeFromContext(null)).to.equal(null);
+        expect(resolveArrangementCodeFromContext({})).to.equal(null);
+        expect(resolveArrangementCodeFromContext({ offer: {} })).to.equal(null);
+        expect(resolveArrangementCodeFromContext({ offer: { product_arrangement_code: '' } })).to.equal(null);
+    });
+
+    it('fills the lookup the transcript cannot answer', () => {
+        const operation = { type: 'mcp_operation', mcpTool: 'get_offer_by_id', mcpParams: { offerId: OFFER_ID } };
+
+        const filled = withResolvedArrangementCode(operation, ostHistory, { offer: ostOffer });
+
+        expect(filled.mcpParams.arrangementCode, 'the turn that reported "not in the unfiltered results"').to.equal('PA-1930');
+        expect(filled.mcpParams.offerId).to.equal(OFFER_ID);
+    });
+
+    it('prefers the offer just picked over a product named earlier', () => {
+        // The user picked this offer seconds ago; a product named earlier in the
+        // conversation is older, and the lookup is for this offer.
+        const history = [{ role: 'user', content: 'Selected product: Photoshop (arrangement_code: PA-2244)' }];
+        const operation = { type: 'mcp_operation', mcpTool: 'get_offer_by_id', mcpParams: { offerId: OFFER_ID } };
+
+        expect(withResolvedArrangementCode(operation, history, { offer: ostOffer }).mcpParams.arrangementCode).to.equal(
+            'PA-1930',
+        );
+    });
+
+    it('ignores an offer that is not the one being looked up', () => {
+        // A leftover offer from an earlier step must not relabel this lookup:
+        // its product would filter AOS to the wrong arrangement entirely.
+        const stale = { offer_id: 'DEADBEEFDEADBEEFDEADBEEFDEADBEEF', product_arrangement_code: 'PA-9999' };
+        const history = [{ role: 'user', content: 'Selected product: Photoshop (arrangement_code: PA-2244)' }];
+        const operation = { type: 'mcp_operation', mcpTool: 'get_offer_by_id', mcpParams: { offerId: OFFER_ID } };
+
+        expect(
+            withResolvedArrangementCode(operation, history, { offer: stale }).mcpParams.arrangementCode,
+            'falls back to the transcript',
+        ).to.equal('PA-2244');
+    });
+
+    it('leaves a code the model sent itself alone', () => {
+        const operation = {
+            type: 'mcp_operation',
+            mcpTool: 'get_offer_by_id',
+            mcpParams: { offerId: OFFER_ID, arrangementCode: 'PA-1111' },
+        };
+
+        expect(withResolvedArrangementCode(operation, ostHistory, { offer: ostOffer }).mcpParams.arrangementCode).to.equal(
+            'PA-1111',
+        );
+    });
+
+    it('still reads the transcript when no context comes with the turn', () => {
+        // Every other flow keeps working: context is optional.
+        const operation = { type: 'mcp_operation', mcpTool: 'get_offer_by_id', mcpParams: { offerId: OFFER_ID } };
+        const history = [{ role: 'user', content: 'Selected product: Adobe Firefly Standard (arrangement_code: PA-1930)' }];
+
+        expect(withResolvedArrangementCode(operation, history).mcpParams.arrangementCode).to.equal('PA-1930');
+        expect(withResolvedArrangementCode(operation, history, null).mcpParams.arrangementCode).to.equal('PA-1930');
+    });
+});

@@ -413,11 +413,52 @@ export function resolveArrangementCodeFromHistory(conversationHistory) {
     return null;
 }
 
-/** Fill in the arrangement code for an offer lookup that left it out. */
-export function withResolvedArrangementCode(operation, conversationHistory) {
+/**
+ * The product arrangement code the client already holds.
+ *
+ * OST-first is the one flow the history scan above cannot serve. The user hands
+ * over an offer without ever picking a product, so nothing in the conversation
+ * names one: working out which product the offer belongs to is the request
+ * itself. The scan returns null and the lookup goes out bare.
+ *
+ * The client knows all along. OST hands the whole offer back and mas-chat-input
+ * sends it as context.offer, which carries product_arrangement_code. Read it
+ * from there rather than from a transcript that cannot contain it.
+ */
+export function resolveArrangementCodeFromContext(context) {
+    const offer = context?.offer;
+    if (!offer) return null;
+    const code = offer.product_arrangement_code || offer.arrangementCode || offer.productArrangementCode;
+    return typeof code === 'string' && code ? code : null;
+}
+
+/**
+ * The offer in context only speaks for the offer actually being looked up. A
+ * leftover one from an earlier step would otherwise relabel this lookup and
+ * filter AOS to the wrong arrangement, which is worse than not filtering.
+ */
+function contextArrangementCodeFor(context, offerId) {
+    const contextOfferId = context?.offer?.offer_id || context?.offer?.id;
+    if (offerId && contextOfferId && String(contextOfferId).toUpperCase() !== String(offerId).toUpperCase()) {
+        return null;
+    }
+    return resolveArrangementCodeFromContext(context);
+}
+
+/**
+ * Fill in the arrangement code for an offer lookup that left it out.
+ *
+ * The client first, the transcript second: on an OST-first flow the transcript
+ * cannot name the product, because resolving the offer to its product is the
+ * request. The offer payload carries it either way, and it describes the offer
+ * being looked up rather than whatever was mentioned earlier.
+ */
+export function withResolvedArrangementCode(operation, conversationHistory, context = null) {
     if (operation?.mcpTool !== 'get_offer_by_id') return operation;
     if (operation.mcpParams?.arrangementCode) return operation;
-    const arrangementCode = resolveArrangementCodeFromHistory(conversationHistory);
+    const arrangementCode =
+        contextArrangementCodeFor(context, operation.mcpParams?.offerId) ||
+        resolveArrangementCodeFromHistory(conversationHistory);
     if (!arrangementCode) return operation;
     return { ...operation, mcpParams: { ...operation.mcpParams, arrangementCode } };
 }

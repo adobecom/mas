@@ -30,7 +30,7 @@ import {
     isDeadEndGuidedStep,
     withDeadEndRecovery,
 } from './response-parser.js';
-import { handleOperation, withResolvedArrangementCode, resolveArrangementCodeFromHistory } from './operations-handler.js';
+import { handleOperation, withResolvedArrangementCode } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
@@ -800,32 +800,33 @@ async function main(params) {
                           }
                     : null;
             if (identifierBypass) {
+                // This bypass answers without consulting the model, so it is the
+                // one path that cannot be fixed by prompting. An offer lookup
+                // still needs the product: AOS does not filter by offer id. OST
+                // sends "Offer ID: <hex>", which lands here, and on that flow the
+                // transcript names no product at all. The offer payload does.
+                const bypassBody = withResolvedArrangementCode(
+                    {
+                        type: 'mcp_operation',
+                        mcpTool: identifierBypass.intent,
+                        mcpParams: identifierBypass.mcpParams,
+                        message: identifierBypass.message,
+                        confirmationRequired: false,
+                    },
+                    conversationHistory,
+                    context,
+                );
                 // The client dispatches from envelope.slots, not from mcpParams,
                 // so the product has to be in the slots or it never reaches the
                 // lookup. Enrich before the envelope is built from them.
-                if (identifierBypass.intent === 'get_offer_by_id' && !identifierBypass.slots.arrangementCode) {
-                    const resolved = resolveArrangementCodeFromHistory(conversationHistory);
-                    if (resolved) {
-                        identifierBypass.slots = { ...identifierBypass.slots, arrangementCode: resolved };
-                        identifierBypass.mcpParams = { ...identifierBypass.mcpParams, arrangementCode: resolved };
-                    }
+                if (bypassBody.mcpParams?.arrangementCode && !identifierBypass.slots.arrangementCode) {
+                    identifierBypass.slots = {
+                        ...identifierBypass.slots,
+                        arrangementCode: bypassBody.mcpParams.arrangementCode,
+                    };
                 }
                 const envelope = buildDeterministicEnvelope(identifierBypass.intent, identifierBypass.slots);
                 if (bypassEnvelopeValid(envelope)) {
-                    // This bypass answers without consulting the model, so it is
-                    // the one path that cannot be fixed by prompting. An offer
-                    // lookup still needs the product: AOS does not filter by
-                    // offer id. OST sends "Offer ID: <hex>", which lands here.
-                    const bypassBody = withResolvedArrangementCode(
-                        {
-                            type: 'mcp_operation',
-                            mcpTool: identifierBypass.intent,
-                            mcpParams: identifierBypass.mcpParams,
-                            message: identifierBypass.message,
-                            confirmationRequired: false,
-                        },
-                        conversationHistory,
-                    );
                     return {
                         statusCode: 200,
                         headers: { ...getResponseHeaders() },
@@ -1030,15 +1031,24 @@ async function main(params) {
                 // The envelope path builds its own operation and never reaches
                 // handleOperation, so it needs the same product fill-in: an
                 // offer lookup without the arrangement code is a scan.
+                const envelopeBody = withResolvedArrangementCode(
+                    buildEnvelopeResponseBody(finalEnvelope),
+                    conversationHistory,
+                    context,
+                );
+                // The client dispatches from envelope.slots, so carry the product
+                // back into them rather than leaving it only on the body.
                 if (
                     finalEnvelope?.intent === 'get_offer_by_id' &&
                     finalEnvelope.slots &&
-                    !finalEnvelope.slots.arrangementCode
+                    !finalEnvelope.slots.arrangementCode &&
+                    envelopeBody.mcpParams?.arrangementCode
                 ) {
-                    const resolved = resolveArrangementCodeFromHistory(conversationHistory);
-                    if (resolved) finalEnvelope.slots = { ...finalEnvelope.slots, arrangementCode: resolved };
+                    finalEnvelope.slots = {
+                        ...finalEnvelope.slots,
+                        arrangementCode: envelopeBody.mcpParams.arrangementCode,
+                    };
                 }
-                const envelopeBody = withResolvedArrangementCode(buildEnvelopeResponseBody(finalEnvelope), conversationHistory);
                 return {
                     statusCode: 200,
                     headers: {
@@ -1174,7 +1184,7 @@ async function main(params) {
         // An offer lookup without the product is a scan, not a lookup. The
         // conversation already names the product by this point, so fill it in
         // rather than depending on the model to have remembered.
-        operationResult = withResolvedArrangementCode(operationResult, conversationHistory);
+        operationResult = withResolvedArrangementCode(operationResult, conversationHistory, context);
 
         if (operationResult) {
             if (operationResult.type === 'mcp_operation') {

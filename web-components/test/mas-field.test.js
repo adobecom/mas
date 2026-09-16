@@ -1516,4 +1516,17 @@ describe('mas-field – image rendering', () => {
         expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
             .exist;
     });
+
+    it('keeps the rendered <picture> after a reconnect (e.g. marquee repositioning its background)', () => {
+        const el = makeField('backgroundImage', 'https://example.com/bg.png');
+        el.remove();
+        document.body.append(el);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelector('img')?.getAttribute('src')).to.equal(
+            'https://example.com/bg.png',
+        );
+    });
 });

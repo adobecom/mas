@@ -415,21 +415,17 @@ class MasField extends HTMLElement {
     #ensureContentElement() {
         if (
             this.#contentElement?.isConnected &&
-            this.#contentElement.matches('span[data-role="mas-field-content"]')
+            this.#contentElement.matches('[data-role="mas-field-content"]')
         ) {
             return this.#contentElement;
         }
         const existing = this.querySelector(
-            ':scope > span[data-role="mas-field-content"]',
+            ':scope > [data-role="mas-field-content"]',
         );
         if (existing) {
             this.#contentElement = existing;
             return existing;
         }
-        // Drop a prior non-span content root (e.g. a <picture> from an image field).
-        this.querySelectorAll(
-            ':scope > [data-role="mas-field-content"]',
-        ).forEach((node) => node.remove());
         const content = document.createElement('span');
         content.setAttribute('data-role', 'mas-field-content');
         this.append(content);

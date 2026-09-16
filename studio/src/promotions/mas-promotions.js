@@ -3,11 +3,11 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
-import { PAGE_NAMES, PROMOTION_MODEL_ID } from '../constants.js';
+import { PAGE_NAMES, PROMOTION_MODEL_ID, STAGED } from '../constants.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { normalizeKey, showToast, UserFriendlyError } from '../utils.js';
+import { showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
@@ -23,8 +23,8 @@ import {
     promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
-import { getAllAttachedPromoVariations } from './promotions-repository.js';
-import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
+import { duplicatePromotionProject, getAllAttachedPromoVariations } from './promotions-repository.js';
+import { buildDuplicatePromotionToastArgs, getPromotionTitles } from './promotion-editor-utils.js';
 
 const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'production', label: 'Production' },
@@ -75,6 +75,7 @@ class MasPromotions extends LitElement {
 
     #duplicateProposedTitle = '';
     #duplicateFragment = null;
+    #duplicateExistingTitles = [];
 
     /** @type {MasRepository} */
     get repository() {
@@ -202,6 +203,10 @@ class MasPromotions extends LitElement {
                 sortable: true,
             },
             {
+                key: 'wf-status',
+                label: 'Workflow status',
+            },
+            {
                 key: 'status',
                 label: 'Status',
             },
@@ -238,6 +243,9 @@ class MasPromotions extends LitElement {
                                         ${promo.timeline}
                                         ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
                                     </span>
+                                </sp-table-cell>
+                                <sp-table-cell>
+                                    ${promo.isStaged ? html`<span class="staged-badge">Staged</span>` : nothing}
                                 </sp-table-cell>
                                 ${renderPromotionStatusCell(promo.promotionStatus)}
                                 <sp-table-cell>${promo.createdBy}</sp-table-cell>
@@ -292,6 +300,7 @@ class MasPromotions extends LitElement {
                 <mas-promotion-duplicate-dialog
                     .open=${this.duplicateDialogOpen}
                     .proposedTitle=${this.#duplicateProposedTitle}
+                    .existingTitles=${this.#duplicateExistingTitles}
                     @duplicate-confirmed=${this.#onDuplicateConfirmed}
                     @duplicate-cancelled=${() => {
                         this.duplicateDialogOpen = false;
@@ -509,6 +518,15 @@ class MasPromotions extends LitElement {
 
     async #handlePublishPromotionFromList(promotion) {
         const fragment = promotion.get();
+        const stagedConfirmed =
+            !fragment.isStaged ||
+            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
+                confirmText: 'Publish',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+            }));
+        if (!stagedConfirmed) return;
+
         if (!canPublishPromotionNow(fragment) && !canSchedulePromotion(fragment)) {
             if (isPromotionExpiredForPublish(fragment)) {
                 showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
@@ -591,35 +609,26 @@ class MasPromotions extends LitElement {
         const fragment = promotion.get();
         this.#duplicateProposedTitle = `${fragment.getFieldValue('title')} copy`;
         this.#duplicateFragment = fragment;
+        this.#duplicateExistingTitles = getPromotionTitles((Store.promotions.list.data.get() || []).map((p) => p.get()));
         this.duplicateDialogOpen = true;
     }
 
-    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+    #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
         const fragment = this.#duplicateFragment;
         if (!fragment) return;
         this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
-            const payload = {
-                name: normalizeKey(title),
-                parentPath: this.repository.getPromotionsPath(),
-                modelId: PROMOTION_MODEL_ID,
+            const { failedVariations } = await duplicatePromotionProject(this.repository, fragment, {
                 title,
-                fields: fragment.fields
-                    .filter((field) => field.name !== 'collections')
-                    .map((field) => ({
-                        name: field.name,
-                        type: PROMOTION_FIELD_TYPE_MAP[field.name]?.type ?? field.type,
-                        multiple: PROMOTION_FIELD_TYPE_MAP[field.name]?.multiple ?? field.multiple ?? false,
-                        values: field.name === 'title' ? [title] : field.values,
-                    })),
-            };
-            await this.repository.createFragment(payload, false);
+                duplicateVariations,
+            });
             clearCaches();
-            showToast('Project successfully duplicated.', 'positive');
+            showToast(...buildDuplicatePromotionToastArgs(failedVariations));
             await this.loadPromotions();
-        } catch {
-            showToast('Failed to duplicate project.', 'negative');
+        } catch (error) {
+            console.error('Error duplicating promotion:', error);
+            showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
         } finally {
             this.duplicating = false;
         }

@@ -125,39 +125,6 @@ has been populated with complete documentation. When you need field-specific inf
 }
 
 /**
- * Build complete variant knowledge for system prompt
- * @returns {Object} { fullPrompt, surfaceMapping, variants }
- */
-export function buildVariantKnowledge() {
-    const sections = [];
-
-    sections.push(buildSurfaceReference());
-    sections.push(buildCtaReference());
-    sections.push(buildQuickReference());
-    sections.push(buildRAGInstructions());
-
-    return {
-        fullPrompt: sections.join('\n'),
-        surfaceMapping: SURFACE_MAPPINGS,
-        variants: Object.keys(VARIANT_METADATA),
-    };
-}
-
-/**
- * Get CTA styling for a variant
- */
-export function getCtaStyling(variantName) {
-    const meta = VARIANT_METADATA[variantName];
-    if (!meta) return null;
-
-    return {
-        style: meta.ctaStyle,
-        size: meta.ctaSize,
-        className: `con-button ${meta.ctaStyle}`,
-    };
-}
-
-/**
  * Build a RAG query for variant field details
  * @param {string} variantName - The variant to query
  * @returns {string} Query string optimized for RAG retrieval

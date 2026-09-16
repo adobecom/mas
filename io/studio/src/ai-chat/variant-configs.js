@@ -114,7 +114,7 @@ export const VARIANT_METADATA = {
  *
  * Full variant configurations including field mappings
  */
-export const VARIANT_CONFIGS = {
+const VARIANT_CONFIGS = {
     plans: {
         name: 'Plans',
         description: 'Standard product plans with pricing and feature lists',
@@ -385,27 +385,6 @@ export const VARIANT_CONFIGS = {
  */
 export function getVariantConfig(variantName) {
     return VARIANT_CONFIGS[variantName];
-}
-
-/**
- * Get variant metadata by name (recommended)
- */
-export function getVariantMetadata(variantName) {
-    return VARIANT_METADATA[variantName];
-}
-
-/**
- * Get all available variants
- */
-export function getAllVariants() {
-    return Object.keys(VARIANT_METADATA);
-}
-
-/**
- * Validate if a variant exists
- */
-export function isValidVariant(variantName) {
-    return variantName in VARIANT_METADATA;
 }
 
 /**

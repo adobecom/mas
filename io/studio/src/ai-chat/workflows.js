@@ -43,9 +43,3 @@ unknown       = ambiguous; the downstream prompt should ask a clarifying questio
 
 5. Default for ambiguous action requests: operations. The operations prompt is a strict superset of capabilities.
 `;
-
-/**
- * Estimated tokens. Small intentionally — fits alongside the glossary in
- * the classifier prompt without bloating it.
- */
-export const WORKFLOWS_LIST_TOKEN_ESTIMATE = 350;

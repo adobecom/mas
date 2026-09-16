@@ -400,27 +400,6 @@ export function parseAIResponse(responseText) {
 }
 
 /**
- * Validate that card config has required structure
- * @param {Object} cardConfig - Parsed card configuration
- * @returns {Object} - {valid: boolean, error?: string}
- */
-export function validateCardConfig(cardConfig) {
-    if (!cardConfig) {
-        return { valid: false, error: 'No card configuration provided' };
-    }
-
-    if (!cardConfig.variant) {
-        return { valid: false, error: 'Card must specify a variant' };
-    }
-
-    if (typeof cardConfig !== 'object') {
-        return { valid: false, error: 'Card configuration must be an object' };
-    }
-
-    return { valid: true };
-}
-
-/**
  * Validate that collection config has required structure
  * @param {Object} collectionConfig - Parsed collection configuration
  * @returns {Object} - {valid: boolean, error?: string}

@@ -1572,7 +1572,7 @@ export function logUsageMetric(response, params, modelId) {
  * Corrective prompt for text-path parse failures. Quotes the concrete
  * parse reason so the model fixes the actual defect instead of guessing.
  */
-export function buildParseCorrectivePrompt(failureMode, detail) {
+function buildParseCorrectivePrompt(failureMode, detail) {
     const reason = detail ? `${failureMode}: ${detail}` : failureMode;
     return (
         `Your previous reply could not be parsed as the required JSON (${reason}). ` +
@@ -1581,7 +1581,7 @@ export function buildParseCorrectivePrompt(failureMode, detail) {
     );
 }
 
-export function buildCorrectivePrompt(cardConfig, errors) {
+function buildCorrectivePrompt(cardConfig, errors) {
     const errorList = errors.map((e) => `- ${e}`).join('\n');
     return `Your previous card response for the "${cardConfig?.variant}" variant was missing required fields. Please generate a corrected card JSON that includes all required fields.\n\nMissing or invalid:\n${errorList}\n\nReturn only the corrected JSON code block, no additional explanation.`;
 }

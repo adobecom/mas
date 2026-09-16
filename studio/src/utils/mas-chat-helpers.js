@@ -15,9 +15,8 @@ import { SURFACES } from '../constants.js';
 
 const KNOWN_SURFACES = new Set(Object.values(SURFACES).map(({ name }) => name));
 
-export const PRODUCT_SELECTION_MESSAGE_REGEX =
-    /(which product|select(?:ing)? the product|pick one below|type any product name)/i;
-export const SEGMENT_SELECTION_MESSAGE_REGEX = /who is this card targeting/i;
+const PRODUCT_SELECTION_MESSAGE_REGEX = /(which product|select(?:ing)? the product|pick one below|type any product name)/i;
+const SEGMENT_SELECTION_MESSAGE_REGEX = /who is this card targeting/i;
 
 /**
  * Return the best display name for an MCS product, preferring MCS copy.name,

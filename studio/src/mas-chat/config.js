@@ -63,9 +63,6 @@ export function getIoStudioURL() {
 
 export const AI_CHAT_BASE_URL = getAIChatBaseURL();
 export const MCP_SERVER_URL = getMCPServerURL();
-export const IO_MCP_URL = getIoMcpURL();
-export const KNOWLEDGE_SERVICE_URL = getKnowledgeServiceURL();
-
 export const TEMPLATE_PREVIEWS = {
     'ccd-slice': '0ef2a804-e788-4959-abb8-b4d96a18b0ef',
     'ccd-suggested': '45783ec8-ed85-4595-a445-3f018ac4ad9d',

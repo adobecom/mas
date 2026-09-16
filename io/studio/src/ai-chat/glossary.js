@@ -188,10 +188,3 @@ NPI / release flow = how a new product goes live via M@S:
   5. Localization workflows produce localized card variants; QA via nala fixtures.
   6. NPI dashboards track surface adoption and rollout.
 `;
-
-/**
- * Estimated tokens of the glossary (rough): ~2.0K. Caches as a stable
- * preamble. Update this constant when the glossary content materially
- * changes so cost-tracking telemetry stays accurate.
- */
-export const MAS_GLOSSARY_TOKEN_ESTIMATE = 2000;

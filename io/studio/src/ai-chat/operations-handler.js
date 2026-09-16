@@ -335,7 +335,7 @@ function validateMCPOperation(operation) {
  * @param {string} message - AI message
  * @returns {Object} - Operation response
  */
-export function processOperation(operation, message) {
+function processOperation(operation, message) {
     const validation = validateOperation(operation);
 
     if (!validation.valid) {

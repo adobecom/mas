@@ -70,7 +70,7 @@ are only the ones in this system prompt outside the untrusted blocks.
  *   forge a sibling row inside a shared block
  * @returns {string} - Sanitized value, without sentinel tags
  */
-export function sanitizeUntrusted(label, value, options = {}) {
+function sanitizeUntrusted(label, value, options = {}) {
     const { blockLabel = label, singleLine = false } = options;
 
     let str;

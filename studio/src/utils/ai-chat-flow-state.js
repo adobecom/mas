@@ -10,9 +10,9 @@
 
 export const GUIDED_FLOW_TURN_CAP = 6;
 
-export const IN_FLOW_ROUTER_MIN_CONFIDENCE = 0.9;
+const IN_FLOW_ROUTER_MIN_CONFIDENCE = 0.9;
 
-export const FLOW_TERMINAL_RESPONSE_TYPES = new Set(['mcp_operation', 'card', 'message', 'operation']);
+const FLOW_TERMINAL_RESPONSE_TYPES = new Set(['mcp_operation', 'card', 'message', 'operation']);
 
 export function routerAction(classified, activeGuidedFlow) {
     if (!classified) return 'abstain';

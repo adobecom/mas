@@ -230,7 +230,13 @@ export function CheckoutMixin(Base) {
                 if (text) this.firstElementChild.innerHTML = text;
                 if (className) this.classList.add(...className.split(' '));
                 if (handler) {
-                    this.setCheckoutUrl('#');
+                    // A 3-in-1 modal builds its iframe from href, so keep the
+                    // real checkout URL here instead of '#'.
+                    this.setCheckoutUrl(
+                        this.isOpen3in1Modal
+                            ? service.buildCheckoutURL(offers, options)
+                            : '#',
+                    );
                     this.checkoutActionHandler = handler.bind(this);
                 }
                 this.updateCheckoutUrl();

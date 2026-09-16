@@ -9398,8 +9398,8 @@ merch-card-collection.uber-pricing {
     gap: 8px;
 }
 
-/* MD: 2 columns. Studio uses <merch-card-collection>; milo/preview wraps cards
-   in .N-merch-cards grid containers, so both selector families are covered. */
+/* Studio uses <merch-card-collection>; milo/preview wraps cards in
+   .N-merch-cards grid containers, so both selector families are covered. */
 @media screen and ${L} {
     merch-card-collection.uber-pricing,
     .two-merch-cards:has(merch-card[variant='uber-pricing']),
@@ -9409,7 +9409,6 @@ merch-card-collection.uber-pricing {
     }
 }
 
-/* LG: 3 columns. */
 @media screen and ${Xe} {
     merch-card-collection.uber-pricing,
     .three-merch-cards:has(merch-card[variant='uber-pricing']),
@@ -9418,7 +9417,6 @@ merch-card-collection.uber-pricing {
     }
 }
 
-/* XL: 4 columns. */
 @media screen and ${hn} {
     merch-card-collection.uber-pricing,
     .four-merch-cards:has(merch-card[variant='uber-pricing']) {
@@ -9572,9 +9570,9 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             box-sizing: border-box;
         }
 
-        /* Mnemonic + badge share one centered row on the header strip. The strip
-           shows the host background: white by default, black once framed (badge
-           authored or a CTA hovered) — triggers live in uber-pricing.css.js. */
+        /* Mnemonic + badge share one centered row on the header strip. Strip
+           background is white by default, black when framed (badge authored or a
+           CTA hovered); triggers live in uber-pricing.css.js. */
         :host([variant='uber-pricing']) .header {
             display: flex;
             align-items: center;
@@ -9634,12 +9632,11 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
         }
 
         /* Grows so a shorter card's slack lands here, in one block, instead of
-           spread through the copy — keeps CTAs on the row's shared baseline. */
+           spread through the copy, keeping CTAs on the row's shared baseline. */
         :host([variant='uber-pricing']) .spacer {
             flex: 1 0 24px;
         }
 
-        /* price -> buttons gap */
         :host([variant='uber-pricing']) .price-buttons {
             display: flex;
             flex-direction: column;

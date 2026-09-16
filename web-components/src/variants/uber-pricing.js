@@ -14,8 +14,7 @@ const SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs'];
 export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     mnemonics: { size: 's' },
-    // Badge is plain white text on the black header strip; the merch-badge pill
-    // styling is stripped in uber-pricing.css.js (no color variants / border).
+    // Plain text badge; merch-badge pill styling is stripped in uber-pricing.css.js.
     badge: { tag: 'div', slot: 'badge' },
     title: { tag: 'h3', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
@@ -166,9 +165,9 @@ export class UberPricing extends VariantLayout {
             box-sizing: border-box;
         }
 
-        /* Mnemonic + badge share one centered row on the header strip. The strip
-           shows the host background: white by default, black once framed (badge
-           authored or a CTA hovered) — triggers live in uber-pricing.css.js. */
+        /* Mnemonic + badge share one centered row on the header strip. Strip
+           background is white by default, black when framed (badge authored or a
+           CTA hovered); triggers live in uber-pricing.css.js. */
         :host([variant='uber-pricing']) .header {
             display: flex;
             align-items: center;
@@ -228,12 +227,11 @@ export class UberPricing extends VariantLayout {
         }
 
         /* Grows so a shorter card's slack lands here, in one block, instead of
-           spread through the copy — keeps CTAs on the row's shared baseline. */
+           spread through the copy, keeping CTAs on the row's shared baseline. */
         :host([variant='uber-pricing']) .spacer {
             flex: 1 0 24px;
         }
 
-        /* price -> buttons gap */
         :host([variant='uber-pricing']) .price-buttons {
             display: flex;
             flex-direction: column;

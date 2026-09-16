@@ -64,7 +64,6 @@ const typeFilter = (elements, { types }) => {
     );
 };
 
-// Single-select tag dimension (mas:pricing/*), exclusive with itself.
 const pricingFilter = (elements, { pricing }) => {
     if (!pricing) return elements;
     return elements.filter((element) =>

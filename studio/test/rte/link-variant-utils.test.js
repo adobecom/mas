@@ -1,41 +1,10 @@
 import { expect } from '@esm-bundle/chai';
-import {
-    getMarkNameForHeadlessVariant,
-    getHeadlessVariantForMarkName,
-    resolveHeadlessDisplayVariant,
-    getCtaEmphasis,
-} from '../../src/rte/link-variant-utils.js';
+import { HEADLESS_LINK_VARIANTS, resolveHeadlessDisplayVariant, getCtaEmphasis } from '../../src/rte/link-variant-utils.js';
 
 describe('link-variant-utils', () => {
-    describe('getMarkNameForHeadlessVariant', () => {
-        it('maps primary to strong', () => {
-            expect(getMarkNameForHeadlessVariant('primary')).to.equal('strong');
-        });
-
-        it('maps secondary to em', () => {
-            expect(getMarkNameForHeadlessVariant('secondary')).to.equal('em');
-        });
-
-        it('returns null for secondary-link (no wrapper)', () => {
-            expect(getMarkNameForHeadlessVariant('secondary-link')).to.be.null;
-        });
-
-        it('returns null for an unknown variant', () => {
-            expect(getMarkNameForHeadlessVariant('unknown')).to.be.null;
-        });
-    });
-
-    describe('getHeadlessVariantForMarkName', () => {
-        it('maps strong to primary', () => {
-            expect(getHeadlessVariantForMarkName('strong')).to.equal('primary');
-        });
-
-        it('maps em to secondary', () => {
-            expect(getHeadlessVariantForMarkName('em')).to.equal('secondary');
-        });
-
-        it('falls back to secondary-link for no mark', () => {
-            expect(getHeadlessVariantForMarkName(undefined)).to.equal('secondary-link');
+    describe('HEADLESS_LINK_VARIANTS', () => {
+        it('exposes exactly the 3 headless picker options', () => {
+            expect(HEADLESS_LINK_VARIANTS.map(({ value }) => value)).to.deep.equal(['primary', 'secondary', 'secondary-link']);
         });
     });
 

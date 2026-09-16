@@ -109,22 +109,23 @@ describe('mas-field – ctas rendering', () => {
         expect(link.parentElement).to.equal(footer);
     });
 
-    it('preserves the <strong> wrapper around an unclassed link with no MAS-added style classes (headless "Primary button" variant)', () => {
+    it('resolves an unclassed link wrapped in <strong> to Primary button styling (legacy headless encoding)', () => {
         const el = makeField(
             'ctas',
             '<strong><a data-wcs-osi="ABC">Buy</a></strong>',
         );
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('con-button')).to.be.false;
-        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.classList.contains('con-button')).to.be.true;
+        expect(link.classList.contains('fill')).to.be.true;
         expect(link.parentElement.tagName).to.equal('STRONG');
     });
 
-    it('preserves the <em> wrapper around an unclassed link with no MAS-added style classes (headless "Secondary button" variant)', () => {
+    it('resolves an unclassed link wrapped in <em> to Secondary button styling (legacy headless encoding)', () => {
         const el = makeField('ctas', '<em><a data-wcs-osi="ABC">Buy</a></em>');
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('con-button')).to.be.true;
         expect(link.classList.contains('blue')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
         expect(link.parentElement.tagName).to.equal('EM');
     });
 

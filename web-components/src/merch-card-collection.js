@@ -64,13 +64,6 @@ const typeFilter = (elements, { types }) => {
     );
 };
 
-const pricingFilter = (elements, { pricing }) => {
-    if (!pricing) return elements;
-    return elements.filter((element) =>
-        (element.pricing ?? '').split(',').includes(pricing),
-    );
-};
-
 const alphabeticalSorter = (elements) =>
     elements.sort((a, b) =>
         (a.title ?? '').localeCompare(b.title ?? '', 'en', {
@@ -117,7 +110,6 @@ export class MerchCardCollection extends LitElement {
         resultCount: {
             type: Number,
         },
-        pricing: { type: String, attribute: 'pricing', reflect: true },
         search: { type: String, attribute: 'search', reflect: true },
         sidenav: { type: Object },
         singleApp: { type: String, attribute: 'single-app', reflect: true },
@@ -205,13 +197,7 @@ export class MerchCardCollection extends LitElement {
             this.sort === SORT_ORDER.alphabetical
                 ? alphabeticalSorter
                 : authoredSorter;
-        const reducers = [
-            categoryFilter,
-            typeFilter,
-            pricingFilter,
-            searcher,
-            sorter,
-        ];
+        const reducers = [categoryFilter, typeFilter, searcher, sorter];
 
         let result = reducers
             .reduce((elements, reducer) => reducer(elements, this), children)
@@ -558,12 +544,6 @@ export class MerchCardCollection extends LitElement {
                     .join(',');
                 if (typesTags) merchCard.setAttribute('types', typesTags);
 
-                const pricingTags = fragment.fields.tags
-                    ?.filter((tag) => tag.startsWith('mas:pricing/'))
-                    .map((tag) => tag.split('/')[1])
-                    .join(',');
-                if (pricingTags) merchCard.setAttribute('pricing', pricingTags);
-
                 // Check if this variant supports default child through mapping
                 const variantMapping = getFragmentMapping(
                     fragment.fields.variant,
@@ -702,16 +682,7 @@ export class MerchCardCollection extends LitElement {
 
     startDeeplink() {
         this.stopDeeplink = deeplink(
-            ({
-                category,
-                filter,
-                types,
-                pricing,
-                sort,
-                search,
-                single_app,
-                page,
-            }) => {
+            ({ category, filter, types, sort, search, single_app, page }) => {
                 filter = filter || category;
                 if (!this.filtered && filter && filter !== this.filter) {
                     // a filter has changed, reset page to 1.
@@ -724,7 +695,6 @@ export class MerchCardCollection extends LitElement {
                     this.filter = filter ?? this.filter;
                 }
                 this.types = types ?? '';
-                this.pricing = pricing ?? '';
                 this.search = search ?? '';
                 this.singleApp = single_app;
                 this.sort = sort;

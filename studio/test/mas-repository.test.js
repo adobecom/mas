@@ -4449,7 +4449,7 @@ describe('MasRepository dictionary helpers', () => {
             });
 
             expect(calls).to.deep.equal(['deleteFragment', 'removeFromParentVariations', 'forceDeletePromoVariations']);
-            expect(result).to.deep.equal({ deleted: true, failedVariations: [] });
+            expect(result).to.deep.equal({ deleted: true, failedVariations: [], parentUpdateFailed: false });
         });
 
         it('retries with force delete when the reference-aware delete fails, then still cascades', async () => {
@@ -4486,7 +4486,7 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(removeFromParentVariations.called).to.be.false;
             expect(forceDeletePromoVariations.called).to.be.false;
-            expect(result).to.deep.equal({ deleted: false, failedVariations: [] });
+            expect(result).to.deep.equal({ deleted: false, failedVariations: [], parentUpdateFailed: false });
         });
 
         it('skips removing the parent link when no localeDefaultFragment is given', async () => {
@@ -4518,6 +4518,21 @@ describe('MasRepository dictionary helpers', () => {
             expect(result.failedVariations).to.deep.equal([
                 '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
             ]);
+        });
+
+        it('surfaces a failure to update the parent variations field instead of swallowing it', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').rejects(new Error('save failed'));
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: [],
+            });
+
+            expect(result).to.deep.equal({ deleted: true, failedVariations: [], parentUpdateFailed: true });
         });
     });
 

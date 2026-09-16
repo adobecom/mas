@@ -1857,7 +1857,7 @@ export class MasRepository extends LitElement {
      * delete never leaves an orphaned parent reference or force-deleted promo copies behind.
      * @param {Fragment} fragment - The variation fragment to delete
      * @param {{ localeDefaultFragment?: Object, promoVariationPaths?: string[] }} [options]
-     * @returns {Promise<{deleted: boolean, failedVariations: string[]}>}
+     * @returns {Promise<{deleted: boolean, failedVariations: string[], parentUpdateFailed: boolean}>}
      */
     async deleteVariationFragment(fragment, { localeDefaultFragment, promoVariationPaths = [] } = {}) {
         let deleted = await this.deleteFragment(fragment, { startToast: false, endToast: false });
@@ -1865,17 +1865,19 @@ export class MasRepository extends LitElement {
             deleted = await this.deleteFragment(fragment, { force: true, startToast: false, endToast: false });
         }
         if (!deleted) {
-            return { deleted: false, failedVariations: [] };
+            return { deleted: false, failedVariations: [], parentUpdateFailed: false };
         }
+        let parentUpdateFailed = false;
         if (localeDefaultFragment) {
             try {
                 await this.removeFromParentVariations(localeDefaultFragment, fragment.path);
             } catch (error) {
                 console.error('Failed to remove variation from parent variations field:', error);
+                parentUpdateFailed = true;
             }
         }
         const failedVariations = await this.forceDeletePromoVariations(promoVariationPaths);
-        return { deleted, failedVariations };
+        return { deleted, failedVariations, parentUpdateFailed };
     }
 
     /**

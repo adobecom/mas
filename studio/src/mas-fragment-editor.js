@@ -1580,17 +1580,23 @@ export default class MasFragmentEditor extends LitElement {
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
-                const { deleted, failedVariations } = await this.repository.deleteVariationFragment(this.fragment, {
-                    localeDefaultFragment,
-                    promoVariationPaths: this.variationsToDelete,
-                });
+                const { deleted, failedVariations, parentUpdateFailed } = await this.repository.deleteVariationFragment(
+                    this.fragment,
+                    {
+                        localeDefaultFragment,
+                        promoVariationPaths: this.variationsToDelete,
+                    },
+                );
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
                     this.deleteInProgress = false;
                     return;
                 }
-                if (failedVariations.length > 0) {
-                    showToast(`Fragment deleted but ${failedVariations.length} promo variation(s) failed to delete`, 'warning');
+                const issues = [];
+                if (parentUpdateFailed) issues.push("the parent's variation reference wasn't updated");
+                if (failedVariations.length > 0) issues.push(`${failedVariations.length} promo variation(s) failed to delete`);
+                if (issues.length > 0) {
+                    showToast(`Fragment deleted but ${issues.join(' and ')}`, 'warning');
                 } else {
                     showToast('Fragment successfully deleted.', 'positive');
                 }

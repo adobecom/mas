@@ -480,7 +480,7 @@
                             tags: [],
                         });
                         editorPanel.inEdit.set(new FragmentStore(fragment));
-                        sandbox.stub(editorPanel.repository, 'getPromoVariationPaths').resolves([promoPath]);
+                        sandbox.stub(fragment, 'listPromoVariations').returns([{ path: promoPath }]);
 
                         await editorPanel.deleteFragment();
 

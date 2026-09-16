@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import {
@@ -114,6 +115,7 @@ export default class EditorPanel extends LitElement {
 
     #discardPromiseResolver;
     #pendingDiscardPromise = null;
+    #pendingPromoRefresh = null;
 
     constructor() {
         super();
@@ -408,7 +410,25 @@ export default class EditorPanel extends LitElement {
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
+        this.#refreshPromoVariationPaths(id, store.get());
         await this.loadLocaleDefaultFragmentContext(id);
+    }
+
+    #refreshPromoVariationPaths(fragmentId, fragment) {
+        const promoMerge = promotionsRepository.mergePromoReferencesIntoFragmentData(this.repository.aem, fragment, () =>
+            this.repository.loadPromotions(),
+        );
+        this.#pendingPromoRefresh = { fragmentId, promise: promoMerge };
+        promoMerge
+            .then((enriched) => {
+                if (this.fragment?.id !== fragmentId) return;
+                this.fragment.references = enriched.references;
+                this.fragment.promoVariationProbeNotNeeded = true;
+            })
+            .catch((error) => console.error('Failed to probe promo variations:', error))
+            .finally(() => {
+                if (this.#pendingPromoRefresh?.promise === promoMerge) this.#pendingPromoRefresh = null;
+            });
     }
 
     async loadLocaleDefaultFragmentContext(fragmentId) {
@@ -565,13 +585,16 @@ export default class EditorPanel extends LitElement {
         const fieldVariations = !isVariation && this.fragment ? this.fragment.getVariations() : [];
         let promoVariationPaths = [];
         if (this.fragment) {
-            try {
-                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
-            } catch (error) {
-                console.error('Failed to probe promo variations:', error);
-                showToast('Failed to check for promo variations. Please try again.', 'negative');
-                return;
+            if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
+                try {
+                    await this.#pendingPromoRefresh.promise;
+                } catch (error) {
+                    console.error('Failed to probe promo variations:', error);
+                    showToast('Failed to check for promo variations. Please try again.', 'negative');
+                    return;
+                }
             }
+            promoVariationPaths = this.fragment.listPromoVariations().map((variation) => variation.path);
         }
         this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         this.showDeleteDialog = true;

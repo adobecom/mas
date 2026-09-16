@@ -33,18 +33,17 @@ describe('EditorPanel', () => {
                 id: 'grouped-variation-id',
                 path: '/content/dam/mas/sandbox/en_US/my-card/pzn/edu',
                 getVariations: sandbox.stub().returns(['/content/dam/mas/sandbox/en_US/my-card/pzn/edu/nested-variation']),
+                listPromoVariations: sandbox
+                    .stub()
+                    .returns([{ path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/edu' }]),
             };
             Store.fragments.inEdit.value = { get: () => fragment };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
-            const getPromoVariationPaths = sandbox
-                .stub()
-                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/edu']);
-            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths }));
 
             await el.deleteFragment();
 
             expect(fragment.getVariations.called).to.be.false;
-            expect(getPromoVariationPaths.calledOnceWith(fragment)).to.be.true;
+            expect(fragment.listPromoVariations.calledOnce).to.be.true;
             expect(el.variationsToDelete).to.deep.equal(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/edu']);
             expect(el.showDeleteDialog).to.be.true;
         });
@@ -54,11 +53,10 @@ describe('EditorPanel', () => {
                 id: 'default-id',
                 path: '/content/dam/mas/sandbox/en_US/my-card',
                 getVariations: sandbox.stub().returns(['/content/dam/mas/sandbox/en_US/my-card/pzn/edu']),
+                listPromoVariations: sandbox.stub().returns([]),
             };
             Store.fragments.inEdit.value = { get: () => fragment };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            const getPromoVariationPaths = sandbox.stub().resolves([]);
-            sandbox.stub(el, 'repository').get(() => ({ getPromoVariationPaths }));
 
             await el.deleteFragment();
 

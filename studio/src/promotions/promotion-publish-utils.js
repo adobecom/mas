@@ -236,13 +236,13 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
             } catch {
                 await repository.aem.sites.cf.fragments.publish(promotionWithEtag, publishReferencesWithStatus);
-                showToast(promotionPublishShortfallMessage(resolvedVariationCount), 'info');
+                showToast(promotionPublishShortfallMessage(resolvedVariationCount), 'warning');
                 return true;
             }
             const expectedFragmentCount = promoVariationPaths.length + 1;
             const shortfall = expectedFragmentCount - fragments.length;
             if (shortfall > 0) {
-                showToast(promotionPublishShortfallMessage(shortfall), 'info');
+                showToast(promotionPublishShortfallMessage(shortfall), 'warning');
             } else {
                 showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
             }
@@ -295,7 +295,7 @@ export async function unpublishPromotionProject(repository, promotionFragment, p
         }
 
         if (shortfall > 0) {
-            showToast(promotionUnpublishShortfallMessage(shortfall), 'info');
+            showToast(promotionUnpublishShortfallMessage(shortfall), 'warning');
         } else {
             showToast(PROMOTION_UNPUBLISH_SUCCESS_MESSAGE, 'positive');
         }

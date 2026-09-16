@@ -367,6 +367,10 @@ export const styles = [
             z-index: 1000;
         }
 
+        .publishing-overlay {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
         .end-date-row {
             display: flex;
             align-items: center;

@@ -132,6 +132,28 @@ export function publishedPromoVariationsUnpublishMessage(count) {
     return `This project has ${count} attached promo variation(s) that are published.`;
 }
 
+// AEM's search index is eventually consistent, so a search right after publish/unpublish
+// can under-report. Re-run it until the count stops changing to avoid a partial result.
+const VARIATIONS_STABILIZE_MAX_ATTEMPTS = 5;
+const VARIATIONS_STABILIZE_DELAY_MS = 400;
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {object} promotionFragment
+ * @param {Function} getVariations
+ * @returns {Promise<Array>}
+ */
+async function getStablePromoVariations(aem, promotionFragment, getVariations) {
+    let variations = await getVariations(aem, promotionFragment);
+    for (let attempt = 1; attempt < VARIATIONS_STABILIZE_MAX_ATTEMPTS; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, VARIATIONS_STABILIZE_DELAY_MS));
+        const nextVariations = await getVariations(aem, promotionFragment);
+        if (nextVariations.length === variations.length) return nextVariations;
+        variations = nextVariations;
+    }
+    return variations;
+}
+
 /**
  * @param {import('../aem/aem.js').AEM} aem
  * @param {object} promotionFragment
@@ -145,7 +167,7 @@ async function confirmActionAgainstPromoVariations(
     showDialog,
     { getVariations, dialogConfig, buildMessage },
 ) {
-    const variations = await getVariations(aem, promotionFragment);
+    const variations = await getStablePromoVariations(aem, promotionFragment, getVariations);
     if (!variations.length) {
         return { confirmed: true, variationPaths: [] };
     }

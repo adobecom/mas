@@ -222,12 +222,13 @@ class VariantPicker extends LitElement {
         surface: { type: String },
     };
 
-    #matchSurface(variant) {
-        return getVariantTreeData(this.surface).some((v) => v.name === variant.value);
+    #surfaceVariantNames() {
+        return new Set(getVariantTreeData(this.surface).map((v) => v.name));
     }
 
     get variants() {
-        return VARIANTS.filter((variant) => this.showAll || (variant.value != 'all' && this.#matchSurface(variant)))
+        const allowed = this.#surfaceVariantNames();
+        return VARIANTS.filter((variant) => this.showAll || (variant.value != 'all' && allowed.has(variant.value)))
             .sort((a, b) => a.label.localeCompare(b.label))
             .map((variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`);
     }

@@ -840,15 +840,12 @@ class AemTagPickerField extends LitElement {
     get checkboxMenu() {
         if (!this.ready) return nothing;
 
-        const showSearch = !this.personalizationToggle && this.flatTags.length > 7;
         let surfaceTags = this.flatTags;
         if (this.surface) {
-            surfaceTags = [];
-            getVariantTreeData(this.surface).forEach((variant) => {
-                surfaceTags.push(this.#variantTagPath(variant.name));
-            });
+            surfaceTags = getVariantTreeData(this.surface).map((variant) => this.#variantTagPath(variant.name));
         }
 
+        const showSearch = !this.personalizationToggle && surfaceTags.length > 7;
         let filteredTags = surfaceTags;
         if (showSearch) {
             filteredTags = surfaceTags.filter((path) =>

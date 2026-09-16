@@ -106,6 +106,11 @@ export const styles = css`
         justify-content: center;
     }
 
+    .promotions-table sp-table-head sp-table-head-cell:nth-child(3),
+    .promotions-table sp-table-row sp-table-cell:nth-child(3) {
+        max-width: 150px;
+    }
+
     .timeline-cell {
         display: grid;
         grid-template-columns: 140px auto;
@@ -113,6 +118,7 @@ export const styles = css`
         gap: var(--spectrum-spacing-100, 8px);
     }
 
+    .staged-badge,
     .evergreen-badge {
         background-color: var(--spectrum-orange-200);
         color: var(--spectrum-gray-900);

@@ -5,7 +5,15 @@ import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
-import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    EVENT_OST_OFFER_SELECT,
+    PAGE_NAMES,
+    QUICK_ACTION,
+    TABLE_TYPE,
+    TAG_PROMOTION_PREFIX,
+    STAGED,
+} from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
 import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
@@ -479,6 +487,15 @@ describe('MasPromotionsEditor', () => {
             const restored = getStore({ allowUnset: true });
             expect(restored).to.be.null;
         });
+
+        it('does not clobber the shared store when another editor claimed it before this editor disconnects', async () => {
+            setItemsSelectionStore(null);
+            const el = await mountEditor();
+            const { getItemsSelectionStore: getStore } = await import('../../src/common/items-selection-store.js');
+            setItemsSelectionStore(Store.compareChart);
+            el.remove();
+            expect(getStore({ allowUnset: true })).to.equal(Store.compareChart);
+        });
     });
 
     describe('promptDiscardChanges', () => {
@@ -763,6 +780,19 @@ describe('MasPromotionsEditor', () => {
             dateField.dispatchEvent(new Event('change', { bubbles: true }));
             await el.updateComplete;
             expect(el.fragment.getFieldValue('endDate')).to.equal('');
+        });
+
+        it('mark promotion as staged', async () => {
+            const el = await mountEditor();
+            const switchEl = el.renderRoot.querySelector('.end-date-row + sp-switch');
+            switchEl.checked = true;
+            switchEl.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValue('tags')).to.equal(STAGED.TAG);
+            switchEl.checked = false;
+            switchEl.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValue('tags')).to.be.undefined;
         });
 
         it('scopes promotion tags picker to promotion taxonomy', async () => {
@@ -1596,6 +1626,18 @@ describe('MasPromotionsEditor', () => {
             const overlay = el.renderRoot.querySelector('.confirm-dialog-overlay');
             expect(overlay).to.not.be.null;
         });
+
+        it('hides the floating quick-actions toolbar while the confirm dialog is open', async () => {
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.exist;
+
+            el.fragment.hasChanges = true;
+            await el.updateComplete;
+            el.promptDiscardChanges();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.be.null;
+        });
     });
 
     describe('delete quick action', () => {
@@ -1747,6 +1789,146 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('duplicate quick action', () => {
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.promotionId.set(null);
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('disables the Duplicate quick action while a duplication is in progress', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+
+            expect(el.disabledPromotionQuickActions.has(QUICK_ACTION.DUPLICATE)).to.be.false;
+
+            el.duplicating = true;
+            await el.updateComplete;
+            expect(el.disabledPromotionQuickActions.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+
+            el.duplicating = false;
+            await el.updateComplete;
+            expect(el.disabledPromotionQuickActions.has(QUICK_ACTION.DUPLICATE)).to.be.false;
+        });
+
+        it('loads the promotions list before opening the dialog on a cold-start session (list not fetched yet)', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.promotionId.set('dup-1');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-1';
+            const fragmentData = makeFragmentData({
+                id: 'dup-1',
+                title: 'Original',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Original'] },
+                    { name: 'promoCode', type: 'text', values: [''] },
+                    { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/original'] },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
+                ],
+            });
+            Store.promotions.selectedCards.set([cardPath]);
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([{ get: () => makePromotion({ id: 'existing-1', title: 'Original copy' }) }]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const repo = makeRepo({
+                loadPromotions,
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(fragmentData), search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves() },
+                },
+            });
+            const el = new MasPromotionsEditor();
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+            expect(el.isNewPromotion).to.be.false;
+
+            el.renderRoot
+                .querySelector('mas-quick-actions')
+                .dispatchEvent(new CustomEvent('duplicate', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+
+            expect(loadPromotions.calledOnce).to.be.true;
+            const dialog = el.renderRoot.querySelector('mas-promotion-duplicate-dialog');
+            expect(dialog.existingTitles).to.include('Original copy');
+        });
+
+        it('shows a failure toast and keeps the dialog closed when loading promotion projects rejects', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.promotionId.set('dup-1');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-1';
+            const fragmentData = makeFragmentData({
+                id: 'dup-1',
+                title: 'Original',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Original'] },
+                    { name: 'promoCode', type: 'text', values: [''] },
+                    { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/original'] },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
+                ],
+            });
+            Store.promotions.selectedCards.set([cardPath]);
+            const loadPromotions = sandbox.stub().rejects(new Error('network down'));
+            const repo = makeRepo({
+                loadPromotions,
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(fragmentData), search: makeSearchStub() } } },
+                    tags: { create: sandbox.stub().resolves() },
+                },
+            });
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const el = new MasPromotionsEditor();
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+            expect(el.isNewPromotion).to.be.false;
+
+            el.renderRoot
+                .querySelector('mas-quick-actions')
+                .dispatchEvent(new CustomEvent('duplicate', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+
+            expect(loadPromotions.calledOnce).to.be.true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to prepare duplicate dialog.' })))
+                .to.be.true;
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(el.duplicating).to.be.false;
+        });
+
+        it('hides the floating quick-actions toolbar while the duplicate dialog is open', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.exist;
+
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.be.null;
+
+            el.duplicateDialogOpen = false;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('mas-quick-actions')).to.exist;
+        });
+
         it('calls createFragment when duplicate-confirmed is dispatched on the dialog', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));

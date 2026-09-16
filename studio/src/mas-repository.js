@@ -21,8 +21,6 @@ import {
 } from './utils.js';
 import {
     OPERATIONS,
-    STATUS_PUBLISHED,
-    TAG_STATUS_PUBLISHED,
     ROOT_PATH,
     PAGE_NAMES,
     TAG_STUDIO_CONTENT_TYPE,
@@ -52,7 +50,6 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
-import { getItemsSelectionStore } from './common/items-selection-store.js';
 import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
@@ -84,6 +81,11 @@ export async function initFragmentCache() {
 export async function getFromFragmentCache(fragmentId) {
     await initFragmentCache();
     return fragmentCache.get(fragmentId);
+}
+
+export async function removeFromFragmentCache(fragmentId) {
+    await initFragmentCache();
+    return fragmentCache.remove(fragmentId);
 }
 
 export async function prepopulateFragmentCache(fragmentId, previewFragment) {
@@ -352,6 +354,8 @@ export class MasRepository extends LitElement {
      * result implies at least one dimension is strictly narrower.
      */
     #isNarrowing(prev, next) {
+        const prevStatus = prev.status ?? [];
+        const nextStatus = next.status ?? [];
         const queryNarrowed =
             prev.query === next.query ||
             (next.query && (!prev.query || next.query.toLowerCase().includes(prev.query.toLowerCase())));
@@ -361,11 +365,13 @@ export class MasRepository extends LitElement {
             prev.variants.length === 0 || (next.variants.length > 0 && isSubset(prev.variants, next.variants));
         const contentTypesNarrowed =
             prev.contentTypes.length === 0 || (next.contentTypes.length > 0 && isSubset(prev.contentTypes, next.contentTypes));
+        const statusNarrowed = prevStatus.length === 0 || (nextStatus.length > 0 && isSubset(prevStatus, nextStatus));
         return (
             queryNarrowed &&
             isSuperset(prev.tags, next.tags) &&
             variantsNarrowed &&
             contentTypesNarrowed &&
+            statusNarrowed &&
             isSuperset(prev.createdBy, next.createdBy)
         );
     }
@@ -382,7 +388,17 @@ export class MasRepository extends LitElement {
         return true;
     }
 
-    #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy }) {
+    /** Test-only accessor. Not part of the public API — do not call from production code. */
+    testOnlyIsNarrowing(prev, next) {
+        return this.#isNarrowing(prev, next);
+    }
+
+    /** Test-only accessor. Not part of the public API — do not call from production code. */
+    testOnlyApplyInMemoryFilter(stores, criteria) {
+        return this.#applyInMemoryFilter(stores, criteria);
+    }
+
+    #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const lowerQuery = query?.toLowerCase() || '';
@@ -394,6 +410,7 @@ export class MasRepository extends LitElement {
             if (this.#skipVariant(variants, item)) return false;
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
+            if (status.length && !status.includes(item.status)) return false;
             if (createdByLc.length) {
                 const itemCreatedBy = (item.created?.by || '').toLowerCase();
                 if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
@@ -456,6 +473,10 @@ export class MasRepository extends LitElement {
         const currentTags = dataStore.getMeta('tags');
         const rawTags = tagsOverride ?? this.filters.value.tags;
         const tagsString = Array.isArray(rawTags) ? rawTags.join(',') : rawTags || '';
+        const rawStatus = this.filters.value.status;
+        const status = rawStatus ? String(rawStatus).split(',').filter(Boolean) : [];
+        const statusString = status.join(',');
+        const currentStatus = dataStore.getMeta('status');
         const currentCreatedBy = dataStore.getMeta('createdBy');
         const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
         const createdByString = createdBy.join(',');
@@ -507,7 +528,11 @@ export class MasRepository extends LitElement {
             metaPersonalizationOn === personalizationOn;
 
         const identicalFilters =
-            sameSurface && currentQuery === query && currentTags === tagsString && currentCreatedBy === createdByString;
+            sameSurface &&
+            currentQuery === query &&
+            currentTags === tagsString &&
+            currentCreatedBy === createdByString &&
+            currentStatus === statusString;
 
         if (identicalFilters) {
             let filteredData = currentData.filter((fragmentStore) => {
@@ -537,6 +562,7 @@ export class MasRepository extends LitElement {
             );
             const prevContentTypes = prevTagsAll.filter((t) => t.startsWith(TAG_STUDIO_CONTENT_TYPE));
             const prevCreatedBy = currentCreatedBy ? currentCreatedBy.split(',').filter(Boolean) : [];
+            const prevStatus = currentStatus ? currentStatus.split(',').filter(Boolean) : [];
             const narrowed = this.#isNarrowing(
                 {
                     query: currentQuery || '',
@@ -544,18 +570,27 @@ export class MasRepository extends LitElement {
                     variants: prevVariants,
                     contentTypes: prevContentTypes,
                     createdBy: prevCreatedBy,
+                    status: prevStatus,
                 },
-                { query: query || '', tags, variants, contentTypes, createdBy },
+                { query: query || '', tags, variants, contentTypes, createdBy, status },
             );
             if (narrowed) {
                 if (tracing) console.time('searchFragments:in-memory');
-                const filtered = this.#applyInMemoryFilter(currentData, { query, tags, variants, contentTypes, createdBy });
+                const filtered = this.#applyInMemoryFilter(currentData, {
+                    query,
+                    tags,
+                    variants,
+                    contentTypes,
+                    createdBy,
+                    status,
+                });
                 if (filtered.length !== currentData.length) {
                     dataStore.set(filtered);
                 }
                 dataStore.setMeta('query', query);
                 dataStore.setMeta('tags', tagsString);
                 dataStore.setMeta('createdBy', createdByString);
+                dataStore.setMeta('status', statusString);
                 Store.fragments.list.loading.set(false);
                 Store.fragments.list.firstPageLoaded.set(true);
                 if (tracing) console.timeEnd('searchFragments:in-memory');
@@ -581,6 +616,10 @@ export class MasRepository extends LitElement {
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
+
+        if (status.length > 0) {
+            localSearch.status = status;
+        }
 
         // AEM's fullText.EDGES index only covers title+description and ANDs across
         // tokens, so multi-word queries like "creative cloud" return zero on catalogs
@@ -609,11 +648,6 @@ export class MasRepository extends LitElement {
         }
         const lowerClientQuery = clientQuery.toLowerCase();
 
-        const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
-        if (publishedTagIndex > -1) {
-            tags.splice(publishedTagIndex, 1);
-            localSearch.status = STATUS_PUBLISHED;
-        }
         if (shouldPassCompareChartTag) {
             localSearch.tags = [TAG_COMPARE_CHART, ...tags];
         }
@@ -807,6 +841,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('locale', resolvedLocale);
             dataStore.setMeta('tags', tagsString);
             dataStore.setMeta('createdBy', createdByString);
+            dataStore.setMeta('status', statusString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
             if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                 dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
@@ -1058,7 +1093,7 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(false);
     }
 
-    async loadAllCollections() {
+    async loadAllCollections(store) {
         const surfaceKey =
             this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
                 ? this.#promotionsItemPickerSurfaceOrNavPath()
@@ -1093,12 +1128,10 @@ export class MasRepository extends LitElement {
                 collectionsByPath.set(fragment.path, collection);
             }
 
-            const s = getItemsSelectionStore({ allowUnset: true });
-            if (!s) return;
-            s.allCollections.setMeta('loaded', true);
-            s.allCollections.set(collections);
-            s.displayCollections.set(collections);
-            s.collectionsByPaths.set(collectionsByPath);
+            store.allCollections.setMeta('loaded', true);
+            store.allCollections.set(collections);
+            store.displayCollections.set(collections);
+            store.collectionsByPaths.set(collectionsByPath);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');

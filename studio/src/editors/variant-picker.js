@@ -11,7 +11,7 @@ export const VARIANT_NAMES = {
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
     BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
-    UBER_PRICING: 'uber-pricing',
+    PRODUCT_PRICING: 'product-pricing',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -69,8 +69,8 @@ export const VARIANTS = [
         surfaces: [SURFACES.SANDBOX],
     },
     {
-        label: 'Uber Pricing',
-        value: VARIANT_NAMES.UBER_PRICING,
+        label: 'Product Pricing',
+        value: VARIANT_NAMES.PRODUCT_PRICING,
         surfaces: [SURFACES.ACOM],
     },
     {

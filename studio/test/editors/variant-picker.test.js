@@ -193,7 +193,7 @@ describe('VariantPicker', () => {
             expect(names).to.include('faq');
             expect(names).to.include('banner-blade');
             expect(names).to.include('headless');
-            expect(names).to.include('uber-pricing');
+            expect(names).to.include('product-pricing');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');

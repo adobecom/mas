@@ -10687,11 +10687,11 @@ merch-card[variant="mini"] span.renewal-text {
                     `)}
             </div>
         `}};g(hi,"variantStyle",zt("banner-blade"));P();var up=`
-.collection-container:has(merch-card[variant='uber-pricing']) {
+.collection-container:has(merch-card[variant='product-pricing']) {
     display: block;
 }
 
-merch-card-collection.uber-pricing {
+merch-card-collection.product-pricing {
     display: grid;
     grid-template-columns: minmax(261px, 474px);
     justify-content: center;
@@ -10703,45 +10703,45 @@ merch-card-collection.uber-pricing {
 /* Studio uses <merch-card-collection>; milo/preview wraps cards in
    .N-merch-cards grid containers, so both selector families are covered. */
 @media screen and ${I} {
-    merch-card-collection.uber-pricing,
-    .two-merch-cards:has(merch-card[variant='uber-pricing']),
-    .three-merch-cards:has(merch-card[variant='uber-pricing']),
-    .four-merch-cards:has(merch-card[variant='uber-pricing']) {
+    merch-card-collection.product-pricing,
+    .two-merch-cards:has(merch-card[variant='product-pricing']),
+    .three-merch-cards:has(merch-card[variant='product-pricing']),
+    .four-merch-cards:has(merch-card[variant='product-pricing']) {
         grid-template-columns: repeat(2, minmax(261px, 474px));
     }
 }
 
 @media screen and ${pr} {
-    merch-card-collection.uber-pricing,
-    .three-merch-cards:has(merch-card[variant='uber-pricing']),
-    .four-merch-cards:has(merch-card[variant='uber-pricing']) {
+    merch-card-collection.product-pricing,
+    .three-merch-cards:has(merch-card[variant='product-pricing']),
+    .four-merch-cards:has(merch-card[variant='product-pricing']) {
         grid-template-columns: repeat(3, minmax(261px, 474px));
     }
 }
 
 @media screen and ${xh} {
-    merch-card-collection.uber-pricing,
-    .four-merch-cards:has(merch-card[variant='uber-pricing']) {
+    merch-card-collection.product-pricing,
+    .four-merch-cards:has(merch-card[variant='product-pricing']) {
         grid-template-columns: repeat(4, minmax(261px, 474px));
     }
 }
 
-merch-card[variant="uber-pricing"] {
+merch-card[variant="product-pricing"] {
     width: 100%;
     max-width: 474px;
     min-width: 261px;
-    --uber-frame-bg: #fff;
-    --uber-frame-border: #dadada;
+    --product-frame-bg: #fff;
+    --product-frame-border: #dadada;
 }
 
-merch-card[variant="uber-pricing"]:has([slot="badge"]) {
-    --uber-frame-bg: #000;
-    --uber-frame-border: #000;
+merch-card[variant="product-pricing"]:has([slot="badge"]) {
+    --product-frame-bg: #000;
+    --product-frame-border: #000;
 }
 
 /* Strip the merch-badge pill: plain white text on the header strip. The
    --merch-badge-* props are set inline by merch-badge, so !important is needed. */
-merch-card[variant="uber-pricing"] merch-badge {
+merch-card[variant="product-pricing"] merch-badge {
     --merch-badge-background-color: transparent !important;
     --merch-badge-border: none !important;
     --merch-badge-color: #fff !important;
@@ -10752,7 +10752,7 @@ merch-card[variant="uber-pricing"] merch-badge {
     line-height: 18px;
 }
 
-merch-card[variant="uber-pricing"] [slot="heading-s"] {
+merch-card[variant="product-pricing"] [slot="heading-s"] {
     margin: 0;
     font-size: 18px;
     font-weight: 900;
@@ -10760,7 +10760,7 @@ merch-card[variant="uber-pricing"] [slot="heading-s"] {
     color: #000;
 }
 
-merch-card[variant="uber-pricing"] [slot="body-xs"] {
+merch-card[variant="product-pricing"] [slot="body-xs"] {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -10772,7 +10772,7 @@ merch-card[variant="uber-pricing"] [slot="body-xs"] {
     color: #5c5c5c;
 }
 
-merch-card[variant="uber-pricing"] [slot="heading-xs"] {
+merch-card[variant="product-pricing"] [slot="heading-xs"] {
     margin: 0;
     font-size: 16px;
     font-weight: 700;
@@ -10781,18 +10781,18 @@ merch-card[variant="uber-pricing"] [slot="heading-xs"] {
     text-align: left;
 }
 
-merch-card[variant="uber-pricing"] [slot="heading-xs"] p {
+merch-card[variant="product-pricing"] [slot="heading-xs"] p {
     margin: 0;
 }
 
 /* Figma stacks the prices: current price drops below the strikethrough.
    Blocking the alternative (not the strikethrough) keeps the joining nbsp as a
    harmless trailing space instead of indenting the second line. */
-merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-alternative {
+merch-card[variant="product-pricing"] [slot="heading-xs"] .price-alternative {
     display: block;
 }
 
-merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-strikethrough {
+merch-card[variant="product-pricing"] [slot="heading-xs"] .price-strikethrough {
     font-size: 14px;
     font-weight: 700;
     line-height: 18px;
@@ -10800,7 +10800,7 @@ merch-card[variant="uber-pricing"] [slot="heading-xs"] .price-strikethrough {
     color: #5c5c5c;
 }
 
-merch-card[variant="uber-pricing"] span[data-template="legal"] {
+merch-card[variant="product-pricing"] span[data-template="legal"] {
     display: block;
     font-size: 12px;
     font-weight: 400;
@@ -10808,13 +10808,13 @@ merch-card[variant="uber-pricing"] span[data-template="legal"] {
     color: #5c5c5c;
 }
 
-merch-card[variant="uber-pricing"] [slot="footer"] {
+merch-card[variant="product-pricing"] [slot="footer"] {
     display: flex;
     gap: 4px;
     width: 100%;
 }
 
-merch-card[variant="uber-pricing"] [slot="footer"] a {
+merch-card[variant="product-pricing"] [slot="footer"] a {
     flex: 1 0 0;
     min-width: 0;
     display: inline-flex;
@@ -10834,9 +10834,9 @@ merch-card[variant="uber-pricing"] [slot="footer"] a {
     border: none;
 }
 
-merch-card[variant="uber-pricing"] [slot="footer"] a.con-button.outline,
-merch-card[variant="uber-pricing"] [slot="footer"] a.con-button.primary,
-merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
+merch-card[variant="product-pricing"] [slot="footer"] a.con-button.outline,
+merch-card[variant="product-pricing"] [slot="footer"] a.con-button.primary,
+merch-card[variant="product-pricing"] [slot="footer"] a.outline {
     background: transparent;
     color: #000;
     border: 2px solid #000;
@@ -10857,12 +10857,12 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
                 </div>
             </div>
             <slot></slot>`}};It=new WeakMap,ka=new WeakMap,g(pi,"variantStyle",k`
-        :host([variant='uber-pricing']) {
+        :host([variant='product-pricing']) {
             font-weight: 400;
             display: flex;
             flex-direction: column;
-            background: var(--uber-frame-bg, #fff);
-            border: 1px solid var(--uber-frame-border, #dadada);
+            background: var(--product-frame-bg, #fff);
+            border: 1px solid var(--product-frame-border, #dadada);
             border-radius: 16px;
             overflow: hidden;
             /* 4px frame = 1px border + 3px padding; host bg shows through. */
@@ -10874,22 +10874,22 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
 
         /* Mnemonic + badge share one centered row on the header strip. Strip
            background is white by default, black when framed (badge authored or a
-           CTA hovered); triggers live in uber-pricing.css.js. */
-        :host([variant='uber-pricing']) .header {
+           CTA hovered); triggers live in product-pricing.css.js. */
+        :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
             gap: 12px;
             padding: 24px 24px 32px;
         }
 
-        :host([variant='uber-pricing']) .header slot[name='icons'] {
+        :host([variant='product-pricing']) .header slot[name='icons'] {
             display: inline-flex;
             align-items: center;
         }
 
         /* White content panel; the host's 4px padding exposes the frame around
            it (and the header strip) in the framed state. */
-        :host([variant='uber-pricing']) .panel {
+        :host([variant='product-pricing']) .panel {
             flex: 1 0 auto;
             display: flex;
             flex-direction: column;
@@ -10899,53 +10899,55 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             box-sizing: border-box;
         }
 
-        :host([variant='uber-pricing']) .copy {
+        :host([variant='product-pricing']) .copy {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
-        :host([variant='uber-pricing']) slot[name='heading-s'] {
+        :host([variant='product-pricing']) slot[name='heading-s'] {
             display: block;
             min-height: var(
-                --consonant-merch-card-uber-pricing-heading-s-height
+                --consonant-merch-card-product-pricing-heading-s-height
             );
         }
-        :host([variant='uber-pricing']) slot[name='body-xs'] {
-            display: block;
-            min-height: var(--consonant-merch-card-uber-pricing-body-xs-height);
-        }
-        :host([variant='uber-pricing']) slot[name='heading-xs'] {
+        :host([variant='product-pricing']) slot[name='body-xs'] {
             display: block;
             min-height: var(
-                --consonant-merch-card-uber-pricing-heading-xs-height
+                --consonant-merch-card-product-pricing-body-xs-height
+            );
+        }
+        :host([variant='product-pricing']) slot[name='heading-xs'] {
+            display: block;
+            min-height: var(
+                --consonant-merch-card-product-pricing-heading-xs-height
             );
         }
 
         /* No price authored: reserve nothing for the price row, else the row's
            synced min-height leaves a blank band above the CTAs. Chrome rejects
            :has() inside :host(), so the flag is an attribute (see syncHeights). */
-        :host([variant='uber-pricing'][no-price]) slot[name='heading-xs'] {
+        :host([variant='product-pricing'][no-price]) slot[name='heading-xs'] {
             display: none;
         }
 
-        :host([variant='uber-pricing'][no-price]) .price-buttons {
+        :host([variant='product-pricing'][no-price]) .price-buttons {
             gap: 0;
         }
 
         /* Grows so a shorter card's slack lands here, in one block, instead of
            spread through the copy, keeping CTAs on the row's shared baseline. */
-        :host([variant='uber-pricing']) .spacer {
+        :host([variant='product-pricing']) .spacer {
             flex: 1 0 24px;
         }
 
-        :host([variant='uber-pricing']) .price-buttons {
+        :host([variant='product-pricing']) .price-buttons {
             display: flex;
             flex-direction: column;
             gap: 24px;
         }
 
-        :host([variant='uber-pricing']) footer {
+        :host([variant='product-pricing']) footer {
             display: flex;
             padding: 0;
             gap: 4px;
@@ -10953,7 +10955,7 @@ merch-card[variant="uber-pricing"] [slot="footer"] a.outline {
             align-items: stretch;
             flex-wrap: nowrap;
         }
-    `);var io=new Map,vp=new WeakMap,xp=new Map,U=(t,r,e=null,i=null,a)=>{io.set(t,{class:r,fragmentMapping:e,style:i,collectionOptions:a})};U("catalog",jr,_h,jr.variantStyle);U("image",ur);U("inline-heading",Yn);U("mini-compare-chart",Wr,Oh,Wr.variantStyle);U("mini-compare-chart-mweb",Yr,zh,Yr.variantStyle);U("plans",Ce,Kn,Ce.variantStyle,Ce.collectionOptions);U("plans-students",Ce,Dh,Ce.variantStyle,Ce.collectionOptions);U("plans-education",Ce,$h,Ce.variantStyle,Ce.collectionOptions);U("plans-v2",Ot,Fh,Ot.variantStyle,Ot.collectionOptions);U("pro",ya,qh,ya.variantStyle);U("product",Zr,Wh,Zr.variantStyle);U("brand-concierge-product",Jr,Kh,Jr.variantStyle);U("segment",ei,Qh,ei.variantStyle);U("media",ti,Jh,ti.variantStyle);U("headless",ni,np,ni.variantStyle);U("special-offers",ri,tp,ri.variantStyle);U("simplified-pricing-express",ii,cc,ii.variantStyle);U("full-pricing-express",Sa,lc,Sa.variantStyle);U("mini",oi,sp,oi.variantStyle);U("image",ur,Ph,ur.variantStyle);U("compare-chart-column",si,hc,si.variantStyle);U("fries",ci,pc,ci.variantStyle);U("marquee",li,hp,li.variantStyle);U("faq",di,pp,di.variantStyle);U("banner-blade",hi,mp,hi.variantStyle);U("uber-pricing",pi,bp,pi.variantStyle);var zf=(t,r,e)=>{try{let i=xp.get(t.variant);if(i||(i=new CSSStyleSheet,i.replaceSync(r.cssText),xp.set(t.variant,i)),e?.styleSheet&&e.styleSheet!==i){let a=t.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);a!==-1&&t.shadowRoot.adoptedStyleSheets.splice(a,1)}return t.shadowRoot.adoptedStyleSheets.includes(i)||t.shadowRoot.adoptedStyleSheets.push(i),{styleSheet:i}}catch{let a=document.createElement("style");a.textContent=r.cssText,a.setAttribute("data-variant-style",t.variant);let n=e?.styleElement||t.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),t.shadowRoot.appendChild(a),{styleElement:a}}},mc=t=>{let r=io.get(t.variant);if(!r)return;let{class:e,style:i}=r,a=vp.get(t);if(a?.appliedVariant===t.variant)return new e(t);let n=i?zf(t,i,a):{};return vp.set(t,{appliedVariant:t.variant,...n}),new e(t)};function Wn(t){return io.get(t)?.fragmentMapping}function yp(t){return io.get(t)?.collectionOptions}var wp=document.createElement("style");wp.innerHTML=`
+    `);var io=new Map,vp=new WeakMap,xp=new Map,U=(t,r,e=null,i=null,a)=>{io.set(t,{class:r,fragmentMapping:e,style:i,collectionOptions:a})};U("catalog",jr,_h,jr.variantStyle);U("image",ur);U("inline-heading",Yn);U("mini-compare-chart",Wr,Oh,Wr.variantStyle);U("mini-compare-chart-mweb",Yr,zh,Yr.variantStyle);U("plans",Ce,Kn,Ce.variantStyle,Ce.collectionOptions);U("plans-students",Ce,Dh,Ce.variantStyle,Ce.collectionOptions);U("plans-education",Ce,$h,Ce.variantStyle,Ce.collectionOptions);U("plans-v2",Ot,Fh,Ot.variantStyle,Ot.collectionOptions);U("pro",ya,qh,ya.variantStyle);U("product",Zr,Wh,Zr.variantStyle);U("brand-concierge-product",Jr,Kh,Jr.variantStyle);U("segment",ei,Qh,ei.variantStyle);U("media",ti,Jh,ti.variantStyle);U("headless",ni,np,ni.variantStyle);U("special-offers",ri,tp,ri.variantStyle);U("simplified-pricing-express",ii,cc,ii.variantStyle);U("full-pricing-express",Sa,lc,Sa.variantStyle);U("mini",oi,sp,oi.variantStyle);U("image",ur,Ph,ur.variantStyle);U("compare-chart-column",si,hc,si.variantStyle);U("fries",ci,pc,ci.variantStyle);U("marquee",li,hp,li.variantStyle);U("faq",di,pp,di.variantStyle);U("banner-blade",hi,mp,hi.variantStyle);U("product-pricing",pi,bp,pi.variantStyle);var zf=(t,r,e)=>{try{let i=xp.get(t.variant);if(i||(i=new CSSStyleSheet,i.replaceSync(r.cssText),xp.set(t.variant,i)),e?.styleSheet&&e.styleSheet!==i){let a=t.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);a!==-1&&t.shadowRoot.adoptedStyleSheets.splice(a,1)}return t.shadowRoot.adoptedStyleSheets.includes(i)||t.shadowRoot.adoptedStyleSheets.push(i),{styleSheet:i}}catch{let a=document.createElement("style");a.textContent=r.cssText,a.setAttribute("data-variant-style",t.variant);let n=e?.styleElement||t.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),t.shadowRoot.appendChild(a),{styleElement:a}}},mc=t=>{let r=io.get(t.variant);if(!r)return;let{class:e,style:i}=r,a=vp.get(t);if(a?.appliedVariant===t.variant)return new e(t);let n=i?zf(t,i,a):{};return vp.set(t,{appliedVariant:t.variant,...n}),new e(t)};function Wn(t){return io.get(t)?.fragmentMapping}function yp(t){return io.get(t)?.collectionOptions}var wp=document.createElement("style");wp.innerHTML=`
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;

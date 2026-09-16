@@ -5,16 +5,16 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
-import { CSS } from './uber-pricing.css.js';
+import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
 const SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs'];
 
-export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {
+export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     mnemonics: { size: 's' },
-    // Plain text badge; merch-badge pill styling is stripped in uber-pricing.css.js.
+    // Plain text badge; merch-badge pill styling is stripped in product-pricing.css.js.
     badge: { tag: 'div', slot: 'badge' },
     title: { tag: 'h3', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
@@ -23,7 +23,7 @@ export const UBER_PRICING_AEM_FRAGMENT_MAPPING = {
     style: 'consonant',
 };
 
-export class UberPricing extends VariantLayout {
+export class ProductPricing extends VariantLayout {
     #sizeObserver = null;
     #onPriceResolved = () => this.resyncOnReflow();
     lastSyncKey = null;
@@ -150,12 +150,12 @@ export class UberPricing extends VariantLayout {
     }
 
     static variantStyle = css`
-        :host([variant='uber-pricing']) {
+        :host([variant='product-pricing']) {
             font-weight: 400;
             display: flex;
             flex-direction: column;
-            background: var(--uber-frame-bg, #fff);
-            border: 1px solid var(--uber-frame-border, #dadada);
+            background: var(--product-frame-bg, #fff);
+            border: 1px solid var(--product-frame-border, #dadada);
             border-radius: 16px;
             overflow: hidden;
             /* 4px frame = 1px border + 3px padding; host bg shows through. */
@@ -167,22 +167,22 @@ export class UberPricing extends VariantLayout {
 
         /* Mnemonic + badge share one centered row on the header strip. Strip
            background is white by default, black when framed (badge authored or a
-           CTA hovered); triggers live in uber-pricing.css.js. */
-        :host([variant='uber-pricing']) .header {
+           CTA hovered); triggers live in product-pricing.css.js. */
+        :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
             gap: 12px;
             padding: 24px 24px 32px;
         }
 
-        :host([variant='uber-pricing']) .header slot[name='icons'] {
+        :host([variant='product-pricing']) .header slot[name='icons'] {
             display: inline-flex;
             align-items: center;
         }
 
         /* White content panel; the host's 4px padding exposes the frame around
            it (and the header strip) in the framed state. */
-        :host([variant='uber-pricing']) .panel {
+        :host([variant='product-pricing']) .panel {
             flex: 1 0 auto;
             display: flex;
             flex-direction: column;
@@ -192,53 +192,55 @@ export class UberPricing extends VariantLayout {
             box-sizing: border-box;
         }
 
-        :host([variant='uber-pricing']) .copy {
+        :host([variant='product-pricing']) .copy {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
-        :host([variant='uber-pricing']) slot[name='heading-s'] {
+        :host([variant='product-pricing']) slot[name='heading-s'] {
             display: block;
             min-height: var(
-                --consonant-merch-card-uber-pricing-heading-s-height
+                --consonant-merch-card-product-pricing-heading-s-height
             );
         }
-        :host([variant='uber-pricing']) slot[name='body-xs'] {
-            display: block;
-            min-height: var(--consonant-merch-card-uber-pricing-body-xs-height);
-        }
-        :host([variant='uber-pricing']) slot[name='heading-xs'] {
+        :host([variant='product-pricing']) slot[name='body-xs'] {
             display: block;
             min-height: var(
-                --consonant-merch-card-uber-pricing-heading-xs-height
+                --consonant-merch-card-product-pricing-body-xs-height
+            );
+        }
+        :host([variant='product-pricing']) slot[name='heading-xs'] {
+            display: block;
+            min-height: var(
+                --consonant-merch-card-product-pricing-heading-xs-height
             );
         }
 
         /* No price authored: reserve nothing for the price row, else the row's
            synced min-height leaves a blank band above the CTAs. Chrome rejects
            :has() inside :host(), so the flag is an attribute (see syncHeights). */
-        :host([variant='uber-pricing'][no-price]) slot[name='heading-xs'] {
+        :host([variant='product-pricing'][no-price]) slot[name='heading-xs'] {
             display: none;
         }
 
-        :host([variant='uber-pricing'][no-price]) .price-buttons {
+        :host([variant='product-pricing'][no-price]) .price-buttons {
             gap: 0;
         }
 
         /* Grows so a shorter card's slack lands here, in one block, instead of
            spread through the copy, keeping CTAs on the row's shared baseline. */
-        :host([variant='uber-pricing']) .spacer {
+        :host([variant='product-pricing']) .spacer {
             flex: 1 0 24px;
         }
 
-        :host([variant='uber-pricing']) .price-buttons {
+        :host([variant='product-pricing']) .price-buttons {
             display: flex;
             flex-direction: column;
             gap: 24px;
         }
 
-        :host([variant='uber-pricing']) footer {
+        :host([variant='product-pricing']) footer {
             display: flex;
             padding: 0;
             gap: 4px;

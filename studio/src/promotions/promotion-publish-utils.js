@@ -145,6 +145,7 @@ const VARIATIONS_STABILIZE_DELAY_MS = 400;
  */
 async function getStablePromoVariations(aem, promotionFragment, getVariations) {
     let variations = await getVariations(aem, promotionFragment);
+    if (!variations.length) return variations;
     for (let attempt = 1; attempt < VARIATIONS_STABILIZE_MAX_ATTEMPTS; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, VARIATIONS_STABILIZE_DELAY_MS));
         const nextVariations = await getVariations(aem, promotionFragment);

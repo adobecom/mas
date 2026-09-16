@@ -8,17 +8,22 @@ keywords: collection, merch card collection, variation, locale variation, groupe
 
 A collection is an AEM content fragment that groups merch cards. It uses the dedicated collection fragment model and is tagged mas:studio/content-type/merch-card-collection. The collection stores references to its member cards in a multi-value field along with a display label. Collections live in the same surface and locale folder structure as cards, and they can be attached to promotions alongside individual cards. Grouped (personalization) variations can also be created for collections, not only for cards. In the collection editor, member cards are added by pasting Studio card links into the cards list — pasted links are de-duplicated against the existing members — and removed line by line; there is no drag-and-drop reordering.
 
-## How do I create a collection with the AI assistant?
+## Can the AI assistant create collections or add cards to them?
 
-The assistant supports a create_collection action. It needs a title and a parent path (the folder the collection is created in), and optionally tags; because it is a state-changing operation, the assistant asks for confirmation before executing it. In the chat UI, when cards have been found or selected, the assistant can show a collection preview that renders each card, lets you edit the collection title (with an AI-suggested title prefilled when available), and creates the collection with those cards once you confirm. Collections created from chat land in the currently selected folder and locale, defaulting to en_US.
+No. Collections are created and edited in Studio, not through chat. The assistant
+has no collection operations: it cannot create one, add cards to one, or search
+for one. Ask it to find cards and it will; collecting them is done in Studio.
 
-## How do I add cards to an existing collection?
+Open the collection editor in Studio to create a collection or change its
+members. Member cards are added by pasting Studio card links into the cards list
+— pasted links are de-duplicated against the existing members — and removed line
+by line.
 
-The AI assistant supports add_cards_to_collection: given the collection's UUID and a list of card paths, it appends the new paths to the collection's existing card list, de-duplicating so a card is never added twice, and asks for confirmation before executing. The backing action fetches the collection, merges the paths, and updates the fragment using its etag so concurrent edits are detected safely. The response includes a Studio deep link to view the updated collection.
+## How can I find cards?
 
-## How can I find collections and cards?
-
-The AI assistant supports search_collections, a read-only lookup that accepts an optional folder path, a text query, and limit and offset for paging. Cards are found with search_cards, which supports free text or title search plus surface, locale, tags, and OSI filters. A collection found through search can then be used as the target of add_cards_to_collection, or attached to a promotion in the Promotions editor.
+The assistant searches cards with search_cards, which supports free text or title
+search plus surface, locale, tags, and OSI filters. Collections are browsed in
+Studio, and a collection can be attached to a promotion in the Promotions editor.
 
 ## What is a locale variation and what are the rules?
 
@@ -30,4 +35,6 @@ A grouped variation is a personalization variation created under a parent fragme
 
 ## Which variation operations can the AI assistant perform?
 
-Read-only operations: get_variations returns the variation graph for a fragment; get_card_with_variations returns a card plus its full variation tree; list_variation_locales lists the locales for which a card has variations; and get_variation_parent returns the parent fragment of a variation. State-changing operations, which always require confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags.
+Read-only: get_variations returns the variation graph for a fragment. State-changing, and always requiring confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags.
+
+The narrower lookups that used to sit alongside get_variations — a card plus its full tree, the locales a card has variations for, and a variation's parent — were removed. The assistant offered them but nothing could execute them, so picking one ended the turn with no answer. Use get_variations, or the fragment editor's variations panel in Studio.

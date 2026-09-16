@@ -44,25 +44,12 @@ describe('variation actions', () => {
         };
     }
 
+    // The three read actions that used to sit here — get-card-with-variations,
+    // list-variation-locales and get-variation-parent — were removed: the
+    // registry offered them to the model and no client path could dispatch one,
+    // so picking any of them dead-ended the turn. Creating variations is still
+    // wired, so those two stay.
     const cases = [
-        {
-            action: 'get-card-with-variations',
-            method: 'getCardWithVariations',
-            send: { id: 'card-1' },
-            expect: { id: 'card-1' },
-        },
-        {
-            action: 'list-variation-locales',
-            method: 'listVariationLocales',
-            send: { id: 'card-1' },
-            expect: { id: 'card-1' },
-        },
-        {
-            action: 'get-variation-parent',
-            method: 'getVariationParent',
-            send: { id: 'card-1' },
-            expect: { id: 'card-1' },
-        },
         {
             action: 'create-locale-variation',
             method: 'createLocaleVariation',

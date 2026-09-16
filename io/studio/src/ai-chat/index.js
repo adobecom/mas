@@ -13,7 +13,6 @@
 import { Ims } from '@adobe/aio-lib-ims';
 import { FoundryClient, sumUsage } from './foundry-client.js';
 import {
-    COLLECTION_CREATION_SYSTEM_PROMPT,
     GUIDED_CARD_CREATION_PROMPT,
     GUIDED_CARD_CREATION_TOOL_PROMPT,
     GUIDED_SEARCH_PROMPT,
@@ -22,14 +21,7 @@ import {
 } from './prompt-templates.js';
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
-import {
-    parseAIResponse,
-    validateCollectionConfig,
-    extractJSON,
-    flowIdField,
-    isDeadEndGuidedStep,
-    withDeadEndRecovery,
-} from './response-parser.js';
+import { parseAIResponse, extractJSON, flowIdField, isDeadEndGuidedStep, withDeadEndRecovery } from './response-parser.js';
 import { handleOperation, withResolvedArrangementCode } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
@@ -1288,72 +1280,6 @@ async function main(params) {
             };
         }
 
-        if (parsedResponse.type === 'collection' && parsedResponse.collectionConfig) {
-            const collectionValidation = validateCollectionConfig(parsedResponse.collectionConfig);
-
-            if (!collectionValidation.valid) {
-                return {
-                    statusCode: 200,
-                    headers: {
-                        ...getResponseHeaders(),
-                    },
-                    body: {
-                        type: 'error',
-                        message: collectionValidation.error,
-                        usage: response.usage,
-                    },
-                };
-            }
-
-            const cardValidations = parsedResponse.collectionConfig.cards.map((card) => {
-                const variantConfig = getVariantConfig(card.variant);
-                return validateAIConfig(card, variantConfig);
-            });
-
-            return {
-                statusCode: 200,
-                headers: {
-                    ...getResponseHeaders(),
-                },
-                body: {
-                    ...envelopePayload,
-                    type: 'collection',
-                    message: parsedResponse.message,
-                    collectionConfig: parsedResponse.collectionConfig,
-                    validation: {
-                        valid: cardValidations.every((v) => v.valid),
-                        cardValidations,
-                    },
-                    usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
-                },
-            };
-        }
-
-        if (parsedResponse.type === 'collection-selection') {
-            return {
-                statusCode: 200,
-                headers: {
-                    ...getResponseHeaders(),
-                },
-                body: {
-                    ...envelopePayload,
-                    type: 'collection-selection',
-                    message: parsedResponse.message,
-                    usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
-                },
-            };
-        }
-
         if (parsedResponse.type === 'collection-preview') {
             return {
                 statusCode: 200,
@@ -1673,7 +1599,7 @@ export function inferGuidedFlowFromHistory(conversationHistory) {
     if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
         return null;
     }
-    const knownFlows = ['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection'];
+    const knownFlows = ['guided_search', 'guided_offer_search', 'guided_help', 'release'];
     const terminalPattern = /"(?:mcpTool|cardConfigs?)"\s*:|"type"\s*:\s*"(?:mcp_operation|card|collection|release_cards)"/;
     let scanned = 0;
     for (let i = conversationHistory.length - 1; i >= 0 && scanned < 4; i -= 1) {
@@ -1701,10 +1627,6 @@ export function inferGuidedFlowFromHistory(conversationHistory) {
 function determineSystemPromptWithMeta(intentHint, conversationHistory, message, context) {
     if (intentHint === 'documentation') {
         return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
-    }
-
-    if (intentHint === 'collection') {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
     }
 
     if (intentHint === 'release') {
@@ -1741,10 +1663,6 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
     if (inferredFlow === 'release') {
         return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
     }
-    if (inferredFlow === 'collection') {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
-    }
-
     const lowerMessage = message.toLowerCase();
 
     const documentationKeywords = [
@@ -1854,19 +1772,11 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
     }
 
-    if (lowerMessage.includes('collection') || lowerMessage.includes('multiple cards')) {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
-    }
-
     const recentAssistantMessages = conversationHistory
         .filter((msg) => msg.role === 'assistant')
         .slice(-2)
         .map((msg) => (typeof msg.content === 'string' ? msg.content.toLowerCase() : ''))
         .join(' ');
-
-    if (recentAssistantMessages.includes('collection')) {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
-    }
 
     return {
         prompt: buildDocumentationPrompt(message),
@@ -1907,8 +1817,6 @@ function promptFromClassifierLabel(label, message, context) {
             return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
         case 'release':
             return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
-        case 'collection':
-            return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
         case 'unknown':
         default:
             return null;

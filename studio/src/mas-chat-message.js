@@ -1,10 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import './mas-card-selection-dialog.js';
-import './mas-collection-preview.js';
 import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
-import './mas-bulk-preview.js';
 import './mas-chat-button-group.js';
 import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
@@ -47,11 +45,9 @@ export class MasChatMessage extends LitElement {
             this.message.cardConfig ||
             this.message.operationResult ||
             this.message.confirmationSummary ||
-            this.message.previewData ||
             this.message.operation ||
             this.message.openOst ||
             this.message.productCards ||
-            this.message.collectionConfig ||
             this.message.operationLoading
         )
             return;
@@ -250,57 +246,6 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
-    renderCollectionPreview() {
-        const { collectionConfig, validation } = this.message;
-
-        return html`
-            <div class="message-collection-preview">
-                <div class="collection-info">
-                    <sp-badge size="s">Collection</sp-badge>
-                    <span>${collectionConfig.cards.length} cards</span>
-                    ${validation?.cardValidations?.some((v) => v.warnings?.length > 0)
-                        ? html` <sp-badge size="s" variant="yellow">Warnings</sp-badge> `
-                        : nothing}
-                </div>
-
-                <div class="collection-cards">
-                    ${collectionConfig.cards.map(
-                        (card, index) => html`
-                            <div class="collection-card-item">
-                                <sp-badge size="s">${card.variant}</sp-badge>
-                                <span>${this.extractTitle(card)}</span>
-                            </div>
-                        `,
-                    )}
-                </div>
-
-                <div class="card-actions">
-                    <sp-button
-                        size="s"
-                        variant="primary"
-                        @click=${() => this.handleCollectionAction('save')}
-                        ?disabled=${!validation?.valid}
-                    >
-                        Save Collection
-                    </sp-button>
-                </div>
-            </div>
-        `;
-    }
-
-    handleCollectionAction(action) {
-        this.dispatchEvent(
-            new CustomEvent('collection-action', {
-                detail: {
-                    action,
-                    config: this.message.collectionConfig,
-                },
-                bubbles: true,
-                composed: true,
-            }),
-        );
-    }
-
     renderOperationProgress() {
         const { progress } = this.message;
 
@@ -377,18 +322,6 @@ export class MasChatMessage extends LitElement {
         return title;
     }
 
-    renderCollectionSelection() {
-        return html`
-            <div class="message-content">
-                <p>${this.message.content}</p>
-                <sp-button size="m" variant="accent" @click=${this.handleOpenSelector}>
-                    <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
-                    Select Cards
-                </sp-button>
-            </div>
-        `;
-    }
-
     async handleOpenSelector() {
         const dialog = document.createElement('mas-card-selection-dialog');
         document.body.appendChild(dialog);
@@ -404,29 +337,6 @@ export class MasChatMessage extends LitElement {
                 }),
             );
         }
-    }
-
-    renderCollectionPreviewView() {
-        return html`
-            <div class="message-content">
-                <p>${this.message.content}</p>
-                <mas-collection-preview
-                    .fragmentIds=${this.message.fragmentIds}
-                    .suggestedTitle=${this.message.suggestedTitle}
-                    @create-collection=${this.handleCreateFromPreview}
-                ></mas-collection-preview>
-            </div>
-        `;
-    }
-
-    handleCreateFromPreview(event) {
-        this.dispatchEvent(
-            new CustomEvent('create-collection-from-preview', {
-                detail: event.detail,
-                bubbles: true,
-                composed: true,
-            }),
-        );
     }
 
     getOfferProductName(offer) {
@@ -493,7 +403,6 @@ export class MasChatMessage extends LitElement {
             content: rawContent,
             type,
             cardConfig,
-            collectionConfig,
             isLoading,
             osi,
             offer,
@@ -522,7 +431,6 @@ export class MasChatMessage extends LitElement {
             (cards && cards.length > 0) ||
             cardConfig ||
             fragmentId ||
-            collectionConfig ||
             operation ||
             operationResult ||
             operationLoading ||
@@ -530,7 +438,6 @@ export class MasChatMessage extends LitElement {
             this.message.buttonGroup ||
             this.message.openOst ||
             this.message.confirmationSummary ||
-            this.message.previewData ||
             this.message.mcpOperation ||
             this.showSuggestions;
 
@@ -541,22 +448,6 @@ export class MasChatMessage extends LitElement {
                     <div class="message-card">
                         <p>I finished processing but had nothing to display. Please try rephrasing.</p>
                     </div>
-                </div>
-            `;
-        }
-
-        if (type === 'collection-selection') {
-            return html`
-                <div class=${messageClass}>
-                    <div class="message-card">${this.renderCollectionSelection()}</div>
-                </div>
-            `;
-        }
-
-        if (type === 'collection-preview') {
-            return html`
-                <div class=${messageClass}>
-                    <div class="message-card">${this.renderCollectionPreviewView()}</div>
                 </div>
             `;
         }
@@ -666,15 +557,8 @@ export class MasChatMessage extends LitElement {
                           ></mas-chat-confirmation-summary>`
                         : nothing}
                     ${cardConfig || fragmentId ? this.renderCardPreview() : nothing}
-                    ${collectionConfig ? this.renderCollectionPreview() : nothing}
                     ${operation || (this.message.mcpOperation && this.message.confirmationRequired)
                         ? this.renderOperationRequest()
-                        : nothing}
-                    ${this.message.previewData
-                        ? html`<mas-bulk-preview
-                              .previewData=${this.message.previewData}
-                              .operation=${this.message.previewOperation}
-                          ></mas-bulk-preview>`
                         : nothing}
                     ${operationLoading ? this.renderOperationProgress() : nothing}
                     ${operationResult

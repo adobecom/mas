@@ -50,7 +50,9 @@
             "user_message": "Annual, billed monthly",
             "expect": {
                 "response_type": "guided_step",
-                "response_includes": ["YEAR|MONTHLY"]
+                "response_includes": [
+                    "YEAR|MONTHLY"
+                ]
             },
             "intent_hint": "release",
             "note": "The turn must stay inside the release flow rather than drifting to a docs answer. The commitment choice is offered deterministically, so YEAR|MONTHLY appears as a button value."
@@ -124,12 +126,15 @@
             }
         },
         {
-            "id": "bulk-update-with-context-happy",
-            "intent_under_test": "bulk_update_cards",
+            "id": "bulk-update-is-declined-not-attempted",
+            "intent_under_test": "SHOW_HELP",
             "context": {
                 "flow": null,
                 "lastOperation": {
-                    "fragmentIds": ["0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf", "12f26a12-118e-4367-b4d2-d8b6995bd9ab"],
+                    "fragmentIds": [
+                        "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+                        "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+                    ],
                     "type": "search_cards"
                 },
                 "workingSet": [],
@@ -138,20 +143,24 @@
             },
             "conversationHistory": [],
             "user_message": "update the description on those to \"X\"",
+            "notes": "The bulk tools were removed. Two cards in context used to make this a bulk_update_cards envelope; it must now not produce one, and should explain that bulk work happens in Studio.",
             "expect": {
-                "intent": "bulk_update_cards",
-                "slots_include": {
-                    "fragmentIds": ["0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf", "12f26a12-118e-4367-b4d2-d8b6995bd9ab"]
-                }
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
             }
         },
         {
-            "id": "bulk-publish-with-context-happy",
-            "intent_under_test": "bulk_publish_cards",
+            "id": "bulk-publish-is-declined-not-attempted",
+            "intent_under_test": "SHOW_HELP",
             "context": {
                 "flow": null,
                 "lastOperation": {
-                    "fragmentIds": ["0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf", "12f26a12-118e-4367-b4d2-d8b6995bd9ab"],
+                    "fragmentIds": [
+                        "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+                        "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+                    ],
                     "type": "search_cards"
                 },
                 "workingSet": [],
@@ -159,12 +168,13 @@
                 "currentLocale": "en_US"
             },
             "conversationHistory": [],
-            "user_message": "publish them",
+            "user_message": "publish all of them",
+            "notes": "Same for publishing: no bulk_publish_cards, and single publish needs one id, not the whole set.",
             "expect": {
-                "intent": "bulk_publish_cards",
-                "slots_include": {
-                    "fragmentIds": ["0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf", "12f26a12-118e-4367-b4d2-d8b6995bd9ab"]
-                }
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
             }
         },
         {
@@ -181,7 +191,9 @@
             "user_message": "create cards for photoshop",
             "expect": {
                 "response_type": "guided_step",
-                "response_includes": ["which product"]
+                "response_includes": [
+                    "which product"
+                ]
             },
             "note": "Release turns route to the guided path (index.js nativeEnvelopeEligible), which emits guided_step, not an envelope. The flow opens by asking which product the release is for."
         },
@@ -202,7 +214,9 @@
             "user_message": "Photoshop",
             "expect": {
                 "response_type": "guided_step",
-                "response_includes": ["photoshop"]
+                "response_includes": [
+                    "photoshop"
+                ]
             },
             "intent_hint": "release",
             "note": "Mid-flow turn: the frontend forwards intentHint=release. The guided step acknowledges the named product and looks it up."
@@ -224,7 +238,9 @@
             "user_message": "cancel",
             "expect": {
                 "response_type": "guided_step",
-                "response_includes": ["cancel"]
+                "response_includes": [
+                    "cancel"
+                ]
             },
             "intent_hint": "release",
             "note": "Cancelling mid-flow ends the release flow and says so."
@@ -359,7 +375,10 @@
             "conversationHistory": [],
             "user_message": "How do I create a translation project?",
             "expect": {
-                "intent_one_of": ["SHOW_HELP", "ASK_USER"]
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
             }
         },
         {
@@ -373,7 +392,10 @@
             "conversationHistory": [],
             "user_message": "How does bulk publishing work?",
             "expect": {
-                "intent_one_of": ["SHOW_HELP", "ASK_USER"]
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
             }
         },
         {
@@ -387,7 +409,10 @@
             "conversationHistory": [],
             "user_message": "What are promotions in MAS Studio?",
             "expect": {
-                "intent_one_of": ["SHOW_HELP", "ASK_USER"]
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
             }
         },
         {

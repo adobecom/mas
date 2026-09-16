@@ -56,10 +56,10 @@ describe('ai-chat envelope dispatcher', () => {
             expect(renderConfirmationTemplate('publish_card', { id: 'abc' })).to.equal('Publish card abc to production?');
         });
 
-        it('resolves a dotted path in a template', () => {
-            const text = renderConfirmationTemplate('bulk_publish_cards', { fragmentIds: ['a', 'b', 'c'] });
-            expect(text).to.equal('Publish 3 cards to production?');
-        });
+        // The dotted-path case lived on bulk_publish_cards ({{fragmentIds.length}}).
+        // With bulk removed, no remaining template uses a dotted path. The
+        // renderer still resolves them, so a future template can, but there is
+        // nothing live to assert it against.
 
         it('returns null when no template exists', () => {
             expect(renderConfirmationTemplate('search_cards', {})).to.equal(null);

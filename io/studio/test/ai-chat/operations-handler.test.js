@@ -17,15 +17,10 @@ describe('ai-chat/operations-handler', () => {
     describe('registry-derived MCP tool allowlist', () => {
         const LEGACY_HARDCODED_TOOLS = [
             'publish_card',
-            'unpublish_card',
             'get_card',
             'search_cards',
             'copy_card',
             'update_card',
-            'bulk_update_cards',
-            'bulk_publish_cards',
-            'preview_bulk_update',
-            'preview_bulk_publish',
             'get_variations',
             'resolve_offer_selector',
             'get_offer_by_id',
@@ -52,12 +47,18 @@ describe('ai-chat/operations-handler', () => {
         });
 
         it('accepts registry tools the hardcoded list forgot', () => {
-            for (const tool of [
-                'search_collections',
-                'compare_offers',
-                'list_variation_locales',
-                'get_variation_parent',
-            ]) {
+            // Derived from the registry, so removing a tool from the registry
+            // removes it here too. Emptying this list would make the test pass
+            // by asserting nothing, which is how it read for a moment during
+            // the bulk/collection removal.
+            const REGISTRY_ONLY_TOOLS = [
+                'create_grouped_variation',
+                'create_locale_variation',
+                'link_card_to_offer',
+                'list_context_cards',
+            ];
+            expect(REGISTRY_ONLY_TOOLS.length, 'this test is worthless with an empty list').to.be.above(0);
+            for (const tool of REGISTRY_ONLY_TOOLS) {
                 expect(toolNameVerdict(tool), tool).to.not.include('Invalid MCP tool');
             }
         });
@@ -216,7 +217,7 @@ describe('ai-chat/operations-handler server-authoritative hardening', () => {
 
     it('forces confirmation for state-changing tools even when the model says false', () => {
         const result = handleOperationFn(
-            opText('bulk_publish_cards', { fragmentIds: [UUID] }, ',"confirmationRequired":false'),
+            opText('update_card', { id: UUID, fields: { title: 'x' } }, ',"confirmationRequired":false'),
         );
         expect(result.type).to.equal('mcp_operation');
         expect(result.confirmationRequired).to.equal(true);
@@ -253,10 +254,12 @@ describe('ai-chat/operations-handler server-authoritative hardening', () => {
         expect(validation.error).to.include('id');
     });
 
-    it('rejects bulk operations with malformed fragment IDs', () => {
+    it('rejects an id-array operation with malformed fragment IDs', () => {
+        // Was bulk_publish_cards until the bulk tools were removed.
+        // list_context_cards is the surviving intent that takes an id array.
         const validation = validateOperationFn({
             type: 'mcp_operation',
-            mcpTool: 'bulk_publish_cards',
+            mcpTool: 'list_context_cards',
             mcpParams: { fragmentIds: ['definitely-not-a-uuid'] },
         });
         expect(validation.valid).to.equal(false);

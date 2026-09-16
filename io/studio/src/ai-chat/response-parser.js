@@ -304,30 +304,12 @@ export function parseAIResponse(responseText) {
     }
 
     if (cardConfig) {
-        if (cardConfig.type === 'collection-selection') {
-            return {
-                type: 'collection-selection',
-                message:
-                    conversationalText ||
-                    cardConfig.message ||
-                    "I'll help you create a collection. Click the button below to select cards from your existing cards.",
-            };
-        }
-
         if (cardConfig.type === 'collection-preview') {
             return {
                 type: 'collection-preview',
                 message: conversationalText || cardConfig.message || 'Preview collection',
                 fragmentIds: cardConfig.fragmentIds || [],
                 suggestedTitle: cardConfig.suggestedTitle || null,
-            };
-        }
-
-        if (cardConfig.type === 'collection') {
-            return {
-                type: 'collection',
-                message: conversationalText || "Here's your collection:",
-                collectionConfig: cardConfig,
             };
         }
 
@@ -443,25 +425,3 @@ export function validateCardConfig(cardConfig) {
  * @param {Object} collectionConfig - Parsed collection configuration
  * @returns {Object} - {valid: boolean, error?: string}
  */
-export function validateCollectionConfig(collectionConfig) {
-    if (!collectionConfig) {
-        return { valid: false, error: 'No collection configuration provided' };
-    }
-
-    if (collectionConfig.type !== 'collection') {
-        return { valid: false, error: 'Collection must have type: "collection"' };
-    }
-
-    if (!Array.isArray(collectionConfig.cards) || collectionConfig.cards.length === 0) {
-        return { valid: false, error: 'Collection must have at least one card' };
-    }
-
-    for (const card of collectionConfig.cards) {
-        const cardValidation = validateCardConfig(card);
-        if (!cardValidation.valid) {
-            return { valid: false, error: `Invalid card in collection: ${cardValidation.error}` };
-        }
-    }
-
-    return { valid: true };
-}

@@ -41,7 +41,7 @@ describe('prompt-builder', () => {
     it('lists every registered intent name in the prompt', () => {
         const prompt = buildPrompt({});
         expect(prompt).to.include('search_cards');
-        expect(prompt).to.include('bulk_update_cards');
+        expect(prompt).to.include('update_card');
         expect(prompt).to.include('release_create.set_commitment');
     });
 

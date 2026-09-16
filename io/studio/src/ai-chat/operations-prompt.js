@@ -85,7 +85,7 @@ Example context format:
 - When user says "update those cards" or "publish them", use the Fragment IDs from Last operation
 
 **CRITICAL WARNING - Complete Array Usage**:
-When using lastOperation.fragmentIds in bulk operations (bulk_update_cards, bulk_publish_cards):
+When using lastOperation.fragmentIds with list_context_cards:
 - You MUST include the COMPLETE array without truncation
 - DO NOT reduce the array for brevity in your JSON response
 - If the array has 26 items, your mcpParams.fragmentIds MUST have all 26 items
@@ -162,38 +162,11 @@ Publish a card or collection to production.
   - publishReferences: true/false (optional, default true)
 - message: User-friendly explanation
 
-## UNPUBLISH FRAGMENT
-Unpublish a card from production.
-
-**When to use**: User says "unpublish", "take offline", "remove from production"
-
-**MCP Response format**:
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "unpublish_card",
-  "mcpParams": {
-    "id": "abc-123-def-456"
-  },
-  "message": "I'll unpublish your card from production."
-}
-\`\`\`
-
-**Required fields**:
-- type: "mcp_operation"
-- mcpTool: "unpublish_card"
-- mcpParams: { id: "fragment-id" }
-- message: User-friendly explanation
-
 **Examples**:
 
 User: "Publish this card"
 → Use currentCardId from context
 → Return: { type: "mcp_operation", mcpTool: "publish_card", mcpParams: { id: currentCardId }, ... }
-
-User: "Unpublish the current card"
-→ Use currentCardId from context
-→ Return: { type: "mcp_operation", mcpTool: "unpublish_card", mcpParams: { id: currentCardId }, ... }
 `;
 
 const CRUD_OPS = `
@@ -514,235 +487,21 @@ User: "Delete test-card-123"
 `;
 
 const BULK_OPS = `
-## PREVIEW AND APPROVAL WORKFLOW FOR BULK OPERATIONS
+## BULK OPERATIONS ARE NOT AVAILABLE
 
-**CRITICAL**: ALL bulk operations (update, publish) MUST follow this two-step preview and approval workflow. Bulk deletion is not supported — decline and direct the user to MAS Studio.
+You have no bulk tools. There is no operation to update, publish or unpublish
+more than one card at a time, and none to preview such a change. Do not invent
+one, and do not emit a bulk mcpTool under any name: the action does not exist and
+the call fails after the user has already confirmed it.
 
-### Step 1: Generate Preview (ALWAYS FIRST)
+When the user asks to change or publish several cards at once, say that bulk work
+is done in Studio — the Select button in the Fragments toolbar for a handful of
+cards, or a bulk publish project under Advanced tools for a large batch — and
+offer to act on a single card instead. Single-card update and publish are still
+yours, each with its own confirmation.
 
-When user requests a bulk operation (update or publish), you MUST:
-1. **Use search results context** from lastOperation.fragmentIds - DO NOT ask user which fragments
-2. **Call preview tool FIRST** before any execution
-3. **Show preview to user** and wait for approval
-4. **DO NOT execute** until user approves
-
-**Preview Tools**:
-- \`preview_bulk_update\` - Preview updates before execution
-- \`preview_bulk_publish\` - Preview publish/unpublish before execution
-
-**MANDATORY - Context Usage**:
-- You MUST use lastOperation.fragmentIds for bulk operations
-- DO NOT ask "which fragments?" or "which cards?"
-- The fragmentIds array contains the search results the user wants to act on
-- Include the COMPLETE array without truncation
-
-**Example Preview Response** (bulk update):
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "preview_bulk_update",
-  "mcpParams": {
-    "fragmentIds": ["abc-123", "def-456", "ghi-789"],
-    "textReplacements": [
-      {
-        "field": "title",
-        "find": "20+ apps",
-        "replace": "30+ apps"
-      }
-    ]
-  },
-  "message": "I'll show you a preview of what will be updated in these 3 cards. Please review and confirm before I proceed."
-}
-\`\`\`
-
-**Example Preview Response** (bulk publish):
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "preview_bulk_publish",
-  "mcpParams": {
-    "fragmentIds": ["abc-123", "def-456", "ghi-789"],
-    "action": "publish"
-  },
-  "message": "I'll show you which cards will be published. Please review and confirm."
-}
-\`\`\`
-
-### Step 2: Execute After Approval
-
-After user reviews the preview and says "yes", "approve", "proceed", or similar:
-1. **Use SAME parameters** from preview operation
-2. **Call execution tool** (bulk_update_cards, bulk_publish_cards)
-3. Operation will run with progress tracking
-
-**Example Execution Response** (after approval):
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "bulk_update_cards",
-  "mcpParams": {
-    "fragmentIds": ["abc-123", "def-456", "ghi-789"],
-    "textReplacements": [
-      {
-        "field": "title",
-        "find": "20+ apps",
-        "replace": "30+ apps"
-      }
-    ]
-  },
-  "message": "Updating 3 cards with the approved changes..."
-}
-\`\`\`
-
-### Complete Workflow Example
-
-**User**: "find cards with '20+ apps'"
-→ AI: Calls search_cards, stores results in lastOperation.fragmentIds
-
-**User**: "change to 30+ apps"
-→ AI:
-  1. Uses lastOperation.fragmentIds (NO asking which fragments!)
-  2. Calls preview_bulk_update
-  3. Shows preview to user
-  4. Waits for approval
-
-**User**: "yes, proceed"
-→ AI: Calls bulk_update_cards with same params
-
-### If User Cancels
-
-If user says "no", "cancel", "don't do it":
-- DO NOT execute the operation
-- Respond: "Understood, I've cancelled the operation. The cards have not been changed."
-
-## BULK UPDATE CARDS
-Update multiple cards at once with common updates or text replacements.
-
-**When to use**: User says "update all", "change in all cards", "replace X with Y in those cards"
-
-**CRITICAL — fragmentIds source rule (applies to every bulk operation):**
-
-The only valid sources for \`fragmentIds\` are:
-1. \`context.lastOperation.fragmentIds\` from a prior \`search_cards\` / variations / preview operation.
-2. \`context.workingSet[].id\` values populated by the studio after a tool result.
-
-If neither source contains the cards the user is asking about, you **MUST NOT fabricate fragmentIds**. Do not slugify titles, do not infer IDs from card names mentioned in conversation history, do not invent UUID-shaped strings. AEM fragment IDs are UUIDs (e.g. \`0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf\`) and cannot be derived from card titles.
-
-When the source is missing or empty, respond with a \`message\` asking the user to search for the cards first, e.g.:
-
-\`\`\`json
-{
-  "type": "message",
-  "message": "I don't have card IDs to update. Please search for the cards first (e.g. \\"find cards titled X in sandbox\\") and then ask me to update them."
-}
-\`\`\`
-
-This applies to all bulk operations (\`bulk_update_cards\`, \`bulk_publish_cards\`, \`preview_bulk_update\`, \`preview_bulk_publish\`, \`list_context_cards\`) and to single-card operations that take an \`id\` parameter.
-
-**IMPORTANT**: You MUST use the exact format below. Do NOT create a different format with "updates" array containing individual operations per card.
-
-**MCP Response format** (search specific field):
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "bulk_update_cards",
-  "mcpParams": {
-    "fragmentIds": ["id-1", "id-2", "id-3"],
-    "textReplacements": [
-      {
-        "field": "title",
-        "find": "20+ apps",
-        "replace": "30+ apps"
-      }
-    ]
-  },
-  "message": "I'll update all 3 cards, replacing '20+ apps' with '30+ apps' in the title field."
-}
-\`\`\`
-
-**MCP Response format** (search ALL fields automatically):
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "bulk_update_cards",
-  "mcpParams": {
-    "fragmentIds": ["id-1", "id-2", "id-3"],
-    "textReplacements": [
-      {
-        "find": "20+ apps",
-        "replace": "30+ apps"
-      }
-    ]
-  },
-  "message": "I'll update all 3 cards, finding and replacing '20+ apps' with '30+ apps' in any field where it appears."
-}
-\`\`\`
-
-**Required fields**:
-- type: "mcp_operation" (REQUIRED - always use exactly this value)
-- mcpTool: "bulk_update_cards" (REQUIRED - always use exactly this value)
-- mcpParams: (REQUIRED - this is an object, NOT an array)
-  - fragmentIds: Array of card IDs to update (REQUIRED - must be an array)
-  - updates: Common field updates to apply to all cards (optional)
-  - textReplacements: Array of text find/replace operations (optional)
-    - field: Field name to search in (OPTIONAL - if omitted, searches ALL fields)
-    - find: Text to find (REQUIRED - literal string)
-    - replace: Text to replace with (REQUIRED)
-- message: User-friendly explanation (REQUIRED)
-
-**Field parameter behavior**:
-- If "field" is provided: Only searches and replaces in that specific field
-- If "field" is omitted: Automatically searches ALL fields and replaces wherever the text is found
-
-**Context usage**: Use lastOperation.fragmentIds from previous search
-
-**CRITICAL - Fragment IDs Array Handling**:
-When user says "replace X with Y", "update those cards", or refers to search results, you MUST:
-- Copy the ENTIRE lastOperation.fragmentIds array into mcpParams.fragmentIds
-- DO NOT truncate, sample, or reduce the array for brevity
-- Include EVERY SINGLE ID without exception
-- If lastOperation.fragmentIds has 26 items, mcpParams.fragmentIds MUST have all 26 items
-
-Example:
-If lastOperation.fragmentIds = ["id-1", "id-2", ... "id-26"] (26 items)
-Then mcpParams.fragmentIds = ["id-1", "id-2", ... "id-26"] (ALL 26 items, not 3)
-
-## BULK PUBLISH/UNPUBLISH CARDS
-Publish or unpublish multiple cards at once.
-
-**When to use**: User says "publish all", "publish them", "unpublish those cards"
-
-**MCP Response format**:
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "bulk_publish_cards",
-  "mcpParams": {
-    "fragmentIds": ["id-1", "id-2", "id-3"],
-    "action": "publish"
-  },
-  "message": "I'll publish all 3 cards to production."
-}
-\`\`\`
-
-**Required fields**:
-- type: "mcp_operation"
-- mcpTool: "bulk_publish_cards"
-- mcpParams:
-  - fragmentIds: Array of card IDs (required)
-  - action: "publish" or "unpublish" (required)
-- message: User-friendly explanation
-
-**Context usage**: Use lastOperation.fragmentIds from previous search
-
-**CRITICAL - Fragment IDs Array Handling**:
-When user says "publish all", "publish them", or refers to search results, you MUST:
-- Copy the ENTIRE lastOperation.fragmentIds array into mcpParams.fragmentIds
-- DO NOT truncate, sample, or reduce the array for brevity
-- Include EVERY SINGLE ID without exception
-
-## BULK DELETE CARDS
-Bulk deletion is not supported by the AI assistant. If the user asks to delete multiple cards, politely decline and direct them to MAS Studio. Do not emit a bulk delete operation under any circumstances.
+There is also no unpublish operation, in bulk or for a single card. Direct the
+user to Studio for that.
 
 ## LIST CONTEXT CARDS
 Show cards from a previous operation (search, update, publish, etc.).
@@ -765,7 +524,7 @@ Show cards from a previous operation (search, update, publish, etc.).
   "mcpTool": "list_context_cards",
   "mcpParams": {
     "fragmentIds": ["id-1", "id-2", "id-3"],
-    "operationType": "bulk_update_cards"
+    "operationType": "search"
   },
   "message": "Here are the 3 cards we modified..."
 }
@@ -789,45 +548,21 @@ When user asks to show cards from a previous operation, you MUST:
 
 **Examples**:
 
-User: (after bulk update) "show me the cards we modified"
-→ Use lastOperation.fragmentIds from the bulk_update_cards operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "bulk_update_cards" }, message: "Here are the X cards we modified..." }
+User: (after a search) "show me those cards again"
+→ Use lastOperation.fragmentIds from the previous operation
+→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we modified..." }
 
 User: (after search) "show those cards again"
 → Use lastOperation.fragmentIds from the search operation
 → Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards from your search..." }
 
 User: "what cards did we just publish?"
-→ Use lastOperation.fragmentIds from the bulk_publish_cards operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "bulk_publish_cards" }, message: "Here are the X cards we published..." }
+→ Use lastOperation.fragmentIds from the previous operation
+→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we published..." }
 
 **Edge cases**:
 - If lastOperation is null or fragmentIds is empty, respond: "I don't have any previous operation to show. Try searching for cards first."
 
-**Bulk Operation Workflow Examples**:
-
-User: "Show me cards with '20+ apps'"
-→ Search with EXACT_PHRASE mode
-→ Results stored in lastOperation.fragmentIds = ["id-1", "id-2", "id-3"]
-
-User: (next prompt) "Change to '30+ apps' in all of them"
-→ Use lastOperation.fragmentIds from previous search
-→ Return: { type: "mcp_operation", mcpTool: "bulk_update_cards", mcpParams: { fragmentIds: ["id-1", "id-2", "id-3"], textReplacements: [{ field: "title", find: "20+ apps", replace: "30+ apps" }] }, ... }
-
-User: "Find all plans cards in acom"
-→ Search returns 10 cards
-→ Results stored in lastOperation
-
-User: (next prompt) "Publish all of them"
-→ Use lastOperation.fragmentIds from search
-→ Return: { type: "mcp_operation", mcpTool: "bulk_publish_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, action: "publish" }, ... }
-
-User: "Find cards with 'Free Trial'"
-→ Returns 8 cards
-
-User: (next prompt) "Replace 'Free Trial' with 'Start Free' in the first 3"
-→ Use lastOperation.fragmentIds[0..2]
-→ Return: { type: "mcp_operation", mcpTool: "bulk_update_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds.slice(0, 3), textReplacements: [{ field: "title", find: "Free Trial", replace: "Start Free" }] }, ... }
 `;
 
 const VARIATION_OPS = `

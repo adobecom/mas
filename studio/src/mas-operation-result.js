@@ -168,23 +168,6 @@ export class MasOperationResult extends LitElement {
         `;
     }
 
-    renderUnpublishResult() {
-        const { fragmentTitle, fragmentPath } = this.result;
-
-        return html`
-            <div class="operation-result unpublish-result success">
-                <div class="result-icon">
-                    <sp-icon-close-circle size="l"></sp-icon-close-circle>
-                </div>
-                <div class="result-content">
-                    <h4>Unpublished Successfully</h4>
-                    <p>"${fragmentTitle}" has been unpublished.</p>
-                    ${fragmentPath ? html`<p class="result-path">${fragmentPath}</p>` : ''}
-                </div>
-            </div>
-        `;
-    }
-
     renderCopyResult() {
         const { newFragmentTitle, newFragmentPath } = this.result;
 
@@ -326,222 +309,6 @@ export class MasOperationResult extends LitElement {
 
     handlePreview(fragmentId) {
         openPreview(fragmentId, { left: 'min(700px, 60%)' });
-    }
-
-    renderBulkUpdateResult() {
-        const {
-            successCount = 0,
-            failureCount = 0,
-            total = 0,
-            failed = [],
-            successful = [],
-            skipped = [],
-            message,
-            updatedCards = [],
-            previewLimit = 0,
-        } = this.result;
-        const skippedCount = skipped.length;
-        const hasFailures = failureCount > 0;
-        const hasSkipped = skippedCount > 0;
-
-        // Clear cache for updated cards and re-cache with fresh data
-        if (updatedCards.length > 0) {
-            const AemFragmentElement = customElements.get('aem-fragment');
-            if (AemFragmentElement?.cache) {
-                updatedCards.forEach((card) => {
-                    AemFragmentElement.cache.remove(card.id);
-                });
-            }
-            this.cacheFragments(updatedCards);
-        }
-
-        if (hasFailures) {
-            console.error('[Bulk Update] Operation completed with errors:', {
-                total,
-                successCount,
-                failureCount,
-                skippedCount,
-                failed,
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        return html`
-            <div class="operation-result bulk-update-result ${hasFailures ? 'has-errors' : 'success'}">
-                <div class="result-header">
-                    <div class="result-icon">
-                        ${hasFailures
-                            ? html`<sp-icon-alert size="l"></sp-icon-alert>`
-                            : html`<sp-icon-check-circle size="l"></sp-icon-check-circle>`}
-                    </div>
-                    <div class="result-summary">
-                        <h4>${message}</h4>
-                        <p>
-                            ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} updated</span>` : ''}
-                            ${hasSkipped ? html`<span class="skipped-count">⊘ ${skippedCount} skipped</span>` : ''}
-                            ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
-                        </p>
-                    </div>
-                </div>
-
-                ${successCount > 0
-                    ? html`
-                          <details class="success-details" open>
-                              <summary>${successCount} Updated Card${successCount !== 1 ? 's' : ''}</summary>
-                              <div class="updated-cards-list">
-                                  ${successful.map(
-                                      ({ id, title, fieldsChanged = [] }) => html`
-                                          <div class="updated-card-item">
-                                              <sp-icon-check-circle size="s"></sp-icon-check-circle>
-                                              <div class="updated-card-info">
-                                                  <strong>${title || id}</strong>
-                                                  ${fieldsChanged.length > 0
-                                                      ? html`<span class="fields-changed"
-                                                            >Fields updated: ${fieldsChanged.join(', ')}</span
-                                                        >`
-                                                      : ''}
-                                              </div>
-                                          </div>
-                                      `,
-                                  )}
-                              </div>
-                          </details>
-                      `
-                    : ''}
-                ${hasSkipped
-                    ? html`
-                          <details class="skip-details">
-                              <summary>${skippedCount} Skipped Card${skippedCount !== 1 ? 's' : ''}</summary>
-                              <div class="skipped-cards-list">
-                                  ${skipped.map(
-                                      ({ id, title, reason }) => html`
-                                          <div class="skipped-card-item">
-                                              <sp-icon-info size="s"></sp-icon-info>
-                                              <div class="skipped-card-info">
-                                                  <strong>${title || id}</strong>
-                                                  <span class="skip-reason">${reason || 'No changes needed'}</span>
-                                              </div>
-                                          </div>
-                                      `,
-                                  )}
-                              </div>
-                          </details>
-                      `
-                    : ''}
-                ${hasFailures
-                    ? html`
-                          <details class="error-details">
-                              <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
-                              <div class="failed-cards-list">
-                                  ${failed.map(
-                                      ({ id, title, error }) => html`
-                                          <div class="failed-card-item">
-                                              <sp-icon-close-circle size="s"></sp-icon-close-circle>
-                                              <div class="failed-card-info">
-                                                  <strong>${title || id}</strong>
-                                                  <span class="error-message">${error}</span>
-                                              </div>
-                                          </div>
-                                      `,
-                                  )}
-                              </div>
-                              <sp-button size="s" variant="secondary" @click=${() => this.copyErrorsToClipboard(failed)}>
-                                  Copy Error Log
-                              </sp-button>
-                          </details>
-                      `
-                    : ''}
-                ${successCount > 0 && updatedCards.length > 0
-                    ? html`
-                          <div class="updated-cards-preview">
-                              <h5>
-                                  Updated Cards Preview
-                                  ${previewLimit && successCount > previewLimit
-                                      ? html`(showing ${updatedCards.length} of ${successCount})`
-                                      : html`(${updatedCards.length} card${updatedCards.length !== 1 ? 's' : ''})`}
-                              </h5>
-                              <div class="search-results-cards-grid">
-                                  ${updatedCards.map((fragment) => {
-                                      const isCollection = fragment.tags?.some((t) => t.id.includes('card-type/collection'));
-                                      return html`
-                                          <div class="card-wrapper ${isCollection ? 'collection-item' : ''}">
-                                              ${isCollection
-                                                  ? html`<merch-card-collection>
-                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                                    </merch-card-collection>`
-                                                  : html`<merch-card>
-                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                                    </merch-card>`}
-                                          </div>
-                                      `;
-                                  })}
-                              </div>
-                              ${previewLimit && successCount > previewLimit
-                                  ? html`<p class="preview-note">+ ${successCount - previewLimit} more cards updated</p>`
-                                  : ''}
-                          </div>
-                      `
-                    : ''}
-            </div>
-        `;
-    }
-
-    renderBulkPublishResult() {
-        const { successCount = 0, failureCount = 0, total = 0, failed = [], message } = this.result;
-        const hasFailures = failureCount > 0;
-
-        if (hasFailures) {
-            console.error('[Bulk Publish] Operation completed with errors:', {
-                total,
-                successCount,
-                failureCount,
-                failed,
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        return html`
-            <div class="operation-result bulk-publish-result ${hasFailures ? 'has-errors' : 'success'}">
-                <div class="result-header">
-                    <div class="result-icon">
-                        ${hasFailures
-                            ? html`<sp-icon-alert size="l"></sp-icon-alert>`
-                            : html`<sp-icon-check-circle size="l"></sp-icon-check-circle>`}
-                    </div>
-                    <div class="result-summary">
-                        <h4>${message}</h4>
-                        <p>
-                            ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} published</span>` : ''}
-                            ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
-                        </p>
-                    </div>
-                </div>
-
-                ${hasFailures
-                    ? html`
-                          <details class="error-details">
-                              <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
-                              <div class="failed-cards-list">
-                                  ${failed.map(
-                                      ({ id, error }) => html`
-                                          <div class="failed-card-item">
-                                              <sp-icon-close-circle size="s"></sp-icon-close-circle>
-                                              <div class="failed-card-info">
-                                                  <strong>${id}</strong>
-                                                  <span class="error-message">${error}</span>
-                                              </div>
-                                          </div>
-                                      `,
-                                  )}
-                              </div>
-                              <sp-button size="s" variant="secondary" @click=${() => this.copyErrorsToClipboard(failed)}>
-                                  Copy Error Log
-                              </sp-button>
-                          </details>
-                      `
-                    : ''}
-            </div>
-        `;
     }
 
     copyErrorsToClipboard(failed) {
@@ -1137,9 +904,6 @@ export class MasOperationResult extends LitElement {
             case 'publish':
             case 'publish_card':
                 return this.renderPublishResult();
-            case 'unpublish':
-            case 'unpublish_card':
-                return this.renderUnpublishResult();
             case 'copy':
             case 'copy_card':
                 return this.renderCopyResult();
@@ -1149,12 +913,6 @@ export class MasOperationResult extends LitElement {
             case 'get':
             case 'get_card':
                 return this.renderGetResult();
-            case 'bulk_update':
-            case 'bulk_update_cards':
-                return this.renderBulkUpdateResult();
-            case 'bulk_publish':
-            case 'bulk_publish_cards':
-                return this.renderBulkPublishResult();
             case 'get_variations':
                 return this.renderVariationsResult();
             case 'resolve_offer_selector':

@@ -43,16 +43,11 @@ export const NON_MCP_INTENTS = new Set([
  */
 export const STATE_CHANGING_INTENTS = new Set([
     'publish_card',
-    'unpublish_card',
     'update_card',
     'copy_card',
-    'bulk_update_cards',
-    'bulk_publish_cards',
     'create_locale_variation',
     'create_grouped_variation',
     'create_offer_selector',
-    'add_cards_to_collection',
-    'create_collection',
     'link_card_to_offer',
 ]);
 
@@ -67,17 +62,12 @@ export const STATE_CHANGING_INTENTS = new Set([
  */
 const CONFIRMATION_TEMPLATES = {
     publish_card: 'Publish card {{id}} to production?',
-    unpublish_card: 'Unpublish card {{id}}?',
     update_card: 'Update card {{id}}?',
     copy_card: 'Duplicate card {{id}}?',
-    bulk_update_cards: 'Apply update to {{fragmentIds.length}} cards?',
-    bulk_publish_cards: 'Publish {{fragmentIds.length}} cards to production?',
     create_locale_variation: 'Create {{locale}} variation of card {{parentId}}?',
     create_grouped_variation: 'Create grouped variation of card {{parentId}}?',
     create_offer_selector:
         'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
-    add_cards_to_collection: 'Add {{cardPaths.length}} cards to collection {{id}}?',
-    create_collection: 'Create collection "{{title}}" at {{parentPath}}?',
     link_card_to_offer: 'Link card {{cardId}} to offer {{offerSelectorId}}?',
 };
 

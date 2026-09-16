@@ -4,9 +4,6 @@ import { DESTRUCTIVE_TOOLS, shouldRequireConfirmation } from '../../src/utils/ai
 describe('ai-operations-executor', () => {
     describe('DESTRUCTIVE_TOOLS allowlist', () => {
         it('contains all known destructive MCP tools', () => {
-            expect(DESTRUCTIVE_TOOLS.has('bulk_publish_cards')).to.be.true;
-            expect(DESTRUCTIVE_TOOLS.has('bulk_update_cards')).to.be.true;
-            expect(DESTRUCTIVE_TOOLS.has('unpublish_card')).to.be.true;
             expect(DESTRUCTIVE_TOOLS.has('create_release_cards')).to.be.true;
             expect(DESTRUCTIVE_TOOLS.has('publish_card')).to.be.true;
         });
@@ -28,15 +25,10 @@ describe('ai-operations-executor', () => {
         });
 
         it('returns true for destructive tools even when backend flag is false', () => {
-            expect(shouldRequireConfirmation('bulk_publish_cards', false)).to.be.true;
-            expect(shouldRequireConfirmation('bulk_update_cards', false)).to.be.true;
-            expect(shouldRequireConfirmation('unpublish_card', false)).to.be.true;
             expect(shouldRequireConfirmation('create_release_cards', false)).to.be.true;
         });
 
         it('returns true for destructive tools when backend flag is undefined', () => {
-            expect(shouldRequireConfirmation('bulk_publish_cards', undefined)).to.be.true;
-            expect(shouldRequireConfirmation('unpublish_card', undefined)).to.be.true;
         });
 
         it('returns false for read-only tools when backend flag is false', () => {

@@ -12,11 +12,11 @@ Three structural rules you MUST follow:
 
    | Situation | WRONG | RIGHT |
    |-----------|-------|-------|
-   | User says "update both" but lastOperation.fragmentIds is empty | emit \`bulk_update_cards\` with guessed IDs | emit \`ASK_USER\` asking user to search first |
+   | User says "update both" but lastOperation.fragmentIds is empty | emit \`update_card\` with a guessed ID | emit \`ASK_USER\` asking user to search first |
    | User refers to "those cards" / "them" / "the cards we just discussed" / "both" and lastOperation.fragmentIds is absent or empty | emit any mutation intent | emit \`ASK_USER\` with clarification_question that mentions "search" |
    | Card titles appear only in conversation history, not in lastOperation or workingSet | use titles to derive IDs | emit \`ASK_USER\` — titles are not IDs |
 
-   **Hard rule:** when the user refers to cards by name, pronoun ("them", "those", "both", "all of them"), or conversation history reference, AND \`context.lastOperation.fragmentIds\` is empty or absent AND \`context.workingSet\` is empty or absent — you MUST emit \`ASK_USER\` with a clarification_question that tells the user to search for the cards first. Never emit \`bulk_update_cards\` or any mutation intent that requires fragmentIds in this situation.
+   **Hard rule:** when the user refers to cards by name, pronoun ("them", "those", "both", "all of them"), or conversation history reference, AND \`context.lastOperation.fragmentIds\` is empty or absent AND \`context.workingSet\` is empty or absent — you MUST emit \`ASK_USER\` with a clarification_question that tells the user to search for the cards first. Never emit a mutation intent that requires an id you do not have in this situation.
 
 2. Pick exactly one intent per turn. No compound actions.
 

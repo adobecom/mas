@@ -5,7 +5,6 @@ const MOCK_MCP_LOCAL_URL = 'http://localhost:3001';
 const MOCK_MCP_PROD_URL = 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleMCP';
 
 let executeMCPTool;
-let executeStudioOperationWithProgress;
 let executeStudioOperation;
 
 function stubDeps(mcpUrl) {
@@ -57,7 +56,6 @@ describe('mcp-client', () => {
 
         const module = await import('../../src/services/mcp-client.js');
         executeMCPTool = module.executeMCPTool;
-        executeStudioOperationWithProgress = module.executeStudioOperationWithProgress;
         executeStudioOperation = module.executeStudioOperation;
     });
 
@@ -217,179 +215,6 @@ describe('mcp-client', () => {
         });
     });
 
-    describe('executeStudioOperationWithProgress', () => {
-        it('returns directly if no jobId in initial result', async () => {
-            fetchStub.resolves({
-                ok: true,
-                json: () =>
-                    Promise.resolve({
-                        success: true,
-                        message: 'done',
-                    }),
-            });
-
-            const result = await executeStudioOperationWithProgress('publish_card', { id: 'frag-1' }, null);
-
-            expect(result.success).to.be.true;
-            expect(result.message).to.equal('done');
-            expect(fetchStub.callCount).to.equal(1);
-        });
-
-        it('polls for job status at specified interval', async () => {
-            let callCount = 0;
-            fetchStub.callsFake(() => {
-                callCount++;
-                if (callCount === 1) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve({ jobId: 'job-123' }),
-                    });
-                }
-                if (callCount === 2) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () =>
-                            Promise.resolve({
-                                status: 'in_progress',
-                                progress: 50,
-                            }),
-                    });
-                }
-                return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({
-                            status: 'completed',
-                            type: 'bulk_publish',
-                            total: 5,
-                            successCount: 5,
-                            failureCount: 0,
-                            successful: [],
-                            failed: [],
-                            skipped: [],
-                            skippedCount: 0,
-                            message: 'All done',
-                        }),
-                });
-            });
-
-            const result = await executeStudioOperationWithProgress('bulk_publish_cards', { ids: ['1', '2'] }, null, 50);
-
-            expect(result.success).to.be.true;
-            expect(result.operation).to.equal('bulk_publish');
-            expect(result.total).to.equal(5);
-        });
-
-        it('resolves when status is completed', async () => {
-            let callCount = 0;
-            fetchStub.callsFake(() => {
-                callCount++;
-                if (callCount === 1) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve({ jobId: 'job-456' }),
-                    });
-                }
-                return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({
-                            status: 'completed',
-                            type: 'bulk_update',
-                            total: 3,
-                            successCount: 3,
-                            failureCount: 0,
-                            successful: ['a', 'b', 'c'],
-                            failed: [],
-                            skipped: [],
-                            skippedCount: 0,
-                            updatedCards: ['a', 'b', 'c'],
-                            previewLimit: 10,
-                        }),
-                });
-            });
-
-            const result = await executeStudioOperationWithProgress('bulk_update_cards', { ids: [] }, null, 10);
-
-            expect(result.success).to.be.true;
-            expect(result.successCount).to.equal(3);
-            expect(result.updatedCards).to.deep.equal(['a', 'b', 'c']);
-            expect(result.previewLimit).to.equal(10);
-        });
-
-        it('rejects when status is failed', async () => {
-            let callCount = 0;
-            fetchStub.callsFake(() => {
-                callCount++;
-                if (callCount === 1) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve({ jobId: 'job-fail' }),
-                    });
-                }
-                return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({
-                            status: 'failed',
-                            error: 'Bulk operation failed',
-                        }),
-                });
-            });
-
-            try {
-                await executeStudioOperationWithProgress('bulk_update_cards', { ids: [] }, null, 10);
-                expect.fail('Should have rejected');
-            } catch (error) {
-                expect(error.message).to.equal('Bulk operation failed');
-            }
-        });
-
-        it('calls onProgress callback with status updates', async () => {
-            const progressSpy = sandbox.spy();
-            let callCount = 0;
-            fetchStub.callsFake(() => {
-                callCount++;
-                if (callCount === 1) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve({ jobId: 'job-progress' }),
-                    });
-                }
-                if (callCount === 2) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () =>
-                            Promise.resolve({
-                                status: 'in_progress',
-                                progress: 50,
-                            }),
-                    });
-                }
-                return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({
-                            status: 'completed',
-                            type: 'bulk_publish',
-                            total: 2,
-                            successCount: 2,
-                            failureCount: 0,
-                            successful: [],
-                            failed: [],
-                            skipped: [],
-                            skippedCount: 0,
-                        }),
-                });
-            });
-
-            await executeStudioOperationWithProgress('bulk_publish_cards', { ids: [] }, progressSpy, 10);
-
-            expect(progressSpy.callCount).to.be.at.least(1);
-            expect(progressSpy.firstCall.args[0]).to.have.property('status');
-        });
-    });
-
     describe('executeStudioOperation', () => {
         it('preserves the resolved selector data consumed by release continuation', async () => {
             fetchStub.resolves({
@@ -489,27 +314,6 @@ describe('mcp-client', () => {
 
             expect(result.results).to.deep.equal(cards);
             expect(result.count).to.equal(1);
-        });
-
-        it('maps unpublish_card result correctly', async () => {
-            fetchStub.resolves({
-                ok: true,
-                json: () =>
-                    Promise.resolve({
-                        id: 'frag-2',
-                        title: 'Unpub Card',
-                        path: '/content/dam/mas/cards/unpub',
-                        deepLink: 'https://example.com/unpub',
-                    }),
-            });
-
-            const result = await executeStudioOperation('unpublish_card', {
-                id: 'frag-2',
-            });
-
-            expect(result.success).to.be.true;
-            expect(result.operation).to.equal('unpublish');
-            expect(result.message).to.include('unpublished');
         });
 
         it('maps get_card result correctly', async () => {
@@ -679,28 +483,6 @@ describe('mcp-client', () => {
                 expect(result.newFragmentPath).to.equal('/x');
             });
 
-            it('preview_bulk_publish falls back to mcpParams.action when result.action missing', async () => {
-                fetchStub.resolves({
-                    ok: true,
-                    json: () => Promise.resolve({ summary: { willChange: 3 } }),
-                });
-                const result = await executeStudioOperation('preview_bulk_publish', {
-                    ids: ['1'],
-                    action: 'unpublish',
-                });
-                expect(result.action).to.equal('unpublish');
-                expect(result.message).to.equal('Preview: 3 cards will be unpublished');
-            });
-
-            it('preview_bulk_publish defaults to "publish" when neither result.action nor mcpParams.action is set', async () => {
-                fetchStub.resolves({
-                    ok: true,
-                    json: () => Promise.resolve({ summary: { willChange: 1 } }),
-                });
-                const result = await executeStudioOperation('preview_bulk_publish', {});
-                expect(result.action).to.equal('publish');
-                expect(result.message).to.not.include('undefined');
-            });
         });
     });
 });

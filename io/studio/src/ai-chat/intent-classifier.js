@@ -13,7 +13,7 @@
  *
  * Output: a single intent label string, one of:
  *   'operations' | 'documentation' | 'guided_search' | 'release'
- *   | 'guided_help' | 'collection' | 'unknown'
+ *   | 'guided_help' | 'unknown'
  *
  * Cost: ~800 tokens in (cached after first turn), 5 tokens out, ~$0.0001/turn.
  * Latency: ~150ms warm, ~300ms cold.
@@ -30,7 +30,6 @@ const VALID_INTENTS = new Set([
     'guided_offer_search',
     'release',
     'guided_help',
-    'collection',
     'unknown',
 ]);
 
@@ -46,7 +45,7 @@ ${WORKFLOWS_LIST}
 
 === OUTPUT FORMAT ===
 
-Respond with EXACTLY ONE label from this set: operations | documentation | guided_search | guided_offer_search | release | guided_help | collection | unknown
+Respond with EXACTLY ONE label from this set: operations | documentation | guided_search | guided_offer_search | release | guided_help | unknown
 
 No explanation. No preamble. No JSON. Just the bare label, lowercase, no quotes, no trailing punctuation.
 

@@ -64,69 +64,6 @@ export async function executeMCPTool(toolName, params) {
 }
 
 /**
- * Execute studio operation with progress tracking
- * Polls for job status updates and calls progress callback
- * @param {string} mcpTool - MCP tool name (must be a bulk operation)
- * @param {Object} mcpParams - MCP tool parameters
- * @param {Function} onProgress - Callback function called with progress updates
- * @param {number} pollInterval - Poll interval in milliseconds (default: 1500)
- * @returns {Promise<Object>} - Final operation result
- */
-export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onProgress, pollInterval = 1500) {
-    const initialResult = await executeMCPTool(mcpTool, mcpParams);
-
-    if (!initialResult.jobId) {
-        return initialResult;
-    }
-
-    const { jobId } = initialResult;
-    const maxDuration = 5 * 60 * 1000;
-    const startTime = Date.now();
-
-    return new Promise((resolve, reject) => {
-        const poll = async () => {
-            if (Date.now() - startTime > maxDuration) {
-                reject(new Error(`Job ${jobId} timed out after ${maxDuration / 1000}s`));
-                return;
-            }
-            try {
-                const statusResult = await executeMCPTool('get_job_status', { jobId });
-
-                if (onProgress) {
-                    onProgress(statusResult);
-                }
-
-                if (statusResult.status === 'completed') {
-                    resolve({
-                        success: true,
-                        operation: statusResult.type,
-                        total: statusResult.total,
-                        successCount: statusResult.successCount,
-                        failureCount: statusResult.failureCount,
-                        successful: statusResult.successful,
-                        failed: statusResult.failed,
-                        skipped: statusResult.skipped,
-                        skippedCount: statusResult.skippedCount,
-                        message:
-                            statusResult.message ||
-                            `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,
-                        updatedCards: statusResult.updatedCards || [],
-                        previewLimit: statusResult.previewLimit || 0,
-                    });
-                } else if (statusResult.status === 'failed') {
-                    reject(new Error(statusResult.error || 'Job failed'));
-                } else {
-                    setTimeout(poll, pollInterval);
-                }
-            } catch (error) {
-                reject(error);
-            }
-        };
-        setTimeout(poll, pollInterval);
-    });
-}
-
-/**
  * Execute studio operation via MCP
  * Maps MCP tool results to the format expected by the Studio UI
  * @param {string} mcpTool - MCP tool name
@@ -147,20 +84,6 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 fragmentTitle: title,
                 fragmentPath: result.path || result.card?.path,
                 message: title ? `✓ "${title}" has been published to production.` : '✓ Card published to production.',
-                deepLink: result.deepLink,
-            };
-        }
-
-        case 'unpublish_card': {
-            const id = result.id || result.card?.id || mcpParams.id;
-            const title = result.title || result.card?.title || '';
-            return {
-                success: true,
-                operation: 'unpublish',
-                fragmentId: id,
-                fragmentTitle: title,
-                fragmentPath: result.path || result.card?.path,
-                message: title ? `✓ "${title}" has been unpublished.` : '✓ Card unpublished.',
                 deepLink: result.deepLink,
             };
         }
@@ -214,51 +137,6 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 updatedFields: Object.keys(mcpParams.updates || {}),
                 message: title ? `✓ Updated "${title}"` : '✓ Card updated.',
                 deepLink: result.deepLink,
-            };
-        }
-
-        case 'bulk_update_cards':
-            return {
-                success: true,
-                operation: 'bulk_update',
-                total: result.total,
-                successCount: result.successCount,
-                failureCount: result.failureCount,
-                successful: result.successful,
-                failed: result.failed,
-                message: result.message || `✓ Updated ${result.successCount} of ${result.total} cards`,
-            };
-
-        case 'bulk_publish_cards':
-            return {
-                success: true,
-                operation: 'bulk_publish',
-                total: result.total,
-                successCount: result.successCount,
-                failureCount: result.failureCount,
-                successful: result.successful,
-                failed: result.failed,
-                message: result.message || `✓ Published ${result.successCount} of ${result.total} cards`,
-            };
-
-        case 'preview_bulk_update':
-            return {
-                success: true,
-                operation: 'preview_bulk_update',
-                previews: result.previews || [],
-                summary: result.summary || { willUpdate: 0, noChanges: 0, errors: 0 },
-                message: result.message || `Preview: ${result.summary?.willUpdate || 0} cards will be updated`,
-            };
-
-        case 'preview_bulk_publish': {
-            const action = result.action || mcpParams.action || 'publish';
-            return {
-                success: true,
-                operation: 'preview_bulk_publish',
-                action,
-                previews: result.previews || [],
-                summary: result.summary || { willChange: 0, alreadyInState: 0, errors: 0 },
-                message: result.message || `Preview: ${result.summary?.willChange || 0} cards will be ${action}ed`,
             };
         }
 

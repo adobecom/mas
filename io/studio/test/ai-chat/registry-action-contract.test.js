@@ -54,8 +54,6 @@ const KNOWN_SLOT_GAPS = {
     get_offer_by_id: ['locale'],
     // search-offers.js calls the same concept `language`.
     search_offers: ['locale'],
-    // search-collections.js derives its path from `surface`, ignoring the slot.
-    search_collections: ['path'],
     // create-release-cards.js reads `variants`. Probably unreachable today: the
     // release flow returns a typed release_cards payload rather than routing
     // this intent through the envelope, so the mismatch has not surfaced.
@@ -124,7 +122,9 @@ describe('intent registry / mcp action contract', () => {
 
     it('finds the action directory and the registry', () => {
         expect(fs.existsSync(ACTIONS_DIR), `actions dir missing at ${ACTIONS_DIR}`).to.equal(true);
-        expect(routable().length).to.be.above(20);
+        // 17 today. The floor only catches a registry that has collapsed, not one
+        // that was deliberately trimmed: bulk, collections and unpublish were removed.
+        expect(routable().length).to.be.above(10);
     });
 
     it('has an action, or a client alias, behind every routable intent', () => {

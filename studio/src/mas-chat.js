@@ -177,7 +177,6 @@ export class MasChat extends LitElement {
         this.abortController = new AbortController();
         this.loadActiveSession();
         this.addEventListener('cards-selected', this.handleCardsSelected);
-        this.addEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
         this.addEventListener('prompt-selected', this.handlePromptSelected);
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
@@ -197,7 +196,6 @@ export class MasChat extends LitElement {
         this.#turn = null;
         this.saveCurrentSession();
         this.removeEventListener('cards-selected', this.handleCardsSelected);
-        this.removeEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
         this.removeEventListener('prompt-selected', this.handlePromptSelected);
         this.removeEventListener('operation-action', this.handleOperationAction);
         this.removeEventListener('open-card', this.handleOpenCardFromOperation);
@@ -769,18 +767,6 @@ export class MasChat extends LitElement {
                         ...this.messages.slice(messageIndex + 1),
                     ];
                 }
-            } else if (response.type === 'collection') {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message,
-                        collectionConfig: response.collectionConfig,
-                        validation: response.validation,
-                        timestamp: Date.now(),
-                        fresh: true,
-                    },
-                ];
             } else if (response.type === 'guided_step') {
                 const autoSelectedSegment = this.getAutoSelectedSegmentOption(response, context?.offer);
                 if (autoSelectedSegment) {
@@ -1647,69 +1633,6 @@ export class MasChat extends LitElement {
         }
     }
 
-    async handleCollectionAction(event) {
-        const { action, config } = event.detail;
-
-        if (action === 'save') {
-            await this.saveCollectionToAEM(config);
-        }
-    }
-
-    async saveCollectionToAEM(collectionConfig) {
-        try {
-            this.isLoading = true;
-
-            const repository = this.repository;
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const parentPath = `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
-            const collectionTitle = collectionConfig.title || 'AI Generated Collection';
-
-            showToast(`Saving ${collectionConfig.cards.length} cards...`, 'info');
-
-            const savedCards = [];
-            for (const [index, cardConfig] of collectionConfig.cards.entries()) {
-                const cardTitle = `${collectionTitle} - Card ${index + 1}`;
-                const enrichedConfig = await enrichConfigWithMcsMnemonic(cardConfig, this.selectedReleaseProduct);
-                const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
-                    title: cardTitle,
-                    parentPath,
-                });
-
-                const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
-                savedCards.push(newFragment);
-            }
-
-            showToast(`Collection saved successfully! ${savedCards.length} cards created.`, 'positive');
-
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'assistant',
-                    content: `Collection saved with ${savedCards.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
-                    timestamp: Date.now(),
-                    fresh: true,
-                },
-            ];
-        } catch (error) {
-            logError('Failed to save collection to AEM', error);
-            showToast(`Failed to save collection: ${error.message}`, 'negative');
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'error',
-                    content: `Failed to save collection: ${error.message}`,
-                    timestamp: Date.now(),
-                    fresh: true,
-                },
-            ];
-        } finally {
-            this.isLoading = false;
-        }
-    }
-
     extractTitle(cardConfig) {
         return extractCardTitle(cardConfig);
     }
@@ -1721,11 +1644,6 @@ export class MasChat extends LitElement {
     async handleCardsSelected(event) {
         const { cardIds } = event.detail;
         await this.createCollection(cardIds, 'Selected Cards Collection');
-    }
-
-    async handleCreateCollectionFromPreview(event) {
-        const { fragmentIds, title } = event.detail;
-        await this.createCollection(fragmentIds, title);
     }
 
     async createCollection(cardIds, title) {
@@ -1813,174 +1731,11 @@ export class MasChat extends LitElement {
             return;
         }
 
-        const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish'].includes(operationType);
-        const isBulkOperation = ['bulk_update_cards', 'bulk_publish_cards'].includes(operationType);
-
-        if (isPreviewOperation) {
-            await this.executePreviewOperation(operation, operationType);
-        } else if (isBulkOperation) {
-            await this.executeBulkOperationWithProgress(operation, operationType);
-        } else {
-            await this.executeRegularOperation(operation, operationType, guidedFlow);
-        }
+        // Preview and bulk routing lived here until the bulk tools were removed.
+        // Every remaining operation is a single regular one.
+        await this.executeRegularOperation(operation, operationType, guidedFlow);
 
         this.isLoading = false;
-    }
-
-    async executePreviewOperation(operation, operationType) {
-        const { executeStudioOperation } = await import('./services/mcp-client.js');
-
-        try {
-            const previewData = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
-
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'assistant',
-                    content: 'Preview generated. Please review the changes and approve or cancel.',
-                    previewData,
-                    previewOperation: operationType,
-                    previewParams: operation.mcpParams,
-                    timestamp: Date.now(),
-                    fresh: true,
-                },
-            ];
-        } catch (error) {
-            logError('Preview operation error', error);
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'error',
-                    content: `Failed to generate preview: ${error.message}`,
-                    timestamp: Date.now(),
-                    fresh: true,
-                },
-            ];
-            showToast(`Failed to generate preview: ${error.message}`, 'negative');
-        }
-    }
-
-    handleApprovePreview(event) {
-        const { previewData, operation } = event.detail;
-
-        const lastMessage = this.messages[this.messages.length - 1];
-        if (!lastMessage.previewParams) {
-            console.error('No preview params found in last message');
-            return;
-        }
-
-        const executionToolMap = {
-            preview_bulk_update: 'bulk_update_cards',
-            preview_bulk_publish: 'bulk_publish_cards',
-        };
-
-        const executionTool = executionToolMap[operation];
-        if (!executionTool) {
-            console.error('Unknown preview operation:', operation);
-            return;
-        }
-
-        const executionOperation = {
-            type: 'mcp_operation',
-            mcpTool: executionTool,
-            mcpParams: lastMessage.previewParams,
-        };
-
-        this.messages = [
-            ...this.messages,
-            {
-                role: 'assistant',
-                content: 'Starting bulk operation...',
-                timestamp: Date.now(),
-                fresh: true,
-            },
-        ];
-
-        this.executeOperation(executionOperation);
-    }
-
-    handleCancelPreview(event) {
-        const { operation } = event.detail;
-
-        this.messages = [
-            ...this.messages,
-            {
-                role: 'assistant',
-                content: 'Preview cancelled. No changes were made.',
-                timestamp: Date.now(),
-                fresh: true,
-            },
-        ];
-
-        showToast('Operation cancelled', 'info');
-    }
-
-    async executeBulkOperationWithProgress(operation, operationType) {
-        const { executeStudioOperationWithProgress } = await import('./services/mcp-client.js');
-
-        const loadingMessage = this.getOperationLoadingMessage(operationType);
-        const messageId = Date.now();
-        const loadingMessageObj = {
-            role: 'assistant',
-            content: loadingMessage,
-            operationLoading: true,
-            operationType,
-            progress: { current: 0, total: operation.mcpParams.fragmentIds?.length || 0 },
-            timestamp: Date.now(),
-            messageId,
-            fresh: true,
-        };
-
-        this.messages = [...this.messages, loadingMessageObj];
-
-        try {
-            const result = await executeStudioOperationWithProgress(operation.mcpTool, operation.mcpParams, (statusUpdate) => {
-                this.messages = this.messages.map((msg) =>
-                    msg.messageId === messageId
-                        ? {
-                              ...msg,
-                              content: `Processing ${statusUpdate.completed}/${statusUpdate.total} cards...`,
-                              progress: {
-                                  current: statusUpdate.completed,
-                                  total: statusUpdate.total,
-                                  percentage: statusUpdate.percentage,
-                                  successful: statusUpdate.successCount,
-                                  failed: statusUpdate.failureCount,
-                              },
-                          }
-                        : msg,
-                );
-                this.requestUpdate();
-            });
-
-            this.messages = this.messages.map((msg) =>
-                msg.messageId === messageId
-                    ? {
-                          role: 'assistant',
-                          content: result.message,
-                          operationResult: result,
-                          operationType,
-                          operationLoading: false,
-                          timestamp: Date.now(),
-                      }
-                    : msg,
-            );
-
-            showToast(result.message, 'positive');
-        } catch (error) {
-            logError('Bulk operation error', error);
-            this.messages = this.messages.map((msg) =>
-                msg.messageId === messageId
-                    ? {
-                          role: 'error',
-                          content: `Operation failed: ${error.message}`,
-                          operationLoading: false,
-                          timestamp: Date.now(),
-                      }
-                    : msg,
-            );
-            showToast(error.message, 'negative');
-        }
     }
 
     async executeRegularOperation(operation, operationType, guidedFlow = this.activeGuidedFlow) {
@@ -2511,7 +2266,6 @@ export class MasChat extends LitElement {
             search: 'Searching for cards...',
             publish_card: 'Publishing card...',
             publish: 'Publishing card...',
-            unpublish_card: 'Unpublishing card...',
             unpublish: 'Unpublishing card...',
             copy_card: 'Copying card...',
             copy: 'Copying card...',

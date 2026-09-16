@@ -195,7 +195,6 @@ const TOOL_NAME_ALIASES = {
     list_fragments: 'search_cards',
     get_fragment: 'get_card',
     publish_fragment: 'publish_card',
-    unpublish_fragment: 'unpublish_card',
     update_fragment: 'update_card',
     copy_fragment: 'copy_card',
 };
@@ -236,7 +235,6 @@ function validateMCPOperation(operation) {
 
     switch (operation.mcpTool) {
         case 'publish_card':
-        case 'unpublish_card':
         case 'get_card':
         case 'copy_card':
         case 'update_card':
@@ -314,10 +312,10 @@ function validateMCPOperation(operation) {
             }
             break;
 
-        case 'bulk_update_cards':
-        case 'bulk_publish_cards':
-        case 'preview_bulk_update':
-        case 'preview_bulk_publish':
+        // The bulk tools that used to share this arm are gone. list_context_cards
+        // is the one surviving operation that takes an id array, and it needs the
+        // same check: an absent or empty array renders nothing and reads as a bug.
+        case 'list_context_cards':
             if (!operation.mcpParams.fragmentIds || !Array.isArray(operation.mcpParams.fragmentIds)) {
                 return { valid: false, error: `${operation.mcpTool} requires mcpParams.fragmentIds array` };
             }

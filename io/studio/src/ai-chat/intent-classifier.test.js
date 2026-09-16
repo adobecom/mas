@@ -168,19 +168,30 @@ const CASES = [
     },
     { id: 'release-confirm', message: 'Confirmed. Create cards for these variants: plans, catalog.', expected: 'release' },
 
-    // === Collection (3) ===
-    { id: 'coll-create', message: 'create a collection of all my Photoshop cards', expected: 'collection' },
+    // === Collections, which the assistant no longer performs (3) ===
+    // The collection tools were removed: create, add-to, search and get. There
+    // is no 'collection' label any more, and no prompt behind it. These now
+    // want the documentation answer, which points at the Studio collection
+    // editor, rather than a flow that would dead-end.
+    {
+        id: 'coll-create',
+        message: 'create a collection of all my Photoshop cards',
+        expected: 'documentation',
+        tolerable: 'operations',
+        notes: 'no collection tools; the corpus answers by pointing at Studio',
+    },
     {
         id: 'coll-modify',
         message: 'add card abc-123 to my Photoshop collection',
-        expected: 'collection',
+        expected: 'documentation',
         tolerable: 'operations',
-        notes: 'workflows.js says collection = create OR modify; either label routes to the same MCP tool',
+        notes: 'add_cards_to_collection is gone; a card lookup is a reasonable second reading',
     },
     {
         id: 'coll-multiple',
         message: 'I want to make multiple cards into a single collection',
-        expected: 'collection',
+        expected: 'documentation',
+        tolerable: 'operations',
     },
 
     // === Guided help follow-ups (2) ===

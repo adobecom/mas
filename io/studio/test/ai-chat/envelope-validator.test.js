@@ -24,9 +24,9 @@ describe('envelope-validator', () => {
             expect(r.envelope.intent).to.equal('search_cards');
         });
 
-        it('passes a well-formed bulk_update_cards envelope with UUID array', () => {
+        it('passes a well-formed envelope with a UUID array', () => {
             const r = validateEnvelope({
-                intent: 'bulk_update_cards',
+                intent: 'list_context_cards',
                 slots: { fragmentIds: [UUID, UUID2] },
                 confidence: 'high',
             });
@@ -73,7 +73,7 @@ describe('envelope-validator', () => {
     describe('slot validation', () => {
         it('rejects slug-style fragmentIds', () => {
             const r = validateEnvelope({
-                intent: 'bulk_update_cards',
+                intent: 'list_context_cards',
                 slots: { fragmentIds: ['firefly-essentials-plans'] },
                 confidence: 'high',
             });
@@ -82,7 +82,7 @@ describe('envelope-validator', () => {
         });
 
         it('puts missing required slots into missing_slots OR coerces to ASK_USER', () => {
-            const r = validateEnvelope({ intent: 'bulk_update_cards', slots: {}, confidence: 'high' });
+            const r = validateEnvelope({ intent: 'list_context_cards', slots: {}, confidence: 'high' });
             if (r.ok) {
                 expect(r.envelope.missing_slots).to.include('fragmentIds');
             } else {
@@ -123,7 +123,7 @@ describe('envelope-validator', () => {
 
         it('rejects a state-changing envelope whose ids were never observed', () => {
             const r = validateEnvelope(
-                { intent: 'bulk_update_cards', slots: { fragmentIds: [FAKE] }, confidence: 'high' },
+                { intent: 'publish_card', slots: { id: FAKE }, confidence: 'high' },
                 { observedIds: collectObservedIds({ workingSet: [] }, [], 'update both of them') },
             );
 
@@ -134,7 +134,7 @@ describe('envelope-validator', () => {
 
         it('accepts ids that appear in the working set', () => {
             const r = validateEnvelope(
-                { intent: 'bulk_update_cards', slots: { fragmentIds: [UUID] }, confidence: 'high' },
+                { intent: 'publish_card', slots: { id: UUID }, confidence: 'high' },
                 { observedIds: collectObservedIds({ workingSet: [{ id: UUID }] }, [], 'update both') },
             );
 
@@ -143,7 +143,7 @@ describe('envelope-validator', () => {
 
         it('accepts an id the user pasted in the current message', () => {
             const r = validateEnvelope(
-                { intent: 'bulk_publish_cards', slots: { fragmentIds: [UUID] }, confidence: 'high' },
+                { intent: 'publish_card', slots: { id: UUID }, confidence: 'high' },
                 { observedIds: collectObservedIds({}, [], `publish ${UUID}`) },
             );
 
@@ -153,7 +153,7 @@ describe('envelope-validator', () => {
         it('accepts ids the assistant surfaced in an earlier turn', () => {
             const history = [{ role: 'assistant', content: `I found one card: ${UUID2}` }];
             const r = validateEnvelope(
-                { intent: 'bulk_publish_cards', slots: { fragmentIds: [UUID2] }, confidence: 'high' },
+                { intent: 'publish_card', slots: { id: UUID2 }, confidence: 'high' },
                 { observedIds: collectObservedIds({}, history, 'publish it') },
             );
 
@@ -162,7 +162,7 @@ describe('envelope-validator', () => {
 
         it('accepts ids carried by the last operation', () => {
             const r = validateEnvelope(
-                { intent: 'bulk_publish_cards', slots: { fragmentIds: [UUID] }, confidence: 'high' },
+                { intent: 'publish_card', slots: { id: UUID }, confidence: 'high' },
                 { observedIds: collectObservedIds({ lastOperation: { fragmentIds: [UUID] } }, [], 'publish them') },
             );
 
@@ -171,7 +171,7 @@ describe('envelope-validator', () => {
 
         it('matches ids case-insensitively', () => {
             const r = validateEnvelope(
-                { intent: 'bulk_publish_cards', slots: { fragmentIds: [UUID.toUpperCase()] }, confidence: 'high' },
+                { intent: 'publish_card', slots: { id: UUID.toUpperCase() }, confidence: 'high' },
                 { observedIds: collectObservedIds({ workingSet: [{ id: UUID }] }, [], 'publish') },
             );
 
@@ -196,8 +196,8 @@ describe('envelope-validator', () => {
 
         it('stays inert when the caller supplies no provenance', () => {
             const r = validateEnvelope({
-                intent: 'bulk_update_cards',
-                slots: { fragmentIds: [FAKE] },
+                intent: 'publish_card',
+                slots: { id: FAKE },
                 confidence: 'high',
             });
 

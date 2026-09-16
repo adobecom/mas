@@ -9,7 +9,7 @@ export const KNOWLEDGE_CHUNKS = [
         "id": "bulk-operations.md#0",
         "topic": "bulk-operations",
         "title": "Bulk Operations in MAS Studio",
-        "section": "How do I update many cards at once with the AI assistant?",
+        "section": "Can the AI assistant update or publish many cards at once?",
         "keywords": [
             "bulk",
             "bulk update",
@@ -21,13 +21,13 @@ export const KNOWLEDGE_CHUNKS = [
             "find and replace",
             "preview"
         ],
-        "text": "Search first, then ask for the change. For example: \"find cards with '20+ apps'\", then \"change 20+ apps to 30+ apps\". The assistant applies the change to the cards from your last search using the bulk_update_cards operation. A bulk update can carry common field updates applied to every card, text find-and-replace operations, or both. The assistant always generates a preview first and waits for your approval before anything is modified. Outside of chat, use the Select button in the Fragments toolbar to multi-select cards, or a bulk publish project under Advanced tools for large batches."
+        "text": "No. The assistant does not run bulk updates or bulk publishes, and it has no\noperation for either. Bulk work happens in Studio itself, which has a purpose\nbuilt UI for it with preview, snapshot and revert. If you ask the assistant to\nchange or publish a set of cards, it points you here rather than attempting it.\n\nFor a handful of cards, ask for them one at a time: a single card update or\npublish is still something the assistant does, each with its own confirmation."
     },
     {
         "id": "bulk-operations.md#1",
         "topic": "bulk-operations",
         "title": "Bulk Operations in MAS Studio",
-        "section": "How does the preview and approval workflow for bulk operations work?",
+        "section": "How do I update many cards at once in Studio?",
         "keywords": [
             "bulk",
             "bulk update",
@@ -39,82 +39,10 @@ export const KNOWLEDGE_CHUNKS = [
             "find and replace",
             "preview"
         ],
-        "text": "Every bulk update and bulk publish is a mandatory two-step process. First the assistant runs a read-only preview (preview_bulk_update or preview_bulk_publish) and shows you exactly which cards would be affected and what would change. Nothing is modified at this stage. Only after you approve — saying \"yes\", \"approve\", or \"proceed\" — does the assistant execute the real operation (bulk_update_cards or bulk_publish_cards) with the same parameters as the preview. If you say \"no\" or \"cancel\", the operation is cancelled and the cards are left untouched. Execution is additionally guarded by an explicit confirmation, such as \"Apply update to N cards?\" or \"Publish N cards to production?\", because bulk operations are state-changing."
+        "text": "Use the Select button in the Fragments toolbar to multi-select cards, then apply\nthe change to the selection. For large batches, use a bulk publish project under\nAdvanced tools."
     },
     {
         "id": "bulk-operations.md#2",
-        "topic": "bulk-operations",
-        "title": "Bulk Operations in MAS Studio",
-        "section": "Where do the card IDs for a bulk operation come from?",
-        "keywords": [
-            "bulk",
-            "bulk update",
-            "bulk publish",
-            "bulk unpublish",
-            "publish multiple",
-            "batch",
-            "mass update",
-            "find and replace",
-            "preview"
-        ],
-        "text": "Bulk operations act on fragment IDs from your conversation context: either the results of a previous search or operation (the last operation's fragment IDs) or the working set of cards shown after a tool result. Fragment IDs are AEM UUIDs and cannot be derived from card titles, so the assistant will never invent or guess them. If you ask for a bulk change before searching, the assistant asks you to find the cards first, for example \"find cards titled X in sandbox\", and then apply the change. When it does run a bulk operation, the complete ID list from the search is used — the set is never truncated or sampled, so if your search returned 26 cards, all 26 are included."
-    },
-    {
-        "id": "bulk-operations.md#3",
-        "topic": "bulk-operations",
-        "title": "Bulk Operations in MAS Studio",
-        "section": "How do find-and-replace text updates work in bulk updates?",
-        "keywords": [
-            "bulk",
-            "bulk update",
-            "bulk publish",
-            "bulk unpublish",
-            "publish multiple",
-            "batch",
-            "mass update",
-            "find and replace",
-            "preview"
-        ],
-        "text": "Each text replacement specifies the text to find, the text to replace it with, and optionally a field name. If a field is given (for example title), only that field is searched and updated on each card. If the field is omitted, every field of each card is searched automatically and the text is replaced wherever it appears. Matching is against the literal string you provide. Several replacements can be combined in one bulk update, and replacements can be mixed with common field updates that set the same value on all selected cards. The preview step shows the resulting changes per card before you approve."
-    },
-    {
-        "id": "bulk-operations.md#4",
-        "topic": "bulk-operations",
-        "title": "Bulk Operations in MAS Studio",
-        "section": "How do I bulk publish or unpublish cards?",
-        "keywords": [
-            "bulk",
-            "bulk update",
-            "bulk publish",
-            "bulk unpublish",
-            "publish multiple",
-            "batch",
-            "mass update",
-            "find and replace",
-            "preview"
-        ],
-        "text": "After a search, ask the assistant to \"publish these cards\", \"publish all\", or \"unpublish those cards\". The bulk_publish_cards operation takes the card IDs from your search context plus an action of publish or unpublish. As with updates, the assistant first shows a preview via preview_bulk_publish listing the cards that would be published or unpublished, and executes only after you approve, with a final confirmation like \"Publish N cards to production?\". In Studio itself, large-scale publishing runs through bulk publish projects: open Advanced tools, choose Bulk publish, and build a project."
-    },
-    {
-        "id": "bulk-operations.md#5",
-        "topic": "bulk-operations",
-        "title": "Bulk Operations in MAS Studio",
-        "section": "Can I bulk delete cards?",
-        "keywords": [
-            "bulk",
-            "bulk update",
-            "bulk publish",
-            "bulk unpublish",
-            "publish multiple",
-            "batch",
-            "mass update",
-            "find and replace",
-            "preview"
-        ],
-        "text": "No. Bulk deletion is not supported by the AI assistant, and it will not emit a bulk delete operation under any circumstances. If you ask to delete multiple cards, the assistant declines and directs you to MAS Studio, where fragments can be deleted individually through the UI with a confirmation dialog. Single-card deletion is likewise not performed by the assistant. This is a deliberate safety restriction, since deletion is destructive and cannot be previewed and approved the way bulk updates and publishes can."
-    },
-    {
-        "id": "bulk-operations.md#6",
         "topic": "bulk-operations",
         "title": "Bulk Operations in MAS Studio",
         "section": "What is the Bulk Publishing page in Studio?",
@@ -129,13 +57,13 @@ export const KNOWLEDGE_CHUNKS = [
             "find and replace",
             "preview"
         ],
-        "text": "Separate from the chat-based bulk tools, Studio has a bulk publishing feature built around bulk publish projects, reached from Advanced tools in the side navigation. A saved project holds a list of fragment paths and target locales; its items are picked with an items selector spanning cards, collections, and placeholders, and items already in the project are skipped with a warning. Publishing a project dispatches an asynchronous backend worker (the request is accepted immediately and runs in the background) that resolves every path in every selected locale, takes a snapshot of the current published state, and then publishes the resolved fragments. The project ends in one of three statuses: Published, Partially published, or Failed. Fragments that do not exist in a target locale are reported as not localized rather than failing silently. Because a snapshot is taken before publishing, a bulk publish can be reverted, and Studio checks whether entries were modified after the snapshot before allowing a revert."
+        "text": "Studio has a bulk publishing feature built around bulk publish projects, reached\nfrom Advanced tools in the side navigation. A saved project holds a list of\nfragment paths and target locales; its items are picked with an items selector\nspanning cards, collections, and placeholders, and items already in the project\nare skipped with a warning. Publishing a project dispatches an asynchronous\nbackend worker (the request is accepted immediately and runs in the background)\nthat resolves every path in every selected locale, takes a snapshot of the\ncurrent published state, and then publishes the resolved fragments. The project\nends in one of three statuses: Published, Partially published, or Failed.\nFragments that do not exist in a target locale are reported as not localized\nrather than failing silently. Because a snapshot is taken before publishing, a\nbulk publish can be reverted, and Studio checks whether entries were modified\nafter the snapshot before allowing a revert."
     },
     {
-        "id": "bulk-operations.md#7",
+        "id": "bulk-operations.md#3",
         "topic": "bulk-operations",
         "title": "Bulk Operations in MAS Studio",
-        "section": "How do I see the cards from my last bulk operation?",
+        "section": "Can I bulk delete cards?",
         "keywords": [
             "bulk",
             "bulk update",
@@ -147,7 +75,25 @@ export const KNOWLEDGE_CHUNKS = [
             "find and replace",
             "preview"
         ],
-        "text": "Ask the assistant \"show me the cards we updated\", \"list the cards from our last search\", or \"show me those cards again\". The list_context_cards operation renders the cards referenced by the previous operation, using the fragment IDs stored in the conversation context, and works after searches, updates, and publishes alike. If there is no previous operation in the conversation, the assistant tells you that no prior card set exists instead of guessing. This is useful for verifying the outcome of a bulk update or publish without running a new search."
+        "text": "No. Deletion is not performed by the assistant at all, in bulk or one at a time.\nIf you ask to delete cards, the assistant declines and directs you to MAS Studio,\nwhere fragments are deleted individually through the UI with a confirmation\ndialog. This is a deliberate safety restriction: deletion is destructive and\ncannot be previewed and approved the way an edit can."
+    },
+    {
+        "id": "bulk-operations.md#4",
+        "topic": "bulk-operations",
+        "title": "Bulk Operations in MAS Studio",
+        "section": "How do I see the cards from my last search?",
+        "keywords": [
+            "bulk",
+            "bulk update",
+            "bulk publish",
+            "bulk unpublish",
+            "publish multiple",
+            "batch",
+            "mass update",
+            "find and replace",
+            "preview"
+        ],
+        "text": "Ask the assistant \"show me those cards again\" or \"list the cards from our last\nsearch\". It renders the cards referenced by the previous operation, using the\nfragment IDs stored in the conversation context. If there is no previous\noperation in the conversation, it tells you so rather than guessing. Fragment IDs\nare AEM UUIDs and cannot be derived from card titles, so the assistant never\ninvents them."
     },
     {
         "id": "card-variants.md#0",
@@ -433,7 +379,7 @@ export const KNOWLEDGE_CHUNKS = [
         "id": "collections-and-variations.md#1",
         "topic": "collections-and-variations",
         "title": "Collections and Variations in MAS Studio",
-        "section": "How do I create a collection with the AI assistant?",
+        "section": "Can the AI assistant create collections or add cards to them?",
         "keywords": [
             "collection",
             "merch card collection",
@@ -446,13 +392,13 @@ export const KNOWLEDGE_CHUNKS = [
             "parent fragment",
             "translation"
         ],
-        "text": "The assistant supports a create_collection action. It needs a title and a parent path (the folder the collection is created in), and optionally tags; because it is a state-changing operation, the assistant asks for confirmation before executing it. In the chat UI, when cards have been found or selected, the assistant can show a collection preview that renders each card, lets you edit the collection title (with an AI-suggested title prefilled when available), and creates the collection with those cards once you confirm. Collections created from chat land in the currently selected folder and locale, defaulting to en_US."
+        "text": "No. Collections are created and edited in Studio, not through chat. The assistant\nhas no collection operations: it cannot create one, add cards to one, or search\nfor one. Ask it to find cards and it will; collecting them is done in Studio.\n\nOpen the collection editor in Studio to create a collection or change its\nmembers. Member cards are added by pasting Studio card links into the cards list\n— pasted links are de-duplicated against the existing members — and removed line\nby line."
     },
     {
         "id": "collections-and-variations.md#2",
         "topic": "collections-and-variations",
         "title": "Collections and Variations in MAS Studio",
-        "section": "How do I add cards to an existing collection?",
+        "section": "How can I find cards?",
         "keywords": [
             "collection",
             "merch card collection",
@@ -465,29 +411,10 @@ export const KNOWLEDGE_CHUNKS = [
             "parent fragment",
             "translation"
         ],
-        "text": "The AI assistant supports add_cards_to_collection: given the collection's UUID and a list of card paths, it appends the new paths to the collection's existing card list, de-duplicating so a card is never added twice, and asks for confirmation before executing. The backing action fetches the collection, merges the paths, and updates the fragment using its etag so concurrent edits are detected safely. The response includes a Studio deep link to view the updated collection."
+        "text": "The assistant searches cards with search_cards, which supports free text or title\nsearch plus surface, locale, tags, and OSI filters. Collections are browsed in\nStudio, and a collection can be attached to a promotion in the Promotions editor."
     },
     {
         "id": "collections-and-variations.md#3",
-        "topic": "collections-and-variations",
-        "title": "Collections and Variations in MAS Studio",
-        "section": "How can I find collections and cards?",
-        "keywords": [
-            "collection",
-            "merch card collection",
-            "variation",
-            "locale variation",
-            "grouped variation",
-            "pzn",
-            "personalization",
-            "locale default",
-            "parent fragment",
-            "translation"
-        ],
-        "text": "The AI assistant supports search_collections, a read-only lookup that accepts an optional folder path, a text query, and limit and offset for paging. Cards are found with search_cards, which supports free text or title search plus surface, locale, tags, and OSI filters. A collection found through search can then be used as the target of add_cards_to_collection, or attached to a promotion in the Promotions editor."
-    },
-    {
-        "id": "collections-and-variations.md#4",
         "topic": "collections-and-variations",
         "title": "Collections and Variations in MAS Studio",
         "section": "What is a locale variation and what are the rules?",
@@ -506,7 +433,7 @@ export const KNOWLEDGE_CHUNKS = [
         "text": "A locale variation is a per-locale copy of a card whose parent is the locale default fragment, identified in the editor context by the default-locale-id. The rules enforced in Studio: there is exactly one variation per locale per fragment, so in the variation dialog any locale that already has a variation is disabled; a variation cannot be created from another variation — the error reads \"Cannot create a variation from another variation. Please use the default locale fragment.\"; and if the backend reports that a variation already exists at a path, Studio links the existing fragment to the parent instead of creating a duplicate. In preview, fields left empty on a variation inherit the parent's value, while fields with a value override the parent for that field."
     },
     {
-        "id": "collections-and-variations.md#5",
+        "id": "collections-and-variations.md#4",
         "topic": "collections-and-variations",
         "title": "Collections and Variations in MAS Studio",
         "section": "What is a grouped (pzn) variation?",
@@ -525,7 +452,7 @@ export const KNOWLEDGE_CHUNKS = [
         "text": "A grouped variation is a personalization variation created under a parent fragment and driven by pzn tags rather than by locale. In the variation dialog it is only offered when the source fragment is the en_US fragment or a collection, and at least one pzn tag must be selected before it can be created. For cards, creating a grouped variation first resolves the fragment's OSI to its offer data; collections use a dedicated product arrangement code instead. Grouped variations are stored under a personalization (pzn) folder in the fragment path and appear in the fragment editor's variations panel next to locale variations and promo variations."
     },
     {
-        "id": "collections-and-variations.md#6",
+        "id": "collections-and-variations.md#5",
         "topic": "collections-and-variations",
         "title": "Collections and Variations in MAS Studio",
         "section": "Which variation operations can the AI assistant perform?",
@@ -541,7 +468,7 @@ export const KNOWLEDGE_CHUNKS = [
             "parent fragment",
             "translation"
         ],
-        "text": "Read-only operations: get_variations returns the variation graph for a fragment; get_card_with_variations returns a card plus its full variation tree; list_variation_locales lists the locales for which a card has variations; and get_variation_parent returns the parent fragment of a variation. State-changing operations, which always require confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags."
+        "text": "Read-only: get_variations returns the variation graph for a fragment. State-changing, and always requiring confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags.\n\nThe narrower lookups that used to sit alongside get_variations — a card plus its full tree, the locales a card has variations for, and a variation's parent — were removed. The assistant offered them but nothing could execute them, so picking one ended the turn with no answer. Use get_variations, or the fragment editor's variations panel in Studio."
     },
     {
         "id": "headless-and-fields.md#0",

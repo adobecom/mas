@@ -38,7 +38,7 @@ describe('fragment-id-guard', () => {
         });
 
         it('passes when all fragmentIds are UUIDs', () => {
-            const result = validateFragmentIds('bulk_update_cards', {
+            const result = validateFragmentIds('list_context_cards', {
                 fragmentIds: [UUID, UUID_2],
             });
             expect(result.ok).to.equal(true);
@@ -49,8 +49,8 @@ describe('fragment-id-guard', () => {
             expect(result.ok).to.equal(true);
         });
 
-        it('rejects slug fragmentIds for bulk_update_cards', () => {
-            const result = validateFragmentIds('bulk_update_cards', {
+        it('rejects slug fragmentIds on an id-array tool', () => {
+            const result = validateFragmentIds('list_context_cards', {
                 fragmentIds: ['firefly-essentials-plans', 'firefly-essentials-catalog'],
             });
             expect(result.ok).to.equal(false);
@@ -58,7 +58,7 @@ describe('fragment-id-guard', () => {
         });
 
         it('rejects mixed valid + invalid arrays', () => {
-            const result = validateFragmentIds('bulk_publish_cards', {
+            const result = validateFragmentIds('list_context_cards', {
                 fragmentIds: [UUID, 'firefly-essentials-plans'],
             });
             expect(result.ok).to.equal(false);
@@ -80,13 +80,13 @@ describe('fragment-id-guard', () => {
             expect(result.invalid).to.deep.equal(['firefly-essentials-plans']);
         });
 
-        it('passes when fragmentIds is absent on a bulk tool', () => {
-            const result = validateFragmentIds('bulk_update_cards', { textReplacements: [] });
+        it('passes when fragmentIds is absent on an id-array tool', () => {
+            const result = validateFragmentIds('list_context_cards', { textReplacements: [] });
             expect(result.ok).to.equal(true);
         });
 
         it('passes when mcpParams is null', () => {
-            const result = validateFragmentIds('bulk_update_cards', null);
+            const result = validateFragmentIds('list_context_cards', null);
             expect(result.ok).to.equal(true);
         });
     });

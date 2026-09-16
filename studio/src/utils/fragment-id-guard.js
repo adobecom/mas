@@ -6,23 +6,13 @@ const FRAGMENT_IDS_PARAMS = ['fragmentIds', 'ids', 'cardIds'];
 const TOOLS_REQUIRING_FRAGMENT_ID = new Set([
     'get_card',
     'publish_card',
-    'unpublish_card',
     'update_card',
     'copy_card',
     'link_card_to_offer',
-    'validate_card_offer',
     'get_variations',
-    'list_variation_locales',
-    'get_variation_parent',
-    'get_card_with_variations',
     'create_locale_variation',
     'create_grouped_variation',
-    'bulk_update_cards',
-    'bulk_publish_cards',
-    'preview_bulk_update',
-    'preview_bulk_publish',
     'list_context_cards',
-    'add_cards_to_collection',
 ]);
 
 export function isValidFragmentId(value) {

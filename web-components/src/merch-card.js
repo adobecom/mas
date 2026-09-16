@@ -279,19 +279,19 @@ export class MerchCard extends LitElement {
         }
     }
 
-    #lockedOsi;
+    #cardOsi;
 
-    get lockedOsi() {
-        return this.#lockedOsi;
+    get cardOsi() {
+        return this.#cardOsi;
     }
 
-    set lockedOsi(value) {
-        this.#lockedOsi = value;
+    set cardOsi(value) {
+        this.#cardOsi = value;
         const attrValue = Array.isArray(value) ? value.join(',') : value;
         if (attrValue) {
-            this.setAttribute('data-locked-osi', attrValue);
+            this.setAttribute('data-card-osi', attrValue);
         } else {
-            this.removeAttribute('data-locked-osi');
+            this.removeAttribute('data-card-osi');
         }
     }
 

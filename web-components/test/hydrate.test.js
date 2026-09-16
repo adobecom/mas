@@ -1190,7 +1190,7 @@ describe('MerchCard data-promotion-code attribute', () => {
     });
 });
 
-describe('MerchCard data-locked-osi attribute', () => {
+describe('MerchCard data-card-osi attribute', () => {
     let card;
 
     beforeEach(async () => {
@@ -1203,39 +1203,61 @@ describe('MerchCard data-locked-osi attribute', () => {
         card.remove();
     });
 
-    it('sets data-locked-osi attribute when lockedOsi is assigned', () => {
-        card.lockedOsi = 'LOCKED-OSI-123';
-        expect(card.getAttribute('data-locked-osi')).to.equal('LOCKED-OSI-123');
+    it('sets data-card-osi attribute when cardOsi is assigned', () => {
+        card.cardOsi = 'CARD-OSI-123';
+        expect(card.getAttribute('data-card-osi')).to.equal('CARD-OSI-123');
     });
 
-    it('does not have data-locked-osi attribute when lockedOsi is not set', () => {
-        expect(card.hasAttribute('data-locked-osi')).to.be.false;
+    it('does not have data-card-osi attribute when cardOsi is not set', () => {
+        expect(card.hasAttribute('data-card-osi')).to.be.false;
     });
 
-    it('removes data-locked-osi attribute when lockedOsi is cleared', () => {
-        card.lockedOsi = 'LOCKED-OSI-123';
-        card.lockedOsi = undefined;
-        expect(card.hasAttribute('data-locked-osi')).to.be.false;
+    it('removes data-card-osi attribute when cardOsi is cleared', () => {
+        card.cardOsi = 'CARD-OSI-123';
+        card.cardOsi = undefined;
+        expect(card.hasAttribute('data-card-osi')).to.be.false;
     });
 
-    it('wires fields.osi to data-locked-osi via hydrate()', async () => {
+    it('joins array values with comma when cardOsi is an array', () => {
+        card.cardOsi = ['OSI-A', 'OSI-B'];
+        expect(card.getAttribute('data-card-osi')).to.equal('OSI-A,OSI-B');
+    });
+
+    it('wires fields.osi to data-card-osi via hydrate()', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
         const fragment = {
-            id: 'locked-osi-card',
+            id: 'card-osi-card',
             fields: {
                 variant: 'ccd-slice',
-                osi: 'LOCKED-OSI-789',
+                osi: 'CARD-OSI-789',
                 mnemonicIcon: [],
                 mnemonicAlt: [],
                 mnemonicLink: [],
             },
         };
         await hydrate(fragment, litCard);
-        expect(litCard.getAttribute('data-locked-osi')).to.equal(
-            'LOCKED-OSI-789',
-        );
+        expect(litCard.getAttribute('data-card-osi')).to.equal('CARD-OSI-789');
+        litCard.remove();
+    });
+
+    it('wires array fields.osi to data-card-osi as comma-joined string via hydrate()', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'card-osi-array-card',
+            fields: {
+                variant: 'ccd-slice',
+                osi: ['OSI-A', 'OSI-B'],
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.getAttribute('data-card-osi')).to.equal('OSI-A,OSI-B');
         litCard.remove();
     });
 });

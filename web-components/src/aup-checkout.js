@@ -1,7 +1,8 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { MODAL_TYPE_3_IN_1 } from './constants.js';
 import { Log } from './log.js';
 
-// A hung host SDK call would otherwise leave aupCheckoutPending stuck true and
+// A hung context lookup would otherwise leave aupCheckoutPending stuck true and
 // silently no-op every checkout CTA on the page for the rest of its life.
 const HOST_TIMEOUT_MS = 20000;
 
@@ -35,6 +36,13 @@ function getRequest(offers, options) {
         cs: options.cs,
         ms: options.ms,
     };
+    if (
+        context.clientId !== 'doc_cloud' &&
+        Object.values(MODAL_TYPE_3_IN_1).includes(options.modal)
+    ) {
+        context.clientId =
+            options.modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
+    }
     const preselectPlan = options.preselectPlan?.toLowerCase();
     if (preselectPlan === 'edu') context.ms = 'EDU';
     if (preselectPlan === 'team') context.cs = 'TEAM';
@@ -49,6 +57,7 @@ function getRequest(offers, options) {
         lang: new URL(applyPageLocaleToCheckoutUrl(localeUrl)).searchParams.get(
             'lang',
         ),
+        nr: 'stable',
         ctxrturl: options.ctxrturl ?? window.location.href,
         ot: offer.offerType,
         items: offers
@@ -124,6 +133,7 @@ function getRequest(offers, options) {
         intent: offer.offerType === 'TRIAL' ? 'try' : 'buy',
         context,
         params,
+        enableRenderIn: 'iframe',
     };
 }
 
@@ -168,13 +178,10 @@ export async function launchAupCheckout(
         };
     }
     Log.module('aup-select').debug('Launching workflow:', request);
-    const result = await withTimeout(
-        messageHandler
-            ? orchestrator.launchWorkflowInModal(request, messageHandler)
-            : orchestrator.launchWorkflowInModal(request),
-        'launchWorkflowInModal',
-        timeout,
-    );
+    // This promise settles when the user exits, not when the dialog opens.
+    const result = await (messageHandler
+        ? orchestrator.launchWorkflowInModal(request, messageHandler)
+        : orchestrator.launchWorkflowInModal(request));
     if (result?.status === 'cancel') {
         if (
             Array.isArray(items) &&

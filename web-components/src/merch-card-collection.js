@@ -21,7 +21,12 @@ import {
     clearForegroundTimeout,
 } from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
-import { parseTagFilter, matchesTagGroups } from './tag-groups.js';
+import {
+    matchesTagGroups,
+    normalizeCheckboxGroups,
+    cardFilterTags,
+    tagLabel,
+} from './tag-groups.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
 
@@ -404,44 +409,15 @@ export class MerchCardCollection extends LitElement {
         });
         const self = this;
 
-        function tagLabel(leaf, settings) {
-            const label = settings?.tagLabels?.[leaf] || leaf;
-            return label.startsWith('coll-tag-filter')
-                ? leaf.charAt(0).toUpperCase() + leaf.slice(1)
-                : label;
-        }
-
         function prepareSideNavSettings(fragment) {
             // Support both checkboxGroups (direct format) and tagFilters (parsed format)
             let tagFilters;
             if (fragment.fields?.checkboxGroups) {
                 // Author-defined groups: name + tags + single/multi, any namespace.
-                const groups = Array.isArray(fragment.fields.checkboxGroups)
-                    ? fragment.fields.checkboxGroups
-                    : JSON.parse(fragment.fields.checkboxGroups);
-                tagFilters = groups.map((group) => {
-                    const tags = group.tags ?? [];
-                    const deeplink =
-                        group.deeplink ??
-                        parseTagFilter(tags[0] ?? '')[0] ??
-                        group.label;
-                    const checkboxes =
-                        group.checkboxes ??
-                        tags.map((tag) => {
-                            const leaf = parseTagFilter(tag)[1] ?? tag;
-                            return {
-                                name: leaf,
-                                label: tagLabel(leaf, fragment.settings),
-                            };
-                        });
-                    return {
-                        title: group.title,
-                        label: deeplink,
-                        deeplink,
-                        single: !!group.single,
-                        checkboxes,
-                    };
-                });
+                tagFilters = normalizeCheckboxGroups(
+                    fragment.fields.checkboxGroups,
+                    fragment.settings,
+                );
             } else if (fragment.fields?.tagFilters) {
                 // Parse tagFilters into checkbox group format
                 tagFilters = [
@@ -602,16 +578,13 @@ export class MerchCardCollection extends LitElement {
                 if (typesTags) merchCard.setAttribute('types', typesTags);
 
                 if (this.checkboxGroups) {
-                    const groupNamespaces = new Set(
+                    const namespaces = new Set(
                         this.checkboxGroups.map((group) => group.deeplink),
                     );
-                    const filterTags = (fragment.fields.tags ?? [])
-                        .map(parseTagFilter)
-                        .filter(
-                            ([ns, leaf]) =>
-                                ns && leaf && groupNamespaces.has(ns),
-                        )
-                        .map(([ns, leaf]) => `${ns}:${leaf}`);
+                    const filterTags = cardFilterTags(
+                        fragment.fields.tags,
+                        namespaces,
+                    );
                     if (filterTags.length)
                         merchCard.setAttribute(
                             'filter-tags',

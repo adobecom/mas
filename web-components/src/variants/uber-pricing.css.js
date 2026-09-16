@@ -7,8 +7,6 @@ export const CSS = `
 
 merch-card-collection.uber-pricing {
     display: grid;
-    /* XS: 1 column. Tracks cap at the 474px card max and center, so surplus space
-       falls outside the grid instead of gapping each capped card. */
     grid-template-columns: minmax(261px, 474px);
     justify-content: center;
     max-width: 1920px;
@@ -52,11 +50,7 @@ merch-card[variant="uber-pricing"] {
     --uber-frame-border: #dadada;
 }
 
-/* Framed look: black header strip + black border around the white panel.
-   Persistent when a badge is authored; mirrored on CTA hover so an unbadged
-   card takes on the same look while a footer link is hovered. */
-merch-card[variant="uber-pricing"]:has([slot="badge"]),
-merch-card[variant="uber-pricing"]:has([slot="footer"] a:hover) {
+merch-card[variant="uber-pricing"]:has([slot="badge"]) {
     --uber-frame-bg: #000;
     --uber-frame-border: #000;
 }

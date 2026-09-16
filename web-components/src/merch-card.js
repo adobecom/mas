@@ -248,6 +248,11 @@ export class MerchCard extends LitElement {
             attribute: 'types',
             reflect: true,
         },
+        pricing: {
+            type: String,
+            attribute: 'pricing',
+            reflect: true,
+        },
         merchOffer: { type: Object },
         analyticsId: {
             type: String,

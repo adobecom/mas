@@ -33,6 +33,12 @@ export class UberPricing extends VariantLayout {
         return CSS;
     }
 
+    // Product name is in heading-s; the base heading-xs slot holds the price.
+    // merch-card.title reads this, so search must target the name.
+    get headingSelector() {
+        return '[slot="heading-s"]';
+    }
+
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
         options.displayPlanType = true;

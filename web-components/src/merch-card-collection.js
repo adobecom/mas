@@ -1,7 +1,7 @@
 import { html, LitElement, css, unsafeCSS, nothing } from 'lit';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
-import { deeplink, pushState } from './deeplink.js';
+import { deeplink, pushState, parseState } from './deeplink.js';
 import {
     EVENT_MAS_ERROR,
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
@@ -21,6 +21,7 @@ import {
     clearForegroundTimeout,
 } from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
+import { parseTagFilter, matchesTagGroups } from './tag-groups.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
 
@@ -61,6 +62,23 @@ const typeFilter = (elements, { types }) => {
     types = types.split(',');
     return elements.filter((element) =>
         types.some((type) => element.types.includes(type)),
+    );
+};
+
+// Generic author-defined tag groups. No-op unless the collection opts in via
+// checkboxGroups, so catalog and current plans keep the legacy types path.
+const tagGroupFilter = (elements, collection) => {
+    const groups = collection.checkboxGroups;
+    if (!groups?.length) return elements;
+    const state = parseState();
+    return elements.filter((element) =>
+        matchesTagGroups(
+            (element.getAttribute('filter-tags') || '')
+                .split(',')
+                .filter(Boolean),
+            groups,
+            state,
+        ),
     );
 };
 
@@ -197,7 +215,13 @@ export class MerchCardCollection extends LitElement {
             this.sort === SORT_ORDER.alphabetical
                 ? alphabeticalSorter
                 : authoredSorter;
-        const reducers = [categoryFilter, typeFilter, searcher, sorter];
+        const reducers = [
+            categoryFilter,
+            typeFilter,
+            tagGroupFilter,
+            searcher,
+            sorter,
+        ];
 
         let result = reducers
             .reduce((elements, reducer) => reducer(elements, this), children)
@@ -283,12 +307,17 @@ export class MerchCardCollection extends LitElement {
         } else {
             this.startDeeplink();
         }
+        // Author-defined groups use arbitrary hash params; re-run filtering on any change.
+        if (this.checkboxGroups) {
+            this.stopFilterDeeplink = deeplink(() => this.requestUpdate());
+        }
         this.initializePlaceholders();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.stopDeeplink?.();
+        this.stopFilterDeeplink?.();
         for (const callback of this.onUnmount) callback();
         window.removeEventListener('resize', this.resizeHandlerDebounced);
     }
@@ -375,12 +404,44 @@ export class MerchCardCollection extends LitElement {
         });
         const self = this;
 
+        function tagLabel(leaf, settings) {
+            const label = settings?.tagLabels?.[leaf] || leaf;
+            return label.startsWith('coll-tag-filter')
+                ? leaf.charAt(0).toUpperCase() + leaf.slice(1)
+                : label;
+        }
+
         function prepareSideNavSettings(fragment) {
             // Support both checkboxGroups (direct format) and tagFilters (parsed format)
             let tagFilters;
             if (fragment.fields?.checkboxGroups) {
-                // Use checkboxGroups directly if provided
-                tagFilters = fragment.fields.checkboxGroups;
+                // Author-defined groups: name + tags + single/multi, any namespace.
+                const groups = Array.isArray(fragment.fields.checkboxGroups)
+                    ? fragment.fields.checkboxGroups
+                    : JSON.parse(fragment.fields.checkboxGroups);
+                tagFilters = groups.map((group) => {
+                    const tags = group.tags ?? [];
+                    const deeplink =
+                        group.deeplink ??
+                        parseTagFilter(tags[0] ?? '')[0] ??
+                        group.label;
+                    const checkboxes =
+                        group.checkboxes ??
+                        tags.map((tag) => {
+                            const leaf = parseTagFilter(tag)[1] ?? tag;
+                            return {
+                                name: leaf,
+                                label: tagLabel(leaf, fragment.settings),
+                            };
+                        });
+                    return {
+                        title: group.title,
+                        label: deeplink,
+                        deeplink,
+                        single: !!group.single,
+                        checkboxes,
+                    };
+                });
             } else if (fragment.fields?.tagFilters) {
                 // Parse tagFilters into checkbox group format
                 tagFilters = [
@@ -390,18 +451,11 @@ export class MerchCardCollection extends LitElement {
                         deeplink: 'types',
                         checkboxes: fragment.fields.tagFilters.map((tag) => {
                             // Example: "mas:types/desktop" -> "desktop"
-                            // Example: "mas:types/mobile" -> "mobile"
-                            // Example: "mas:types/web" -> "web"
-                            // TODO: Get tag label from fragment instead of parsing the tag
                             const parsedTag = tag.split('/').pop();
-                            let tagLabel =
-                                fragment.settings?.tagLabels?.[parsedTag] ||
-                                parsedTag;
-                            tagLabel = tagLabel.startsWith('coll-tag-filter')
-                                ? parsedTag.charAt(0).toUpperCase() +
-                                  parsedTag.slice(1)
-                                : tagLabel;
-                            return { name: parsedTag, label: tagLabel };
+                            return {
+                                name: parsedTag,
+                                label: tagLabel(parsedTag, fragment.settings),
+                            };
                         }),
                     },
                 ];
@@ -506,6 +560,9 @@ export class MerchCardCollection extends LitElement {
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
             this.limit = 27; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
+            this.checkboxGroups = event.detail.fields?.checkboxGroups
+                ? this.data.sidenavSettings.tagFilters
+                : null;
             if (event.detail.variationId) {
                 this.setAttribute('variation-id', event.detail.variationId);
             }
@@ -543,6 +600,24 @@ export class MerchCardCollection extends LitElement {
                     .map((tag) => tag.split('/')[1])
                     .join(',');
                 if (typesTags) merchCard.setAttribute('types', typesTags);
+
+                if (this.checkboxGroups) {
+                    const groupNamespaces = new Set(
+                        this.checkboxGroups.map((group) => group.deeplink),
+                    );
+                    const filterTags = (fragment.fields.tags ?? [])
+                        .map(parseTagFilter)
+                        .filter(
+                            ([ns, leaf]) =>
+                                ns && leaf && groupNamespaces.has(ns),
+                        )
+                        .map(([ns, leaf]) => `${ns}:${leaf}`);
+                    if (filterTags.length)
+                        merchCard.setAttribute(
+                            'filter-tags',
+                            filterTags.join(','),
+                        );
+                }
 
                 // Check if this variant supports default child through mapping
                 const variantMapping = getFragmentMapping(

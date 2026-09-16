@@ -182,6 +182,10 @@ class MerchCardCollectionEditor extends LitElement {
         );
     }
 
+    get checkboxGroups() {
+        return this.fragment?.getEffectiveFieldValue('checkboxGroups', this.localeDefaultFragment, this.isVariation) ?? '';
+    }
+
     get linksTitle() {
         return this.fragment?.getEffectiveFieldValue('linksTitle', this.localeDefaultFragment, this.isVariation) ?? '';
     }
@@ -1408,6 +1412,18 @@ class MerchCardCollectionEditor extends LitElement {
                         value="${this.tagFilters}"
                         @change=${this.#handleTagFilterChange}
                     ></aem-tag-picker-field>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="checkboxGroups">Filter groups (JSON)</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('checkboxGroups')}
+                    <sp-textfield
+                        id="checkboxGroups"
+                        multiline
+                        data-field="checkboxGroups"
+                        data-field-state="${this.#getFieldState('checkboxGroups')}"
+                        .value=${this.checkboxGroups}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
                 </div>
                 ${this.groupedVariationTagsTemplate}
                 <div class="form-row">

@@ -7,6 +7,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
         sidenavCheckboxTitle: { type: String },
         label: { type: String },
         deeplink: { type: String },
+        single: { type: Boolean },
         selectedValues: { type: Array, reflect: true },
         value: { type: String },
     };
@@ -38,11 +39,18 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     selectionChanged({ target }) {
         const name = target.getAttribute('name');
         if (name) {
-            const index = this.selectedValues.indexOf(name);
-            if (target.checked && index === -1) {
-                this.selectedValues.push(name);
-            } else if (!target.checked && index >= 0) {
-                this.selectedValues.splice(index, 1);
+            if (this.single) {
+                this.selectedValues = target.checked ? [name] : [];
+                this.querySelectorAll('sp-checkbox').forEach((checkbox) => {
+                    if (checkbox !== target) checkbox.checked = false;
+                });
+            } else {
+                const index = this.selectedValues.indexOf(name);
+                if (target.checked && index === -1) {
+                    this.selectedValues.push(name);
+                } else if (!target.checked && index >= 0) {
+                    this.selectedValues.splice(index, 1);
+                }
             }
         }
         pushStateFromComponent(this, this.selectedValues.join(','));
@@ -58,28 +66,18 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     }
 
     startDeeplink() {
-        this.stopDeeplink = deeplink(({ types }) => {
-            if (types) {
-                const newTypes = types.split(',');
-                [...new Set([...newTypes, ...this.selectedValues])].forEach(
-                    (name) => {
-                        const checkbox = this.querySelector(
-                            `sp-checkbox[name=${name}]`,
-                        );
-                        if (checkbox)
-                            checkbox.checked = newTypes.includes(name);
-                    },
-                );
-                this.selectedValues = newTypes;
-            } else {
-                this.selectedValues.forEach((name) => {
+        this.stopDeeplink = deeplink((state) => {
+            const raw = state[this.deeplink];
+            const newValues = raw ? raw.split(',') : [];
+            [...new Set([...newValues, ...this.selectedValues])].forEach(
+                (name) => {
                     const checkbox = this.querySelector(
                         `sp-checkbox[name=${name}]`,
                     );
-                    if (checkbox) checkbox.checked = false;
-                });
-                this.selectedValues = [];
-            }
+                    if (checkbox) checkbox.checked = newValues.includes(name);
+                },
+            );
+            this.selectedValues = newValues;
         });
     }
 

@@ -42,6 +42,7 @@ describe('MasPromotions', () => {
         Store.promotions.list.data.removeMeta('listFetched');
         Store.promotions.list.loading.set(false);
         Store.promotions.list.filter.set('all');
+        Store.promotions.list.search.set('');
         Store.profile.set({ email: 'editor@adobe.com' });
         Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
     });
@@ -55,6 +56,7 @@ describe('MasPromotions', () => {
         Store.promotions.list.data.removeMeta('listFetched');
         Store.promotions.list.loading.set(true);
         Store.promotions.list.filter.set('active');
+        Store.promotions.list.search.set('');
         Store.profile.set(null);
         Store.users.set([]);
     });
@@ -214,6 +216,127 @@ describe('MasPromotions', () => {
 
             expect(repo.createFragment.called).to.be.false;
             expect(toastStub.called).to.be.false;
+        });
+    });
+
+    describe('search', () => {
+        it('disables the search input while promotions are loading and enables it once they finish loading', async () => {
+            let resolveLoad;
+            const loadPromise = new Promise((resolve) => {
+                resolveLoad = resolve;
+            });
+            const repo = makeRepo({
+                loadPromotions: sandbox.stub().callsFake(async () => {
+                    await loadPromise;
+                    Store.promotions.list.loading.set(false);
+                }),
+            });
+            const el = document.createElement('mas-promotions');
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+
+            const search = el.shadowRoot.querySelector('sp-search');
+            expect(search.disabled).to.be.true;
+
+            resolveLoad();
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(search.disabled).to.be.false;
+        });
+
+        it('filters the visible rows live from an input event, without pressing Enter, and leaves the selected status filter unchanged', async () => {
+            const first = makePromotion({ id: 'promo-1', title: 'Black Friday Sale' });
+            const second = makePromotion({ id: 'promo-2', title: 'Holiday Bundle' });
+            const { el } = await mountWithRepo(first);
+            Store.promotions.list.data.set([new FragmentStore(first), new FragmentStore(second)]);
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(2);
+
+            const search = el.shadowRoot.querySelector('sp-search');
+            search.value = 'black';
+            search.dispatchEvent(new Event('input'));
+            await el.updateComplete;
+
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            expect(rows).to.have.lengthOf(1);
+            expect(rows[0].textContent).to.include('Black Friday Sale');
+            expect(Store.promotions.list.filter.get()).to.equal('all');
+        });
+
+        it("persists the search term when switching status filters and reapplies it to the newly selected filter's list", async () => {
+            const draftMatch = makePromotion({
+                id: 'promo-1',
+                title: 'Winter Draft Promo',
+                status: 'DRAFT',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const draftOther = makePromotion({
+                id: 'promo-2',
+                title: 'Spring Draft Promo',
+                status: 'DRAFT',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const { el } = await mountWithRepo(draftMatch);
+            Store.promotions.list.data.set([new FragmentStore(draftMatch), new FragmentStore(draftOther)]);
+            await el.updateComplete;
+
+            const search = el.shadowRoot.querySelector('sp-search');
+            search.value = 'winter';
+            search.dispatchEvent(new Event('input'));
+            await el.updateComplete;
+
+            const draftTile = [...el.shadowRoot.querySelectorAll('.status-tile')].find(
+                (tile) => tile.querySelector('.status-tile-label').textContent.trim() === 'Draft',
+            );
+            draftTile.click();
+            await el.updateComplete;
+
+            expect(Store.promotions.list.search.get()).to.equal('winter');
+            expect(el.filter).to.equal('draft');
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            expect(rows).to.have.lengthOf(1);
+            expect(rows[0].textContent).to.include('Winter Draft Promo');
+        });
+
+        it('updates status tile counts live as the search term changes', async () => {
+            const match = makePromotion({ id: 'promo-1', title: 'Matching Promo' });
+            const other = makePromotion({ id: 'promo-2', title: 'Other Promo' });
+            const { el } = await mountWithRepo(match);
+            Store.promotions.list.data.set([new FragmentStore(match), new FragmentStore(other)]);
+            await el.updateComplete;
+
+            const allTileCount = () => {
+                const tile = [...el.shadowRoot.querySelectorAll('.status-tile')].find(
+                    (candidate) => candidate.querySelector('.status-tile-label').textContent.trim() === 'All',
+                );
+                return tile.querySelector('.status-tile-count').textContent.trim();
+            };
+
+            expect(allTileCount()).to.equal('2');
+
+            const search = el.shadowRoot.querySelector('sp-search');
+            search.value = 'matching';
+            search.dispatchEvent(new Event('input'));
+            await el.updateComplete;
+
+            expect(allTileCount()).to.equal('1');
+        });
+
+        it('renders the result count next to the search field and removes it from the far right of the filter bar', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector('.result-count-container')).to.not.exist;
+            const searchRow = el.shadowRoot.querySelector('.promotions-search-row');
+            expect(searchRow).to.exist;
+            expect(searchRow.querySelector('sp-search')).to.exist;
+            expect(searchRow.querySelector('.promotions-result-count')).to.exist;
         });
     });
 });

@@ -521,6 +521,7 @@ class MasField extends HTMLElement {
                 this.#setFragmentIds();
                 const content = this.#ensureContentElement();
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                this.#upgradeCheckoutLinks(content);
                 this.#decorateTooltips(content);
                 this.#stampContext(content);
                 return;
@@ -561,6 +562,7 @@ class MasField extends HTMLElement {
                 }
             }
             content.innerHTML = html;
+            this.#upgradeCheckoutLinks(content);
             this.#decorateTooltips(content);
             this.#stampContext(content);
             return;
@@ -570,6 +572,49 @@ class MasField extends HTMLElement {
             return;
         }
         content.textContent = String(html);
+    }
+
+    /**
+     * Creates a checkout-link element via the real service-backed factory when
+     * available, falling back to a manually upgraded anchor (still a genuine
+     * customized built-in, just without service-resolved checkout options)
+     * when the checkout service hasn't registered yet.
+     */
+    #createCheckoutLinkElement(dataset, innerHTML) {
+        const CheckoutLink = customElements.get('checkout-link');
+        return (
+            CheckoutLink?.createCheckoutLink(dataset, innerHTML) ??
+            (() => {
+                const el = document.createElement('a', {
+                    is: 'checkout-link',
+                });
+                el.setAttribute('is', 'checkout-link');
+                el.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+                return el;
+            })()
+        );
+    }
+
+    /**
+     * Upgrades any data-wcs-osi anchors left in the container by a raw HTML
+     * assignment into real checkout-link elements. Needed because customized
+     * built-ins only get constructed when `is=` is present at parse time, and
+     * stored fragment HTML for non-ctas fields never carries that attribute.
+     */
+    #upgradeCheckoutLinks(container) {
+        for (const link of container.querySelectorAll(
+            'a[data-wcs-osi]:not([is])',
+        )) {
+            const button = this.#createCheckoutLinkElement(
+                link.dataset,
+                link.innerHTML,
+            );
+            for (const { name, value } of link.attributes) {
+                if (['is', 'href'].includes(name)) continue;
+                button.setAttribute(name, value);
+            }
+            link.replaceWith(button);
+        }
     }
 
     /**

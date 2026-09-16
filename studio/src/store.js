@@ -112,6 +112,8 @@ const Store = {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
             filter: new ReactiveStore('active'),
+            // Kept independent of `filter` so switching status filters never clears a typed search term.
+            search: new ReactiveStore(''),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
                 { value: 'draft', label: 'Draft' },

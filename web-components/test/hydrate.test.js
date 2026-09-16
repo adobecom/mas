@@ -512,14 +512,54 @@ describe('processCTAs - headless CTA variant labels', async () => {
         expect(link.options.modal).to.be.ok;
     });
 
-    it('does not label CTAs that carry an authored style class, even on a headless card', async () => {
-        merchCard.variant = 'headless';
-        const fields = { ctas: '<a href="#" class="accent">Buy now</a>' };
+    it('preserves checkout attributes and applies the persisted variant class on a new-style headless checkout CTA', async () => {
+        merchCard.variant = 'marquee';
+        const fields = {
+            ctas: '<a href="#" class="secondary" data-key="cta1" data-wcs-osi="abm" data-checkout-workflow-step="segmentation" data-modal="true">Free trial</a>',
+        };
 
         processCTAs(fields, merchCard, aemFragmentMapping);
 
         const footer = getFooterElement(merchCard);
-        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
+        const link = footer.querySelector('a[data-wcs-osi]');
+        expect(link.getAttribute('data-key')).to.equal('cta1');
+        expect(link.classList.contains('secondary')).to.be.true;
+        await link.onceSettled();
+        expect(link.options.checkoutWorkflowStep).to.equal('segmentation');
+        expect(link.options.modal).to.be.ok;
+        const label = footer.querySelector('.headless-cta-variant-label');
+        expect(label.textContent).to.equal('Secondary');
+    });
+
+    it('labels and styles a CTA from its persisted variant class, without needing a strong/em wrapper', async () => {
+        merchCard.variant = 'headless';
+        const fields = { ctas: '<a href="#" class="primary">Buy now</a>' };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(item.querySelector('strong, em')).to.not.exist;
+        const link = item.querySelector('a');
+        expect(link.classList.contains('primary')).to.be.true;
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+    });
+
+    it('prefers the persisted variant class over a legacy strong wrapper when both are present', async () => {
+        merchCard.variant = 'headless';
+        const fields = {
+            ctas: '<strong><a href="#" class="secondary">Learn more</a></strong>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const footer = getFooterElement(merchCard);
+        const item = footer.querySelector('.headless-cta-item');
+        expect(
+            item.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Secondary');
     });
 
     it('does not label CTAs on variants outside the headless-style set', async () => {

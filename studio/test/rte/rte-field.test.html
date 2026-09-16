@@ -563,7 +563,7 @@
                     });
                 });
 
-                describe('RTE Field: headless CTA variant toggling', () => {
+                describe('RTE Field: headless CTA formatting', () => {
                     let rte;
 
                     const firstLink = () => rte.shadowRoot.querySelector('.ProseMirror a');
@@ -571,59 +571,37 @@
                     const boldButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Bold"]');
                     const italicButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Italic"]');
 
-                    it('toggles a headless CTA to primary (strong) on Bold, and off again', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
-                        rte.selectLink(1);
-                        await delay(50);
-                        boldButton().click();
-                        await delay(50);
-                        expect(firstLink().parentElement.tagName).to.equal('STRONG');
-
-                        rte.selectLink(1);
-                        await delay(50);
-                        boldButton().click();
-                        await delay(50);
-                        expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
-                    });
-
-                    it('toggles a headless CTA to secondary (em) on Italic', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
-                        rte.selectLink(1);
-                        await delay(50);
-                        italicButton().click();
-                        await delay(50);
-                        expect(firstLink().parentElement.tagName).to.equal('EM');
-                    });
-
-                    it('switches directly from primary to secondary without toggling off', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
-                        rte.selectLink(1);
-                        await delay(50);
-                        boldButton().click();
-                        await delay(50);
-                        expect(firstLink().parentElement.tagName).to.equal('STRONG');
-
-                        rte.selectLink(1);
-                        await delay(50);
-                        italicButton().click();
-                        await delay(50);
-                        expect(firstLink().parentElement.tagName).to.equal('EM');
-                    });
-
-                    it('derives the current variant from a legacy class when no mark is present', async function () {
+                    it('bolds a headless CTA like any other node, leaving its authored variant class untouched', async function () {
                         rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
-                        // 'accent' resolves to the 'primary' display variant, matching Bold's
-                        // target variant, so this toggles it OFF to secondary-link/plain.
                         boldButton().click();
                         await delay(50);
-                        const a = firstLink();
+                        let a = firstLink();
+                        expect(a.parentElement.tagName).to.equal('STRONG');
+                        expect(a.className).to.equal('accent');
+
+                        rte.selectLink(1);
+                        await delay(50);
+                        boldButton().click();
+                        await delay(50);
+                        a = firstLink();
                         expect(a.parentElement.tagName).to.not.equal('STRONG');
-                        expect(a.className).to.equal('');
+                        expect(a.className).to.equal('accent');
                     });
 
-                    it('only intercepts Bold/Italic on a headless CTA, leaving other marks to toggle normally', async function () {
+                    it('italicizes a headless CTA like any other node, leaving its authored variant class untouched', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
+                        rte.selectLink(1);
+                        await delay(50);
+                        italicButton().click();
+                        await delay(50);
+                        const a = firstLink();
+                        expect(a.parentElement.tagName).to.equal('EM');
+                        expect(a.className).to.equal('accent');
+                    });
+
+                    it('does not intercept Bold/Italic differently from other marks on a headless CTA', async function () {
                         rte = await createFromTemplate('rte-headless-cta', this.test.title);
                         rte.selectLink(1);
                         await delay(50);

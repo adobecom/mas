@@ -747,30 +747,30 @@ class MasField extends HTMLElement {
         }
         button.firstElementChild?.classList.add('spectrum-Button-label');
 
-        if (link.className) {
-            // Legacy class-driven system: non-headless CTAs, or headless CTAs authored before
-            // real bold/italic wrapping existed.
-            const styleMatch =
-                CHECKOUT_STYLE_PATTERN.exec(link.className)?.[0] ?? 'accent';
-            const isAccent = styleMatch.startsWith('accent');
-            if (!styleMatch.includes('-link')) {
-                button.classList.add('button', 'con-button');
-                if (isAccent) button.classList.add('blue');
-                else if (
-                    styleMatch.startsWith('primary') &&
-                    !styleMatch.includes('-outline')
-                )
-                    button.classList.add('fill');
-            }
-            return button;
+        // Fragments saved under the legacy bold/italic-as-CTA-variant encoding (PR #1197,
+        // MWPW-207618) carry no class - resolve the equivalent style from the <strong>/<em>
+        // wrapper, or its absence, so they keep the same button styling with no author action.
+        const parentTag = link.parentElement?.tagName;
+        let resolvedClassName = link.className;
+        if (!resolvedClassName) {
+            if (parentTag === 'STRONG') resolvedClassName = 'primary';
+            else if (parentTag === 'EM') resolvedClassName = 'secondary';
+            else resolvedClassName = 'secondary-link';
+        }
+        const styleMatch =
+            CHECKOUT_STYLE_PATTERN.exec(resolvedClassName)?.[0] ?? 'accent';
+        const isAccent = styleMatch.startsWith('accent');
+        if (!styleMatch.includes('-link')) {
+            button.classList.add('button', 'con-button');
+            if (isAccent) button.classList.add('blue');
+            else if (
+                styleMatch.startsWith('primary') &&
+                !styleMatch.includes('-outline')
+            )
+                button.classList.add('fill');
         }
 
-        // Headless CTAs authored via the 3-option picker never carry a button-style class,
-        // and MAS must not add one either - preserve the real <strong>/<em> wrapper (see
-        // rte-field.js's #marksForHeadlessVariant) around the checkout-link unchanged, so
-        // whatever decorates the surrounding page content is what determines the button style.
-        const parentTag = link.parentElement?.tagName;
-        if (parentTag === 'STRONG' || parentTag === 'EM') {
+        if (!link.className && (parentTag === 'STRONG' || parentTag === 'EM')) {
             const wrapper = document.createElement(parentTag.toLowerCase());
             wrapper.append(button);
             return wrapper;

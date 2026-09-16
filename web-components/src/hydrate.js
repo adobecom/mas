@@ -18,7 +18,15 @@ const HEADLESS_STYLE_CTA_VARIANTS = new Set([
     'marquee',
     'banner-blade',
 ]);
-const HEADLESS_CTA_VARIANT_LABELS = { STRONG: 'Primary', EM: 'Secondary' };
+const HEADLESS_CTA_VARIANT_LABELS = {
+    primary: 'Primary',
+    secondary: 'Secondary',
+    'secondary-link': 'Link',
+};
+/** Fragments saved under the legacy bold/italic-as-CTA-variant encoding (PR #1197, MWPW-207618)
+ *  carry no class - the real <strong>/<em> wrapper around the anchor, or its absence, is the only
+ *  signal of the authored variant. */
+const LEGACY_HEADLESS_VARIANT_CLASS = { STRONG: 'primary', EM: 'secondary' };
 
 /**
  * Normalizes variant names for consistency.
@@ -483,10 +491,11 @@ export function processFeatures(fields, merchCard, mapping) {
 
 /**
  * Upgrades a headless CTA anchor into a real checkout-link (resolving its commitment
- * step/modal options) without adding a button-style class, mirroring mas-field.js's
- * #buildCtaButton. Needed because the "-link" style bypass below normally just reuses the
- * raw, un-upgraded anchor - fine for a plain link, but a headless Primary/Secondary CTA is
- * still a real checkout CTA and must resolve through CheckoutLink to get its options.
+ * step/modal options), mirroring mas-field.js's #buildCtaButton. Needed because the "-link"
+ * style bypass below normally just reuses the raw, un-upgraded anchor - fine for a plain link,
+ * but a headless Primary/Secondary CTA is still a real checkout CTA and must resolve through
+ * CheckoutLink to get its options. The resolved variant class (set on linkElement by the caller)
+ * is copied onto the created element so it renders with the correct CTA style.
  */
 function createHeadlessCheckoutElement(linkElement) {
     const CheckoutLink = customElements.get('checkout-link');
@@ -497,10 +506,55 @@ function createHeadlessCheckoutElement(linkElement) {
         ) ?? linkElement;
     if (button === linkElement) return button;
     for (const attr of linkElement.attributes) {
-        if (['class', 'is', 'href'].includes(attr.name)) continue;
+        if (['is', 'href'].includes(attr.name)) continue;
         button.setAttribute(attr.name, attr.value);
     }
     return button;
+}
+
+/**
+ * Resolves a headless-family CTA's variant class: the class persisted by the RTE link dialog
+ * (see rte-field.js's #handleLinkSave) if present, otherwise the legacy bold/italic-as-variant
+ * encoding from PR #1197 (a real <strong>/<em> wrapper, or its absence) for fragments saved
+ * before the dialog persisted a class (MWPW-207618).
+ */
+function resolveHeadlessCtaVariant(className, parentTag) {
+    const match = className && CHECKOUT_STYLE_PATTERN.exec(className)?.[0];
+    if (match) {
+        if (match.includes('-link')) return 'secondary-link';
+        if (match.includes('secondary')) return 'secondary';
+        return 'primary';
+    }
+    return LEGACY_HEADLESS_VARIANT_CLASS[parentTag] ?? 'secondary-link';
+}
+
+/**
+ * Transforms a headless-family (headless/marquee/banner-blade) CTA link: applies its resolved
+ * variant class for correct button styling (falling back to the legacy encoding for older
+ * fragments), resolves checkout links through CheckoutLink, and wraps the result in the
+ * `.headless-cta-item`/`.headless-cta-variant-label` annotation that headless.css.js styles.
+ */
+function transformHeadlessCta(linkElement, isCheckoutLink) {
+    const originalClassName = linkElement.className || '';
+    const parentTag = linkElement.parentElement?.tagName;
+    const variant = resolveHeadlessCtaVariant(originalClassName, parentTag);
+    if (!originalClassName) linkElement.classList.add(variant);
+
+    let ctaElement = isCheckoutLink
+        ? createHeadlessCheckoutElement(linkElement)
+        : linkElement;
+    if (parentTag === 'STRONG' || parentTag === 'EM') {
+        const wrapper = document.createElement(parentTag.toLowerCase());
+        wrapper.append(ctaElement);
+        ctaElement = wrapper;
+    }
+    const label = document.createElement('span');
+    label.className = 'headless-cta-variant-label';
+    label.textContent = HEADLESS_CTA_VARIANT_LABELS[variant];
+    const item = document.createElement('span');
+    item.className = 'headless-cta-item';
+    item.append(ctaElement, label);
+    return item;
 }
 
 function transformLinkToButton(
@@ -512,26 +566,20 @@ function transformLinkToButton(
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));
+    // Scoped to the ctas field on a headless-family card so other fields/variants are unaffected.
+    if (isCtaField && HEADLESS_STYLE_CTA_VARIANTS.has(merchCard.variant)) {
+        return transformHeadlessCta(linkElement, isCheckoutLink);
+    }
+
     const originalClassName = linkElement.className || '';
-    const parentTag = linkElement.parentElement?.tagName;
-    // Headless CTAs authored via the 3-option picker never carry a button-style class, and
-    // MAS must not add one either (see rte-field.js's #marksForHeadlessVariant) - only the
-    // real <strong>/<em> wrapper is preserved, unstyled, below. Scoped to the ctas field on a
-    // headless-family card so other fields/variants (which may legitimately have no class and
-    // rely on the accent default) are unaffected.
-    const isHeadlessCta =
-        isCtaField &&
-        !originalClassName &&
-        HEADLESS_STYLE_CTA_VARIANTS.has(merchCard.variant);
     const checkoutLinkStyle = originalClassName
         ? (CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent')
         : 'accent';
-    const isAccent = !isHeadlessCta && checkoutLinkStyle.includes('accent');
-    const isPrimary = !isHeadlessCta && checkoutLinkStyle.includes('primary');
-    const isSecondary =
-        !isHeadlessCta && checkoutLinkStyle.includes('secondary');
-    const isOutline = !isHeadlessCta && checkoutLinkStyle.includes('-outline');
-    const isLinkStyle = isHeadlessCta || checkoutLinkStyle.includes('-link');
+    const isAccent = checkoutLinkStyle.includes('accent');
+    const isPrimary = checkoutLinkStyle.includes('primary');
+    const isSecondary = checkoutLinkStyle.includes('secondary');
+    const isOutline = checkoutLinkStyle.includes('-outline');
+    const isLinkStyle = checkoutLinkStyle.includes('-link');
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
@@ -548,10 +596,7 @@ function transformLinkToButton(
             aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
-        newButtonElement =
-            isHeadlessCta && isCheckoutLink
-                ? createHeadlessCheckoutElement(linkElement)
-                : linkElement;
+        newButtonElement = linkElement;
     } else {
         let variant;
         if (isAccent) {
@@ -580,21 +625,6 @@ function transformLinkToButton(
                   );
     }
 
-    if (isHeadlessCta) {
-        let ctaElement = newButtonElement;
-        if (parentTag === 'STRONG' || parentTag === 'EM') {
-            const wrapper = document.createElement(parentTag.toLowerCase());
-            wrapper.append(newButtonElement);
-            ctaElement = wrapper;
-        }
-        const label = document.createElement('span');
-        label.className = 'headless-cta-variant-label';
-        label.textContent = HEADLESS_CTA_VARIANT_LABELS[parentTag] ?? 'Link';
-        const item = document.createElement('span');
-        item.className = 'headless-cta-item';
-        item.append(ctaElement, label);
-        return item;
-    }
     return newButtonElement;
 }
 

@@ -12,7 +12,7 @@ import {
     QUICK_ACTION,
     TABLE_TYPE,
     TAG_PROMOTION_PREFIX,
-    STAGED
+    STAGED,
 } from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
 import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';

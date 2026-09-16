@@ -13,6 +13,7 @@ import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { buildPlaceholderStudioLinks } from './placeholder-studio-link.js';
 
 const placeholdersSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -56,6 +57,7 @@ class MasPlaceholders extends LitElement {
         this.toggleCreationModal = this.toggleCreationModal.bind(this);
         this.onDeleted = this.onDeleted.bind(this);
         this.onBulkDelete = this.onBulkDelete.bind(this);
+        this.handleCopyStudioLinks = this.handleCopyStudioLinks.bind(this);
         this.updatePending = this.updatePending.bind(this);
     }
 
@@ -278,6 +280,23 @@ class MasPlaceholders extends LitElement {
         this.refresh();
     }
 
+    async handleCopyStudioLinks(selection) {
+        if (!selection?.length) return;
+
+        const links = buildPlaceholderStudioLinks(selection, {
+            path: Store.surface(),
+            locale: Store.localeOrRegion(),
+        });
+
+        try {
+            await navigator.clipboard.writeText(links);
+            showToast(`Copied ${selection.length} placeholder link(s)`, 'positive');
+        } catch (e) {
+            console.error(e);
+            showToast('Failed to copy to clipboard', 'negative');
+        }
+    }
+
     updatePending(value) {
         this.pending = value;
     }
@@ -349,6 +368,7 @@ class MasPlaceholders extends LitElement {
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
                 .onDelete=${this.onBulkDelete}
+                .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
         `;

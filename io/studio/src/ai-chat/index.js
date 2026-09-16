@@ -224,6 +224,7 @@ async function generateSessionTitle(params) {
             apiKey: AI_FOUNDRY_API_KEY,
             baseUrl: AI_FOUNDRY_BASE_URL,
             modelId: AI_FOUNDRY_FAST_MODEL_ID || AI_FOUNDRY_MODEL_ID,
+            fallbackModelId: params.AI_FOUNDRY_FALLBACK_MODEL_ID,
         });
 
         const systemPrompt =
@@ -620,6 +621,7 @@ async function main(params) {
             apiKey: AI_FOUNDRY_API_KEY,
             baseUrl: AI_FOUNDRY_BASE_URL,
             modelId: AI_FOUNDRY_MODEL_ID,
+            fallbackModelId: params.AI_FOUNDRY_FALLBACK_MODEL_ID,
         });
 
         const knowledgeClient = createKnowledgeClient(params);

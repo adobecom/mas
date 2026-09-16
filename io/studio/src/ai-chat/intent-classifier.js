@@ -107,6 +107,7 @@ export function createClassifierClient(params = {}) {
         apiKey: params.AI_FOUNDRY_API_KEY,
         baseUrl: params.AI_FOUNDRY_BASE_URL,
         modelId: classifierModelId,
+        fallbackModelId: params.AI_FOUNDRY_FALLBACK_MODEL_ID,
     });
 }
 

@@ -197,6 +197,10 @@ export class FoundryClient {
 
         this.apiKey = apiKey;
         this.modelId = credentials.modelId || process.env.AI_FOUNDRY_MODEL_ID || DEFAULT_MODEL_ID;
+        // Asked only when the primary group is unreachable. The gateway reports
+        // "Available Model Group Fallbacks=None", so routing around an outage
+        // has to happen here. Optional: unset means the old single-model path.
+        this.fallbackModelId = credentials.fallbackModelId || process.env.AI_FOUNDRY_FALLBACK_MODEL_ID || null;
         this.baseUrl = credentials.baseUrl || process.env.AI_FOUNDRY_BASE_URL || DEFAULT_BASE_URL;
         this.endpoint = `${this.baseUrl}/chat/completions`;
     }
@@ -216,8 +220,8 @@ export class FoundryClient {
         const thinkingEnabled = options.thinking ?? process.env.AI_FOUNDRY_THINKING === 'on';
         const effectiveMaxTokens = resolveMaxTokens(maxTokens, thinkingEnabled);
 
+        // `model` is filled in per attempt below, so a fallback can reuse this.
         const payload = {
-            model: this.modelId,
             messages: [{ role: 'system', content: system ?? '' }, ...messages],
             max_tokens: effectiveMaxTokens,
             temperature: 0,
@@ -238,7 +242,34 @@ export class FoundryClient {
         const baseDelayMs = Number(process.env.AI_FOUNDRY_RETRY_BASE_DELAY_MS) || 500;
         const totalBudgetMs = Number(process.env.AI_FOUNDRY_TOTAL_BUDGET_MS) || 55000;
         const startedAt = Date.now();
+        const budget = { maxRetries, baseDelayMs, totalBudgetMs, startedAt };
 
+        // The dead group first, then the understudy. A duplicate is not a
+        // second chance, so ask each model at most once.
+        const models = [this.modelId, this.fallbackModelId].filter(
+            (model, index, all) => model && all.indexOf(model) === index,
+        );
+
+        let failure = null;
+        for (const model of models) {
+            const outcome = await this.#sendToModel({ ...payload, model }, budget);
+            if (outcome.success) return outcome;
+            failure = outcome;
+            // Only an upstream outage is worth re-asking of a different model.
+            // A 400 or a 401 is the request or the key, and every model in the
+            // gateway will answer it the same way.
+            if (!outcome.retryable) break;
+            if (model !== models.at(-1)) {
+                console.warn(`Foundry model ${model} unavailable; falling back to ${this.fallbackModelId}`);
+            }
+        }
+
+        const { retryable, ...result } = failure;
+        return result;
+    }
+
+    /** One model, with the existing retry-and-backoff budget shared across models. */
+    async #sendToModel(payload, { maxRetries, baseDelayMs, totalBudgetMs, startedAt }) {
         for (let attempt = 0; ; attempt += 1) {
             try {
                 const responseBody = await this.#invoke(payload);
@@ -270,6 +301,9 @@ export class FoundryClient {
                     success: false,
                     error: error.message,
                     errorType: error.name,
+                    // Internal: tells sendMessage whether another model is worth
+                    // asking. Stripped before the result reaches a caller.
+                    retryable: isRetryableFoundryError(error),
                 };
             }
         }

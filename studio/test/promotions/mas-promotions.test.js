@@ -216,4 +216,95 @@ describe('MasPromotions', () => {
             expect(toastStub.called).to.be.false;
         });
     });
+
+    describe('#handleUnpublishPromotionFromList (checkbox dialog)', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const promoPath = `${promoFolder}/my-card`;
+
+        function clickMenuItem(el, label) {
+            const menuItem = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                item.textContent.includes(label),
+            );
+            menuItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        }
+
+        function makePublishedPromotionWithVariation() {
+            return makePromotion({
+                id: 'promo-1',
+                title: 'Black Friday',
+                status: 'PUBLISHED',
+                tags: [{ id: 'mas:promotion/black-friday' }],
+                fragments: [parentPath],
+            });
+        }
+
+        async function mountWithPublishedVariation(promotion) {
+            const search = makeSharedSearchStub(sandbox, {
+                [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' }],
+            });
+            return mountWithRepo(promotion, {
+                operation: { set: sandbox.stub() },
+                processError: sandbox.stub(),
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search,
+                                getWithEtag: sandbox.stub().resolves(null),
+                                unpublish: sandbox.stub().resolves(),
+                                getByPath: sandbox.stub().resolves(null),
+                            },
+                        },
+                    },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
+            });
+        }
+
+        it('renders the promo-variation checkbox dialog and resolves not-confirmed when canceled', async () => {
+            const promotion = makePublishedPromotionWithVariation();
+            const { el } = await mountWithPublishedVariation(promotion);
+
+            clickMenuItem(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig.question).to.equal('Unpublish them together with the project?');
+            const checkbox = el.shadowRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            expect(checkbox.textContent).to.include('Unpublish promo variations');
+
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+            expect(el.dialogCheckboxChecked).to.be.true;
+
+            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('cancel'));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig).to.be.null;
+            expect(el.isDialogOpen).to.be.false;
+        });
+
+        it('blocks a second unpublish attempt while the first dialog is open, then resolves confirmed on confirm', async () => {
+            const promotion = makePublishedPromotionWithVariation();
+            const { el } = await mountWithPublishedVariation(promotion);
+
+            clickMenuItem(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+
+            clickMenuItem(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(el.isDialogOpen).to.be.true;
+
+            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig).to.be.null;
+            expect(el.isDialogOpen).to.be.false;
+        });
+    });
 });

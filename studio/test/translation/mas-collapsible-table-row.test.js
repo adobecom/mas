@@ -35,14 +35,14 @@ describe('MasCollapsibleTableRow', () => {
 
     const resetStore = () => {
         Store.translationProjects.selectedCards.set([]);
-        setCardVariationsByPaths(new Map());
+        setCardVariationsByPaths(new Map(), Store.translationProjects);
     };
 
     const setupCardVariationsInStore = (cardPath, variations) => {
         const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
         const merged = new Map(existing);
         merged.set(cardPath, new Map(variations.map((v) => [v.path, v])));
-        setCardVariationsByPaths(merged);
+        setCardVariationsByPaths(merged, Store.translationProjects);
     };
 
     const createMockRepository = () => {

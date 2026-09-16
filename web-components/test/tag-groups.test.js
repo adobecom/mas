@@ -4,7 +4,7 @@ import { expect } from '@esm-bundle/chai';
 import {
     parseTagFilter,
     matchesTagGroups,
-    normalizeCheckboxGroups,
+    groupTagFilters,
     cardFilterTags,
     tagLabel,
 } from '../src/tag-groups.js';
@@ -34,23 +34,35 @@ runTests(() => {
             expect(tagLabel('web', undefined)).to.equal('web');
         });
 
-        it('normalizes author JSON into sidenav groups', () => {
-            const json = JSON.stringify([
-                {
-                    title: 'Pricing',
-                    single: true,
-                    tags: ['mas:pricing/individual', 'mas:pricing/team'],
-                },
-            ]);
-            const [group] = normalizeCheckboxGroups(json, {
-                tagLabels: { individual: 'For one' },
+        it('keeps one namespace as a single group with the authored title', () => {
+            const groups = groupTagFilters(
+                ['mas:types/desktop', 'mas:types/web'],
+                'Types',
+                { tagLabels: { desktop: 'Desktop', web: 'Web' } },
+            );
+            expect(groups).to.have.length(1);
+            expect(groups[0]).to.deep.include({
+                title: 'Types',
+                deeplink: 'types',
             });
-            expect(group.deeplink).to.equal('pricing');
-            expect(group.single).to.be.true;
-            expect(group.checkboxes).to.deep.equal([
-                { name: 'individual', label: 'For one' },
-                { name: 'team', label: 'team' },
+            expect(groups[0].checkboxes).to.deep.equal([
+                { name: 'desktop', label: 'Desktop' },
+                { name: 'web', label: 'Web' },
             ]);
+        });
+
+        it('splits multiple namespaces into groups, title from the tag', () => {
+            const groups = groupTagFilters(
+                ['mas:types/desktop', 'mas:pricing/individual'],
+                'Types',
+                {},
+            );
+            expect(groups.map((g) => g.deeplink)).to.deep.equal([
+                'types',
+                'pricing',
+            ]);
+            // title falls back to the namespace when no label placeholder
+            expect(groups[1].title).to.equal('pricing');
         });
 
         it("scopes a card's tags to the group namespaces", () => {

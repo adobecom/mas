@@ -13,29 +13,27 @@ export const tagLabel = (leaf, settings) => {
         : label;
 };
 
-// Author JSON -> sidenav groups (title, deeplink, single, checkboxes).
-export const normalizeCheckboxGroups = (checkboxGroups, settings) => {
-    const groups = Array.isArray(checkboxGroups)
-        ? checkboxGroups
-        : JSON.parse(checkboxGroups);
-    return groups.map((group) => {
-        const tags = group.tags ?? [];
-        const deeplink =
-            group.deeplink ?? parseTagFilter(tags[0] ?? '')[0] ?? group.label;
-        const checkboxes =
-            group.checkboxes ??
-            tags.map((tag) => {
-                const leaf = parseTagFilter(tag)[1] ?? tag;
-                return { name: leaf, label: tagLabel(leaf, settings) };
-            });
-        return {
-            title: group.title,
-            label: deeplink,
-            deeplink,
-            single: !!group.single,
-            checkboxes,
-        };
-    });
+// Author-picked tags -> one sidenav group per tag namespace. Titles and
+// option labels come from the resolved tag labels (coll-tag-filter
+// placeholders), falling back to the tag itself. A single namespace keeps the
+// authored title, for back-compat with the old Type filter.
+export const groupTagFilters = (tagFilters, title, settings) => {
+    const byNamespace = new Map();
+    for (const tag of tagFilters) {
+        const [namespace, leaf] = parseTagFilter(tag);
+        if (!namespace || !leaf) continue;
+        if (!byNamespace.has(namespace)) byNamespace.set(namespace, []);
+        byNamespace
+            .get(namespace)
+            .push({ name: leaf, label: tagLabel(leaf, settings) });
+    }
+    const single = byNamespace.size === 1;
+    return [...byNamespace.entries()].map(([namespace, checkboxes]) => ({
+        title: single && title ? title : tagLabel(namespace, settings),
+        label: namespace,
+        deeplink: namespace,
+        checkboxes,
+    }));
 };
 
 // A card's tags scoped to the group namespaces, as `ns:leaf` for filtering.

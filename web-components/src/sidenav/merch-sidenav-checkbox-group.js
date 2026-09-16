@@ -7,7 +7,6 @@ export class MerchSidenavCheckboxGroup extends LitElement {
         sidenavCheckboxTitle: { type: String },
         label: { type: String },
         deeplink: { type: String },
-        single: { type: Boolean },
         selectedValues: { type: Array, reflect: true },
         value: { type: String },
     };
@@ -39,18 +38,11 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     selectionChanged({ target }) {
         const name = target.getAttribute('name');
         if (name) {
-            if (this.single) {
-                this.selectedValues = target.checked ? [name] : [];
-                this.querySelectorAll('sp-checkbox').forEach((checkbox) => {
-                    if (checkbox !== target) checkbox.checked = false;
-                });
-            } else {
-                const index = this.selectedValues.indexOf(name);
-                if (target.checked && index === -1) {
-                    this.selectedValues.push(name);
-                } else if (!target.checked && index >= 0) {
-                    this.selectedValues.splice(index, 1);
-                }
+            const index = this.selectedValues.indexOf(name);
+            if (target.checked && index === -1) {
+                this.selectedValues.push(name);
+            } else if (!target.checked && index >= 0) {
+                this.selectedValues.splice(index, 1);
             }
         }
         pushStateFromComponent(this, this.selectedValues.join(','));

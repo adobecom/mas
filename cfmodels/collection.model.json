@@ -60,10 +60,6 @@
         "fieldLabel": "Tag filters",
         "type": "tag[]"
     },
-    "checkboxGroups": {
-        "fieldLabel": "Filter groups (JSON)",
-        "type": "string"
-    },
     "pznTags": {
         "fieldLabel": "Personalization tags",
         "type": "tag[]"

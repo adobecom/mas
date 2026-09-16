@@ -23,9 +23,8 @@ import {
 import { getFragmentMapping } from './variants/variants.js';
 import {
     matchesTagGroups,
-    normalizeCheckboxGroups,
+    groupTagFilters,
     cardFilterTags,
-    tagLabel,
 } from './tag-groups.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
@@ -70,10 +69,10 @@ const typeFilter = (elements, { types }) => {
     );
 };
 
-// Generic author-defined tag groups. No-op unless the collection opts in via
-// checkboxGroups, so catalog and current plans keep the legacy types path.
+// Filters cards against every author-defined tag group. No-op when a
+// collection has no tag groups.
 const tagGroupFilter = (elements, collection) => {
-    const groups = collection.checkboxGroups;
+    const groups = collection.tagGroups;
     if (!groups?.length) return elements;
     const state = parseState();
     return elements.filter((element) =>
@@ -312,8 +311,8 @@ export class MerchCardCollection extends LitElement {
         } else {
             this.startDeeplink();
         }
-        // Author-defined groups use arbitrary hash params; re-run filtering on any change.
-        if (this.checkboxGroups) {
+        // Tag groups use their own hash params; re-run filtering on any change.
+        if (this.tagGroups?.length) {
             this.stopFilterDeeplink = deeplink(() => this.requestUpdate());
         }
         this.initializePlaceholders();
@@ -410,31 +409,17 @@ export class MerchCardCollection extends LitElement {
         const self = this;
 
         function prepareSideNavSettings(fragment) {
-            // Support both checkboxGroups (direct format) and tagFilters (parsed format)
+            // One group per tag namespace picked in tagFilters. A collection
+            // with only Type tags stays a single Type group.
             let tagFilters;
             if (fragment.fields?.checkboxGroups) {
-                // Author-defined groups: name + tags + single/multi, any namespace.
-                tagFilters = normalizeCheckboxGroups(
-                    fragment.fields.checkboxGroups,
+                tagFilters = fragment.fields.checkboxGroups;
+            } else if (fragment.fields?.tagFilters?.length) {
+                tagFilters = groupTagFilters(
+                    fragment.fields.tagFilters,
+                    fragment.fields.tagFiltersTitle,
                     fragment.settings,
                 );
-            } else if (fragment.fields?.tagFilters) {
-                // Parse tagFilters into checkbox group format
-                tagFilters = [
-                    {
-                        title: fragment.fields?.tagFiltersTitle,
-                        label: 'types',
-                        deeplink: 'types',
-                        checkboxes: fragment.fields.tagFilters.map((tag) => {
-                            // Example: "mas:types/desktop" -> "desktop"
-                            const parsedTag = tag.split('/').pop();
-                            return {
-                                name: parsedTag,
-                                label: tagLabel(parsedTag, fragment.settings),
-                            };
-                        }),
-                    },
-                ];
             }
 
             return {
@@ -536,9 +521,7 @@ export class MerchCardCollection extends LitElement {
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
             this.limit = 27; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
-            this.checkboxGroups = event.detail.fields?.checkboxGroups
-                ? this.data.sidenavSettings.tagFilters
-                : null;
+            this.tagGroups = this.data.sidenavSettings?.tagFilters ?? null;
             if (event.detail.variationId) {
                 this.setAttribute('variation-id', event.detail.variationId);
             }
@@ -577,9 +560,9 @@ export class MerchCardCollection extends LitElement {
                     .join(',');
                 if (typesTags) merchCard.setAttribute('types', typesTags);
 
-                if (this.checkboxGroups) {
+                if (this.tagGroups) {
                     const namespaces = new Set(
-                        this.checkboxGroups.map((group) => group.deeplink),
+                        this.tagGroups.map((group) => group.deeplink),
                     );
                     const filterTags = cardFilterTags(
                         fragment.fields.tags,

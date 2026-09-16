@@ -141,10 +141,7 @@ export const PAGE_NAMES = {
     OFFER_MAPPING: 'offer-mapping',
 };
 
-export const TAG_STATUS_PUBLISHED = 'mas:status/published';
-export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
-export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
 export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
@@ -293,7 +290,17 @@ export const FRAGMENT_STATUS = {
     PUBLISHED: 'PUBLISHED',
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
+    NEW: 'NEW',
+    UNPUBLISHED: 'UNPUBLISHED',
 };
+
+export const FRAGMENT_STATUS_OPTIONS = [
+    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
+    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
+    { id: FRAGMENT_STATUS.NEW, title: 'New' },
+    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
+    { id: FRAGMENT_STATUS.UNPUBLISHED, title: 'Unpublished' },
+];
 
 export const TABLE_TYPE = {
     OFFERS: 'offers',
@@ -344,4 +351,14 @@ export const BASELINE_VARIATION = {
     TEXT: 'Baseline variation',
     TOOLTIP_TEXT:
         'This variation is the baseline for the project and inherits all geos tagged in the project. Any additional variations tagged with specific geos will override the baseline.',
+};
+
+export const STAGED = {
+    NAME: 'staged',
+    TAG: 'mas:studio/internal/staged',
+    DIALOG_CONFIRM_TEXT:
+        'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_CONFIRM_MULTIPLE_TEXT:
+        'Some of the selected fragments are currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_TITLE: 'Staged content warning',
 };

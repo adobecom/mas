@@ -28,7 +28,9 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
         });
 
         await test.step('step-4: Select the first fragment row', async () => {
-            await studio.tableViewRows.first().click();
+            const firstRow = studio.tableViewRows.first();
+            const actionsMenu = studio.tableViewActionsMenu(firstRow);
+            await actionsMenu.click();
         });
 
         await test.step('step-5: Verify Copy Content Link(s) button is visible in the selection action bar', async () => {

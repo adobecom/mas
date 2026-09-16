@@ -69,6 +69,27 @@
                 await filterPanel.updateComplete;
             }
 
+            function variationPresenceCheckbox(filterPanel, value) {
+                return filterPanel.shadowRoot.querySelector(
+                    `[data-filter-type="variation-presence"] sp-checkbox[value="${value}"]`,
+                );
+            }
+
+            async function toggleVariationPresence(filterPanel, value, checked) {
+                const checkbox = variationPresenceCheckbox(filterPanel, value);
+                checkbox.checked = checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await filterPanel.updateComplete;
+            }
+
+            async function clickVariationPresenceFooterButton(filterPanel, label) {
+                const buttons = filterPanel.shadowRoot.querySelectorAll(
+                    '[data-filter-type="variation-presence"] sp-button',
+                );
+                [...buttons].find((button) => button.textContent.trim() === label).click();
+                await filterPanel.updateComplete;
+            }
+
             runTests(async () => {
                 let fetchPromise;
                 const originalFetch = window.fetch;
@@ -177,6 +198,76 @@
 
                         expect(Store.filters.get().status).to.equal('MODIFIED');
                         expect(statusCheckbox(filterPanel, 'DRAFT').checked).to.be.false;
+                    });
+
+                    it('renders exactly two "Has variation?" options with no grouped option', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        const picker = filterPanel.shadowRoot.querySelector('[data-filter-type="variation-presence"]');
+                        expect(picker, 'variation presence picker should exist').to.exist;
+
+                        const labels = [...picker.querySelectorAll('sp-checkbox')].map((item) => item.textContent.trim());
+                        expect(labels).to.deep.equal(['Has promo variation', 'No variations']);
+                        expect(labels.some((label) => label.toLowerCase().includes('grouped'))).to.be.false;
+                    });
+
+                    it('Should have no selected "Has variation?" option by default', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        expect(filterPanel.selectedVariationPresence).to.deep.equal([]);
+                        const trigger = filterPanel.shadowRoot.querySelector(
+                            '[data-filter-type="variation-presence"] sp-action-button',
+                        );
+                        expect(trigger.textContent.trim()).to.equal('Has variation?');
+                    });
+
+                    it('Should update store with both variation presence options selected without clobbering existing filters', async function () {
+                        Store.filters.set({ tags: 'mas:offer_type/base', status: 'DRAFT' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        await toggleVariationPresence(filterPanel, 'has-promo-variation', true);
+                        await toggleVariationPresence(filterPanel, 'no-variations', true);
+                        await clickVariationPresenceFooterButton(filterPanel, 'Apply');
+
+                        expect(Store.filters.get().variationPresence).to.deep.equal([
+                            'has-promo-variation',
+                            'no-variations',
+                        ]);
+                        expect(Store.filters.get().tags).to.equal('mas:offer_type/base');
+                        expect(Store.filters.get().status).to.equal('DRAFT');
+                    });
+
+                    it('Should discard unapplied variation presence selections when the popover closes', async function () {
+                        Store.filters.set({ tags: '', variationPresence: ['has-promo-variation'] });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await toggleVariationPresence(filterPanel, 'no-variations', true);
+
+                        filterPanel.shadowRoot
+                            .querySelector('[data-filter-type="variation-presence"]')
+                            .dispatchEvent(new Event('sp-closed'));
+                        await filterPanel.updateComplete;
+
+                        expect(variationPresenceCheckbox(filterPanel, 'no-variations').checked).to.be.false;
+                        expect(variationPresenceCheckbox(filterPanel, 'has-promo-variation').checked).to.be.true;
+                    });
+
+                    it('Should remove a variation presence option from the store when its chip is deleted', async function () {
+                        Store.filters.set({ tags: '', variationPresence: ['has-promo-variation', 'no-variations'] });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await filterPanel.updateComplete;
+                        const chip = [...filterPanel.shadowRoot.querySelectorAll('sp-tag')].find(
+                            (tag) => tag.value === 'has-promo-variation',
+                        );
+
+                        chip.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+                        await filterPanel.updateComplete;
+
+                        expect(Store.filters.get().variationPresence).to.deep.equal(['no-variations']);
                     });
 
                     it('Should update tags when a tag is selected', async function () {

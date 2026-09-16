@@ -3,10 +3,12 @@ const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('..
 const {
     fetchFragmentByPath,
     fetchOdin,
+    getFragmentWithEtag,
     getTargetPath,
     getValue,
     getValues,
     getVariationParent,
+    parseOdinHttpStatus,
     postToOdin,
     processBatchWithConcurrency,
     putToOdin,
@@ -18,6 +20,7 @@ const logger = Core.Logger('translation', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 2;
 const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
+const DEFAULT_FIELD_PATCH_RETRIES = 3;
 
 function getOdinLocTaskNameValidationError(value) {
     const title = (value ?? '').trim();
@@ -465,6 +468,133 @@ async function updateTranslationDate(projectCF, etag, authToken, params = {}) {
     }
 }
 
+function buildFieldPatchOps(projectCF, fieldPatches) {
+    const ops = [];
+    for (const [fieldName, values] of Object.entries(fieldPatches)) {
+        const { path } = getValues(projectCF, fieldName) ?? {};
+        if (!path) {
+            return { missingField: fieldName };
+        }
+        ops.push({ op: 'replace', path: `${path}/values`, value: values });
+    }
+    return { ops };
+}
+
+/**
+ * Shared retry wrapper for the CF-mirror helpers below: runs `attempt()` up to
+ * `maxRetries` times, retrying only on a 412 etag conflict (detected via
+ * parseOdinHttpStatus on the thrown error) and giving up with a uniform
+ * {success:false} result once exhausted. Any other error is rethrown as-is.
+ * `attempt()` is called fresh each try, so it's expected to (re)fetch its own
+ * etag internally rather than reuse one from a previous attempt.
+ */
+async function retryOnEtagConflict(projectId, label, attempt, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+    for (let i = 1; i <= maxRetries; i++) {
+        try {
+            // eslint-disable-next-line no-await-in-loop
+            return await attempt();
+        } catch (error) {
+            if (parseOdinHttpStatus(error) !== 412) {
+                throw error;
+            }
+            if (i === maxRetries) {
+                logger.error(
+                    `Failed to ${label} for translation project ${projectId} after ${maxRetries} attempts due to etag conflicts`,
+                );
+                return { success: false, error: 'etag-conflict-retries-exhausted' };
+            }
+            logger.warn(`Etag conflict ${label} for translation project ${projectId} (attempt ${i}/${maxRetries}), retrying`);
+        }
+    }
+    return { success: false, error: 'etag-conflict-retries-exhausted' };
+}
+
+/**
+ * Fetch-modify-PATCH a set of fields on the translation-project CF, retrying on
+ * 412 etag conflicts by refetching the fragment and rebuilding the patch.
+ * @param {string} projectId
+ * @param {Object} fieldPatches - map of fieldName -> values
+ * @param {string} token
+ * @param {Object} params
+ * @returns {Promise<{success: boolean, etag?: string, error?: string}>}
+ */
+async function patchProjectFields(projectId, fieldPatches, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+    return retryOnEtagConflict(
+        projectId,
+        'patch fields',
+        async () => {
+            const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
+            const { ops: patchOps, missingField } = buildFieldPatchOps(fragment, fieldPatches);
+            if (missingField) {
+                logger.warn(`Field ${missingField} not found on translation project ${projectId}, aborting patch`);
+                return { success: false, error: 'field-not-found' };
+            }
+
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify(patchOps),
+            });
+
+            return { success: true, etag: response.headers.get('etag') };
+        },
+        maxRetries,
+    );
+}
+
+/**
+ * Append a locale to the CF's completedLocales field, idempotently and
+ * concurrency-safely (refetch-and-retry on 412 etag conflict).
+ * @param {string} projectId
+ * @param {string} locale
+ * @param {string} token
+ * @param {Object} params
+ * @returns {Promise<{success: boolean, skipped?: boolean, etag?: string, error?: string}>}
+ */
+async function addCompletedLocale(projectId, locale, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+    return retryOnEtagConflict(
+        projectId,
+        `add completed locale ${locale}`,
+        async () => {
+            const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
+            const { values: existing = [], path } = getValues(fragment, 'completedLocales') ?? {};
+            if (existing.includes(locale)) {
+                return { success: true, skipped: true };
+            }
+            if (!path) {
+                logger.warn(`completedLocales field not found on translation project ${projectId}, skipping`);
+                return { success: false, error: 'field-not-found' };
+            }
+
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify([{ op: 'replace', path: `${path}/values`, value: [...existing, locale] }]),
+            });
+
+            return { success: true, etag: response.headers.get('etag') };
+        },
+        maxRetries,
+    );
+}
+
+/**
+ * Set the CF status field, retrying on 412 etag conflicts via the same shared
+ * primitive as patchProjectFields/addCompletedLocale. Unlike them,
+ * updateProjectStatus always fetches its own fresh etag internally, so a
+ * conflict is retried by simply calling it again.
+ */
+async function setProjectStatus(projectId, status, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+    return retryOnEtagConflict(
+        projectId,
+        'set status',
+        () => updateProjectStatus(projectId, status, token, params),
+        maxRetries,
+    );
+}
+
 async function updateProjectStatus(projectId, status, authToken, params = {}, etag = null) {
     const { projectCF, etag: fetchedEtag } = await getTranslationProject(projectId, authToken, params);
     const statusField = getValues(projectCF, 'status');
@@ -490,4 +620,7 @@ module.exports = {
     createProjectStartError,
     isProjectStartError,
     updateProjectStatus,
+    patchProjectFields,
+    addCompletedLocale,
+    setProjectStatus,
 };

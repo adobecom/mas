@@ -13,10 +13,8 @@ export const tagLabel = (leaf, settings) => {
         : label;
 };
 
-// Author-picked tags -> one sidenav group per tag namespace. Titles and
-// option labels come from the resolved tag labels (coll-tag-filter
-// placeholders), falling back to the tag itself. A single namespace keeps the
-// authored title, for back-compat with the old Type filter.
+// One sidenav group per tag namespace. Titles/labels come from the tag labels,
+// falling back to the tag; a lone namespace keeps the authored title.
 export const groupTagFilters = (tagFilters, title, settings) => {
     const byNamespace = new Map();
     for (const tag of tagFilters) {

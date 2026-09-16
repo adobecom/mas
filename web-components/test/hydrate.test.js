@@ -247,6 +247,20 @@ describe('processCTAs', async () => {
         expect(link.classList.contains('blue')).to.be.true;
     });
 
+    it('should preserve authored aria-label on consonant checkout links', async () => {
+        merchCard.consonant = true;
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" aria-label="Authored checkout name">Click me</a>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const link = getFooterElement(merchCard).firstChild;
+        expect(link.getAttribute('aria-label')).to.equal(
+            'Authored checkout name',
+        );
+    });
+
     it('should handle multiple CTAs', async () => {
         const fields = {
             ctas: `\n                <a is="checkout-link" data-wcs-osi="abm" class="accent">Accent</a>\n                <a is="checkout-link" data-wcs-osi="abm" class="primary">Primary</a>\n                <a is="checkout-link" data-wcs-osi="abm" class="secondary">Secondary</a>\n            `,

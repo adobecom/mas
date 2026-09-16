@@ -5,6 +5,7 @@ import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 import { FRAGMENT_STATUS_OPTIONS } from '../constants.js';
+import { VARIATION_PRESENCE_OPTIONS } from './variation-presence-filter.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -31,6 +32,8 @@ class MasFilterPanel extends LitElement {
         tagsByType: { type: Object, state: true },
         selectedStatuses: { type: Array, state: true },
         pendingStatuses: { type: Array, state: true },
+        selectedVariationPresence: { type: Array, state: true },
+        pendingVariationPresence: { type: Array, state: true },
     };
 
     static styles = css`
@@ -123,6 +126,8 @@ class MasFilterPanel extends LitElement {
         };
         this.selectedStatuses = [];
         this.pendingStatuses = [];
+        this.selectedVariationPresence = [];
+        this.pendingVariationPresence = [];
     }
 
     firstUpdated() {
@@ -146,6 +151,8 @@ class MasFilterPanel extends LitElement {
         const filters = Store.filters.get();
         this.selectedStatuses = filters.status ? filters.status.split(',') : [];
         this.pendingStatuses = this.selectedStatuses;
+        this.selectedVariationPresence = Array.isArray(filters.variationPresence) ? filters.variationPresence : [];
+        this.pendingVariationPresence = this.selectedVariationPresence;
         if (!filters.tags) return;
         this.tagsByType = filters.tags.split(',').reduce(
             (acc, tag) => {
@@ -334,6 +341,42 @@ class MasFilterPanel extends LitElement {
         this.#setStatuses(this.selectedStatuses.filter((status) => status !== e.target.value));
     }
 
+    get #variationPresenceTrigger() {
+        return this.shadowRoot.querySelector('overlay-trigger[data-filter-type="variation-presence"]');
+    }
+
+    #setVariationPresence(variationPresence) {
+        this.selectedVariationPresence = variationPresence;
+        this.pendingVariationPresence = variationPresence;
+        Store.filters.set((prev) => ({
+            ...prev,
+            variationPresence: variationPresence.length ? variationPresence : undefined,
+        }));
+    }
+
+    #handleVariationPresenceChange(optionId, e) {
+        this.pendingVariationPresence = e.target.checked
+            ? [...this.pendingVariationPresence, optionId]
+            : this.pendingVariationPresence.filter((value) => value !== optionId);
+    }
+
+    #applyVariationPresence() {
+        this.#setVariationPresence(this.pendingVariationPresence);
+        this.#variationPresenceTrigger.open = false;
+    }
+
+    #resetPendingVariationPresence() {
+        this.pendingVariationPresence = [];
+    }
+
+    #discardPendingVariationPresence() {
+        this.pendingVariationPresence = this.selectedVariationPresence;
+    }
+
+    #handleVariationPresenceDelete(e) {
+        this.#setVariationPresence(this.selectedVariationPresence.filter((value) => value !== e.target.value));
+    }
+
     #handleRefresh() {
         Store.search.set((prev) => ({
             ...prev,
@@ -344,6 +387,7 @@ class MasFilterPanel extends LitElement {
             ...prev,
             tags: '',
             status: undefined,
+            variationPresence: undefined,
             personalizationFilterEnabled: false,
         }));
 
@@ -352,6 +396,8 @@ class MasFilterPanel extends LitElement {
         this.tagsByType = { ...EMPTY_TAGS };
         this.selectedStatuses = [];
         this.pendingStatuses = [];
+        this.selectedVariationPresence = [];
+        this.pendingVariationPresence = [];
         this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
             tagPicker.clear();
         });
@@ -428,6 +474,55 @@ class MasFilterPanel extends LitElement {
         `;
     }
 
+    #renderVariationPresencePicker() {
+        const selectedCount = this.selectedVariationPresence.length;
+        const displayLabel = selectedCount > 0 ? `Has variation? (${selectedCount})` : 'Has variation?';
+        const pendingCount = this.pendingVariationPresence.length;
+
+        return html`
+            <overlay-trigger
+                class="status-filter-trigger"
+                placement="bottom"
+                data-filter-type="variation-presence"
+                @sp-closed=${this.#discardPendingVariationPresence}
+            >
+                <sp-action-button slot="trigger" quiet aria-label="Has variation?">
+                    ${displayLabel}
+                    <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
+                </sp-action-button>
+                <sp-popover slot="click-content" class="status-filter-popover">
+                    <div class="status-filter-content">
+                        <div class="checkbox-list">
+                            ${VARIATION_PRESENCE_OPTIONS.map(
+                                (option) => html`
+                                    <sp-checkbox
+                                        value=${option.id}
+                                        .checked=${this.pendingVariationPresence.includes(option.id)}
+                                        @change=${(e) => this.#handleVariationPresenceChange(option.id, e)}
+                                    >
+                                        ${option.title}
+                                    </sp-checkbox>
+                                `,
+                            )}
+                        </div>
+                        <div class="status-filter-footer">
+                            <span>${pendingCount} selected</span>
+                            <sp-button
+                                size="s"
+                                variant="secondary"
+                                treatment="outline"
+                                @click=${this.#resetPendingVariationPresence}
+                            >
+                                Reset
+                            </sp-button>
+                            <sp-button size="s" @click=${this.#applyVariationPresence}>Apply</sp-button>
+                        </div>
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+    }
+
     render() {
         return html`
             <div id="filters">
@@ -492,7 +587,7 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                ${this.#renderStatusPicker()}
+                ${this.#renderStatusPicker()} ${this.#renderVariationPresencePicker()}
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -556,6 +651,15 @@ class MasFilterPanel extends LitElement {
                     (option) => option.id,
                     (option) => html`
                         <sp-tag size="s" deletable @delete=${this.#handleStatusDelete} .value=${option.id}
+                            >${option.title}</sp-tag
+                        >
+                    `,
+                )}
+                ${repeat(
+                    VARIATION_PRESENCE_OPTIONS.filter((option) => this.selectedVariationPresence.includes(option.id)),
+                    (option) => option.id,
+                    (option) => html`
+                        <sp-tag size="s" deletable @delete=${this.#handleVariationPresenceDelete} .value=${option.id}
                             >${option.title}</sp-tag
                         >
                     `,

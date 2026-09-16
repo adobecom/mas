@@ -244,6 +244,7 @@ async function recordFragmentLocaleStatus(projectId, sourcePath, locale, status,
 }
 
 module.exports = {
+    PENDING,
     JOB_PAYLOAD_TTL,
     PROJECT_SUMMARY_TTL,
     JOB_PAYLOAD_TTL_PARAM,

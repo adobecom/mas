@@ -10,7 +10,9 @@ import {
     TRANSLATION_PROJECT_MODEL_PATH,
 } from '../../src/constants.js';
 import {
+    ARTIFACT_TYPE_KEYS,
     REFERENCED_BY_PAGE_LIMIT,
+    REFERENCE_TYPES,
     buildGroupKey,
     chooseRepresentative,
     fetchAllReferencingItems,
@@ -35,6 +37,26 @@ describe('references-repository', () => {
 
     afterEach(() => {
         sandbox.restore();
+    });
+
+    describe('ARTIFACT_TYPE_KEYS (displayed types)', () => {
+        it('lists the four Figma artifact types in order and excludes cards/other', () => {
+            expect(ARTIFACT_TYPE_KEYS).to.deep.equal([
+                'collections',
+                'bulkPublishProjects',
+                'promoProjects',
+                'localizationProjects',
+            ]);
+            expect(ARTIFACT_TYPE_KEYS).to.not.include('cards');
+            expect(ARTIFACT_TYPE_KEYS).to.not.include('other');
+        });
+
+        it('uses the singular Figma labels for the project types', () => {
+            const labelOf = (key) => REFERENCE_TYPES.find((type) => type.key === key)?.label;
+            expect(labelOf('bulkPublishProjects')).to.equal('Bulk Publish Project');
+            expect(labelOf('promoProjects')).to.equal('Promo Project');
+            expect(labelOf('localizationProjects')).to.equal('Translation Project');
+        });
     });
 
     describe('isGroupedVariationReference (pzn predicate)', () => {

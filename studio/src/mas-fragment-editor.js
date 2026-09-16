@@ -14,8 +14,8 @@ import {
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
-import { getReferencingFragments } from './references/references-repository.js';
-import { fetchFragmentUsage } from './references/usage-repository.js';
+import { ARTIFACT_TYPE_KEYS, getReferencingFragments } from './references/references-repository.js';
+import './references/mas-related-artifacts-dialog.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/variation-utils.js';
 import {
@@ -598,10 +598,7 @@ export default class MasFragmentEditor extends LitElement {
         referencingFragments: { type: Object, state: true },
         isLoadingReferencingFragments: { type: Boolean, state: true },
         referencingFragmentsError: { type: Boolean, state: true },
-        expandedReferenceTypes: { type: Object, state: true },
-        fragmentUsage: { type: Object, state: true },
-        usageExpanded: { type: Boolean, state: true },
-        isLoadingFragmentUsage: { type: Boolean, state: true },
+        artifactsDialogOpen: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -622,9 +619,6 @@ export default class MasFragmentEditor extends LitElement {
     #referencingLoadedForId = null;
     #referencingLoadingForId = null;
     #referencingAbortController = null;
-    #usageLoadToken = 0;
-    #usageFragmentId = null;
-    #usageCache = new Map();
 
     get localeDefaultFragment() {
         return this.editorContextStore?.localeDefaultFragment ?? null;
@@ -669,10 +663,7 @@ export default class MasFragmentEditor extends LitElement {
         this.referencingFragments = null;
         this.isLoadingReferencingFragments = false;
         this.referencingFragmentsError = false;
-        this.expandedReferenceTypes = new Set();
-        this.fragmentUsage = null;
-        this.usageExpanded = false;
-        this.isLoadingFragmentUsage = false;
+        this.artifactsDialogOpen = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -763,7 +754,6 @@ export default class MasFragmentEditor extends LitElement {
 
         void this.#loadPromotionGeoOptions().then(() => this.#loadDisabledPromoGeoOptions());
         void this.#maybeLoadReferencingFragments();
-        this.#resetUsageOnFragmentChange();
     }
 
     async #loadDisabledPromoGeoOptions() {
@@ -2237,155 +2227,69 @@ export default class MasFragmentEditor extends LitElement {
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }
 
-    // PROTOTYPE (epic 4A, MWPW-185891): consumer usage from Akamai logs via Grafana. fetchFragmentUsage
-    // targets a future IO proxy and degrades to { available: false }, so this stays invisible until the
-    // proxy + service token exist. Guarded to card/collection like the reference loader.
-    // Usage hits the shared Grafana/Hydrolix cluster, so it is LAZY: reset (collapsed, cleared) when
-    // the fragment changes, fetch only when the author expands the section, and cache the result per
-    // fragment id for the session so re-expanding never re-queries.
-    #resetUsageOnFragmentChange() {
-        const id = this.fragment?.id ?? null;
-        if (id === this.#usageFragmentId) return;
-        this.#usageFragmentId = id;
-        this.usageExpanded = false;
-        this.fragmentUsage = null;
-        this.isLoadingFragmentUsage = false;
+    // referencingFragments is null until the first load resolves; normalize to an array for render.
+    get referencingBuckets() {
+        return Array.isArray(this.referencingFragments) ? this.referencingFragments : [];
     }
 
-    #toggleUsage() {
-        this.usageExpanded = !this.usageExpanded;
-        if (this.usageExpanded) void this.#loadFragmentUsageFor(this.fragment);
-    }
-
-    async #loadFragmentUsageFor(fragment) {
-        if (!fragment?.id) return;
-        if (this.#usageCache.has(fragment.id)) {
-            this.fragmentUsage = this.#usageCache.get(fragment.id);
-            return;
-        }
-        const token = ++this.#usageLoadToken;
-        this.fragmentUsage = null;
-        this.isLoadingFragmentUsage = true;
-        const usage = await fetchFragmentUsage(fragment.id);
-        if (token !== this.#usageLoadToken) return;
-        this.isLoadingFragmentUsage = false;
-        this.#usageCache.set(fragment.id, usage);
-        this.fragmentUsage = usage;
-    }
-
-    #renderUsageBody() {
-        if (this.isLoadingFragmentUsage) return html`<div class="referencing-message">Loading usage…</div>`;
-        const usage = this.fragmentUsage;
-        if (!usage?.available) return html`<div class="referencing-message">Usage data unavailable</div>`;
-        if (!usage.rows?.length)
-            return html`<div class="referencing-message">No usage found for this fragment (last 7 days)</div>`;
-        return html`
-            <div class="reference-type-rows">
-                <div class="referencing-message">${usage.totalCount} requests</div>
-                ${usage.rows.map(
-                    (row) => html`
-                        <div class="referencing-row">
-                            <span class="referencing-title"
-                                >${row.apiKey || 'unknown'} / ${row.locale || '--'} / ${row.country || '--'}</span
-                            >
-                            <span class="referencing-status">${row.count}</span>
-                        </div>
-                    `,
-                )}
-            </div>
-        `;
-    }
-
-    // Lazy usage collapsible (last 7 days), placed below References. Fetches only on expand.
-    get usageSection() {
-        const modelPath = this.fragment?.model?.path;
-        if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return nothing;
-        return html`
-            <div class="references-container">
-                <div class="reference-type-section">
-                    <sp-action-button quiet class="reference-type-toggle" @click=${() => this.#toggleUsage()}>
-                        ${this.usageExpanded
-                            ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
-                            : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
-                        Usage (last 7 days)
-                    </sp-action-button>
-                    ${this.usageExpanded ? this.#renderUsageBody() : nothing}
-                </div>
-            </div>
-        `;
-    }
-
-    #renderReferencingRow(row) {
-        const rep = row.representative;
-        const title = row.title ?? rep?.path?.split('/').pop() ?? '';
-        const localeBadge =
-            row.localeCount > 1 ? html`<span class="referencing-locale-count">${row.localeCount} locales</span>` : nothing;
-        const statusChip = rep?.status ? html`<span class="referencing-status">${rep.status}</span>` : nothing;
-        const content = html`<span class="referencing-title">${title}</span>${localeBadge}${statusChip}`;
-        // Collections deep-link; bulk-publish-projects have no card deep link, so render them plain
-        // rather than as a dead anchor.
-        if (rep?.link) {
-            return html`
-                <a class="referencing-row clickable" href=${rep.link} target="_blank" rel="noopener">
-                    ${content}
-                    <sp-icon-open-in size="s"></sp-icon-open-in>
-                </a>
-            `;
-        }
-        return html`<div class="referencing-row">${content}</div>`;
-    }
-
-    #toggleReferenceType(key) {
-        const next = new Set(this.expandedReferenceTypes);
-        if (next.has(key)) next.delete(key);
-        else next.add(key);
-        this.expandedReferenceTypes = next;
-    }
-
-    #renderReferenceTypeSection(bucket) {
-        const expanded = this.expandedReferenceTypes.has(bucket.key);
-        return html`
-            <div class="reference-type-section">
-                <sp-action-button quiet class="reference-type-toggle" @click=${() => this.#toggleReferenceType(bucket.key)}>
-                    ${expanded
-                        ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
-                        : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
-                    ${bucket.label} (${bucket.rows.length})
-                </sp-action-button>
-                ${expanded
-                    ? html`<div class="reference-type-rows">${bucket.rows.map((row) => this.#renderReferencingRow(row))}</div>`
-                    : nothing}
-            </div>
-        `;
-    }
-
-    // "References" section, placed below grouped variations. Per-type collapsibles (Collections,
-    // Cards, Promo/Bulk Publish/Localization Projects, Other), collapsed by default.
-    get referencesSection() {
+    // "Related studio artifacts" summary box, placed below grouped variations: one count line per
+    // internal artifact type (Collections, Bulk Publish / Promo / Translation Project). The "View
+    // artifacts" link opens the full, per-type list in a modal. Card-variation references are
+    // excluded upstream by getReferencingFragments.
+    get relatedArtifactsSection() {
         if (!this.fragment) return nothing;
-        const title = html`<div class="references-title">References</div>`;
+        const title = html`<div class="references-title">Related studio artifacts:</div>`;
         if (this.isLoadingReferencingFragments) {
             return html`<div class="references-container">
                 ${title}
-                <div class="referencing-message">Loading references…</div>
+                <div class="referencing-message">Loading…</div>
             </div>`;
         }
         if (this.referencingFragmentsError) {
             return html`<div class="references-container references-error">
                 ${title}
-                <div class="referencing-message">References unavailable</div>
+                <div class="referencing-message">Related studio artifacts unavailable</div>
             </div>`;
         }
-        const buckets = this.referencingFragments;
-        if (!Array.isArray(buckets) || !buckets.length) {
-            return html`<div class="references-container">
-                ${title}
-                <div class="referencing-message">No references found</div>
-            </div>`;
-        }
-        return html`<div class="references-container">
-            ${title}${buckets.map((bucket) => this.#renderReferenceTypeSection(bucket))}
-        </div>`;
+        const bucketsByKey = new Map(this.referencingBuckets.map((bucket) => [bucket.key, bucket]));
+        const displayBuckets = ARTIFACT_TYPE_KEYS.map((key) => bucketsByKey.get(key)).filter((bucket) => bucket?.rows.length);
+        if (!displayBuckets.length) return nothing;
+        return html`
+            <div class="references-container">
+                <div class="artifacts-header">
+                    ${title}
+                    <a class="artifacts-view-link clickable" @click=${() => this.#openArtifactsDialog()}>
+                        <span>View artifacts</span>
+                        <sp-icon-open-in size="s"></sp-icon-open-in>
+                    </a>
+                </div>
+                <div class="artifacts-counts">
+                    ${displayBuckets.map(
+                        (bucket) => html`<div class="artifacts-count-line">${bucket.rows.length} ${bucket.label}</div>`,
+                    )}
+                </div>
+            </div>
+        `;
+    }
+
+    // Rendered at the editor's top level (not inside the sticky preview column) so the modal overlay
+    // is not trapped in that stacking context.
+    get relatedArtifactsDialog() {
+        return html`
+            <mas-related-artifacts-dialog
+                .open=${this.artifactsDialogOpen}
+                .buckets=${this.referencingBuckets}
+                @close=${() => this.#closeArtifactsDialog()}
+            ></mas-related-artifacts-dialog>
+        `;
+    }
+
+    #openArtifactsDialog() {
+        this.artifactsDialogOpen = true;
+    }
+
+    #closeArtifactsDialog() {
+        this.artifactsDialogOpen = false;
     }
 
     get fragmentEditor() {
@@ -2507,7 +2411,7 @@ export default class MasFragmentEditor extends LitElement {
                         ${this.previewErrorMessages}
                     </div>
                 </div>
-                ${this.relatedVariationsSection} ${this.referencesSection} ${this.usageSection}
+                ${this.relatedVariationsSection} ${this.relatedArtifactsSection}
             </div>
         `;
     }
@@ -2628,7 +2532,7 @@ export default class MasFragmentEditor extends LitElement {
                     ${this.previewColumn}
                 </div>
                 ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
-                ${this.copyVariationDialog}
+                ${this.copyVariationDialog} ${this.relatedArtifactsDialog}
             </div>
         `;
     }

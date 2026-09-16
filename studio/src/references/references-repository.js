@@ -243,27 +243,31 @@ export const REFERENCE_TYPES = [
     { key: 'cards', label: 'Cards', grouping: 'locale', match: (r) => r.model?.path === CARD_MODEL_PATH },
     {
         key: 'promoProjects',
-        label: 'Promo Projects',
+        label: 'Promo Project',
         grouping: 'flat',
         match: (r) => r.model?.path === PROMOTION_MODEL_PATH,
         buildLink: (item) => buildPromoProjectDeepLink(item.id),
     },
     {
         key: 'bulkPublishProjects',
-        label: 'Bulk Publish Projects',
+        label: 'Bulk Publish Project',
         grouping: 'flat',
         match: (r) => r.model?.path === BULK_PUBLISH_PROJECT_MODEL_PATH,
         buildLink: (item) => buildBulkPublishProjectDeepLink(item.id),
     },
     {
         key: 'localizationProjects',
-        label: 'Localization Projects',
+        label: 'Translation Project',
         grouping: 'flat',
         match: (r) => r.model?.path === TRANSLATION_PROJECT_MODEL_PATH,
         buildLink: (item) => buildTranslationProjectDeepLink(item.id),
     },
     { key: 'other', label: 'Other', grouping: 'flat', match: () => true, buildLink: () => null },
 ];
+
+// The artifact types shown in the "Related studio artifacts" box + modal, in display order. Cards
+// and the "other" catch-all are classified for correctness but not surfaced in this UI (per Figma).
+export const ARTIFACT_TYPE_KEYS = ['collections', 'bulkPublishProjects', 'promoProjects', 'localizationProjects'];
 
 /**
  * Classifies a raw `referencedBy` item into one of REFERENCE_TYPES by its model, returning the

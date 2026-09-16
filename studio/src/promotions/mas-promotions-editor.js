@@ -59,6 +59,8 @@ import {
     applyPromotionOfferProductTagsToSearch,
     collectPromotionOfferProductTags,
     extractPromotionItemProductCodeTagIds,
+    buildDuplicatePromotionToastArgs,
+    getPromotionTitles,
     PROMOTION_FIELD_TYPE_MAP,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
@@ -81,7 +83,11 @@ import {
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
-import { getAllAttachedPromoVariations } from './promotions-repository.js';
+import {
+    duplicatePromotionProject,
+    getAllAttachedPromoVariations,
+    getPromotionProjectsForProbe,
+} from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -165,6 +171,7 @@ class MasPromotionsEditor extends LitElement {
     #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
+    #duplicateExistingTitles = [];
     #boundHandleOstOfferSelect = null;
     #promoCodesManagerLoading = false;
 
@@ -910,7 +917,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleDuplicatePromotion() {
-        if (!this.fragment?.id || this.isNewPromotion) return;
+        if (!this.fragment?.id || this.isNewPromotion || this.duplicating) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
             showToast('Save your changes before duplicating.', 'info');
             return;
@@ -920,18 +927,30 @@ class MasPromotionsEditor extends LitElement {
             showToast(validationMessage, 'negative');
             return;
         }
-        this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
-        this.duplicateDialogOpen = true;
+        this.duplicating = true;
+        try {
+            this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
+            const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            this.#duplicateExistingTitles = getPromotionTitles(projects);
+            this.duplicateDialogOpen = true;
+        } catch (error) {
+            console.error('Error loading promotion projects for duplicate check:', error);
+            showToast('Failed to prepare duplicate dialog.', 'negative');
+        } finally {
+            this.duplicating = false;
+        }
     }
 
-    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+    #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
         this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
-            const newPromotion = await this.repository.createFragment(this.#buildPromotionFragmentPayload(title), false);
-            if (!newPromotion) return;
+            const { newPromotion, failedVariations } = await duplicatePromotionProject(this.repository, this.fragment, {
+                title,
+                duplicateVariations,
+            });
             clearCaches();
-            showToast('Project successfully duplicated.', 'positive');
+            showToast(...buildDuplicatePromotionToastArgs(failedVariations));
             Store.promotions.inEdit.set(new FragmentStore(new Promotion(newPromotion)));
             Store.promotions.promotionId.set(newPromotion.id);
             this.isNewPromotion = false;
@@ -943,7 +962,7 @@ class MasPromotionsEditor extends LitElement {
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
             console.error('Error duplicating promotion:', error);
-            showToast('Failed to duplicate project.', 'negative');
+            showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
         } finally {
             this.duplicating = false;
         }
@@ -1029,6 +1048,9 @@ class MasPromotionsEditor extends LitElement {
         }
         if (this.promotionPublish) {
             disabled.add(QUICK_ACTION.UNPUBLISH);
+        }
+        if (this.duplicating) {
+            disabled.add(QUICK_ACTION.DUPLICATE);
         }
         return disabled;
     }
@@ -1655,6 +1677,7 @@ class MasPromotionsEditor extends LitElement {
             <mas-promotion-duplicate-dialog
                 .open=${this.duplicateDialogOpen}
                 .proposedTitle=${this.#duplicateProposedTitle}
+                .existingTitles=${this.#duplicateExistingTitles}
                 @duplicate-confirmed=${this.#onDuplicateConfirmed}
                 @duplicate-cancelled=${() => {
                     this.duplicateDialogOpen = false;
@@ -1897,7 +1920,7 @@ class MasPromotionsEditor extends LitElement {
                     ></mas-promo-codes-manager>
                 </div>
             </div>
-            ${this.fragment
+            ${this.fragment && !this.duplicateDialogOpen && !this.confirmDialogConfig
                 ? html`<mas-quick-actions
                       drag-handle-style="bar"
                       .actions=${PROMOTION_QUICK_ACTIONS}

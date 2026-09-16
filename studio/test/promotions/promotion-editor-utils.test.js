@@ -1,6 +1,5 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../../src/store.js';
-import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
     pruneOrphanedGroupedVariationSelection,
@@ -1165,20 +1164,18 @@ describe('promotion-editor-utils', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
             Store.promotions.offerRecordsCache.clear();
-            setItemsSelectionStore(Store.promotions);
-        });
-
-        afterEach(() => {
-            setItemsSelectionStore(null);
         });
 
         it('adds the offer to selectedOffers and returns true', async () => {
-            const added = await handlePromotionOstOfferSelect({
-                detail: {
-                    offerSelectorId: 'phsp-osi',
-                    offer: { product_arrangement_code: 'PA-999', product_code: 'PHSP' },
+            const added = await handlePromotionOstOfferSelect(
+                {
+                    detail: {
+                        offerSelectorId: 'phsp-osi',
+                        offer: { product_arrangement_code: 'PA-999', product_code: 'PHSP' },
+                    },
                 },
-            });
+                Store.promotions,
+            );
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
             expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.true;
@@ -1186,26 +1183,32 @@ describe('promotion-editor-utils', () => {
 
         it('returns false and does not duplicate when offer is already selected', async () => {
             Store.promotions.selectedOffers.set(['phsp-osi']);
-            const added = await handlePromotionOstOfferSelect({
-                detail: {
-                    offerSelectorId: 'phsp-osi',
-                    offer: { product_arrangement_code: 'PA-999' },
+            const added = await handlePromotionOstOfferSelect(
+                {
+                    detail: {
+                        offerSelectorId: 'phsp-osi',
+                        offer: { product_arrangement_code: 'PA-999' },
+                    },
                 },
-            });
+                Store.promotions,
+            );
             expect(added).to.be.false;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
         });
 
         it('still adds the offer when commerce service is unavailable (no productArrangementCode)', async () => {
-            const added = await handlePromotionOstOfferSelect({
-                detail: { offerSelectorId: 'unknown-osi', offer: {} },
-            });
+            const added = await handlePromotionOstOfferSelect(
+                {
+                    detail: { offerSelectorId: 'unknown-osi', offer: {} },
+                },
+                Store.promotions,
+            );
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.include('unknown-osi');
         });
 
         it('returns false for a missing offerSelectorId', async () => {
-            const added = await handlePromotionOstOfferSelect({ detail: { offerSelectorId: '', offer: {} } });
+            const added = await handlePromotionOstOfferSelect({ detail: { offerSelectorId: '', offer: {} } }, Store.promotions);
             expect(added).to.be.false;
         });
     });

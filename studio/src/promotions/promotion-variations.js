@@ -24,6 +24,10 @@ export const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 // Page size for folder search cursor (generator still walks all pages).
 const VARIATION_SEARCH_PAGE_SIZE = 50;
 
+// How many times / how often we re-check the search index before giving up and moving on.
+const INDEX_POLL_MAX_ATTEMPTS = 10;
+const INDEX_POLL_INTERVAL_MS = 500;
+
 /**
  * Extracts 'pznTags' values from a raw fragment payload.
  * @param {{ fields?: Array<{ name?: string, values?: unknown[] }> }} fragment
@@ -219,6 +223,25 @@ export function getNextAvailablePromoVariationIndex(usedIndices, defaultPath, at
 }
 
 /**
+ * Waits until the just-created variation shows up in the search index, instead of a fixed delay.
+ * If it never catches up in time, this gives up quietly (not fatal, just risks a rare false
+ * collision on the next sibling) rather than throwing.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @param {string} promoTagId
+ * @param {string} createdPath
+ * @returns {Promise<void>}
+ */
+async function waitForPromoVariationIndexed(aem, defaultPath, promoTagId, createdPath) {
+    for (let attempt = 0; attempt < INDEX_POLL_MAX_ATTEMPTS; attempt += 1) {
+        const siblings = await probePromoVariationsForFragment(aem, defaultPath, promoTagId);
+        if (siblings.some((sibling) => sibling.path === createdPath)) return;
+        await aem.wait(INDEX_POLL_INTERVAL_MS);
+    }
+    console.warn(`Promo variation ${createdPath} was not indexed after ${INDEX_POLL_MAX_ATTEMPTS} attempts.`);
+}
+
+/**
  * Creates a promo variation for a fragment (default or grouped variation) inside promotions/{promoName}/.
  * Supports multiple variations per fragment using unique geo/locale tags (`pznTags`).
  * Adds a numeric suffix ("-<index>") to the path for any subsequent variations to avoid collisions.
@@ -228,15 +251,23 @@ export function getNextAvailablePromoVariationIndex(usedIndices, defaultPath, at
  * @param {string} promoTagId
  * @param {string[]} [geoTags]
  * @param {string[]} [attachedFragmentPaths]
+ * @param {Object} [preloadedSourceFragment]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], attachedFragmentPaths = []) {
+export async function createPromoVariation(
+    aem,
+    sourceFragmentId,
+    promoTagId,
+    geoTags = [],
+    attachedFragmentPaths = [],
+    preloadedSourceFragment = null,
+) {
     const promoName = getPromoNameFromTag(promoTagId);
     if (!promoName) {
         throw new UserFriendlyError('Invalid promotion tag');
     }
 
-    const sourceFragment = await aem.sites.cf.fragments.getById(sourceFragmentId);
+    const sourceFragment = preloadedSourceFragment ?? (await aem.sites.cf.fragments.getById(sourceFragmentId));
     if (!sourceFragment) {
         throw new Error('Failed to fetch source fragment');
     }
@@ -312,6 +343,8 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     if (!createdFragment) {
         throw new Error('Failed to create promo variation');
     }
+
+    await waitForPromoVariationIndexed(aem, sourceFragment.path, promoTagId, createdFragment.path);
 
     return createdFragment;
 }
@@ -520,6 +553,7 @@ function rankDefaultCandidate(candidate, attachedSet) {
  * @param {string} promoVariationPath
  * @param {string} [promoVariationId]
  * @param {string[]} [attachedFragmentPaths]
+ * @param {string} [knownPromoTagId]
  * @returns {Promise<Object|null>}
  */
 export async function resolveDefaultFragmentForPromoVariation(
@@ -527,9 +561,10 @@ export async function resolveDefaultFragmentForPromoVariation(
     promoVariationPath,
     promoVariationId,
     attachedFragmentPaths = [],
+    knownPromoTagId = null,
 ) {
-    let promoTag = null;
-    if (promoVariationId) {
+    let promoTag = knownPromoTagId;
+    if (!promoTag && promoVariationId) {
         const variation = await aem.sites.cf.fragments.getById(promoVariationId);
         promoTag = getPromotionTagFromFragment(variation);
     }

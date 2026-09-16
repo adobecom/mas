@@ -29,6 +29,7 @@ export default class PlaceholdersPage {
 
         // Creation modal
         this.creationModal = page.locator('mas-placeholders-creation-modal');
+        this.creationModalKeyInput = this.creationModal.locator('#placeholder-key');
 
         // Selection panel
         this.selectionPanel = page.locator('mas-selection-panel');
@@ -77,6 +78,15 @@ export default class PlaceholdersPage {
     async clickCreateButton() {
         await this.createButton.click();
         await this.creationModal.waitFor({ timeout: 10000 });
+    }
+
+    async typePlaceholderKey(text) {
+        await this.creationModalKeyInput.click();
+        await this.creationModalKeyInput.pressSequentially(text);
+    }
+
+    async getPlaceholderKeyValue() {
+        return this.creationModalKeyInput.inputValue();
     }
 
     async selectLocale(locale) {

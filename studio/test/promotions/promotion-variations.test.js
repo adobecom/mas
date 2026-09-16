@@ -523,6 +523,51 @@ describe('promotion-variations', () => {
             const result = await createPromoVariation(aemForSecond, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
             expect(result).to.deep.equal({ id: 'second-var', path: secondVariationPath });
         });
+
+        it('retries the collision search until the newly created variation is indexed before resolving', async () => {
+            const createdDraft = { id: 'new-promo-var-id' };
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* () {
+                searchCallCount += 1;
+                yield searchCallCount < 4 ? [] : [{ id: 'new-promo-var-id', path: targetPath, index: 1 }];
+            });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    search,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            expect(result).to.deep.equal(createdFragment);
+            expect(searchCallCount).to.be.at.least(3);
+            const pollWaitCalls = aem.wait.getCalls().filter((call) => call.args[0] === 500);
+            expect(pollWaitCalls.length).to.be.at.least(2);
+        });
+
+        it('gives up polling after the retry budget instead of throwing when the index never catches up', async () => {
+            const createdDraft = { id: 'new-promo-var-id' };
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            const search = makeSearchStub({ [promoFolder]: [] });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    search,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            expect(result).to.deep.equal(createdFragment);
+            const pollWaitCalls = aem.wait.getCalls().filter((call) => call.args[0] === 500);
+            expect(pollWaitCalls.length).to.equal(10);
+        });
     });
 
     describe('probePromoVariationsForFragment', () => {

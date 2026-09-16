@@ -8,6 +8,71 @@ import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
 import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
 
+/**
+ * True when title's normalizeKey slug collides with an existing one — same check AEM does on `name`, caught upfront instead of via a 409.
+ * @param {string} title
+ * @param {string[]} [existingTitles]
+ * @returns {boolean}
+ */
+export function isPromotionTitleTaken(title, existingTitles = []) {
+    const normalized = normalizeKey(title?.trim());
+    if (!normalized) return false;
+    return existingTitles.some((existing) => normalizeKey(existing?.trim()) === normalized);
+}
+
+/**
+ * Extracts non-empty titles from a list of promotion project fragments, for the duplicate-title check.
+ * @param {Array<{ getFieldValue: (name: string) => unknown }>} [projects]
+ * @returns {string[]}
+ */
+export function getPromotionTitles(projects = []) {
+    return projects.map((project) => project.getFieldValue('title')).filter(Boolean);
+}
+
+/**
+ * Builds the `showToast(message, variant)` args for a completed project duplication,
+ * warning about any promo variations that failed to clone.
+ * @param {Array<{ path: string, error: Error }>} [failedVariations]
+ * @returns {[string, 'positive'|'warning']}
+ */
+export function buildDuplicatePromotionToastArgs(failedVariations = []) {
+    if (!failedVariations.length) return ['Project successfully duplicated.', 'positive'];
+    const count = failedVariations.length;
+    return [`Project duplicated, ${count} variation${count === 1 ? '' : 's'} failed.`, 'warning'];
+}
+
+/**
+ * Builds a create-fragment payload for duplicating a promotion under a new title, tag, and slug.
+ * Leaves `fragments` untouched; variations are cloned separately by `duplicatePromotionProject`.
+ * @param {{ fields: Array<{ name: string, type?: string, multiple?: boolean, values?: unknown[] }> }} sourceFragment
+ * @param {string} title
+ * @param {string} [slug]
+ * @returns {{ name: string, title: string, fields: Array<{ name: string, type: string, multiple: boolean, values: unknown[] }> }}
+ */
+export function buildPromotionDuplicatePayload(sourceFragment, title, slug = normalizeKey(title?.trim())) {
+    const newPromotionTagId = slug ? `${TAG_PROMOTION_PREFIX}${slug}` : null;
+    return {
+        name: slug,
+        title,
+        fields: sourceFragment.fields
+            .filter((field) => field.name !== 'collections')
+            .map((field) => ({
+                name: field.name,
+                type: PROMOTION_FIELD_TYPE_MAP[field.name]?.type ?? field.type,
+                multiple: PROMOTION_FIELD_TYPE_MAP[field.name]?.multiple ?? field.multiple ?? false,
+                values:
+                    field.name === 'title'
+                        ? [title]
+                        : field.name === 'tags'
+                          ? [
+                                ...splitPromotionTagsFieldValues(field.values).retained,
+                                ...(newPromotionTagId ? [newPromotionTagId] : []),
+                            ]
+                          : field.values,
+            })),
+    };
+}
+
 export const PROMOTION_FIELD_TYPE_MAP = {
     title: { type: 'text' },
     promoCode: { type: 'text' },

@@ -100,10 +100,33 @@ describe('mas-field – ctas rendering', () => {
         expect(link.classList.contains('blue')).to.be.false;
     });
 
-    it('defaults to accent (blue) when link has no variant class', () => {
+    it('renders an unwrapped, unclassed link with no MAS-added style classes (headless "Link" variant)', () => {
         const el = makeField('ctas', '<a data-wcs-osi="ABC">Buy</a>');
+        const footer = el.querySelector('[slot="footer"]');
+        const link = footer.querySelector('a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.parentElement).to.equal(footer);
+    });
+
+    it('preserves the <strong> wrapper around an unclassed link with no MAS-added style classes (headless "Primary button" variant)', () => {
+        const el = makeField(
+            'ctas',
+            '<strong><a data-wcs-osi="ABC">Buy</a></strong>',
+        );
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('blue')).to.be.true;
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.parentElement.tagName).to.equal('STRONG');
+    });
+
+    it('preserves the <em> wrapper around an unclassed link with no MAS-added style classes (headless "Secondary button" variant)', () => {
+        const el = makeField('ctas', '<em><a data-wcs-osi="ABC">Buy</a></em>');
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+        expect(link.parentElement.tagName).to.equal('EM');
     });
 
     it('wraps link text in spectrum-Button-label span', () => {
@@ -1170,9 +1193,11 @@ describe('mas-field – tooltip icon-button rendering', () => {
         );
         const btn = el.querySelector('.icon-button');
         // Force the icon hard against the right edge, then trigger the show handler.
-        el.style.position = 'fixed';
-        el.style.left = `${window.innerWidth - 4}px`;
-        el.style.top = '200px';
+        // mas-field is display:contents (no box), so pin the icon itself, not the wrapper.
+        btn.style.position = 'fixed';
+        btn.style.margin = '0';
+        btn.style.left = `${window.innerWidth - 4}px`;
+        btn.style.top = '200px';
         btn.dispatchEvent(new Event('mouseenter'));
         expect(
             btn.classList.contains('right'),
@@ -1346,6 +1371,124 @@ describe('mas-field – hideTrialCTAs setting', () => {
             hideTrialCTAs: true,
         });
         expect(anchorsOf(el)).to.be.empty;
+    });
+});
+
+describe('mas-field – hidden attribute when render resolves to empty', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('sets hidden when field value is undefined', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Something' } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('does not set hidden when field renders content', () => {
+        const el = makeField('title', 'Creative Cloud');
+        expect(el.hidden).to.be.false;
+    });
+
+    it('sets hidden when an indexed ctas ref is out of bounds', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[99]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: CTA_HTML } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('sets hidden when a label-keyed field label is not found', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'customFields[Nonexistent]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        customFields: ['<p>Value one</p>'],
+                        customFieldLabels: ['Alpha'],
+                    },
+                },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('sets hidden when an indexed CTA is stripped by hideTrialCTAs', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[2]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas:
+                            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-analytics-id="buy-now">Buy now</a>' +
+                            '<a is="checkout-link" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>',
+                    },
+                    settings: { hideTrialCTAs: true },
+                },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('clears hidden when re-rendered with content after being empty', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+        el.setAttribute('field', 'title');
+        expect(el.hidden).to.be.false;
+    });
+
+    it('applies display:none via the mas-field[hidden] CSS rule', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Something' } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+        expect(getComputedStyle(el).display).to.equal('none');
     });
 });
 

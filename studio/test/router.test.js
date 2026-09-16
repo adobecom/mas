@@ -451,6 +451,13 @@ describe('Router', () => {
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
 
+        it('should clear the status filter when navigating away from the content page', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            Store.filters.set({ locale: 'en_US', status: 'MODIFIED' });
+            await router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
+            expect(Store.filters.value.status).to.be.undefined;
+        });
+
         it('should check for unsaved changes when on fragment editor', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
@@ -696,6 +703,36 @@ describe('Router', () => {
                 ['region', 'fr_CA'],
             ]).map(([key]) => key);
             expect(keys).to.deep.equal(['fragmentId', 'locale', 'region', 'page', 'path']);
+        });
+    });
+
+    describe('status filter hash param', () => {
+        it('should sync status from hash to store on start', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,PUBLISHED';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT,PUBLISHED');
+        });
+
+        it('should drop unknown statuses coming from the hash', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,BOGUS';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT');
+        });
+
+        it('should sync status from store to hash', async () => {
+            mockLocation.hash = '#page=content';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: 'DRAFT' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('status=DRAFT');
+        });
+
+        it('should remove status from hash when the filter is cleared', async () => {
+            mockLocation.hash = '#page=content&status=DRAFT';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: undefined }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('status=');
         });
     });
 
@@ -1056,6 +1093,12 @@ describe('Router', () => {
         it('returns true when tags are removed after closing the promotion item picker', () => {
             const prev = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
             const next = '#page=promotions-editor&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when the status filter changes on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&status=DRAFT';
             expect(promoHashIsSearchSync(prev, next)).to.be.true;
         });
     });

@@ -6,6 +6,12 @@ const URL_SEGMENT_ALIASES = {
     hk: { lang: 'zh', country: 'HK' },
 };
 
+// Mirrors SELECTOR_MAS_INLINE_PRICE / SELECTOR_MAS_CHECKOUT_LINK in web-components/src/constants.js.
+// The extension has no build step to import that module, so these are kept in sync manually.
+const SELECTOR_BARE_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
+const SELECTOR_BARE_CTA = 'a[is="checkout-link"][data-wcs-osi], button[is="checkout-button"][data-wcs-osi]';
+const SELECTOR_BARE_ELEMENT = `${SELECTOR_BARE_INLINE_PRICE}, ${SELECTOR_BARE_CTA}`;
+
 class CardDetector {
     constructor() {
         this.detectedCards = new Map();
@@ -15,6 +21,8 @@ class CardDetector {
         this.maxCards = 200;
         this.pendingCards = [];
         this.idleHandle = null;
+        this.bareElementIds = new WeakMap();
+        this.bareElementCounter = 0;
     }
 
     onCardDetected(callback) {
@@ -135,6 +143,12 @@ class CardDetector {
             if (this.detectedCards.size >= this.maxCards) break;
             await this.processCard(el);
         }
+
+        const bareElements = document.querySelectorAll(SELECTOR_BARE_ELEMENT);
+        for (const el of bareElements) {
+            if (this.detectedCards.size >= this.maxCards) break;
+            this.processBareElement(el);
+        }
     }
 
     startObserving() {
@@ -143,8 +157,11 @@ class CardDetector {
             if (node.nodeType === Node.ELEMENT_NODE) {
                 if (node.tagName === 'MERCH-CARD' || node.tagName === 'MERCH-CARD-COLLECTION') {
                     this.pendingCards.push(node);
+                } else if (node.matches?.(SELECTOR_BARE_ELEMENT)) {
+                    this.pendingCards.push(node);
                 }
                 node.querySelectorAll?.('merch-card, merch-card-collection').forEach((c) => this.pendingCards.push(c));
+                node.querySelectorAll?.(SELECTOR_BARE_ELEMENT).forEach((c) => this.pendingCards.push(c));
             }
         };
 
@@ -174,7 +191,11 @@ class CardDetector {
                     break;
                 }
                 const card = this.pendingCards.shift();
-                await this.processCard(card);
+                if (card.tagName === 'MERCH-CARD' || card.tagName === 'MERCH-CARD-COLLECTION') {
+                    await this.processCard(card);
+                } else {
+                    this.processBareElement(card);
+                }
             }
             if (this.pendingCards.length) this.scheduleProcessing();
         });
@@ -235,9 +256,58 @@ class CardDetector {
     }
 
     readPromotion(cardElement, elementType) {
-        if (elementType !== 'card') return null;
+        if (elementType === 'collection') return null;
         if (typeof window === 'undefined' || !window.MASPromo) return null;
         return window.MASPromo.readElementPromotion(cardElement);
+    }
+
+    classifyBareElementType(element) {
+        const isAttr = (element.getAttribute('is') || '').toLowerCase();
+        if (isAttr === 'inline-price') return 'price';
+        if (isAttr === 'checkout-link' || isAttr === 'checkout-button') return 'cta';
+        return null;
+    }
+
+    isInsideCard(element) {
+        return typeof element.closest === 'function' && element.closest('merch-card, merch-card-collection') !== null;
+    }
+
+    processBareElement(element) {
+        if (this.isInsideCard(element)) return;
+        if (this.bareElementIds.has(element)) return;
+
+        const elementType = this.classifyBareElementType(element);
+        if (!elementType) return;
+
+        const osi = element.getAttribute('data-wcs-osi');
+        if (!osi) return;
+
+        if (this.detectedCards.size >= this.maxCards) return;
+
+        const id = `${elementType}-${++this.bareElementCounter}`;
+        this.bareElementIds.set(element, id);
+
+        const localeInfo = this.pageLocale || this.getPageLocale();
+        const promotion = this.readPromotion(element, elementType);
+
+        const displayText = (element.textContent || '').trim();
+
+        const elementData = {
+            element,
+            id,
+            fragmentId: id,
+            osi,
+            elementType,
+            displayText,
+            cardName: displayText || osi,
+            promotion,
+            boundingRect: element.getBoundingClientRect(),
+            locale: localeInfo.locale,
+            country: localeInfo.country,
+        };
+
+        this.detectedCards.set(id, elementData);
+        this.dispatchCardDetectedEvent(elementData);
     }
 
     getAllCards() {
@@ -250,6 +320,8 @@ class CardDetector {
                 variant: cardData.variant,
                 elementType: cardData.elementType,
                 cardName: cardData.cardName,
+                osi: cardData.osi,
+                displayText: cardData.displayText,
                 size: cardData.size,
                 badgeColor: cardData.badgeColor,
                 borderColor: cardData.borderColor,

@@ -153,7 +153,22 @@ function registerOptionsProviders(service) {
 
 const MAS_FIELD_STYLES = `
 mas-field {
-    display: inline;
+    display: contents;
+}
+
+/* An :empty span still counts as a flex gap item under display:contents; hide it. */
+mas-field > [data-role="mas-field-content"]:empty {
+    display: none;
+}
+
+/* A headless mas-field is often authored with CTA classes (e.g. feds-cta) directly
+   on the host. Those classes can carry their own display value at the same
+   specificity as the rule above, which can beat display:contents and leave an
+   empty, still-styled CTA box visible when the field resolves to nothing (e.g. a
+   trial CTA stripped by hideTrialCTAs). #renderField sets [hidden] in that case;
+   force it to win regardless of what other classes are on the host. */
+mas-field[hidden] {
+    display: none !important;
 }
 
 mas-field div[slot="footer"] {
@@ -470,6 +485,7 @@ class MasField extends HTMLElement {
 
     #renderField() {
         if (!this.#fields || !this.#field) return;
+        this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
 
         if (index !== null && isNaN(index)) {
@@ -480,7 +496,10 @@ class MasField extends HTMLElement {
                     ? labelsRaw
                     : [labelsRaw];
                 const labelIndex = labels.indexOf(index);
-                if (labelIndex === -1) return;
+                if (labelIndex === -1) {
+                    this.hidden = true;
+                    return;
+                }
                 const valuesRaw = this.#fields[fieldName];
                 const values = Array.isArray(valuesRaw)
                     ? valuesRaw
@@ -488,10 +507,16 @@ class MasField extends HTMLElement {
                       ? [valuesRaw]
                       : [];
                 let html = this.#normalizeFieldValue(values[labelIndex]);
-                if (!html) return;
+                if (!html) {
+                    this.hidden = true;
+                    return;
+                }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                     html = stripTrialCtas(html, true);
-                    if (html === null) return;
+                    if (html === null) {
+                        this.hidden = true;
+                        return;
+                    }
                 }
                 this.#setFragmentIds();
                 const content = this.#ensureContentElement();
@@ -504,20 +529,29 @@ class MasField extends HTMLElement {
         }
 
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
-        if (fieldValue === undefined) return;
+        if (fieldValue === undefined) {
+            this.hidden = true;
+            return;
+        }
         this.#setFragmentIds();
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {
             html = this.#extractIndexedAnchor(fieldValue, index);
-            if (html === null) return;
+            if (html === null) {
+                this.hidden = true;
+                return;
+            }
         } else {
             html = this.#unwrapSingleParagraph(fieldValue);
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                 html = stripTrialCtas(html, index !== null);
-                if (html === null) return;
+                if (html === null) {
+                    this.hidden = true;
+                    return;
+                }
             }
             if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);
@@ -533,7 +567,11 @@ class MasField extends HTMLElement {
             this.#stampContext(content);
             return;
         }
-        content.textContent = html == null ? '' : String(html);
+        if (html == null) {
+            this.hidden = true;
+            return;
+        }
+        content.textContent = String(html);
     }
 
     /**
@@ -739,29 +777,48 @@ class MasField extends HTMLElement {
         const isCheckout = !!link.getAttribute('data-wcs-osi');
         if (!isCheckout) return link.cloneNode(true);
 
-        const styleMatch =
-            CHECKOUT_STYLE_PATTERN.exec(link.className ?? '')?.[0] ?? 'accent';
-        const isAccent = styleMatch.startsWith('accent');
-        const isLinkStyle = styleMatch.includes('-link');
-
-        const button = this.#createCheckoutLinkElement(
-            link.dataset,
-            link.textContent,
-        );
+        const CheckoutLink = customElements.get('checkout-link');
+        const button =
+            CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
+            (() => {
+                const el = document.createElement('a', { is: 'checkout-link' });
+                el.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
+                return el;
+            })();
 
         for (const { name, value } of link.attributes) {
             if (['class', 'is', 'href'].includes(name)) continue;
             button.setAttribute(name, value);
         }
         button.firstElementChild?.classList.add('spectrum-Button-label');
-        if (!isLinkStyle) {
-            button.classList.add('button', 'con-button');
-            if (isAccent) button.classList.add('blue');
-            else if (
-                styleMatch.startsWith('primary') &&
-                !styleMatch.includes('-outline')
-            )
-                button.classList.add('fill');
+
+        if (link.className) {
+            // Legacy class-driven system: non-headless CTAs, or headless CTAs authored before
+            // real bold/italic wrapping existed.
+            const styleMatch =
+                CHECKOUT_STYLE_PATTERN.exec(link.className)?.[0] ?? 'accent';
+            const isAccent = styleMatch.startsWith('accent');
+            if (!styleMatch.includes('-link')) {
+                button.classList.add('button', 'con-button');
+                if (isAccent) button.classList.add('blue');
+                else if (
+                    styleMatch.startsWith('primary') &&
+                    !styleMatch.includes('-outline')
+                )
+                    button.classList.add('fill');
+            }
+            return button;
+        }
+
+        // Headless CTAs authored via the 3-option picker never carry a button-style class,
+        // and MAS must not add one either - preserve the real <strong>/<em> wrapper (see
+        // rte-field.js's #marksForHeadlessVariant) around the checkout-link unchanged, so
+        // whatever decorates the surrounding page content is what determines the button style.
+        const parentTag = link.parentElement?.tagName;
+        if (parentTag === 'STRONG' || parentTag === 'EM') {
+            const wrapper = document.createElement(parentTag.toLowerCase());
+            wrapper.append(button);
+            return wrapper;
         }
         return button;
     }

@@ -168,6 +168,11 @@ merch-card[variant="pro"] [slot="body-xs"] {
     color: var(--consonant-merch-card-pro-text-color);
 }
 
+merch-card[variant="pro"] .price-plan-type .icon-button {
+    width: 18px;
+    height: 18px;
+}
+
 /* Title / description fields are RTE — authors may save <h3>Title</h3> or
    <div><p>desc</p></div>, which the AEM mapping then wraps again. Make any
    inner block descendant inherit the outer slot styles so the visible text

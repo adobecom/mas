@@ -412,9 +412,7 @@ export class MerchCardCollection extends LitElement {
             // One group per tag namespace picked in tagFilters. A collection
             // with only Type tags stays a single Type group.
             let tagFilters;
-            if (fragment.fields?.checkboxGroups) {
-                tagFilters = fragment.fields.checkboxGroups;
-            } else if (fragment.fields?.tagFilters?.length) {
+            if (fragment.fields?.tagFilters?.length) {
                 tagFilters = groupTagFilters(
                     fragment.fields.tagFilters,
                     fragment.fields.tagFiltersTitle,

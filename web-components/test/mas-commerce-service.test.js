@@ -55,6 +55,52 @@ describe('commerce service', () => {
             });
         });
 
+        describe('AUP Select configuration', () => {
+            let meta;
+            let originalUrl;
+
+            beforeEach(() => {
+                originalUrl = window.location.href;
+                meta = document.createElement('meta');
+                meta.name = 'aup-select';
+            });
+
+            afterEach(() => {
+                meta.remove();
+                history.replaceState(null, '', originalUrl);
+            });
+
+            it('reads the service attribute on initialization', () => {
+                const service = initMasCommerceService({
+                    'aup-select': 'on',
+                });
+                expect(service.settings.aupSelect).to.be.true;
+            });
+
+            it('uses metadata ahead of the service attribute on initialization', () => {
+                meta.content = 'on';
+                document.head.append(meta);
+                const service = initMasCommerceService({ 'aup-select': 'off' });
+                expect(service.settings.aupSelect).to.be.true;
+            });
+
+            for (const value of ['on', 'off', 'true', 'ON', '']) {
+                it(`uses the query override ${JSON.stringify(value)} on initialization`, () => {
+                    const enabled = value === 'on';
+                    const fallback = enabled ? 'off' : 'on';
+                    meta.content = fallback;
+                    document.head.append(meta);
+                    const url = new URL(originalUrl);
+                    url.searchParams.set('aup-select', value);
+                    history.replaceState(null, '', url);
+                    const service = initMasCommerceService({
+                        'aup-select': fallback,
+                    });
+                    expect(service.settings.aupSelect).to.equal(enabled);
+                });
+            }
+        });
+
         it('returns "Defaults" object', async () => {
             const instance = initMasCommerceService();
             expect(instance.defaults).to.deep.equal(Defaults);
@@ -151,6 +197,7 @@ describe('commerce service', () => {
 
                 const el = initMasCommerceService({});
                 expect(el.settings).to.deep.equal({
+                    aupSelect: false,
                     checkoutClientId: 'adobe_com',
                     checkoutWorkflowStep: 'email',
                     country: 'US',

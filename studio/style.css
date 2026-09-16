@@ -602,6 +602,10 @@ sp-table-cell {
         flex-grow: var(--table-content-price-flex-grow);
     }
 
+    &.wf-status {
+        flex-grow: var(--table-content-offer-id-flex-grow);
+    }
+
     &.offer-id {
         flex-grow: var(--table-content-offer-id-flex-grow);
         gap: 8px;
@@ -742,6 +746,10 @@ sp-table-head-cell {
     }
 
     &.offer-id {
+        flex-grow: var(--table-content-offer-id-flex-grow);
+    }
+
+    &.wf-status {
         flex-grow: var(--table-content-offer-id-flex-grow);
     }
 
@@ -1335,4 +1343,13 @@ mas-fragment-table .icon {
     width: 24px;
     height: 24px;
     object-fit: contain;
+}
+
+.staged-badge {
+    background-color: var(--spectrum-orange-200);
+    color: var(--spectrum-gray-900);
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
 }

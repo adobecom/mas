@@ -520,6 +520,13 @@ export class MasChat extends LitElement {
                     message,
                     context: {
                         selectedVariants,
+                        // Confirming a card configuration is a release turn by
+                        // definition. Say so: the offer-first path never sets
+                        // activeGuidedFlow, so without this the server re-reads
+                        // "Confirmed. Create cards for these variants..." as a
+                        // brand new release and replays the confirmation step
+                        // instead of creating anything.
+                        intentHint: 'release',
                         osi: this.selectedReleaseOsi,
                         trialOsi: this.selectedReleaseTrialOsi,
                     },
@@ -2154,6 +2161,13 @@ export class MasChat extends LitElement {
                         }Proceed to Step 6 (Confirmation Summary).`,
                     context: {
                         hidden: true,
+                        // The bypass that resolved the offer answers
+                        // get_offer_by_id, which maps to no flow, and the
+                        // envelope dispatcher clears the flow after running it.
+                        // Nothing else marks this conversation as a release, so
+                        // pin it here rather than letting the next turn be
+                        // classified from scratch.
+                        intentHint: 'release',
                         selectedProduct: this.selectedReleaseProduct,
                         offer,
                         ...(this.selectedReleaseOsi ? { osi: this.selectedReleaseOsi } : {}),
@@ -2771,6 +2785,13 @@ export class MasChat extends LitElement {
                 description,
             },
             segment,
+            // OST handed these back; the model is only restating them from the
+            // transcript, and it has been seen restating the wrong one — echoing
+            // the offer id out of "Offer ID: <hex>" as though it were the OSI.
+            // Prefer what the user actually picked. Only override when we hold a
+            // value, so a summary we know nothing about is left as it arrived.
+            ...(this.selectedReleaseOsi ? { osi: this.selectedReleaseOsi } : {}),
+            ...(this.selectedReleaseTrialOsi ? { trialOsi: this.selectedReleaseTrialOsi } : {}),
         };
     }
 

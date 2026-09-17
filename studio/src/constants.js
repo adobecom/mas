@@ -183,7 +183,7 @@ export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code
 /** Tag id prefix in short form */
 export const MAS_PRODUCT_CODE_PREFIX = 'mas:product_code/';
 
-export const TAG_WORKFLOW_STEP = 'mas:workflow_step';
+export const TAG_WORKFLOW_STEP = 'mas:workflow-step';
 
 export const WORKFLOW_STEP = {
     EMAIL: 'email',

@@ -24,7 +24,7 @@ const EMPTY_TAGS = {
     'studio/content-type': [],
     custom: [],
     variant: [],
-    workflow_step: [],
+    'workflow-step': [],
 };
 
 class MasFilterPanel extends LitElement {
@@ -455,11 +455,11 @@ class MasFilterPanel extends LitElement {
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
-                    top="workflow_step"
+                    top="workflow-step"
                     label="Workflow Step"
                     multiple
                     selection="checkbox"
-                    value=${pathsToTagIds(this.tagsByType.workflow_step)}
+                    value=${pathsToTagIds(this.tagsByType['workflow-step'])}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

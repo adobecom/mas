@@ -626,55 +626,55 @@
             "title": "My PAC"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step",
+            "path": "/content/cq:tags/mas/workflow-step",
             "excerpt": "",
-            "name": "workflow_step",
-            "title": "WORKFLOW_STEP"
+            "name": "workflow-step",
+            "title": "Workflow Step"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/email",
+            "path": "/content/cq:tags/mas/workflow-step/email",
             "excerpt": "",
             "name": "email",
             "title": "Email"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/commitment",
+            "path": "/content/cq:tags/mas/workflow-step/commitment",
             "excerpt": "",
             "name": "commitment",
             "title": "Commitment"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/recommendation",
+            "path": "/content/cq:tags/mas/workflow-step/recommendation",
             "excerpt": "",
             "name": "recommendation",
             "title": "Recommendation"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/segmentation",
+            "path": "/content/cq:tags/mas/workflow-step/segmentation",
             "excerpt": "",
             "name": "segmentation",
             "title": "Segmentation"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/bundle",
+            "path": "/content/cq:tags/mas/workflow-step/bundle",
             "excerpt": "",
             "name": "bundle",
             "title": "Bundle"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/payment",
+            "path": "/content/cq:tags/mas/workflow-step/payment",
             "excerpt": "",
             "name": "payment",
             "title": "Payment"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/change_plan_team_plans",
+            "path": "/content/cq:tags/mas/workflow-step/change_plan_team_plans",
             "excerpt": "",
             "name": "change_plan_team_plans",
             "title": "Change Plan Team Plans"
         },
         {
-            "path": "/content/cq:tags/mas/workflow_step/change_plan_team_payment",
+            "path": "/content/cq:tags/mas/workflow-step/change_plan_team_payment",
             "excerpt": "",
             "name": "change_plan_team_payment",
             "title": "Change Plan Team Payment"

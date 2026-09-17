@@ -20,6 +20,7 @@ function withTimeout(promise, stage, ms) {
 export function isAupCheckoutSupported(offers, options) {
     return (
         offers.length > 0 &&
+        !options.upgrade &&
         !options.perpetual &&
         !offers.some((offer) => offer.commitment === 'PERPETUAL')
     );

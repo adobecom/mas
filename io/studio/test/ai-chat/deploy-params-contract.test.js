@@ -76,8 +76,9 @@ describe('ai-chat/deploy params contract', () => {
         const declared = manifestDeclares();
         const nowDeclared = [...PLATFORM_PROVIDED].filter((name) => declared.has(name));
 
-        expect(nowDeclared, `declared in the manifest, so remove from PLATFORM_PROVIDED: ${nowDeclared.join(', ')}`).to.deep.equal(
-            [],
-        );
+        expect(
+            nowDeclared,
+            `declared in the manifest, so remove from PLATFORM_PROVIDED: ${nowDeclared.join(', ')}`,
+        ).to.deep.equal([]);
     });
 });

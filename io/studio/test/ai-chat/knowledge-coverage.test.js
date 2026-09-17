@@ -80,7 +80,10 @@ let retrieve;
 async function answersAbout(question, marker) {
     const { sources } = await retrieve(question);
     if (!sources.length) return { ok: false, why: 'retrieved nothing' };
-    const haystack = sources.map((s) => `${s.section} ${s.title}`).join(' | ').toLowerCase();
+    const haystack = sources
+        .map((s) => `${s.section} ${s.title}`)
+        .join(' | ')
+        .toLowerCase();
     if (haystack.includes(marker.toLowerCase())) return { ok: true };
     return { ok: false, why: `top hit was "${sources[0].section}"` };
 }
@@ -142,7 +145,10 @@ describe('ai-chat/knowledge coverage', () => {
             }
         }
 
-        expect([...new Set(unknown)], `corpus names tools that are not in the registry:\n  ${[...new Set(unknown)].join('\n  ')}`).to.deep.equal([]);
+        expect(
+            [...new Set(unknown)],
+            `corpus names tools that are not in the registry:\n  ${[...new Set(unknown)].join('\n  ')}`,
+        ).to.deep.equal([]);
     });
 
     describe('the known gaps', () => {

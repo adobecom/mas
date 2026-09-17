@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { isVariantMatch, VARIANTS } from '../../editors/variant-picker.js';
+import { isVariantMatch, getVariantTreeData, VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
 import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
@@ -464,6 +464,11 @@ class MasSearchAndFilters extends LitElement {
         }
     }
 
+    #matchSurface(variant) {
+        if (Store.page.get() === 'promotions-editor') return true;
+        return getVariantTreeData(Store.surface()).some((v) => v.name === variant.value);
+    }
+
     #extractFilterOptions() {
         const optionMaps = {
             marketSegments: new Map(),
@@ -487,10 +492,14 @@ class MasSearchAndFilters extends LitElement {
         this.#addCachedFilterOptions(optionMaps);
 
         const toSortedOptions = (map) => Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
-            id: variant.value,
-            title: variant.label,
-        }));
+        this.templateOptions = VARIANTS.filter(
+            (variant) => variant.label.toLowerCase() !== 'all' && this.#matchSurface(variant),
+        )
+            .map((variant) => ({
+                id: variant.value,
+                title: variant.label,
+            }))
+            .sort((a, b) => a.title.localeCompare(b.title));
         this.marketSegmentOptions = toSortedOptions(optionMaps.marketSegments);
         this.customerSegmentOptions = toSortedOptions(optionMaps.customerSegments);
         this.productOptions = toSortedOptions(optionMaps.products);

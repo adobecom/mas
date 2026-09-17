@@ -10761,15 +10761,17 @@ merch-card[variant="product-pricing"] [slot="heading-s"] {
 }
 
 merch-card[variant="product-pricing"] [slot="body-xs"] {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
     margin: 0;
     font-size: 14px;
     font-weight: 400;
     line-height: 18px;
     color: #5c5c5c;
+}
+
+/* Inline links (e.g. "See terms") match the gray body copy, underlined. */
+merch-card[variant="product-pricing"] [slot="body-xs"] a {
+    color: inherit;
+    text-decoration: underline;
 }
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] {
@@ -10806,6 +10808,17 @@ merch-card[variant="product-pricing"] span[data-template="legal"] {
     font-weight: 400;
     line-height: 18px;
     color: #5c5c5c;
+}
+
+/* Figma stacks the legal block: per-unit on its own line, tax and plan type
+   below. The global leading nbsp would indent the line, so drop it. */
+merch-card[variant="product-pricing"] span[data-template="legal"] .price-unit-type:not(.disabled) {
+    display: block;
+}
+
+merch-card[variant="product-pricing"] span[data-template="legal"] .price-unit-type:not(.disabled)::before,
+merch-card[variant="product-pricing"] span[data-template="legal"] .price-tax-inclusivity:not(.disabled)::before {
+    content: none;
 }
 
 merch-card[variant="product-pricing"] [slot="footer"] {

@@ -5,6 +5,11 @@ import { Log } from './log.js';
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
 // silently no-op every checkout CTA on the page for the rest of its life.
 const HOST_TIMEOUT_MS = 20000;
+const AUP_CHECKOUT_CLIENT_IDS = new Set([
+    'creative',
+    'mini_plans',
+    'doc_cloud',
+]);
 
 function withTimeout(promise, stage, ms) {
     let timer;
@@ -19,6 +24,7 @@ function withTimeout(promise, stage, ms) {
 
 export function isAupCheckoutSupported(offers, options) {
     return (
+        AUP_CHECKOUT_CLIENT_IDS.has(options.checkoutClientId) &&
         offers.length > 0 &&
         !options.upgrade &&
         !options.perpetual &&

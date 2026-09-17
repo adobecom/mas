@@ -40,6 +40,14 @@ describe('buildBackgroundsHtml', () => {
     });
 });
 
+describe('buildBackgroundsHtml - attribute injection safety', () => {
+    it('does not let a quote in an otherwise-valid-hostname URL break out of the srcset/src attribute', () => {
+        const malicious = 'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const doc = parse(buildBackgroundsHtml({ mobile: malicious }));
+        expect(doc.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
 describe('parseBackgroundsUrls', () => {
     it('returns all-empty for empty input', () => {
         expect(parseBackgroundsUrls('')).to.deep.equal({ desktop: '', tablet: '', mobile: '' });

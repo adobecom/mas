@@ -19,7 +19,11 @@ export function isSupportedImageUrl(url) {
 }
 
 function rendition(url, width, format) {
-    return `${url}?width=${width}&format=${format}&optimize=medium`;
+    const parsed = new URL(url);
+    parsed.searchParams.set('width', width);
+    parsed.searchParams.set('format', format);
+    parsed.searchParams.set('optimize', 'medium');
+    return parsed.href;
 }
 
 function formatFor(url) {
@@ -29,12 +33,13 @@ function formatFor(url) {
 
 export function buildPictureHtml(url) {
     if (!isSupportedImageUrl(url)) return '';
-    const { type, format } = formatFor(url);
+    const safeUrl = new URL(url).href;
+    const { type, format } = formatFor(safeUrl);
     return [
-        `<source type="image/webp" srcset="${rendition(url, DESKTOP.width, 'webply')}" media="${DESKTOP.media}">`,
-        `<source type="image/webp" srcset="${rendition(url, MOBILE_WIDTH, 'webply')}">`,
-        `<source type="${type}" srcset="${rendition(url, DESKTOP.width, format)}" media="${DESKTOP.media}">`,
-        `<img loading="lazy" alt="" src="${rendition(url, MOBILE_WIDTH, format)}">`,
+        `<source type="image/webp" srcset="${rendition(safeUrl, DESKTOP.width, 'webply')}" media="${DESKTOP.media}">`,
+        `<source type="image/webp" srcset="${rendition(safeUrl, MOBILE_WIDTH, 'webply')}">`,
+        `<source type="${type}" srcset="${rendition(safeUrl, DESKTOP.width, format)}" media="${DESKTOP.media}">`,
+        `<img loading="lazy" alt="" src="${rendition(safeUrl, MOBILE_WIDTH, format)}">`,
     ].join('');
 }
 
@@ -42,5 +47,10 @@ export function extractImageUrl(html) {
     if (!html) return '';
     const doc = new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
     const src = doc.querySelector('img')?.getAttribute('src') ?? doc.querySelector('source')?.getAttribute('srcset');
-    return src ? src.split('?')[0] : '';
+    if (!src) return '';
+    const parsed = new URL(src);
+    parsed.searchParams.delete('width');
+    parsed.searchParams.delete('format');
+    parsed.searchParams.delete('optimize');
+    return parsed.href;
 }

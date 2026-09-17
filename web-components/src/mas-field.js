@@ -8,7 +8,11 @@ import {
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
-import { rewriteImageUrlsForProd } from './image-markup.js';
+import {
+    rewriteImageUrlsForProd,
+    sanitizeAssetUrl,
+    isSupportedAssetHostname,
+} from './image-markup.js';
 import { extractBackgroundUrl } from './backgrounds-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
@@ -434,6 +438,13 @@ class MasField extends HTMLElement {
         return content;
     }
 
+    #clearContent() {
+        this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        )?.remove();
+        this.#contentElement = null;
+    }
+
     /** Installs the field's <picture> as the content root, carrying
      *  data-role="mas-field-content" directly (no wrapping span). */
     #renderPictureContent(pictureHtml) {
@@ -577,8 +588,11 @@ class MasField extends HTMLElement {
                 const inner =
                     fieldName === 'image' || fieldName === 'backgrounds'
                         ? value
-                        : `<img loading="lazy" alt="" src="${value}">`;
+                        : `<img loading="lazy" alt="" src="${sanitizeAssetUrl(value)}">`;
                 this.#renderPictureContent(renderImageMarkup(inner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
             }
             return;
         }
@@ -587,12 +601,19 @@ class MasField extends HTMLElement {
             const url = this.#unwrapSingleParagraph(
                 extractBackgroundUrl(fieldValue, index),
             );
-            if (typeof url === 'string' && url) {
+            if (
+                typeof url === 'string' &&
+                url &&
+                isSupportedAssetHostname(url)
+            ) {
                 this.#renderPictureContent(
                     renderImageMarkup(
-                        `<img loading="lazy" alt="" src="${url}">`,
+                        `<img loading="lazy" alt="" src="${sanitizeAssetUrl(url)}">`,
                     ),
                 );
+            } else {
+                this.#clearContent();
+                this.hidden = true;
             }
             return;
         }

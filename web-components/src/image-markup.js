@@ -13,6 +13,24 @@ export function aemPageToProd(url, origin) {
     return `${origin}${parsed.pathname}${parsed.search}`;
 }
 
+export function sanitizeAssetUrl(url) {
+    if (typeof url !== 'string' || !url) return '';
+    try {
+        return new URL(url).href;
+    } catch {
+        return '';
+    }
+}
+
+export function isSupportedAssetHostname(url) {
+    if (typeof url !== 'string' || !url) return false;
+    try {
+        return new URL(url).hostname.endsWith('.aem.page');
+    } catch {
+        return false;
+    }
+}
+
 function isProdLocation(location) {
     return (
         location?.hostname === 'www.adobe.com' ||

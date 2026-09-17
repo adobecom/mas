@@ -4,7 +4,7 @@ const DESKTOP_MEDIA = '(min-width: 1200px)';
 const TABLET_MEDIA = '(min-width: 600px)';
 
 function validOrEmpty(url) {
-    return isSupportedImageUrl(url) ? url : '';
+    return isSupportedImageUrl(url) ? new URL(url).href : '';
 }
 
 /**

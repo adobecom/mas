@@ -4,6 +4,7 @@ import { isSupportedImageUrl, buildPictureHtml, extractImageUrl } from '../../sr
 const AEM_PAGE_PNG =
     'https://main--da-cc--adobecom.aem.page/cc-shared/fragments/products/photoshop/product-page/media_10771c912534e207f3d12db51da70b851df26ac21.png';
 const AEM_PAGE_JPG = 'https://main--cc--adobecom.aem.page/fragments/media_abc.jpg';
+const AEM_PAGE_WITH_QUERY = 'https://main--cc--adobecom.aem.page/fragments/media_xyz.png?rev=3';
 
 function parse(html) {
     return new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
@@ -67,6 +68,14 @@ describe('buildPictureHtml', () => {
     });
 });
 
+describe('buildPictureHtml - attribute injection safety', () => {
+    it('does not let a quote in an otherwise-valid-hostname URL break out of the srcset/src attribute', () => {
+        const malicious = 'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const doc = parse(buildPictureHtml(malicious));
+        expect(doc.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
 describe('extractImageUrl', () => {
     it('round-trips the base URL out of generated HTML', () => {
         expect(extractImageUrl(buildPictureHtml(AEM_PAGE_PNG))).to.equal(AEM_PAGE_PNG);
@@ -74,5 +83,20 @@ describe('extractImageUrl', () => {
 
     it('returns empty string for empty input', () => {
         expect(extractImageUrl('')).to.equal('');
+    });
+
+    it('round-trips a URL that already had its own query string', () => {
+        expect(extractImageUrl(buildPictureHtml(AEM_PAGE_WITH_QUERY))).to.equal(AEM_PAGE_WITH_QUERY);
+    });
+});
+
+describe('rendition - URLs that already carry a query string', () => {
+    it('merges the rendition params into the existing query instead of appending a second "?"', () => {
+        const doc = parse(buildPictureHtml(AEM_PAGE_WITH_QUERY));
+        const img = doc.querySelector('img');
+        const src = img.getAttribute('src');
+        expect(src.split('?').length - 1).to.equal(1);
+        expect(src).to.contain('rev=3');
+        expect(src).to.contain('width=750');
     });
 });

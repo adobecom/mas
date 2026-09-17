@@ -1,5 +1,10 @@
 import { expect } from '@esm-bundle/chai';
-import { aemPageToProd, rewriteImageUrlsForProd } from '../src/image-markup.js';
+import {
+    aemPageToProd,
+    rewriteImageUrlsForProd,
+    sanitizeAssetUrl,
+    isSupportedAssetHostname,
+} from '../src/image-markup.js';
 
 const AEM =
     'https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png';
@@ -68,5 +73,43 @@ describe('rewriteImageUrlsForProd', () => {
             origin: 'https://www.adobe.com',
         });
         expect(out).to.not.contain('<picture>');
+    });
+});
+
+describe('sanitizeAssetUrl', () => {
+    it('percent-encodes a quote so it cannot break out of an attribute', () => {
+        const malicious = `${AEM}" onerror="alert(1)`;
+        expect(sanitizeAssetUrl(malicious)).to.not.contain('"');
+    });
+
+    it('returns an equivalent href for an already-safe URL', () => {
+        expect(sanitizeAssetUrl(AEM)).to.equal(AEM);
+    });
+
+    it('returns empty string for an unparsable URL', () => {
+        expect(sanitizeAssetUrl('not a url')).to.equal('');
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(sanitizeAssetUrl('')).to.equal('');
+    });
+});
+
+describe('isSupportedAssetHostname', () => {
+    it('accepts an absolute *.aem.page URL', () => {
+        expect(isSupportedAssetHostname(AEM)).to.be.true;
+    });
+
+    it('rejects a non-aem.page host', () => {
+        expect(isSupportedAssetHostname('https://example.com/media_x.png')).to
+            .be.false;
+    });
+
+    it('rejects an unparsable URL', () => {
+        expect(isSupportedAssetHostname('not a url')).to.be.false;
+    });
+
+    it('rejects an empty value', () => {
+        expect(isSupportedAssetHostname('')).to.be.false;
     });
 });

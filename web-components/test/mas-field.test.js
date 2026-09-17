@@ -1610,6 +1610,22 @@ describe('mas-field – image rendering', () => {
             'https://example.com/bg.png',
         );
     });
+
+    it('clears a previously rendered <picture> and hides the field when backgroundImage becomes empty', () => {
+        const el = makeField(
+            'backgroundImage',
+            'https://main--da-cc--adobecom.aem.page/media/bg.png',
+        );
+        const fragment = el.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgroundImage: '' } },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+        expect(el.hidden).to.be.true;
+    });
 });
 
 describe('mas-field – backgrounds rendering (field="backgrounds" / "backgrounds[breakpoint]")', () => {
@@ -1706,5 +1722,73 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
             }),
         );
         expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('renders nothing for a backgrounds[breakpoint] URL on an unsupported host', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[mobile]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" src="https://example.com/media_mobile.png">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('clears a previously rendered <picture> and hides the field when the breakpoint URL becomes empty', () => {
+        const el = makeBackgroundsField('backgrounds[mobile]');
+        const fragment = el.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgrounds: '' } },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+        expect(el.hidden).to.be.true;
+    });
+
+    it('does not let a quote in a stored backgrounds[breakpoint] URL break out of the src attribute', () => {
+        const malicious =
+            'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[mobile]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" src="${malicious}">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
+describe('mas-field, backgroundImage attribute injection safety', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('does not let a quote in a stored backgroundImage URL break out of the src attribute', () => {
+        const malicious =
+            'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const el = makeField('backgroundImage', malicious);
+        expect(el.querySelector('[onerror]')).to.not.exist;
     });
 });

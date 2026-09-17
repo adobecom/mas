@@ -608,16 +608,23 @@ describe('aup-select checkout routing', () => {
                 expect(sdk.getOrchestratorContext.called).to.be.false;
             });
 
-            it('routes upgrade checkout actions through AUP', async () => {
+            it('routes authored upgrade intent through AUP', async () => {
+                const element = await create(Class, { upgrade: true });
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
+            });
+
+            it('preserves qualified upgrade checkout actions', async () => {
                 await service.registerCheckoutAction(() => ({
                     handler: legacy,
                     className: 'upgrade',
                 }));
                 const element = await create(Class, { upgrade: true });
                 click(element);
-                await element.aupCheckoutPromise;
-                expect(launch.calledOnce).to.be.true;
-                expect(legacy.called).to.be.false;
+                expect(legacy.calledOnce).to.be.true;
+                expect(sdk.getOrchestratorContext.called).to.be.false;
             });
 
             it('keeps workflows open beyond 20 seconds and suppresses repeated clicks until exit', async () => {

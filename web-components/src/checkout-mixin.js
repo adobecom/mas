@@ -271,6 +271,7 @@ export function CheckoutMixin(Base) {
                 this.checkoutUrl &&
                 this.masElement.state === STATE_RESOLVED &&
                 !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
+                !this.classList.contains(CLASS_NAME_UPGRADE) &&
                 !this.hasAttribute('download') &&
                 (!this.target || this.target === '_self') &&
                 isAupCheckoutSupported(this.value, this.options);
@@ -309,6 +310,7 @@ export function CheckoutMixin(Base) {
                 e.shiftKey ||
                 e.altKey ||
                 this.classList.contains(CLASS_NAME_DOWNLOAD) ||
+                this.classList.contains(CLASS_NAME_UPGRADE) ||
                 this.hasAttribute('download') ||
                 (this.target && this.target !== '_self')
             ) {

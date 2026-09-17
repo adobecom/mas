@@ -204,6 +204,12 @@ describe('ProductPricing reflow wiring', () => {
 });
 
 describe('ProductPricing.priceOptionsProvider', () => {
+    it('searches the product name in heading-s', () => {
+        expect(new ProductPricing({}).headingSelector).to.equal(
+            '[slot="heading-s"]',
+        );
+    });
+
     it('sets displayPlanType only on the legal template', () => {
         const layout = new ProductPricing({});
         const opts = {};
@@ -214,7 +220,22 @@ describe('ProductPricing.priceOptionsProvider', () => {
             { dataset: { template: TEMPLATE_PRICE_LEGAL } },
             opts,
         );
-        expect(opts.displayPlanType, 'set on the legal template').to.be.true;
+        expect(opts.displayPlanType, 'shown by default on the legal template')
+            .to.be.true;
+    });
+
+    it('honors the card displayPlanType setting on the legal template', () => {
+        const legal = { dataset: { template: TEMPLATE_PRICE_LEGAL } };
+        const off = {};
+        new ProductPricing({
+            settings: { displayPlanType: false },
+        }).priceOptionsProvider(legal, off);
+        expect(off.displayPlanType, 'author turned it off').to.be.false;
+        const on = {};
+        new ProductPricing({
+            settings: { displayPlanType: true },
+        }).priceOptionsProvider(legal, on);
+        expect(on.displayPlanType, 'author turned it on').to.be.true;
     });
 });
 

@@ -19,10 +19,83 @@ export const styles = css`
         position: relative;
     }
 
-    .promotions-header {
+    .promotions-page-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .promotions-page-title {
+        margin: 0;
+        color: #000;
+        font-size: 25px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 30px;
+    }
+
+    .create-button {
+        --mod-button-border-radius: 16px;
+    }
+
+    .promotions-status-tiles {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        align-self: stretch;
+        margin-bottom: 24px;
+    }
+
+    .status-tile {
+        display: flex;
+        flex: 1 0 0;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 12px;
+        background: var(--spectrum-white);
+        box-shadow:
+            0 0 2px 0 rgba(0, 0, 0, 0.12),
+            0 2px 6px 0 rgba(0, 0, 0, 0.04),
+            0 4px 12px 0 rgba(0, 0, 0, 0.08);
+        cursor: pointer;
+        font-family: inherit;
+        text-align: left;
+    }
+
+    .status-tile.is-selected {
+        outline: 2px solid var(--spectrum-blue-700);
+        outline-offset: -2px;
+    }
+
+    .status-tile-label {
+        color: var(--spectrum-gray-800, #292929);
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 18px;
+    }
+
+    .status-tile-count {
+        flex: 1 0 0;
+        color: #000;
+        font-size: 25px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 30px;
+    }
+
+    .promotions-divider {
+        display: flex;
+        height: 1px;
+        min-height: 1px;
+        max-height: 1px;
+        align-items: flex-start;
+        align-self: stretch;
+        background: var(--spectrum-gray-200);
         margin-bottom: 24px;
     }
 
@@ -60,10 +133,6 @@ export const styles = css`
         gap: 8px;
     }
 
-    .promotions-segmented-control-container {
-        margin-bottom: 24px;
-    }
-
     .promotions-filters-container {
         display: flex;
         flex-direction: column;
@@ -71,10 +140,41 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
-    .promotions-filters-row {
+    .promotions-search-row {
         display: flex;
-        justify-content: space-between;
+        width: 100%;
+        max-width: 1148px;
+        height: 32px;
         align-items: center;
+        gap: 6px;
+    }
+
+    .promotions-search-field-container {
+        display: flex;
+        width: 246px;
+        min-width: 112px;
+        flex-direction: column;
+        align-items: flex-start;
+        flex-shrink: 0;
+    }
+
+    .promotions-search-field-container sp-search {
+        display: flex;
+        align-self: stretch;
+        width: 100%;
+        --mod-search-border-radius: 16px;
+        --mod-search-border-width: 2px;
+        --mod-search-border-color-default: var(--spectrum-gray-300, #dadada);
+        --mod-search-background-color: var(--palette-gray-25, #fff);
+    }
+
+    .promotions-result-count {
+        flex: 1 0 0;
+        color: var(--spectrum-gray-800, #292929);
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 18px;
     }
 
     .filters-container {

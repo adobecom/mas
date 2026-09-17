@@ -39,6 +39,40 @@ describe('MasRelatedVariations', () => {
         expect(el.render()).to.equal(nothing);
     });
 
+    it('re-renders when promo refs are folded into the same fragment after mount (promoVariationCount change)', async () => {
+        // Promo-only card: getById returns no variations/references; the background probe later
+        // mutates references in place. The editor recomputes promoVariationCount (0 -> N), which
+        // re-renders this prop-driven panel even though the fragment object identity is unchanged
+        // (regression: sandbox/en_US/card2).
+        const fragment = new Fragment({
+            id: 'promo-only-id',
+            path: '/content/dam/mas/sandbox/en_US/card2',
+            model: { path: CARD_MODEL_PATH },
+            fields: [],
+            references: [],
+            tags: [],
+        });
+        el.fragment = fragment;
+        el.targetFragment = fragment;
+        el.isVariation = false;
+        el.promoVariationCount = 0;
+        document.body.appendChild(el);
+        await el.updateComplete;
+
+        expect(fragment.getTotalVariationCount()).to.equal(0);
+        expect(el.shadowRoot.textContent).to.not.include('Promo variations');
+
+        // Simulate the probe result: refs mutated in place on the same object, count recomputed.
+        fragment.references = [{ id: 'promo-1', path: '/content/dam/mas/sandbox/en_US/promotions/bts/card2', tags: [] }];
+        el.promoVariationCount = fragment.getPromoVariationCount();
+        await el.updateComplete;
+
+        expect(fragment.getTotalVariationCount()).to.equal(1);
+        expect(el.shadowRoot.textContent).to.include('Promo variations');
+
+        el.remove();
+    });
+
     it('renders three independently-collapsible variation type sections, collapsed by default', () => {
         const fragment = new Fragment({
             id: 'test-id',

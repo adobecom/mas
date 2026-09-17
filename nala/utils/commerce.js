@@ -63,6 +63,7 @@ const DOCS_GALLERY_PATH = {
     CHECKOUT_LINK: '/web-components/docs/checkout-link.html',
     MERCH_CARD: '/web-components/docs/merch-card.html',
     EXPRESS: '/web-components/docs/express.html',
+    BRAND_CONCIERGE: '/web-components/docs/brand-concierge.html',
 };
 
 async function setupMasConsoleListener(consoleErrors) {

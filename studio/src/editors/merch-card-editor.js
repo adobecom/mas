@@ -11,7 +11,7 @@ import './variant-picker.js';
 import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
+import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
@@ -96,6 +96,9 @@ const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
     VARIANT_NAMES.FAQ,
     VARIANT_NAMES.BANNER_BLADE,
 ]);
+
+/** Headless and headless-family templates use the 3-option CTA variant picker (Primary button / Secondary button / Link). */
+const HEADLESS_STYLE_CTA_VARIANTS = new Set([VARIANT_NAMES.HEADLESS, VARIANT_NAMES.MARQUEE, VARIANT_NAMES.BANNER_BLADE]);
 
 class MerchCardEditor extends LitElement {
     static properties = {
@@ -1070,6 +1073,18 @@ class MerchCardEditor extends LitElement {
         return value;
     }
 
+    #handleStaged() {
+        const tags = this.fragment.getField('tags')?.values || [];
+        const newTags = [...tags];
+        const index = newTags.indexOf(STAGED.TAG);
+        if (index !== -1) {
+            newTags.splice(index, 1);
+        } else {
+            newTags.push(STAGED.TAG);
+        }
+        this.fragmentStore.updateField('tags', newTags);
+    }
+
     #quantitySelectSettingsDefaultsMarkup() {
         const raw = this.globalSettingsDefaults[QUANTITY_MODEL];
         return raw === '' || raw == null ? QUANTITY_EMPTY : raw;
@@ -1511,6 +1526,7 @@ class MerchCardEditor extends LitElement {
                             data-field="variant"
                             data-field-state="${this.getFieldState('variant')}"
                             .value="${form.variant.values[0]}"
+                            .surface="${Store.surface()}"
                             @change="${this.#handleVariantChange}"
                         ></variant-picker>
                         ${this.renderFieldStatusIndicator('variant')}
@@ -1557,6 +1573,14 @@ class MerchCardEditor extends LitElement {
                                   ></sp-switch>
                               </sp-field-group>
                           `}
+                    <sp-field-group id="fragment-staged-group">
+                        <sp-field-label for="fragment-staged">Staged?</sp-field-label>
+                        <sp-switch
+                            id="fragment-staged"
+                            ?checked="${this.fragment.isStaged}"
+                            @click="${this.#handleStaged}"
+                        ></sp-switch>
+                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">
@@ -1903,7 +1927,8 @@ class MerchCardEditor extends LitElement {
                         .value=${form.ctas.values[0] || ''}
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
-                        default-link-style="primary-outline"
+                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)}
+                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? 'primary' : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}

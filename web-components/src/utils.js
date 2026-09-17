@@ -56,6 +56,58 @@ export function wait(ms = 1000) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const foregroundTimers = new Map();
+let foregroundTimerId = 0;
+
+/**
+ * setTimeout that only counts down *foreground* time, i.e. time during which
+ * document.visibilityState === 'visible'. A plain setTimeout burns its budget
+ * against the wall clock, so work in a backgrounded tab or a paused in-app
+ * webview (the paid-social cohort in MWPW-206151) trips the timeout on resume,
+ * even though the work it races only ran for a few ms. Drop-in for the
+ * setTimeout/clearTimeout pair: pause the budget while hidden, resume on show.
+ * @param {() => void} callback invoked once the foreground budget elapses
+ * @param {number} ms foreground budget in milliseconds
+ * @returns {number} id to pass to clearForegroundTimeout
+ */
+export function setForegroundTimeout(callback, ms) {
+    const id = ++foregroundTimerId;
+    let remaining = ms;
+    let startedAt = performance.now();
+    let timer;
+    const fire = () => {
+        clearForegroundTimeout(id);
+        callback();
+    };
+    const start = () => {
+        startedAt = performance.now();
+        timer = setTimeout(fire, remaining);
+    };
+    const onVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            clearTimeout(timer);
+            remaining -= performance.now() - startedAt;
+        } else {
+            start();
+        }
+    };
+    foregroundTimers.set(id, () => {
+        clearTimeout(timer);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (document.visibilityState !== 'hidden') start();
+    return id;
+}
+
+/** Cancels a timer started with setForegroundTimeout. */
+export function clearForegroundTimeout(id) {
+    const dispose = foregroundTimers.get(id);
+    if (!dispose) return;
+    dispose();
+    foregroundTimers.delete(id);
+}
+
 /**
  * Calls given `getConfig` every time new instance of the commerce service is activated,
  * passing new instance as the only argument.

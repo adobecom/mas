@@ -22,6 +22,13 @@ export default class MasRelatedVariations extends LitElement {
         isVariation: { type: Boolean },
         isPromoVariation: { type: Boolean },
         repository: { type: Object },
+        // Per-block variation counts of the target fragment, passed by the editor. They drive this
+        // panel's reactivity: when the background promo probe folds refs into the fragment (mutated
+        // in place, so its object identity is unchanged), promoVariationCount changes 0 -> N and this
+        // prop-driven panel re-renders. Rows are still read from targetFragment.
+        localeVariationCount: { type: Number },
+        promoVariationCount: { type: Number },
+        groupedVariationCount: { type: Number },
         expandedVariationTypes: { type: Object, state: true },
         promoVariations: { type: Array, state: true },
         isLoadingPromoVariations: { type: Boolean, state: true },
@@ -195,11 +202,13 @@ export default class MasRelatedVariations extends LitElement {
         this.isLoadingGroupedVariations = true;
         try {
             const groupedVariationPaths = targetFragment.listGroupedVariations().map((v) => v.path);
+            const itemsSelectionStore = getItemsSelectionStore();
             await loadCardVariations(targetFragment.path, groupedVariationPaths, this.repository, {
                 getDisplayName: (fragmentData) => fragmentData?.path ?? '',
+                store: itemsSelectionStore,
             });
             if (token !== this.#groupedVariationsLoadToken) return;
-            const variationsByPath = getItemsSelectionStore().groupedVariationsByParent.value?.get(targetFragment.path);
+            const variationsByPath = itemsSelectionStore.groupedVariationsByParent.value?.get(targetFragment.path);
             this.groupedVariations = variationsByPath ? [...variationsByPath.values()] : [];
             this.#groupedVariationsLoadedForId = targetFragment.id;
         } catch (error) {

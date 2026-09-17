@@ -16,6 +16,8 @@ jobs:
         uses: ./.github/workflows/resolve-aio-identity.yaml
         with:
             login: ${{ github.event.pull_request.user.login }}
+        secrets:
+            probe: ${{ secrets[format('AIO_WWW_ENV_{0}', github.event.pull_request.user.login)] }}
 
     check-paths:
         name: Check Changed Paths

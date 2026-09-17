@@ -972,6 +972,11 @@ describe('aup-select checkout routing', () => {
         ['crm', 'doc_cloud', 'doc_cloud'],
         ['twp', 'doc_cloud', 'doc_cloud'],
         ['d2p', 'doc_cloud', 'doc_cloud'],
+        [undefined, 'acom_bc', 'acom_bc'],
+        ['true', 'acom_bc', 'acom_bc'],
+        ['crm', 'acom_bc', 'creative'],
+        ['twp', 'acom_bc', 'mini_plans'],
+        ['d2p', 'acom_bc', 'mini_plans'],
     ]) {
         it(`maps client ${clientId} with modal ${modal} to ${expected}`, async () => {
             removeMasCommerceService();

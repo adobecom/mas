@@ -144,4 +144,42 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
             await expect(acomPage.getCardCTA(data.id)).not.toHaveAttribute('href', /apc=/);
         });
     });
+
+    // @MAS-Promotions-Context-Price-And-CTA-Applied
+    test(`${features[4].name},${features[4].tags}`, async () => {
+        const { data } = features[4];
+        const page = workerSetup.getPage('US');
+        const acomPage = new MasPlans(page);
+
+        await test.step('step-1: Verify card has promotion project and promo code applied to price', async () => {
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promoProject);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.regularPrice);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-code', data.promoCode);
+        });
+
+        await test.step('step-2: Verify Buy Now CTA has apc parameter with promo code', async () => {
+            await expect(acomPage.getCardCTA(data.id)).toHaveAttribute('href', new RegExp(`apc=${data.promoCode}`));
+        });
+    });
+
+    // @MAS-Promotions-Context-Price-And-CTA-Canceled
+    test(`${features[5].name},${features[5].tags}`, async () => {
+        const { data } = features[5];
+        const page = workerSetup.getPage('US');
+        const acomPage = new MasPlans(page);
+
+        await test.step('step-1: Verify price has cancel-context for promo code', async () => {
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promoProject);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.regularPrice);
+            await expect(acomPage.getCardPrice(data.id)).not.toContainText(data.promoPrice);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-code', data.promoCode);
+        });
+
+        await test.step('step-2: Verify CTA does not have apc parameter', async () => {
+            await expect(acomPage.getCardCTA(data.id)).not.toHaveAttribute('href', /apc=/);
+        });
+    });
 });

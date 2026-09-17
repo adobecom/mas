@@ -105,6 +105,10 @@ vault kv put cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id> \
 
 Once seeded, opening a PR against `io/studio` deploys to your personal workspace.
 
+### Bot authors
+
+A GitHub App's login carries a `[bot]` suffix (`pinatacode[bot]`), which is not a legal character in a GitHub secret name and has no personal workspace behind it. `.github/workflows/resolve-aio-identity.yaml` holds the allowlist that maps those logins onto a workspace: `pinatacode[bot]` deploys `io/www` to the shared QA namespace and `io/studio` to the Vault path `cloudtech_wcms/merch-at-scale/aio-studio/pinatacode`, seeded exactly like a developer path above. Authors outside the allowlist are unchanged: they keep their own workspace, and an unseeded one still fails preflight with a clear error.
+
 ## How the `vault-secrets` action works
 
 CI fetches secrets through the reusable composite action `.github/actions/vault-secrets`, which wraps [`hashicorp/vault-action`](https://github.com/hashicorp/vault-action) (AppRole auth, KV v2, mount `cloudtech_wcms`, `https://vault-amer.adobe.net`). It reads one Vault path and exposes each field in one of two ways, depending on how you request it.

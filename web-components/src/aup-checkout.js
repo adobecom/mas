@@ -1,15 +1,13 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { MODAL_TYPE_3_IN_1 } from './constants.js';
+import {
+    AUP_CHECKOUT_CLIENT_IDS,
+    MODAL_TYPE_3_IN_1,
+} from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
 // silently no-op every checkout CTA on the page for the rest of its life.
 const HOST_TIMEOUT_MS = 20000;
-const AUP_CHECKOUT_CLIENT_IDS = new Set([
-    'creative',
-    'mini_plans',
-    'doc_cloud',
-]);
 
 function withTimeout(promise, stage, ms) {
     let timer;

@@ -1,8 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import {
-    AUP_CHECKOUT_CLIENT_IDS,
-    MODAL_TYPE_3_IN_1,
-} from './constants.js';
+import { AUP_CHECKOUT_CLIENT_IDS, MODAL_TYPE_3_IN_1 } from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and

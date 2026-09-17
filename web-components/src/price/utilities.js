@@ -212,6 +212,46 @@ const findCurrencySymbol = (formatString) =>
 const findDecimalsDelimiter = (formatString) =>
     formatString.match(/0(.?)0/)?.[1] ?? '';
 
+/**
+ * Indexes the WCS priceInfo tree for the value being shown and returns its
+ * pre-split leaf. A pure index: {timescale} → {discount state} → {tax state}.
+ * Returns undefined when WCS carries no leaf for that combination, so the
+ * caller falls back to numeric formatting.
+ *
+ * Always the tax-inclusive leaf, mirroring the numeric path: `taxDisplay` only
+ * selects the "incl./excl. tax" legal line, it never selects a different number
+ * to display. The tax-exclusive leaves are not display values — WCS sends a 0
+ * amount on offers that carry no separate net amount (e.g. trials), so keying
+ * off `taxDisplay` renders a 0.00 price.
+ * @param {object} args
+ * @param {object} args.priceInfo - WCS priceInfo tree
+ * @param {boolean} args.showWithoutDiscount - whether the pre-discount price is shown
+ * @param {boolean} args.displayAnnual - whether the annualized value is shown
+ * @param {boolean} args.displayOptical - whether the per-month equivalent is shown
+ * @param {object} [args.promotion] - active promotion, if any
+ * @returns {{ integer: string, decimals?: string, full: string } | undefined}
+ */
+const selectPreformattedPrice = ({
+    priceInfo,
+    showWithoutDiscount,
+    displayAnnual,
+    displayOptical,
+    promotion,
+}) => {
+    // Promo-weighted annual totals depend on request-time promo resolution and
+    // are still summed client-side, so WCS has no matching leaf.
+    if (displayAnnual && promotion) return undefined;
+    const timescale = displayAnnual
+        ? 'annualized'
+        : displayOptical
+          ? 'optical'
+          : 'asIs';
+    const discountState = showWithoutDiscount
+        ? 'withoutDiscount'
+        : 'withDiscount';
+    return priceInfo[timescale]?.[discountState]?.withTax;
+};
+
 // Utilities, specific to tacocat needs.
 
 /**
@@ -222,6 +262,8 @@ const findDecimalsDelimiter = (formatString) =>
  * @param {number} options.price - The price value to format
  * @param {boolean} options.usePrecision - Whether to include decimal precision in the formatted price
  * @param {boolean} [options.isIndianPrice=false] - Whether to use Indian locale-specific formatting
+ * @param {object} [options.preformatted] - WCS pre-split leaf { integer, decimals, full }, used verbatim when present
+ * @param {object} [options.priceInfoFormat] - WCS priceInfo.format: currency symbol and its placement
  * @param {string} recurrenceTerm - The recurrence term (MONTH or YEAR) for the price
  * @param {function} [transformPrice=(price) => price] - Optional function to transform the price before formatting
  * @returns {{
@@ -237,12 +279,41 @@ const findDecimalsDelimiter = (formatString) =>
  *
  */
 function formatPrice(
-    { formatString, price, usePrecision, isIndianPrice = false },
+    {
+        formatString,
+        price,
+        usePrecision,
+        isIndianPrice = false,
+        preformatted,
+        priceInfoFormat,
+    },
     recurrenceTerm,
     transformPrice = (formattedPrice) => formattedPrice,
 ) {
     const { currencySymbol, isCurrencyFirst, hasCurrencySpace } =
         getCurrencySymbolDetails(formatString);
+    // WCS already split the digits and grouped them for the locale: render them
+    // verbatim, no client number formatting. Symbol and placement come from
+    // priceInfo.format, except hasCurrencySpace — WCS reports false for JPY
+    // (formatString "#,##0 '&#20870;'") while its own "full" string has the
+    // space, so that one stays derived until WCS corrects it.
+    if (preformatted?.integer != null) {
+        return {
+            accessiblePrice: preformatted.full,
+            currencySymbol: priceInfoFormat?.currencySymbol ?? currencySymbol,
+            decimals: preformatted.decimals ?? '',
+            decimalsDelimiter:
+                preformatted.decimals == null
+                    ? ''
+                    : (priceInfoFormat?.decimalsDelimiter ??
+                      findDecimalsDelimiter(formatString)),
+            hasCurrencySpace,
+            integer: preformatted.integer,
+            isCurrencyFirst:
+                priceInfoFormat?.isCurrencyFirst ?? isCurrencyFirst,
+            recurrenceTerm,
+        };
+    }
     const decimalsDelimiter = usePrecision
         ? findDecimalsDelimiter(formatString)
         : '';
@@ -369,4 +440,5 @@ export {
     formatAnnualPrice,
     makeSpacesAroundNonBreaking,
     isPromotionActive,
+    selectPreformattedPrice,
 };

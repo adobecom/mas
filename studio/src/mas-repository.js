@@ -50,7 +50,6 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
-import { getItemsSelectionStore } from './common/items-selection-store.js';
 import {
     processConcurrently,
     OFFER_DATA_CONCURRENCY_LIMIT,

@@ -1237,6 +1237,12 @@ describe('MerchCard data-card-osi attribute', () => {
         expect(card.getAttribute('data-card-osi')).to.equal('OSI-A,OSI-B');
     });
 
+    it('removes data-card-osi attribute when cardOsi is an empty array', () => {
+        card.cardOsi = ['OSI-A'];
+        card.cardOsi = [];
+        expect(card.hasAttribute('data-card-osi')).to.be.false;
+    });
+
     it('wires fields.osi to data-card-osi via hydrate()', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
@@ -2149,3 +2155,4 @@ describe('appendSlot', () => {
         expect(appended.textContent).to.equal('This is a...');
     });
 });
+

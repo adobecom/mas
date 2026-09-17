@@ -131,6 +131,31 @@ describe('MasSideNav – Copy Field', () => {
             expect(bg.preview).to.equal(url);
         });
 
+        it('includes the backgrounds field with a combined preview of all three breakpoints', () => {
+            const desktop = 'https://main--da-cc--adobecom.aem.page/media_desktop.png';
+            const tablet = 'https://main--da-cc--adobecom.aem.page/media_tablet.png';
+            const mobile = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+            const html =
+                `<source srcset="${desktop}" media="(min-width: 1200px)">` +
+                `<source srcset="${tablet}" media="(min-width: 600px)">` +
+                `<img loading="lazy" alt="" src="${mobile}">`;
+            const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const backgrounds = el.copyableFields.find((f) => f.name === 'backgrounds');
+            expect(backgrounds).to.exist;
+            expect(backgrounds.displayName).to.equal('Backgrounds');
+            expect(backgrounds.preview).to.equal(`Desktop: ${desktop} · Tablet: ${tablet} · Mobile: ${mobile}`);
+        });
+
+        it('shows only the filled breakpoints in the backgrounds preview', () => {
+            const mobile = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+            const html = `<img loading="lazy" alt="" src="${mobile}">`;
+            const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const backgrounds = el.copyableFields.find((f) => f.name === 'backgrounds');
+            expect(backgrounds.preview).to.equal(`Mobile: ${mobile}`);
+        });
+
         it('should not include mapped fields that are not allowlisted', () => {
             const fragment = mockFragment([
                 { name: 'variant', values: ['plans'] },

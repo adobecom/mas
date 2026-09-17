@@ -57,10 +57,6 @@
         "type": "string",
         "maxLength": 255
     },
-    "image": {
-        "fieldLabel": "Image",
-        "type": "long-text"
-    },
     "cardTitle": {
         "fieldLabel": "Card title",
         "type": "string",
@@ -190,5 +186,13 @@
         "fieldLabel": "Custom Field Labels",
         "type": "string[]",
         "maxLength": 255
+    },
+    "image": {
+        "fieldLabel": "Image",
+        "type": "long-text"
+    },
+    "backgrounds": {
+        "fieldLabel": "Backgrounds",
+        "type": "long-text"
     }
 }

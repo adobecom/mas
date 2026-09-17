@@ -17,6 +17,8 @@ import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import { buildPictureHtml, extractImageUrl, isSupportedImageUrl } from './image-url.js';
+import { buildBackgroundsHtml, parseBackgroundsUrls } from './backgrounds-url.js';
+import '../fields/backgrounds-field.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
@@ -1310,6 +1312,7 @@ class MerchCardEditor extends LitElement {
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         const form = this.getFormWithInheritance();
+        const backgroundsUrls = parseBackgroundsUrls(form.backgrounds?.values?.[0] ?? '');
         const variantValue = this.getEffectiveFieldValue('variant');
         const skeletonDisplay = this.fieldsReady ? 'none' : 'block';
         const formDisplay = this.fieldsReady ? 'block' : 'none';
@@ -1761,6 +1764,18 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
+                <sp-field-group class="toggle" id="backgrounds">
+                    <sp-field-label>Backgrounds</sp-field-label>
+                    <mas-backgrounds-field
+                        data-field="backgrounds"
+                        data-field-state="${this.getFieldState('backgrounds')}"
+                        .desktop=${backgroundsUrls.desktop}
+                        .tablet=${backgroundsUrls.tablet}
+                        .mobile=${backgroundsUrls.mobile}
+                        @change="${this.#handleBackgroundsUpdate}"
+                    ></mas-backgrounds-field>
+                    ${this.renderFieldStatusIndicator('backgrounds')}
+                </sp-field-group>
                 ${this.currentVariantMapping?.image
                     ? html`
                           <sp-field-group class="toggle" id="image">
@@ -2716,6 +2731,20 @@ class MerchCardEditor extends LitElement {
                 value: url ? buildPictureHtml(url) : '',
                 dataset: {
                     field: 'image',
+                },
+            },
+        };
+
+        this.#handleFragmentUpdate(syntheticEvent);
+    };
+
+    #handleBackgroundsUpdate = (event) => {
+        const { desktop, tablet, mobile } = event.detail.value;
+        const syntheticEvent = {
+            target: {
+                value: buildBackgroundsHtml({ desktop, tablet, mobile }),
+                dataset: {
+                    field: 'backgrounds',
                 },
             },
         };

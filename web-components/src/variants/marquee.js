@@ -6,6 +6,7 @@ import { CSS, headlessRowStyle } from './headless.css.js';
 export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     image: { tag: 'picture', slot: 'image' },
+    backgrounds: true,
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'p', slot: 'short-description' },

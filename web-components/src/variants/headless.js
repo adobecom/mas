@@ -20,6 +20,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'prices' },
     backgroundImage: { tag: 'div', slot: 'bg-image' },
     image: { tag: 'picture', slot: 'image' },
+    backgrounds: true,
     ctas: { slot: 'footer', size: 'm' },
     addon: true,
     secureLabel: true,

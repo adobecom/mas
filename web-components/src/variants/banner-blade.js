@@ -10,6 +10,7 @@ import { CSS, headlessRowStyle } from './headless.css.js';
 export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     image: { tag: 'picture', slot: 'image' },
+    backgrounds: true,
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },

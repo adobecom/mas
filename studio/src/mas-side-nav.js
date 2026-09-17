@@ -13,6 +13,7 @@ import {
 } from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
 import { extractImageUrl } from './editors/image-url.js';
+import { parseBackgroundsUrls } from './editors/backgrounds-url.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -319,7 +320,17 @@ class MasSideNav extends LitElement {
         'ctas',
         'image',
         'backgroundImage',
+        'backgrounds',
     ]);
+
+    /** Joins the filled breakpoints of a backgrounds field into one preview line,
+     *  e.g. "Desktop: url · Tablet: url · Mobile: url" (only the filled ones). */
+    static #previewBackgrounds(html) {
+        const { desktop, tablet, mobile } = parseBackgroundsUrls(html);
+        return [desktop && `Desktop: ${desktop}`, tablet && `Tablet: ${tablet}`, mobile && `Mobile: ${mobile}`]
+            .filter(Boolean)
+            .join(' · ');
+    }
 
     #getPreviewCard() {
         return this.fragmentEditor?.querySelector?.('merch-card');
@@ -562,6 +573,14 @@ class MasSideNav extends LitElement {
                 name: field.name,
                 displayName: this.#getFieldDisplayName(field.name, sourceFragment),
                 preview: extractImageUrl(field.values?.[0] ?? ''),
+                sourceFragment,
+            };
+        }
+        if (field.name === 'backgrounds') {
+            return {
+                name: field.name,
+                displayName: this.#getFieldDisplayName(field.name, sourceFragment),
+                preview: MasSideNav.#previewBackgrounds(field.values?.[0] ?? ''),
                 sourceFragment,
             };
         }

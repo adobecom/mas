@@ -305,6 +305,7 @@ export const FILTER_TYPE = {
     PRODUCT: 'product',
     OFFER_TYPE: 'offerType',
     PLAN_TYPE: 'planType',
+    WORKFLOW_STEP: 'workflowStep',
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',

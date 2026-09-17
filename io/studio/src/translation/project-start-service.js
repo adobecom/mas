@@ -582,6 +582,52 @@ async function addCompletedLocale(projectId, locale, token, params = {}, maxRetr
 }
 
 /**
+ * Append the final locale to completedLocales AND set the CF status in a
+ * single PATCH, retrying on 412 etag conflicts. Use this instead of a
+ * separate addCompletedLocale + setProjectStatus pair when a transition marks
+ * both the last locale and the whole project complete at once: two
+ * independent PATCH calls leave a window where the locale-append fails or is
+ * still retrying while the status write lands, leaving the CF COMPLETED with
+ * an incomplete completedLocales array (Hoolihan delivery is at-least-once
+ * and unordered, so that window is real, not theoretical).
+ * @param {string} projectId
+ * @param {string} locale - the final locale being marked completed
+ * @param {string} status - the terminal project status (e.g. 'COMPLETED')
+ * @param {string} token
+ * @param {Object} params
+ * @returns {Promise<{success: boolean, etag?: string, error?: string}>}
+ */
+async function completeProjectLocale(projectId, locale, status, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+    return retryOnEtagConflict(
+        projectId,
+        `complete locale ${locale} and set status`,
+        async () => {
+            const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
+            const { values: existing = [], path: localesPath } = getValues(fragment, 'completedLocales') ?? {};
+            const { path: statusPath } = getValues(fragment, 'status') ?? {};
+            if (!localesPath || !statusPath) {
+                logger.warn(`completedLocales or status field not found on translation project ${projectId}, aborting`);
+                return { success: false, error: 'field-not-found' };
+            }
+
+            const mergedLocales = existing.includes(locale) ? existing : [...existing, locale];
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify([
+                    { op: 'replace', path: `${localesPath}/values`, value: mergedLocales },
+                    { op: 'replace', path: `${statusPath}/values`, value: [status] },
+                ]),
+            });
+
+            return { success: true, etag: response.headers.get('etag') };
+        },
+        maxRetries,
+    );
+}
+
+/**
  * Set the CF status field, retrying on 412 etag conflicts via the same shared
  * primitive as patchProjectFields/addCompletedLocale. Unlike them,
  * updateProjectStatus always fetches its own fresh etag internally, so a
@@ -623,6 +669,7 @@ module.exports = {
     updateProjectStatus,
     patchProjectFields,
     addCompletedLocale,
+    completeProjectLocale,
     setProjectStatus,
     ROLLOUT_PROJECT_TYPE,
 };

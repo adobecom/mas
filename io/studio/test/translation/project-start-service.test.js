@@ -114,6 +114,78 @@ describe('Translation project-start-service — CF mirror helpers', () => {
         });
     });
 
+    describe('completeProjectLocale', () => {
+        it('appends the final locale and sets the status in a single PATCH', async () => {
+            const fragment = createProjectFragment({ completedLocales: ['fr_FR', 'de_DE'] });
+            let patchCalls = 0;
+            let patchBody;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchCalls += 1;
+                patchBody = JSON.parse(options.body);
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'es_ES', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, etag: 'etag-2' });
+            expect(patchCalls).to.equal(1);
+            expect(patchBody).to.deep.equal([
+                { op: 'replace', path: '/fields/2/values', value: ['fr_FR', 'de_DE', 'es_ES'] },
+                { op: 'replace', path: '/fields/0/values', value: ['COMPLETED'] },
+            ]);
+        });
+
+        it('is idempotent on the locale but still writes the status', async () => {
+            const fragment = createProjectFragment({ completedLocales: ['fr_FR', 'de_DE', 'es_ES'] });
+            let patchBody;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchBody = JSON.parse(options.body);
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'es_ES', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, etag: 'etag-2' });
+            expect(patchBody[0].value).to.deep.equal(['fr_FR', 'de_DE', 'es_ES']);
+        });
+
+        it('aborts without patching when completedLocales or status is not found on the fragment', async () => {
+            const fragment = { id: 'proj-1', fields: [{ name: 'targetLocales', values: ['fr_FR'] }] };
+            let patchCalls = 0;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchCalls += 1;
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: false, error: 'field-not-found' });
+            expect(patchCalls).to.equal(0);
+        });
+
+        it('refetches and retries up to 3 times on etag conflict before giving up', async () => {
+            let getCalls = 0;
+            let patchCalls = 0;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') {
+                    getCalls += 1;
+                    return fragmentResponse(createProjectFragment(), `etag-${getCalls}`);
+                }
+                patchCalls += 1;
+                return conflictResponse();
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: false, error: 'etag-conflict-retries-exhausted' });
+            expect(getCalls).to.equal(3);
+            expect(patchCalls).to.equal(3);
+        });
+    });
+
     describe('patchProjectFields', () => {
         it('builds a json-patch operation list combining multiple field updates into one PATCH', async () => {
             const fragment = createProjectFragment();

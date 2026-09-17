@@ -55,12 +55,19 @@ async function fetchNewToken(params = {}) {
     return accessToken;
 }
 
+let pendingFetch = null;
+
 async function getServiceToken({ params } = {}) {
     const cached = await getCachedToken();
     if (cached?.accessToken) {
         return cached.accessToken;
     }
-    return fetchNewToken(params);
+    if (!pendingFetch) {
+        pendingFetch = fetchNewToken(params).finally(() => {
+            pendingFetch = null;
+        });
+    }
+    return pendingFetch;
 }
 
 module.exports = {

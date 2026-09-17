@@ -97,6 +97,19 @@ describe('service-auth', () => {
         expect(body.get('scope')).to.equal('AdobeID,openid,read_organizations');
     });
 
+    it('dedupes concurrent cold-cache calls into a single IMS request', async () => {
+        fetchStub.resolves(tokenResponse('token-abc', 3600));
+
+        const [first, second] = await Promise.all([
+            serviceAuth.getServiceToken({ params }),
+            serviceAuth.getServiceToken({ params }),
+        ]);
+
+        expect(first).to.equal('token-abc');
+        expect(second).to.equal('token-abc');
+        expect(fetchStub).to.have.been.calledOnce;
+    });
+
     it('returns the cached token without re-invoking IMS within the cached lifetime', async () => {
         fetchStub.resolves(tokenResponse('token-abc', 3600));
 

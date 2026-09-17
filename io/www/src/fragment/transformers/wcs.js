@@ -145,6 +145,11 @@ function* fragmentsOf(body) {
     }
 }
 
+/** A field value worth scanning; anything else is left untouched. */
+function hasMasElement(value) {
+    return typeof value === 'string' && value.includes('data-wcs-osi');
+}
+
 /**
  * Scans a fragment's rich text fields once, returning every M@S element it references (osi plus
  * any inline promotion code). When a substituteMap is given, rewrites substituted OSIs in the same
@@ -158,11 +163,13 @@ function scanMasElements(fields, substituteMap, context) {
     if (!fields) return elements;
     for (const [key, field] of Object.entries(fields)) {
         if (key === 'osi') continue;
-        // text/html fields arrive as { mimeType, value } objects (odinSchemaTransform).
-        const value = typeof field === 'string' ? field : field?.value;
-        if (typeof value !== 'string' || !value.includes('data-wcs-osi')) continue;
+        // Odin returns text/html fields as { mimeType, value }. The one multi-value rich text field
+        // (customFields) carries an array of strings in `value` rather than a single string, so scan
+        // every entry - otherwise promos never reach prices authored inside a custom field
+        // (MWPW-206423).
+        const fieldValue = typeof field === 'string' ? field : field?.value;
         let changed = false;
-        const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
+        const replacer = (element, rawOsi) => {
             const isLocked = element.includes('data-locked-osi="true"');
             const existingPromo = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
             const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap, existingPromo) : rawOsi;
@@ -201,7 +208,9 @@ function scanMasElements(fields, substituteMap, context) {
             );
             changed = true;
             return updated;
-        });
+        };
+        const rewriteValue = (value) => (hasMasElement(value) ? value.replace(MAS_ELEMENT_REGEXP, replacer) : value);
+        const rewritten = Array.isArray(fieldValue) ? fieldValue.map(rewriteValue) : rewriteValue(fieldValue);
         if (changed) fields[key] = typeof field === 'string' ? rewritten : { ...field, value: rewritten };
     }
     return elements;

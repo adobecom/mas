@@ -8,9 +8,14 @@ import {
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
     renderInheritedTagsNotice,
+    isShowingSelected,
+    toggleShowSelected,
+    getToggleSelectedLabel,
+    formatTabLabel,
 } from '../../../src/common/utils/render-utils.js';
 import { generateLinkToUse } from '../../../src/utils.js';
 import Store from '../../../src/store.js';
+import { setItemsSelectionStore } from '../../../src/common/items-selection-store.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -271,6 +276,60 @@ describe('render-utils', () => {
             sibling.classList.add('expand-button');
             const cell = document.createElement('sp-table-cell');
             expect(shouldIgnoreRowClickForSelection(fakeEvent(cell))).to.be.false;
+        });
+    });
+
+    describe('selector toggle helpers', () => {
+        beforeEach(() => {
+            setItemsSelectionStore(Store.translationProjects);
+            Store.translationProjects.showSelected.set(false);
+            Store.translationProjects.selectedCards.set([]);
+        });
+
+        afterEach(() => {
+            Store.translationProjects.showSelected.set(false);
+            Store.translationProjects.selectedCards.set([]);
+            setItemsSelectionStore(null);
+        });
+
+        describe('isShowingSelected', () => {
+            it('reflects the current store value', () => {
+                expect(isShowingSelected()).to.be.false;
+                Store.translationProjects.showSelected.set(true);
+                expect(isShowingSelected()).to.be.true;
+            });
+        });
+
+        describe('toggleShowSelected', () => {
+            it('flips the store value', () => {
+                toggleShowSelected();
+                expect(Store.translationProjects.showSelected.get()).to.be.true;
+                toggleShowSelected();
+                expect(Store.translationProjects.showSelected.get()).to.be.false;
+            });
+        });
+
+        describe('getToggleSelectedLabel', () => {
+            it('returns "Selected items" when not showing selection', () => {
+                expect(getToggleSelectedLabel(false)).to.equal('Selected items');
+            });
+
+            it('returns "Hide selection" when showing selection', () => {
+                expect(getToggleSelectedLabel(true)).to.equal('Hide selection');
+            });
+        });
+
+        describe('formatTabLabel', () => {
+            const tab = { value: 'cards', label: 'Fragments' };
+
+            it('returns the plain label when not viewOnly', () => {
+                expect(formatTabLabel(tab, false)).to.equal('Fragments');
+            });
+
+            it('appends the selection count when viewOnly', () => {
+                Store.translationProjects.selectedCards.set(['/path/a', '/path/b']);
+                expect(formatTabLabel(tab, true)).to.equal('Fragments (2)');
+            });
         });
     });
 });

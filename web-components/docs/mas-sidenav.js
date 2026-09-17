@@ -25,6 +25,7 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/minicompare.html">Mini Compare Gallery</a>
       <a href="/web-components/docs/minicomparemweb.html">Mini Compare MWeb Gallery</a>
       <a href="/web-components/docs/product.html">Product Gallery</a>
+      <a href="/web-components/docs/brand-concierge.html">Brand Concierge Gallery</a>
       <a href="/web-components/docs/segment.html">Segment Gallery</a>
       <a href="/web-components/docs/specialoffer.html">Special Offer Gallery</a>
       <a href="/web-components/docs/image.html">Image Gallery</a>

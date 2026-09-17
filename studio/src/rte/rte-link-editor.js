@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { CHECKOUT_CTA_TEXTS, ANALYTICS_LINK_IDS } from '../constants.js';
 import { summarizeCtaKeyIssues } from '../editors/variation-utils.js';
+import { HEADLESS_LINK_VARIANTS, resolveHeadlessDisplayVariant } from './link-variant-utils.js';
 
 export class RteLinkEditor extends LitElement {
     static properties = {
@@ -30,6 +31,7 @@ export class RteLinkEditor extends LitElement {
         isVariation: { type: Boolean, attribute: 'is-variation' },
         showCtaReference: { type: Boolean, attribute: 'show-cta-reference' },
         ctaKeyIssues: { type: Object },
+        isHeadlessCta: { type: Boolean, attribute: 'is-headless-cta' },
     };
 
     static styles = css`
@@ -139,6 +141,7 @@ export class RteLinkEditor extends LitElement {
         this.isVariation = false;
         this.showCtaReference = false;
         this.ctaKeyIssues = { missingCount: 0, duplicateKeys: [], hasIssues: false };
+        this.isHeadlessCta = false;
     }
 
     get #checkoutParametersField() {
@@ -247,7 +250,38 @@ export class RteLinkEditor extends LitElement {
         return this.shadowRoot.querySelector('.cta-reference-error');
     }
 
+    get #headlessLinkVariants() {
+        const displayVariant = resolveHeadlessDisplayVariant(this.variant);
+        return html`
+            <sp-field-label for="linkVariant">Variant</sp-field-label>
+            <sp-button-group id="linkVariant">
+                ${HEADLESS_LINK_VARIANTS.map(({ value, label }) => {
+                    const emphasisStyle =
+                        value === 'primary' ? 'font-weight:700' : value === 'secondary' ? 'font-style:italic' : '';
+                    return value === 'secondary-link'
+                        ? html`<sp-link
+                              class=${classMap({ selected: displayVariant === value })}
+                              @click=${(e) => {
+                                  e.preventDefault();
+                                  this.variant = value;
+                              }}
+                              href="#"
+                              >${label}</sp-link
+                          >`
+                        : html`<sp-button
+                              class=${classMap({ selected: displayVariant === value })}
+                              style=${emphasisStyle}
+                              @click=${() => (this.variant = value)}
+                              variant=${value}
+                              >${label}</sp-button
+                          >`;
+                })}
+            </sp-button-group>
+        `;
+    }
+
     get #linkVariants() {
+        if (this.isHeadlessCta) return this.#headlessLinkVariants;
         return html`
             <sp-field-label for="linkVariant">Variant</sp-field-label>
             <sp-button-group id="linkVariant">

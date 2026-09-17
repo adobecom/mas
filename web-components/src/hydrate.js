@@ -921,6 +921,9 @@ function createConsonantButton(
         } catch {
             // Fall back to regular button if checkout-link creation fails
         }
+        if (cta.hasAttribute('aria-label')) {
+            button.setAttribute('aria-label', cta.getAttribute('aria-label'));
+        }
     }
     if (!isLinkStyle) {
         button.classList.add('button', 'con-button');

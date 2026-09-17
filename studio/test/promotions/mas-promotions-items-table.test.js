@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, LitElement } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -637,11 +637,13 @@ describe('MasPromotionsItemsTable', () => {
         el.type = TABLE_TYPE.CARDS;
         document.body.appendChild(el);
         await el.updateComplete;
-        expect(ownControllerCount()).to.equal(1);
+        // itemsSelection (ItemsSelectionController) + the guarded #selectionController.
+        expect(ownControllerCount()).to.equal(2);
         el.remove();
         document.body.appendChild(el);
         await el.updateComplete;
-        expect(ownControllerCount()).to.equal(1);
+        // Reparenting must not add a second #selectionController.
+        expect(ownControllerCount()).to.equal(2);
         el.remove();
         addControllerSpy.restore();
     });
@@ -1189,7 +1191,7 @@ describe('MasPromotionsItemsTable', () => {
                 tags: [],
                 offerData: null,
             };
-            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]));
+            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]), Store.promotions);
 
             const cardWithGroupedVariation = {
                 ...cardFragment,
@@ -1932,6 +1934,60 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.viewOnlyFragments[0].path).to.equal(cardOnePath);
 
             Store.promotions.selectedCards.set([]);
+        });
+    });
+
+    describe('promo variation probe re-runs when the edited promotion changes', () => {
+        let el;
+
+        afterEach(() => {
+            el?.remove();
+            el = null;
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.inEdit.set(null);
+        });
+
+        it('re-probes promo variations when switching to a different promotion with the same selected paths', async () => {
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-one';
+            Store.promotions.selectedCards.set([cardPath]);
+            const promoA = new Fragment({
+                path: '/content/dam/mas/promotions/promo-a',
+                id: 'promo-a-id',
+                fields: [{ name: 'tags', values: ['mas:promotion/promo-a'], multiple: true }],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promoA));
+
+            const cardFragment = {
+                path: cardPath,
+                id: 'card-one-id',
+                title: 'Card one',
+                studioPath: cardPath,
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            };
+            const getFragmentByPath = sandbox.stub().resolves(cardFragment);
+            const search = makeSharedSearchStub(sandbox);
+            el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox
+                .stub(el, 'repository')
+                .get(() => ({ aem: { getFragmentByPath, sites: { cf: { fragments: { search } } } } }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await waitUntil(() => search.callCount > 0, 'search should probe promo variations for promo-a');
+
+            const callsBeforeSwitch = search.callCount;
+
+            const promoB = new Fragment({
+                path: '/content/dam/mas/promotions/promo-b',
+                id: 'promo-b-id',
+                fields: [{ name: 'tags', values: ['mas:promotion/promo-b'], multiple: true }],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promoB));
+            await el.updateComplete;
+            await waitUntil(() => search.callCount > callsBeforeSwitch, 'search should re-probe promo variations for promo-b');
         });
     });
 });

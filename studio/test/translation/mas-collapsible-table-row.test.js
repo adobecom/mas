@@ -35,14 +35,14 @@ describe('MasCollapsibleTableRow', () => {
 
     const resetStore = () => {
         Store.translationProjects.selectedCards.set([]);
-        setCardVariationsByPaths(new Map());
+        setCardVariationsByPaths(new Map(), Store.translationProjects);
     };
 
     const setupCardVariationsInStore = (cardPath, variations) => {
         const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
         const merged = new Map(existing);
         merged.set(cardPath, new Map(variations.map((v) => [v.path, v])));
-        setCardVariationsByPaths(merged);
+        setCardVariationsByPaths(merged, Store.translationProjects);
     };
 
     const createMockRepository = () => {
@@ -1724,6 +1724,29 @@ describe('MasCollapsibleTableRow', () => {
 
         it('falls back to Store.promotions.inEdit when the promotions list store is empty', async () => {
             Store.promotions.list.data.set([]);
+            Store.promotions.inEdit.set({ value: { id: promoProjectId, tags: [{ id: promoTagId }] } });
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                `#page=promotions-editor&promotionId=${encodeURIComponent(promoProjectId)}`,
+            );
+        });
+
+        it('resolves project from Store.promotions.inEdit when it is not in the list (e.g. a just-duplicated project)', async () => {
+            Store.promotions.list.data.set([
+                { get: () => ({ id: 'unrelated-project', tags: [{ id: 'mas:promotion/other' }] }) },
+            ]);
             Store.promotions.inEdit.set({ value: { id: promoProjectId, tags: [{ id: promoTagId }] } });
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(

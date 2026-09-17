@@ -22,7 +22,7 @@ import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore, { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import '../common/components/mas-items-selector.js';
 import {
     effectiveIsVariation as utilEffectiveIsVariation,
@@ -101,7 +101,6 @@ class MasCompareChartEditor extends LitElement {
         this.draggingGroup = null;
         this.draggingFeature = null;
         this.itemsSelectionStore = null;
-        this.previousItemsSelectionStore = null;
         this.reactiveController = new ReactiveController(this, [], this.#syncDirtyCardStoreState);
     }
 
@@ -113,6 +112,7 @@ class MasCompareChartEditor extends LitElement {
     #parseCache = { source: null, table: null, doc: null };
     #previewCacheIds = new Set();
     #lastPreviewSignature = '';
+    #itemsSelectionStoreToken = null;
 
     #reactiveStores(stores) {
         return stores.filter((store) => store?.subscribe && store?.unsubscribe);
@@ -120,9 +120,8 @@ class MasCompareChartEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.previousItemsSelectionStore = getItemsSelectionStore({ allowUnset: true });
         this.itemsSelectionStore = Store.compareChart;
-        setItemsSelectionStore(Store.compareChart);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.compareChart);
         if (this.fragmentStore) {
             this.#ensureCompareChartTag();
             this.#ensureCompareChartPlaceholders();
@@ -133,8 +132,8 @@ class MasCompareChartEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#clearLightDomPreview();
-        setItemsSelectionStore(this.previousItemsSelectionStore);
-        this.previousItemsSelectionStore = null;
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
         this.itemsSelectionStore = null;
         Store.editor.referencedFragmentStoresHaveChanges.set(false);
     }

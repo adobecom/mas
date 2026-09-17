@@ -105,9 +105,13 @@ vault kv put cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id> \
 
 Once seeded, opening a PR against `io/studio` deploys to your personal workspace.
 
-### Bot authors
+### Authors without a personal workspace
 
-A GitHub App's login carries a `[bot]` suffix (`pinatacode[bot]`), which is not a legal character in a GitHub secret name and has no personal workspace behind it. `.github/workflows/resolve-aio-identity.yaml` holds the allowlist that maps those logins onto a workspace: `pinatacode[bot]` deploys `io/www` to the shared QA namespace and `io/studio` to the Vault path `cloudtech_wcms/merch-at-scale/aio-studio/pinatacode`, seeded exactly like a developer path above. Authors outside the allowlist are unchanged: they keep their own workspace, and an unseeded one still fails preflight with a clear error.
+`.github/workflows/resolve-aio-identity.yaml` resolves every PR author to the credentials their deploy uses. If the author has no `AIO_WWW_ENV_<login>` secret registered, `io/www` deploys to the shared **QA** namespace instead of failing a check the author cannot act on. That covers both new contributors and GitHub Apps, whose login carries a `[bot]` suffix (`pinatacode[bot]`) that is not legal in a GitHub secret name and so can never resolve. QA is safe to share because no other workflow deploys to it, unlike `STAGE`, which `io-merge.yaml` owns for `main`.
+
+Concurrent PRs from unregistered authors do share that one namespace, so whichever deploy landed last is the one Nala Docs exercises. Seeding your own workspace is still the way to get an isolated deploy.
+
+`io/studio` deliberately has **no** such fallback. Its credentials come from Vault, and the `qa` path holds only `odin_bucket` — no `env`/`aio` — so redirecting there would trade a clear preflight 404 for a confusing auth failure. The resolver only strips a trailing `[bot]` to produce a legal path segment, so `pinatacode[bot]` reads `cloudtech_wcms/merch-at-scale/aio-studio/pinatacode`, seeded exactly like a developer path above. An author with an unseeded path still fails preflight with a clear error.
 
 ## How the `vault-secrets` action works
 

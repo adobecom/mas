@@ -20,6 +20,7 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },
+    planType: true,
     style: 'consonant',
 };
 
@@ -40,7 +41,8 @@ export class ProductPricing extends VariantLayout {
 
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-        options.displayPlanType = true;
+        // Author-controlled via "Show Plan type"; shown unless explicitly off.
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? true;
     }
 
     async adjustLegal() {

@@ -271,10 +271,13 @@ export function CheckoutMixin(Base) {
                 this.checkoutUrl &&
                 this.masElement.state === STATE_RESOLVED &&
                 !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
-                !this.classList.contains(CLASS_NAME_UPGRADE) &&
                 !this.hasAttribute('download') &&
                 (!this.target || this.target === '_self') &&
-                isAupCheckoutSupported(this.value, this.options);
+                isAupCheckoutSupported(
+                    this.value,
+                    this.options,
+                    this.classList.contains(CLASS_NAME_UPGRADE),
+                );
             this.setAttribute(
                 this.isCheckoutLink ? 'href' : 'data-href',
                 useAup ? '#' : this.checkoutUrl,
@@ -310,7 +313,6 @@ export function CheckoutMixin(Base) {
                 e.shiftKey ||
                 e.altKey ||
                 this.classList.contains(CLASS_NAME_DOWNLOAD) ||
-                this.classList.contains(CLASS_NAME_UPGRADE) ||
                 this.hasAttribute('download') ||
                 (this.target && this.target !== '_self')
             ) {
@@ -332,7 +334,14 @@ export function CheckoutMixin(Base) {
                 cs: this.customerSegment,
                 ms: this.marketSegment,
             };
-            if (!isAupCheckoutSupported(value, options)) return false;
+            if (
+                !isAupCheckoutSupported(
+                    value,
+                    options,
+                    this.classList.contains(CLASS_NAME_UPGRADE),
+                )
+            )
+                return false;
             this.updateCheckoutUrl();
             e.preventDefault();
             if (aupCheckoutPending) return true;

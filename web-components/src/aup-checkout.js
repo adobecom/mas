@@ -17,9 +17,14 @@ function withTimeout(promise, stage, ms) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-export function isAupCheckoutSupported(offers, options) {
+export function isAupCheckoutSupported(
+    offers,
+    options,
+    hasUpgradeAction = false,
+) {
     return (
         offers.length > 0 &&
+        !hasUpgradeAction &&
         !options.perpetual &&
         !offers.some((offer) => offer.commitment === 'PERPETUAL')
     );

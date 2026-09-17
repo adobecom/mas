@@ -161,6 +161,16 @@ mas-field > [data-role="mas-field-content"]:empty {
     display: none;
 }
 
+/* A headless mas-field is often authored with CTA classes (e.g. feds-cta) directly
+   on the host. Those classes can carry their own display value at the same
+   specificity as the rule above, which can beat display:contents and leave an
+   empty, still-styled CTA box visible when the field resolves to nothing (e.g. a
+   trial CTA stripped by hideTrialCTAs). #renderField sets [hidden] in that case;
+   force it to win regardless of what other classes are on the host. */
+mas-field[hidden] {
+    display: none !important;
+}
+
 mas-field div[slot="footer"] {
     display: flex;
     gap: 24px;
@@ -475,6 +485,7 @@ class MasField extends HTMLElement {
 
     #renderField() {
         if (!this.#fields || !this.#field) return;
+        this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
 
         if (index !== null && isNaN(index)) {
@@ -485,7 +496,10 @@ class MasField extends HTMLElement {
                     ? labelsRaw
                     : [labelsRaw];
                 const labelIndex = labels.indexOf(index);
-                if (labelIndex === -1) return;
+                if (labelIndex === -1) {
+                    this.hidden = true;
+                    return;
+                }
                 const valuesRaw = this.#fields[fieldName];
                 const values = Array.isArray(valuesRaw)
                     ? valuesRaw
@@ -493,14 +507,21 @@ class MasField extends HTMLElement {
                       ? [valuesRaw]
                       : [];
                 let html = this.#normalizeFieldValue(values[labelIndex]);
-                if (!html) return;
+                if (!html) {
+                    this.hidden = true;
+                    return;
+                }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                     html = stripTrialCtas(html, true);
-                    if (html === null) return;
+                    if (html === null) {
+                        this.hidden = true;
+                        return;
+                    }
                 }
                 this.#setFragmentIds();
                 const content = this.#ensureContentElement();
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                this.#upgradeCheckoutLinks(content);
                 this.#decorateTooltips(content);
                 this.#stampContext(content);
                 return;
@@ -508,20 +529,29 @@ class MasField extends HTMLElement {
         }
 
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
-        if (fieldValue === undefined) return;
+        if (fieldValue === undefined) {
+            this.hidden = true;
+            return;
+        }
         this.#setFragmentIds();
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {
             html = this.#extractIndexedAnchor(fieldValue, index);
-            if (html === null) return;
+            if (html === null) {
+                this.hidden = true;
+                return;
+            }
         } else {
             html = this.#unwrapSingleParagraph(fieldValue);
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                 html = stripTrialCtas(html, index !== null);
-                if (html === null) return;
+                if (html === null) {
+                    this.hidden = true;
+                    return;
+                }
             }
             if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);
@@ -532,11 +562,59 @@ class MasField extends HTMLElement {
                 }
             }
             content.innerHTML = html;
+            this.#upgradeCheckoutLinks(content);
             this.#decorateTooltips(content);
             this.#stampContext(content);
             return;
         }
-        content.textContent = html == null ? '' : String(html);
+        if (html == null) {
+            this.hidden = true;
+            return;
+        }
+        content.textContent = String(html);
+    }
+
+    /**
+     * Creates a checkout-link element via the real service-backed factory when
+     * available, falling back to a manually upgraded anchor (still a genuine
+     * customized built-in, just without service-resolved checkout options)
+     * when the checkout service hasn't registered yet.
+     */
+    #createCheckoutLinkElement(dataset, innerHTML) {
+        const CheckoutLink = customElements.get('checkout-link');
+        return (
+            CheckoutLink?.createCheckoutLink(dataset, innerHTML) ??
+            (() => {
+                const el = document.createElement('a', {
+                    is: 'checkout-link',
+                });
+                el.setAttribute('is', 'checkout-link');
+                el.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+                return el;
+            })()
+        );
+    }
+
+    /**
+     * Upgrades any data-wcs-osi anchors left in the container by a raw HTML
+     * assignment into real checkout-link elements. Needed because customized
+     * built-ins only get constructed when `is=` is present at parse time, and
+     * stored fragment HTML for non-ctas fields never carries that attribute.
+     */
+    #upgradeCheckoutLinks(container) {
+        for (const link of container.querySelectorAll(
+            'a[data-wcs-osi]:not([is])',
+        )) {
+            const button = this.#createCheckoutLinkElement(
+                link.dataset,
+                link.innerHTML,
+            );
+            for (const { name, value } of link.attributes) {
+                if (['is', 'href'].includes(name)) continue;
+                button.setAttribute(name, value);
+            }
+            link.replaceWith(button);
+        }
     }
 
     /**

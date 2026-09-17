@@ -57,6 +57,9 @@ export class PlansV2 extends VariantLayout {
     }
 
     priceOptionsProvider(element, options) {
+        const mainPriceSlot = PLANS_V2_AEM_FRAGMENT_MAPPING.prices.slot;
+        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
                 this.card?.settings?.displayPlanType ?? false;
@@ -258,7 +261,7 @@ export class PlansV2 extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
 
             if (
-                this.card.settings.displayAnnual &&
+                this.card.settings?.displayAnnual &&
                 headingPrice.options.displayTax
             ) {
                 legal.dataset.displayTax = 'false';

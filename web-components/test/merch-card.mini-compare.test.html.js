@@ -237,8 +237,12 @@ runTests(async () => {
             await card.checkReady();
             const variantLayout = card.variantLayout;
 
+            const parent = document.createElement('div');
             // Test legal template branch
-            const legalElement = { dataset: { template: 'legal' } };
+            const legalElement = {
+                dataset: { template: 'legal' },
+                closest: () => parent,
+            };
             const legalOptions = {};
             variantLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
@@ -246,6 +250,7 @@ runTests(async () => {
             // Test strikethrough template branch
             const strikethroughElement = {
                 dataset: { template: 'strikethrough' },
+                closest: () => parent,
             };
             const strikethroughOptions = {};
             variantLayout.priceOptionsProvider(
@@ -255,7 +260,10 @@ runTests(async () => {
             expect(strikethroughOptions.displayPerUnit).to.equal(false);
 
             // Test price template branch
-            const priceElement = { dataset: { template: 'price' } };
+            const priceElement = {
+                dataset: { template: 'price' },
+                closest: () => parent,
+            };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
             expect(priceOptions.displayPerUnit).to.be.false;

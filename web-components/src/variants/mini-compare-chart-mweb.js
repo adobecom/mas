@@ -159,6 +159,10 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     priceOptionsProvider(element, options) {
+        const mainPriceSlot =
+            MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING.prices.slot;
+        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
                 this.card?.settings?.displayPlanType ?? false;

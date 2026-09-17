@@ -329,9 +329,6 @@ mas-field .icon-button.hide-tooltip::after {
 }
 
 .pricing.has-pricing-after .price-annual-prefix {
-  display: block;
-  font-size: 0;
-  line-height: 0;
   display: none;
 }
 

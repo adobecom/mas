@@ -94,6 +94,7 @@ styles.innerHTML = `
     --merch-color-green-promo: #05834E;
     --merch-color-red-promo: #D31510;
     --merch-color-error: #D73220;
+    --merch-color-red-strikethrough: #ff0000;
     --merch-color-error-background: #ffebe8;
     --merch-color-grey-80: #2c2c2c;
     --consonant-merch-card-body-xs-color: var(--spectrum-gray-800, var(--merch-color-grey-80));
@@ -1079,8 +1080,8 @@ merch-card[border-color="spectrum-red-700-plans"] {
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix + .price-annual,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
-  font-size: 16px;
-  line-height: 16px;
+  font-size: var(--consonant-merch-card-body-s-font-size);
+  line-height: var(--consonant-merch-card-body-s-font-size);
   font-weight: 400;
 }
 
@@ -1091,8 +1092,8 @@ merch-card[annualized][variant="mini-compare-chart"] [slot="heading-m-price"] {
 
 merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-prefix + .price-annual,
 merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-suffix {
-  font-size: 16px;
-  line-height: 16px;
+  font-size: var(--consonant-merch-card-body-s-font-size);
+  line-height: var(--consonant-merch-card-body-s-font-size);
   font-weight: 400;
 }
 
@@ -1104,7 +1105,7 @@ merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-p
 
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough span {
-  color: #ff0000;
+  color: var(--merch-color-red-strikethrough);
 }
 
 merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before,
@@ -1118,18 +1119,18 @@ merch-card[variant^="plans"][annualized] [slot="heading-m"] [is="inline-price"] 
 }
 
 merch-card[variant^="plans"][annualized] [slot="heading-m"] p {
-  font-size: 24px;
-  line-height: 30px;
+  font-size: var(--consonant-merch-card-body-xxl-font-size);
+  line-height: var(--consonant-merch-card-body-l-line-height);
 }
 
 merch-card[variant^="plans"][annualized] [slot="heading-m"] p:has([data-template="strikethrough"]) {
-  font-size: 14px;
+  font-size: var(--consonant-merch-card-body-xs-font-size);
 }
 
 merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
 merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price.price-annual span,
 merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
-    font-size: 14px;
+    font-size: var(--consonant-merch-card-body-xs-font-size);
     font-weight: 400;
     font-family: var(--consonant-merch-card-pro-font-family-regular);
     letter-spacing: 0;
@@ -1144,7 +1145,7 @@ merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="
 merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
 merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual,
 merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
-  font-size: 14px;
+  font-size: var(--consonant-merch-card-body-xs-font-size);
   font-weight: 400;
 }
 
@@ -1157,7 +1158,7 @@ merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [
 merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
 merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual span,
 merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
-  font-size: 18px;
+  font-size: var(--consonant-merch-card-body-m-font-size);
   font-weight: 400;
 }
 
@@ -1165,10 +1166,10 @@ merch-card[variant^="plans"][annualized] [slot="heading-m"] span.price.price-ann
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+  line-height: var(--consonant-merch-card-body-xs-line-height);
   position: relative;
-  top: -3px;
+  top: calc(-1 * var(--consonant-merch-spacing-xxxs));
 }
 
 merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child,

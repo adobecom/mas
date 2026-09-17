@@ -608,16 +608,19 @@ describe('aup-select checkout routing', () => {
                 expect(sdk.getOrchestratorContext.called).to.be.false;
             });
 
-            it('routes upgrade checkout actions through AUP', async () => {
+            it('preserves upgrade checkout actions', async () => {
                 await service.registerCheckoutAction(() => ({
                     handler: legacy,
                     className: 'upgrade',
                 }));
                 const element = await create(Class, { upgrade: true });
-                click(element);
-                await element.aupCheckoutPromise;
-                expect(launch.calledOnce).to.be.true;
-                expect(legacy.called).to.be.false;
+                expect(element.getAttribute(hrefAttribute)).to.equal(
+                    element.checkoutUrl,
+                );
+                const event = click(element);
+                expect(sdk.getOrchestratorContext.called).to.be.false;
+                expect(launch.called).to.be.false;
+                expect(legacy.calledOnceWithExactly(event)).to.be.true;
             });
 
             it('keeps workflows open beyond 20 seconds and suppresses repeated clicks until exit', async () => {
@@ -909,7 +912,6 @@ describe('aup-select checkout routing', () => {
         { wcsOsi: 'abm,stock-m2m' },
         { wcsOsi: 'abm-promo', promotionCode: 'nicopromo' },
         { extraOptions: '{"ao":"stock"}' },
-        { upgrade: true },
         { checkoutWorkflowStep: 'change-plan/team-upgrade/plans' },
     ]) {
         it(`lets AUP resolve checkout ${JSON.stringify(options)}`, async () => {

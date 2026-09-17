@@ -1611,3 +1611,100 @@ describe('mas-field – image rendering', () => {
         );
     });
 });
+
+describe('mas-field – backgrounds rendering (field="backgrounds" / "backgrounds[breakpoint]")', () => {
+    const DESKTOP_URL =
+        'https://main--da-cc--adobecom.aem.page/media_desktop.png';
+    const TABLET_URL =
+        'https://main--da-cc--adobecom.aem.page/media_tablet.png';
+    const MOBILE_URL =
+        'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+    const COMBINED =
+        `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
+        `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
+        `<img loading="lazy" alt="" src="${MOBILE_URL}">`;
+
+    function makeBackgroundsField(field) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgrounds: COMBINED } },
+            }),
+        );
+        return el;
+    }
+
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders the whole combined <picture> for plain "backgrounds" (no breakpoint)', () => {
+        const el = makeBackgroundsField('backgrounds');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            MOBILE_URL,
+        );
+    });
+
+    it('renders only the desktop image for "backgrounds[desktop]"', () => {
+        const el = makeBackgroundsField('backgrounds[desktop]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(0);
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            DESKTOP_URL,
+        );
+    });
+
+    it('renders only the tablet image for "backgrounds[tablet]"', () => {
+        const el = makeBackgroundsField('backgrounds[tablet]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            TABLET_URL,
+        );
+    });
+
+    it('renders only the mobile image for "backgrounds[mobile]"', () => {
+        const el = makeBackgroundsField('backgrounds[mobile]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            MOBILE_URL,
+        );
+    });
+
+    it('renders nothing for a breakpoint absent from the combined markup', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[tablet]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" src="${MOBILE_URL}">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+});

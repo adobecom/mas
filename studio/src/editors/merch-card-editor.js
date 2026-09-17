@@ -18,7 +18,6 @@ import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import { buildPictureHtml, extractImageUrl, isSupportedImageUrl } from './image-url.js';
 import { buildBackgroundsHtml, parseBackgroundsUrls } from './backgrounds-url.js';
-import '../fields/backgrounds-field.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
@@ -1518,6 +1517,10 @@ class MerchCardEditor extends LitElement {
                     color: var(--merch-color-error, #d73220);
                 }
 
+                #backgrounds sp-field-label:not(:first-of-type) {
+                    margin-top: 16px;
+                }
+
                 ${fieldStatusStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
@@ -1765,16 +1768,38 @@ class MerchCardEditor extends LitElement {
                     </sp-field-group>
                 </div>
                 <sp-field-group class="toggle" id="backgrounds">
-                    <sp-field-label>Backgrounds</sp-field-label>
-                    <mas-backgrounds-field
+                    <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter background image URL"
+                        id="background-desktop"
                         data-field="backgrounds"
-                        data-field-state="${this.getFieldState('backgrounds')}"
-                        .desktop=${backgroundsUrls.desktop}
-                        .tablet=${backgroundsUrls.tablet}
-                        .mobile=${backgroundsUrls.mobile}
-                        @change="${this.#handleBackgroundsUpdate}"
-                    ></mas-backgrounds-field>
-                    ${this.renderFieldStatusIndicator('backgrounds')}
+                        data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
+                        value="${backgroundsUrls.desktop}"
+                        @input="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
+                    ></sp-textfield>
+                    ${this.#renderBackgroundStatusIndicator('desktop')}
+
+                    <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter background image URL"
+                        id="background-tablet"
+                        data-field="backgrounds"
+                        data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
+                        value="${backgroundsUrls.tablet}"
+                        @input="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
+                    ></sp-textfield>
+                    ${this.#renderBackgroundStatusIndicator('tablet')}
+
+                    <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter background image URL"
+                        id="background-mobile"
+                        data-field="backgrounds"
+                        data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
+                        value="${backgroundsUrls.mobile}"
+                        @input="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
+                    ></sp-textfield>
+                    ${this.#renderBackgroundStatusIndicator('mobile')}
                 </sp-field-group>
                 ${this.currentVariantMapping?.image
                     ? html`
@@ -2738,19 +2763,62 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentUpdate(syntheticEvent);
     };
 
-    #handleBackgroundsUpdate = (event) => {
-        const { desktop, tablet, mobile } = event.detail.value;
+    /** Reads the current backgrounds field value straight from the fragment (not the
+     *  effective/inherited value), so a change to one breakpoint can be merged with
+     *  the other two's own values without clobbering them. */
+    #getOwnBackgroundsUrls() {
+        return parseBackgroundsUrls(this.fragment.getField('backgrounds')?.values?.[0] ?? '');
+    }
+
+    #handleBackgroundsPartUpdate(key, event) {
+        const current = this.#getOwnBackgroundsUrls();
+        current[key] = event.target.value.trim();
         const syntheticEvent = {
             target: {
-                value: buildBackgroundsHtml({ desktop, tablet, mobile }),
+                value: buildBackgroundsHtml(current),
                 dataset: {
                     field: 'backgrounds',
                 },
             },
         };
-
         this.#handleFragmentUpdate(syntheticEvent);
-    };
+    }
+
+    /** Per-breakpoint override state within the single combined "backgrounds" field,
+     *  mirroring Fragment#getFieldState's own/inherited/same-as-parent/overridden
+     *  semantics but scoped to one breakpoint's URL instead of the whole field value. */
+    #getBackgroundBreakpointState(key) {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const ownField = this.fragment.getField('backgrounds');
+        if (!ownField?.values?.length) return 'inherited';
+        const own = this.#getOwnBackgroundsUrls()[key];
+        if (!own) return 'inherited';
+        const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+        const parent = parseBackgroundsUrls(parentRaw)[key];
+        return own === parent ? 'same-as-parent' : 'overridden';
+    }
+
+    async #resetBackgroundBreakpointToParent(key) {
+        const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+        const current = this.#getOwnBackgroundsUrls();
+        current[key] = parseBackgroundsUrls(parentRaw)[key];
+        const syntheticEvent = {
+            target: {
+                value: buildBackgroundsHtml(current),
+                dataset: {
+                    field: 'backgrounds',
+                },
+            },
+        };
+        this.#handleFragmentUpdate(syntheticEvent);
+        showToast('Field restored to parent value', 'positive');
+    }
+
+    #renderBackgroundStatusIndicator(key) {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.#getBackgroundBreakpointState(key) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.#resetBackgroundBreakpointToParent(key));
+    }
 
     static #ADDON_DEFAULT = 'transparent';
     static #ADDON_GRADIENT =

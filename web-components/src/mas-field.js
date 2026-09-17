@@ -9,6 +9,7 @@ import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 import { rewriteImageUrlsForProd } from './image-markup.js';
+import { extractBackgroundUrl } from './backgrounds-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -567,15 +568,31 @@ class MasField extends HTMLElement {
 
         if (
             index === null &&
-            (fieldName === 'image' || fieldName === 'backgroundImage')
+            (fieldName === 'image' ||
+                fieldName === 'backgroundImage' ||
+                fieldName === 'backgrounds')
         ) {
             const value = this.#unwrapSingleParagraph(fieldValue);
             if (typeof value === 'string' && value) {
                 const inner =
-                    fieldName === 'image'
+                    fieldName === 'image' || fieldName === 'backgrounds'
                         ? value
                         : `<img loading="lazy" alt="" src="${value}">`;
                 this.#renderPictureContent(renderImageMarkup(inner));
+            }
+            return;
+        }
+
+        if (fieldName === 'backgrounds' && index !== null) {
+            const url = this.#unwrapSingleParagraph(
+                extractBackgroundUrl(fieldValue, index),
+            );
+            if (typeof url === 'string' && url) {
+                this.#renderPictureContent(
+                    renderImageMarkup(
+                        `<img loading="lazy" alt="" src="${url}">`,
+                    ),
+                );
             }
             return;
         }

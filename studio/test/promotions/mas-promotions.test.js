@@ -339,4 +339,57 @@ describe('MasPromotions', () => {
             expect(searchRow.querySelector('.promotions-result-count')).to.exist;
         });
     });
+
+    describe('environment filter layout', () => {
+        it('places the environment filter picker below the search row, without a filter icon or "Filters:" label', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector('sp-icon-filter')).to.not.exist;
+            const filtersContainer = el.shadowRoot.querySelector('.filters-container');
+            expect(filtersContainer).to.exist;
+            const hasFiltersLabel = [...filtersContainer.querySelectorAll('span')].some(
+                (span) => span.textContent.trim() === 'Filters:',
+            );
+            expect(hasFiltersLabel).to.be.false;
+
+            const searchRow = el.shadowRoot.querySelector('.promotions-search-row');
+            expect(searchRow.contains(filtersContainer)).to.be.false;
+            const position = searchRow.compareDocumentPosition(filtersContainer);
+            expect(position & Node.DOCUMENT_POSITION_FOLLOWING).to.be.above(0);
+            expect(filtersContainer.querySelector('.environment-filter-picker')).to.exist;
+        });
+
+        it('keeps environment filtering behaviour unchanged: selecting and clearing values updates the results', async () => {
+            const production = makePromotion({ id: 'promo-1', title: 'Prod Promo', surfaces: ['acom'] });
+            const test = makePromotion({ id: 'promo-2', title: 'Test Promo', surfaces: ['sandbox'] });
+            const { el } = await mountWithRepo(production);
+            Store.promotions.list.data.set([new FragmentStore(production), new FragmentStore(test)]);
+            el.environmentFilter = [];
+            await el.updateComplete;
+
+            expect(el.filteredPromotions).to.have.lengthOf(2);
+
+            const testCheckbox = [...el.shadowRoot.querySelectorAll('sp-checkbox')].find(
+                (checkbox) => checkbox.value === 'test',
+            );
+            testCheckbox.checked = true;
+            testCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+
+            expect(el.environmentFilter).to.include('test');
+            expect(el.filteredPromotions).to.have.lengthOf(1);
+            expect(el.filteredPromotions[0].get().title).to.equal('Test Promo');
+
+            const clearButton = [...el.shadowRoot.querySelectorAll('sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Clear all',
+            );
+            clearButton.click();
+            await el.updateComplete;
+
+            expect(el.environmentFilter).to.have.lengthOf(0);
+            expect(el.filteredPromotions).to.have.lengthOf(2);
+        });
+    });
 });

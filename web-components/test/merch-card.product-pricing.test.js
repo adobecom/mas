@@ -8,18 +8,18 @@ import {
 import '../src/mas.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 
-let UberPricing;
+let ProductPricing;
 
 before(async () => {
-    ({ UberPricing } = await import('../src/variants/uber-pricing.js'));
+    ({ ProductPricing } = await import('../src/variants/product-pricing.js'));
 });
 
 // SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs']; resyncOnReflow keys on
 // width plus each slot's height, so the async legal clone (grows heading-xs) and
 // a font reflow re-sync, while our own min-height writes leave the key unchanged.
-describe('UberPricing.resyncOnReflow', () => {
+describe('ProductPricing.resyncOnReflow', () => {
     it('re-syncs on a real reflow but dedupes unchanged geometry', () => {
-        const layout = Object.create(UberPricing.prototype);
+        const layout = Object.create(ProductPricing.prototype);
         const rect = { width: 0 };
         const heights = { 'heading-s': 18, 'body-xs': 54, 'heading-xs': 20 };
         layout.card = {
@@ -54,7 +54,7 @@ describe('UberPricing.resyncOnReflow', () => {
     });
 
     it('treats a missing slot as height 0', () => {
-        const layout = new UberPricing({
+        const layout = new ProductPricing({
             getBoundingClientRect: () => ({ width: 300 }),
             querySelector: () => null,
         });
@@ -67,11 +67,11 @@ describe('UberPricing.resyncOnReflow', () => {
 // syncHeights lines up the variable slots across a row of cards in a collection.
 // It delegates row grouping to the base syncRowHeights (group by rect.top,
 // publish the row max as a min-height var), so these drive a fake collection.
-describe('UberPricing.syncHeights across a collection', () => {
+describe('ProductPricing.syncHeights across a collection', () => {
     const makeCard = ({ top = 0, heights = {} } = {}) => {
         const styles = {};
         const card = {
-            variant: 'uber-pricing',
+            variant: 'product-pricing',
             getBoundingClientRect: () => ({ width: 300, top }),
             querySelector: (sel) => {
                 const slot = sel.match(/slot="([^"]+)"/)?.[1];
@@ -90,7 +90,7 @@ describe('UberPricing.syncHeights across a collection', () => {
     };
 
     const layoutFor = (cards) => {
-        const layout = Object.create(UberPricing.prototype);
+        const layout = Object.create(ProductPricing.prototype);
         layout.card = cards[0];
         const containerStyles = {};
         sinon.stub(layout, 'getContainer').returns({
@@ -116,7 +116,7 @@ describe('UberPricing.syncHeights across a collection', () => {
     ];
 
     it('publishes each row max slot height, leaving other rows alone', () => {
-        const prop = '--consonant-merch-card-uber-pricing-heading-s-height';
+        const prop = '--consonant-merch-card-product-pricing-heading-s-height';
         const a = makeCard({ top: 0, heights: { 'heading-s': 40 } });
         const b = makeCard({ top: 0, heights: { 'heading-s': 60 } });
         const c = makeCard({ top: 500, heights: { 'heading-s': 18 } });
@@ -140,7 +140,7 @@ describe('UberPricing.syncHeights across a collection', () => {
     });
 
     it('does not sync on mobile (stacked cards are each their own row)', () => {
-        const prop = '--consonant-merch-card-uber-pricing-heading-s-height';
+        const prop = '--consonant-merch-card-product-pricing-heading-s-height';
         const a = makeCard({ top: 0, heights: { 'heading-s': 40 } });
         const layout = layoutFor([a]);
         const [gcs, mm] = stubMeasurement(false);
@@ -154,7 +154,7 @@ describe('UberPricing.syncHeights across a collection', () => {
     });
 });
 
-describe('UberPricing reflow wiring', () => {
+describe('ProductPricing reflow wiring', () => {
     it('observes the card + description and listens for price resolution', () => {
         const observed = [];
         const RealObserver = window.ResizeObserver;
@@ -180,7 +180,7 @@ describe('UberPricing reflow wiring', () => {
                 removeEventListener: sinon.spy(),
                 querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
             };
-            const layout = new UberPricing(card);
+            const layout = new ProductPricing(card);
             const resync = sinon.stub(layout, 'resyncOnReflow');
 
             layout.connectedCallbackHook();
@@ -203,9 +203,9 @@ describe('UberPricing reflow wiring', () => {
     });
 });
 
-describe('UberPricing.priceOptionsProvider', () => {
+describe('ProductPricing.priceOptionsProvider', () => {
     it('sets displayPlanType only on the legal template', () => {
-        const layout = new UberPricing({});
+        const layout = new ProductPricing({});
         const opts = {};
         layout.priceOptionsProvider({ dataset: { template: 'price' } }, opts);
         expect(opts.displayPlanType, 'left alone off the legal template').to.be
@@ -218,7 +218,7 @@ describe('UberPricing.priceOptionsProvider', () => {
     });
 });
 
-describe('UberPricing.adjustLegal', () => {
+describe('ProductPricing.adjustLegal', () => {
     const makeFixture = (priceOverrides = {}) => {
         const clone = {
             setAttribute: sinon.spy(),
@@ -235,19 +235,27 @@ describe('UberPricing.adjustLegal', () => {
             nextSibling: 'next',
             ...priceOverrides,
         };
-        const layout = new UberPricing({
+        const layout = new ProductPricing({
             updateComplete: Promise.resolve(),
             querySelector: (sel) => (sel.includes('heading-xs') ? price : null),
         });
         return { layout, price, clone, insertBefore };
     };
 
-    it('clones the price into a legal sibling with per-unit off', async () => {
-        const { layout, clone, insertBefore } = makeFixture();
+    it('strips fine print off the bold price and clones a legal sibling', async () => {
+        const { layout, price, clone, insertBefore } = makeFixture({
+            options: {
+                displayPerUnit: true,
+                displayTax: true,
+                displayPlanType: true,
+            },
+        });
         await layout.adjustLegal();
         expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
             .true;
-        expect(clone.dataset.displayPerUnit).to.equal('false');
+        expect(price.dataset.displayPerUnit).to.equal('false');
+        expect(price.dataset.displayTax).to.equal('false');
+        expect(price.dataset.displayPlanType).to.equal('false');
         expect(insertBefore.calledWith(clone, 'next')).to.be.true;
     });
 
@@ -281,9 +289,9 @@ describe('UberPricing.adjustLegal', () => {
     });
 });
 
-describe('UberPricing.postCardUpdateHook', () => {
+describe('ProductPricing.postCardUpdateHook', () => {
     const makeLayout = (cardOverrides = {}) =>
-        new UberPricing({
+        new ProductPricing({
             isConnected: true,
             updateComplete: Promise.resolve(),
             querySelector: () => null,
@@ -332,16 +340,16 @@ describe('UberPricing.postCardUpdateHook', () => {
     });
 });
 
-describe('UberPricing.renderLayout', () => {
+describe('ProductPricing.renderLayout', () => {
     it('returns a template', () => {
-        const layout = new UberPricing({});
+        const layout = new ProductPricing({});
         expect(layout.renderLayout()).to.exist;
     });
 });
 
-describe('UberPricing.syncHeights guards and observer edges', () => {
+describe('ProductPricing.syncHeights guards and observer edges', () => {
     it('does not sync a zero-width card', () => {
-        const layout = new UberPricing({
+        const layout = new ProductPricing({
             getBoundingClientRect: () => ({ width: 0 }),
         });
         const sync = sinon.stub(layout, 'syncRowHeights');
@@ -353,7 +361,7 @@ describe('UberPricing.syncHeights guards and observer edges', () => {
         const Real = window.ResizeObserver;
         window.ResizeObserver = undefined;
         try {
-            const layout = new UberPricing({
+            const layout = new ProductPricing({
                 addEventListener: sinon.spy(),
                 removeEventListener: sinon.spy(),
                 querySelector: () => null,
@@ -370,13 +378,13 @@ describe('UberPricing.syncHeights guards and observer edges', () => {
 // that reservation is the ~80px blank band above the CTAs. The collapse is CSS,
 // so this asserts the rendered slot, which also catches a selector the browser
 // silently drops (:has() inside :host() is invalid and was dropped).
-describe('UberPricing price row collapse', () => {
+describe('ProductPricing price row collapse', () => {
     before(() => initMasCommerceService());
     after(() => removeMasCommerceService());
 
     const render = async (withPrice) => {
         const card = document.createElement('merch-card');
-        card.setAttribute('variant', 'uber-pricing');
+        card.setAttribute('variant', 'product-pricing');
         card.innerHTML = `
             <h3 slot="heading-s">Title</h3>
             <div slot="body-xs">Copy</div>

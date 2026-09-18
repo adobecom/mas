@@ -17,11 +17,7 @@ function withTimeout(promise, stage, ms) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-export function isAupCheckoutSupported(
-    offers,
-    options,
-    hasUpgradeAction = false,
-) {
+export function isAupCheckoutSupported(offers, options, hasUpgradeAction) {
     return (
         offers.length > 0 &&
         !hasUpgradeAction &&
@@ -30,8 +26,8 @@ export function isAupCheckoutSupported(
     );
 }
 
-function getRequest(offers, options) {
-    if (!isAupCheckoutSupported(offers, options)) return;
+function getRequest(offers, options, hasUpgradeAction) {
+    if (!isAupCheckoutSupported(offers, options, hasUpgradeAction)) return;
     const [offer] = offers;
     const context = {
         clientId: options.checkoutClientId,
@@ -148,8 +144,9 @@ export async function launchAupCheckout(
     options,
     onClose,
     timeout = HOST_TIMEOUT_MS,
+    hasUpgradeAction = false,
 ) {
-    const request = getRequest(offers, options);
+    const request = getRequest(offers, options, hasUpgradeAction);
     if (!request) return false;
     const orchestrator = await withTimeout(
         sdk.getOrchestratorContext(),

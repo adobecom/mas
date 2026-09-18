@@ -220,8 +220,8 @@ export function CheckoutMixin(Base) {
                 /* c8 ignore next 2 */
                 this.checkoutActionHandler = undefined;
             }
+            this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
             if (checkoutAction) {
-                this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
                 this.masElement.toggleResolved(version, offers, options);
                 const { url, text, className, handler } = checkoutAction;
                 if (url) {
@@ -340,13 +340,9 @@ export function CheckoutMixin(Base) {
                 cs: this.customerSegment,
                 ms: this.marketSegment,
             };
-            if (
-                !isAupCheckoutSupported(
-                    value,
-                    options,
-                    this.classList.contains(CLASS_NAME_UPGRADE),
-                )
-            )
+            const hasUpgradeAction =
+                this.classList.contains(CLASS_NAME_UPGRADE);
+            if (!isAupCheckoutSupported(value, options, hasUpgradeAction))
                 return false;
             this.updateCheckoutUrl();
             e.preventDefault();
@@ -366,6 +362,8 @@ export function CheckoutMixin(Base) {
                           cartItems = items;
                       }
                     : undefined,
+                undefined,
+                hasUpgradeAction,
             )
                 .catch((error) => {
                     this.masElement.log?.error(

@@ -30,5 +30,16 @@ export default {
             browserParams: '#page=placeholders&path=nala&locale=en_US',
             tags: '@mas-studio @placeholders',
         },
+        {
+            tcid: '3',
+            name: '@studio-placeholders-key-normalization',
+            path: '/studio.html',
+            data: {
+                typedKey: 'coll-tag-filter-market_segments',
+                normalizedKey: 'coll-tag-filter-marketsegments',
+            },
+            browserParams: '#page=placeholders&path=nala&locale=en_US',
+            tags: '@mas-studio @placeholders',
+        },
     ],
 };

@@ -1673,34 +1673,40 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
         );
     });
 
-    it('renders only the desktop image for "backgrounds[desktop]"', () => {
+    it('renders the full webp/format rendition set (not a bare img) for "backgrounds[desktop]"', () => {
         const el = makeBackgroundsField('backgrounds[desktop]');
         const picture = el.querySelector(
             ':scope > picture[data-role="mas-field-content"]',
         );
         expect(picture).to.exist;
-        expect(picture.querySelectorAll('source')).to.have.lengthOf(0);
-        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+        const sources = [...picture.querySelectorAll('source')];
+        expect(sources).to.have.lengthOf(3);
+        sources.forEach((s) =>
+            expect(s.getAttribute('srcset')).to.contain(DESKTOP_URL),
+        );
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
             DESKTOP_URL,
         );
     });
 
-    it('renders only the tablet image for "backgrounds[tablet]"', () => {
+    it('renders the full webp/format rendition set for "backgrounds[tablet]"', () => {
         const el = makeBackgroundsField('backgrounds[tablet]');
         const picture = el.querySelector(
             ':scope > picture[data-role="mas-field-content"]',
         );
-        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(3);
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
             TABLET_URL,
         );
     });
 
-    it('renders only the mobile image for "backgrounds[mobile]"', () => {
+    it('renders the full webp/format rendition set for "backgrounds[mobile]"', () => {
         const el = makeBackgroundsField('backgrounds[mobile]');
         const picture = el.querySelector(
             ':scope > picture[data-role="mas-field-content"]',
         );
-        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(3);
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
             MOBILE_URL,
         );
     });

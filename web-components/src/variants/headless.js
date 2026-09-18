@@ -44,7 +44,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
 const HEADLESS_FIELDS = [
     { slot: 'bg-image', label: 'Background Image' },
     { slot: 'image', label: 'Image' },
-    { slot: 'backgrounds', label: 'Backgrounds' },
+    { slot: 'backgrounds', label: 'Background Desktop' },
     { slot: 'badge', label: 'Badge' },
     { slot: 'icons', label: 'Mnemonic icon' },
     { slot: 'heading-xs', label: 'Title' },

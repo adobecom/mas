@@ -25,7 +25,7 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
  */
 const MARQUEE_FIELDS = [
     { slot: 'image', label: 'Image' },
-    { slot: 'backgrounds', label: 'Backgrounds' },
+    { slot: 'backgrounds', label: 'Background Desktop' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Product description' },
     { slot: 'short-description', label: 'Short Description' },

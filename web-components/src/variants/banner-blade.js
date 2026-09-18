@@ -27,7 +27,7 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
  */
 const BANNER_BLADE_FIELDS = [
     { slot: 'image', label: 'Image' },
-    { slot: 'backgrounds', label: 'Backgrounds' },
+    { slot: 'backgrounds', label: 'Background Desktop' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Description' },
     { slot: 'footer', label: 'CTAs' },

@@ -11,7 +11,7 @@ import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 import {
     rewriteImageUrlsForProd,
     sanitizeAssetUrl,
-    isSupportedAssetHostname,
+    buildPictureInnerMarkup,
 } from './image-markup.js';
 import { extractBackgroundUrl } from './backgrounds-markup.js';
 
@@ -601,16 +601,12 @@ class MasField extends HTMLElement {
             const url = this.#unwrapSingleParagraph(
                 extractBackgroundUrl(fieldValue, index),
             );
-            if (
-                typeof url === 'string' &&
-                url &&
-                isSupportedAssetHostname(url)
-            ) {
-                this.#renderPictureContent(
-                    renderImageMarkup(
-                        `<img loading="lazy" alt="" src="${sanitizeAssetUrl(url)}">`,
-                    ),
-                );
+            const pictureInner =
+                typeof url === 'string' && url
+                    ? buildPictureInnerMarkup(url)
+                    : '';
+            if (pictureInner) {
+                this.#renderPictureContent(renderImageMarkup(pictureInner));
             } else {
                 this.#clearContent();
                 this.hidden = true;

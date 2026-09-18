@@ -4,6 +4,7 @@ import {
     rewriteImageUrlsForProd,
     sanitizeAssetUrl,
     isSupportedAssetHostname,
+    buildPictureInnerMarkup,
 } from '../src/image-markup.js';
 
 const AEM =
@@ -111,5 +112,49 @@ describe('isSupportedAssetHostname', () => {
 
     it('rejects an empty value', () => {
         expect(isSupportedAssetHostname('')).to.be.false;
+    });
+});
+
+describe('buildPictureInnerMarkup', () => {
+    it('returns empty string for an unsupported host', () => {
+        expect(buildPictureInnerMarkup('https://example.com/x.png')).to.equal(
+            '',
+        );
+    });
+
+    it('emits two webp sources plus an original-format source and img for png', () => {
+        const doc = parse(buildPictureInnerMarkup(AEM));
+        const sources = [...doc.querySelectorAll('source')];
+        const img = doc.querySelector('img');
+        expect(sources).to.have.lengthOf(3);
+
+        expect(sources[0].getAttribute('type')).to.equal('image/webp');
+        expect(sources[0].getAttribute('srcset')).to.equal(
+            `${AEM}?width=2000&format=webply&optimize=medium`,
+        );
+        expect(sources[0].getAttribute('media')).to.equal('(min-width: 600px)');
+
+        expect(sources[1].getAttribute('type')).to.equal('image/webp');
+        expect(sources[1].getAttribute('srcset')).to.equal(
+            `${AEM}?width=750&format=webply&optimize=medium`,
+        );
+        expect(sources[1].hasAttribute('media')).to.be.false;
+
+        expect(sources[2].getAttribute('type')).to.equal('image/png');
+        expect(sources[2].getAttribute('srcset')).to.equal(
+            `${AEM}?width=2000&format=png&optimize=medium`,
+        );
+
+        expect(img.getAttribute('loading')).to.equal('lazy');
+        expect(img.getAttribute('alt')).to.equal('');
+        expect(img.getAttribute('src')).to.equal(
+            `${AEM}?width=750&format=png&optimize=medium`,
+        );
+    });
+
+    it('does not let a quote in an otherwise-valid-hostname URL break out of the srcset/src attribute', () => {
+        const malicious = `${AEM}" onerror="alert(1)`;
+        const doc = parse(buildPictureInnerMarkup(malicious));
+        expect(doc.querySelector('[onerror]')).to.not.exist;
     });
 });

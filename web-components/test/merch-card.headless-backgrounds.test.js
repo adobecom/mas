@@ -37,13 +37,13 @@ for (const variant of ['headless', 'marquee', 'banner-blade']) {
         let card;
         afterEach(() => card?.remove());
 
-        it('renders a "Backgrounds" row with a toggle button', async () => {
+        it('renders a "Background Desktop" row with a toggle button', async () => {
             card = await renderCard(variant, BACKGROUNDS_PICTURE);
             const rows = [...card.shadowRoot.querySelectorAll('.headless-row')];
             const row = rows.find(
                 (r) =>
                     r.querySelector('.headless-label')?.textContent ===
-                    'Backgrounds',
+                    'Background Desktop',
             );
             expect(row).to.exist;
             expect(row.querySelector('.headless-backgrounds-toggle')).to.exist;
@@ -57,7 +57,7 @@ for (const variant of ['headless', 'marquee', 'banner-blade']) {
             expect(detail.classList.contains('hidden')).to.be.true;
         });
 
-        it('expands and populates desktop/tablet/mobile images on click', async () => {
+        it('expands and populates only tablet/mobile images on click (desktop is already the default row)', async () => {
             card = await renderCard(variant, BACKGROUNDS_PICTURE);
             const toggle = card.shadowRoot.querySelector(
                 '.headless-backgrounds-toggle',
@@ -69,18 +69,36 @@ for (const variant of ['headless', 'marquee', 'banner-blade']) {
             );
             expect(detail.classList.contains('hidden')).to.be.false;
 
-            const desktopImg = detail.querySelector(
-                '[data-backgrounds-breakpoint="desktop"] img',
-            );
+            expect(
+                detail.querySelector('[data-backgrounds-breakpoint="desktop"]'),
+            ).to.not.exist;
             const tabletImg = detail.querySelector(
                 '[data-backgrounds-breakpoint="tablet"] img',
             );
             const mobileImg = detail.querySelector(
                 '[data-backgrounds-breakpoint="mobile"] img',
             );
-            expect(desktopImg?.src).to.equal(DESKTOP_URL);
             expect(tabletImg?.src).to.equal(TABLET_URL);
             expect(mobileImg?.src).to.equal(MOBILE_URL);
+
+            const detailLabels = [
+                ...detail.querySelectorAll('.headless-label'),
+            ].map((el) => el.textContent);
+            expect(detailLabels).to.deep.equal([
+                'Background Tablet',
+                'Background Mobile',
+            ]);
+        });
+
+        it('renames the toggle to "See all backgrounds" / "Show default only"', async () => {
+            card = await renderCard(variant, BACKGROUNDS_PICTURE);
+            const toggle = card.shadowRoot.querySelector(
+                '.headless-backgrounds-toggle',
+            );
+            expect(toggle.textContent.trim()).to.equal('See all backgrounds');
+
+            toggle.click();
+            expect(toggle.textContent.trim()).to.equal('Show default only');
         });
 
         it('collapses again on a second click', async () => {

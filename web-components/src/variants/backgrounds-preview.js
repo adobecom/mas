@@ -1,12 +1,13 @@
 import { html } from 'lit';
 import { extractBackgroundUrl } from '../backgrounds-markup.js';
 
-export const BACKGROUNDS_BREAKPOINTS = ['desktop', 'tablet', 'mobile'];
+// The default is desktop background.
+export const BACKGROUNDS_DETAIL_BREAKPOINTS = ['tablet', 'mobile'];
 
 export function populateBackgroundsDetail(card, detail) {
     const picture = card.querySelector('[slot="backgrounds"]');
     const inner = picture?.innerHTML ?? '';
-    BACKGROUNDS_BREAKPOINTS.forEach((breakpoint) => {
+    BACKGROUNDS_DETAIL_BREAKPOINTS.forEach((breakpoint) => {
         const valueEl = detail.querySelector(
             `[data-backgrounds-breakpoint="${breakpoint}"]`,
         );
@@ -25,9 +26,11 @@ export function populateBackgroundsDetail(card, detail) {
     });
 }
 
-/** Builds the click handler for a variant's "See all breakpoints" toggle.
+/** Builds the click handler for a variant's "See all backgrounds" toggle.
  *  `getCard` is a thunk so the handler always reads the variant's current
- *  `this.card` rather than capturing it once at construction time. */
+ *  `this.card` rather than capturing it once at construction time. The
+ *  default row (desktop) stays visible at all times; the detail only adds
+ *  tablet and mobile. */
 export function makeToggleBackgroundsDetail(getCard) {
     return function toggleBackgroundsDetail(e) {
         const card = getCard();
@@ -40,7 +43,7 @@ export function makeToggleBackgroundsDetail(getCard) {
         detail.classList.toggle('hidden', !expanding);
         e.target.textContent = expanding
             ? 'Show default only'
-            : 'See all breakpoints';
+            : 'See all backgrounds';
     };
 }
 
@@ -51,20 +54,24 @@ export function renderBackgroundsToggleButton(onClick) {
             class="headless-backgrounds-toggle"
             @click="${onClick}"
         >
-            See all breakpoints
+            See all backgrounds
         </button>
     `;
+}
+
+function breakpointLabel(breakpoint) {
+    return `Background ${breakpoint[0].toUpperCase()}${breakpoint.slice(1)}`;
 }
 
 export function renderBackgroundsDetailRow() {
     return html`
         <div class="headless-row headless-backgrounds-detail hidden">
-            ${BACKGROUNDS_BREAKPOINTS.map(
+            ${BACKGROUNDS_DETAIL_BREAKPOINTS.map(
                 (breakpoint) => html`
                     <div class="headless-backgrounds-detail-row">
-                        <span class="headless-label">
-                            ${breakpoint[0].toUpperCase()}${breakpoint.slice(1)}
-                        </span>
+                        <span class="headless-label"
+                            >${breakpointLabel(breakpoint)}</span
+                        >
                         <span
                             class="headless-value"
                             data-backgrounds-breakpoint="${breakpoint}"

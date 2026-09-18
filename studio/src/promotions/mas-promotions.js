@@ -329,12 +329,10 @@ class MasPromotions extends LitElement {
                             ></sp-search>
                         </div>
                         <span class="promotions-result-count">${this.filteredPromotions.length} results</span>
-                        <div class="filters-container">
-                            <sp-icon-filter></sp-icon-filter><span>Filters:</span>
-                            ${this.renderEnvironmentFilterPicker}
-                        </div>
                     </div>
-                    ${this.renderAppliedEnvironmentFilters()}
+                    <div class="filters-container">
+                        ${this.renderEnvironmentFilterPicker} ${this.renderAppliedEnvironmentFilters()}
+                    </div>
                 </div>
 
                 <div class="promotions-content">${this.renderPromotionsContent()}</div>

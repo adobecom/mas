@@ -77,7 +77,7 @@ export default class PlaceholdersPage {
 
     async clickCreateButton() {
         await this.createButton.click();
-        await this.creationModal.waitFor({ timeout: 10000 });
+        await this.creationModalKeyInput.waitFor({ timeout: 10000 });
     }
 
     async typePlaceholderKey(text) {

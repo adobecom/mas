@@ -1,0 +1,78 @@
+name: Resolve AIO Identity
+
+# Single source of truth for mapping a PR author to the credentials their IO deploy uses.
+#
+# Authors who have registered their own workspace secrets deploy to that workspace, keyed by
+# GitHub login. Everyone else falls back to the shared QA workspace, because the alternative
+# is a failed check that tells a first-time contributor nothing actionable. Two groups land
+# on the fallback:
+#
+#   - GitHub Apps. Their login carries a "[bot]" suffix, and brackets are not legal in a
+#     GitHub secret name, so `secrets[format('AIO_WWW_ENV_{0}', login)]` can never resolve.
+#   - Humans who have not onboarded a personal workspace yet.
+#
+# QA is safe to share: AIO_WWW_ENV_QA / AIO_WWW_AIO_QA / AIO_NS_QA are deployed to by no
+# other workflow, unlike STAGE, which io-merge.yaml owns for main.
+#
+# io/studio is deliberately excluded from the fallback — see vault_login below.
+
+on:
+    workflow_call:
+        inputs:
+            login:
+                description: 'GitHub login of the PR author (github.event.pull_request.user.login)'
+                type: string
+                required: true
+        secrets:
+            probe:
+                description: >
+                    Value of secrets[format('AIO_WWW_ENV_{0}', login)]. The secrets context is
+                    unavailable in a `with:` block, so the caller passes the value in and this
+                    workflow decides. Callers MUST probe this same secret: it is what
+                    io-deploy authenticates with, so probing a different one could send the
+                    deploy to one workspace and the Nala run to another.
+                required: false
+        outputs:
+            secret_suffix:
+                description: 'Suffix for the AIO_WWW_ENV_/AIO_WWW_AIO_/AIO_NS_ secret names'
+                value: ${{ jobs.resolve.outputs.secret_suffix }}
+            vault_login:
+                description: >
+                    Path segment for merch-at-scale/aio-studio/<login>, lowercased, with a
+                    trailing [bot] stripped so App logins yield a legal path. This does NOT
+                    fall back to QA: that Vault path holds only odin_bucket, no env/aio, so
+                    redirecting there would trade a clear preflight 404 for a confusing auth
+                    failure. Unregistered authors still fail loudly on io/studio changes.
+                value: ${{ jobs.resolve.outputs.vault_login }}
+
+jobs:
+    resolve:
+        runs-on: ubuntu-latest
+        outputs:
+            secret_suffix: ${{ steps.map.outputs.secret_suffix }}
+            vault_login: ${{ steps.map.outputs.vault_login }}
+        steps:
+            - name: Map author to deploy identity
+              id: map
+              env:
+                  LOGIN: ${{ inputs.login }}
+                  PROBE: ${{ secrets.probe }}
+              run: |
+                  set -euo pipefail
+
+                  # An unregistered author has no AIO_WWW_ENV_<login>, and neither does any
+                  # GitHub App, whose "[bot]" login cannot legally name a secret. Both share
+                  # the QA workspace rather than failing a check they cannot act on.
+                  if [ -z "${PROBE:-}" ]; then
+                      secret_suffix=QA
+                      echo "::notice::No AIO_WWW_ENV_${LOGIN} secret found; using the shared QA workspace"
+                  else
+                      secret_suffix="$LOGIN"
+                  fi
+
+                  # Strip a trailing [bot] so App logins yield a legal Vault path segment.
+                  vault_login=$(printf '%s' "$LOGIN" | tr '[:upper:]' '[:lower:]' | sed 's/\[bot\]$//')
+
+                  echo "Resolved '$LOGIN' to secret suffix '$secret_suffix', vault login '$vault_login'"
+                  echo "secret_suffix=$secret_suffix" >> "$GITHUB_OUTPUT"
+                  echo "vault_login=$vault_login" >> "$GITHUB_OUTPUT"

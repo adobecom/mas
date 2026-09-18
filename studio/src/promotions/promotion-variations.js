@@ -298,7 +298,9 @@ export async function createPromoVariation(
                 (sourceFragment.fields || []).filter(hasOwnValue).map((field) => field.name),
             );
             effectiveFields = mergedFields.filter(
-                (field) => !INHERITED_SETTINGS_FIELDS.has(field.name) || ownFieldNamesWithValue.has(field.name),
+                (field) =>
+                    field.name !== 'variation_tags' &&
+                    (!INHERITED_SETTINGS_FIELDS.has(field.name) || ownFieldNamesWithValue.has(field.name)),
             );
         }
     }

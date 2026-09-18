@@ -485,6 +485,7 @@ class MasPromotionsItemsTable extends LitElement {
             this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
             this.fragmentHasEmptyGeosVariation = existingVariations.some((variation) => !variation.pznTags?.length);
             if (Fragment.isGroupedVariationPath(item.path)) {
+                this.createPromoVariationLoading = false;
                 await this.#createPromoVariationForItem(item, [], this.fragmentHasEmptyGeosVariation);
                 return;
             }
@@ -1043,7 +1044,14 @@ class MasPromotionsItemsTable extends LitElement {
                 tableToRender = this.#renderCollectionsTable();
                 break;
         }
-        return html` ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender} `;
+        return html`
+            ${this.createPromoVariationLoading
+                ? html`<div class="loading-overlay">
+                      <sp-progress-circle size="l" indeterminate label="Creating promo variation"></sp-progress-circle>
+                  </div>`
+                : nothing}
+            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender}
+        `;
     }
 }
 

@@ -616,7 +616,7 @@ describe('aup-select checkout routing', () => {
                 expect(legacy.called).to.be.false;
             });
 
-            it('preserves qualified upgrade checkout actions', async () => {
+            it('reopens qualified upgrade checkout actions on subsequent clicks', async () => {
                 await service.registerCheckoutAction(() => ({
                     handler: legacy,
                     className: 'upgrade',
@@ -625,10 +625,14 @@ describe('aup-select checkout routing', () => {
                 expect(element.getAttribute(hrefAttribute)).to.equal(
                     element.checkoutUrl,
                 );
-                const event = click(element);
+                const firstEvent = click(element);
+                const secondEvent = click(element);
                 expect(sdk.getOrchestratorContext.called).to.be.false;
                 expect(launch.called).to.be.false;
-                expect(legacy.calledOnceWithExactly(event)).to.be.true;
+                expect(legacy.firstCall.calledWithExactly(firstEvent)).to.be
+                    .true;
+                expect(legacy.secondCall.calledWithExactly(secondEvent)).to.be
+                    .true;
             });
 
             it('clears a stale upgrade action before routing through AUP', async () => {

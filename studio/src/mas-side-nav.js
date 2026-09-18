@@ -316,6 +316,7 @@ class MasSideNav extends LitElement {
         'callout',
         'subtitle',
         'ctas',
+        'badge',
     ]);
 
     #getPreviewCard() {

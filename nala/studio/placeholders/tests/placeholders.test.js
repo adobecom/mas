@@ -122,4 +122,27 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
             expect(rowCount).toBeGreaterThan(1); // Should show more than just the test placeholder
         });
     });
+
+    // Test 3: @studio-placeholders-key-normalization - key strips underscores to match the dictionary token.
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[3];
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Navigate to placeholders page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await placeholders.waitForTableToLoad();
+        });
+
+        await test.step('step-2: Open the create placeholder modal', async () => {
+            await placeholders.clickCreateButton();
+            await expect(placeholders.creationModalKeyInput).toBeVisible();
+        });
+
+        await test.step('step-3: Typed key is normalized (underscores stripped)', async () => {
+            await placeholders.typePlaceholderKey(data.typedKey);
+            expect(await placeholders.getPlaceholderKeyValue()).toBe(data.normalizedKey);
+        });
+    });
 });

@@ -14,11 +14,15 @@
         ],
         "collections": [],
         "variations": [],
-        "tagFilters": [],
+        "tagFilters": [
+            "mas:customer_segment/individual",
+            "mas:market_segments/com"
+        ],
         "pznTags": [],
         "compareChart": {
             "mimeType": "text/plain"
-        }
+        },
+        "tagFiltersTitle": "Segment"
     },
     "references": {
         "c4be1257-acb8-430e-834c-d2bde2e34e07": {
@@ -302,9 +306,10 @@
     },
     "settings": {
         "tagLabels": {
-            "desktop": "Desktop",
-            "mobile": "Mobile",
-            "web": "Web"
+            "individual": "Individual",
+            "com": "Commercial",
+            "customer_segment": "Segment",
+            "market_segments": "Market"
         }
     },
     "wcs": {

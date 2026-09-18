@@ -1,12 +1,17 @@
 import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
+import {
+    makeToggleBackgroundsDetail,
+    renderBackgroundsDetailRow,
+    renderBackgroundsToggleButton,
+} from './backgrounds-preview.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Marquee slots. */
 export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     image: { tag: 'picture', slot: 'image' },
-    backgrounds: true,
+    backgrounds: { tag: 'picture', slot: 'backgrounds' },
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'p', slot: 'short-description' },
@@ -20,6 +25,7 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
  */
 const MARQUEE_FIELDS = [
     { slot: 'image', label: 'Image' },
+    { slot: 'backgrounds', label: 'Backgrounds' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Product description' },
     { slot: 'short-description', label: 'Short Description' },
@@ -36,6 +42,8 @@ export class Marquee extends VariantLayout {
         return CSS;
     }
 
+    toggleBackgroundsDetail = makeToggleBackgroundsDetail(() => this.card);
+
     renderLayout() {
         return html`
             <div class="headless">
@@ -45,8 +53,16 @@ export class Marquee extends VariantLayout {
                             <span class="headless-label">${label}</span>
                             <span class="headless-value" data-slot="${slot}">
                                 <slot name="${slot}"></slot>
+                                ${slot === 'backgrounds'
+                                    ? renderBackgroundsToggleButton(
+                                          this.toggleBackgroundsDetail,
+                                      )
+                                    : nothing}
                             </span>
                         </div>
+                        ${slot === 'backgrounds'
+                            ? renderBackgroundsDetailRow()
+                            : nothing}
                     `,
                 )}
                 ${this.card.secureLabel

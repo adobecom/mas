@@ -11,8 +11,11 @@ function validOrEmpty(url) {
  * Combines up to three breakpoint image URLs into a single <picture>-inner
  * markup string. Mobile is the universal fallback (rendered as the plain
  * <img>): whichever of mobile/tablet/desktop is filled first, in that order,
- * becomes the fallback, and the others (when they differ from it) become
- * breakpoint-specific <source> entries. All three inputs are optional.
+ * becomes the fallback. Desktop/tablet each get their own <source> whenever
+ * they're explicitly filled, even if the URL happens to match the fallback —
+ * skipping the source in that case would make the round trip lossy (an
+ * explicitly-set breakpoint would read back as empty on the next load).
+ * All three inputs are optional.
  */
 export function buildBackgroundsHtml({ desktop = '', tablet = '', mobile = '' } = {}) {
     const d = validOrEmpty(desktop);
@@ -22,8 +25,8 @@ export function buildBackgroundsHtml({ desktop = '', tablet = '', mobile = '' } 
     if (!fallback) return '';
 
     const sources = [];
-    if (d && d !== fallback) sources.push(`<source srcset="${d}" media="${DESKTOP_MEDIA}">`);
-    if (t && t !== fallback) sources.push(`<source srcset="${t}" media="${TABLET_MEDIA}">`);
+    if (d) sources.push(`<source srcset="${d}" media="${DESKTOP_MEDIA}">`);
+    if (t) sources.push(`<source srcset="${t}" media="${TABLET_MEDIA}">`);
     sources.push(`<img loading="lazy" alt="" src="${fallback}">`);
     return sources.join('');
 }

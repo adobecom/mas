@@ -1770,7 +1770,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-group class="toggle" id="backgrounds">
                     <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
                     <sp-textfield
-                        placeholder="Enter background image URL"
+                        placeholder="Enter an *.aem.page background desktop URL"
                         id="background-desktop"
                         data-field="backgrounds"
                         data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
@@ -1781,7 +1781,7 @@ class MerchCardEditor extends LitElement {
 
                     <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
                     <sp-textfield
-                        placeholder="Enter background image URL"
+                        placeholder="Enter an *.aem.page background tablet URL"
                         id="background-tablet"
                         data-field="backgrounds"
                         data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
@@ -1792,7 +1792,7 @@ class MerchCardEditor extends LitElement {
 
                     <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
                     <sp-textfield
-                        placeholder="Enter background image URL"
+                        placeholder="Enter an *.aem.page background mobile URL"
                         id="background-mobile"
                         data-field="backgrounds"
                         data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
@@ -2773,15 +2773,16 @@ class MerchCardEditor extends LitElement {
     #handleBackgroundsPartUpdate(key, event) {
         const current = this.#getOwnBackgroundsUrls();
         current[key] = event.target.value.trim();
-        const syntheticEvent = {
-            target: {
-                value: buildBackgroundsHtml(current),
-                dataset: {
-                    field: 'backgrounds',
-                },
-            },
-        };
-        this.#handleFragmentUpdate(syntheticEvent);
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
+    }
+
+    #commitBackgroundsHtml(html) {
+        const updated = this.fragmentStore.updateField('backgrounds', [html]);
+        if (updated === false) {
+            this.fragment.hasChanges = true;
+            this.fragmentStore.notify();
+        }
+        this.requestUpdate();
     }
 
     /** Per-breakpoint override state within the single combined "backgrounds" field,
@@ -2802,15 +2803,7 @@ class MerchCardEditor extends LitElement {
         const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
         const current = this.#getOwnBackgroundsUrls();
         current[key] = parseBackgroundsUrls(parentRaw)[key];
-        const syntheticEvent = {
-            target: {
-                value: buildBackgroundsHtml(current),
-                dataset: {
-                    field: 'backgrounds',
-                },
-            },
-        };
-        this.#handleFragmentUpdate(syntheticEvent);
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
         showToast('Field restored to parent value', 'positive');
     }
 

@@ -606,6 +606,16 @@ merch-card div[slot='bg-image'] img {
     border-top-right-radius: 16px;
 }
 
+merch-card picture[slot='backgrounds'] img {
+    position: relative;
+    width: 100%;
+    min-height: var(--consonant-merch-card-bg-img-height);
+    max-height: var(--consonant-merch-card-bg-img-height);
+    object-fit: cover;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+
 .price-unit-type:not(.disabled)::before,
 .price-tax-inclusivity:not(.disabled)::before {
   content: "\\00a0";

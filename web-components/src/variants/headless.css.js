@@ -122,5 +122,35 @@ export function headlessRowStyle(variantName) {
             color: var(--spectrum-gray-600);
             padding-top: 4px;
         }
+        :host([variant='${variant}']) .headless-backgrounds-toggle {
+            margin-left: var(--consonant-merch-spacing-xs, 8px);
+            font-size: 0.75em;
+            color: var(--spectrum-blue-700);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        :host([variant='${variant}']) .headless-backgrounds-detail {
+            flex-direction: column;
+            padding-left: var(--consonant-merch-spacing-l, 24px);
+        }
+        :host([variant='${variant}']) .headless-backgrounds-detail.hidden {
+            display: none;
+        }
+        :host([variant='${variant}']) .headless-backgrounds-detail-row {
+            display: flex;
+            gap: var(--consonant-merch-spacing-xs, 8px);
+            padding: var(--consonant-merch-spacing-xxs, 4px) 0;
+        }
+        :host([variant='${variant}'])
+            .headless-backgrounds-detail-row
+            .headless-value
+            img {
+            width: 100%;
+            max-height: var(--consonant-merch-card-bg-img-height);
+            object-fit: cover;
+        }
     `;
 }

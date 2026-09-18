@@ -1,6 +1,11 @@
 import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
+import {
+    makeToggleBackgroundsDetail,
+    renderBackgroundsDetailRow,
+    renderBackgroundsToggleButton,
+} from './backgrounds-preview.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Headless slots. */
 export const HEADLESS_AEM_FRAGMENT_MAPPING = {
@@ -20,7 +25,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'prices' },
     backgroundImage: { tag: 'div', slot: 'bg-image' },
     image: { tag: 'picture', slot: 'image' },
-    backgrounds: true,
+    backgrounds: { tag: 'picture', slot: 'backgrounds' },
     ctas: { slot: 'footer', size: 'm' },
     addon: true,
     secureLabel: true,
@@ -39,6 +44,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
 const HEADLESS_FIELDS = [
     { slot: 'bg-image', label: 'Background Image' },
     { slot: 'image', label: 'Image' },
+    { slot: 'backgrounds', label: 'Backgrounds' },
     { slot: 'badge', label: 'Badge' },
     { slot: 'icons', label: 'Mnemonic icon' },
     { slot: 'heading-xs', label: 'Title' },
@@ -65,6 +71,8 @@ export class Headless extends VariantLayout {
         return CSS;
     }
 
+    toggleBackgroundsDetail = makeToggleBackgroundsDetail(() => this.card);
+
     renderLayout() {
         const customFieldEls = [
             ...this.card.querySelectorAll('[slot^="custom-field-"]'),
@@ -77,8 +85,16 @@ export class Headless extends VariantLayout {
                             <span class="headless-label">${label}</span>
                             <span class="headless-value" data-slot="${slot}">
                                 <slot name="${slot}"></slot>
+                                ${slot === 'backgrounds'
+                                    ? renderBackgroundsToggleButton(
+                                          this.toggleBackgroundsDetail,
+                                      )
+                                    : nothing}
                             </span>
                         </div>
+                        ${slot === 'backgrounds'
+                            ? renderBackgroundsDetailRow()
+                            : nothing}
                     `,
                 )}
                 ${customFieldEls.length

@@ -409,6 +409,14 @@ export function processImage(fields, merchCard, mapping) {
     appendSlot('image', fields, merchCard, mapping);
 }
 
+export function processBackgrounds(fields, merchCard, mapping) {
+    if (!mapping.backgrounds?.slot) return;
+    if (fields.backgrounds) {
+        fields.backgrounds = rewriteImageUrlsForProd(fields.backgrounds);
+    }
+    appendSlot('backgrounds', fields, merchCard, mapping);
+}
+
 /**
  * Process mnemonic elements in HTML content
  * Ensures mas-mnemonic elements have proper structure
@@ -1137,6 +1145,7 @@ export async function hydrate(fragment, merchCard) {
     processPrices(fields, merchCard, mapping);
     processBackgroundImage(fields, merchCard, mapping.backgroundImage);
     processImage(fields, merchCard, mapping);
+    processBackgrounds(fields, merchCard, mapping);
     processBackgroundColor(
         fields,
         merchCard,

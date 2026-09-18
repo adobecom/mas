@@ -38,6 +38,17 @@ describe('buildBackgroundsHtml', () => {
         expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
         expect(doc.querySelector('img').getAttribute('src')).to.equal(MOBILE_URL);
     });
+
+    it('still emits a desktop and tablet source when they are explicitly set to the same URL as mobile', () => {
+        const doc = parse(buildBackgroundsHtml({ desktop: MOBILE_URL, tablet: MOBILE_URL, mobile: MOBILE_URL }));
+        const sources = [...doc.querySelectorAll('source')];
+        expect(sources).to.have.lengthOf(2);
+        expect(sources[0].getAttribute('media')).to.equal('(min-width: 1200px)');
+        expect(sources[0].getAttribute('srcset')).to.equal(MOBILE_URL);
+        expect(sources[1].getAttribute('media')).to.equal('(min-width: 600px)');
+        expect(sources[1].getAttribute('srcset')).to.equal(MOBILE_URL);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(MOBILE_URL);
+    });
 });
 
 describe('buildBackgroundsHtml - attribute injection safety', () => {
@@ -65,5 +76,14 @@ describe('parseBackgroundsUrls', () => {
     it('round-trips a mobile-only value', () => {
         const html = buildBackgroundsHtml({ mobile: MOBILE_URL });
         expect(parseBackgroundsUrls(html)).to.deep.equal({ desktop: '', tablet: '', mobile: MOBILE_URL });
+    });
+
+    it('round-trips desktop and tablet even when explicitly set to the same URL as mobile', () => {
+        const html = buildBackgroundsHtml({ desktop: MOBILE_URL, tablet: MOBILE_URL, mobile: MOBILE_URL });
+        expect(parseBackgroundsUrls(html)).to.deep.equal({
+            desktop: MOBILE_URL,
+            tablet: MOBILE_URL,
+            mobile: MOBILE_URL,
+        });
     });
 });

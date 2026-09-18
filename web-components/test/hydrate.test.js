@@ -24,6 +24,7 @@ import {
     processWhatsIncludedDividerColor,
     appendSlot,
     processImage,
+    processBackgrounds,
     processAddon,
     processTrialBadge,
     processBadge,
@@ -2049,5 +2050,45 @@ describe('processImage (headless-family)', () => {
         processImage({ image: '' }, el, HEADLESS_AEM_FRAGMENT_MAPPING);
 
         expect(el.querySelector('[slot="image"]')).to.not.exist;
+    });
+});
+
+describe('processBackgrounds (headless-family)', () => {
+    it('slots stored backgrounds markup into a <picture slot="backgrounds">', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds:
+                '<source srcset="x?width=2000" media="(min-width: 1200px)"><img src="x?width=750">',
+        };
+
+        processBackgrounds(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="backgrounds"]');
+        expect(picture).to.exist;
+        expect(picture.querySelector('source')).to.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('does not slot anything when the backgrounds field is empty', () => {
+        const el = document.createElement('div');
+
+        processBackgrounds(
+            { backgrounds: '' },
+            el,
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(el.querySelector('[slot="backgrounds"]')).to.not.exist;
+    });
+
+    it('does not slot anything for variants where backgrounds is a boolean flag (e.g. marquee/banner-blade)', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds: '<img src="x?width=750">',
+        };
+
+        processBackgrounds(fields, el, { backgrounds: true });
+
+        expect(el.querySelector('picture')).to.not.exist;
     });
 });

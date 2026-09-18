@@ -280,6 +280,37 @@ export class MerchCard extends LitElement {
         }
     }
 
+    #cardOsi;
+
+    get cardOsi() {
+        return this.#cardOsi;
+    }
+
+    set cardOsi(value) {
+        this.#cardOsi = value;
+        const attrValue = Array.isArray(value) ? value.join(',') : value;
+        if (attrValue) {
+            this.setAttribute('data-card-osi', attrValue);
+        } else {
+            this.removeAttribute('data-card-osi');
+        }
+    }
+
+    #replacedOsi;
+
+    get replacedOsi() {
+        return this.#replacedOsi;
+    }
+
+    set replacedOsi(value) {
+        this.#replacedOsi = value;
+        if (value) {
+            this.setAttribute('data-replaced-osi', value);
+        } else {
+            this.removeAttribute('data-replaced-osi');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;

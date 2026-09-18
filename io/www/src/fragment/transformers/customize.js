@@ -448,6 +448,42 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 }
 
 /**
+ * A countdown timer is authored as a link named `countdown-timer` in any rich text field
+ * (e.g. `<a href="...">countdown-timer</a>`).
+ */
+const COUNTDOWN_TIMER_LINK_REGEX = /<a\b[^>]*>\s*countdown-timer\s*<\/a>/i;
+
+function hasCountdownTimerLink(fields) {
+    if (!fields) return false;
+    for (const field of Object.values(fields)) {
+        // text/html fields arrive as { mimeType, value } objects (odinSchemaTransform).
+        const value = typeof field === 'string' ? field : field?.value;
+        if (typeof value === 'string' && COUNTDOWN_TIMER_LINK_REGEX.test(value)) return true;
+    }
+    return false;
+}
+
+/**
+ * Finds the first fragment rendering a countdown-timer link: the main body first, then its
+ * references in document order (depth first). Search stops at the first match.
+ * @param {Object} fragment
+ * @param {Array} referencesTree
+ * @param {Object} references
+ * @returns {Object|null} the fragment, or null when no countdown timer is authored
+ */
+function findCountdownTimerFragment(fragment, referencesTree = [], references = {}) {
+    if (hasCountdownTimerLink(fragment?.fields)) return fragment;
+    for (const reference of referencesTree) {
+        if (reference.fieldName !== 'cards' && reference.fieldName !== 'collections') continue;
+        const child = references[reference.identifier]?.value;
+        if (!child) continue;
+        const found = findCountdownTimerFragment(child, reference.referencesTree, references);
+        if (found) return found;
+    }
+    return null;
+}
+
+/**
  * will return customized fragment, and sub fragments (recursive)
  * @param {*} root
  * @param {*} referencesTree
@@ -563,6 +599,21 @@ async function customize(context) {
     }
     customizedFragment.references = customizedReferences;
     customizedFragment.referencesTree = customizedReferenceTree;
+    // Countdown timer is resolved once, on the final payload (mask applied): the first fragment
+    // rendering a countdown-timer link gives, via the promo project it carries, the timer dates.
+    // Both dates are required: a lone start or end is meaningless and ignored.
+    const countdownTimerFragment = findCountdownTimerFragment(
+        customizedFragment,
+        customizedReferenceTree,
+        customizedReferences,
+    );
+    const timerProject = promoProjects.find(
+        ({ project }) => promoProjectLabel(project) === countdownTimerFragment?.promoProject,
+    )?.project;
+    if (timerProject?.cdtStart && timerProject?.cdtEnd) {
+        customizedFragment.cdtStart = timerProject.cdtStart;
+        customizedFragment.cdtEnd = timerProject.cdtEnd;
+    }
     return {
         ...context,
         status: 200,

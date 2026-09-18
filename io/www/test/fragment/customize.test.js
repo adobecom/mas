@@ -3563,3 +3563,267 @@ describe('customize OSI substitution', function () {
         expect(cardTwo.promoCode).to.be.undefined;
     });
 });
+
+describe('customize countdown timer dates', function () {
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    const CDT_START = '2026-11-20T00:00:00Z';
+    const CDT_END = '2026-11-30T23:59:59Z';
+    const CDT_LINK = '<p>Ends in <a href="https://www.adobe.com/promo">countdown-timer</a></p>';
+
+    function makeProject(overrides = {}) {
+        return {
+            id: 'proj-cdt',
+            path: '/content/dam/mas/promotions/proj-cdt',
+            cdtStart: CDT_START,
+            cdtEnd: CDT_END,
+            defaultVariations: {},
+            regionVariations: {},
+            ...overrides,
+        };
+    }
+
+    function makeCard(id, fields) {
+        return {
+            type: 'content-fragment',
+            value: { id, path: `/content/dam/mas/sandbox/en_US/${id}`, fields },
+        };
+    }
+
+    it('adds cdtStart/cdtEnd when the promo-scoped fragment renders a countdown-timer link', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-cdt',
+                body: {
+                    id: 'card-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/card-cdt',
+                    fields: { osi: 'OSI-C', description: { mimeType: 'text/html', value: CDT_LINK } },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtEnd).to.equal(CDT_END);
+    });
+
+    it('ignores fragments without a countdown-timer link', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-plain',
+                body: {
+                    id: 'card-plain',
+                    path: '/content/dam/mas/sandbox/en_US/card-plain',
+                    fields: { osi: 'OSI-C', description: '<p><a href="/other">other-link</a></p>' },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-plain']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.be.undefined;
+        expect(result.body.cdtEnd).to.be.undefined;
+    });
+
+    it('ignores a fragment with no fields at all', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-empty',
+                body: {
+                    id: 'card-empty',
+                    path: '/content/dam/mas/sandbox/en_US/card-empty',
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [{ project: makeProject(), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['card-empty']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.be.undefined;
+    });
+
+    it('ignores projects that carry no countdown dates', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-cdt',
+                body: {
+                    id: 'card-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/card-cdt',
+                    fields: { osi: 'OSI-C', description: CDT_LINK },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: makeProject({ cdtStart: null, cdtEnd: null }),
+                    promoMap: { 'OSI-C': 'CODE' },
+                    fragmentPaths: new Set(['card-cdt']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.be.undefined;
+        expect(result.body.cdtEnd).to.be.undefined;
+    });
+
+    it('ignores a project that defines only one of the two dates', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-cdt',
+                body: {
+                    id: 'card-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/card-cdt',
+                    fields: { osi: 'OSI-C', description: CDT_LINK },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: makeProject({ cdtStart: null }),
+                    promoMap: { 'OSI-C': 'CODE' },
+                    fragmentPaths: new Set(['card-cdt']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.be.undefined;
+        expect(result.body.cdtEnd).to.be.undefined;
+    });
+
+    it('takes the dates of the first card carrying the link in a collection', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: {
+                        // in a project, but no link
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: '<p>no timer</p>' }),
+                        // first card with the link → wins
+                        'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
+                    },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [
+                {
+                    project: makeProject({ id: 'proj-1', cdtStart: '2026-01-01T00:00:00Z', cdtEnd: null }),
+                    promoMap: { '*': 'CODE1' },
+                    fragmentPaths: new Set(['card-1']),
+                },
+                {
+                    project: makeProject({ id: 'proj-2' }),
+                    promoMap: { '*': 'CODE2' },
+                    fragmentPaths: new Set(['card-2']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtEnd).to.equal(CDT_END);
+    });
+
+    it('stops at the first card carrying the link, even when it has no promo project', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: {
+                        // not in any project, even though it has the link
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
+                        'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
+                    },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [{ project: makeProject({ id: 'proj-2' }), promoMap: { '*': 'CODE2' }, fragmentPaths: new Set(['card-2']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.be.undefined;
+        expect(result.body.cdtEnd).to.be.undefined;
+    });
+
+    it('takes the main body over its references', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { osi: 'OSI-R', description: CDT_LINK, cards: ['card-1'], collections: [] },
+                    references: {
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
+                    },
+                    referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                },
+            },
+            [
+                {
+                    project: makeProject({ id: 'proj-root', cdtStart: '2026-01-01T00:00:00Z', cdtEnd: '2026-01-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE-R' },
+                    fragmentPaths: new Set(['collection-cdt']),
+                },
+                {
+                    project: makeProject({ id: 'proj-1' }),
+                    promoMap: { '*': 'CODE1' },
+                    fragmentPaths: new Set(['card-1']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00Z');
+        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+    });
+
+    it('detects a countdown-timer link brought in by the mask fragment', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-cdt',
+                maskFragment: { id: 'mask-cdt', fields: { promoText: { mimeType: 'text/html', value: CDT_LINK } } },
+                body: {
+                    id: 'card-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/card-cdt',
+                    model: { id: CARD_MODEL_ID },
+                    fields: { osi: 'OSI-C', description: '<p>no timer</p>' },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtEnd).to.equal(CDT_END);
+    });
+});

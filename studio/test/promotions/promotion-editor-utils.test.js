@@ -551,6 +551,31 @@ describe('promotion-editor-utils', () => {
             };
             expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
+
+        const withCountdownDates = (cdtStart, cdtEnd) => ({
+            ...baseFragment(),
+            getFieldValue: (name) => {
+                if (name === 'cdtStart') return cdtStart;
+                if (name === 'cdtEnd') return cdtEnd;
+                return baseFragment().getFieldValue(name);
+            },
+        });
+
+        it('accepts both countdown timer dates', () => {
+            expect(getPromotionRequiredFieldsValidation(withCountdownDates('2024-02-01', '2024-02-10'), 1)).to.be.null;
+        });
+
+        it('requires the countdown timer end date when only the start is set', () => {
+            expect(getPromotionRequiredFieldsValidation(withCountdownDates('2024-02-01', ''), 1)).to.equal(
+                'Please set both countdown timer start and end dates, or none.',
+            );
+        });
+
+        it('requires the countdown timer start date when only the end is set', () => {
+            expect(getPromotionRequiredFieldsValidation(withCountdownDates('', '2024-02-10'), 1)).to.equal(
+                'Please set both countdown timer start and end dates, or none.',
+            );
+        });
     });
 
     describe('promo code exceptions', () => {

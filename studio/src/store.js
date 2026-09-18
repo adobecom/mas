@@ -80,6 +80,9 @@ const Store = {
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
+    productCatalog: {
+        search: new ReactiveStore(''),
+    },
     placeholders: {
         search: new ReactiveStore(''),
         list: {
@@ -104,6 +107,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    productDetail: {
+        arrangementCode: new ReactiveStore(null),
+    },
     version: {
         fragmentId: new ReactiveStore(null),
     },
@@ -326,6 +332,9 @@ function pageValidator(value) {
         PAGE_NAMES.PROMOTIONS_EDITOR,
         PAGE_NAMES.TRANSLATIONS,
         PAGE_NAMES.TRANSLATION_EDITOR,
+        PAGE_NAMES.AI_ASSISTANT,
+        PAGE_NAMES.PRODUCT_CATALOG,
+        PAGE_NAMES.PRODUCT_DETAIL,
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
         PAGE_NAMES.ADVANCED_TOOLS,

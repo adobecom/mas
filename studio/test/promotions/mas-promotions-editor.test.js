@@ -190,6 +190,23 @@ describe('MasPromotionsEditor', () => {
         await el.updateComplete;
     }
 
+    describe('publishing overlay', () => {
+        it('shows a progress circle while promotionPublish is true and hides it otherwise', async () => {
+            const el = await mountEditor();
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+
+            el.promotionPublish = true;
+            await el.updateComplete;
+            const overlay = el.renderRoot.querySelector('.publishing-overlay');
+            expect(overlay).to.not.be.null;
+            expect(overlay.querySelector('sp-progress-circle')).to.not.be.null;
+
+            el.promotionPublish = false;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+        });
+    });
+
     describe('selectedItemsCount', () => {
         it('sums selected offers, cards and collections from the promotions store', async () => {
             const el = await mountEditor();
@@ -1469,6 +1486,75 @@ describe('MasPromotionsEditor', () => {
 
             expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
+        });
+
+        it('ignores a second unpublish click while the checkbox dialog is open, and applies the checked value on confirm', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'PUBLISHED',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'PUBLISHED', title: 'Published variation' }],
+            });
+            const unpublish = sandbox.stub().resolves();
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getWithEtag: sandbox.stub().resolves(null),
+                                getByPath: sandbox.stub().resolves(null),
+                                search,
+                                unpublish,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Unpublish');
+            clickPromotionQuickAction(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.isDialogOpen).to.be.true;
+            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+            expect(el.dialogCheckboxChecked).to.be.true;
+
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig).to.be.null;
+            expect(el.isDialogOpen).to.be.false;
         });
     });
 

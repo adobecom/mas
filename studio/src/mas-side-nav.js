@@ -910,6 +910,13 @@ class MasSideNav extends LitElement {
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
             <mas-side-nav-item
+                label="Product Catalog"
+                ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)}"
+            >
+                <sp-icon-market slot="icon"></sp-icon-market>
+            </mas-side-nav-item>
+            <mas-side-nav-item
                 label="Fragments"
                 ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.CONTENT)}"
@@ -942,6 +949,13 @@ class MasSideNav extends LitElement {
                 @nav-click=${router.navigateToPage(PAGE_NAMES.TRANSLATIONS)}
             >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
+            </mas-side-nav-item>
+            <mas-side-nav-item
+                label="AI Assistant"
+                ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
+            >
+                <sp-icon-magic-wand slot="icon"></sp-icon-magic-wand>
             </mas-side-nav-item>
             <mas-side-nav-item
                 class="side-nav-support"

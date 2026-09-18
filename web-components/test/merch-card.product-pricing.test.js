@@ -436,7 +436,7 @@ describe('ProductPricing price row collapse', () => {
                 'bare price slot collapsed',
             ).to.equal('none');
             expect(priceSlotDisplay(priced), 'priced slot rendered').to.equal(
-                'block',
+                'flex',
             );
         } finally {
             priced.remove();

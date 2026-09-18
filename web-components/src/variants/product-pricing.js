@@ -217,8 +217,12 @@ export class ProductPricing extends VariantLayout {
                 --consonant-merch-card-product-pricing-body-xs-height
             );
         }
+        /* Bottom-align so a strikethrough on one card and a single price on
+           another share the same price baseline across the synced row. */
         :host([variant='product-pricing']) slot[name='heading-xs'] {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
             min-height: var(
                 --consonant-merch-card-product-pricing-heading-xs-height
             );

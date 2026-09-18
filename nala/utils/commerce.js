@@ -10,6 +10,7 @@ const PRICE_PATTERN = {
         // TODO: narrow to /mo and /mes separately when MWPW-197541 is fixed
         promo: /US\$55\.50\/(mo|mes)/,
         regular: /US\$99\.90\/(mo|mes)/,
+        milipromo: /US\$59\.99\/(mo|mes)/,
     },
     US: {
         mo: /US\$\d+\.\d\d\/mo/,

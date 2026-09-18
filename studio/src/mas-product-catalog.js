@@ -273,10 +273,6 @@ class MasProductCatalog extends LitElement {
         return Math.ceil(this.filteredProducts.length / this.pageSize);
     }
 
-    handleSearch(e) {
-        Store.productCatalog.search.set(e.target.value || '');
-    }
-
     copyToClipboard(e, text) {
         e.stopPropagation();
         navigator.clipboard.writeText(text);

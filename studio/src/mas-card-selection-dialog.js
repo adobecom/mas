@@ -336,17 +336,8 @@ class MasCardSelectionDialog extends LitElement {
         this.displayCount = CARDS_PER_PAGE;
     }
 
-    handleViewModeChange(event) {
-        this.viewMode = event.target.value;
-        this.displayCount = CARDS_PER_PAGE;
-    }
-
     handleCardClick(fragmentStore) {
         toggleSelection(fragmentStore.id);
-    }
-
-    updateTableSelection(event) {
-        Store.selection.set(Array.from(event.target.selectedSet));
     }
 
     async handleOpenCard(fragment) {

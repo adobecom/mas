@@ -311,14 +311,6 @@ export class MasOperationResult extends LitElement {
         openPreview(fragmentId, { left: 'min(700px, 60%)' });
     }
 
-    copyErrorsToClipboard(failed) {
-        const errorLog = failed.map(({ id, error }) => `${id}: ${error}`).join('\n');
-
-        navigator.clipboard.writeText(errorLog).then(null, (err) => {
-            console.error('[Error Log] Failed to copy:', err);
-        });
-    }
-
     extractLocale(variation) {
         const pathMatch = variation.path?.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
         return pathMatch?.[1] || 'unknown';
@@ -581,28 +573,6 @@ export class MasOperationResult extends LitElement {
             planType: offer.planType || offer.plan_type,
             priceDetails: offer.priceDetails || offer.pricing || {},
         };
-    }
-
-    renderStudioLinks(studioLinks) {
-        if (!studioLinks || typeof studioLinks !== 'object') return nothing;
-        const entries = Object.entries(studioLinks).filter(([, url]) => typeof url === 'string' && url.length > 0);
-        if (entries.length === 0) return nothing;
-        const labelMap = {
-            viewCardsInStudio: 'View matching cards in Studio',
-            createWithAI: 'Create cards with AI',
-        };
-        return html`
-            <div class="studio-links">
-                ${entries.map(
-                    ([key, url]) => html`
-                        <sp-button size="s" variant="secondary" @click=${() => window.open(url, '_blank')}>
-                            <sp-icon-link-out slot="icon"></sp-icon-link-out>
-                            ${labelMap[key] || key}
-                        </sp-button>
-                    `,
-                )}
-            </div>
-        `;
     }
 
     handleOpenOfferInOst(offerRaw) {

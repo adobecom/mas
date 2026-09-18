@@ -22,8 +22,6 @@ import {
     capitalize as capitalizeStr,
     mapProductToChatCard as mapProductToChatCardFn,
     getPreferredProductDescription as getPreferredProductDescriptionFn,
-    isProductSelectionStep as isProductSelectionStepFn,
-    isSegmentSelectionStep as isSegmentSelectionStepFn,
     getAutoSelectedSegmentOption as getAutoSelectedSegmentOptionFn,
     extractKnownSurfaceFromPath,
     composeChatRequestSignal,
@@ -45,8 +43,6 @@ import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
 
-const RECENT_MCS_PRODUCT_LIMIT = 6;
-
 /**
  * Shown beside the typing indicator while the follow-up turn runs. The
  * products are already on screen by then, so the bare dots read as "nothing is
@@ -62,28 +58,6 @@ const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
  * create a card instead of searching.
  */
 const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection']);
-
-const PRODUCT_TIMESTAMP_PATHS = [
-    ['createdAt'],
-    ['created_at'],
-    ['created'],
-    ['dateAdded'],
-    ['date_added'],
-    ['addedAt'],
-    ['added_at'],
-    ['updatedAt'],
-    ['updated_at'],
-    ['modifiedAt'],
-    ['modified_at'],
-    ['metadata', 'createdAt'],
-    ['metadata', 'created_at'],
-    ['metadata', 'updatedAt'],
-    ['metadata', 'updated_at'],
-    ['misc', 'createdAt'],
-    ['misc', 'created_at'],
-    ['misc', 'updatedAt'],
-    ['misc', 'updated_at'],
-];
 
 /**
  * Main AI Chat Component
@@ -110,7 +84,6 @@ export class MasChat extends LitElement {
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
         this.loadingLabel = '';
-        this.recentReleaseProductsPromise = null;
         this.recentReleaseProductsCache = [];
         this.resetReleaseFlow();
     }
@@ -339,7 +312,6 @@ export class MasChat extends LitElement {
         this.messages = [];
         this.showWelcomeScreen = true;
         this.showPromptSuggestions = true;
-        this.recentReleaseProductsPromise = null;
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
         this.selectedReleaseOsi = null;
@@ -2549,96 +2521,8 @@ export class MasChat extends LitElement {
         };
     }
 
-    isProductSelectionStep(response) {
-        return isProductSelectionStepFn(response);
-    }
-
-    isSegmentSelectionStep(response) {
-        return isSegmentSelectionStepFn(response);
-    }
-
     getAutoSelectedSegmentOption(response, offer) {
         return getAutoSelectedSegmentOptionFn(response, offer);
-    }
-
-    async getRecentReleaseProducts() {
-        if (!this.recentReleaseProductsPromise) {
-            this.recentReleaseProductsPromise = this.loadRecentReleaseProducts()
-                .then((products) => {
-                    this.recentReleaseProductsCache = products;
-                    return products;
-                })
-                .catch((error) => {
-                    logError('Failed to load recent MCS products for AI chat', error);
-                    this.recentReleaseProductsPromise = null;
-                    return this.recentReleaseProductsCache;
-                });
-        }
-
-        return this.recentReleaseProductsPromise;
-    }
-
-    async loadRecentReleaseProducts() {
-        let lastError;
-
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-            try {
-                const result = await fetchProducts();
-                const products = this.selectRecentMCSProducts(result.products || []);
-                if (products.length) {
-                    return products;
-                }
-            } catch (error) {
-                lastError = error;
-            }
-        }
-
-        if (lastError) {
-            throw lastError;
-        }
-
-        return [];
-    }
-
-    selectRecentMCSProducts(products) {
-        return products
-            .map((product, index) => ({
-                product,
-                index,
-                timestamp: this.getProductTimestamp(product),
-            }))
-            .sort((a, b) => {
-                if (a.timestamp !== null && b.timestamp !== null) {
-                    return b.timestamp - a.timestamp;
-                }
-                if (a.timestamp !== null) return -1;
-                if (b.timestamp !== null) return 1;
-                return b.index - a.index;
-            })
-            .filter(({ product }) => {
-                const segments = Object.keys(product.customerSegments || {}).filter((key) => product.customerSegments[key]);
-                return segments.length === 0 || !segments.every((s) => s === 'ENTERPRISE');
-            })
-            .slice(0, RECENT_MCS_PRODUCT_LIMIT)
-            .map(({ product }) => this.mapProductToChatCard(product));
-    }
-
-    getProductTimestamp(product) {
-        for (const path of PRODUCT_TIMESTAMP_PATHS) {
-            let value = product;
-            for (const key of path) {
-                value = value?.[key];
-            }
-
-            if (!value) continue;
-
-            const timestamp = Date.parse(value);
-            if (!Number.isNaN(timestamp)) {
-                return timestamp;
-            }
-        }
-
-        return null;
     }
 
     mapProductToChatCard(product) {
@@ -2828,7 +2712,6 @@ export class MasChat extends LitElement {
                                         .message=${message}
                                         .showSuggestions=${this.showPromptSuggestions && message.showSuggestions}
                                         @card-action=${this.handleCardAction}
-                                        @collection-action=${this.handleCollectionAction}
                                         @open-ost-from-response=${this.handleOpenOstFromResponse}
                                     ></mas-chat-message>
                                 `,

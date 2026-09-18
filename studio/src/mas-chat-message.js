@@ -312,33 +312,6 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
-    extractTitle(cardConfig) {
-        if (!cardConfig.title) return 'Untitled';
-        const cached = this.titleCache.get(cardConfig);
-        if (cached !== undefined) return cached;
-        const doc = new DOMParser().parseFromString(cardConfig.title, 'text/html');
-        const title = doc.body.textContent || 'Untitled';
-        this.titleCache.set(cardConfig, title);
-        return title;
-    }
-
-    async handleOpenSelector() {
-        const dialog = document.createElement('mas-card-selection-dialog');
-        document.body.appendChild(dialog);
-
-        const selectedCardIds = await dialog.open();
-
-        if (selectedCardIds?.length > 0) {
-            this.dispatchEvent(
-                new CustomEvent('cards-selected', {
-                    detail: { cardIds: selectedCardIds },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        }
-    }
-
     getOfferProductName(offer) {
         if (!offer) return '';
         return offer.productName || offer.name || 'Unknown Product';

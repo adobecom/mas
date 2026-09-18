@@ -152,6 +152,7 @@ class MasToolbar extends LitElement {
     search = new StoreController(this, Store.search);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
+    selection = new StoreController(this, Store.selection);
     loading = new StoreController(this, Store.fragments.list.loading);
 
     connectedCallback() {
@@ -381,7 +382,7 @@ class MasToolbar extends LitElement {
                 ${this.filtersPanel}${this.searchResultsLabel}
             </div>
             <mas-selection-panel
-                ?open=${this.selecting.value}
+                ?open=${this.selecting.value || this.selection.value.length > 0}
                 .selectionStore=${Store.selection}
                 .repository=${this.repository}
                 .onCopyToFolder=${this.handleCopyToFolder}

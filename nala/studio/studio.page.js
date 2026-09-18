@@ -27,6 +27,8 @@ export default class StudioPage {
         this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
+        this.renderViewFragments = this.renderView.locator('mas-fragment-render');
+        this.selectionPanel = page.locator('mas-selection-panel sp-action-bar');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
         this.expandButton = (fragmentId) => this.tableViewFragmentTable(fragmentId).locator('button.expand-button');
         this.groupedVariationsTab = (parentFragmentId) =>

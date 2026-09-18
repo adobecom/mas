@@ -29,7 +29,7 @@ export default class PlaceholdersPage {
 
         // Creation modal
         this.creationModal = page.locator('mas-placeholders-creation-modal');
-        this.creationModalKeyInput = this.creationModal.locator('#placeholder-key');
+        this.creationModalKeyInput = this.creationModal.locator('#placeholder-key input');
 
         // Selection panel
         this.selectionPanel = page.locator('mas-selection-panel');

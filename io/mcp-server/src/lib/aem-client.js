@@ -1,5 +1,3 @@
-import { AuthManager } from './auth-manager.js';
-
 /**
  * AEM Client
  * Wrapper for AEM Sites Content Fragment APIs
@@ -175,50 +173,6 @@ export class AEMClient {
         }
 
         return await response.json();
-    }
-
-    /**
-     * Create a tag in AEM's taxonomy if it doesn't exist.
-     * Tag ID format: "mas:category/value" → path: /content/cq:tags/mas/category/value
-     */
-    async createTag(tagId, title) {
-        const authHeader = await this.authManager.getAuthHeader();
-        const csrfToken = await this.getCsrfToken();
-
-        const tagPath = `/content/cq:tags/${tagId.replace(':', '/')}`;
-        const url = `${this.baseUrl}${tagPath}`;
-
-        const body = new URLSearchParams();
-        body.append('jcr:primaryType', 'cq:Tag');
-        body.append('jcr:title', title || tagId.split('/').pop());
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Authorization: authHeader,
-                'CSRF-Token': csrfToken,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: body.toString(),
-        });
-
-        if (response.status === 201 || response.status === 200 || response.status === 409) {
-            return true;
-        }
-        console.error(`[AEMClient] createTag failed for ${tagId}: ${response.status}`);
-        return false;
-    }
-
-    /**
-     * Ensure all tags exist in AEM taxonomy, creating missing ones.
-     */
-    async ensureTags(tagIds) {
-        const results = [];
-        for (const tagId of tagIds) {
-            const created = await this.createTag(tagId);
-            results.push({ tagId, created });
-        }
-        return results;
     }
 
     /**
@@ -659,30 +613,6 @@ export class AEMClient {
         return response.status === 201 || response.ok || response.status === 409;
     }
 
-    async getFragmentTranslations(id) {
-        const authHeader = await this.authManager.getAuthHeader();
-
-        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}/translations`;
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                Authorization: authHeader,
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                pragma: 'no-cache',
-                'cache-control': 'no-cache',
-                'x-aem-affinity-type': 'api',
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to get fragment translations: ${response.statusText}`);
-        }
-
-        return await response.json();
-    }
-
     /**
      * Find content fragments by exact jcr:title using AEM QueryBuilder.
      * The CF Fragments Search API does not index jcr:title; QueryBuilder does.
@@ -801,36 +731,5 @@ export class AEMClient {
 
         console.log(`[AEMClient] Fallback title search found ${matches.length} match(es) for "${title}"`);
         return matches;
-    }
-
-    /**
-     * List folders in a path
-     */
-    async listFolders(path) {
-        const authHeader = await this.authManager.getAuthHeader();
-
-        const url = `${this.baseUrl}/api/assets${path}.json`;
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                Authorization: authHeader,
-                pragma: 'no-cache',
-                'cache-control': 'no-cache',
-                'x-aem-affinity-type': 'api',
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to list folders: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const folders = data.entities?.filter((e) => e.class?.includes('folder')) || [];
-
-        return folders.map((f) => ({
-            path: f.properties?.path || '',
-            name: f.properties?.name || f.properties?.['jcr:title'] || '',
-        }));
     }
 }

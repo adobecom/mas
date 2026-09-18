@@ -75,24 +75,6 @@ export class StudioURLBuilder {
     }
 
     /**
-     * Build a link to the placeholders page
-     */
-    buildPlaceholdersLink(params = {}) {
-        return this.build({
-            page: 'placeholders',
-        });
-    }
-
-    /**
-     * Build a link to the welcome page
-     */
-    buildWelcomeLink() {
-        return this.build({
-            page: 'welcome',
-        });
-    }
-
-    /**
      * Build tag string from structured tags object
      */
     buildTagString(tags) {
@@ -145,19 +127,6 @@ export class StudioURLBuilder {
             }),
             folder: this.buildContentLink({
                 path: parentPath,
-            }),
-        };
-    }
-
-    /**
-     * Create action links for a collection
-     */
-    createCollectionLinks(collection) {
-        return {
-            view: this.buildContentLink({
-                tags: {
-                    contentType: ['merch-card-collection'],
-                },
             }),
         };
     }

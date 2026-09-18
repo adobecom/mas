@@ -255,57 +255,6 @@ export class StudioOperations {
     }
 
     /**
-     * Extract content from slot="footer" attribute
-     * @private
-     * @param {string} htmlContent - HTML string to parse
-     * @returns {Array} Array of footer slot content strings
-     */
-    static extractFooterSlotContent(htmlContent) {
-        const footerSlots = [];
-
-        // Match div or other elements with slot="footer"
-        const slotRegex = /<(div|[a-z]+)\s[^>]*slot="footer"[^>]*>(.*?)<\/\1>/gis;
-        let match;
-
-        while ((match = slotRegex.exec(htmlContent)) !== null) {
-            footerSlots.push(match[2]);
-        }
-
-        // Also match slot element itself
-        const namedSlotRegex = /<slot\s+name="footer"[^>]*><\/slot>/gis;
-        if (namedSlotRegex.test(htmlContent)) {
-            // For named slots, we need to extract content from corresponding slot="footer"
-            footerSlots.push(htmlContent);
-        }
-
-        return footerSlots;
-    }
-
-    /**
-     * Check if content is inside a merch-addon element
-     * @private
-     * @param {string} htmlContent - Full HTML content
-     * @param {number} matchIndex - Index position to check
-     * @returns {boolean} True if position is inside merch-addon
-     */
-    static isInsideMerchAddon(htmlContent, matchIndex) {
-        // Find all merch-addon boundaries
-        const addonRegex = /<merch-addon[^>]*>(.*?)<\/merch-addon>/gis;
-        let addonMatch;
-
-        while ((addonMatch = addonRegex.exec(htmlContent)) !== null) {
-            const addonStart = addonMatch.index;
-            const addonEnd = addonMatch.index + addonMatch[0].length;
-
-            if (matchIndex >= addonStart && matchIndex < addonEnd) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Extract CTA elements from HTML content
      * Extracts ALL <a> and <button> tags from the content
      * @param {string} htmlContent - HTML string to parse
@@ -452,32 +401,6 @@ export class StudioOperations {
 
         console.log(`[StudioOperations] CTA filter: ${fragments.length} → ${filtered.length} results`);
         return filtered;
-    }
-
-    /**
-     * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string, variationType?: string }
-     */
-    /**
-     * Search cards by exact fragment title (jcr:title).
-     * The CF Fragments Search API does not index jcr:title in fullText, so we
-     * issue a broad EDGES search using the most distinctive keywords from the
-     * title, then post-filter by exact title match against the returned items.
-     * @param {string} title - Exact fragment title to match
-     * @param {string} surfacePath - Resolved AEM path (may omit locale for all-locale search)
-     * @param {number} limit - Max results to return
-     * @returns {Promise<Array>} Fragments whose title exactly matches
-     */
-    async searchCardsByTitle(title, surfacePath) {
-        console.log(`[StudioOperations] Title search via QueryBuilder: "${title}" under "${surfacePath}"`);
-        try {
-            const hits = await this.aemClient.findFragmentsByTitle(title, surfacePath);
-            console.log(`[StudioOperations] QueryBuilder returned ${hits.length} hit(s)`);
-            return hits;
-        } catch (err) {
-            console.warn(`[StudioOperations] QueryBuilder failed (${err.message}), falling back to CF Fragments scan`);
-            return this.aemClient.findFragmentsByTitleFallback(title, surfacePath);
-        }
     }
 
     async searchCards(params) {

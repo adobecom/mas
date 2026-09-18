@@ -34,22 +34,6 @@ export class JobManager {
         return jobId;
     }
 
-    async updateJobProgress(jobId, update) {
-        const job = await this.getJob(jobId);
-        if (!job) {
-            throw new Error(`Job ${jobId} not found`);
-        }
-
-        const updatedJob = {
-            ...job,
-            ...update,
-            updatedAt: new Date().toISOString(),
-        };
-
-        await this.saveJob(jobId, updatedJob);
-        return updatedJob;
-    }
-
     async addSuccessfulItem(jobId, item) {
         const job = await this.getJob(jobId);
         if (!job) {
@@ -172,21 +156,5 @@ export class JobManager {
         }
 
         this.memoryStore.set(jobId, job);
-    }
-
-    async deleteJob(jobId) {
-        if (this.useInMemory) {
-            this.memoryStore.delete(jobId);
-            return;
-        }
-
-        if (typeof process !== 'undefined' && process.env.__OW_ACTION_NAME) {
-            const stateLib = await import('@adobe/aio-lib-state');
-            const state = await stateLib.init();
-            await state.delete(`job-${jobId}`);
-            return;
-        }
-
-        this.memoryStore.delete(jobId);
     }
 }

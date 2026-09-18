@@ -1665,49 +1665,6 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
     }
     const lowerMessage = message.toLowerCase();
 
-    const documentationKeywords = [
-        'what is',
-        'what are',
-        "what's",
-        'how do i',
-        'how do',
-        'how to',
-        'how does',
-        'why',
-        'where',
-        'when',
-        'which',
-        'explain',
-        'tell me about',
-        'describe',
-        'odin',
-        'freyja',
-        'wcs',
-        'aos',
-        'setup',
-        'install',
-        'deploy',
-        'error',
-        'issue',
-        'problem',
-        'troubleshoot',
-        'debug',
-        'support',
-        'help',
-        'documentation',
-        'docs',
-        'guide',
-        'version',
-        'history',
-        'restore',
-        'inherit',
-        'override',
-    ];
-    const hasDocumentationKeyword = documentationKeywords.some((keyword) => lowerMessage.includes(keyword));
-
-    const isQuestion =
-        lowerMessage.trim().endsWith('?') || /^(what|how|why|where|when|which|who|can|does|is|are)\b/i.test(lowerMessage);
-
     const operationKeywords = [
         // Read / mutate ops on existing cards
         'publish',
@@ -1768,16 +1725,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         };
     }
 
-    if (hasDocumentationKeyword || isQuestion) {
-        return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
-    }
-
-    const recentAssistantMessages = conversationHistory
-        .filter((msg) => msg.role === 'assistant')
-        .slice(-2)
-        .map((msg) => (typeof msg.content === 'string' ? msg.content.toLowerCase() : ''))
-        .join(' ');
-
+    // No operation or guided-flow match: fall through to documentation.
     return {
         prompt: buildDocumentationPrompt(message),
         isDocumentation: true,

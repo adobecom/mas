@@ -14,7 +14,7 @@
  * Surface to variant mappings
  * Defines which card variants are appropriate for each surface
  */
-export const SURFACE_MAPPINGS = {
+const SURFACE_MAPPINGS = {
     acom: ['plans', 'plans-students', 'plans-education', 'catalog', 'special-offers', 'mini', 'simplified-pricing-express'],
     ccd: ['ccd-slice', 'ccd-suggested'],
     commerce: ['fries'],
@@ -397,11 +397,3 @@ export function getVariantsForSurface(surface) {
 /**
  * Get surface for a given variant
  */
-export function getSurfaceForVariant(variantName) {
-    for (const [surface, variants] of Object.entries(SURFACE_MAPPINGS)) {
-        if (variants.includes(variantName)) {
-            return surface;
-        }
-    }
-    return null;
-}

@@ -1,4 +1,4 @@
-import { INTENTS, FLOWS, SLOT_VALIDATORS, META_INTENTS, getIntent, getNextIntentsForFlowStep } from './intent-registry.js';
+import { SLOT_VALIDATORS, META_INTENTS, getIntent, getNextIntentsForFlowStep } from './intent-registry.js';
 
 const ALLOWED_CONFIDENCES = new Set(['high', 'medium', 'low']);
 

@@ -42,8 +42,18 @@ jobs:
             - name: Operations suite (io/mcp-server)
               run: npm run test:ci -w io/mcp-server
 
-            - name: Conversation service suite (io/studio — units, classifier, eval gates)
-              run: npm run test:ci -w io/studio
+            # Scoped to the assistant's own tests (test/ai-chat) plus the eval
+            # gates. The io/studio package also holds unrelated features
+            # (ost-products, bulk-publish, translation) that are not part of this
+            # 7-PR feature, so running the whole package would gate the assistant
+            # on other teams' work.
+            - name: Conversation service suite (io/studio ai-chat — units, classifier, eval gates)
+              working-directory: io/studio
+              run: |
+                  npx mocha --recursive test/ai-chat
+                  npm run test:classifier-dry
+                  node test/ai-chat-eval.mjs --unit
+                  node test/ai-chat-eval.mjs --mock-llm
 
             - name: Studio suite (composed — components, catalogue, orchestration)
               run: |

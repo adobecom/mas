@@ -29,7 +29,7 @@ const BACKGROUNDS_PICTURE =
     `<picture slot="backgrounds">` +
     `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
     `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
-    `<img loading="lazy" alt="" src="${MOBILE_URL}">` +
+    `<img loading="lazy" alt="" data-mobile-set="true" src="${MOBILE_URL}">` +
     `</picture>`;
 
 for (const variant of ['headless', 'marquee', 'banner-blade']) {

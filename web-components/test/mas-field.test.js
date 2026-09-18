@@ -1638,7 +1638,7 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
     const COMBINED =
         `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
         `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
-        `<img loading="lazy" alt="" src="${MOBILE_URL}">`;
+        `<img loading="lazy" alt="" data-mobile-set="true" src="${MOBILE_URL}">`;
 
     function makeBackgroundsField(field) {
         const el = document.createElement('mas-field');
@@ -1741,7 +1741,7 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
                 bubbles: true,
                 detail: {
                     fields: {
-                        backgrounds: `<img loading="lazy" alt="" src="https://example.com/media_mobile.png">`,
+                        backgrounds: `<img loading="lazy" alt="" data-mobile-set="true" src="https://example.com/media_mobile.png">`,
                     },
                 },
             }),
@@ -1775,7 +1775,7 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
                 bubbles: true,
                 detail: {
                     fields: {
-                        backgrounds: `<img loading="lazy" alt="" src="${malicious}">`,
+                        backgrounds: `<img loading="lazy" alt="" data-mobile-set="true" src="${malicious}">`,
                     },
                 },
             }),

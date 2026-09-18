@@ -1,5 +1,5 @@
 import { html } from 'lit';
-import { extractBackgroundUrl } from '../backgrounds-markup.js';
+import { extractBackgroundUrl } from '../image-markup.js';
 
 // The default is desktop background.
 export const BACKGROUNDS_DETAIL_BREAKPOINTS = ['tablet', 'mobile'];

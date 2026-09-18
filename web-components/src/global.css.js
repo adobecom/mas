@@ -611,7 +611,7 @@ merch-card picture[slot='backgrounds'] img {
     width: 100%;
     min-height: var(--consonant-merch-card-bg-img-height);
     max-height: var(--consonant-merch-card-bg-img-height);
-    object-fit: cover;
+    object-fit: contain;
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
 }

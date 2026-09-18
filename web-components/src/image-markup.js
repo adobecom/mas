@@ -92,3 +92,36 @@ export function rewriteImageUrlsForProd(inner, location = globalThis.location) {
         });
     return template.content.querySelector('picture').innerHTML;
 }
+
+const BACKGROUNDS_DESKTOP_MEDIA = '(min-width: 1200px)';
+const BACKGROUNDS_TABLET_MEDIA = '(min-width: 600px)';
+
+/** Extracts one breakpoint's URL out of buildBackgroundsHtml's combined markup.
+ *  'desktop'/'tablet' read the matching <source media> srcset. 'mobile' reads
+ *  the <img> src only if data-mobile-set is present (else it's just a borrowed fallback). */
+export function extractBackgroundUrl(html, key) {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(
+        `<picture>${html}</picture>`,
+        'text/html',
+    );
+    if (key === 'desktop')
+        return (
+            doc
+                .querySelector(`source[media="${BACKGROUNDS_DESKTOP_MEDIA}"]`)
+                ?.getAttribute('srcset') ?? ''
+        );
+    if (key === 'tablet')
+        return (
+            doc
+                .querySelector(`source[media="${BACKGROUNDS_TABLET_MEDIA}"]`)
+                ?.getAttribute('srcset') ?? ''
+        );
+    if (key === 'mobile') {
+        const img = doc.querySelector('img');
+        return img?.hasAttribute('data-mobile-set')
+            ? (img.getAttribute('src') ?? '')
+            : '';
+    }
+    return '';
+}

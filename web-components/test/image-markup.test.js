@@ -5,6 +5,7 @@ import {
     sanitizeAssetUrl,
     isSupportedAssetHostname,
     buildPictureInnerMarkup,
+    extractBackgroundUrl,
 } from '../src/image-markup.js';
 
 const AEM =
@@ -156,5 +157,52 @@ describe('buildPictureInnerMarkup', () => {
         const malicious = `${AEM}" onerror="alert(1)`;
         const doc = parse(buildPictureInnerMarkup(malicious));
         expect(doc.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
+describe('extractBackgroundUrl', () => {
+    const DESKTOP_URL =
+        'https://main--da-cc--adobecom.aem.page/media_desktop.png';
+    const TABLET_URL =
+        'https://main--da-cc--adobecom.aem.page/media_tablet.png';
+    const MOBILE_URL =
+        'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+    const COMBINED =
+        `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
+        `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
+        `<img loading="lazy" alt="" data-mobile-set="true" src="${MOBILE_URL}">`;
+
+    it('extracts the desktop source srcset', () => {
+        expect(extractBackgroundUrl(COMBINED, 'desktop')).to.equal(DESKTOP_URL);
+    });
+
+    it('extracts the tablet source srcset', () => {
+        expect(extractBackgroundUrl(COMBINED, 'tablet')).to.equal(TABLET_URL);
+    });
+
+    it('extracts the mobile img src', () => {
+        expect(extractBackgroundUrl(COMBINED, 'mobile')).to.equal(MOBILE_URL);
+    });
+
+    it('returns empty string for a breakpoint that is not present', () => {
+        const mobileOnly = `<img loading="lazy" alt="" src="${MOBILE_URL}">`;
+        expect(extractBackgroundUrl(mobileOnly, 'desktop')).to.equal('');
+        expect(extractBackgroundUrl(mobileOnly, 'tablet')).to.equal('');
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(extractBackgroundUrl('', 'desktop')).to.equal('');
+    });
+
+    it('returns empty string for an unknown key', () => {
+        expect(extractBackgroundUrl(COMBINED, 'bogus')).to.equal('');
+    });
+
+    it('does not report mobile as filled when the img is just the desktop/tablet fallback (no data-mobile-set marker)', () => {
+        const desktopTabletOnly =
+            `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
+            `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
+            `<img loading="lazy" alt="" src="${TABLET_URL}">`;
+        expect(extractBackgroundUrl(desktopTabletOnly, 'mobile')).to.equal('');
     });
 });

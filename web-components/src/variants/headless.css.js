@@ -150,7 +150,7 @@ export function headlessRowStyle(variantName) {
             img {
             width: 100%;
             max-height: var(--consonant-merch-card-bg-img-height);
-            object-fit: cover;
+            object-fit: contain;
         }
     `;
 }

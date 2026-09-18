@@ -27,7 +27,8 @@ export function buildBackgroundsHtml({ desktop = '', tablet = '', mobile = '' } 
     const sources = [];
     if (d) sources.push(`<source srcset="${d}" media="${DESKTOP_MEDIA}">`);
     if (t) sources.push(`<source srcset="${t}" media="${TABLET_MEDIA}">`);
-    sources.push(`<img loading="lazy" alt="" src="${fallback}">`);
+    const mobileMarker = m ? ' data-mobile-set="true"' : '';
+    sources.push(`<img loading="lazy" alt=""${mobileMarker} src="${fallback}">`);
     return sources.join('');
 }
 
@@ -41,6 +42,6 @@ export function parseBackgroundsUrls(html) {
     return {
         desktop: desktopSource?.getAttribute('srcset') ?? '',
         tablet: tabletSource?.getAttribute('srcset') ?? '',
-        mobile: img?.getAttribute('src') ?? '',
+        mobile: img?.hasAttribute('data-mobile-set') ? (img.getAttribute('src') ?? '') : '',
     };
 }

@@ -86,4 +86,22 @@ describe('parseBackgroundsUrls', () => {
             mobile: MOBILE_URL,
         });
     });
+
+    it('does not report mobile as filled when only desktop was set (the <img> is just the fallback)', () => {
+        const html = buildBackgroundsHtml({ desktop: DESKTOP_URL });
+        expect(parseBackgroundsUrls(html)).to.deep.equal({
+            desktop: DESKTOP_URL,
+            tablet: '',
+            mobile: '',
+        });
+    });
+
+    it('does not report mobile as filled when only desktop and tablet were set', () => {
+        const html = buildBackgroundsHtml({ desktop: DESKTOP_URL, tablet: TABLET_URL });
+        expect(parseBackgroundsUrls(html)).to.deep.equal({
+            desktop: DESKTOP_URL,
+            tablet: TABLET_URL,
+            mobile: '',
+        });
+    });
 });

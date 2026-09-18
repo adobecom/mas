@@ -138,7 +138,7 @@ describe('MasSideNav – Copy Field', () => {
             const html =
                 `<source srcset="${desktop}" media="(min-width: 1200px)">` +
                 `<source srcset="${tablet}" media="(min-width: 600px)">` +
-                `<img loading="lazy" alt="" src="${mobile}">`;
+                `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
             const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const rows = el.copyableFields.filter((f) => f.name.startsWith('backgrounds'));
@@ -163,7 +163,7 @@ describe('MasSideNav – Copy Field', () => {
 
         it('leaves the preview empty for a breakpoint row that is not filled', () => {
             const mobile = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
-            const html = `<img loading="lazy" alt="" src="${mobile}">`;
+            const html = `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
             const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const rows = el.copyableFields.filter((f) => f.name.startsWith('backgrounds'));

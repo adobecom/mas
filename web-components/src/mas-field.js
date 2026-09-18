@@ -12,8 +12,8 @@ import {
     rewriteImageUrlsForProd,
     sanitizeAssetUrl,
     buildPictureInnerMarkup,
+    extractBackgroundUrl,
 } from './image-markup.js';
-import { extractBackgroundUrl } from './backgrounds-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;

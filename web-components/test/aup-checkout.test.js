@@ -608,7 +608,15 @@ describe('aup-select checkout routing', () => {
                 expect(sdk.getOrchestratorContext.called).to.be.false;
             });
 
-            it('preserves upgrade checkout actions', async () => {
+            it('routes authored upgrade intent through AUP', async () => {
+                const element = await create(Class, { upgrade: true });
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
+            });
+
+            it('reopens qualified upgrade checkout actions on subsequent clicks', async () => {
                 await service.registerCheckoutAction(() => ({
                     handler: legacy,
                     className: 'upgrade',
@@ -617,10 +625,36 @@ describe('aup-select checkout routing', () => {
                 expect(element.getAttribute(hrefAttribute)).to.equal(
                     element.checkoutUrl,
                 );
-                const event = click(element);
+                const firstEvent = click(element);
+                const secondEvent = click(element);
                 expect(sdk.getOrchestratorContext.called).to.be.false;
                 expect(launch.called).to.be.false;
-                expect(legacy.calledOnceWithExactly(event)).to.be.true;
+                expect(legacy.firstCall.calledWithExactly(firstEvent)).to.be
+                    .true;
+                expect(legacy.secondCall.calledWithExactly(secondEvent)).to.be
+                    .true;
+            });
+
+            it('clears a stale upgrade action before routing through AUP', async () => {
+                let hasUpgradeAction = true;
+                await service.registerCheckoutAction(() =>
+                    hasUpgradeAction
+                        ? {
+                              handler: legacy,
+                              className: 'upgrade',
+                          }
+                        : undefined,
+                );
+                const element = await create(Class, { upgrade: true });
+                expect(element.classList.contains('upgrade')).to.be.true;
+                hasUpgradeAction = false;
+                element.requestUpdate(true);
+                await element.onceSettled();
+                expect(element.classList.contains('upgrade')).to.be.false;
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
             });
 
             it('keeps workflows open beyond 20 seconds and suppresses repeated clicks until exit', async () => {
@@ -933,6 +967,21 @@ describe('aup-select checkout routing', () => {
         expect(sdk.getOrchestratorContext.called).to.be.false;
         expect(launch.called).to.be.false;
         expect(legacy.calledOnceWithExactly(event)).to.be.true;
+    });
+
+    it('rejects a resolved upgrade action inside the launch gate', async () => {
+        const element = await create();
+        const handled = await launchAupCheckout(
+            sdk,
+            element.value,
+            element.options,
+            undefined,
+            undefined,
+            true,
+        );
+        expect(handled).to.be.false;
+        expect(sdk.getOrchestratorContext.called).to.be.false;
+        expect(launch.called).to.be.false;
     });
 
     for (const mixed of [false, true]) {

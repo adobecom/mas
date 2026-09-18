@@ -4,8 +4,9 @@ import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
+import { confirmPlaceholderReferences } from './placeholder-reference-guard.js';
 import { confirmation } from '../mas-confirm-dialog.js';
-import { showToast, normalizeKey } from '../utils.js';
+import { showToast, normalizeKey, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
 import '../rte/rte-field.js';
@@ -110,6 +111,15 @@ class MasPlaceholdersItem extends LitElement {
             confirmLabel: 'Delete',
         });
         if (!confirmed) return;
+        const shouldProceed = await confirmPlaceholderReferences({
+            aem: this.repository.aem,
+            key: this.placeholder.key,
+            surface: extractSurfaceFromPath(this.placeholder.path),
+            locale: extractLocaleFromPath(this.placeholder.path),
+            excludePath: this.placeholder.path,
+            mode: 'remove',
+        });
+        if (!shouldProceed) return;
         showToast('Deleting placeholder...');
         if (!(await removeFromIndexFragment(this.placeholder))) return;
         this.repository.deleteFragment(this.placeholder, {
@@ -121,6 +131,15 @@ class MasPlaceholdersItem extends LitElement {
     async onPublish(event) {
         if (this.placeholder.status === STATUS_PUBLISHED) return;
         this.toggleDropdown(this.placeholder.key, event);
+        const shouldProceed = await confirmPlaceholderReferences({
+            aem: this.repository.aem,
+            key: this.placeholder.key,
+            surface: extractSurfaceFromPath(this.placeholder.path),
+            locale: extractLocaleFromPath(this.placeholder.path),
+            excludePath: this.placeholder.path,
+            mode: 'publish',
+        });
+        if (!shouldProceed) return;
         showToast('Publishing placeholder...');
         const success = await publishPlaceholder(this.placeholder);
         if (success) {

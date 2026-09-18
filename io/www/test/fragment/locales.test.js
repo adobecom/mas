@@ -15,6 +15,7 @@ import {
     isKnownLocale,
     geoCacheKey,
     resolveTerritoryCountries,
+    restrictCountryToLocaleMarket,
     PLACEHOLDERS_BASELINE_SURFACE,
     getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
@@ -466,6 +467,33 @@ describe('locales', function () {
             const first = resolveTerritoryCountries('es_PR', 'US');
             first.country = 'XX';
             expect(resolveTerritoryCountries('es_PR', 'US')).to.deep.equal({ country: 'PR', wcsCountry: 'US' });
+        });
+    });
+
+    describe('restrictCountryToLocaleMarket', () => {
+        it('rejects a country outside the locale market family, falling back to the locale country (MWPW-207865)', () => {
+            expect(restrictCountryToLocaleMarket('en_GB', 'US')).to.equal('GB');
+            expect(restrictCountryToLocaleMarket('en_GB', 'FR')).to.equal('GB');
+        });
+        it('keeps a country that is a registered region of the locale', () => {
+            expect(restrictCountryToLocaleMarket('en_GB', 'AU')).to.equal('AU');
+            expect(restrictCountryToLocaleMarket('en_GB', 'IN')).to.equal('IN');
+        });
+        it('keeps a country matching the locale itself', () => {
+            expect(restrictCountryToLocaleMarket('en_GB', 'GB')).to.equal('GB');
+            expect(restrictCountryToLocaleMarket('en_GB', 'gb')).to.equal('gb');
+        });
+        it('keeps a country that is a registered region of the requested locale (en_US)', () => {
+            expect(restrictCountryToLocaleMarket('en_US', 'FR')).to.equal('FR');
+        });
+        it('passes through when no country is supplied', () => {
+            expect(restrictCountryToLocaleMarket('en_GB', undefined)).to.equal(undefined);
+        });
+        it('does not throw and passes through for a locale with no registered market data', () => {
+            expect(restrictCountryToLocaleMarket('en_PR', 'US')).to.equal('US');
+        });
+        it('does not throw on undefined locale', () => {
+            expect(restrictCountryToLocaleMarket(undefined, 'US')).to.equal('US');
         });
     });
 });

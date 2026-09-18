@@ -7,6 +7,7 @@ import { Checkout } from '../src/checkout.js';
 import { getSettings } from '../src/settings.js';
 
 import {
+    ATTR_GENERIC_ARIA_LABEL,
     CLASS_NAME_FAILED,
     ERROR_MESSAGE_OFFER_NOT_FOUND,
     CheckoutWorkflow,
@@ -343,6 +344,33 @@ describe('class "CheckoutLink"', () => {
             expect(checkoutLink.classList.contains('download')).to.be.true;
             expect(checkoutLink.getAttribute('href')).to.equal(
                 'https://helpx.adobe.com/download-install.html',
+            );
+        });
+
+        it('upgrades a generic fallback aria-label in place once checkout text resolves', async () => {
+            mockIms('US');
+            await initMasCommerceService({}, () => ({
+                text: 'Free Trial Photoshop',
+            }));
+            const checkoutLink = mockCheckoutLink('abm');
+            checkoutLink.setAttribute('aria-label', 'Free Trial');
+            checkoutLink.setAttribute(ATTR_GENERIC_ARIA_LABEL, '');
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.getAttribute('aria-label')).to.equal(
+                'Free Trial Photoshop',
+            );
+        });
+
+        it('does not downgrade an authored aria-label when checkout text resolves', async () => {
+            mockIms('US');
+            await initMasCommerceService({}, () => ({
+                text: 'Free Trial Photoshop',
+            }));
+            const checkoutLink = mockCheckoutLink('abm');
+            checkoutLink.setAttribute('aria-label', 'Authored name');
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.getAttribute('aria-label')).to.equal(
+                'Authored name',
             );
         });
 

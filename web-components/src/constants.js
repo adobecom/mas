@@ -58,6 +58,14 @@ export const SELECTOR_MAS_SP_BUTTON = 'sp-button[data-wcs-osi]';
 export const SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
 export const SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
 
+/**
+ * Marks a CTA's `aria-label` as a synthesized fallback (derived from the CTA's own
+ * visible text) rather than an authored one, so the label can be upgraded in place
+ * once the specific offer/product text resolves, without ever downgrading an
+ * authored label.
+ */
+export const ATTR_GENERIC_ARIA_LABEL = 'data-mas-generic-aria-label';
+
 /** Analytics ids marking a CTA as a trial offer, suppressed by the hideTrialCTAs setting. */
 export const TRIAL_ANALYTICS_IDS = new Set([
     'free-trial',

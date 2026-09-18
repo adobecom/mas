@@ -8,6 +8,7 @@ import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
 import { selectOffers, getService } from './utilities.js';
 import { isPromotionActive } from './price/utilities.js';
 import {
+    ATTR_GENERIC_ARIA_LABEL,
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     MODAL_TYPE_3_IN_1,
     STATE_RESOLVED,
@@ -227,7 +228,18 @@ export function CheckoutMixin(Base) {
                 if (url) {
                     this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
                 }
-                if (text) this.firstElementChild.innerHTML = text;
+                if (text) {
+                    this.firstElementChild.innerHTML = text;
+                    // A generic fallback aria-label (see hydrate.js's ensureCtaAriaLabel)
+                    // must upgrade in place once the specific offer text resolves;
+                    // an authored aria-label never carries this attribute and is untouched.
+                    if (this.hasAttribute(ATTR_GENERIC_ARIA_LABEL)) {
+                        this.setAttribute(
+                            'aria-label',
+                            this.textContent.trim(),
+                        );
+                    }
+                }
                 if (className) this.classList.add(...className.split(' '));
                 if (handler) {
                     // A 3-in-1 modal builds its iframe from href, so keep the

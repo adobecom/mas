@@ -1,4 +1,8 @@
-import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
+import {
+    ATTR_GENERIC_ARIA_LABEL,
+    SELECTOR_MAS_INLINE_PRICE,
+    TRIAL_ANALYTICS_IDS,
+} from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -503,6 +507,29 @@ function createHeadlessCheckoutElement(linkElement) {
     return button;
 }
 
+/**
+ * Guarantees a non-empty `aria-label` on `element` synchronously, at CTA
+ * creation time, so screen readers never announce a missing/placeholder name
+ * before offer/product data resolves. An aria-label already authored on the
+ * source CTA always wins over the fallback and is never downgraded.
+ */
+function ensureCtaAriaLabel(element, sourceCta) {
+    const authoredLabel = sourceCta.getAttribute('aria-label')?.trim();
+    if (authoredLabel) {
+        element.setAttribute('aria-label', authoredLabel);
+        element.removeAttribute(ATTR_GENERIC_ARIA_LABEL);
+        return;
+    }
+    if (element.getAttribute('aria-label')?.trim()) return;
+    const fallbackLabel = sourceCta.textContent?.trim();
+    const isUnresolvedPlaceholder =
+        fallbackLabel?.startsWith('{{') && fallbackLabel?.endsWith('}}');
+    if (fallbackLabel && !isUnresolvedPlaceholder) {
+        element.setAttribute('aria-label', fallbackLabel);
+        element.setAttribute(ATTR_GENERIC_ARIA_LABEL, '');
+    }
+}
+
 function transformLinkToButton(
     linkElement,
     merchCard,
@@ -579,6 +606,8 @@ function transformLinkToButton(
                       isCheckoutLink,
                   );
     }
+
+    ensureCtaAriaLabel(newButtonElement, linkElement);
 
     if (isHeadlessCta) {
         let ctaElement = newButtonElement;
@@ -920,9 +949,6 @@ function createConsonantButton(
             }
         } catch {
             // Fall back to regular button if checkout-link creation fails
-        }
-        if (cta.hasAttribute('aria-label')) {
-            button.setAttribute('aria-label', cta.getAttribute('aria-label'));
         }
     }
     if (!isLinkStyle) {

@@ -261,6 +261,67 @@ describe('processCTAs', async () => {
         );
     });
 
+    it('should assign a fallback aria-label from the CTA text when none is authored (consonant)', async () => {
+        merchCard.consonant = true;
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Free Trial</a>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const link = getFooterElement(merchCard).firstChild;
+        expect(link.getAttribute('aria-label')).to.equal('Free Trial');
+    });
+
+    it('should assign a fallback aria-label from the CTA text when none is authored (spectrum css)', async () => {
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Buy now</a>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const button = getFooterElement(merchCard).firstChild;
+        expect(button.getAttribute('aria-label')).to.equal('Buy now');
+    });
+
+    it('should assign a fallback aria-label from the CTA text when none is authored (spectrum swc)', async () => {
+        merchCard.spectrum = 'swc';
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Free Trial</a>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const button = getFooterElement(merchCard).firstChild;
+        expect(button.tagName.toLowerCase()).to.equal('sp-button');
+        expect(button.getAttribute('aria-label')).to.equal('Free Trial');
+    });
+
+    it('should not overwrite an authored aria-label with the fallback (spectrum swc)', async () => {
+        merchCard.spectrum = 'swc';
+        const fields = {
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" aria-label="Free Trial Photoshop">Free Trial</a>',
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const button = getFooterElement(merchCard).firstChild;
+        expect(button.getAttribute('aria-label')).to.equal(
+            'Free Trial Photoshop',
+        );
+    });
+
+    it('should assign a fallback aria-label on plain footer links', async () => {
+        const fields = {
+            ctas: `<a href="#">Regular link</a>`,
+        };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const link = getFooterElement(merchCard).firstChild;
+        expect(link.getAttribute('aria-label')).to.equal('Regular link');
+    });
+
     it('should handle multiple CTAs', async () => {
         const fields = {
             ctas: `\n                <a is="checkout-link" data-wcs-osi="abm" class="accent">Accent</a>\n                <a is="checkout-link" data-wcs-osi="abm" class="primary">Primary</a>\n                <a is="checkout-link" data-wcs-osi="abm" class="secondary">Secondary</a>\n            `,

@@ -1,0 +1,51 @@
+name: AI Assistant Suite
+
+# The AI Assistant ships as a stack of PRs (MWPW-207898/207899/207900/207901/
+# 207928/207929/207930). No single PR contains every seam, so per-PR CI only ever
+# sees part of the feature. This workflow runs the whole feature's suites together
+# on the integration branch (MWPW-183572), which is the only place all seams
+# compose, so the whole-feature signal is not lost during the split.
+#
+# It also runs on demand via the Actions tab. It needs no secrets: the io suites
+# are self-contained and the eval harness runs only in its model-free --unit and
+# --mock-llm modes.
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - MWPW-183572
+
+jobs:
+    suite:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  # Pinned to match io-studio CI: 22.23.1 fixes the node-fetch v2
+                  # gzip / ERR_STREAM_PREMATURE_CLOSE regression in 22.23.0.
+                  node-version: '22.23.1'
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install (all workspaces)
+              run: npm ci
+
+            # studio's suite imports from @adobecom/milo; mirror run-tests.yaml.
+            - name: Pin milo
+              run: npm add github:adobecom/milo#stage
+
+            - name: Operations suite (io/mcp-server)
+              run: npm run test:ci -w io/mcp-server
+
+            - name: Conversation service suite (io/studio — units, classifier, eval gates)
+              run: npm run test:ci -w io/studio
+
+            - name: Studio suite (composed — components, catalogue, orchestration)
+              run: |
+                  sudo apt-get update && sudo apt-get install -y xvfb
+                  xvfb-run -a npm run test:ci -w studio

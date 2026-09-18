@@ -29,6 +29,7 @@ const EMPTY_TAGS_BY_TYPE = {
     variant: [],
     'studio/content-type': [],
     custom: [],
+    'workflow-step': [],
 };
 const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
 const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];

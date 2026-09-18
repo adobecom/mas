@@ -631,10 +631,10 @@ describe('aup-select checkout routing', () => {
                 expect(legacy.calledOnceWithExactly(event)).to.be.true;
             });
 
-            it('routes through AUP after upgrade qualification is removed', async () => {
-                let qualified = true;
+            it('clears a stale upgrade action before routing through AUP', async () => {
+                let hasUpgradeAction = true;
                 await service.registerCheckoutAction(() =>
-                    qualified
+                    hasUpgradeAction
                         ? {
                               handler: legacy,
                               className: 'upgrade',
@@ -643,7 +643,7 @@ describe('aup-select checkout routing', () => {
                 );
                 const element = await create(Class, { upgrade: true });
                 expect(element.classList.contains('upgrade')).to.be.true;
-                qualified = false;
+                hasUpgradeAction = false;
                 element.requestUpdate(true);
                 await element.onceSettled();
                 expect(element.classList.contains('upgrade')).to.be.false;

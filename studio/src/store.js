@@ -5,6 +5,7 @@ import {
     WCS_LANDSCAPE_PUBLISHED,
     FRAGMENT_STATUS_OPTIONS,
 } from './constants.js';
+import { VARIATION_PRESENCE_OPTIONS } from './fragments/variation-presence-filter.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
@@ -306,6 +307,13 @@ function filtersValidator(value) {
         const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
         value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
     }
+
+    // "Has variation?" filter: a single option id from VARIATION_PRESENCE_OPTIONS, or unset.
+    const validVariationPresenceIds = new Set(VARIATION_PRESENCE_OPTIONS.map((option) => option.id));
+    if (!validVariationPresenceIds.has(value.variationPresence)) {
+        value.variationPresence = undefined;
+    }
+
     return value;
 }
 

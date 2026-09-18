@@ -5,6 +5,7 @@ import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 import { FRAGMENT_STATUS_OPTIONS } from '../constants.js';
+import { VARIATION_PRESENCE_OPTIONS } from '../fragments/variation-presence-filter.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -226,6 +227,26 @@ class MasFilterPanel extends LitElement {
         return Store.filters.get().personalizationFilterEnabled === true;
     }
 
+    get #variationPresence() {
+        return Store.filters.get().variationPresence || '';
+    }
+
+    #handleVariationPresenceChange(e) {
+        e.stopPropagation();
+        const value = e.target.value || undefined;
+        Store.filters.set((prev) => ({
+            ...prev,
+            variationPresence: value,
+        }));
+    }
+
+    #handleVariationPresenceDelete() {
+        Store.filters.set((prev) => ({
+            ...prev,
+            variationPresence: undefined,
+        }));
+    }
+
     #onPersonalizationToggleEnabled(e) {
         const enabled = e.detail.enabled;
         Store.filters.set((prev) => ({
@@ -345,6 +366,7 @@ class MasFilterPanel extends LitElement {
             tags: '',
             status: undefined,
             personalizationFilterEnabled: false,
+            variationPresence: undefined,
         }));
 
         Store.createdByUsers.set([]);
@@ -428,6 +450,30 @@ class MasFilterPanel extends LitElement {
         `;
     }
 
+    #renderVariationPresencePicker() {
+        return html`
+            <sp-picker
+                quiet
+                label="Has variation?"
+                placeholder="Has variation?"
+                value=${this.#variationPresence}
+                @change=${this.#handleVariationPresenceChange}
+            >
+                <sp-menu-item value="">All</sp-menu-item>
+                ${VARIATION_PRESENCE_OPTIONS.map(
+                    (option) => html`<sp-menu-item value=${option.id}>${option.label}</sp-menu-item>`,
+                )}
+            </sp-picker>
+        `;
+    }
+
+    get #variationPresenceTag() {
+        const optionId = this.#variationPresence;
+        const option = VARIATION_PRESENCE_OPTIONS.find((o) => o.id === optionId);
+        if (!option) return nothing;
+        return html` <sp-tag size="s" deletable @delete=${this.#handleVariationPresenceDelete}>${option.label}</sp-tag> `;
+    }
+
     render() {
         return html`
             <div id="filters">
@@ -493,7 +539,7 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                ${this.#renderStatusPicker()}
+                ${this.#renderStatusPicker()} ${this.#renderVariationPresencePicker()}
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -561,7 +607,7 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
-                ${this.createdByUsersTags}
+                ${this.#variationPresenceTag} ${this.createdByUsersTags}
             </sp-tags>
         `;
     }

@@ -170,6 +170,7 @@ export class MasRepository extends LitElement {
         return applyFragmentListFilters(fragmentStores, {
             page: this.page.value,
             personalizationFilterEnabled: this.filters.value.personalizationFilterEnabled,
+            variationPresence: this.filters.value.variationPresence,
         });
     }
 
@@ -467,6 +468,8 @@ export class MasRepository extends LitElement {
         const locale = this.filters.value.locale;
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const metaPersonalizationOn = dataStore.getMeta('personalizationFilterEnabled') === true;
+        const variationPresence = this.filters.value.variationPresence;
+        const metaVariationPresence = dataStore.getMeta('variationPresence');
         let resolvedLocale = locale;
         let resolvedPath = path;
 
@@ -525,7 +528,8 @@ export class MasRepository extends LitElement {
             currentData?.length > 0 &&
             currentPath === path &&
             currentLocale === locale &&
-            metaPersonalizationOn === personalizationOn;
+            metaPersonalizationOn === personalizationOn &&
+            (metaVariationPresence ?? undefined) === (variationPresence ?? undefined);
 
         const identicalFilters =
             sameSurface &&
@@ -843,6 +847,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('status', statusString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
+            dataStore.setMeta('variationPresence', variationPresence);
             if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                 dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
             }

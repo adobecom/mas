@@ -10,6 +10,7 @@ export const VARIANT_NAMES = {
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
+    BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -26,6 +27,9 @@ export const VARIANT_NAMES = {
     HEADLESS: 'headless',
     MEDIA: 'media',
     COMPARE_CHART_COLUMN: 'compare-chart-column',
+    MARQUEE: 'marquee',
+    FAQ: 'faq',
+    BANNER_BLADE: 'banner-blade',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -57,6 +61,11 @@ export const VARIANTS = [
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Brand Concierge Product',
+        value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
+        surfaces: [SURFACES.SANDBOX],
     },
     {
         label: 'Segment',
@@ -109,7 +118,7 @@ export const VARIANTS = [
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
     },
     {
         label: 'Mini Compare Chart',
@@ -125,6 +134,21 @@ export const VARIANTS = [
         label: 'Compare Chart Column',
         value: VARIANT_NAMES.COMPARE_CHART_COLUMN,
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
+    },
+    {
+        label: 'Marquee',
+        value: VARIANT_NAMES.MARQUEE,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'FAQ',
+        value: VARIANT_NAMES.FAQ,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Banner/Blade',
+        value: VARIANT_NAMES.BANNER_BLADE,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
     },
 ];
 
@@ -162,10 +186,12 @@ export const getVariantTreeData = (surface) =>
         if (!surface) return true;
         if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
         return v.surfaces.some((s) => s.name === surface);
-    }).map((v) => ({
-        name: v.value,
-        label: v.label,
-    }));
+    })
+        .map((v) => ({
+            name: v.value,
+            label: v.label,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 
 class VariantPicker extends LitElement {
     static styles = css`
@@ -193,12 +219,18 @@ class VariantPicker extends LitElement {
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
+        surface: { type: String },
     };
 
+    #surfaceVariantNames() {
+        return new Set(getVariantTreeData(this.surface).map((v) => v.name));
+    }
+
     get variants() {
-        return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
-            (variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`,
-        );
+        const allowed = this.#surfaceVariantNames();
+        return VARIANTS.filter((variant) => this.showAll || (variant.value != 'all' && allowed.has(variant.value)))
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map((variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`);
     }
 
     #handleChange(e) {

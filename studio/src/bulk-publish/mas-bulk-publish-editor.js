@@ -10,6 +10,7 @@ import {
     BULK_PUBLISH_PROJECT_MODEL_ID,
     PAGE_NAMES,
     STATUS_PUBLISHED,
+    STAGED,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -22,6 +23,7 @@ import './mas-bulk-publish-locales.js';
 import './mas-bulk-publish-success-banner.js';
 import './mas-bulk-publish-confirm-dialog.js';
 import './mas-bulk-publish-duplicate-dialog.js';
+import '../publish/mas-publish-staged-dialog.js';
 import {
     SAVE_SVG,
     CLONE_SVG,
@@ -32,7 +34,7 @@ import {
     DELETE_SVG,
     REVERT_SVG,
 } from './bulk-publish-icons.js';
-import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+import { generateLinkToUse, showToast, normalizeKey } from '../utils.js';
 import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
@@ -87,6 +89,7 @@ class MasBulkPublishEditor extends LitElement {
     static properties = {
         confirmOpen: { state: true },
         duplicateOpen: { state: true },
+        stagedOpen: { state: true },
         itemsSelectorOpen: { state: true },
         localesPickerOpen: { state: true },
         pendingActions: { state: true },
@@ -105,10 +108,13 @@ class MasBulkPublishEditor extends LitElement {
     #projectStoreController = new ReactiveController(this, []);
     #subscribedProject = null;
 
+    saveSnapshotFn = null;
+
     constructor() {
         super();
         this.confirmOpen = false;
         this.duplicateOpen = false;
+        this.stagedOpen = false;
         this.itemsSelectorOpen = false;
         this.localesPickerOpen = false;
         this.pendingActions = new Set();
@@ -177,7 +183,7 @@ class MasBulkPublishEditor extends LitElement {
                         try {
                             const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
                             const fragment = new Fragment(rawFragment);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             return {
                                 url: path,
                                 fragmentId: fragment.id,
@@ -239,20 +245,38 @@ class MasBulkPublishEditor extends LitElement {
         return this.inEdit.value;
     }
 
+    checkStaged(items) {
+        const newItems = [...items];
+        const refs = Store.bulkPublishProjects.inEdit.get().value?.references || [];
+        newItems.forEach((item) => {
+            refs.forEach((ref) => {
+                if (item.path === ref.path) {
+                    const fragment = new Fragment(ref);
+                    if (fragment.isStaged) {
+                        item.status = 'error';
+                        item.reason = STAGED.NAME;
+                    }
+                }
+            });
+        });
+        return newItems;
+    }
+
     get items() {
-        if (this.localItems !== null) return this.localItems;
+        if (this.localItems !== null) return this.checkStaged(this.localItems);
         const savedItems = this.#parsedItemsMetadata();
         const paths = this.getFields('fragments');
         if (paths.length) {
             const typeByPath = new Map(savedItems.map((item) => [item.path, item.type]));
-            return paths.map((path) => ({
+            const pathItems = paths.map((path) => ({
                 path,
                 url: path,
                 status: 'valid',
                 type: typeByPath.get(path) ?? itemTypeFromPath(path),
             }));
+            return this.checkStaged(pathItems);
         }
-        return savedItems;
+        return this.checkStaged(savedItems);
     }
 
     #parsedItemsMetadata() {
@@ -448,8 +472,22 @@ class MasBulkPublishEditor extends LitElement {
         });
     }
 
-    handlePublish() {
+    handleStagedConfirmed() {
+        this.stagedOpen = false;
         this.confirmOpen = true;
+    }
+
+    handleStagedCancel() {
+        this.stagedOpen = false;
+    }
+
+    handlePublish() {
+        const staged = this.items.some((item) => item.status !== 'valid');
+        if (staged) {
+            this.stagedOpen = true;
+        } else {
+            this.confirmOpen = true;
+        }
     }
 
     handleConfirmCancel() {
@@ -517,7 +555,7 @@ class MasBulkPublishEditor extends LitElement {
         Store.bulkPublishProjects.displayCards.set([]);
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
-        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.bulkPublishProjects);
         this.itemsSelectorOpen = true;
     }
 
@@ -592,14 +630,30 @@ class MasBulkPublishEditor extends LitElement {
         this.#discardResolve = null;
     }
 
+    async #recordSnapshotAfterSave(project) {
+        const { saveSnapshot } = await import('./bulk-publish-store.js');
+        try {
+            await saveSnapshot({
+                project,
+                token: this.token,
+                ioBaseUrl: this.ioBaseUrl,
+                saveSnapshotFn: this.saveSnapshotFn,
+            });
+        } catch (err) {
+            console.error('Failed to record snapshot after save:', err);
+        }
+    }
+
     async saveBulkProject() {
         await this.#withPendingAction(QUICK_ACTION.SAVE, async () => {
             this.ensureSurface();
             const surface = Store.search.get()?.path;
             try {
+                const validPaths = this.items
+                    .filter((i) => (i.status === 'valid' || i.reason === STAGED.NAME) && i.path)
+                    .map((i) => i.path);
                 if (this.isNewProject) {
                     const title = this.title || 'Untitled bulk publish project';
-                    const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                     const payload = buildProjectPayload({
                         parentPath: this.repository.getBulkPublishParentPath(surface),
                         title,
@@ -614,6 +668,8 @@ class MasBulkPublishEditor extends LitElement {
                     Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
+                    const createdProject = Store.bulkPublishProjects.inEdit.get();
+                    await this.#recordSnapshotAfterSave(createdProject);
                 } else {
                     const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
@@ -624,7 +680,6 @@ class MasBulkPublishEditor extends LitElement {
                     for (const [name, value] of Object.entries(fields)) {
                         this.project.updateField(name, [value]);
                     }
-                    const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                     this.project.updateField('items', [buildItemsMetadata(this.items)]);
                     this.project.updateField('fragments', validPaths);
                     this.project.updateField('locales', this.locales);
@@ -636,6 +691,7 @@ class MasBulkPublishEditor extends LitElement {
                     if (!saved) return;
                     this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');
+                    await this.#recordSnapshotAfterSave(this.project);
                 }
             } catch (err) {
                 console.error('Failed to save bulk publish project:', err);
@@ -707,7 +763,7 @@ class MasBulkPublishEditor extends LitElement {
                     ? await this.repository.getFragmentById(item.fragmentId)
                     : await this.repository.aem.sites.cf.fragments.getByPath(item.path);
                 const fragment = new Fragment(rawFragment);
-                const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                 return {
                     ...item,
                     fragmentId: fragment.id || item.fragmentId,
@@ -760,7 +816,7 @@ class MasBulkPublishEditor extends LitElement {
                             duplicateCount++;
                         } else {
                             existingIds.add(fragment.id);
-                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            const { authorPath, href } = generateLinkToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
                             results[i] = {
                                 url: raw,
                                 fragmentId: fragment.id,
@@ -769,9 +825,12 @@ class MasBulkPublishEditor extends LitElement {
                                 authorPath: authorPath || null,
                                 locale: fragment.locale || null,
                                 href: href || null,
-                                status: 'valid',
+                                status: fragment.isStaged ? 'error' : 'valid',
                                 alreadyPublished: fragment.status === STATUS_PUBLISHED,
                             };
+                            if (fragment.isStaged) {
+                                results[i].reason = STAGED.NAME;
+                            }
                         }
                     } catch (err) {
                         results[i] = {
@@ -987,6 +1046,12 @@ class MasBulkPublishEditor extends LitElement {
                 @duplicate-confirmed=${this.handleDuplicateConfirmed}
                 @duplicate-cancelled=${this.handleDuplicateCancel}
             ></mas-bulk-publish-duplicate-dialog>
+            <mas-publish-staged-dialog
+                .open=${this.stagedOpen}
+                .multiselect=${true}
+                @staged-confirmed=${this.handleStagedConfirmed}
+                @staged-cancelled=${this.handleStagedCancel}
+            ></mas-publish-staged-dialog>
             ${this.itemsSelectorOpen
                 ? html`<mas-add-items-dialog
                       open

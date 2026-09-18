@@ -77,7 +77,7 @@ function getObjectDifference(values, defaults) {
     return difference;
 }
 
-export const attributeFilter = (key) => /^(class|data-|is|href|title|target)/.test(key);
+export const attributeFilter = (key) => /^(class|data-|is|href|title|target|aria-label)/.test(key);
 
 const OST_TYPE_MAPPING = {
     price: null,
@@ -185,10 +185,13 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
     );
 }
 
-export function onOfferSelect(offerSelectorId, type, offer) {
+export function onOfferSelect(offerSelectorId, type, offer, options, promoOverride) {
+    // OST passes the promo code as `promoOverride` (or on the placeholder options); forward it so an
+    // osi-field opted into promo capture can store `<osi>,<promoCode>`.
+    const promotionCode = promoOverride || options?.storedPromoOverride || options?.promotionCode;
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_OFFER_SELECT, {
-            detail: { offerSelectorId, offer },
+            detail: { offerSelectorId, offer, promotionCode },
             bubbles: true,
         }),
     );
@@ -247,6 +250,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
+        // A placeholder was double-clicked: reopen OST on that offer.
         if (offerElement) {
             const template = offerElement.getAttribute('data-template');
             const baseType = offerElement.isInlinePrice ? 'price' : 'checkoutUrl';
@@ -303,6 +307,14 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
                 if (key === 'mode') continue;
                 if (value) searchParameters.append(key, value);
             }
+        } else {
+            // Opening a new OST with no placeholder and no preset params still
+            // has a target: the card's own OSI field. Deep-link to it so the
+            // author lands on that offer instead of an empty plate. Single-valued
+            // by construction — the "OSI Search" field holds one offerSelectorId
+            // (osi-field.js), unlike a placeholder's comma-joined data-wcs-osi.
+            searchOfferSelectorId =
+                triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('osi', 0)?.trim() || undefined;
         }
         const isMultiSelectRequested = initialSearchParams?.mode === 'plans-base-and-trial';
         // AI-chat opens OST as a read-only consult flow so authors can look

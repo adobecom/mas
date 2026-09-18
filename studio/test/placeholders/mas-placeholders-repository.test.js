@@ -630,14 +630,14 @@ describe('mas-placeholders-repository', () => {
         // failed intermittently rather than always. clearCaches() clears the
         // transformer side.
         beforeEach(() => {
-            clearDictionaryCache(true);
+            clearDictionaryCache();
             clearCaches();
             fetchStub = sandbox.stub(globalThis, 'fetch');
             fetchStub.callsFake(() => createResponse(404, null, 'not found'));
         });
 
         afterEach(() => {
-            clearDictionaryCache(true);
+            clearDictionaryCache();
             clearCaches();
         });
 

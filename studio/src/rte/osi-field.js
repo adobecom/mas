@@ -9,6 +9,10 @@ class OsiField extends LitElement {
         id: { type: String, attribute: true },
         value: { type: String },
         showOfferSelector: { type: String },
+        // Opt-in: also capture a promo code from OST and store it slash-joined as `<osi>/<promoCode>`.
+        // Slash (not comma) so the value can never collide with a discount-badge multi-OSI pair (`A,B`);
+        // off by default so bare-osi and discount-badge fields are unaffected.
+        allowPromotionCode: { type: Boolean, attribute: 'allow-promotion-code' },
     };
 
     static styles = css`
@@ -22,6 +26,7 @@ class OsiField extends LitElement {
         super();
         this.value = '';
         this.showOfferSelector = false;
+        this.allowPromotionCode = false;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -44,9 +49,10 @@ class OsiField extends LitElement {
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#boundHandlers.ostEvent);
     }
 
-    #handleOstEvent({ detail: { offerSelectorId, offer } }) {
+    #handleOstEvent({ detail: { offerSelectorId, promotionCode } }) {
         if (osiFieldSource !== this) return;
-        this.value = offerSelectorId || '';
+        const osi = offerSelectorId || '';
+        this.value = this.allowPromotionCode && promotionCode ? `${osi}/${promotionCode}` : osi;
         this.showOfferSelector = false;
         this.dispatchEvent(
             new CustomEvent('change', {
@@ -81,7 +87,15 @@ class OsiField extends LitElement {
     handleOpenOfferSelector(event, element) {
         if (!element && this.value) {
             element = document.createElement('span');
-            element.setAttribute('data-wcs-osi', this.value);
+            if (this.allowPromotionCode) {
+                // Reopen with the osi and promo split so OST prefills the promo field instead of
+                // reading `<osi>/<promoCode>` as a bundle.
+                const [osi, promotionCode] = this.value.split('/');
+                element.setAttribute('data-wcs-osi', osi);
+                if (promotionCode) element.setAttribute('data-promotion-code', promotionCode);
+            } else {
+                element.setAttribute('data-wcs-osi', this.value);
+            }
             element.isInlinePrice = true;
         }
         osiFieldSource = this;

@@ -15,6 +15,8 @@ describe('MasFragmentVariations', () => {
 
     afterEach(() => {
         sandbox.restore();
+        Store.promotions.list.data.set([]);
+        Store.promotions.list.data.removeMeta('listFetched');
     });
 
     const createVariationFragment = (overrides = {}) => ({
@@ -428,6 +430,7 @@ describe('MasFragmentVariations', () => {
                 id: 'promo-var-1',
                 path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
                 tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar', 'mas:locale/fr_FR'] }],
             });
             const fragment = {
                 listLocaleVariations: () => [],
@@ -443,14 +446,194 @@ describe('MasFragmentVariations', () => {
             expect(el.textContent).to.include('Back to School');
             expect(el.textContent).to.include('Geos variation tags');
             const picker = el.querySelector('aem-tag-picker-field');
-            expect(picker.getAttribute('value')).to.equal(getGroupedVariationTagsValue(promoVariation));
+            expect(picker.getAttribute('value')).to.equal('mas:pzn/country/ar,mas:locale/fr_FR');
         });
 
-        it('renders a baseline-variation notice instead of the tag picker when the promo variation has no pznTags', async () => {
+        it('labels a promo variation created from a default fragment as "Default fragment"', async () => {
             const promoVariation = createVariationFragment({
-                id: 'promo-var-baseline',
+                id: 'promo-var-default',
                 path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
                 tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.togglePromoVariation('promo-var-default');
+            await el.updateComplete;
+
+            const detail = el.querySelector('.grouped-variation-expanded');
+            expect(detail.textContent).to.include('Applies to');
+            expect(detail.textContent).to.include('Default fragment');
+        });
+
+        it('labels a promo variation created from a grouped variation as "Grouped variation"', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-grouped',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card/pzn/edu',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.togglePromoVariation('promo-var-grouped');
+            await el.updateComplete;
+
+            const detail = el.querySelector('.grouped-variation-expanded');
+            expect(detail.textContent).to.include('Applies to');
+            expect(detail.textContent).to.include('Grouped variation');
+        });
+
+        it('shows "Grouped variation tags" (with the personalization tag) for a promo variation created from a grouped variation', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-grouped-tags',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card/pzn/edu',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.togglePromoVariation('promo-var-grouped-tags');
+            await el.updateComplete;
+
+            const detail = el.querySelector('.grouped-variation-expanded');
+            expect(detail.textContent).to.include('Grouped variation tags');
+            expect(detail.textContent).to.include('edu');
+            expect(detail.textContent).to.not.include('mas:pzn/edu');
+        });
+
+        it('does not show "Grouped variation tags" for a promo variation created from a default fragment', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-default-tags',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.togglePromoVariation('promo-var-default-tags');
+            await el.updateComplete;
+
+            const detail = el.querySelector('.grouped-variation-expanded');
+            expect(detail.textContent).to.not.include('Grouped variation tags');
+        });
+
+        it('shows the baseline variation notice for a promo variation created from a default fragment with no geo of its own, never falling back to the promotion project geos', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-legacy',
+                path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
+                fields: [],
+            });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            id: 'promo-project-1',
+                            getFieldValues: (name) =>
+                                name === 'tags'
+                                    ? ['mas:promotion/cyber-monday']
+                                    : name === 'geos'
+                                      ? ['mas:locale/de_AT', 'mas:locale/en_NG']
+                                      : name === 'fragments'
+                                        ? [parentPath]
+                                        : [],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.loading.set(false);
+            });
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.togglePromoVariation('promo-var-legacy');
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.querySelector('aem-tag-picker-field')).to.be.null;
+            const notice = el.querySelector('.text-with-tooltip');
+            expect(notice?.textContent).to.include('Baseline variation');
+            Store.promotions.list.data.set([]);
+        });
+
+        it('shows the baseline variation notice for a promo variation created from a grouped variation (only its own personalization tag, no geo of its own), instead of the promotion project geos', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-grouped',
+                path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card/pzn/edu',
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+            });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            id: 'promo-project-1',
+                            getFieldValues: (name) =>
+                                name === 'tags'
+                                    ? ['mas:promotion/cyber-monday']
+                                    : name === 'geos'
+                                      ? ['mas:locale/de_AT', 'mas:locale/en_NG']
+                                      : name === 'fragments'
+                                        ? [parentPath]
+                                        : [],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.loading.set(false);
+            });
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.togglePromoVariation('promo-var-grouped');
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker).to.be.null;
+            const notice = el.querySelector('.text-with-tooltip');
+            expect(notice?.textContent).to.include('Baseline variation');
+            Store.promotions.list.data.set([]);
+        });
+
+        it('disambiguates same-tag promotion projects by matching the fragment attached to the project', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-legacy',
+                path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
                 fields: [],
             });
             const fragment = {
@@ -460,7 +643,7 @@ describe('MasFragmentVariations', () => {
             };
 
             const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
-            el.togglePromoVariation('promo-var-baseline');
+            el.togglePromoVariation('promo-var-legacy');
             await el.updateComplete;
 
             expect(el.querySelector('aem-tag-picker-field')).to.be.null;
@@ -540,22 +723,47 @@ describe('MasFragmentVariations', () => {
             expect(el.promoVariations.map((variation) => variation.path)).to.deep.equal([orphanPath]);
         });
 
-        it('does not probe the promotions tree for tabs other than Promotions', async () => {
+        it('probes the promotions tree even when the active tab is not Promotions, so the header is never wrong before the user switches tabs', async () => {
             const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
             const el = await fixture(
                 html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
             );
             sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
 
-            el.handleTabChange({ target: { selected: 'locale' } });
+            el.handleTabChange({ target: { selected: 'grouped' } });
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 10));
             await el.updateComplete;
 
-            expect(search.called, 'should not scan the promotions tree').to.be.false;
+            expect(search.called, 'should scan the promotions tree regardless of the active tab').to.be.true;
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.querySelector('.expanded-title').textContent).to.equal('Variations');
         });
 
-        it('does not probe the promotions tree when a known promo variation already exists', async () => {
+        it('does not re-probe when switching back to the Promotions tab for the same fragment', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.callCount).to.equal(1);
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+            await el.updateComplete;
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await el.updateComplete;
+
+            expect(search.callCount, 'should not re-scan for the same fragment path').to.equal(1);
+        });
+
+        it('waits for the orphan probe before showing known variations, so both appear together instead of the orphan popping in later', async () => {
             const promoVariation = createVariationFragment({ id: 'known-1', path: `${promotionsRoot}/known/my-card` });
             const fragment = {
                 path: parentPath,
@@ -569,10 +777,64 @@ describe('MasFragmentVariations', () => {
 
             el.handleTabChange({ target: { selected: 'promotion' } });
             await el.updateComplete;
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading, 'known variation exists but orphan probe is still in flight').to.be.true;
+            expect(el.querySelector('sp-progress-circle')).to.not.be.null;
+            expect(el.textContent).to.not.include(`${promotionsRoot}/known/my-card`);
+
             await new Promise((r) => setTimeout(r, 10));
             await el.updateComplete;
 
-            expect(search.called, 'should not scan the promotions tree').to.be.false;
+            expect(search.called, 'should scan the promotions tree for orphans from deleted promo projects').to.be.true;
+            expect(el.orphanPromoVariationsLoading).to.be.false;
+            expect(el.promoVariations.map((variation) => variation.path)).to.have.members([
+                `${promotionsRoot}/known/my-card`,
+                orphanPath,
+            ]);
+        });
+
+        it('shows a loading spinner instead of the empty state while the orphan probe is in flight', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.true;
+            expect(el.querySelector('sp-progress-circle')).to.not.be.null;
+            expect(el.textContent).to.not.include('No promotion variations found');
+
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.false;
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.textContent).to.not.include('No promotion variations found');
+        });
+
+        it('does not show the "No Variations found" title while the orphan probe is in flight', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.true;
+            expect(el.textContent).to.not.include('No Variations found');
+
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.false;
         });
     });
 });

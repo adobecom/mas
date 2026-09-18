@@ -67,7 +67,8 @@ export const EVENT_KEYUP = 'keyup';
 
 export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
-export const EVENT_OST_SELECT = 'ost-select';
+// Avoids event name collision with ost-app.js ('ost-select').
+export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
@@ -139,6 +140,7 @@ export const PAGE_NAMES = {
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
+    OFFER_MAPPING: 'offer-mapping',
 };
 
 /**
@@ -157,7 +159,6 @@ export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
-export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
 export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
@@ -182,6 +183,7 @@ export const FIELD_MODEL_MAPPING = {
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
+export const TAG_LOCALE_PREFIX = 'mas:locale/';
 export const TAG_MERCH_CARD_COLLECTION = `${TAG_STUDIO_CONTENT_TYPE}/merch-card-collection`;
 export const TAG_MERCH_CARD = `${TAG_STUDIO_CONTENT_TYPE}/merch-card`;
 export const TAG_COMPARE_CHART = `${TAG_STUDIO_CONTENT_TYPE}/${COMPARE_CHART_CREATE_TYPE}`;
@@ -305,7 +307,17 @@ export const FRAGMENT_STATUS = {
     PUBLISHED: 'PUBLISHED',
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
+    NEW: 'NEW',
+    UNPUBLISHED: 'UNPUBLISHED',
 };
+
+export const FRAGMENT_STATUS_OPTIONS = [
+    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
+    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
+    { id: FRAGMENT_STATUS.NEW, title: 'New' },
+    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
+    { id: FRAGMENT_STATUS.UNPUBLISHED, title: 'Unpublished' },
+];
 
 export const TABLE_TYPE = {
     OFFERS: 'offers',
@@ -356,4 +368,14 @@ export const BASELINE_VARIATION = {
     TEXT: 'Baseline variation',
     TOOLTIP_TEXT:
         'This variation is the baseline for the project and inherits all geos tagged in the project. Any additional variations tagged with specific geos will override the baseline.',
+};
+
+export const STAGED = {
+    NAME: 'staged',
+    TAG: 'mas:studio/internal/staged',
+    DIALOG_CONFIRM_TEXT:
+        'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_CONFIRM_MULTIPLE_TEXT:
+        'Some of the selected fragments are currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_TITLE: 'Staged content warning',
 };

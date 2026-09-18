@@ -237,8 +237,12 @@ runTests(async () => {
             await card.checkReady();
             const variantLayout = card.variantLayout;
 
+            const parent = document.createElement('div');
             // Test legal template branch
-            const legalElement = { dataset: { template: 'legal' } };
+            const legalElement = {
+                dataset: { template: 'legal' },
+                closest: () => parent,
+            };
             const legalOptions = {};
             variantLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
@@ -246,6 +250,7 @@ runTests(async () => {
             // Test strikethrough template branch
             const strikethroughElement = {
                 dataset: { template: 'strikethrough' },
+                closest: () => parent,
             };
             const strikethroughOptions = {};
             variantLayout.priceOptionsProvider(
@@ -255,10 +260,13 @@ runTests(async () => {
             expect(strikethroughOptions.displayPerUnit).to.equal(false);
 
             // Test price template branch
-            const priceElement = { dataset: { template: 'price' } };
+            const priceElement = {
+                dataset: { template: 'price' },
+                closest: () => parent,
+            };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.equal(false);
+            expect(priceOptions.displayPerUnit).to.be.false;
         });
     });
 
@@ -451,6 +459,13 @@ runTests(async () => {
     });
 
     describe('ETF text (adjustLegal / adjustShortDescription)', () => {
+        let keepInHeadingPriceForAnnual;
+        before(async () => {
+            ({ keepInHeadingPriceForAnnual } = await import(
+                '../src/variants/mini-compare-chart.js'
+            ));
+        });
+
         async function mountCardWithEtf(etfText = 'Fee applies') {
             const mount = document.createElement('div');
             mount.style.cssText =
@@ -465,7 +480,7 @@ runTests(async () => {
                             data-wcs-osi="abm-mult"
                             data-template="price"
                             data-display-per-unit="false"
-                            data-display-tax="false"
+                            data-display-tax="true"
                             data-display-plan-type="true"
                         ></span>
                     </h5>
@@ -612,6 +627,55 @@ runTests(async () => {
             } finally {
                 mount.remove();
             }
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price enabled', async () => {
+            const card = {
+                settings: {
+                    displayAnnual: true,
+                },
+            };
+            const headingPrice = {
+                options: {
+                    displayTax: true,
+                },
+            };
+            const legalPrice = {
+                dataset: {
+                    displayTax: true,
+                },
+            };
+            keepInHeadingPriceForAnnual(
+                card,
+                headingPrice,
+                legalPrice,
+                'displayTax',
+            );
+            expect(legalPrice.dataset.displayTax).to.equal('false');
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price disabled', async () => {
+            const card = {
+                settings: {
+                    displayAnnual: false,
+                },
+            };
+            const headingPrice = {
+                options: {
+                    displayTax: true,
+                },
+                dataset: {
+                    displayTax: true,
+                },
+            };
+            const legalPrice = {};
+            keepInHeadingPriceForAnnual(
+                card,
+                headingPrice,
+                legalPrice,
+                'displayTax',
+            );
+            expect(headingPrice.dataset.displayTax).to.equal('false');
         });
     });
 });

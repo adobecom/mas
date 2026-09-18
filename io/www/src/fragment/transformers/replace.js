@@ -7,6 +7,13 @@ import { log, logDebug, logError } from '../utils/log.js';
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
+// Built-in placeholders resolved for every fragment on top of the Odin dictionary. Each key maps to a
+// fixed value; add entries here to expose new system placeholders.
+export const SYSTEM_PLACEHOLDERS = {
+    'plan-type-text':
+        '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\" data-display-plan-type=\\"true\\" data-display-per-unit=\\"false\\" data-display-tax=\\"false\\"></span>',
+};
+
 const TRANSFORMER_NAME = 'replace';
 
 // Each dictionary layer (base or region, per surface+locale) is cached with jittered TTL,
@@ -159,6 +166,8 @@ async function replace(context) {
             dictionary = await getDictionary(context);
         }
         if (dictionary && Object.keys(dictionary).length > 0) {
+            // System placeholders spread last so an Odin dictionary entry cannot shadow a reserved key.
+            dictionary = { ...dictionary, ...SYSTEM_PLACEHOLDERS };
             bodyString = replaceValues(bodyString, dictionary, []);
             try {
                 body = JSON.parse(bodyString);

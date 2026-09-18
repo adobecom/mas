@@ -10,6 +10,7 @@ import {
 } from './constants.js';
 import { parseCompareChartTables } from './compare-chart-table-parser.js';
 import { styles } from './mas-compare-chart.css.js';
+import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 
 const MAS_COMPARE_CHART = 'mas-compare-chart';
 const MAS_COMPARE_CHART_LOAD_TIMEOUT = 30000;
@@ -167,10 +168,19 @@ export class MasCompareChart extends LitElement {
         const aemFragment = this.querySelector(':scope > aem-fragment');
         if (!aemFragment) return Promise.resolve(true);
         this.#ensureHydrationReady();
-        const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve(false), MAS_COMPARE_CHART_LOAD_TIMEOUT),
-        );
-        return Promise.race([this.#hydrationReady, timeoutPromise]);
+        let timeoutId;
+        const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setForegroundTimeout(
+                () => resolve(false),
+                MAS_COMPARE_CHART_LOAD_TIMEOUT,
+            );
+        });
+        const readyPromise = Promise.race([
+            this.#hydrationReady,
+            timeoutPromise,
+        ]);
+        readyPromise.finally(() => clearForegroundTimeout(timeoutId));
+        return readyPromise;
     }
 
     /* ---------- hydration ---------- */

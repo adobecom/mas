@@ -34,8 +34,16 @@ import {
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
-import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
+import {
+    getService,
+    printMeasure,
+    setForegroundTimeout,
+    clearForegroundTimeout,
+    shouldHideStPriceLabels,
+} from './utils.js';
+import { toPromotionCodes } from './utilities.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -85,6 +93,7 @@ function priceOptionsProvider(element, options) {
         typeof card.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = card.settings.displayAnnual;
+        if (card.settings.displayAnnual) card.setAttribute('annualized', '');
     }
 }
 
@@ -106,6 +115,9 @@ function registerOptionsProviders(masCommerceService) {
     }
     if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
         masCommerceService.providers.checkout(checkoutOptionsProvider);
+    }
+    if (!masCommerceService.providers.has(planTypeTextOptionsProvider)) {
+        masCommerceService.providers.price(planTypeTextOptionsProvider);
     }
 }
 
@@ -778,9 +790,13 @@ export class MerchCard extends LitElement {
             await this.variantLayoutPromise;
             this.variantLayoutPromise = undefined;
         }
-        const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve('timeout'), MERCH_CARD_LOAD_TIMEOUT),
-        );
+        let timeoutId;
+        const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setForegroundTimeout(
+                () => resolve('timeout'),
+                MERCH_CARD_LOAD_TIMEOUT,
+            );
+        });
         if (this.aemFragment) {
             const result = await Promise.race([
                 this.aemFragment.updateComplete,
@@ -791,6 +807,7 @@ export class MerchCard extends LitElement {
                     result === 'timeout'
                         ? `AEM fragment was not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout`
                         : 'AEM fragment cannot be loaded';
+                clearForegroundTimeout(timeoutId);
                 this.#fail(errorMessage, {}, false);
                 return;
             }
@@ -812,6 +829,7 @@ export class MerchCard extends LitElement {
             );
         });
         const result = await Promise.race([successPromise, timeoutPromise]);
+        clearForegroundTimeout(timeoutId);
 
         if (!this.isConnected) return;
 
@@ -911,7 +929,9 @@ export class MerchCard extends LitElement {
         return this.querySelector('[slot="price"]');
     }
 
-    handleAddonAndQuantityUpdate({ detail: { id, items } }) {
+    handleAddonAndQuantityUpdate({
+        detail: { id, items, productArrangementCode },
+    }) {
         if (!id || !items?.length) return;
         const parentTab = this.closest('[role="tabpanel"][hidden="true"]');
         if (parentTab) return;
@@ -920,8 +940,9 @@ export class MerchCard extends LitElement {
             (link) => link.getAttribute('data-modal-id') === id,
         );
         if (!cta) return;
-        const url = new URL(cta.getAttribute('href'));
-        const pa = url.searchParams.get('pa');
+        const pa =
+            productArrangementCode ?? cta.value?.[0]?.productArrangementCode;
+        if (!pa) return;
         const mainProductQuantity = items.find(
             (item) => item.productArrangementCode === pa,
         )?.quantity;
@@ -957,6 +978,10 @@ export class MerchCard extends LitElement {
 
     get prices() {
         return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
+    }
+
+    get osi() {
+        return hostOsi(this);
     }
 
     get promoPrice() {
@@ -997,10 +1022,10 @@ export class MerchCard extends LitElement {
                 `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`,
             ),
         ]
-            .map((el) => el.dataset.promotionCode)
+            .map((el) => toPromotionCodes(el.dataset.promotionCode)[0])
             .filter(
                 (promotionCode) =>
-                    ![undefined, 'cancel-context'].includes(promotionCode),
+                    ![undefined, '', 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
             return this.contextPromotionCode;

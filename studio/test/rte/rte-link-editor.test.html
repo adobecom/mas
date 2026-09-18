@@ -213,6 +213,64 @@
                         expect(linkEditor.ctaKeyIssuesElement).to.not.exist;
                     });
                 });
+
+                describe('RTE headless CTA variant picker', () => {
+                    it('renders the 3 headless variants with the current one selected', async function () {
+                        const linkEditor = await createFromTemplate('headless', this.test.title);
+                        linkEditor.variant = 'primary';
+                        await linkEditor.updateComplete;
+
+                        const group = linkEditor.shadowRoot.querySelector('#linkVariant');
+                        const buttons = [...group.querySelectorAll('sp-button')];
+                        const link = group.querySelector('sp-link');
+                        expect(buttons.map((b) => b.getAttribute('variant'))).to.deep.equal(['primary', 'secondary']);
+                        expect(link).to.exist;
+                        expect(buttons.find((b) => b.getAttribute('variant') === 'primary').classList.contains('selected')).to
+                            .be.true;
+                        expect(buttons.find((b) => b.getAttribute('variant') === 'secondary').classList.contains('selected')).to
+                            .be.false;
+                        expect(link.classList.contains('selected')).to.be.false;
+                    });
+
+                    it('resolves a legacy class-based variant to its headless display equivalent', async function () {
+                        const linkEditor = await createFromTemplate('headless', this.test.title);
+                        linkEditor.variant = 'accent';
+                        await linkEditor.updateComplete;
+
+                        const group = linkEditor.shadowRoot.querySelector('#linkVariant');
+                        const primaryButton = [...group.querySelectorAll('sp-button')].find(
+                            (b) => b.getAttribute('variant') === 'primary',
+                        );
+                        expect(primaryButton.classList.contains('selected')).to.be.true;
+                    });
+
+                    it('selects the Link option by clicking the sp-link', async function () {
+                        const linkEditor = await createFromTemplate('headless', this.test.title);
+                        linkEditor.variant = 'primary';
+                        await linkEditor.updateComplete;
+
+                        const group = linkEditor.shadowRoot.querySelector('#linkVariant');
+                        group.querySelector('sp-link').click();
+                        await linkEditor.updateComplete;
+
+                        expect(linkEditor.variant).to.equal('secondary-link');
+                    });
+
+                    it('selects a button variant by clicking it', async function () {
+                        const linkEditor = await createFromTemplate('headless', this.test.title);
+                        linkEditor.variant = 'secondary-link';
+                        await linkEditor.updateComplete;
+
+                        const group = linkEditor.shadowRoot.querySelector('#linkVariant');
+                        const secondaryButton = [...group.querySelectorAll('sp-button')].find(
+                            (b) => b.getAttribute('variant') === 'secondary',
+                        );
+                        secondaryButton.click();
+                        await linkEditor.updateComplete;
+
+                        expect(linkEditor.variant).to.equal('secondary');
+                    });
+                });
             });
         </script>
 
@@ -244,6 +302,10 @@
 
         <template id="ctaRefVariation">
             <rte-link-editor show-cta-reference is-variation cta-ref="buynow"></rte-link-editor>
+        </template>
+
+        <template id="headless">
+            <rte-link-editor is-headless-cta></rte-link-editor>
         </template>
 
         <template id="checkoutFilled">

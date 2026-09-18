@@ -1,11 +1,11 @@
 import { LitElement, html, css, nothing } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
+import { extractLocaleFromPath, generateLinkToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import Store, { toggleSelection } from './store.js';
 import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
@@ -102,7 +102,7 @@ class MasFragmentTable extends LitElement {
     }
 
     get name() {
-        return generateCodeToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
+        return generateLinkToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
     }
 
     get price() {
@@ -160,9 +160,9 @@ class MasFragmentTable extends LitElement {
         previewFragmentOnPage(this.fragmentStore.value);
     }
 
-    async copyCode(event) {
+    async copyLink(event) {
         event.stopPropagation();
-        const { code, richText, href } = generateCodeToUse(this.data, Store.search.get().path, Store.page.get());
+        const { code, richText, href } = generateLinkToUse(this.data, Store.search.get().path, Store.page.get());
         if (!code || !richText || !href) return;
 
         try {
@@ -172,10 +172,14 @@ class MasFragmentTable extends LitElement {
                     'text/html': new Blob([richText], { type: 'text/html' }),
                 }),
             ]);
-            showToast('Code copied to clipboard', 'positive');
+            showToast('Link copied to clipboard', 'positive');
         } catch (e) {
-            showToast('Failed to copy code to clipboard', 'negative');
+            showToast('Failed to copy link to clipboard', 'negative');
         }
+    }
+
+    get isStaged() {
+        return this.fragmentStore.value.isStaged;
     }
 
     get isVariationSelected() {
@@ -268,6 +272,9 @@ class MasFragmentTable extends LitElement {
                               ${getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
+                <sp-table-cell class="wf-status"
+                    >${this.isStaged ? html`<span class="staged-badge">Staged</span>` : ''}</sp-table-cell
+                >
                 <sp-table-cell class="offer-id">
                     <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
                     ${this.offerData?.offerId
@@ -314,9 +321,9 @@ class MasFragmentTable extends LitElement {
                                   <sp-icon-preview slot="icon"></sp-icon-preview>
                                   Preview on page
                               </sp-menu-item>
-                              <sp-menu-item @click=${this.copyCode}>
-                                  <sp-icon-code slot="icon"></sp-icon-code>
-                                  Copy Code
+                              <sp-menu-item @click=${this.copyLink}>
+                                  <sp-icon-link slot="icon"></sp-icon-link>
+                                  Copy Link
                               </sp-menu-item>
                           </sp-action-menu>`}
                 </sp-table-cell>

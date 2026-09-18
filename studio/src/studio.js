@@ -168,6 +168,12 @@ class MasStudio extends LitElement {
         return html`<mas-masks bucket=${this.bucket} base-url=${this.baseUrl}></mas-masks>`;
     }
 
+    get offerMapping() {
+        if (this.page.value !== PAGE_NAMES.OFFER_MAPPING) return nothing;
+        if (!this.#lazyLoad('mas-offer-mapping', './offer-mapping/mas-offer-mapping.js')) return nothing;
+        return html`<mas-offer-mapping bucket=${this.bucket} base-url=${this.baseUrl}></mas-offer-mapping>`;
+    }
+
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         if (!this.#lazyLoad('mas-splash-screen', './mas-splash-screen.js')) return nothing;
@@ -279,6 +285,45 @@ class MasStudio extends LitElement {
         return html`<editor-panel></editor-panel>`;
     }
 
+    get currentPage() {
+        switch (this.page.value) {
+            case PAGE_NAMES.WELCOME:
+                return this.splashScreen;
+            case PAGE_NAMES.CONTENT:
+                return html`${this.content}${this.editorPanel}`;
+            case PAGE_NAMES.PLACEHOLDERS:
+                return this.placeholders;
+            case PAGE_NAMES.FRAGMENT_EDITOR:
+                return this.fragmentEditor;
+            case PAGE_NAMES.PROMOTIONS:
+                return this.promotions;
+            case PAGE_NAMES.PROMOTIONS_EDITOR:
+                return this.promotionsEditor;
+            case PAGE_NAMES.VERSION:
+                return this.versionPage;
+            case PAGE_NAMES.TRANSLATIONS:
+                return this.translation;
+            case PAGE_NAMES.TRANSLATION_EDITOR:
+                return this.translationEditor;
+            case PAGE_NAMES.BULK_PUBLISH:
+                return this.bulkPublish;
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR:
+                return this.bulkPublishEditor;
+            case PAGE_NAMES.ADVANCED_TOOLS:
+                return this.advancedTools;
+            case PAGE_NAMES.SETTINGS:
+            case PAGE_NAMES.SETTINGS_EDITOR:
+                return this.settings;
+            case PAGE_NAMES.MASKS:
+            case PAGE_NAMES.MASKS_EDITOR:
+                return this.masks;
+            case PAGE_NAMES.OFFER_MAPPING:
+                return this.offerMapping;
+            default:
+                return nothing;
+        }
+    }
+
     render() {
         return html`
             ${this.topNav}
@@ -286,12 +331,7 @@ class MasStudio extends LitElement {
             <div class="studio-content">
                 ${this.sideNav}
                 ${this.masJsReady
-                    ? html`<div class="main-container">
-                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
-                          ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${renderChatPages(this.page.value)} ${this.bulkPublish} ${this.bulkPublishEditor}
-                          ${this.advancedTools} ${this.editorPanel} ${this.settings} ${this.masks}
-                      </div>`
+                    ? html`<div class="main-container">${this.currentPage}${renderChatPages(this.page.value)}</div>`
                     : nothing}
             </div>
             <mas-toast></mas-toast>

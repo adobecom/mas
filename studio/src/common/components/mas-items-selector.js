@@ -1,11 +1,17 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
-import { getItemsSelectionStore } from '../items-selection-store.js';
+import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
-import { toggleSidebarIcon, uploadIcon } from '../../icons.js';
+import { uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
-import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import {
+    renderFragmentStatusCell,
+    getStudioFragmentDisplayPath,
+    stopPropagation,
+    toggleShowSelected,
+    renderSelectionToggle,
+} from '../utils/render-utils.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
@@ -24,13 +30,15 @@ class MasItemsSelector extends LitElement {
     static styles = styles;
 
     static properties = {
-        viewOnly: { type: Boolean, state: true },
+        viewOnly: { type: Boolean, reflect: true, attribute: 'view-only' },
+        variant: { type: String, reflect: true },
         hideSelectedToggle: { type: Boolean, attribute: 'hide-selected-toggle' },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
         importMode: { type: Boolean, state: true },
         importedUrls: { type: Array, state: true },
         allowedTypes: { type: Array, attribute: false },
+        customTabs: { type: Array, attribute: false },
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
@@ -40,31 +48,55 @@ class MasItemsSelector extends LitElement {
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
         hidePromoVariations: { type: Boolean, attribute: 'hide-promo-variations' },
-        restrictImportSurface: { type: String, attribute: 'restrict-import-surface' },
+        hideGroupedVariations: { type: Boolean, attribute: 'hide-grouped-variations' },
+        hideImportUrl: { type: Boolean, attribute: 'hide-import-url' },
+        /** @type {string|string[]} */
+        restrictImportSurface: { attribute: 'restrict-import-surface' },
+        /** @type {(fragment: object) => true | string} return true to allow, or an error message to reject */
+        validateImportFragment: { type: Function, attribute: false },
+        renderTable: { type: Function, attribute: false },
+        renderSearchFilters: { type: Function, attribute: false },
+        normalizeSearchInput: { type: Function, attribute: false },
+        onSearchChange: { type: Function, attribute: false },
+        onTabChange: { type: Function, attribute: false },
+        renderData: { type: Object, attribute: false },
     };
+
+    itemsSelection = new ItemsSelectionController(this);
 
     constructor() {
         super();
         this.viewOnly = false;
+        this.variant = '';
         this.hideSelectedToggle = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
         this.allowedTypes = TABS.map((tab) => tab.value);
+        this.customTabs = null;
         this.maxSelectedCards = Infinity;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.hidePromoVariations = false;
+        this.hideGroupedVariations = false;
+        this.hideImportUrl = false;
         this.importMode = false;
         this.importedUrls = [];
         this.restrictImportSurface = '';
+        this.validateImportFragment = () => true;
+        this.renderTable = null;
+        this.renderSearchFilters = null;
+        this.normalizeSearchInput = (value) => value;
+        this.onSearchChange = () => {};
+        this.onTabChange = () => {};
+        this.renderData = null;
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('sp-opened', this.#stopPropagation);
-        const s = getItemsSelectionStore();
+        this.addEventListener('sp-opened', stopPropagation);
+        const s = this.itemsSelection.value;
         this.storeController = new ReactiveController(this, [
             s.inEdit,
             s.showSelected,
@@ -74,22 +106,27 @@ class MasItemsSelector extends LitElement {
         ]);
     }
 
-    #stopPropagation(event) {
-        event.stopPropagation();
-    }
-
     get showSelected() {
-        return getItemsSelectionStore().showSelected.value;
+        return this.itemsSelection.value.showSelected.value;
     }
 
     get selectedCount() {
-        const s = getItemsSelectionStore();
+        const s = this.itemsSelection.value;
         return this.tabs.reduce((count, tab) => count + s[`selected${this.#typeUppercased(tab.value)}`].value.length, 0);
     }
 
     get tabs() {
+        if (this.customTabs?.length) return this.customTabs;
         const allowedTypes = this.allowedTypes?.length ? this.allowedTypes : TABS.map((tab) => tab.value);
         return TABS.filter((tab) => allowedTypes.includes(tab.value));
+    }
+
+    resetFilters() {
+        this.shadowRoot.querySelectorAll('mas-search-and-filters').forEach((el) => el.resetFilters());
+    }
+
+    get searchFilterElements() {
+        return this.shadowRoot.querySelectorAll('mas-search-and-filters');
     }
 
     /** @type {MasRepository} */
@@ -103,7 +140,7 @@ class MasItemsSelector extends LitElement {
 
     #upsertDisplayCard(fragmentData) {
         if (!fragmentData?.path || fragmentData.model?.path !== CARD_MODEL_PATH) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const fragment = {
             ...fragmentData,
             studioPath: this.getDisplayName(new Fragment(fragmentData)),
@@ -117,7 +154,7 @@ class MasItemsSelector extends LitElement {
 
     #appendSelectedCard(fragment) {
         if (!fragment?.path) return false;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const selectedCards = store.selectedCards.value || [];
         if (selectedCards.includes(fragment.path)) return false;
         if (selectedCards.length >= this.maxSelectedCards) return false;
@@ -127,7 +164,7 @@ class MasItemsSelector extends LitElement {
 
     #upsertDisplayCollection(fragmentData) {
         if (!fragmentData?.path || fragmentData.model?.path !== COLLECTION_MODEL_PATH) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const fragment = {
             ...fragmentData,
             studioPath: this.getDisplayName(new Fragment(fragmentData)),
@@ -141,7 +178,7 @@ class MasItemsSelector extends LitElement {
 
     #appendSelectedCollection(fragment) {
         if (!fragment?.path) return false;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const selectedCollections = store.selectedCollections.value || [];
         if (selectedCollections.includes(fragment.path)) return false;
         store.selectedCollections.set([...selectedCollections, fragment.path]);
@@ -160,7 +197,7 @@ class MasItemsSelector extends LitElement {
     }
 
     #removeAllImportedUrls() {
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const valid = this.importedUrls.filter((i) => i.status === 'valid');
         const cardPaths = valid.filter((i) => i.contentType === 'merch-card').map((i) => i.path);
         const collectionPaths = valid.filter((i) => i.contentType !== 'merch-card').map((i) => i.path);
@@ -172,7 +209,7 @@ class MasItemsSelector extends LitElement {
     #removeImportedUrl(item) {
         this.importedUrls = this.importedUrls.filter((i) => i.fragmentId !== item.fragmentId);
         if (item.status !== 'valid') return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const key = item.contentType === 'merch-card' ? 'selectedCards' : 'selectedCollections';
         store[key].set(store[key].value.filter((p) => p !== item.path));
     }
@@ -204,9 +241,9 @@ class MasItemsSelector extends LitElement {
 
         if (!allParsed.length) {
             if (duplicates > 0) {
-                this.#openToast(duplicates === 1 ? 'Already added' : `${duplicates} already added`, 'negative');
+                this.openToast(duplicates === 1 ? 'Already added' : `${duplicates} already added`, 'negative');
             } else {
-                this.#openToast('No valid URLs found', 'negative');
+                this.openToast('No valid URLs found', 'negative');
             }
             return;
         }
@@ -253,12 +290,29 @@ class MasItemsSelector extends LitElement {
                 continue;
             }
             const surface = extractSurfaceFromPath(fragment.path);
-            if (this.restrictImportSurface && surface !== this.restrictImportSurface) {
+            const allowedSurfaces = Array.isArray(this.restrictImportSurface)
+                ? this.restrictImportSurface
+                : this.restrictImportSurface
+                  ? [this.restrictImportSurface]
+                  : [];
+            if (allowedSurfaces.length && !allowedSurfaces.includes(surface)) {
                 failed++;
                 this.#setImportedUrlStatus(
                     item.fragmentId,
                     'error',
                     `${this.#surfaceLabel(surface)} not allowed here.`,
+                    path,
+                    displayName,
+                );
+                continue;
+            }
+            const validation = this.validateImportFragment(fragment);
+            if (validation !== true) {
+                failed++;
+                this.#setImportedUrlStatus(
+                    item.fragmentId,
+                    'error',
+                    typeof validation === 'string' ? validation : 'Not allowed here.',
                     path,
                     displayName,
                 );
@@ -288,11 +342,11 @@ class MasItemsSelector extends LitElement {
         }
 
         if (added > 0 && failed === 0) {
-            this.#openToast(added === 1 ? 'Fragment added' : `${added} fragments added`, 'positive');
+            this.openToast(added === 1 ? 'Fragment added' : `${added} fragments added`, 'positive');
         } else if (added > 0 && failed > 0) {
-            this.#openToast(`${added} added, ${failed} not found`, 'negative');
+            this.openToast(`${added} added, ${failed} not found`, 'negative');
         } else if (failed > 0) {
-            this.#openToast(failed === 1 ? 'Fragment not found' : `${failed} fragments not found`, 'negative');
+            this.openToast(failed === 1 ? 'Fragment not found' : `${failed} fragments not found`, 'negative');
         }
     }
 
@@ -317,28 +371,32 @@ class MasItemsSelector extends LitElement {
         if (this.importMode) return;
         this.importMode = true;
         this.importedUrls = [];
-        getItemsSelectionStore().showSelected.set(true);
+        this.itemsSelection.value.showSelected.set(true);
     }
 
     #handleSelectedItemRemoved({ detail: { path } }) {
         this.importedUrls = this.importedUrls.filter((i) => i.path !== path);
     }
 
-    #toggleShowSelected() {
-        getItemsSelectionStore().showSelected.set(!this.showSelected);
-    }
-
     #setSearchQuery = debounce((value) => {
         this.searchQuery = value;
+        this.onSearchChange(value);
     }, 300);
 
     #handleSearchInput(e) {
-        this.#setSearchQuery(e.currentTarget?.value ?? '');
+        const raw = e.currentTarget?.value ?? '';
+        const normalized = this.normalizeSearchInput(raw);
+        if (normalized !== raw && e.currentTarget) e.currentTarget.value = normalized;
+        this.#setSearchQuery(normalized);
     }
 
     #handleSearchSubmit(e) {
         e.preventDefault();
-        this.searchQuery = e.currentTarget?.value ?? '';
+        const raw = e.currentTarget?.value ?? '';
+        const normalized = this.normalizeSearchInput(raw);
+        if (normalized !== raw && e.currentTarget) e.currentTarget.value = normalized;
+        this.searchQuery = normalized;
+        this.onSearchChange(normalized);
     }
 
     #handleTabChange({ target: { selected } }) {
@@ -347,17 +405,18 @@ class MasItemsSelector extends LitElement {
             this.importedUrls = [];
         }
         this.selectedTab = selected;
+        this.onTabChange(selected);
     }
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
-            const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
+            const count = this.itemsSelection.value[`selected${this.#typeUppercased(tab.value)}`].value.length;
+            return `${tab.label} (${count})`;
         }
         return tab.label;
     }
 
-    #openToast(text, variant = 'info') {
+    openToast(text, variant = 'info') {
         const toast =
             this.shadowRoot.querySelector(`sp-tab-panel[value="${this.selectedTab}"] sp-toast`) ??
             this.shadowRoot.querySelector('sp-toast');
@@ -369,10 +428,10 @@ class MasItemsSelector extends LitElement {
     }
 
     #showToast({ detail: { text, variant } }) {
-        this.#openToast(text, variant);
+        this.openToast(text, variant);
     }
 
-    #renderItemsTable(type) {
+    #renderDefaultItemsTable(type) {
         return html`
             <mas-select-items-table
                 type=${type}
@@ -384,9 +443,30 @@ class MasItemsSelector extends LitElement {
                 .getDisplayName=${this.getDisplayName}
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                 .hidePromoVariations=${this.hidePromoVariations}
+                .hideGroupedVariations=${this.hideGroupedVariations}
                 @show-toast=${this.#showToast}
             ></mas-select-items-table>
         `;
+    }
+
+    #renderItemsTable(tab) {
+        return this.renderTable ? this.renderTable(tab, this) : this.#renderDefaultItemsTable(tab.value);
+    }
+
+    #renderDefaultSearchFilters(tab) {
+        return html`
+            <mas-search-and-filters
+                .type=${tab.value}
+                .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
+                .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
+                .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.lockedTemplateFilter : ''}
+                .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.defaultTemplateFilter : ''}
+            ></mas-search-and-filters>
+        `;
+    }
+
+    #renderSearchFilters(tab) {
+        return this.renderSearchFilters ? this.renderSearchFilters(tab, this) : this.#renderDefaultSearchFilters(tab);
     }
 
     willUpdate() {
@@ -409,33 +489,18 @@ class MasItemsSelector extends LitElement {
                         (tab) => tab.value,
                         (tab) => html`
                             <sp-tab-panel value=${tab.value} class=${this.viewOnly ? 'view-only' : ''}>
-                                ${this.viewOnly
-                                    ? nothing
-                                    : html`
-                                          <mas-search-and-filters
-                                              .type=${tab.value}
-                                              .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
-                                              .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(
-                                                  tab.value,
-                                              )}
-                                              .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS
-                                                  ? this.lockedTemplateFilter
-                                                  : ''}
-                                              .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS
-                                                  ? this.defaultTemplateFilter
-                                                  : ''}
-                                          ></mas-search-and-filters>
-                                      `}
+                                ${this.viewOnly ? nothing : this.#renderSearchFilters(tab)}
                                 <div
                                     class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection
                                         ? 'show-selected'
                                         : ''}"
                                 >
-                                    ${this.#renderItemsTable(tab.value)}
+                                    ${this.#renderItemsTable(tab)}
                                     ${this.viewOnly
                                         ? nothing
                                         : html`<mas-selected-items
                                               .getDisplayName=${this.getDisplayName}
+                                              .hideGroupedVariations=${this.hideGroupedVariations}
                                           ></mas-selected-items>`}
                                 </div>
                                 <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
@@ -443,7 +508,7 @@ class MasItemsSelector extends LitElement {
                         `,
                     )}
                 </sp-tabs>
-                ${this.viewOnly
+                ${this.viewOnly || this.hideImportUrl
                     ? nothing
                     : html`
                           <sp-button variant="secondary" class="import-url-btn ghost-button" @click=${this.#toggleImportMode}>
@@ -571,7 +636,6 @@ class MasItemsSelector extends LitElement {
     render() {
         const count = this.selectedCount;
         const showingSelection = this.showSelected && count;
-        const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';
         const tabs = this.tabs;
         return html`
             ${this.viewOnly
@@ -610,21 +674,7 @@ class MasItemsSelector extends LitElement {
                 : this.#renderTabs(tabs, showingSelection)}
             ${this.viewOnly || this.hideSelectedToggle
                 ? nothing
-                : html`
-                      <div class="selected-items-count">
-                          <sp-button
-                              variant="secondary"
-                              @click=${this.#toggleShowSelected}
-                              ?disabled=${!count}
-                              class="ghost-button"
-                          >
-                              <sp-icon slot="icon" label=${toggleLabel} class=${showingSelection ? 'flipped' : ''}>
-                                  ${toggleSidebarIcon}
-                              </sp-icon>
-                              ${toggleLabel} (${count})
-                          </sp-button>
-                      </div>
-                  `}
+                : renderSelectionToggle({ count, showingSelection, onToggle: toggleShowSelected })}
         `;
     }
 }

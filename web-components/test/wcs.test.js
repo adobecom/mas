@@ -46,6 +46,60 @@ describe('resolveOfferSelectors', () => {
         });
     });
 
+    it('sends a distinct promotion_code per OSI when promotionCodes is provided', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({
+            settings: {
+                ...Defaults,
+                locale: 'en_US',
+            },
+        });
+        await Promise.all(
+            client.resolveOfferSelectors({
+                country: 'US',
+                language: 'en',
+                promotionCodes: ['promo1', ''],
+                wcsOsi: ['abm', 'stock-abm'],
+            }),
+        );
+        const urls = fetch.getCalls().map((call) => String(call.args[0]));
+        const abmUrl = urls.find((url) =>
+            url.includes('offer_selector_ids=abm&'),
+        );
+        const stockAbmUrl = urls.find((url) =>
+            url.includes('offer_selector_ids=stock-abm'),
+        );
+        expect(abmUrl).to.include('promotion_code=promo1');
+        expect(stockAbmUrl).to.not.include('promotion_code');
+    });
+
+    it('broadcasts a single promotionCode to every OSI (backward compatible)', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({
+            settings: {
+                ...Defaults,
+                locale: 'en_US',
+            },
+        });
+        await Promise.all(
+            client.resolveOfferSelectors({
+                country: 'US',
+                language: 'en',
+                promotionCodes: ['broadcastpromo'],
+                wcsOsi: ['abm', 'stock-abm'],
+            }),
+        );
+        const urls = fetch.getCalls().map((call) => String(call.args[0]));
+        const abmUrl = urls.find((url) =>
+            url.includes('offer_selector_ids=abm&'),
+        );
+        const stockAbmUrl = urls.find((url) =>
+            url.includes('offer_selector_ids=stock-abm'),
+        );
+        expect(abmUrl).to.include('promotion_code=broadcastpromo');
+        expect(stockAbmUrl).to.include('promotion_code=broadcastpromo');
+    });
+
     it('flushes WCS cache', async () => {
         await mockFetch(withWcs);
         const client = Wcs({

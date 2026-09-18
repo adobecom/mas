@@ -168,6 +168,11 @@ merch-card[variant="pro"] [slot="body-xs"] {
     color: var(--consonant-merch-card-pro-text-color);
 }
 
+merch-card[variant="pro"] .price-plan-type .icon-button {
+    width: 18px;
+    height: 18px;
+}
+
 /* Title / description fields are RTE — authors may save <h3>Title</h3> or
    <div><p>desc</p></div>, which the AEM mapping then wraps again. Make any
    inner block descendant inherit the outer slot styles so the visible text
@@ -648,6 +653,9 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     padding-top: var(--s2a-viewport-vertical-padding-2xs);
 }
 
+.container.one-merch-card {
+    padding-inline: var(--grid-padding);
+}
 @media screen and ${TABLET_UP} {
     merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));

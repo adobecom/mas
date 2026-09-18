@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import {
+    assertPromoVariationGeoTagsValid,
     createPromoVariation,
     findOverlappingGeoTags,
     getUsedGeoTags,
@@ -38,6 +39,7 @@ describe('promotion-variations', () => {
                 fragments: {
                     getByPath: sandbox.stub(),
                     getById: sandbox.stub(),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }),
                     search: makeSearchStub(),
                     ensureFolderExists: sandbox.stub().resolves(),
                     pollCreatedFragment: sandbox.stub(),
@@ -259,11 +261,128 @@ describe('promotion-variations', () => {
             }
         });
 
-        it('throws when creating a promo variation from a grouped variation', async () => {
+        it('creates a promo variation from a grouped-variation source path, nested under its pzn folder', async () => {
             const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const groupedTargetPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/my-card-grouped';
+            const createdFragment = { id: 'new-promo-var-id', path: groupedTargetPath };
             const aem = createAemMock({
                 fragments: {
                     getById: sandbox.stub().resolves({ ...parentFragment, path: groupedSourcePath }),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag);
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('resolves the grouped-variation source effective (parent-inherited) fields before cloning', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedFragment = {
+                id: 'grouped-var-id',
+                path: groupedSourcePath,
+                title: 'Card title',
+                model: { id: 'model-1' },
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                tags: [{ id: 'mas:product_code/cc' }],
+            };
+            const rawParentFragment = {
+                id: 'parent-id',
+                path: parentPath,
+                fields: [{ name: 'variations', values: [groupedSourcePath] }],
+            };
+            const hydratedParentFragment = {
+                ...rawParentFragment,
+                fields: [
+                    { name: 'variations', values: [groupedSourcePath] },
+                    { name: 'osi', values: ['OSI-PARENT-123'] },
+                ],
+            };
+            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().callsFake((id) => {
+                        if (id === 'grouped-var-id') return Promise.resolve(groupedFragment);
+                        if (id === 'parent-id') return Promise.resolve(hydratedParentFragment);
+                        return Promise.resolve(null);
+                    }),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: parentPath }] }),
+                    getByPath: sandbox.stub().resolves(rawParentFragment),
+                    pollCreatedFragment: sandbox
+                        .stub()
+                        .resolves({ id: 'new-promo-var-id', path: `${promoFolder}/PA-123/pzn/my-card-grouped` }),
+                },
+                createFragmentCopy,
+            });
+
+            await createPromoVariation(aem, 'grouped-var-id', promoTag, ['mas:pzn/country/ar']);
+
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const osiField = fragmentForCopy.fields.find((field) => field.name === 'osi');
+            expect(osiField.values).to.deep.equal(['OSI-PARENT-123']);
+        });
+
+        it('preserves the grouped-variation source own pznTags and adds the selected geo tags, instead of replacing them', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    pollCreatedFragment: sandbox.stub().resolves({ id: 'new-promo-var-id', path: groupedSourcePath }),
+                },
+                createFragmentCopy,
+            });
+
+            await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const pznTagsField = fragmentForCopy.fields.find((field) => field.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(['mas:pzn/edu', 'mas:pzn/country/ar']);
+        });
+
+        it('preserves the grouped-variation source own pznTags even when no geo tags are selected', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    pollCreatedFragment: sandbox.stub().resolves({ id: 'new-promo-var-id', path: groupedSourcePath }),
+                },
+                createFragmentCopy,
+            });
+
+            await createPromoVariation(aem, parentFragment.id, promoTag, []);
+
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const pznTagsField = fragmentForCopy.fields.find((field) => field.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(['mas:pzn/edu']);
+        });
+
+        it('still detects a geo-less duplicate sibling for a grouped-variation source (ignoring its own preserved personalization tag)', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const groupedPromoFolder = `${promoFolder}/PA-123/pzn`;
+            const siblingPath = `${groupedPromoFolder}/my-card-grouped`;
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'sibling-1', path: siblingPath, fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] }],
+            });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    search,
                 },
             });
 
@@ -271,7 +390,39 @@ describe('promotion-variations', () => {
                 await createPromoVariation(aem, parentFragment.id, promoTag);
                 expect.fail('Should have thrown');
             } catch (err) {
-                expect(err.message).to.include('Cannot create a promo variation from a grouped variation');
+                expect(err.message).to.equal('A promo variation for this grouped variation fragment already exists.');
+            }
+        });
+
+        it('still detects an overlapping geo for a grouped-variation source (ignoring its own preserved personalization tag)', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const groupedPromoFolder = `${promoFolder}/PA-123/pzn`;
+            const siblingPath = `${groupedPromoFolder}/my-card-grouped`;
+            const search = makeSearchStub({
+                [promoFolder]: [
+                    {
+                        id: 'sibling-1',
+                        path: siblingPath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+                    },
+                ],
+            });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    search,
+                },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('mas:pzn/country/ar');
             }
         });
 
@@ -371,6 +522,51 @@ describe('promotion-variations', () => {
 
             const result = await createPromoVariation(aemForSecond, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
             expect(result).to.deep.equal({ id: 'second-var', path: secondVariationPath });
+        });
+
+        it('retries the collision search until the newly created variation is indexed before resolving', async () => {
+            const createdDraft = { id: 'new-promo-var-id' };
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* () {
+                searchCallCount += 1;
+                yield searchCallCount < 4 ? [] : [{ id: 'new-promo-var-id', path: targetPath, index: 1 }];
+            });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    search,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            expect(result).to.deep.equal(createdFragment);
+            expect(searchCallCount).to.be.at.least(3);
+            const pollWaitCalls = aem.wait.getCalls().filter((call) => call.args[0] === 500);
+            expect(pollWaitCalls.length).to.be.at.least(2);
+        });
+
+        it('gives up polling after the retry budget instead of throwing when the index never catches up', async () => {
+            const createdDraft = { id: 'new-promo-var-id' };
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            const search = makeSearchStub({ [promoFolder]: [] });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    search,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            expect(result).to.deep.equal(createdFragment);
+            const pollWaitCalls = aem.wait.getCalls().filter((call) => call.args[0] === 500);
+            expect(pollWaitCalls.length).to.equal(10);
         });
     });
 
@@ -595,6 +791,43 @@ describe('promotion-variations', () => {
 
         it('returns an empty array when there are no variations', () => {
             expect(getUsedGeoTags([])).to.deep.equal([]);
+        });
+    });
+
+    describe('assertPromoVariationGeoTagsValid', () => {
+        it('throws when geoTags is empty and a sibling variation already has no geos', () => {
+            const existing = [{ id: 'var-1', pznTags: [] }];
+            expect(() => assertPromoVariationGeoTagsValid(existing, [])).to.throw(
+                'A variation with no geos already exists for this project.',
+            );
+        });
+
+        it('throws when a requested geo tag overlaps a sibling variation', () => {
+            const existing = [{ id: 'var-1', pznTags: ['mas:pzn/country/ar'] }];
+            expect(() => assertPromoVariationGeoTagsValid(existing, ['mas:pzn/country/ar'])).to.throw('mas:pzn/country/ar');
+        });
+
+        it('throws when a requested geo tag is not part of the promotion project', () => {
+            const existing = [];
+            expect(() => assertPromoVariationGeoTagsValid(existing, ['mas:pzn/country/de'], ['mas:pzn/country/fr'])).to.throw(
+                'mas:pzn/country/de',
+            );
+        });
+
+        it('does not check project containment when projectGeos is not provided', () => {
+            const existing = [];
+            expect(() => assertPromoVariationGeoTagsValid(existing, ['mas:pzn/country/de'])).to.not.throw();
+        });
+
+        it('does not throw for a valid geo tag change with no conflicts', () => {
+            const existing = [{ id: 'var-1', pznTags: ['mas:pzn/country/ar'] }];
+            expect(() =>
+                assertPromoVariationGeoTagsValid(
+                    existing,
+                    ['mas:pzn/country/fr'],
+                    ['mas:pzn/country/ar', 'mas:pzn/country/fr'],
+                ),
+            ).to.not.throw();
         });
     });
 
@@ -879,6 +1112,30 @@ describe('promotion-variations', () => {
             expect(card2Variations[0].path).to.equal(`${dirPromoFolder}/card-2`);
             expect(card2Variations[0].index).to.equal(1);
         });
+
+        it("includes a promo variation created from an attached fragment's own grouped variation", async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return [parentPath];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const search = makeSearchStub({
+                [promoFolder]: [],
+                [groupedPromoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoPath, status: 'DRAFT', fields: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
+
+            const groupedResult = result.find((variation) => variation.id === 'grouped-promo-var-id');
+            expect(groupedResult).to.exist;
+            expect(groupedResult.parentPath).to.equal(parentPath);
+        });
     });
 
     describe('getPublishedAttachedPromoVariations', () => {
@@ -952,6 +1209,11 @@ describe('promotion-variations', () => {
         const promoFolder = `${promoRoot}/Plans/Individual/com`;
         const promoPath = `${promoFolder}/my-card`;
 
+        const attachedProject = (tagId, fragments = [defaultPath]) => ({
+            tags: [{ id: tagId }],
+            getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? fragments : undefined)),
+        });
+
         it('returns references for existing promo copies from promotion project tags', async () => {
             const search = makeSearchStub({
                 [promoRoot]: [{ id: 'promo-var-id', path: promoPath, tags: [{ id: 'mas:promotion/back-to-school' }] }],
@@ -959,7 +1221,7 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+                attachedProject('mas:promotion/back-to-school'),
             ]);
             expect(refs).to.have.lengthOf(1);
             expect(refs[0].path).to.equal(promoPath);
@@ -976,20 +1238,26 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+                attachedProject('mas:promotion/back-to-school'),
             ]);
             expect(refs).to.have.lengthOf(2);
             expect(refs.map((ref) => ref.path)).to.deep.equal([promoPath, promoPath2]);
         });
 
         it('returns an empty array when aem, defaultPath, or promotionProjects is missing/empty', async () => {
-            expect(await probePromoVariationReferences(null, defaultPath, [{ tags: [] }])).to.deep.equal([]);
-            expect(await probePromoVariationReferences(createAemMock(), '', [{ tags: [] }])).to.deep.equal([]);
+            expect(await probePromoVariationReferences(null, defaultPath, [attachedProject('mas:promotion/x')])).to.deep.equal(
+                [],
+            );
+            expect(
+                await probePromoVariationReferences(createAemMock(), '', [attachedProject('mas:promotion/x')]),
+            ).to.deep.equal([]);
             expect(await probePromoVariationReferences(createAemMock(), defaultPath, [])).to.deep.equal([]);
         });
 
         it('returns an empty array when defaultPath is already a promo variation path', async () => {
-            const result = await probePromoVariationReferences(createAemMock(), promoPath, [{ tags: [] }]);
+            const result = await probePromoVariationReferences(createAemMock(), promoPath, [
+                attachedProject('mas:promotion/x', [promoPath]),
+            ]);
             expect(result).to.deep.equal([]);
         });
 
@@ -999,7 +1267,7 @@ describe('promotion-variations', () => {
             });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+                attachedProject('mas:promotion/back-to-school'),
             ]);
             expect(refs).to.deep.equal([]);
         });
@@ -1022,10 +1290,24 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
-                { tags: [{ id: 'mas:promotion/some-other-project' }] },
+                attachedProject('mas:promotion/some-other-project'),
             ]);
             expect(refs).to.deep.equal([]);
             expect(search.calledWith({ path: promotionsRoot }), 'should not scan the promotions tree').to.be.false;
+        });
+
+        it('skips probing projects that do not have the fragment attached, without issuing a search', async () => {
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoPath, tags: [{ id: 'mas:promotion/back-to-school' }] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const unattachedProject = attachedProject('mas:promotion/back-to-school', [
+                '/content/dam/mas/sandbox/en_US/other-card',
+            ]);
+
+            const refs = await probePromoVariationReferences(aem, defaultPath, [unattachedProject]);
+            expect(refs).to.deep.equal([]);
+            expect(search.called, 'should not probe a project the fragment is not attached to').to.be.false;
         });
     });
 
@@ -1127,10 +1409,101 @@ describe('promotion-variations', () => {
             const aem = createAemMock({ fragments: { search } });
 
             const enriched = await mergePromoReferencesForDefaultFragment(aem, { path: defaultPath, references: [] }, [
-                { tags: [{ id: 'mas:promotion/black-friday' }] },
+                {
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                    getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? [defaultPath] : undefined)),
+                },
             ]);
             expect(enriched.references).to.have.lengthOf(1);
             expect(enriched.references[0].path).to.equal(promoPath);
+        });
+
+        it('also merges probed promo references for the fragment own grouped variations', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const groupedPromoPath = `${promotionsRoot}/black-friday/my-card/pzn/edu`;
+            // Grouped copies are discovered by an EDGES full-text search on the variation leaf, scoped
+            // to the promotions root (was one folder search per project) — the stub is keyed on the
+            // root and ignores the query text, so the suffix matcher does the authoritative filtering.
+            const search = makeSearchStub({
+                [promotionsRoot]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, [
+                { tags: [{ id: 'mas:promotion/black-friday' }] },
+            ]);
+            expect(enriched.references).to.have.lengthOf(1);
+            expect(enriched.references[0].path).to.equal(groupedPromoPath);
+        });
+
+        it('discovers grouped promo variations with one search regardless of project count', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const nestedCopy = `${promotionsRoot}/emea/back-to-school/my-card/pzn/edu`; // multi-segment promoName
+            const suffixedCopy = `${promotionsRoot}/black-friday/my-card/pzn/edu-2`; // -N sibling
+            const unrelated = `${promotionsRoot}/black-friday/other-card/pzn/edu`; // different card
+            const search = makeSearchStub({
+                [promotionsRoot]: [
+                    { id: 'g1', path: nestedCopy, tags: [] },
+                    { id: 'g2', path: suffixedCopy, tags: [] },
+                    { id: 'unrelated', path: unrelated, tags: [] },
+                ],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+
+            const manyProjects = Array.from({ length: 25 }, (_, i) => ({ tags: [{ id: `mas:promotion/p${i}` }] }));
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, manyProjects);
+
+            expect(search.callCount).to.equal(1);
+            // Targeted full-text search on the variation leaf, scoped to the promotions root —
+            // not a whole-subtree scan and not one search per project.
+            expect(search.firstCall.args[0]).to.deep.equal({ path: promotionsRoot, query: 'edu' });
+            const paths = enriched.references.map((ref) => ref.path).sort();
+            expect(paths).to.deep.equal([nestedCopy, suffixedCopy].sort());
+        });
+
+        it('runs one targeted search per grouped variation (concurrent, not a whole-tree scan)', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+            const eduCopy = `${promotionsRoot}/black-friday/my-card/pzn/edu`;
+            const smbCopy = `${promotionsRoot}/emea/back-to-school/my-card/pzn/smb`;
+            const search = makeSearchStub({
+                [promotionsRoot]: [
+                    { id: 'g-edu', path: eduCopy, tags: [] },
+                    { id: 'g-smb', path: smbCopy, tags: [] },
+                ],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [`${defaultPath}/pzn/edu`, `${defaultPath}/pzn/smb`], multiple: true }],
+            };
+
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, []);
+
+            expect(search.callCount).to.equal(2);
+            expect(
+                search
+                    .getCalls()
+                    .map((call) => call.args[0].query)
+                    .sort(),
+            ).to.deep.equal(['edu', 'smb']);
+            const paths = enriched.references.map((ref) => ref.path).sort();
+            expect(paths).to.deep.equal([eduCopy, smbCopy].sort());
         });
     });
 

@@ -569,6 +569,10 @@ sp-table-cell {
         flex-grow: var(--table-content-price-flex-grow);
     }
 
+    &.wf-status {
+        flex-grow: var(--table-content-offer-id-flex-grow);
+    }
+
     &.offer-id {
         flex-grow: var(--table-content-offer-id-flex-grow);
         gap: 8px;
@@ -709,6 +713,10 @@ sp-table-head-cell {
     }
 
     &.offer-id {
+        flex-grow: var(--table-content-offer-id-flex-grow);
+    }
+
+    &.wf-status {
         flex-grow: var(--table-content-offer-id-flex-grow);
     }
 
@@ -1885,4 +1893,13 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     background: rgba(255, 255, 255, 0.7);
     z-index: 1;
     border-radius: 8px;
+}
+
+.staged-badge {
+    background-color: var(--spectrum-orange-200);
+    color: var(--spectrum-gray-900);
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
 }

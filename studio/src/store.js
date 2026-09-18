@@ -1,7 +1,14 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import {
+    PAGE_NAMES,
+    SORT_COLUMNS,
+    WCS_LANDSCAPE_DRAFT,
+    WCS_LANDSCAPE_PUBLISHED,
+    FRAGMENT_STATUS_OPTIONS,
+} from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
+import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
 import { MasksStore } from './masks/masks-store.js';
 
 let editorContextInstance = null;
@@ -92,6 +99,7 @@ const Store = {
         previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
+    offerMapping: new OfferMappingStore(),
     masks: new MasksStore(),
     profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
@@ -110,6 +118,8 @@ const Store = {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
             filter: new ReactiveStore('active'),
+            // Kept independent of `filter` so switching status filters never clears a typed search term.
+            search: new ReactiveStore(''),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
                 { value: 'draft', label: 'Draft' },
@@ -291,6 +301,17 @@ function filtersValidator(value) {
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
+
+    // Ensure status is always a comma-joined, uppercase, validated string
+    const validStatuses = new Set(FRAGMENT_STATUS_OPTIONS.map((option) => option.id));
+    const rawStatus = value.status;
+    if (!rawStatus) {
+        value.status = undefined;
+    } else {
+        const list = Array.isArray(rawStatus) ? rawStatus : String(rawStatus).split(',');
+        const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
+        value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
+    }
     return value;
 }
 
@@ -319,6 +340,7 @@ function pageValidator(value) {
         PAGE_NAMES.ADVANCED_TOOLS,
         PAGE_NAMES.MASKS,
         PAGE_NAMES.MASKS_EDITOR,
+        PAGE_NAMES.OFFER_MAPPING,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

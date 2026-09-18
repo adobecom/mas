@@ -199,6 +199,43 @@ describe('bulk-edit/search: buildSearchQuery', () => {
     it('omits status when given an empty array', () => {
         expect(svc.buildSearchQuery({ surface: 'sandbox', find: 'x', status: [] }).filter.status).to.equal(undefined);
     });
+    it('omits fullText when find contains special characters', () => {
+        const q = svc.buildSearchQuery({ path: '/content/dam/mas/sandbox', find: '{"actionId":"buy-now"}' });
+        expect(q.filter.fullText).to.equal(undefined);
+        expect(q.filter.path).to.equal('/content/dam/mas/sandbox');
+        expect(q.filter.modelIds).to.deep.equal(svc.BULK_EDIT_MODEL_IDS);
+    });
+    it('keeps other filters when omitting fullText for a special-character query', () => {
+        const q = svc.buildSearchQuery({
+            surface: 'sandbox',
+            find: 'key:value',
+            tags: ['mas:plan_type/abc'],
+            status: 'PUBLISHED',
+        });
+        expect(q.filter.fullText).to.equal(undefined);
+        expect(q.filter.tags).to.deep.equal(['mas:plan_type/abc']);
+        expect(q.filter.status).to.deep.equal(['PUBLISHED']);
+    });
+});
+
+describe('bulk-edit/search: shouldUseFullText', () => {
+    const { shouldUseFullText } = load();
+    it('is true for a plain word query', () => {
+        expect(shouldUseFullText('firefly')).to.equal(true);
+    });
+    it('is true for prose with spaces, hyphens, commas and apostrophes', () => {
+        expect(shouldUseFullText("children's back-to-school offer, 2024")).to.equal(true);
+    });
+    it('is false for JSON notation', () => {
+        expect(shouldUseFullText('{"actionId":"buy-now"}')).to.equal(false);
+    });
+    it('is false when a quote or colon is present', () => {
+        expect(shouldUseFullText('a"b')).to.equal(false);
+        expect(shouldUseFullText('key:value')).to.equal(false);
+    });
+    it('is false for an empty query', () => {
+        expect(shouldUseFullText('')).to.equal(false);
+    });
 });
 
 describe('bulk-edit/search: invalidSearchScopes', () => {

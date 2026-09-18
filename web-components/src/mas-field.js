@@ -7,9 +7,17 @@ import {
 } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+const CONTEXT_ATTRIBUTES = [
+    'fragment-id',
+    'variation-id',
+    'mask-id',
+    'data-promotion-project',
+    'data-promotion-variation-project',
+];
 
 /**
  * Resolves the promo code the mas-field should apply to its prices/CTAs,
@@ -72,9 +80,23 @@ function stripTrialCtas(html, indexed) {
  * locale-driven labels like the FR_fr "TTC" tax indicator.
  */
 export function priceOptionsProvider(element, options) {
-    const masField = element?.closest?.(MAS_FIELD_TAG);
-    if (!masField) return options;
+    if (!element) return options;
+    // Milo's unwrap strips the <mas-field> ancestor; #stampContext leaves a
+    // fragment-id on the survivor, so trust that as the ownership marker.
+    const masField = element.closest(MAS_FIELD_TAG);
+    const owned = masField || element.hasAttribute('fragment-id');
+    if (!owned) return options;
     options[FF_DEFAULTS] = true;
+    options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
+
+    // Apply the fragment's resolved price literals (e.g. the locale's plan-type
+    // label), mirroring merch-card — otherwise labels fall back to the built-in
+    // defaults and locale-specific plan types render empty.
+    const priceLiterals = masField?.aemFragment?.data?.priceLiterals;
+    if (priceLiterals) {
+        options.literals ??= {};
+        Object.assign(options.literals, priceLiterals);
+    }
 
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
@@ -85,37 +107,38 @@ export function priceOptionsProvider(element, options) {
     // displayPlanType setting, mirroring the merch-card variant provider.
     // mas-field renders legal templates outside a card, so it must apply the
     // setting itself, otherwise the plan type is always dropped.
-    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+    if (masField && element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayPlanType =
             masField.aemFragment?.data?.settings?.displayPlanType ?? false;
     }
 
     if (!options.promotionCode) {
-        const promotionCode = contextPromotionCode(masField);
+        const promotionCode =
+            element.dataset.promotionCode ??
+            (masField ? contextPromotionCode(masField) : null);
         if (promotionCode) options.promotionCode = promotionCode;
     }
 
     if (
         options.displayAnnual === undefined &&
-        typeof masField.settings?.displayAnnual === 'boolean'
+        typeof masField?.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = masField.settings.displayAnnual;
     }
 }
 
 /**
- * Applies the enclosing mas-field's promo code to checkout options,
- * mirroring what merch-card's checkout options provider does for cards.
- * Without this, CTAs rendered through <mas-field field="ctas"> resolve
- * checkout URLs without the promotion applied by a promo project.
+ * Applies the mas-field promo code to checkout options, like merch-card does
+ * for cards. Reads the element's own dataset first, so a CTA unwrapped out of
+ * its <mas-field> still resolves; falls back to the wrapper when still nested.
  */
 export function checkoutOptionsProvider(element, options) {
-    const masField = element?.closest?.(MAS_FIELD_TAG);
-    if (!masField) return options;
-    if (!options.promotionCode) {
-        const promotionCode = contextPromotionCode(masField);
-        if (promotionCode) options.promotionCode = promotionCode;
-    }
+    if (options.promotionCode || !element) return;
+    const masField = element.closest(MAS_FIELD_TAG);
+    const promotionCode =
+        element.dataset.promotionCode ??
+        (masField ? contextPromotionCode(masField) : null);
+    if (promotionCode) options.promotionCode = promotionCode;
 }
 
 function registerOptionsProviders(service) {
@@ -123,11 +146,29 @@ function registerOptionsProviders(service) {
         return;
     service.providers.price(priceOptionsProvider);
     service.providers.checkout(checkoutOptionsProvider);
+    if (!service.providers.has(planTypeTextOptionsProvider)) {
+        service.providers.price(planTypeTextOptionsProvider);
+    }
 }
 
 const MAS_FIELD_STYLES = `
 mas-field {
-    display: inline;
+    display: contents;
+}
+
+/* An :empty span still counts as a flex gap item under display:contents; hide it. */
+mas-field > [data-role="mas-field-content"]:empty {
+    display: none;
+}
+
+/* A headless mas-field is often authored with CTA classes (e.g. feds-cta) directly
+   on the host. Those classes can carry their own display value at the same
+   specificity as the rule above, which can beat display:contents and leave an
+   empty, still-styled CTA box visible when the field resolves to nothing (e.g. a
+   trial CTA stripped by hideTrialCTAs). #renderField sets [hidden] in that case;
+   force it to win regardless of what other classes are on the host. */
+mas-field[hidden] {
+    display: none !important;
 }
 
 mas-field div[slot="footer"] {
@@ -272,6 +313,32 @@ mas-field .icon-button.hide-tooltip::after {
         max-width: 180px;
     }
 }
+
+.table .row-heading .col-heading .pricing:has(.price-annual-prefix) {
+  display: flex;
+  flex-direction: column;
+}
+
+.table .row-heading .col-heading .pricing .price-annual-prefix + .price-annual,
+.table .row-heading .col-heading .pricing .price-annual-prefix,
+.table .row-heading .col-heading .pricing .price-annual-suffix {
+  font-size: var(--type-heading-xxs-size);
+  line-height: var(--type-heading-xxs-size);
+  font-weight: 400;
+  position: relative;
+}
+
+.pricing.has-pricing-after .price-annual-prefix {
+  display: none;
+}
+
+.pricing.has-pricing-after:has(.price-annual-prefix) .price:not(.price-annual) {
+  display: block;
+}
+
+.pricing.has-pricing-after .price-annual-prefix + .price-annual::before {
+  content: '(';
+}
 `;
 
 if (!document.querySelector('style[data-mas-field]')) {
@@ -359,6 +426,10 @@ class MasField extends HTMLElement {
         return this.querySelector('aem-fragment');
     }
 
+    get osi() {
+        return hostOsi(this);
+    }
+
     #ensureContentElement() {
         if (this.#contentElement?.isConnected) return this.#contentElement;
         const existing = this.querySelector(
@@ -440,6 +511,7 @@ class MasField extends HTMLElement {
 
     #renderField() {
         if (!this.#fields || !this.#field) return;
+        this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
 
         if (index !== null && isNaN(index)) {
@@ -450,7 +522,10 @@ class MasField extends HTMLElement {
                     ? labelsRaw
                     : [labelsRaw];
                 const labelIndex = labels.indexOf(index);
-                if (labelIndex === -1) return;
+                if (labelIndex === -1) {
+                    this.hidden = true;
+                    return;
+                }
                 const valuesRaw = this.#fields[fieldName];
                 const values = Array.isArray(valuesRaw)
                     ? valuesRaw
@@ -458,49 +533,114 @@ class MasField extends HTMLElement {
                       ? [valuesRaw]
                       : [];
                 let html = this.#normalizeFieldValue(values[labelIndex]);
-                if (!html) return;
+                if (!html) {
+                    this.hidden = true;
+                    return;
+                }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                     html = stripTrialCtas(html, true);
-                    if (html === null) return;
+                    if (html === null) {
+                        this.hidden = true;
+                        return;
+                    }
                 }
                 this.#setFragmentIds();
                 const content = this.#ensureContentElement();
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                this.#upgradeCheckoutLinks(content);
                 this.#decorateTooltips(content);
+                this.#stampContext(content);
                 return;
             }
         }
 
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
-        if (fieldValue === undefined) return;
+        if (fieldValue === undefined) {
+            this.hidden = true;
+            return;
+        }
         this.#setFragmentIds();
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {
             html = this.#extractIndexedAnchor(fieldValue, index);
-            if (html === null) return;
+            if (html === null) {
+                this.hidden = true;
+                return;
+            }
         } else {
             html = this.#unwrapSingleParagraph(fieldValue);
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
                 html = stripTrialCtas(html, index !== null);
-                if (html === null) return;
+                if (html === null) {
+                    this.hidden = true;
+                    return;
+                }
             }
             if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);
                 if (ctaEl) {
                     content.replaceChildren(ctaEl);
-                    this.#stampPromotionCode(content, fieldName);
+                    this.#stampContext(content);
                     return;
                 }
             }
             content.innerHTML = html;
+            this.#upgradeCheckoutLinks(content);
             this.#decorateTooltips(content);
-            this.#stampPromotionCode(content, fieldName);
+            this.#stampContext(content);
             return;
         }
-        content.textContent = html == null ? '' : String(html);
+        if (html == null) {
+            this.hidden = true;
+            return;
+        }
+        content.textContent = String(html);
+    }
+
+    /**
+     * Creates a checkout-link element via the real service-backed factory when
+     * available, falling back to a manually upgraded anchor (still a genuine
+     * customized built-in, just without service-resolved checkout options)
+     * when the checkout service hasn't registered yet.
+     */
+    #createCheckoutLinkElement(dataset, innerHTML) {
+        const CheckoutLink = customElements.get('checkout-link');
+        return (
+            CheckoutLink?.createCheckoutLink(dataset, innerHTML) ??
+            (() => {
+                const el = document.createElement('a', {
+                    is: 'checkout-link',
+                });
+                el.setAttribute('is', 'checkout-link');
+                el.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+                return el;
+            })()
+        );
+    }
+
+    /**
+     * Upgrades any data-wcs-osi anchors left in the container by a raw HTML
+     * assignment into real checkout-link elements. Needed because customized
+     * built-ins only get constructed when `is=` is present at parse time, and
+     * stored fragment HTML for non-ctas fields never carries that attribute.
+     */
+    #upgradeCheckoutLinks(container) {
+        for (const link of container.querySelectorAll(
+            'a[data-wcs-osi]:not([is])',
+        )) {
+            const button = this.#createCheckoutLinkElement(
+                link.dataset,
+                link.innerHTML,
+            );
+            for (const { name, value } of link.attributes) {
+                if (['is', 'href'].includes(name)) continue;
+                button.setAttribute(name, value);
+            }
+            link.replaceWith(button);
+        }
     }
 
     /**
@@ -634,23 +774,24 @@ class MasField extends HTMLElement {
     }
 
     /**
-     * Stamps the context promo code onto the CTA's checkout anchor(s) so it
-     * survives Milo's merch-card autoblock unwrapping the mas-field: the anchor
-     * is moved out of the wrapper (and any [data-promotion-code] ancestor)
-     * before its checkout URL resolves, so a promo code kept only on the
-     * wrapper is lost. Carrying it on the element itself lets both the checkout
-     * options provider (via dataset) and Milo's getCommerceContext (via
-     * closest) resolve it. Never overwrites an anchor's own authored promo code.
+     * Stamps context (ids, and the gated promo code) onto the commerce elements
+     * mas-field renders. Milo's autoblock unwraps the mas-field, so context kept
+     * only on the wrapper is lost; carrying it on the element itself survives the
+     * move. Never overwrites an element's own authored value.
      */
-    #stampPromotionCode(content, fieldName) {
-        if (fieldName !== 'ctas') return;
-        const promotionCode = contextPromotionCode(this);
-        if (!promotionCode) return;
+    #stampContext(content) {
         const targets = content.querySelectorAll(
-            'a[data-wcs-osi]:not([data-promotion-code])',
+            'a[data-wcs-osi],button[is="checkout-button"],span[is="inline-price"]',
         );
-        for (const el of targets)
-            el.setAttribute('data-promotion-code', promotionCode);
+        if (!targets.length) return;
+        const stamp = (name, value) => {
+            if (value == null) return;
+            for (const el of targets)
+                if (!el.hasAttribute(name)) el.setAttribute(name, value);
+        };
+        for (const name of CONTEXT_ATTRIBUTES)
+            stamp(name, this.getAttribute(name));
+        stamp('data-promotion-code', contextPromotionCode(this));
     }
 
     /**
@@ -661,11 +802,6 @@ class MasField extends HTMLElement {
     #buildCtaButton(link) {
         const isCheckout = !!link.getAttribute('data-wcs-osi');
         if (!isCheckout) return link.cloneNode(true);
-
-        const styleMatch =
-            CHECKOUT_STYLE_PATTERN.exec(link.className ?? '')?.[0] ?? 'accent';
-        const isAccent = styleMatch.startsWith('accent');
-        const isLinkStyle = styleMatch.includes('-link');
 
         const CheckoutLink = customElements.get('checkout-link');
         const button =
@@ -681,14 +817,34 @@ class MasField extends HTMLElement {
             button.setAttribute(name, value);
         }
         button.firstElementChild?.classList.add('spectrum-Button-label');
-        if (!isLinkStyle) {
-            button.classList.add('button', 'con-button');
-            if (isAccent) button.classList.add('blue');
-            else if (
-                styleMatch.startsWith('primary') &&
-                !styleMatch.includes('-outline')
-            )
-                button.classList.add('fill');
+
+        if (link.className) {
+            // Legacy class-driven system: non-headless CTAs, or headless CTAs authored before
+            // real bold/italic wrapping existed.
+            const styleMatch =
+                CHECKOUT_STYLE_PATTERN.exec(link.className)?.[0] ?? 'accent';
+            const isAccent = styleMatch.startsWith('accent');
+            if (!styleMatch.includes('-link')) {
+                button.classList.add('button', 'con-button');
+                if (isAccent) button.classList.add('blue');
+                else if (
+                    styleMatch.startsWith('primary') &&
+                    !styleMatch.includes('-outline')
+                )
+                    button.classList.add('fill');
+            }
+            return button;
+        }
+
+        // Headless CTAs authored via the 3-option picker never carry a button-style class,
+        // and MAS must not add one either - preserve the real <strong>/<em> wrapper (see
+        // rte-field.js's #marksForHeadlessVariant) around the checkout-link unchanged, so
+        // whatever decorates the surrounding page content is what determines the button style.
+        const parentTag = link.parentElement?.tagName;
+        if (parentTag === 'STRONG' || parentTag === 'EM') {
+            const wrapper = document.createElement(parentTag.toLowerCase());
+            wrapper.append(button);
+            return wrapper;
         }
         return button;
     }

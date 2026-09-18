@@ -58,6 +58,19 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     style: 'consonant',
 };
 
+export function keepInHeadingPriceForAnnual(
+    card,
+    headingPrice,
+    legalPrice,
+    optionParam,
+) {
+    if (card.settings?.displayAnnual && headingPrice?.options[optionParam]) {
+        legalPrice.dataset[optionParam] = 'false';
+    } else if (headingPrice?.options[optionParam]) {
+        headingPrice.dataset[optionParam] = 'false';
+    }
+}
+
 export class MiniCompareChart extends VariantLayout {
     constructor(card) {
         super(card);
@@ -158,6 +171,10 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     priceOptionsProvider(element, options) {
+        const mainPriceSlot =
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING.prices.slot;
+        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+
         if (!this.isNewVariant) return;
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
@@ -168,7 +185,8 @@ export class MiniCompareChart extends VariantLayout {
         // Disable perUnit display - it will be shown in legal price only
         if (
             element.dataset.template === 'strikethrough' ||
-            element.dataset.template === 'price'
+            (element.dataset.template === 'price' &&
+                !element.closest?.('merch-card')?.settings?.displayAnnual)
         ) {
             options.displayPerUnit = false;
         }
@@ -597,12 +615,21 @@ export class MiniCompareChart extends VariantLayout {
 
             legal = headingPrice.cloneNode(true);
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
-            if (headingPrice.options.displayTax)
-                headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
+
+            keepInHeadingPriceForAnnual(
+                this.card,
+                headingPrice,
+                legal,
+                'displayTax',
+            );
+            keepInHeadingPriceForAnnual(
+                this.card,
+                headingPrice,
+                legal,
+                'displayPerUnit',
+            );
 
             legal.setAttribute('data-template', 'legal');
 

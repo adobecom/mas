@@ -108,6 +108,12 @@ ${textWithTooltipStyles}
 .tags-group {
     display: flex;
     flex-direction: column;
+    min-width: 224px;
+    max-width: 224px;
+}
+
+.tags-group .text-with-tooltip {
+    align-self: flex-start;
 }
 
 .field-label {

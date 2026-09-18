@@ -186,6 +186,14 @@ function normalizeLocalesKey(locale) {
     return locales.length === 1 ? locales[0] : locales;
 }
 
+const DEFAULT_MATCH_LIMIT = 1000;
+
+function normalizeLimitKey(limit) {
+    const value = Number.parseInt(limit, 10);
+    if (limit === undefined) return null;
+    return Number.isFinite(value) && value > 0 ? value : DEFAULT_MATCH_LIMIT;
+}
+
 function buildSearchKey(params) {
     return {
         type: params.type,
@@ -197,6 +205,7 @@ function buildSearchKey(params) {
         status: params.status || null,
         locale: normalizeLocalesKey(params.locale),
         tags: Array.isArray(params.tags) ? params.tags : [],
+        limit: normalizeLimitKey(params.limit),
     };
 }
 
@@ -750,6 +759,7 @@ module.exports = {
     actionableReplaceRows,
     normalizeSearchInKey,
     normalizeLocalesKey,
+    normalizeLimitKey,
     isForceRefresh,
     WORKER_ACTIONS,
     EXPORT_ROOT,

@@ -224,6 +224,28 @@ describe('injectJsonLd', () => {
         expect(data).to.not.have.property('description');
     });
 
+    it('uses cardTitle as-is when it is a plain string', () => {
+        const script = injectJsonLd(
+            makeFields({ cardTitle: 'Creative Cloud' }),
+            makeOffer(),
+            null,
+            PAGE_URL,
+        );
+        const data = JSON.parse(script.textContent);
+        expect(data.name).to.equal('Creative Cloud');
+    });
+
+    it('unwraps and strips HTML from cardTitle when provided as a long-text object', () => {
+        const script = injectJsonLd(
+            makeFields({ cardTitle: { value: '<b>Creative Cloud</b>' } }),
+            makeOffer(),
+            null,
+            PAGE_URL,
+        );
+        const data = JSON.parse(script.textContent);
+        expect(data.name).to.equal('Creative Cloud');
+    });
+
     it('converts single mnemonic icon to image with suffix', () => {
         const fields = makeFields({
             mnemonicIcon: ['https://cdn.adobe.com/icon.svg'],

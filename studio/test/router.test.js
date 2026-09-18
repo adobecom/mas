@@ -451,6 +451,13 @@ describe('Router', () => {
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
 
+        it('should clear the status filter when navigating away from the content page', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            Store.filters.set({ locale: 'en_US', status: 'MODIFIED' });
+            await router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
+            expect(Store.filters.value.status).to.be.undefined;
+        });
+
         it('should check for unsaved changes when on fragment editor', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
@@ -699,6 +706,36 @@ describe('Router', () => {
         });
     });
 
+    describe('status filter hash param', () => {
+        it('should sync status from hash to store on start', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,PUBLISHED';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT,PUBLISHED');
+        });
+
+        it('should drop unknown statuses coming from the hash', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,BOGUS';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT');
+        });
+
+        it('should sync status from store to hash', async () => {
+            mockLocation.hash = '#page=content';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: 'DRAFT' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('status=DRAFT');
+        });
+
+        it('should remove status from hash when the filter is cleared', async () => {
+            mockLocation.hash = '#page=content&status=DRAFT';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: undefined }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('status=');
+        });
+    });
+
     describe('navigateToFragmentEditor', () => {
         it('should navigate to fragment editor', async () => {
             await router.navigateToFragmentEditor('test-id');
@@ -934,6 +971,10 @@ describe('Router', () => {
         beforeEach(() => {
             originalMasksCreating = Store.masks.creating.get();
             originalMasksFragmentId = Store.masks.fragmentId.get();
+            // Masks is now access-gated on direct hash too; authorize so the normalize-route cases
+            // reach masks. The "block unauthorized" case sets its own empty user to test denial.
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         });
 
         afterEach(() => {
@@ -975,6 +1016,47 @@ describe('Router', () => {
             expect(Store.masks.creating.get()).to.equal(false);
             expect(Store.masks.fragmentId.get()).to.equal(null);
         });
+
+        it('redirects an unauthorized direct hash to masks back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=masks&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=masks');
+        });
+    });
+
+    describe('offer mapping route access', () => {
+        it('should block unauthorized offer-mapping page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        });
+
+        it('redirects an unauthorized direct hash to offer-mapping back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=offer-mapping&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=offer-mapping');
+        });
+
+        it('allows an authorized user to reach offer-mapping', async () => {
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
+            Store.page.set(PAGE_NAMES.WELCOME);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.OFFER_MAPPING);
+        });
     });
 
     describe('promoHashIsSearchSync', () => {
@@ -1011,6 +1093,12 @@ describe('Router', () => {
         it('returns true when tags are removed after closing the promotion item picker', () => {
             const prev = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
             const next = '#page=promotions-editor&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when the status filter changes on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&status=DRAFT';
             expect(promoHashIsSearchSync(prev, next)).to.be.true;
         });
     });

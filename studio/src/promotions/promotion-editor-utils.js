@@ -1,12 +1,77 @@
+import { Fragment } from '../aem/fragment.js';
 import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalization-utils.js';
 import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
 import { ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
-import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
 import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
+
+/**
+ * True when title's normalizeKey slug collides with an existing one — same check AEM does on `name`, caught upfront instead of via a 409.
+ * @param {string} title
+ * @param {string[]} [existingTitles]
+ * @returns {boolean}
+ */
+export function isPromotionTitleTaken(title, existingTitles = []) {
+    const normalized = normalizeKey(title?.trim());
+    if (!normalized) return false;
+    return existingTitles.some((existing) => normalizeKey(existing?.trim()) === normalized);
+}
+
+/**
+ * Extracts non-empty titles from a list of promotion project fragments, for the duplicate-title check.
+ * @param {Array<{ getFieldValue: (name: string) => unknown }>} [projects]
+ * @returns {string[]}
+ */
+export function getPromotionTitles(projects = []) {
+    return projects.map((project) => project.getFieldValue('title')).filter(Boolean);
+}
+
+/**
+ * Builds the `showToast(message, variant)` args for a completed project duplication,
+ * warning about any promo variations that failed to clone.
+ * @param {Array<{ path: string, error: Error }>} [failedVariations]
+ * @returns {[string, 'positive'|'warning']}
+ */
+export function buildDuplicatePromotionToastArgs(failedVariations = []) {
+    if (!failedVariations.length) return ['Project successfully duplicated.', 'positive'];
+    const count = failedVariations.length;
+    return [`Project duplicated, ${count} variation${count === 1 ? '' : 's'} failed.`, 'warning'];
+}
+
+/**
+ * Builds a create-fragment payload for duplicating a promotion under a new title, tag, and slug.
+ * Leaves `fragments` untouched; variations are cloned separately by `duplicatePromotionProject`.
+ * @param {{ fields: Array<{ name: string, type?: string, multiple?: boolean, values?: unknown[] }> }} sourceFragment
+ * @param {string} title
+ * @param {string} [slug]
+ * @returns {{ name: string, title: string, fields: Array<{ name: string, type: string, multiple: boolean, values: unknown[] }> }}
+ */
+export function buildPromotionDuplicatePayload(sourceFragment, title, slug = normalizeKey(title?.trim())) {
+    const newPromotionTagId = slug ? `${TAG_PROMOTION_PREFIX}${slug}` : null;
+    return {
+        name: slug,
+        title,
+        fields: sourceFragment.fields
+            .filter((field) => field.name !== 'collections')
+            .map((field) => ({
+                name: field.name,
+                type: PROMOTION_FIELD_TYPE_MAP[field.name]?.type ?? field.type,
+                multiple: PROMOTION_FIELD_TYPE_MAP[field.name]?.multiple ?? field.multiple ?? false,
+                values:
+                    field.name === 'title'
+                        ? [title]
+                        : field.name === 'tags'
+                          ? [
+                                ...splitPromotionTagsFieldValues(field.values).retained,
+                                ...(newPromotionTagId ? [newPromotionTagId] : []),
+                            ]
+                          : field.values,
+            })),
+    };
+}
 
 export const PROMOTION_FIELD_TYPE_MAP = {
     title: { type: 'text' },
@@ -128,6 +193,27 @@ export function parsePromotionSurfacesFieldValues(values) {
 }
 
 /**
+ * Drops grouped-variation paths whose resolved parent is no longer in the selection — removing a
+ * card from a promo project doesn't cascade to grouped variations curated separately for it.
+ * @param {string[]} selectedCards
+ * @param {(path: string) => Promise<string|null>} resolveParentPath
+ * @returns {Promise<string[]>}
+ */
+export async function pruneOrphanedGroupedVariationSelection(selectedCards, resolveParentPath) {
+    const groupedPaths = selectedCards.filter((path) => Fragment.isGroupedVariationPath(path));
+    if (!groupedPaths.length) return selectedCards;
+    const selectedSet = new Set(selectedCards);
+    const parentPaths = await Promise.all(groupedPaths.map((path) => resolveParentPath(path)));
+    const orphaned = new Set();
+    groupedPaths.forEach((path, i) => {
+        const parentPath = parentPaths[i];
+        if (parentPath && !selectedSet.has(parentPath)) orphaned.add(path);
+    });
+    if (!orphaned.size) return selectedCards;
+    return selectedCards.filter((path) => !orphaned.has(path));
+}
+
+/**
  * First validation message for a promotion editor save/create, or null when valid.
  * @param {{ getFieldValue: (name: string) => unknown, getFieldValues: (name: string) => unknown[] }} fragment
  * @param {number} itemCount Selected cards + collections count
@@ -178,14 +264,14 @@ export function collectPromotionOfferProductTags(offerDataCache, selectedOfferId
 }
 
 /**
- * Applies selected-offer product tags to the active items-selection filters store (or Store.filters) for AEM fragment search.
+ * Applies selected-offer product tags to a filters store (defaults to Store.filters) for AEM fragment search.
  * @param {Map<string, { tags?: Array<{ id?: string }> }>} offerDataCache
  * @param {string[]} selectedOfferIds
+ * @param {Object} [filtersStore] - Filters store slice to write into; defaults to Store.filters
  * @returns {string[]}
  */
-export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedOfferIds) {
+export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedOfferIds, filtersStore = Store.filters) {
     const tags = collectPromotionOfferProductTags(offerDataCache, selectedOfferIds);
-    const filtersStore = getItemsSelectionStore({ allowUnset: true })?.filters ?? Store.filters;
     filtersStore.set((prev) => ({
         ...prev,
         tags: tags.length ? tags.join(',') : undefined,
@@ -193,7 +279,7 @@ export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedO
     return tags;
 }
 
-function extractPromotionItemProductCodeTagIds(tags) {
+export function extractPromotionItemProductCodeTagIds(tags) {
     if (!Array.isArray(tags)) return [];
     return tags.filter((tag) => tag?.id?.startsWith('mas:product_code/')).map((tag) => tag.id);
 }
@@ -443,11 +529,11 @@ export function addPromotionOfferFromOst(offerSelectorId, offer, selectedOffersS
 /**
  * Handles OST Use for promotions offers selection.
  * @param {CustomEvent} event
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<boolean>}
  */
-export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId, offer } = {} } = {}) {
+export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId, offer } = {} } = {}, store) {
     const productArrangementCode = await resolvePromotionOfferProductArrangementCode(offerSelectorId, offer);
-    const store = getItemsSelectionStore();
     const added = addPromotionOfferFromOst(
         offerSelectorId,
         offer,

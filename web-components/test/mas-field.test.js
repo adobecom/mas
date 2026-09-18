@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/mas-field.js';
+import '../src/checkout-link.js';
 import {
     checkoutOptionsProvider,
     priceOptionsProvider,
@@ -99,10 +100,33 @@ describe('mas-field – ctas rendering', () => {
         expect(link.classList.contains('blue')).to.be.false;
     });
 
-    it('defaults to accent (blue) when link has no variant class', () => {
+    it('renders an unwrapped, unclassed link with no MAS-added style classes (headless "Link" variant)', () => {
         const el = makeField('ctas', '<a data-wcs-osi="ABC">Buy</a>');
+        const footer = el.querySelector('[slot="footer"]');
+        const link = footer.querySelector('a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.parentElement).to.equal(footer);
+    });
+
+    it('preserves the <strong> wrapper around an unclassed link with no MAS-added style classes (headless "Primary button" variant)', () => {
+        const el = makeField(
+            'ctas',
+            '<strong><a data-wcs-osi="ABC">Buy</a></strong>',
+        );
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('blue')).to.be.true;
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.parentElement.tagName).to.equal('STRONG');
+    });
+
+    it('preserves the <em> wrapper around an unclassed link with no MAS-added style classes (headless "Secondary button" variant)', () => {
+        const el = makeField('ctas', '<em><a data-wcs-osi="ABC">Buy</a></em>');
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+        expect(link.parentElement.tagName).to.equal('EM');
     });
 
     it('wraps link text in spectrum-Button-label span', () => {
@@ -253,6 +277,17 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.textContent).to.equal('Buy now');
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
     });
+
+    it('upgrades to is="checkout-link" when stored HTML lacks the is attribute', () => {
+        const el = makeIndexedField(
+            1,
+            '<a href="/buy" data-wcs-osi="osi1">Buy now</a>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.isCheckoutLink).to.be.true;
+    });
 });
 
 describe('mas-field – label-keyed fields (customFields[label])', () => {
@@ -321,6 +356,75 @@ describe('mas-field – label-keyed fields (customFields[label])', () => {
         expect(
             el.querySelector('[data-role="mas-field-content"]').textContent,
         ).to.equal('Only value');
+    });
+
+    it('upgrades checkout links embedded in a label-keyed field to is="checkout-link"', () => {
+        const el = makeLabelField('Beta', {
+            customFields: [
+                '<p>Value one</p>',
+                '<p><a href="/buy" data-wcs-osi="osi1">Buy now</a></p>',
+                '<p>Value three</p>',
+            ],
+            customFieldLabels: ['Alpha', 'Beta', 'Gamma'],
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.isCheckoutLink).to.be.true;
+    });
+});
+
+describe('mas-field – copy/description-style fields upgrade checkout links', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('upgrades a checkout link embedded in a description field', () => {
+        const el = makeField(
+            'description',
+            '<p>Some copy with a <a href="/buy" data-wcs-osi="osi1">Buy now</a> link.</p>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.isCheckoutLink).to.be.true;
+        expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
+    });
+
+    it('does not touch anchors without data-wcs-osi', () => {
+        const el = makeField(
+            'description',
+            '<p>Some copy with a <a href="/learn-more">plain</a> link.</p>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.hasAttribute('is')).to.be.false;
+    });
+
+    it('falls back gracefully when checkout-link is registered but createCheckoutLink returns null (service not ready)', () => {
+        const sandbox = sinon.createSandbox();
+        const CheckoutLinkMock = {
+            createCheckoutLink: sinon.stub().returns(null),
+        };
+        sandbox
+            .stub(customElements, 'get')
+            .withArgs('checkout-link')
+            .returns(CheckoutLinkMock);
+
+        expect(() => {
+            const el = makeField(
+                'description',
+                '<p>Some copy with a <a href="/buy" data-wcs-osi="osi1">Buy now</a> link.</p>',
+            );
+            const a = el.querySelector('[data-role="mas-field-content"] a');
+            expect(a).to.exist;
+            expect(a.getAttribute('is')).to.equal('checkout-link');
+            expect(a.isCheckoutLink).to.be.true;
+        }).to.not.throw();
+
+        sandbox.restore();
     });
 });
 
@@ -674,6 +778,39 @@ describe('mas-field – stamps context promo code on CTA anchors', () => {
         const a = el.querySelector('[slot="footer"] a');
         expect(a.hasAttribute('data-promotion-code')).to.be.false;
     });
+
+    it('propagates the fragment id onto the CTA anchor unconditionally', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('fragment-id')).to.equal('f1');
+        expect(a.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('resolves promo code and id after the anchor is unwrapped out of mas-field', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        document.body.append(a);
+        el.remove();
+
+        expect(a.closest('mas-field')).to.be.null;
+        expect(a.getAttribute('fragment-id')).to.equal('f1');
+        const options = {};
+        checkoutOptionsProvider(a, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+        a.remove();
+    });
 });
 
 describe('mas-field – price options provider (locale defaults)', () => {
@@ -693,6 +830,18 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options[FF_DEFAULTS]).to.equal(true);
+    });
+
+    it('opts inline-prices inside mas-field into clause wrapping', () => {
+        const masField = document.createElement('mas-field');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.wrapClauses).to.equal(true);
     });
 
     it('does not opt into FF_DEFAULTS for inline-prices outside mas-field', () => {
@@ -778,6 +927,49 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options.promotionCode).to.be.undefined;
     });
 
+    it('resolves FF_DEFAULTS and promo code for a price unwrapped out of mas-field via the fragment-id marker', () => {
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.setAttribute('fragment-id', 'f1');
+        inline.setAttribute('data-promotion-code', 'PROMO123');
+        document.body.append(inline);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options[FF_DEFAULTS]).to.equal(true);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('stamps context onto inline-price spans rendered for a prices field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'prices');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        };
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        prices: '<span is="inline-price" data-template="price" data-wcs-osi="osi1"></span>',
+                    },
+                },
+            }),
+        );
+        const span = el.querySelector(
+            '[data-role="mas-field-content"] span[is="inline-price"]',
+        );
+        expect(span.getAttribute('data-promotion-code')).to.equal('PROMO123');
+        expect(span.getAttribute('fragment-id')).to.equal('f1');
+    });
+
     it('sets checkout options.promotionCode when compatVersion opts into global promo codes', () => {
         const masField = document.createElement('mas-field');
         masField.setAttribute('data-promotion-code', 'PROMO123');
@@ -853,6 +1045,28 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.displayPlanType).to.equal(false);
+    });
+
+    it('merges the fragment price literals into options.literals', () => {
+        const masField = document.createElement('mas-field');
+        const fragment = document.createElement('aem-fragment');
+        Object.defineProperty(fragment, 'data', {
+            configurable: true,
+            value: {
+                priceLiterals: {
+                    planTypeLabel:
+                        '{planType, select, ABM {Annual, billed monthly} M2M {Monthly} other {}}',
+                },
+            },
+        });
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'legal';
+        masField.append(fragment, inline);
+        document.body.append(masField);
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.literals.planTypeLabel).to.contain('M2M {Monthly}');
     });
 
     it('defaults displayPlanType to false for legal when the setting is absent', () => {
@@ -979,9 +1193,11 @@ describe('mas-field – tooltip icon-button rendering', () => {
         );
         const btn = el.querySelector('.icon-button');
         // Force the icon hard against the right edge, then trigger the show handler.
-        el.style.position = 'fixed';
-        el.style.left = `${window.innerWidth - 4}px`;
-        el.style.top = '200px';
+        // mas-field is display:contents (no box), so pin the icon itself, not the wrapper.
+        btn.style.position = 'fixed';
+        btn.style.margin = '0';
+        btn.style.left = `${window.innerWidth - 4}px`;
+        btn.style.top = '200px';
         btn.dispatchEvent(new Event('mouseenter'));
         expect(
             btn.classList.contains('right'),
@@ -1155,5 +1371,141 @@ describe('mas-field – hideTrialCTAs setting', () => {
             hideTrialCTAs: true,
         });
         expect(anchorsOf(el)).to.be.empty;
+    });
+});
+
+describe('mas-field – hidden attribute when render resolves to empty', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('sets hidden when field value is undefined', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Something' } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('does not set hidden when field renders content', () => {
+        const el = makeField('title', 'Creative Cloud');
+        expect(el.hidden).to.be.false;
+    });
+
+    it('sets hidden when an indexed ctas ref is out of bounds', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[99]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: CTA_HTML } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('sets hidden when a label-keyed field label is not found', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'customFields[Nonexistent]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        customFields: ['<p>Value one</p>'],
+                        customFieldLabels: ['Alpha'],
+                    },
+                },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('sets hidden when an indexed CTA is stripped by hideTrialCTAs', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[2]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas:
+                            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-analytics-id="buy-now">Buy now</a>' +
+                            '<a is="checkout-link" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>',
+                    },
+                    settings: { hideTrialCTAs: true },
+                },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+    });
+
+    it('clears hidden when re-rendered with content after being empty', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+        el.setAttribute('field', 'title');
+        expect(el.hidden).to.be.false;
+    });
+
+    it('applies display:none via the mas-field[hidden] CSS rule', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Something' } },
+            }),
+        );
+        expect(el.hidden).to.be.true;
+        expect(getComputedStyle(el).display).to.equal('none');
+    });
+});
+
+describe('mas-field osi getter', () => {
+    it('returns the regular price OSI', () => {
+        const field = document.createElement('mas-field');
+        field.innerHTML =
+            '<span is="inline-price" data-template="price" data-wcs-osi="REG"></span>';
+        expect(field.osi).to.equal('REG');
+    });
+
+    it('falls back to the fragment osi field', () => {
+        const field = document.createElement('mas-field');
+        Object.defineProperty(field, 'aemFragment', {
+            configurable: true,
+            value: { data: { fields: { osi: 'FIELD' } } },
+        });
+        expect(field.osi).to.equal('FIELD');
     });
 });

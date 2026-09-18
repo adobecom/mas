@@ -16,6 +16,8 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
+import { buildPictureHtml, extractImageUrl, isSupportedImageUrl } from './image-url.js';
+import { buildBackgroundsHtml, parseBackgroundsUrls } from './backgrounds-url.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
@@ -111,6 +113,7 @@ class MerchCardEditor extends LitElement {
         disabledPromoGeoOptions: { type: Array, attribute: false },
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
+        imageUrlInvalid: { type: Boolean, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -147,6 +150,7 @@ class MerchCardEditor extends LitElement {
         this.lastMnemonicState = null;
         this.fieldsReady = false;
         this.previewLocaleOverride = null;
+        this.imageUrlInvalid = false;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -1307,6 +1311,7 @@ class MerchCardEditor extends LitElement {
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         const form = this.getFormWithInheritance();
+        const backgroundsUrls = parseBackgroundsUrls(form.backgrounds?.values?.[0] ?? '');
         const variantValue = this.getEffectiveFieldValue('variant');
         const skeletonDisplay = this.fieldsReady ? 'none' : 'block';
         const formDisplay = this.fieldsReady ? 'block' : 'none';
@@ -1510,6 +1515,10 @@ class MerchCardEditor extends LitElement {
                 .fragment-validation-banner-icon {
                     flex-shrink: 0;
                     color: var(--merch-color-error, #d73220);
+                }
+
+                #backgrounds sp-field-label:not(:first-of-type) {
+                    margin-top: 16px;
                 }
 
                 ${fieldStatusStyles}
@@ -1758,6 +1767,63 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
+                <sp-field-group class="toggle" id="backgrounds">
+                    <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter an *.aem.page background desktop URL"
+                        id="background-desktop"
+                        data-field="backgrounds"
+                        data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
+                        value="${backgroundsUrls.desktop}"
+                        @input="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
+                    ></sp-textfield>
+                    ${this.#renderBackgroundStatusIndicator('desktop')}
+
+                    <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter an *.aem.page background tablet URL"
+                        id="background-tablet"
+                        data-field="backgrounds"
+                        data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
+                        value="${backgroundsUrls.tablet}"
+                        @input="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
+                    ></sp-textfield>
+                    ${this.#renderBackgroundStatusIndicator('tablet')}
+
+                    <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter an *.aem.page background mobile URL"
+                        id="background-mobile"
+                        data-field="backgrounds"
+                        data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
+                        value="${backgroundsUrls.mobile}"
+                        @input="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
+                    ></sp-textfield>
+                    ${this.#renderBackgroundStatusIndicator('mobile')}
+                </sp-field-group>
+                ${this.currentVariantMapping?.image
+                    ? html`
+                          <sp-field-group class="toggle" id="image">
+                              <sp-field-label for="image-url">Image</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page image URL"
+                                  id="image-url"
+                                  data-field="image"
+                                  data-field-state="${this.getFieldState('image')}"
+                                  ?invalid="${this.imageUrlInvalid}"
+                                  value="${extractImageUrl(form.image?.values?.[0] ?? '')}"
+                                  @change="${this.#handleImageUpdate}"
+                              >
+                                  ${this.imageUrlInvalid
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page image URL.</sp-help-text
+                                        >`
+                                      : nothing}
+                              </sp-textfield>
+                              ${this.renderFieldStatusIndicator('image')}
+                          </sp-field-group>
+                      `
+                    : nothing}
                 <div class="section-title">Price and Promo</div>
                 <sp-field-group class="toggle" id="prices">
                     <sp-field-label for="prices">Product price</sp-field-label>
@@ -2679,6 +2745,73 @@ class MerchCardEditor extends LitElement {
 
         this.#handleFragmentUpdate(syntheticEvent);
     };
+
+    #handleImageUpdate = (event) => {
+        const url = event.target.value.trim();
+        this.imageUrlInvalid = Boolean(url) && !isSupportedImageUrl(url);
+        if (this.imageUrlInvalid) return;
+
+        const syntheticEvent = {
+            target: {
+                value: url ? buildPictureHtml(url) : '',
+                dataset: {
+                    field: 'image',
+                },
+            },
+        };
+
+        this.#handleFragmentUpdate(syntheticEvent);
+    };
+
+    /** Reads the current backgrounds field value straight from the fragment (not the
+     *  effective/inherited value), so a change to one breakpoint can be merged with
+     *  the other two's own values without clobbering them. */
+    #getOwnBackgroundsUrls() {
+        return parseBackgroundsUrls(this.fragment.getField('backgrounds')?.values?.[0] ?? '');
+    }
+
+    #handleBackgroundsPartUpdate(key, event) {
+        const current = this.#getOwnBackgroundsUrls();
+        current[key] = event.target.value.trim();
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
+    }
+
+    #commitBackgroundsHtml(html) {
+        const updated = this.fragmentStore.updateField('backgrounds', [html]);
+        if (updated === false) {
+            this.fragment.hasChanges = true;
+            this.fragmentStore.notify();
+        }
+        this.requestUpdate();
+    }
+
+    /** Per-breakpoint override state within the single combined "backgrounds" field,
+     *  mirroring Fragment#getFieldState's own/inherited/same-as-parent/overridden
+     *  semantics but scoped to one breakpoint's URL instead of the whole field value. */
+    #getBackgroundBreakpointState(key) {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const ownField = this.fragment.getField('backgrounds');
+        if (!ownField?.values?.length) return 'inherited';
+        const own = this.#getOwnBackgroundsUrls()[key];
+        if (!own) return 'inherited';
+        const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+        const parent = parseBackgroundsUrls(parentRaw)[key];
+        return own === parent ? 'same-as-parent' : 'overridden';
+    }
+
+    async #resetBackgroundBreakpointToParent(key) {
+        const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+        const current = this.#getOwnBackgroundsUrls();
+        current[key] = parseBackgroundsUrls(parentRaw)[key];
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
+        showToast('Field restored to parent value', 'positive');
+    }
+
+    #renderBackgroundStatusIndicator(key) {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.#getBackgroundBreakpointState(key) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.#resetBackgroundBreakpointToParent(key));
+    }
 
     static #ADDON_DEFAULT = 'transparent';
     static #ADDON_GRADIENT =

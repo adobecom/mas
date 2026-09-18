@@ -1,6 +1,11 @@
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
+import {
+    makeToggleBackgroundsDetail,
+    renderBackgroundsDetailRow,
+    renderBackgroundsToggleButton,
+} from './backgrounds-preview.js';
 
 /**
  * AEM fragment field → slot mapping so hydrate() can populate all Banner/Blade
@@ -9,6 +14,8 @@ import { CSS, headlessRowStyle } from './headless.css.js';
  */
 export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
+    image: { tag: 'picture', slot: 'image' },
+    backgrounds: { tag: 'picture', slot: 'backgrounds' },
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'm' },
@@ -19,6 +26,8 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
  * only, no card). Labels match the editor (merch-card-editor.js). Order defines render order.
  */
 const BANNER_BLADE_FIELDS = [
+    { slot: 'image', label: 'Image' },
+    { slot: 'backgrounds', label: 'Background Desktop' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Description' },
     { slot: 'footer', label: 'CTAs' },
@@ -33,6 +42,8 @@ export class BannerBlade extends VariantLayout {
         return CSS;
     }
 
+    toggleBackgroundsDetail = makeToggleBackgroundsDetail(() => this.card);
+
     renderLayout() {
         return html`
             <div class="headless">
@@ -42,8 +53,16 @@ export class BannerBlade extends VariantLayout {
                             <span class="headless-label">${label}</span>
                             <span class="headless-value" data-slot="${slot}">
                                 <slot name="${slot}"></slot>
+                                ${slot === 'backgrounds'
+                                    ? renderBackgroundsToggleButton(
+                                          this.toggleBackgroundsDetail,
+                                      )
+                                    : nothing}
                             </span>
                         </div>
+                        ${slot === 'backgrounds'
+                            ? renderBackgroundsDetailRow()
+                            : nothing}
                     `,
                 )}
             </div>

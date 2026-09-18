@@ -23,6 +23,8 @@ import {
     processBorderColor,
     processWhatsIncludedDividerColor,
     appendSlot,
+    processImage,
+    processBackgrounds,
     processAddon,
     processTrialBadge,
     processBadge,
@@ -35,6 +37,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
+import { HEADLESS_AEM_FRAGMENT_MAPPING } from '../src/variants/headless.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
 import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
@@ -2024,5 +2027,68 @@ describe('appendSlot', () => {
         const appended = el.querySelector('[slot="test-slot"]');
         expect(appended).to.exist;
         expect(appended.textContent).to.equal('This is a...');
+    });
+});
+
+describe('processImage (headless-family)', () => {
+    it('slots stored image markup into a <picture slot="image">', () => {
+        const el = document.createElement('div');
+        const fields = {
+            image: '<source srcset="x?width=750"><img src="x?width=750">',
+        };
+
+        processImage(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="image"]');
+        expect(picture).to.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('does not slot anything when the image field is empty', () => {
+        const el = document.createElement('div');
+
+        processImage({ image: '' }, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+
+        expect(el.querySelector('[slot="image"]')).to.not.exist;
+    });
+});
+
+describe('processBackgrounds (headless-family)', () => {
+    it('slots stored backgrounds markup into a <picture slot="backgrounds">', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds:
+                '<source srcset="x?width=2000" media="(min-width: 1200px)"><img src="x?width=750">',
+        };
+
+        processBackgrounds(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="backgrounds"]');
+        expect(picture).to.exist;
+        expect(picture.querySelector('source')).to.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('does not slot anything when the backgrounds field is empty', () => {
+        const el = document.createElement('div');
+
+        processBackgrounds(
+            { backgrounds: '' },
+            el,
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(el.querySelector('[slot="backgrounds"]')).to.not.exist;
+    });
+
+    it('does not slot anything for variants where backgrounds is a boolean flag (e.g. marquee/banner-blade)', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds: '<img src="x?width=750">',
+        };
+
+        processBackgrounds(fields, el, { backgrounds: true });
+
+        expect(el.querySelector('picture')).to.not.exist;
     });
 });

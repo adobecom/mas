@@ -1102,6 +1102,29 @@
                         );
                     });
 
+                    it('typing a backgrounds breakpoint value that matches the shared fallback still activates save', async () => {
+                        await setupTestEnvironment({ isVariation: false, variant: ['marquee'] }, 'backgrounds-dup');
+
+                        const MOBILE_URL = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+                        fragmentStore.updateField('backgrounds', [`<img loading="lazy" alt="" src="${MOBILE_URL}">`]);
+                        fragmentStore.get().hasChanges = false;
+                        fragmentStore.notify();
+                        await editor.updateComplete;
+                        await sideNav.updateComplete;
+                        expect(saveNavItem.disabled).to.be.true;
+
+                        const tabletField = editor.querySelector('sp-textfield#background-tablet');
+                        expect(tabletField).to.exist;
+                        tabletField.value = MOBILE_URL;
+                        tabletField.dispatchEvent(new Event('input', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        await sideNav.updateComplete;
+
+                        expect(Store.editor.hasChanges).to.be.true;
+                        expect(saveNavItem.disabled).to.be.false;
+                    });
+
                     it('update variation addon value and then rollback to the settings value', async () => {
                         await setupTestEnvironment();
 

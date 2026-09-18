@@ -5,6 +5,7 @@ import '../src/checkout-link.js';
 import {
     checkoutOptionsProvider,
     priceOptionsProvider,
+    renderImageMarkup,
 } from '../src/mas-field.js';
 import { FF_DEFAULTS } from '../src/constants.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
@@ -1507,5 +1508,293 @@ describe('mas-field osi getter', () => {
             value: { data: { fields: { osi: 'FIELD' } } },
         });
         expect(field.osi).to.equal('FIELD');
+    });
+});
+
+const IMAGE_INNER =
+    '<source type="image/webp" srcset="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">' +
+    '<source type="image/webp" srcset="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=750&format=webply&optimize=medium">' +
+    '<img loading="lazy" alt="" src="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium">';
+
+describe('renderImageMarkup', () => {
+    const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
+
+    it('wraps inner markup in a <picture>, preserving all sources', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
+        );
+        const picture = doc.querySelector('picture');
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('leaves *.aem.page URLs untouched off prod', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
+        );
+        expect(doc.querySelector('img').getAttribute('src')).to.contain(
+            'main--da-cc--adobecom.aem.page',
+        );
+    });
+
+    it('rewrites *.aem.page origins to the prod origin on adobe.com', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, {
+                hostname: 'www.adobe.com',
+                origin: 'https://www.adobe.com',
+            }),
+        );
+        const img = doc.querySelector('img');
+        expect(img.getAttribute('src')).to.equal(
+            'https://www.adobe.com/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium',
+        );
+        doc.querySelectorAll('source').forEach((s) => {
+            expect(s.getAttribute('srcset')).to.contain(
+                'https://www.adobe.com/cc-shared/fragments/media_1.png',
+            );
+            expect(s.getAttribute('srcset')).to.not.contain('aem.page');
+        });
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(renderImageMarkup('', { hostname: 'www.adobe.com' })).to.equal(
+            '',
+        );
+    });
+});
+
+describe('mas-field – image rendering', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders image as a <picture data-role> content root (no wrapping span)', () => {
+        const el = makeField('image', IMAGE_INNER);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img')).to.exist;
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
+            .exist;
+    });
+
+    it('renders backgroundImage as a <picture data-role> with a single <img>', () => {
+        const url = 'https://main--da-cc--adobecom.aem.page/media/bg.png';
+        const el = makeField('backgroundImage', url);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(0);
+        const img = picture.querySelector('img');
+        expect(img).to.exist;
+        expect(img.getAttribute('src')).to.equal(url);
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
+            .exist;
+    });
+
+    it('keeps the rendered <picture> after a reconnect (e.g. marquee repositioning its background)', () => {
+        const el = makeField('backgroundImage', 'https://example.com/bg.png');
+        el.remove();
+        document.body.append(el);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelector('img')?.getAttribute('src')).to.equal(
+            'https://example.com/bg.png',
+        );
+    });
+
+    it('clears a previously rendered <picture> and hides the field when backgroundImage becomes empty', () => {
+        const el = makeField(
+            'backgroundImage',
+            'https://main--da-cc--adobecom.aem.page/media/bg.png',
+        );
+        const fragment = el.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgroundImage: '' } },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+        expect(el.hidden).to.be.true;
+    });
+});
+
+describe('mas-field – backgrounds rendering (field="backgrounds" / "backgrounds[breakpoint]")', () => {
+    const DESKTOP_URL =
+        'https://main--da-cc--adobecom.aem.page/media_desktop.png';
+    const TABLET_URL =
+        'https://main--da-cc--adobecom.aem.page/media_tablet.png';
+    const MOBILE_URL =
+        'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+    const COMBINED =
+        `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
+        `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
+        `<img loading="lazy" alt="" data-mobile-set="true" src="${MOBILE_URL}">`;
+
+    function makeBackgroundsField(field) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgrounds: COMBINED } },
+            }),
+        );
+        return el;
+    }
+
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders the whole combined <picture> for plain "backgrounds" (no breakpoint)', () => {
+        const el = makeBackgroundsField('backgrounds');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            MOBILE_URL,
+        );
+    });
+
+    it('renders the full webp/format rendition set (not a bare img) for "backgrounds[desktop]"', () => {
+        const el = makeBackgroundsField('backgrounds[desktop]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        const sources = [...picture.querySelectorAll('source')];
+        expect(sources).to.have.lengthOf(3);
+        sources.forEach((s) =>
+            expect(s.getAttribute('srcset')).to.contain(DESKTOP_URL),
+        );
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
+            DESKTOP_URL,
+        );
+    });
+
+    it('renders the full webp/format rendition set for "backgrounds[tablet]"', () => {
+        const el = makeBackgroundsField('backgrounds[tablet]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(3);
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
+            TABLET_URL,
+        );
+    });
+
+    it('renders the full webp/format rendition set for "backgrounds[mobile]"', () => {
+        const el = makeBackgroundsField('backgrounds[mobile]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(3);
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
+            MOBILE_URL,
+        );
+    });
+
+    it('renders nothing for a breakpoint absent from the combined markup', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[tablet]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" src="${MOBILE_URL}">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('renders nothing for a backgrounds[breakpoint] URL on an unsupported host', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[mobile]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" data-mobile-set="true" src="https://example.com/media_mobile.png">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('clears a previously rendered <picture> and hides the field when the breakpoint URL becomes empty', () => {
+        const el = makeBackgroundsField('backgrounds[mobile]');
+        const fragment = el.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgrounds: '' } },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+        expect(el.hidden).to.be.true;
+    });
+
+    it('does not let a quote in a stored backgrounds[breakpoint] URL break out of the src attribute', () => {
+        const malicious =
+            'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[mobile]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" data-mobile-set="true" src="${malicious}">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
+describe('mas-field, backgroundImage attribute injection safety', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('does not let a quote in a stored backgroundImage URL break out of the src attribute', () => {
+        const malicious =
+            'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const el = makeField('backgroundImage', malicious);
+        expect(el.querySelector('[onerror]')).to.not.exist;
     });
 });

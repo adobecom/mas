@@ -8,6 +8,12 @@ import {
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
+import {
+    rewriteImageUrlsForProd,
+    sanitizeAssetUrl,
+    buildPictureInnerMarkup,
+    extractBackgroundUrl,
+} from './image-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -322,6 +328,13 @@ if (!document.querySelector('style[data-mas-field]')) {
     document.head.append(style);
 }
 
+/** Wraps stored image markup (the picture's inner <source>/<img>) in a <picture>
+ *  so the <source>s survive parsing, applying the shared prod asset-URL rewrite. */
+export function renderImageMarkup(inner, location = globalThis.location) {
+    if (typeof inner !== 'string' || !inner) return '';
+    return `<picture>${rewriteImageUrlsForProd(inner, location)}</picture>`;
+}
+
 /**
  * Renders a single field from an AEM fragment inline on the page.
  * Wraps <aem-fragment> and listens for its aem:load event to extract
@@ -405,9 +418,14 @@ class MasField extends HTMLElement {
     }
 
     #ensureContentElement() {
-        if (this.#contentElement?.isConnected) return this.#contentElement;
+        if (
+            this.#contentElement?.isConnected &&
+            this.#contentElement.matches('[data-role="mas-field-content"]')
+        ) {
+            return this.#contentElement;
+        }
         const existing = this.querySelector(
-            ':scope > span[data-role="mas-field-content"]',
+            ':scope > [data-role="mas-field-content"]',
         );
         if (existing) {
             this.#contentElement = existing;
@@ -418,6 +436,30 @@ class MasField extends HTMLElement {
         this.append(content);
         this.#contentElement = content;
         return content;
+    }
+
+    #clearContent() {
+        this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        )?.remove();
+        this.#contentElement = null;
+    }
+
+    /** Installs the field's <picture> as the content root, carrying
+     *  data-role="mas-field-content" directly (no wrapping span). */
+    #renderPictureContent(pictureHtml) {
+        const template = document.createElement('template');
+        template.innerHTML = pictureHtml;
+        const picture = template.content.querySelector('picture');
+        if (!picture) return;
+        picture.setAttribute('data-role', 'mas-field-content');
+        const existing = this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        );
+        if (existing) existing.replaceWith(picture);
+        else this.append(picture);
+        this.#contentElement = picture;
+        this.#stampContext(picture);
     }
 
     #normalizeFieldValue(value) {
@@ -534,6 +576,44 @@ class MasField extends HTMLElement {
             return;
         }
         this.#setFragmentIds();
+
+        if (
+            index === null &&
+            (fieldName === 'image' ||
+                fieldName === 'backgroundImage' ||
+                fieldName === 'backgrounds')
+        ) {
+            const value = this.#unwrapSingleParagraph(fieldValue);
+            if (typeof value === 'string' && value) {
+                const inner =
+                    fieldName === 'image' || fieldName === 'backgrounds'
+                        ? value
+                        : `<img loading="lazy" alt="" src="${sanitizeAssetUrl(value)}">`;
+                this.#renderPictureContent(renderImageMarkup(inner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
+            }
+            return;
+        }
+
+        if (fieldName === 'backgrounds' && index !== null) {
+            const url = this.#unwrapSingleParagraph(
+                extractBackgroundUrl(fieldValue, index),
+            );
+            const pictureInner =
+                typeof url === 'string' && url
+                    ? buildPictureInnerMarkup(url)
+                    : '';
+            if (pictureInner) {
+                this.#renderPictureContent(renderImageMarkup(pictureInner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
+            }
+            return;
+        }
+
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {

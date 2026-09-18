@@ -114,23 +114,21 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
     test(`${features[1].name},${features[1].tags}`, async () => {
         const { data } = features[1];
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-1: Verify regional promotion card on GR_co with preview parameter on', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15_preview');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
-        //     await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
-        //     await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
-        //     await expect(acomPage.getCard(data.id)).toHaveCSS('background-color', data.borderColor);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
-        // });
+        await test.step('step-1: Verify regional promotion card on GR_co with preview parameter on', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
+            await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
+            await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
+            await expect(acomPage.getCard(data.id)).toHaveCSS('background-color', data.borderColor);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
+        });
 
         await test.step('step-2: Verify regional promotion card on GR_EN with preview parameter on', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
@@ -182,22 +180,21 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
     // @MAS-Promotions-Grouped-Variation-Card-in-Collection
     test(`${features[2].name},${features[2].tags}`, async () => {
         const { data } = features[2];
-        // uncomment below steps when MWPW-197336 is fixed
 
-        // await test.step('step-1: Verify grouped promotion card on GR_co with preview parameter on', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15_preview');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
-        //     await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
-        //     await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
-        // });
+        await test.step('step-1: Verify grouped promotion card on GR_co with preview parameter on', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
+            await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
+            await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
+        });
 
         await test.step('step-2: Verify grouped promotion card on GR_EN with preview parameter on', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
@@ -213,21 +210,20 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
             await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
         });
-        // uncomment below steps when MWPW-197336 is fixed
 
-        // await test.step('step-3: Verify grouped promotion card on GR_co without preview parameter - no strikethrough', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).not.toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
-        //     await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
-        //     await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).not.toBeVisible();
-        // });
+        await test.step('step-3: Verify grouped promotion card on GR_co without preview parameter - no strikethrough', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).not.toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
+            await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
+            await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).not.toBeVisible();
+        });
 
         await test.step('step-4: Verify grouped promotion card on GR_EN without preview parameter - no strikethrough', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15');
@@ -248,20 +244,21 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
     test(`${features[3].name},${features[3].tags}`, async () => {
         const { data } = features[3];
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-1: Verify regional variation card in regional variation collection on GR_co with preview parameter on', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15_preview');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute('variation-id', data.variation_collection_id);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
-        // });
+        await test.step('step-1: Verify regional variation card in regional variation collection on GR_co with preview parameter on', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
+        });
 
         await test.step('step-2: Verify regional variation card in regional variation collection on GR_EN with preview parameter on', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
@@ -279,19 +276,20 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
         });
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-3: Verify regional variation card in regional variation collection on GR_co without preview parameter - no strikethrough', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).not.toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute('variation-id', data.variation_collection_id);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).not.toBeVisible();
-        // });
+        await test.step('step-3: Verify regional variation card in regional variation collection on GR_co without preview parameter - no strikethrough', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).not.toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).not.toBeVisible();
+        });
 
         await test.step('step-4: Verify regional variation card in regional variation collection on GR_EN without preview parameter - no strikethrough', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15');
@@ -313,20 +311,21 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
     test(`${features[4].name},${features[4].tags}`, async () => {
         const { data } = features[4];
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-1: Verify grouped variation card in regional variation collection on GR_co with preview parameter on', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15_preview');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute('variation-id', data.variation_collection_id);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
-        // });
+        await test.step('step-1: Verify grouped variation card in regional variation collection on GR_co with preview parameter on', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
+        });
 
         await test.step('step-2: Verify grouped variation card in regional variation collection on GR_EN with preview parameter on', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
@@ -344,19 +343,20 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
         });
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-3: Verify grouped variation card in regional variation collection on GR_co without preview parameter - no strikethrough', async () => {
-        //     const page = workerSetup.getPage('GR_co_2026-04-15');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).not.toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute('variation-id', data.variation_collection_id);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).not.toBeVisible();
-        // });
+        await test.step('step-3: Verify grouped variation card in regional variation collection on GR_co without preview parameter - no strikethrough', async () => {
+            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).not.toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).not.toBeVisible();
+        });
 
         await test.step('step-4: Verify grouped variation card in regional variation collection on GR_EN without preview parameter - no strikethrough', async () => {
             const page = workerSetup.getPage('GR_EN_2026-04-15');
@@ -378,20 +378,21 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
     test(`${features[5].name},${features[5].tags}`, async () => {
         const { data } = features[5];
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-1: Verify translated regional variation card in grouped variation collection on AR_co with preview parameter on', async () => {
-        //     const page = workerSetup.getPage('AR_co_preview');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('AR_co_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute('variation-id', data.variation_collection_id);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
-        // });
+        await test.step('step-1: Verify translated regional variation card in grouped variation collection on AR_ES_co with preview parameter on', async () => {
+            const page = workerSetup.getPage('AR_ES_co_preview');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('AR_ES_co_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
+        });
 
         await test.step('step-2: Verify translated regional variation card in grouped variation collection on AR_ES with preview parameter on', async () => {
             const page = workerSetup.getPage('AR_ES_preview');
@@ -409,20 +410,21 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
         });
 
-        // uncomment below steps when MWPW-197336 is fixed
-
-        // await test.step('step-3: Verify translated regional variation card in grouped variation collection on AR_co without preview parameter', async () => {
-        //     const page = workerSetup.getPage('AR_co');
-        //     const acomPage = new MasPlans(page);
-        //     await workerSetup.verifyPageURL('AR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
-        //     await expect(acomPage.getCard(data.id)).toBeVisible();
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
-        //     await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
-        //     await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute('variation-id', data.variation_collection_id);
-        //     await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
-        //     await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
-        // });
+        await test.step('step-3: Verify translated regional variation card in grouped variation collection on AR_ES_co without preview parameter', async () => {
+            const page = workerSetup.getPage('AR_ES_co');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toContainText(data.price);
+            await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
+        });
 
         await test.step('step-4: Verify translated regional variation card in grouped variation collection on AR_ES without preview parameter', async () => {
             const page = workerSetup.getPage('AR_ES');

@@ -88,7 +88,7 @@ export const features = [
     {
         tcid: '5',
         name: '@MAS-Promotions-Translated-Regional-Variation-Card-in-Grouped-Variation-Collection',
-        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
+        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
         data: {
             id: 'f2c5dea9-6d4b-48ba-b42f-609830d22820',
             variation_id: 'b4034b7e-bad6-4d86-930f-9f6d7ea20fba',

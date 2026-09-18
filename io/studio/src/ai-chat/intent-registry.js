@@ -1,0 +1,444 @@
+/**
+ * Intent registry — single source of truth for what the AI Assistant can do.
+ *
+ * Every intent the assistant supports is declared here. The envelope validator,
+ * the prompt builder, the frontend dispatcher, and the eval harness all read
+ * from this file. Do not add intents elsewhere; add them here.
+ *
+ * Schema per entry:
+ *   name                  string  — unique identifier, snake_case, dot-namespaced for flow steps
+ *   category              string  — 'state-changing' | 'read-only' | 'guided-step' | 'meta'
+ *   description           string  — one-sentence what-it-does, used in the LLM prompt
+ *   required_slots        string[]
+ *   optional_slots        string[]
+ *   slot_validators       object  — slot name → validator key from SLOT_VALIDATORS
+ *   tool_target           string|null — MCP tool to invoke, or null for non-MCP intents
+ *   confirmation_template string|null — Mustache-style; required if category === 'state-changing'
+ */
+
+export const INTENTS = [
+    // ===== Card CRUD =====
+    {
+        name: 'get_card',
+        category: 'read-only',
+        description:
+            'Fetch a single card\'s data by UUID. Use when the user wants to SEE or READ the card\'s contents (e.g. "show me card X", "what does card X contain", "get card X"). Do NOT use when the user wants to OPEN the card for EDITING — use open_card_editor for that.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'get_card',
+        confirmation_template: null,
+    },
+    {
+        name: 'search_cards',
+        category: 'read-only',
+        description: 'Search the AEM Content Fragment catalog for cards.',
+        required_slots: [],
+        optional_slots: ['query', 'titleSearch', 'surface', 'locale', 'tags', 'osi', 'limit', 'offset'],
+        slot_validators: {
+            query: 'string',
+            titleSearch: 'boolean',
+            surface: 'surface',
+            locale: 'locale',
+            tags: 'string[]',
+            osi: 'osi',
+        },
+        tool_target: 'search_cards',
+        confirmation_template: null,
+    },
+    {
+        name: 'publish_card',
+        category: 'state-changing',
+        description: 'Publish a single card to production.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'publish_card',
+        confirmation_template: 'Publish card {{id}} to production?',
+    },
+    {
+        name: 'update_card',
+        category: 'state-changing',
+        // `fields`, not `updates`: update-card.js reads { id, fields, title,
+        // tags }. The registry said `updates`, so every envelope-path update
+        // was dropped by the action after the user had confirmed it. The text
+        // path always taught `fields` and always worked.
+        description: 'Update fields of a single card.',
+        required_slots: ['id', 'fields'],
+        optional_slots: ['title', 'tags'],
+        slot_validators: { id: 'uuid', fields: 'object', title: 'string', tags: 'string[]' },
+        tool_target: 'update_card',
+        confirmation_template: 'Update card {{id}}?',
+    },
+    {
+        name: 'copy_card',
+        category: 'state-changing',
+        description: 'Duplicate a card.',
+        required_slots: ['id'],
+        optional_slots: ['parentPath', 'title'],
+        slot_validators: { id: 'uuid', parentPath: 'string', title: 'string' },
+        tool_target: 'copy_card',
+        confirmation_template: 'Duplicate card {{id}}?',
+    },
+    // ===== Bulk operations =====
+    // ===== Variations =====
+    {
+        name: 'get_variations',
+        category: 'read-only',
+        description: 'Return the variation graph for a fragment.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'get_variations',
+        confirmation_template: null,
+    },
+    {
+        name: 'create_locale_variation',
+        category: 'state-changing',
+        description: 'Create a new locale variation of an existing fragment.',
+        required_slots: ['parentId', 'locale'],
+        optional_slots: ['title'],
+        slot_validators: { parentId: 'uuid', locale: 'locale', title: 'string' },
+        tool_target: 'create_locale_variation',
+        confirmation_template: 'Create {{locale}} variation of card {{parentId}}?',
+    },
+    {
+        name: 'create_grouped_variation',
+        category: 'state-changing',
+        description: 'Create a grouped (pzn) variation under a parent fragment.',
+        required_slots: ['parentId'],
+        optional_slots: ['title', 'tags'],
+        slot_validators: { parentId: 'uuid', title: 'string', tags: 'string[]' },
+        tool_target: 'create_grouped_variation',
+        confirmation_template: 'Create grouped variation of card {{parentId}}?',
+    },
+    // ===== Offers & products =====
+    {
+        name: 'resolve_offer_selector',
+        category: 'read-only',
+        description: 'Resolve an OSI to its underlying offer details via AOS.',
+        required_slots: ['offerSelectorId'],
+        optional_slots: ['country'],
+        slot_validators: { offerSelectorId: 'osi' },
+        tool_target: 'resolve_offer_selector',
+        confirmation_template: null,
+    },
+    {
+        name: 'get_offer_by_id',
+        category: 'read-only',
+        description: 'Fetch a single AOS offer by 32-char hex offer ID.',
+        required_slots: ['offerId'],
+        optional_slots: ['country', 'locale'],
+        slot_validators: { offerId: 'offerId' },
+        tool_target: 'get_offer_by_id',
+        confirmation_template: null,
+    },
+    {
+        name: 'search_offers',
+        category: 'read-only',
+        description:
+            'Search the AOS offer catalog by arrangement code plus optional filters (commitment, term, segment, country). It cannot search by product name: resolve a name to its arrangement code with list_products first.',
+        required_slots: [],
+        optional_slots: [
+            'arrangementCode',
+            'commitment',
+            'term',
+            'customerSegment',
+            'marketSegment',
+            'offerType',
+            'country',
+            'locale',
+            'pricePoint',
+        ],
+        slot_validators: {
+            arrangementCode: 'string',
+            commitment: 'string',
+            term: 'string',
+            country: 'string',
+            locale: 'locale',
+        },
+        tool_target: 'search_offers',
+        confirmation_template: null,
+    },
+    {
+        name: 'list_products',
+        category: 'read-only',
+        description:
+            'List or look up Adobe products in the MCS catalog, optionally filtered by searchText. This is how a product name is resolved to the arrangement code that search_offers needs.',
+        required_slots: [],
+        optional_slots: ['searchText', 'customerSegment', 'marketSegment', 'limit'],
+        slot_validators: { searchText: 'string' },
+        tool_target: 'list_products',
+        confirmation_template: null,
+    },
+    {
+        name: 'get_product_by_arrangement_code',
+        category: 'read-only',
+        description: 'Fetch a single product by exact PA code.',
+        required_slots: ['arrangementCode'],
+        optional_slots: [],
+        slot_validators: { arrangementCode: 'string' },
+        tool_target: 'get_product_by_arrangement_code',
+        confirmation_template: null,
+    },
+    {
+        name: 'create_offer_selector',
+        category: 'state-changing',
+        description: 'Create a new AOS offer selector and return its OSI.',
+        required_slots: ['productArrangementCode', 'customerSegment', 'marketSegment', 'offerType'],
+        optional_slots: ['commitment', 'term', 'pricePoint'],
+        slot_validators: {
+            productArrangementCode: 'string',
+            customerSegment: 'string',
+            marketSegment: 'string',
+            offerType: 'string',
+        },
+        tool_target: 'create_offer_selector',
+        confirmation_template:
+            'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
+    },
+    // ===== Collections & tagging =====
+    {
+        name: 'link_card_to_offer',
+        category: 'state-changing',
+        description: 'Link a card to an OSI.',
+        required_slots: ['cardId', 'offerSelectorId'],
+        optional_slots: ['etag'],
+        slot_validators: { cardId: 'uuid', offerSelectorId: 'osi' },
+        tool_target: 'link_card_to_offer',
+        confirmation_template: 'Link card {{cardId}} to offer {{offerSelectorId}}?',
+    },
+    // ===== Translation =====
+    // ===== Multi-step flow steps =====
+    {
+        name: 'release_create.start',
+        category: 'guided-step',
+        description: 'Begin a guided release-card creation flow.',
+        required_slots: [],
+        optional_slots: [],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'release_create.set_product',
+        category: 'guided-step',
+        description: 'Set the product for the in-progress release.',
+        required_slots: ['productArrangementCode'],
+        optional_slots: [],
+        slot_validators: { productArrangementCode: 'string' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'release_create.set_commitment',
+        category: 'guided-step',
+        description: 'Set commitment+term for the in-progress release.',
+        required_slots: ['commitment', 'term'],
+        optional_slots: [],
+        slot_validators: { commitment: 'string', term: 'string' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'release_create.list_offers',
+        category: 'read-only',
+        description: 'List matching offers for the in-progress release.',
+        required_slots: [],
+        optional_slots: [],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'release_create.no_offers',
+        category: 'guided-step',
+        description: 'Report no offers found and prompt the user.',
+        required_slots: [],
+        optional_slots: [],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'release_create.confirm',
+        category: 'state-changing',
+        description: 'Create the release cards.',
+        required_slots: ['cardConfigs', 'parentPath'],
+        optional_slots: [],
+        slot_validators: { cardConfigs: 'object[]', parentPath: 'string' },
+        tool_target: 'create_release_cards',
+        confirmation_template: 'Create {{cardConfigs.length}} release cards?',
+    },
+    // ===== Frontend / utility =====
+    {
+        name: 'list_context_cards',
+        category: 'read-only',
+        description: 'List the cards referenced by a previous operation.',
+        required_slots: ['fragmentIds'],
+        optional_slots: ['operationType'],
+        slot_validators: { fragmentIds: 'uuid[]' },
+        tool_target: 'list_context_cards',
+        confirmation_template: null,
+    },
+    {
+        name: 'attach_offer',
+        category: 'guided-step',
+        description: 'User attaches an offer to the current chat turn.',
+        required_slots: ['osi'],
+        optional_slots: [],
+        slot_validators: { osi: 'osi' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'copy_card_link',
+        category: 'read-only',
+        description: "Copy a deep link to a card to the user's clipboard.",
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'open_card_editor',
+        category: 'read-only',
+        description:
+            'Navigate the studio UI to the editor for a card. Use when the user wants to OPEN, EDIT, or NAVIGATE TO a card (e.g. "open card X", "edit card X", "let me look at card X"). Do NOT use when the user just wants to read the card\'s contents — use get_card for that.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'open_ost',
+        category: 'guided-step',
+        description: 'Open the Offer Selector Tool.',
+        required_slots: [],
+        optional_slots: ['searchParams'],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    // ===== Meta =====
+    {
+        name: 'ASK_USER',
+        category: 'meta',
+        description: 'Ask the user a clarifying question.',
+        required_slots: [],
+        optional_slots: [],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'ABORT',
+        category: 'meta',
+        description: 'Cancel the current flow and return to free-form chat.',
+        required_slots: [],
+        optional_slots: [],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'START_OVER',
+        category: 'meta',
+        description: 'Clear chat and flow state, start fresh.',
+        required_slots: [],
+        optional_slots: [],
+        slot_validators: {},
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'SHOW_HELP',
+        category: 'meta',
+        description: 'Show help text or documentation.',
+        required_slots: [],
+        optional_slots: ['topic'],
+        slot_validators: { topic: 'string' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+    {
+        name: 'REPORT_ERROR',
+        category: 'meta',
+        description: 'Report a runtime error encountered by the assistant.',
+        required_slots: ['message'],
+        optional_slots: ['requestId'],
+        slot_validators: { message: 'string', requestId: 'string' },
+        tool_target: null,
+        confirmation_template: null,
+    },
+];
+
+/**
+ * Multi-step flows are declared separately. Each flow has a name and an
+ * ordered list of steps; each step lists the legal next intent names.
+ */
+export const FLOWS = [
+    {
+        name: 'release_create',
+        steps: [
+            { name: 'awaiting_product', next_intents: ['release_create.set_product', 'ASK_USER', 'ABORT'] },
+            { name: 'awaiting_commitment', next_intents: ['release_create.set_commitment', 'ASK_USER', 'ABORT'] },
+            {
+                name: 'awaiting_offers',
+                next_intents: ['release_create.list_offers', 'release_create.no_offers', 'ASK_USER', 'ABORT'],
+            },
+            { name: 'confirming', next_intents: ['release_create.confirm', 'ABORT', 'ASK_USER'] },
+            { name: 'done', next_intents: [] },
+        ],
+    },
+];
+
+/**
+ * Slot validators. Each validator is a pure function (value) => boolean.
+ * Keep this list short and reuse keys across intents.
+ */
+export const SLOT_VALIDATORS = {
+    uuid: (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
+    'uuid[]': (v) => Array.isArray(v) && v.length > 0 && v.every((x) => SLOT_VALIDATORS.uuid(x)),
+    string: (v) => typeof v === 'string' && v.length > 0,
+    'string[]': (v) => Array.isArray(v) && v.every((x) => typeof x === 'string'),
+    osi: (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{7,64}$/.test(v),
+    offerId: (v) => typeof v === 'string' && /^[A-Fa-f0-9]{32}$/.test(v),
+    surface: (v) => ['acom', 'commerce', 'ccd', 'sandbox', 'adobe-home', 'express', 'nala'].includes(v),
+    locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),
+    paCode: (v) => typeof v === 'string' && /^PA-?\d+$/.test(v),
+    boolean: (v) => typeof v === 'boolean',
+    object: (v) => v !== null && typeof v === 'object' && !Array.isArray(v),
+    'object[]': (v) => Array.isArray(v) && v.length > 0 && v.every((x) => x !== null && typeof x === 'object'),
+};
+
+/** Meta intents that exist outside any flow and may fire at any time. */
+export const META_INTENTS = ['ASK_USER', 'ABORT', 'START_OVER', 'SHOW_HELP', 'REPORT_ERROR'];
+
+export function getIntent(name) {
+    return INTENTS.find((i) => i.name === name) || null;
+}
+
+export function getFlow(name) {
+    return FLOWS.find((f) => f.name === name) || null;
+}
+
+export function getNextIntentsForFlowStep(flowName, stepName) {
+    const flow = getFlow(flowName);
+    if (!flow) return null;
+    const step = flow.steps.find((s) => s.name === stepName);
+    return step ? step.next_intents : null;
+}
+
+export function isStateChanging(intentName) {
+    const intent = getIntent(intentName);
+    return intent?.category === 'state-changing';
+}
+
+export function getFlowForIntent(intentName) {
+    if (typeof intentName !== 'string') return null;
+    const flow = FLOWS.find((f) => intentName.startsWith(`${f.name}.`));
+    return flow ? flow.name : null;
+}

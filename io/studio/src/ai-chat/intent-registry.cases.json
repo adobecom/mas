@@ -1,0 +1,439 @@
+{
+    "cases": [
+        {
+            "id": "slug-fabrication-from-titles",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [
+                {
+                    "role": "user",
+                    "content": "show me the firefly essentials cards"
+                },
+                {
+                    "role": "assistant",
+                    "content": "I found 2 Firefly Essentials cards: Firefly Essentials - Plans and Firefly Essentials - Catalog"
+                }
+            ],
+            "user_message": "update the description of both to \"X\"",
+            "expect": {
+                "intent": "ASK_USER",
+                "clarification_question_includes": "search"
+            }
+        },
+        {
+            "id": "update-verb-with-card-noun",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "update the description of the 2 cards to \"testing testing\"",
+            "expect": {
+                "intent": "ASK_USER",
+                "clarification_question_includes": "search"
+            }
+        },
+        {
+            "id": "create-flow-search-drift",
+            "intent_under_test": "release_create.set_commitment",
+            "context": {
+                "flow": {
+                    "active": "release_create",
+                    "step": "awaiting_commitment"
+                }
+            },
+            "user_message": "Annual, billed monthly",
+            "expect": {
+                "response_type": "guided_step",
+                "response_includes": [
+                    "YEAR|MONTHLY"
+                ]
+            },
+            "intent_hint": "release",
+            "note": "The turn must stay inside the release flow rather than drifting to a docs answer. The commitment choice is offered deterministically, so YEAR|MONTHLY appears as a button value."
+        },
+        {
+            "id": "quoted-value-in-update-not-title-search",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "change the description to \"testing testing\"",
+            "expect": {
+                "intent": "ASK_USER",
+                "clarification_question_includes": "card"
+            }
+        },
+        {
+            "id": "search-by-title-happy",
+            "intent_under_test": "search_cards",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "find cards titled firefly in sandbox",
+            "expect": {
+                "intent": "search_cards",
+                "slots_include": {
+                    "query": "firefly"
+                }
+            }
+        },
+        {
+            "id": "search-by-content-happy",
+            "intent_under_test": "search_cards",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "find cards containing 'creative cloud' in sandbox",
+            "expect": {
+                "intent": "search_cards"
+            }
+        },
+        {
+            "id": "get-card-by-uuid-happy",
+            "intent_under_test": "get_card",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "show me card 0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+            "expect": {
+                "intent": "get_card",
+                "slots_include": {
+                    "id": "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf"
+                }
+            }
+        },
+        {
+            "id": "bulk-update-is-declined-not-attempted",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": {
+                    "fragmentIds": [
+                        "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+                        "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+                    ],
+                    "type": "search_cards"
+                },
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "update the description on those to \"X\"",
+            "notes": "The bulk tools were removed. Two cards in context used to make this a bulk_update_cards envelope; it must now not produce one, and should explain that bulk work happens in Studio.",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "bulk-publish-is-declined-not-attempted",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": {
+                    "fragmentIds": [
+                        "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+                        "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+                    ],
+                    "type": "search_cards"
+                },
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "publish all of them",
+            "notes": "Same for publishing: no bulk_publish_cards, and single publish needs one id, not the whole set.",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "release-create-start-happy",
+            "intent_under_test": "release_create.start",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "create cards for photoshop",
+            "expect": {
+                "response_type": "guided_step",
+                "response_includes": [
+                    "which product"
+                ]
+            },
+            "note": "Release turns route to the guided path (index.js nativeEnvelopeEligible), which emits guided_step, not an envelope. The flow opens by asking which product the release is for."
+        },
+        {
+            "id": "release-create-set-product-happy",
+            "intent_under_test": "release_create.set_product",
+            "context": {
+                "flow": {
+                    "active": "release_create",
+                    "step": "awaiting_product"
+                },
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "Photoshop",
+            "expect": {
+                "response_type": "guided_step",
+                "response_includes": [
+                    "photoshop"
+                ]
+            },
+            "intent_hint": "release",
+            "note": "Mid-flow turn: the frontend forwards intentHint=release. The guided step acknowledges the named product and looks it up."
+        },
+        {
+            "id": "abort-mid-flow-happy",
+            "intent_under_test": "ABORT",
+            "context": {
+                "flow": {
+                    "active": "release_create",
+                    "step": "awaiting_commitment"
+                },
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "cancel",
+            "expect": {
+                "response_type": "guided_step",
+                "response_includes": [
+                    "cancel"
+                ]
+            },
+            "intent_hint": "release",
+            "note": "Cancelling mid-flow ends the release flow and says so."
+        },
+        {
+            "id": "start-over-happy",
+            "intent_under_test": "START_OVER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "start over",
+            "expect": {
+                "intent": "START_OVER"
+            }
+        },
+        {
+            "id": "show-help-happy",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "what can you do?",
+            "expect": {
+                "intent": "SHOW_HELP"
+            }
+        },
+        {
+            "id": "list-products-happy",
+            "intent_under_test": "list_products",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "list adobe products",
+            "expect": {
+                "intent": "list_products"
+            }
+        },
+        {
+            "id": "search-offers-happy",
+            "intent_under_test": "search_offers",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "show me offers for arrangement code cptv_direct_individual",
+            "expect": {
+                "intent": "search_offers",
+                "slots_include": {
+                    "arrangementCode": "cptv_direct_individual"
+                }
+            },
+            "note": "AOS searchOffers queries by arrangement_code and filters only, so search_offers is reachable only once an arrangement code is known."
+        },
+        {
+            "id": "off-topic-weather",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "What is the weather in San Francisco today?",
+            "expect": {
+                "intent": "ASK_USER"
+            }
+        },
+        {
+            "id": "off-topic-general-coding",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "Write me a Python script that sorts a CSV file by the second column",
+            "expect": {
+                "intent": "ASK_USER"
+            }
+        },
+        {
+            "id": "off-topic-small-talk",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [
+                {
+                    "role": "user",
+                    "content": "find cards titled Photoshop"
+                },
+                {
+                    "role": "assistant",
+                    "content": "I found 3 cards titled Photoshop."
+                }
+            ],
+            "user_message": "great, thanks! that's all for now",
+            "expect": {
+                "intent": "ASK_USER"
+            }
+        },
+        {
+            "id": "doc-translations",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "How do I create a translation project?",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "doc-bulk-publishing",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "How does bulk publishing work?",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "doc-promotions",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "What are promotions in MAS Studio?",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "offers-by-product-name-resolves-product-first",
+            "intent_under_test": "list_products",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": [],
+                "currentPath": "/content/dam/mas/sandbox",
+                "currentLocale": "en_US"
+            },
+            "conversationHistory": [],
+            "user_message": "find offers for photoshop",
+            "expect": {
+                "intent": "list_products",
+                "slots_include": {
+                    "searchText": "photoshop"
+                }
+            },
+            "note": "A product name cannot be passed to search_offers, so asking for offers by name must resolve the product first rather than stalling on the arrangement code."
+        }
+    ]
+}

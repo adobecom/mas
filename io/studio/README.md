@@ -93,7 +93,7 @@ The workspace **namespace** is read from the `.env` blob (`AIO_runtime_namespace
 
 The field names are `env` and `aio` — **no leading dot**. The dot-prefixed filenames (`.env`, `.aio`) are produced by CI when it writes the files at deploy time; the Vault field name is just an identifier.
 
-`odin_bucket` is **not** part of a developer path — PR deploys always use the shared QA `odin_bucket` from `cloudtech_wcms/merch-at-scale/aio-studio/qa`. Likewise, the AOS/OST service credentials (`aos_url`, `aos_api_key`, `ost_write_api_key`) live once in the shared `cloudtech_wcms/merch-at-scale/aio-studio/common` path (admin-managed) and are injected by CI — you don't seed them.
+`odin_bucket` is **not** part of a developer path — PR deploys always use the shared QA `odin_bucket` from `cloudtech_wcms/merch-at-scale/aio-studio/qa`. Likewise, the shared service credentials (`aos_url`, `aos_api_key`, `ost_write_api_key`, `ai_foundry_api_key`) live once in the shared `cloudtech_wcms/merch-at-scale/aio-studio/common` path (admin-managed) and are injected by CI — you don't seed them. `ai_foundry_api_key` authenticates the ai-chat action against Adobe AI Foundry; the matching endpoint and model ids are not secrets and are set in the deploy workflow.
 
 Using the Vault CLI (after `export VAULT_ADDR=https://vault-amer.adobe.net` or `export VAULT_ADDR=https://vault-emea.adobe.net` and logging in):
 

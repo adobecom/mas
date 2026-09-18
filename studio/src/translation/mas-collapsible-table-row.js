@@ -313,39 +313,41 @@ export class MasCollapsibleTableRow extends LitElement {
                           const { path } = variation;
                           const isSelected = this.selectedCards.includes(path);
                           const isExpanded = this.expandedVariationsPaths.has(path);
-                          return html` <sp-table-row
-                                  value=${path}
-                                  ?selected=${isSelected}
-                                  aria-selected=${isSelected ? 'true' : 'false'}
-                                  @click=${(event) => isSelectable && this.#onRowClickForSelection(event, path)}
-                              >
-                                  <sp-table-cell class="table-icon-cell">
-                                      <sp-button
-                                          class="expand-button"
-                                          icon-only
-                                          quiet
-                                          variant="secondary"
-                                          @click=${(e) => this.#toggleExpandVariation(e, path)}
-                                      >
-                                          ${isExpanded
-                                              ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
-                                              : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
-                                      </sp-button>
-                                  </sp-table-cell>
+                          const row = html` <sp-table-row
+                              value=${path}
+                              ?selected=${isSelected}
+                              aria-selected=${isSelected ? 'true' : 'false'}
+                              @click=${(event) => isSelectable && this.#onRowClickForSelection(event, path)}
+                              @dblclick=${(event) => this.#handlePromoVariationRowDblClick(event, variation)}
+                          >
+                              <sp-table-cell class="table-icon-cell">
+                                  <sp-button
+                                      class="expand-button"
+                                      icon-only
+                                      quiet
+                                      variant="secondary"
+                                      @click=${(e) => this.#toggleExpandVariation(e, path)}
+                                  >
+                                      ${isExpanded
+                                          ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                          : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                                  </sp-button>
+                              </sp-table-cell>
 
-                                  ${isSelectable
-                                      ? html`<sp-table-cell class="table-icon-cell"
-                                            ><sp-checkbox
-                                                value=${path}
-                                                ?checked=${isSelected}
-                                                @change=${(event) => this.#toggleSelect(event, path)}
-                                            ></sp-checkbox>
-                                        </sp-table-cell>`
-                                      : nothing}
-                                  ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
-                              </sp-table-row>
+                              ${isSelectable
+                                  ? html`<sp-table-cell class="table-icon-cell"
+                                        ><sp-checkbox
+                                            value=${path}
+                                            ?checked=${isSelected}
+                                            @change=${(event) => this.#toggleSelect(event, path)}
+                                        ></sp-checkbox>
+                                    </sp-table-cell>`
+                                  : nothing}
+                              ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
+                          </sp-table-row>`;
 
-                              ${isExpanded ? this.renderPromoVariationDetailsRow(variation) : nothing}`;
+                          return html`${this.#renderPromoVariationRowLink(row, variation)}
+                          ${isExpanded ? this.renderPromoVariationDetailsRow(variation) : nothing}`;
                       })}
                   </sp-table-body>
               </sp-table>`;
@@ -672,6 +674,39 @@ export class MasCollapsibleTableRow extends LitElement {
         const id = findPromotionProjectIdByTag(promotionTagId, allProjects);
         if (!id) return null;
         return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
+    }
+
+    // In the promotions-editor view-only cards table (the only caller that supplies
+    // renderActionsCell), promo variation rows open their fragment for editing on
+    // double-click/right-click; every other consumer of this shared row leaves rows unchanged.
+    get #isPromotionsEditorTable() {
+        return Boolean(this.renderActionsCell);
+    }
+
+    #getFragmentEditUrl(variation) {
+        if (!variation?.id) return null;
+        return `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`;
+    }
+
+    #handlePromoVariationRowDblClick(event, variation) {
+        if (!this.#isPromotionsEditorTable || shouldIgnoreRowClickForSelection(event)) return;
+        const url = this.#getFragmentEditUrl(variation);
+        if (!url) return;
+        window.open(url, '_blank', 'noopener');
+    }
+
+    #renderPromoVariationRowLink(rowTemplate, variation) {
+        if (!this.#isPromotionsEditorTable) return rowTemplate;
+        const editUrl = this.#getFragmentEditUrl(variation);
+        if (!editUrl) return rowTemplate;
+        return html`<a
+            href=${editUrl}
+            target="_blank"
+            rel="noopener"
+            style="display: contents; color: inherit; text-decoration: none"
+            @click=${(e) => e.preventDefault()}
+            >${rowTemplate}</a
+        >`;
     }
 
     renderPromoVariationDetailsRow(variation) {

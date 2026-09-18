@@ -347,10 +347,9 @@ describe('ost-app', () => {
             }
         });
 
-        it('selects the product but keeps segment filters at All, stashing attributes for auto-select', async () => {
-            const originalFetch = window.fetch;
+        function resolvedOsiResponse() {
             // getOfferSelector returns response.json() unwrapped (see aos-client.js:121)
-            window.fetch = async () => ({
+            return {
                 ok: true,
                 json: async () => ({
                     product_arrangement_code: 'phsp-arr',
@@ -361,22 +360,22 @@ describe('ost-app', () => {
                     offer_type: 'BASE',
                     price_point: 'REGULAR',
                 }),
-            });
+            };
+        }
+
+        it('selects the product and stashes the offer attributes for auto-select', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => resolvedOsiResponse();
             try {
                 store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
                 const el = await fixture(html`<ost-app></ost-app>`);
                 await el.resolveDeepLinkOffer('osi-deep-resolveCheck');
-                // aosParams updates land synchronously from the OSI response.
                 // selectedOsi is intentionally not asserted here: the immediate
                 // resolveDeepLinkProduct call invokes setProduct, which clears
                 // selectedOsi as part of the product-changed contract; in real
                 // usage loadOffers' autoSelectByInitialOsi re-resolves it once
                 // offers load.
                 expect(store.aosParams.arrangementCode).to.equal('phsp-arr');
-                expect(store.aosParams.commitment).to.equal('');
-                expect(store.aosParams.offerType).to.equal('');
-                expect(store.aosParams.customerSegment).to.equal('');
-                expect(store.aosParams.marketSegment).to.equal('');
                 expect(store.initialOsiAttributes).to.deep.equal({
                     commitment: 'YEAR',
                     term: 'MONTHLY',
@@ -385,9 +384,65 @@ describe('ost-app', () => {
                     offer_type: 'BASE',
                 });
                 expect(store.selectedProduct?.name).to.equal('Photoshop');
-                store.allProducts = [];
             } finally {
                 window.fetch = originalFetch;
+                store.allProducts = [];
+            }
+        });
+
+        it('loads the deep-linked offer entitlements into the Tab 1 filters', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => resolvedOsiResponse();
+            try {
+                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-deep-entitlements');
+                expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
+                expect(store.aosParams.marketSegment).to.equal('COM');
+                expect(store.aosParams.offerType).to.equal('BASE');
+                expect(store.aosParams.commitment).to.equal('YEAR');
+                expect(store.aosParams.term).to.equal('MONTHLY');
+            } finally {
+                window.fetch = originalFetch;
+                store.allProducts = [];
+            }
+        });
+
+        it('leaves Tab 1 filters the deep-linked offer does not define at All', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({ product_arrangement_code: 'phsp-arr', offer_type: 'BASE' }),
+            });
+            try {
+                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-deep-partial');
+                expect(store.aosParams.offerType).to.equal('BASE');
+                expect(store.aosParams.customerSegment).to.equal('');
+                expect(store.aosParams.marketSegment).to.equal('');
+                expect(store.aosParams.commitment).to.equal('');
+                expect(store.aosParams.term).to.equal('');
+            } finally {
+                window.fetch = originalFetch;
+                store.allProducts = [];
+            }
+        });
+
+        it('keeps the deep-linked OSI in the Tab 1 search once it resolves', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => resolvedOsiResponse();
+            try {
+                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-deep-search');
+                expect(store.searchQuery).to.equal('osi-deep-search');
+                expect(store.searchType).to.equal('osi');
+            } finally {
+                window.fetch = originalFetch;
+                store.allProducts = [];
+                store.searchQuery = '';
+                store.searchType = '';
             }
         });
 
@@ -453,6 +508,24 @@ describe('ost-app', () => {
                 expect(store.selectedOffers[0].osi).to.equal('osi-ok');
             } finally {
                 window.fetch = originalFetch;
+            }
+        });
+
+        it('seeds the search query with the deep-linked OSI so Tab 1 shows what was opened', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-seeded');
+                expect(store.searchQuery).to.equal('osi-seeded');
+                expect(store.searchType).to.equal('osi');
+            } finally {
+                window.fetch = originalFetch;
+                store.initialOsi = undefined;
+                store.searchQuery = '';
+                store.searchType = '';
             }
         });
 

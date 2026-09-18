@@ -14,6 +14,11 @@ function makeParams(overrides = {}) {
         message: 'hello there',
         conversationHistory: [],
         RAG_ENABLED: 'false',
+        // The Foundry client is constructed before any request path runs (even the
+        // no-LLM bypasses), so main() needs a key or the constructor throws a 500.
+        // The send is stubbed in every test, so the value is never used — this only
+        // keeps the suite hermetic on a runner that has no .env.
+        AI_FOUNDRY_API_KEY: 'test-key-not-real',
         ...overrides,
     };
 }

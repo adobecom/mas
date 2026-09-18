@@ -35,9 +35,8 @@ export function resolveContextPromotionCode(host) {
  */
 export function applyContextPromotionCode(host, options) {
     if (options.promotionCode) return;
-    if (contextPromotionCodeGate(host)) {
-        options.promotionCode = host.contextPromotionCode;
-    }
+    const code = resolveContextPromotionCode(host);
+    if (code) options.promotionCode = code;
 }
 
 /**

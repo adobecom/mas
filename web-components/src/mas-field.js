@@ -313,6 +313,32 @@ mas-field .icon-button.hide-tooltip::after {
         max-width: 180px;
     }
 }
+
+.table .row-heading .col-heading .pricing:has(.price-annual-prefix) {
+  display: flex;
+  flex-direction: column;
+}
+
+.table .row-heading .col-heading .pricing .price-annual-prefix + .price-annual,
+.table .row-heading .col-heading .pricing .price-annual-prefix,
+.table .row-heading .col-heading .pricing .price-annual-suffix {
+  font-size: var(--type-heading-xxs-size);
+  line-height: var(--type-heading-xxs-size);
+  font-weight: 400;
+  position: relative;
+}
+
+.pricing.has-pricing-after .price-annual-prefix {
+  display: none;
+}
+
+.pricing.has-pricing-after:has(.price-annual-prefix) .price:not(.price-annual) {
+  display: block;
+}
+
+.pricing.has-pricing-after .price-annual-prefix + .price-annual::before {
+  content: '(';
+}
 `;
 
 if (!document.querySelector('style[data-mas-field]')) {

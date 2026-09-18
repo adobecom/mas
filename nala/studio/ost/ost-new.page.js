@@ -44,6 +44,7 @@ export default class OSTNewPage {
         // Playwright CSS pierces shadow DOM). tryBuy/bundle render the selection
         // list; consult renders the focused offer detail.
         this.selectionList = this.page.locator('ost-selection-list');
+        this.bundleSlot = this.selectionList.locator('.selection-slot.filled');
         this.offerDetailFocused = this.page.locator('ost-offer-detail-focused');
         // Offer cards in the offer-step left column (bordered `card` layout).
         this.offerCard = this.page.locator('ost-offer-card[card]');
@@ -150,6 +151,21 @@ export default class OSTNewPage {
     async advanceToOfferStep() {
         await this.nextButton.click();
         await this.selectFirstOffer();
+    }
+
+    // Soft bundle: the OST opens narrowed to the fragment's own OSI, so its
+    // offer list holds that one offer and nothing else to pair with. Go back,
+    // search another product and add its first offer as the second one.
+    async addBundleOfferFromSearch(productName) {
+        await this.backButton.click();
+        await this.searchField.fill(productName);
+        await this.productCard.filter({ hasText: productName }).first().click();
+        await this.nextButton.click();
+        // The offer list keeps rendering the previous product's card until the
+        // new product's fetch resolves. Clicking that stale card would toggle
+        // the offer already in the bundle back off (addOffer matches on osi),
+        // so target the new product's own card by name and let Playwright wait.
+        await this.offerCard.filter({ hasText: productName }).first().click();
     }
 
     // The "Options" (Disable) group is collapsed by default; expand it once so

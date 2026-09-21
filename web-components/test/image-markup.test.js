@@ -186,6 +186,30 @@ describe('buildPictureInnerMarkup', () => {
         ).to.equal('');
     });
 
+    it('supports a webp source instead of silently clearing the value', () => {
+        const WEBP =
+            'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.webp';
+        const doc = parse(buildPictureInnerMarkup(WEBP));
+        const original = [...doc.querySelectorAll('source')].at(-1);
+        expect(original.getAttribute('type')).to.equal('image/webp');
+        expect(original.getAttribute('srcset')).to.contain('format=webp');
+        expect(doc.querySelector('img').getAttribute('src')).to.contain(
+            'format=webp',
+        );
+    });
+
+    it('supports a gif source instead of silently clearing the value', () => {
+        const GIF =
+            'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.gif';
+        const doc = parse(buildPictureInnerMarkup(GIF));
+        const original = [...doc.querySelectorAll('source')].at(-1);
+        expect(original.getAttribute('type')).to.equal('image/gif');
+        expect(original.getAttribute('srcset')).to.contain('format=gif');
+        expect(doc.querySelector('img').getAttribute('src')).to.contain(
+            'format=gif',
+        );
+    });
+
     it('maps jpg to image/jpeg source type', () => {
         const JPG =
             'https://main--mas-test--adobecom.aem.page/fragments/media_abc.jpg';
@@ -288,5 +312,16 @@ describe('sanitizePictureMarkup', () => {
         const doc = parse(sanitizePictureMarkup(malicious));
         expect(doc.querySelector('div')).to.not.exist;
         expect(doc.querySelector('img')).to.not.exist;
+    });
+
+    it('preserves the source/img content when given a full <picture>-wrapped value instead of just its inner markup', () => {
+        const fullPicture = `<picture>${INNER}</picture>`;
+        const doc = parse(sanitizePictureMarkup(fullPicture));
+        expect(doc.querySelectorAll('source, img')).to.have.lengthOf(
+            parse(INNER).querySelectorAll('source, img').length,
+        );
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(
+            parse(INNER).querySelector('img').getAttribute('src'),
+        );
     });
 });

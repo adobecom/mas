@@ -35,6 +35,8 @@ const FORMAT_BY_EXT = {
     png: { type: 'image/png', format: 'png' },
     jpg: { type: 'image/jpeg', format: 'jpg' },
     jpeg: { type: 'image/jpeg', format: 'jpg' },
+    webp: { type: 'image/webp', format: 'webp' },
+    gif: { type: 'image/gif', format: 'gif' },
 };
 
 const DESKTOP = { width: 2000, media: '(min-width: 600px)' };
@@ -111,7 +113,8 @@ const ALLOWED_PICTURE_ATTRS = new Set([
 export function sanitizePictureMarkup(inner) {
     if (typeof inner !== 'string' || !inner) return '';
     const template = document.createElement('template');
-    template.innerHTML = `<picture>${inner}</picture>`;
+    const alreadyWrapped = /^\s*<picture[\s>]/i.test(inner);
+    template.innerHTML = alreadyWrapped ? inner : `<picture>${inner}</picture>`;
     const picture = template.content.querySelector('picture');
     if (!picture) return '';
     picture.querySelectorAll('*').forEach((el) => {

@@ -1210,6 +1210,12 @@
                         expect(fragmentStore.get().getFieldValue('backgrounds', 0)).to.not.exist;
                     });
 
+                    it('does not render the backgrounds field group for a variant without a backgrounds mapping', async () => {
+                        await setupTestEnvironment({ isVariation: false, variant: ['plans'] }, 'backgrounds-unsupported-variant');
+
+                        expect(editor.querySelector('sp-field-group#backgrounds')).to.not.exist;
+                    });
+
                     it('resets imageUrlInvalid and backgroundsUrlInvalid when switching to a different fragment', async () => {
                         await setupTestEnvironment({ isVariation: false, variant: ['marquee'] }, 'invalid-reset');
 

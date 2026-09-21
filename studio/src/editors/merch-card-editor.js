@@ -1774,61 +1774,65 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
-                <sp-field-group class="toggle" id="backgrounds">
-                    <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter an *.aem.page background desktop URL"
-                        id="background-desktop"
-                        data-field="backgrounds"
-                        data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
-                        ?invalid="${this.backgroundsUrlInvalid.desktop}"
-                        value="${backgroundsUrls.desktop}"
-                        @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
-                    >
-                        ${this.backgroundsUrlInvalid.desktop
-                            ? html`<sp-help-text slot="negative-help-text"
-                                  >Enter a valid *.aem.page background desktop URL.</sp-help-text
-                              >`
-                            : nothing}
-                    </sp-textfield>
-                    ${this.#renderBackgroundStatusIndicator('desktop')}
+                ${this.currentVariantMapping?.backgrounds
+                    ? html`
+                          <sp-field-group class="toggle" id="backgrounds">
+                              <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page background desktop URL"
+                                  id="background-desktop"
+                                  data-field="backgrounds"
+                                  data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
+                                  ?invalid="${this.backgroundsUrlInvalid.desktop}"
+                                  value="${backgroundsUrls.desktop}"
+                                  @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
+                              >
+                                  ${this.backgroundsUrlInvalid.desktop
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page background desktop URL.</sp-help-text
+                                        >`
+                                      : nothing}
+                              </sp-textfield>
+                              ${this.#renderBackgroundStatusIndicator('desktop')}
 
-                    <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter an *.aem.page background tablet URL"
-                        id="background-tablet"
-                        data-field="backgrounds"
-                        data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
-                        ?invalid="${this.backgroundsUrlInvalid.tablet}"
-                        value="${backgroundsUrls.tablet}"
-                        @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
-                    >
-                        ${this.backgroundsUrlInvalid.tablet
-                            ? html`<sp-help-text slot="negative-help-text"
-                                  >Enter a valid *.aem.page background tablet URL.</sp-help-text
-                              >`
-                            : nothing}
-                    </sp-textfield>
-                    ${this.#renderBackgroundStatusIndicator('tablet')}
+                              <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page background tablet URL"
+                                  id="background-tablet"
+                                  data-field="backgrounds"
+                                  data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
+                                  ?invalid="${this.backgroundsUrlInvalid.tablet}"
+                                  value="${backgroundsUrls.tablet}"
+                                  @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
+                              >
+                                  ${this.backgroundsUrlInvalid.tablet
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page background tablet URL.</sp-help-text
+                                        >`
+                                      : nothing}
+                              </sp-textfield>
+                              ${this.#renderBackgroundStatusIndicator('tablet')}
 
-                    <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter an *.aem.page background mobile URL"
-                        id="background-mobile"
-                        data-field="backgrounds"
-                        data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
-                        ?invalid="${this.backgroundsUrlInvalid.mobile}"
-                        value="${backgroundsUrls.mobile}"
-                        @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
-                    >
-                        ${this.backgroundsUrlInvalid.mobile
-                            ? html`<sp-help-text slot="negative-help-text"
-                                  >Enter a valid *.aem.page background mobile URL.</sp-help-text
-                              >`
-                            : nothing}
-                    </sp-textfield>
-                    ${this.#renderBackgroundStatusIndicator('mobile')}
-                </sp-field-group>
+                              <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page background mobile URL"
+                                  id="background-mobile"
+                                  data-field="backgrounds"
+                                  data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
+                                  ?invalid="${this.backgroundsUrlInvalid.mobile}"
+                                  value="${backgroundsUrls.mobile}"
+                                  @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
+                              >
+                                  ${this.backgroundsUrlInvalid.mobile
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page background mobile URL.</sp-help-text
+                                        >`
+                                      : nothing}
+                              </sp-textfield>
+                              ${this.#renderBackgroundStatusIndicator('mobile')}
+                          </sp-field-group>
+                      `
+                    : nothing}
                 ${this.currentVariantMapping?.image
                     ? html`
                           <sp-field-group class="toggle" id="image">

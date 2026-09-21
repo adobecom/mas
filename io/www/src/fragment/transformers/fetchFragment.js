@@ -10,12 +10,11 @@ const TRANSFORMER_NAME = 'fetchFragment';
  * without waiting on default-locale variation fetch. Shared via `promises.requestInfos` so dictionary/settings inits
  * can proceed in parallel with that work.
  *
- * Also resolves `country` and `wcsCountry` here: this is the earliest point in the pipeline where
- * `surface` is known, which `restrictCountryToLocaleMarket` needs to scope its market lookup
- * (MWPW-207865). The two travel as a pair from `resolveTerritoryCountries` but are derived from
- * different inputs — `country` (content country) from the raw request country, matching the
- * "fixed" value `pipeline.js` already set on `context.country` before the init fan-out;
- * `wcsCountry` (commerce country) from that same country restricted to the locale's market first.
+ * Also resolves `wcsCountry` here: this is the earliest point in the pipeline where `surface` is
+ * known, which `restrictCountryToLocaleMarket` needs to scope its market lookup (MWPW-207865).
+ * `country` is passed through unchanged (it is already the "fixed" content country pipeline.js
+ * resolved via `resolveTerritoryCountries` before the init fan-out) — the two are returned
+ * separately so a caller reading one never mistakes it for the other.
  * @example
  * // locale es_PR, country: PR -> country: PR, wcsCountry: US
  */
@@ -35,15 +34,17 @@ async function resolveRequestInfos(initContext) {
         };
     }
     const { parsedLocale, surface, fragmentPath } = match.groups;
-    const { country: fixedCountry } = resolveTerritoryCountries(locale, country);
-    const { wcsCountry } = resolveTerritoryCountries(locale, restrictCountryToLocaleMarket(surface, locale, fixedCountry));
+    // `country` is already the "fixed" content country (pipeline.js resolved it via
+    // resolveTerritoryCountries before the init fan-out) — pass it through unchanged and only
+    // restrict a copy of it for wcsCountry, so the two never collapse into the same value.
+    const { wcsCountry } = resolveTerritoryCountries(locale, restrictCountryToLocaleMarket(surface, locale, country));
     return {
         status: 200,
         body: response.body,
         parsedLocale,
         surface,
         fragmentPath,
-        country: fixedCountry,
+        country,
         wcsCountry,
     };
 }

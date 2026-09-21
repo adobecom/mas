@@ -93,6 +93,7 @@ function priceOptionsProvider(element, options) {
         typeof card.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = card.settings.displayAnnual;
+        if (card.settings.displayAnnual) card.setAttribute('annualized', '');
     }
 }
 

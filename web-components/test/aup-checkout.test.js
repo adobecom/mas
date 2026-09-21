@@ -54,7 +54,10 @@ describe('aup-select checkout routing', () => {
         meta.name = 'aup-select';
         meta.content = 'on';
         document.head.append(meta);
-        service = initMasCommerceService({}, () => ({ handler: legacy }));
+        service = initMasCommerceService(
+            { 'checkout-client-id': 'creative' },
+            () => ({ handler: legacy }),
+        );
     });
 
     afterEach(async () => {
@@ -486,7 +489,7 @@ describe('aup-select checkout routing', () => {
                     {
                         intent: 'buy',
                         context: {
-                            clientId: 'adobe_com',
+                            clientId: 'creative',
                             clientType: 'web',
                             co: 'US',
                             pa: 'ccsn_direct_individual',
@@ -723,7 +726,7 @@ describe('aup-select checkout routing', () => {
         await launchAupCheckout(
             hostSdk,
             offers,
-            { language: 'en' },
+            { checkoutClientId: 'creative', language: 'en' },
             undefined,
             20,
         ).catch((reason) => {
@@ -750,9 +753,13 @@ describe('aup-select checkout routing', () => {
     it('routes using commerce service initialization without metadata', async () => {
         meta.remove();
         removeMasCommerceService();
-        service = initMasCommerceService({ 'aup-select': 'on' }, () => ({
-            handler: legacy,
-        }));
+        service = initMasCommerceService(
+            {
+                'aup-select': 'on',
+                'checkout-client-id': 'creative',
+            },
+            () => ({ handler: legacy }),
+        );
         const element = await create();
         click(element);
         await element.aupCheckoutPromise;
@@ -957,14 +964,19 @@ describe('aup-select checkout routing', () => {
     }
 
     for (const [modal, clientId, expected] of [
-        [undefined, 'other-client', 'other-client'],
-        ['true', 'other-client', 'other-client'],
-        ['crm', 'other-client', 'creative'],
-        ['twp', 'other-client', 'mini_plans'],
-        ['d2p', 'other-client', 'mini_plans'],
+        [undefined, 'creative', 'creative'],
+        ['true', 'creative', 'creative'],
+        ['crm', 'creative', 'creative'],
+        ['twp', 'creative', 'mini_plans'],
+        ['d2p', 'mini_plans', 'mini_plans'],
         ['crm', 'doc_cloud', 'doc_cloud'],
         ['twp', 'doc_cloud', 'doc_cloud'],
         ['d2p', 'doc_cloud', 'doc_cloud'],
+        [undefined, 'acom_bc', 'acom_bc'],
+        ['true', 'acom_bc', 'acom_bc'],
+        ['crm', 'acom_bc', 'creative'],
+        ['twp', 'acom_bc', 'mini_plans'],
+        ['d2p', 'acom_bc', 'mini_plans'],
     ]) {
         it(`maps client ${clientId} with modal ${modal} to ${expected}`, async () => {
             removeMasCommerceService();
@@ -980,6 +992,21 @@ describe('aup-select checkout routing', () => {
                 expected,
             );
             expect(legacy.called).to.be.false;
+        });
+    }
+
+    for (const modal of [undefined, 'true', 'crm', 'twp', 'd2p']) {
+        it(`uses the existing checkout flow for unsupported client adobe_com with modal ${modal}`, async () => {
+            removeMasCommerceService();
+            service = initMasCommerceService(
+                { 'checkout-client-id': 'adobe_com' },
+                () => ({ handler: legacy }),
+            );
+            const element = await create(CheckoutLink, { modal });
+            const event = click(element);
+            expect(legacy.calledOnceWithExactly(event)).to.be.true;
+            expect(sdk.getOrchestratorContext.called).to.be.false;
+            expect(launch.called).to.be.false;
         });
     }
 
@@ -1005,7 +1032,7 @@ describe('aup-select checkout routing', () => {
         expect(launch.firstCall.args[0]).to.deep.equal({
             intent: 'buy',
             context: {
-                clientId: 'adobe_com',
+                clientId: 'creative',
                 clientType: 'web',
                 co: 'US',
                 pa: 'ccsn_direct_individual',

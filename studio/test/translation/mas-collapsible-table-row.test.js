@@ -15,6 +15,7 @@ import {
     BASELINE_VARIATION,
 } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
 
@@ -35,14 +36,14 @@ describe('MasCollapsibleTableRow', () => {
 
     const resetStore = () => {
         Store.translationProjects.selectedCards.set([]);
-        setCardVariationsByPaths(new Map());
+        setCardVariationsByPaths(new Map(), Store.translationProjects);
     };
 
     const setupCardVariationsInStore = (cardPath, variations) => {
         const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
         const merged = new Map(existing);
         merged.set(cardPath, new Map(variations.map((v) => [v.path, v])));
-        setCardVariationsByPaths(merged);
+        setCardVariationsByPaths(merged, Store.translationProjects);
     };
 
     const createMockRepository = () => {
@@ -1530,12 +1531,50 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
         };
 
+        const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sandbox, itemsByFolder);
+
         beforeEach(() => {
             sandbox.stub(window, 'fetch').resolves({
                 ok: true,
                 headers: { get: () => null },
                 json: async () => ({ offers: [] }),
             });
+        });
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+        });
+
+        it('wires onlyAttachedGroupedVariations: true through to the grouped-variation probe, excluding an unattached grouped promo copy', async () => {
+            const defaultPath = '/content/dam/mas/acom/en_US/cards/test';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promotionsRoot = '/content/dam/mas/acom/en_US/promotions';
+            const groupedPromoPath = `${promotionsRoot}/black-friday/cards/test/pzn/edu`;
+
+            const search = makeSearchStub({
+                [promotionsRoot]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+            });
+            const project = {
+                tags: [{ id: 'mas:promotion/black-friday' }],
+                getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? [defaultPath] : undefined)),
+            };
+            Store.promotions.list.data.set([{ get: () => project }]);
+
+            const topLevelCard = {
+                ...createMockTopLevelCard({ variationPaths: [groupedPath] }),
+                id: 'frag-grouped-promo',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = {
+                aem: { sites: { cf: { fragments: { search } } } },
+                loadPromotions: sandbox.stub().resolves(),
+            };
+
+            await triggerPromoLoad(el);
+
+            expect(el.promoVariations.map((v) => v.path)).to.not.include(groupedPromoPath);
         });
 
         it('excludes locale references from promoVariations when references contain mixed types', async () => {
@@ -1724,6 +1763,29 @@ describe('MasCollapsibleTableRow', () => {
 
         it('falls back to Store.promotions.inEdit when the promotions list store is empty', async () => {
             Store.promotions.list.data.set([]);
+            Store.promotions.inEdit.set({ value: { id: promoProjectId, tags: [{ id: promoTagId }] } });
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                `#page=promotions-editor&promotionId=${encodeURIComponent(promoProjectId)}`,
+            );
+        });
+
+        it('resolves project from Store.promotions.inEdit when it is not in the list (e.g. a just-duplicated project)', async () => {
+            Store.promotions.list.data.set([
+                { get: () => ({ id: 'unrelated-project', tags: [{ id: 'mas:promotion/other' }] }) },
+            ]);
             Store.promotions.inEdit.set({ value: { id: promoProjectId, tags: [{ id: promoTagId }] } });
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(

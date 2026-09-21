@@ -41,7 +41,7 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import './mas-variation-dialog.js';
 import './mas-related-variations.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
@@ -628,9 +628,10 @@ export default class MasFragmentEditor extends LitElement {
     #pendingDiscardPromise = null;
     #translatedLocalesRequest = null;
     #pendingVariationParents = new Map();
+    #pendingPromoRefresh = null;
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -671,8 +672,7 @@ export default class MasFragmentEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.fragmentEditor.itemsSelection);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.fragmentEditor.itemsSelection);
         if (this.#shouldInitFragment()) {
             this.initFragment();
         }
@@ -680,7 +680,8 @@ export default class MasFragmentEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     willUpdate(changedProperties) {
@@ -1119,9 +1120,14 @@ export default class MasFragmentEditor extends LitElement {
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
         }
-        this.repository.refreshFragment(existingStore).then(() => {
-            this.dispatchFragmentLoaded();
-        });
+        const refreshPromise = this.repository.refreshFragment(existingStore);
+        this.#pendingPromoRefresh = { fragmentId, promise: refreshPromise };
+        refreshPromise
+            .then(() => this.dispatchFragmentLoaded())
+            .catch((error) => console.error('Failed to refresh fragment:', error))
+            .finally(() => {
+                if (this.#pendingPromoRefresh?.promise === refreshPromise) this.#pendingPromoRefresh = null;
+            });
 
         if (isGroupedVariation) {
             const parentLocale =
@@ -1183,6 +1189,12 @@ export default class MasFragmentEditor extends LitElement {
                 fragmentData,
                 () => this.repository.loadPromotions(),
             );
+            this.#pendingPromoRefresh = { fragmentId, promise: promoMerge };
+            promoMerge
+                .catch(() => {})
+                .finally(() => {
+                    if (this.#pendingPromoRefresh?.promise === promoMerge) this.#pendingPromoRefresh = null;
+                });
             const fragment = new Fragment(fragmentData);
 
             snapFilterToPathDefault(fragment.path);
@@ -1267,6 +1279,7 @@ export default class MasFragmentEditor extends LitElement {
 
     async initFragment() {
         const fragmentId = this.fragmentId;
+        this.#pendingPromoRefresh = null;
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
@@ -1540,16 +1553,19 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async deleteFragment() {
-        if (!this.editorContextStore.isVariation(this.fragment.id)) {
-            const fieldVariations = this.fragment.getVariations();
-            let promoVariationPaths;
-            try {
-                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
-            } catch (error) {
-                console.error('Failed to probe promo variations:', error);
-                showToast('Failed to check for promo variations. Please try again.', 'negative');
-                return;
+        const isVariation = this.editorContextStore.isVariation(this.fragment.id);
+        if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
+            if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
+                try {
+                    await this.#pendingPromoRefresh.promise;
+                } catch (error) {
+                    console.error('Failed to probe promo variations:', error);
+                    showToast('Failed to check for promo variations. Please try again.', 'negative');
+                    return;
+                }
             }
+            const promoVariationPaths = this.fragment.listPromoVariations().map((variation) => variation.path);
+            const fieldVariations = isVariation ? [] : this.fragment.getVariations();
             this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         } else {
             this.variationsToDelete = [];
@@ -1564,29 +1580,29 @@ export default class MasFragmentEditor extends LitElement {
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
-                if (localeDefaultFragment) {
-                    await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
-                }
-                let deleted = await this.repository.deleteFragment(this.fragment, {
-                    startToast: false,
-                    endToast: false,
-                });
-                if (!deleted) {
-                    deleted = await this.repository.deleteFragment(this.fragment, {
-                        force: true,
-                        startToast: false,
-                        endToast: false,
-                    });
-                }
+                const { deleted, failedVariations, parentUpdateFailed } = await this.repository.deleteVariationFragment(
+                    this.fragment,
+                    {
+                        localeDefaultFragment,
+                        promoVariationPaths: this.variationsToDelete,
+                    },
+                );
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
                     this.deleteInProgress = false;
                     return;
                 }
+                const issues = [];
+                if (parentUpdateFailed) issues.push("the parent's variation reference wasn't updated");
+                if (failedVariations.length > 0) issues.push(`${failedVariations.length} promo variation(s) failed to delete`);
+                if (issues.length > 0) {
+                    showToast(`Fragment deleted but ${issues.join(' and ')}`, 'warning');
+                } else {
+                    showToast('Fragment successfully deleted.', 'positive');
+                }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
             }
-            showToast('Fragment successfully deleted.', 'positive');
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
             await router.navigateToPage(wasPromoVariation ? PAGE_NAMES.PROMOTIONS_EDITOR : PAGE_NAMES.CONTENT)();
@@ -1699,11 +1715,31 @@ export default class MasFragmentEditor extends LitElement {
                 const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
                 const result = await MasPublishDialog.show(refs);
                 if (!result.confirmed) return;
+
+                const anyStaged =
+                    this.fragment.isStaged ||
+                    [...refs.variations, ...refs.cards].some((variation) => {
+                        if (!result.selectedIds.includes(variation.id)) return false;
+                        const variationObj = new Fragment(variation);
+                        return variationObj.isStaged;
+                    });
+                if (anyStaged) {
+                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                    const resultStaged = await MasPublishStagedDialog.show(true);
+                    if (!resultStaged.confirmed) return;
+                }
+
                 await this.repository.publishFragment(this.fragment, {
                     selectedRefIds: result.selectedIds,
                     allSelected: result.allSelected,
                 });
             } else {
+                if (this.fragment.isStaged) {
+                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                    const resultStaged = await MasPublishStagedDialog.show();
+                    if (!resultStaged.confirmed) return;
+                }
+
                 await this.repository.publishFragment(this.fragment);
             }
         } catch (error) {

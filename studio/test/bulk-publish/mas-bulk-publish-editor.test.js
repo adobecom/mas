@@ -1,7 +1,7 @@
 import { fixture, html, expect } from '@open-wc/testing';
 import Store from '../../src/store.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
-import { BULK_PUBLISH_STATUS, QUICK_ACTION } from '../../src/constants.js';
+import { BULK_PUBLISH_STATUS, QUICK_ACTION, STAGED } from '../../src/constants.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 
@@ -121,6 +121,12 @@ describe('mas-bulk-publish-editor', () => {
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: ['/x'] },
                     { name: 'locales', type: 'text', multiple: true, values: [] },
                 ],
+                references: [
+                    {
+                        path: '/x',
+                        fields: [{ name: 'tags', type: 'text', values: [STAGED.TAG] }],
+                    },
+                ],
             }),
         );
         Store.bulkPublishProjects.inEdit.set(store);
@@ -129,6 +135,8 @@ describe('mas-bulk-publish-editor', () => {
         store.updateField('status', [BULK_PUBLISH_STATUS.PUBLISHING]);
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner[variant="publishing"]')).to.exist;
+        expect(el.items[0].status).to.equal('error');
+        expect(el.items[0].reason).to.equal('staged');
     });
 
     it('does not update inEdit after disconnecting during async init', async () => {

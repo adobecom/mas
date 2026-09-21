@@ -14,6 +14,8 @@ export const promotionsItemsTableStyles = [
 
     css`
         :host {
+            position: relative;
+            width: 100%;
             display: flex;
             width: 100%;
             min-height: 0;
@@ -21,6 +23,15 @@ export const promotionsItemsTableStyles = [
 
         sp-dialog-wrapper {
             z-index: 11;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
 
         .offers-table {

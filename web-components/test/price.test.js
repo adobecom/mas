@@ -1442,7 +1442,7 @@ describe('priceInfo (WCS pre-split tree)', () => {
                     currencySymbol: '&#20870;',
                     usePrecision: false,
                     isCurrencyFirst: false,
-                    hasCurrencySpace: false,
+                    hasCurrencySpace: true,
                 },
                 recurrence: { term: 'MONTHLY' },
                 asIs: {
@@ -1599,9 +1599,8 @@ describe('priceInfo (WCS pre-split tree)', () => {
             });
         });
 
-        // WCS reports hasCurrencySpace:false for JPY while its own `full` string
-        // ("11,990 &#20870;") carries the space, so the client keeps deriving it
-        // from formatString. Guards the space from disappearing if that changes.
+        // WCS reports hasCurrencySpace:true for JPY (MWPW-205707), and the client
+        // trusts priceInfo.format directly. Guards the space from disappearing.
         it('JP keeps the space before a trailing currency symbol', () => {
             const offer = offerFor('JP');
             const info = buildPriceHTML([withInfo(offer, abm.JP.priceInfo)], {
@@ -1961,7 +1960,7 @@ describe('priceInfo (WCS pre-split tree)', () => {
                     currencySymbol: '&#20870;',
                     usePrecision: false,
                     isCurrencyFirst: false,
-                    hasCurrencySpace: false,
+                    hasCurrencySpace: true,
                 },
                 tax: { display: 'TAX_INCLUSIVE_DETAILS', term: 'TAX' },
                 recurrence: { term: 'ANNUAL' },

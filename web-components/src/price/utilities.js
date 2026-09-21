@@ -294,9 +294,7 @@ function formatPrice(
         getCurrencySymbolDetails(formatString);
     // WCS already split the digits and grouped them for the locale: render them
     // verbatim, no client number formatting. Symbol and placement come from
-    // priceInfo.format, except hasCurrencySpace — WCS reports false for JPY
-    // (formatString "#,##0 '&#20870;'") while its own "full" string has the
-    // space, so that one stays derived until WCS corrects it.
+    // priceInfo.format, with derived values as fallback when it is absent.
     if (preformatted?.integer != null) {
         return {
             accessiblePrice: preformatted.full,
@@ -307,7 +305,8 @@ function formatPrice(
                     ? ''
                     : (priceInfoFormat?.decimalsDelimiter ??
                       findDecimalsDelimiter(formatString)),
-            hasCurrencySpace,
+            hasCurrencySpace:
+                priceInfoFormat?.hasCurrencySpace ?? hasCurrencySpace,
             integer: preformatted.integer,
             isCurrencyFirst:
                 priceInfoFormat?.isCurrencyFirst ?? isCurrencyFirst,

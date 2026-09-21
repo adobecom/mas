@@ -65,6 +65,7 @@ class MasPromotions extends LitElement {
         this.duplicating = false;
         this.reactiveController = new ReactiveController(this, [
             Store.promotions?.list?.data,
+            Store.promotions?.list?.loading,
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
             Store.promotions?.list?.search,

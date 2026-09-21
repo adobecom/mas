@@ -86,7 +86,6 @@ describe('MasPromotions', () => {
         document.body.appendChild(el);
         await el.updateComplete;
         await el.loadPromotions();
-        el.requestUpdate();
         await new Promise((resolve) => setTimeout(resolve, 0));
         await el.updateComplete;
         return { el, repo };
@@ -243,7 +242,6 @@ describe('MasPromotions', () => {
 
             resolveLoad();
             await componentLoadPromise;
-            el.requestUpdate();
             await el.updateComplete;
 
             expect(search.disabled).to.be.false;

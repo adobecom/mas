@@ -44,11 +44,11 @@
  *     project wins (startDate/seasonal order breaks ties), else a project-level wildcard
  *     promoCode applies. Projects with disjoint per-country entries therefore coexist on the
  *     same fragment.
- *   - `customize` also surfaces `cdtStart` / `cdtEnd` (countdown timer dates) on the main payload:
- *     once the final payload is built (mask applied), the first fragment rendering a link named
- *     `countdown-timer` is looked up (main body first, then references in document order), and the
- *     dates of its promo project, if any, are exposed. Both dates are required: a project defining
- *     only a start or only an end exposes nothing.
+ *   - `corrector` surfaces `cdtStart` / `cdtEnd` (countdown timer dates) on the main payload:
+ *     once the final payload is built (mask applied, placeholders expanded), the first fragment
+ *     rendering a link whose text is `countdown-timer` is looked up (main body first, then
+ *     references in document order), and the dates of its promo project, if any, are exposed.
+ *     Both dates are required: a project defining only a start or only an end exposes nothing.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';

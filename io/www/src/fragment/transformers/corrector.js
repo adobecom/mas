@@ -1,4 +1,5 @@
 import { getRequestInfos } from '../utils/common.js';
+import { promoProjectLabel } from './customize.js';
 import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
@@ -54,6 +55,84 @@ export function fixFieldsDataExtraOptions(context) {
 }
 
 /**
+ * A countdown timer is authored as a link whose text is `countdown-timer` in any rich text field
+ * (e.g. `<a href="...">countdown-timer</a>`).
+ */
+const COUNTDOWN_TIMER_LINK_TEXT = 'countdown-timer';
+const ANCHOR_REGEX = /<a\b[^>]*>([\s\S]*?)<\/a>/gi;
+
+/**
+ * Text content of an anchor, as a DOM `textContent` read would give it: the companion Milo
+ * implementation matches the link that way, so formatting markup inside the link
+ * (e.g. `<a href="#"><strong>countdown-timer</strong></a>`) must match here as well.
+ * @param {string} innerHtml the anchor's inner html
+ * @returns {string} normalized, lower-cased text content
+ */
+function anchorText(innerHtml) {
+    return innerHtml
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+function hasCountdownTimerLink(fields) {
+    if (!fields) return false;
+    for (const field of Object.values(fields)) {
+        // text/html fields arrive as { mimeType, value } objects (odinSchemaTransform).
+        const value = typeof field === 'string' ? field : field?.value;
+        if (typeof value !== 'string') continue;
+        for (const [, innerHtml] of value.matchAll(ANCHOR_REGEX)) {
+            if (anchorText(innerHtml) === COUNTDOWN_TIMER_LINK_TEXT) return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Finds the first fragment rendering a countdown-timer link: the main body first, then its
+ * references in document order (depth first). Search stops at the first match.
+ * @param {Object} fragment
+ * @param {Array} referencesTree
+ * @param {Object} references
+ * @returns {Object|null} the fragment, or null when no countdown timer is authored
+ */
+function findCountdownTimerFragment(fragment, referencesTree = [], references = {}) {
+    if (hasCountdownTimerLink(fragment?.fields)) return fragment;
+    for (const reference of referencesTree) {
+        if (reference.fieldName !== 'cards' && reference.fieldName !== 'collections') continue;
+        const child = references[reference.identifier]?.value;
+        if (!child) continue;
+        const found = findCountdownTimerFragment(child, reference.referencesTree, references);
+        if (found) return found;
+    }
+    return null;
+}
+
+/**
+ * Surfaces `cdtStart` / `cdtEnd` on the final payload: the first fragment rendering a
+ * countdown-timer link gives, via the promo project it carries, the timer dates. Resolved here,
+ * at the end of the pipeline, so a timer link supplied by a dictionary placeholder (expanded by
+ * `replace`, which runs after `customize`) is seen too. Both dates are required: a lone start or
+ * end is meaningless and ignored.
+ * @param {Object} context
+ */
+export function resolveCountdownTimer(context) {
+    const { body } = context;
+    const countdownTimerFragment = findCountdownTimerFragment(body, body.referencesTree, body.references);
+    if (!countdownTimerFragment) return;
+    const timerProject = (context.promoProjects ?? []).find(
+        ({ project }) => promoProjectLabel(project) === countdownTimerFragment.promoProject,
+    )?.project;
+    if (timerProject?.cdtStart && timerProject?.cdtEnd) {
+        logDebug(() => `countdown timer dates taken from promo project ${timerProject.id}`, context);
+        body.cdtStart = timerProject.cdtStart;
+        body.cdtEnd = timerProject.cdtEnd;
+    }
+}
+
+/**
  * checking and eventually fixing content we know is not correct
  * @param {} context
  */
@@ -69,6 +148,7 @@ async function corrector(context) {
     if (shouldApplyCorrector(surface)) {
         fixFieldsDataExtraOptions(context);
     }
+    resolveCountdownTimer(context);
     return context;
 }
 

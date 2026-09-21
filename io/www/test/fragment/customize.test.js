@@ -5,6 +5,7 @@ import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import { updateOffers } from '../../src/fragment/transformers/wcs.js';
+import { resolveCountdownTimer } from '../../src/fragment/transformers/corrector.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../src/fragment/utils/explicit-empty.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
@@ -3564,7 +3565,15 @@ describe('customize OSI substitution', function () {
     });
 });
 
-describe('customize countdown timer dates', function () {
+// Countdown dates are resolved by `corrector` (last transformer, after `replace`) but rely on the
+// promo provenance `customize` puts on each fragment: these cases run both steps in order.
+async function processCountdownTimer(context, promoProjects) {
+    const result = await processWithPromoProjects(context, promoProjects);
+    resolveCountdownTimer(result);
+    return result;
+}
+
+describe('countdown timer dates', function () {
     beforeEach(function () {
         fetchStub = sinon.stub(globalThis, 'fetch');
     });
@@ -3597,7 +3606,7 @@ describe('customize countdown timer dates', function () {
     }
 
     it('adds cdtStart/cdtEnd when the promo-scoped fragment renders a countdown-timer link', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'card-cdt',
@@ -3617,7 +3626,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('ignores fragments without a countdown-timer link', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'card-plain',
@@ -3637,7 +3646,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('ignores a fragment with no fields at all', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'card-empty',
@@ -3655,7 +3664,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('ignores projects that carry no countdown dates', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'card-cdt',
@@ -3681,7 +3690,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('ignores a project that defines only one of the two dates', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'card-cdt',
@@ -3707,7 +3716,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('takes the dates of the first card carrying the link in a collection', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'collection-cdt',
@@ -3746,7 +3755,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('stops at the first card carrying the link, even when it has no promo project', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'collection-cdt',
@@ -3773,7 +3782,7 @@ describe('customize countdown timer dates', function () {
     });
 
     it('takes the main body over its references', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'collection-cdt',
@@ -3805,8 +3814,58 @@ describe('customize countdown timer dates', function () {
         expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
     });
 
+    it('detects a countdown-timer link whose text is formatted', async function () {
+        const result = await processCountdownTimer(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-cdt',
+                body: {
+                    id: 'card-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/card-cdt',
+                    fields: {
+                        osi: 'OSI-C',
+                        description: {
+                            mimeType: 'text/html',
+                            // Milo matches on textContent: inner formatting must not hide the link.
+                            value: '<p>Ends in <a href="#"><strong>countdown-timer</strong></a></p>',
+                        },
+                    },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtEnd).to.equal(CDT_END);
+    });
+
+    it('ignores a link whose text merely contains countdown-timer', async function () {
+        const result = await processCountdownTimer(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card-cdt',
+                body: {
+                    id: 'card-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/card-cdt',
+                    fields: {
+                        osi: 'OSI-C',
+                        description: '<p><a href="#">see the countdown-timer below</a></p>',
+                    },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.cdtStart).to.be.undefined;
+        expect(result.body.cdtEnd).to.be.undefined;
+    });
+
     it('detects a countdown-timer link brought in by the mask fragment', async function () {
-        const result = await processWithPromoProjects(
+        const result = await processCountdownTimer(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'card-cdt',

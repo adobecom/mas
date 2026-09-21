@@ -779,7 +779,7 @@ describe('pipeline end to end', () => {
         };
 
         // The promo variation is the only place the countdown-timer link exists.
-        const stubPromoVariation = () =>
+        const stubPromoVariation = (description = VARIATION_DESCRIPTION) =>
             fetchStub
                 .withArgs(
                     'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/nala-evergreen&limit=50',
@@ -793,7 +793,7 @@ describe('pipeline end to end', () => {
                                 fields: {
                                     cardTitle: 'Creative cloud promotion!',
                                     subtitle: 'Get a great discount on creativecloud',
-                                    description: { mimeType: 'text/html', value: VARIATION_DESCRIPTION },
+                                    description: { mimeType: 'text/html', value: description },
                                 },
                             },
                         ],
@@ -812,6 +812,41 @@ describe('pipeline end to end', () => {
             expect(result.statusCode).to.equal(200);
             expect(result.body.variationId).to.equal('promo-var-cdt');
             expect(result.body.promoProject).to.equal('NalaEvergreen');
+            expect(result.body.fields.description.value).to.include('countdown-timer');
+            expect(result.body.cdtStart).to.equal(CDT_START);
+            expect(result.body.cdtEnd).to.equal(CDT_END);
+        });
+
+        // The `countdown-timer` link is supplied by a dictionary placeholder, so it only exists once
+        // `replace` has expanded it - after `customize` ran.
+        const stubDictionary = (entries) => {
+            const references = {};
+            const ids = Object.keys(entries).map((key) => {
+                const refId = `entry-${key}`;
+                references[refId] = { type: 'content-fragment', value: { id: refId, fields: { key, value: entries[key] } } };
+                return refId;
+            });
+            fetchStub
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
+                .returns(createResponse(200, { id: 'sandbox_fr_FR_dictionary' }));
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=direct-hydrated')
+                .returns(createResponse(200, { fields: { entries: ids }, references }));
+        };
+
+        it('exposes cdtStart/cdtEnd when the countdown-timer link comes from a placeholder', async () => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            stubBaseCard();
+            stubPromoProject();
+            stubPromoVariation('<p>{{promo-countdown}}</p>');
+            stubDictionary({ 'promo-countdown': '<a class="secondary-link" href="#">countdown-timer</a>' });
+
+            const state = new MockState();
+            const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
+
+            expect(result.statusCode).to.equal(200);
             expect(result.body.fields.description.value).to.include('countdown-timer');
             expect(result.body.cdtStart).to.equal(CDT_START);
             expect(result.body.cdtEnd).to.equal(CDT_END);

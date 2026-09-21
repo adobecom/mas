@@ -51,7 +51,6 @@ import {
     parsePromoCodeExceptions,
     parsePromotionOffersField,
     parseSelectedOfferIdsFromOffersField,
-    groupCountriesByPromoCode,
     handlePromotionOstOfferSelect,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
@@ -1506,7 +1505,6 @@ class MasPromotionsEditor extends LitElement {
         const defaultPromoCode = form.promoCode?.values?.[0] ?? '';
         const exceptions = parsePromoCodeExceptions(form.offers?.values);
         const offerIds = Store.promotions.selectedOffers.value;
-        const promoCodeGroups = groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode);
         const totalOffers = offerIds.length;
         const totalFragments = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
 
@@ -1527,35 +1525,6 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                         <div class="promotion-stat-value">${totalFragments}</div>
                     </div>
-                </div>
-                <div class="promotion-codes-by-country">
-                    <div class="promotion-codes-title">
-                        Promo codes by country
-                        <sp-icon-info size="s" label="Countries grouped by effective promo code"></sp-icon-info>
-                    </div>
-                    <table class="promo-codes-summary-table">
-                        <thead>
-                            <tr>
-                                <th>Promo codes</th>
-                                <th>Countries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${promoCodeGroups.length
-                                ? repeat(
-                                      promoCodeGroups,
-                                      (group) => group.promoCode,
-                                      (group) =>
-                                          html`<tr>
-                                              <td>${group.promoCode}</td>
-                                              <td>${group.countriesLabel}</td>
-                                          </tr>`,
-                                  )
-                                : html`<tr>
-                                      <td colspan="2">-</td>
-                                  </tr>`}
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>`;

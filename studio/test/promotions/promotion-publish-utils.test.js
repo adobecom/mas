@@ -24,6 +24,7 @@ import {
     promotionDeleteConfirmMessage,
 } from '../../src/promotions/promotion-publish-utils.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
+import Events from '../../src/events.js';
 
 describe('promotion-publish-utils', () => {
     const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sinon, itemsByFolder);
@@ -112,6 +113,7 @@ describe('promotion-publish-utils', () => {
                     fragments: { search },
                 },
             },
+            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -153,6 +155,7 @@ describe('promotion-publish-utils', () => {
                     },
                 },
             },
+            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -174,7 +177,7 @@ describe('promotion-publish-utils', () => {
         const search = makeSearchStub({
             [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' }],
         });
-        const aem = { sites: { cf: { fragments: { search } } } };
+        const aem = { sites: { cf: { fragments: { search } } }, wait: sinon.stub().resolves() };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
                 if (name === 'fragments') return [parentPath];
@@ -230,6 +233,7 @@ describe('promotion-publish-utils', () => {
                     fragments: { search },
                 },
             },
+            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -271,6 +275,7 @@ describe('promotion-publish-utils', () => {
                     },
                 },
             },
+            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -291,7 +296,7 @@ describe('promotion-publish-utils', () => {
         const search = makeSearchStub({
             [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' }],
         });
-        const aem = { sites: { cf: { fragments: { search } } } };
+        const aem = { sites: { cf: { fragments: { search } } }, wait: sinon.stub().resolves() };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
                 if (name === 'fragments') return [parentPath];
@@ -415,14 +420,18 @@ describe('promotion-publish-utils', () => {
             expect(fragments[1].path).to.equal(foundPath);
         });
 
-        it('falls back to publishing only the project when the batch publish call fails, and reports a full shortfall', async () => {
+        it('falls back to publishing only the project when the batch publish call fails, and reports a shortfall for every requested variation', async () => {
             const promotionPath = '/content/dam/mas/promotions/project';
-            const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';
+            const missingPath = '/content/dam/mas/acom/en_US/promotions/sale/card-missing';
+            const presentPath = '/content/dam/mas/acom/en_US/promotions/sale/card-present';
             const publish = sinon.stub().resolves();
             const publishFragments = sinon.stub().rejects(new Error('workflow rejected'));
             const getWithEtag = sinon.stub();
             getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
-            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', path: variationPath, etag: 'etag-var' });
+            getWithEtag.withArgs('var-present').resolves({ id: 'var-present', path: presentPath, etag: 'etag-present' });
+            const getByPath = sinon.stub();
+            getByPath.withArgs(missingPath).resolves(null);
+            getByPath.withArgs(presentPath).resolves({ id: 'var-present', path: presentPath });
             const repo = {
                 operation: { set: sinon.stub() },
                 aem: {
@@ -432,7 +441,7 @@ describe('promotion-publish-utils', () => {
                                 publish,
                                 publishFragments,
                                 getWithEtag,
-                                getByPath: sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath }),
+                                getByPath,
                             },
                         },
                     },
@@ -440,15 +449,27 @@ describe('promotion-publish-utils', () => {
                 processError: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
+            const toastStub = sinon.stub(Events.toast, 'emit');
 
-            const ok = await publishPromotionProject(repo, promotion, [variationPath]);
+            const ok = await publishPromotionProject(repo, promotion, [missingPath, presentPath]);
 
             expect(ok).to.be.true;
             expect(publishFragments.calledOnce).to.be.true;
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments).to.have.lengthOf(2);
             expect(publish.calledOnce).to.be.true;
             expect(publish.firstCall.args[0]).to.deep.equal({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
             expect(repo.processError.called).to.be.false;
             expect(repo.operation.set.lastCall.args[0]).to.equal(null);
+            expect(
+                toastStub.calledWith(
+                    sinon.match({
+                        variant: 'warning',
+                        content: promotionPublishShortfallMessage(2),
+                    }),
+                ),
+            ).to.be.true;
+            toastStub.restore();
         });
 
         it('skips a resolved variation that has content validation errors instead of publishing it', async () => {

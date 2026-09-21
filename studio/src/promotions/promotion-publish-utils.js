@@ -231,12 +231,11 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 if (!variationWithEtag || hasValidationErrors(variationWithEtag)) continue;
                 fragments.push(variationWithEtag);
             }
-            const resolvedVariationCount = fragments.length - 1;
             try {
                 await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
             } catch {
                 await repository.aem.sites.cf.fragments.publish(promotionWithEtag, publishReferencesWithStatus);
-                showToast(promotionPublishShortfallMessage(resolvedVariationCount), 'warning');
+                showToast(promotionPublishShortfallMessage(promoVariationPaths.length), 'warning');
                 return true;
             }
             const expectedFragmentCount = promoVariationPaths.length + 1;

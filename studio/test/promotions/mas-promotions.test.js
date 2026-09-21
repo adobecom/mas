@@ -260,6 +260,7 @@ describe('MasPromotions', () => {
                         },
                     },
                     tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                    wait: sandbox.stub().resolves(),
                 },
             });
         }

@@ -625,14 +625,6 @@ export async function resolveDefaultFragmentForPromoVariation(
 }
 
 /**
- * Resolves promo variations for fragments attached to a promotion project.
- * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
- * @param {import('../aem/aem.js').AEM} aem
- * @param {Object} promotionFragment
- * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
- * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
- */
-/**
  * Probes the `pzn` subfolder under a fragment's promo-variation path for promo variations
  * created from that fragment's own grouped variations.
  * @param {import('../aem/aem.js').AEM} aem
@@ -668,7 +660,11 @@ async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName)
         });
 }
 
-async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false, onlyPublished = false } = {}) {
+async function collectAttachedPromoVariationsOnce(
+    aem,
+    promotionFragment,
+    { onlyUnpublished = false, onlyPublished = false } = {},
+) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];
 
@@ -698,6 +694,38 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
             })
             .map((variation) => ({ ...variation, parentPath }));
     });
+}
+
+/**
+ * Resolves promo variations for fragments attached to a promotion project.
+ * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
+ * When filtering by publish status, the underlying AEM content-fragment search index can
+ * still be catching up right after a publish/unpublish write, so the count is re-polled
+ * until it stabilizes across two consecutive attempts (or the attempt budget runs out).
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
+ */
+async function collectAttachedPromoVariations(aem, promotionFragment, options = {}) {
+    const { onlyUnpublished = false, onlyPublished = false } = options;
+    if (!onlyUnpublished && !onlyPublished) {
+        return collectAttachedPromoVariationsOnce(aem, promotionFragment, options);
+    }
+
+    const promotionTagId = getPromotionTagFromFragment(promotionFragment);
+    const attachedPaths = promotionFragment.getFieldValues?.('fragments') || [];
+    if (!promotionTagId || !attachedPaths.length) return [];
+
+    let previousCount = null;
+    let result = [];
+    for (let attempt = 0; attempt < INDEX_POLL_MAX_ATTEMPTS; attempt++) {
+        result = await collectAttachedPromoVariationsOnce(aem, promotionFragment, options);
+        if (result.length === previousCount) break;
+        previousCount = result.length;
+        if (attempt < INDEX_POLL_MAX_ATTEMPTS - 1) await aem.wait(INDEX_POLL_INTERVAL_MS);
+    }
+    return result;
 }
 
 /**

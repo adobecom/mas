@@ -32,6 +32,7 @@ export const defaultLiterals = {
     strikethroughAriaLabel: 'Regularly at',
     planTypeLabel: '{planType, select, ABM {Annual, billed monthly} other {}}',
     discountLabel: '{discount}%',
+    priceUnavailableLabel: 'no price available',
 };
 
 const log = createLog('ConsonantTemplates/price');

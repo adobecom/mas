@@ -188,3 +188,32 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
+                    fragment-usage:
+                        function: src/fragment-usage/usage.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 60000 # ms — 1 min (web action ceiling)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    fragment-usage-rollup:
+                        function: src/fragment-usage/rollup.js
+                        runtime: nodejs:22
+                        inputs:
+                            GRAFANA_SERVICE_TOKEN: $GRAFANA_SERVICE_TOKEN
+                            GRAFANA_SERVICE_URL: $GRAFANA_SERVICE_URL
+                        limits:
+                            timeout: 300000 # ms — 5 min (two log scans, measured ~15 s)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                triggers:
+                    fragment-usage-hourly:
+                        feed: /whisk.system/alarms/interval
+                        inputs:
+                            minutes: 60
+                rules:
+                    fragment-usage-rollup-rule:
+                        trigger: fragment-usage-hourly
+                        action: fragment-usage-rollup

@@ -15,7 +15,7 @@ import { transformer as mask } from './transformers/mask.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
-import { isKnownLocale, resolveTerritoryCountries, restrictCountryToLocaleMarket } from './locales.js';
+import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
@@ -131,17 +131,12 @@ async function mainProcess(context) {
     // read and the parallel init fan-out (promotions.init reads context.country).
     const territory = resolveTerritoryCountries(context.locale, context.country);
     context.country = territory.country;
-    // MWPW-207865: WCS pricing must never be resolved against a country outside the locale's
-    // market family (e.g. en_GB + country=FR has no GB offer under a FR/US promo). Promo/geo-tag
+    // MWPW-207865: `context.wcsCountry` (restricted to the locale's market family) is resolved in
+    // fetchFragment's init, once `surface` is known — see restrictCountryToLocaleMarket. Promo/geo-tag
     // targeting elsewhere in the pipeline intentionally stays keyed on the raw request country —
     // that mechanism is locale-independent by design (see pipeline-e2e "per-offer promo ... for
     // one country" tests, where a fr_FR request with country=DE legitimately targets a DE-only
-    // promo). Territory-mapped locales (TERRITORY_MAP) are exempt: their wcsCountry is fixed
-    // regardless of the incoming country, so restricting the input first is a no-op for them.
-    context.wcsCountry = resolveTerritoryCountries(
-        context.locale,
-        restrictCountryToLocaleMarket(context.locale, context.country),
-    ).wcsCountry;
+    // promo).
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };

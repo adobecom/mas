@@ -282,10 +282,8 @@ const createPriceTemplate =
         } else {
             displayPrice = price;
         }
-        // Which leaf to index must mirror the number formatted below. Optical
-        // always divides `price`, never `displayPrice`, so it is always the
-        // discounted leaf even when a strikethrough context set displayPrice to
-        // priceWithoutDiscount.
+        // `!displayOptical`: optical divides `price` (discounted leaf), not
+        // `displayPrice`, so keep that leaf even under strikethrough.
         const showWithoutDiscount =
             !displayOptical && displayPrice === priceWithoutDiscount;
 

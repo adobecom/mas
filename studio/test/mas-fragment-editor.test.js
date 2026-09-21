@@ -426,6 +426,42 @@ describe('MasFragmentEditor', () => {
             expect(existingStore.previewStore.resolved).to.equal(false);
         });
 
+        it('deleteFragment awaits a still-pending cached-store promo refresh before staging variations', async () => {
+            const existingData = createFragmentData({ id: 'existing-id', locale: 'en_US', slug: 'existing' });
+            const existingStore = generateFragmentStore(new Fragment(existingData));
+            Store.fragments.list.data.value = [existingStore];
+            Store.fragmentEditor.fragmentId.value = 'existing-id';
+
+            let resolveRefresh;
+            mockRepo.refreshFragment = sandbox.stub().returns(
+                new Promise((resolve) => {
+                    resolveRefresh = resolve;
+                }),
+            );
+
+            await el.initFragment();
+
+            const listPromoVariationsStub = sandbox
+                .stub(existingStore.get(), 'listPromoVariations')
+                .returns([{ path: '/content/dam/mas/s/en_US/promotions/summer/existing' }]);
+
+            let deleteResolved = false;
+            const deletePromise = el.deleteFragment().then(() => {
+                deleteResolved = true;
+            });
+
+            await Promise.resolve();
+            expect(deleteResolved).to.be.false;
+            expect(listPromoVariationsStub.called).to.be.false;
+
+            resolveRefresh();
+            await deletePromise;
+
+            expect(deleteResolved).to.be.true;
+            expect(listPromoVariationsStub.calledOnce).to.be.true;
+            expect(el.variationsToDelete).to.include('/content/dam/mas/s/en_US/promotions/summer/existing');
+        });
+
         it('reattaches parent for existing variation when resolved parent changes', async () => {
             const oldParent = new Fragment(createFragmentData({ id: 'old-parent-id', locale: 'en_US', slug: 'default-old' }));
             const existingVariationData = createFragmentData({
@@ -1068,9 +1104,8 @@ describe('MasFragmentEditor', () => {
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
-                removeFromParentVariations: sandbox.stub().resolves(),
+                deleteVariationFragment: sandbox.stub().resolves({ deleted: true, failedVariations: [] }),
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);
             // Bypass structuredClone
@@ -1088,38 +1123,23 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.deleteFragmentWithVariations.calledOnce).to.be.true;
         });
 
-        it('confirms delete for variation via the reference-aware delete (no force) when it succeeds', async () => {
+        it('delegates variation delete to the repository with the locale default parent and staged promo variations', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
+
             await el.confirmDelete();
-            expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
+
             expect(
-                mockRepo.deleteFragment.calledOnceWith(sinon.match.object, {
-                    startToast: false,
-                    endToast: false,
+                mockRepo.deleteVariationFragment.calledOnceWith(sinon.match.object, {
+                    localeDefaultFragment: { id: 'parent' },
+                    promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
                 }),
             ).to.be.true;
         });
 
-        it('falls back to force delete for a variation only when the reference-aware delete fails', async () => {
-            mockRepo.deleteFragment = sandbox.stub();
-            mockRepo.deleteFragment.onFirstCall().resolves(false);
-            mockRepo.deleteFragment.onSecondCall().resolves(true);
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
-            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
-            await el.confirmDelete();
-            expect(mockRepo.deleteFragment.callCount).to.equal(2);
-            expect(
-                mockRepo.deleteFragment.secondCall.calledWith(sinon.match.object, {
-                    force: true,
-                    startToast: false,
-                    endToast: false,
-                }),
-            ).to.be.true;
-        });
-
-        it('shows a failure toast and does not navigate away when both delete attempts fail for a variation', async () => {
-            mockRepo.deleteFragment = sandbox.stub().resolves(false);
+        it('shows a failure toast and does not navigate away when the repository reports the delete failed', async () => {
+            mockRepo.deleteVariationFragment = sandbox.stub().resolves({ deleted: false, failedVariations: [] });
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
             const navigateSpy = sandbox.stub().resolves();
@@ -1128,12 +1148,83 @@ describe('MasFragmentEditor', () => {
 
             await el.confirmDelete();
 
-            expect(mockRepo.deleteFragment.callCount).to.equal(2);
             expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
             expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
             expect(navigateSpy.called).to.be.false;
             expect(Store.fragments.inEdit.set.called).to.be.false;
             expect(el.deleteInProgress).to.be.false;
+        });
+
+        it('stages already-known promo variations when deleting a grouped variation directly', async () => {
+            const listPromoVariations = sandbox
+                .stub()
+                .returns([{ path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment' }]);
+            el.inEdit.value = {
+                get: () => ({
+                    id: 'test-id',
+                    path: '/content/dam/mas/sandbox/en_US/pzn/my-fragment',
+                    getVariations: () => [],
+                    listPromoVariations,
+                }),
+            };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            await el.deleteFragment();
+
+            expect(listPromoVariations.calledOnce).to.be.true;
+            expect(el.variationsToDelete).to.deep.equal([
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+            ]);
+            expect(el.showDeleteDialog).to.be.true;
+        });
+
+        it('does not check promo variations when deleting a non-grouped variation', async () => {
+            const listPromoVariations = sandbox.stub().returns([]);
+            el.inEdit.value = {
+                get: () => ({
+                    id: 'test-id',
+                    path: '/content/dam/mas/sandbox/en_BE/my-fragment',
+                    getVariations: () => [],
+                    listPromoVariations,
+                }),
+            };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            await el.deleteFragment();
+
+            expect(listPromoVariations.called).to.be.false;
+            expect(el.variationsToDelete).to.deep.equal([]);
+        });
+
+        it('stages promo variations to delete when confirming delete of a grouped variation', async () => {
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
+
+            await el.confirmDelete();
+
+            expect(
+                mockRepo.deleteVariationFragment.calledOnceWith(sinon.match.object, {
+                    localeDefaultFragment: { id: 'parent' },
+                    promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+                }),
+            ).to.be.true;
+        });
+
+        it('warns instead of claiming success when a staged promo variation fails to force-delete', async () => {
+            mockRepo.deleteVariationFragment = sandbox.stub().resolves({
+                deleted: true,
+                failedVariations: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'];
+            const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+
+            await el.confirmDelete();
+
+            expect(toastEmitSpy.calledWithMatch({ variant: 'warning' })).to.be.true;
+            expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
         });
     });
 

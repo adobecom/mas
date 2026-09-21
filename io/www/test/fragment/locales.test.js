@@ -472,28 +472,34 @@ describe('locales', function () {
 
     describe('restrictCountryToLocaleMarket', () => {
         it('rejects a country outside the locale market family, falling back to the locale country (MWPW-207865)', () => {
-            expect(restrictCountryToLocaleMarket('en_GB', 'US')).to.equal('GB');
-            expect(restrictCountryToLocaleMarket('en_GB', 'FR')).to.equal('GB');
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', 'US')).to.equal('GB');
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', 'FR')).to.equal('GB');
         });
         it('keeps a country that is a registered region of the locale', () => {
-            expect(restrictCountryToLocaleMarket('en_GB', 'AU')).to.equal('AU');
-            expect(restrictCountryToLocaleMarket('en_GB', 'IN')).to.equal('IN');
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', 'AU')).to.equal('AU');
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', 'IN')).to.equal('IN');
         });
         it('keeps a country matching the locale itself', () => {
-            expect(restrictCountryToLocaleMarket('en_GB', 'GB')).to.equal('GB');
-            expect(restrictCountryToLocaleMarket('en_GB', 'gb')).to.equal('gb');
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', 'GB')).to.equal('GB');
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', 'gb')).to.equal('gb');
         });
         it('keeps a country that is a registered region of the requested locale (en_US)', () => {
-            expect(restrictCountryToLocaleMarket('en_US', 'FR')).to.equal('FR');
+            expect(restrictCountryToLocaleMarket('acom', 'en_US', 'FR')).to.equal('FR');
         });
         it('passes through when no country is supplied', () => {
-            expect(restrictCountryToLocaleMarket('en_GB', undefined)).to.equal(undefined);
+            expect(restrictCountryToLocaleMarket('acom', 'en_GB', undefined)).to.equal(undefined);
         });
-        it('does not throw and passes through for a locale with no registered market data', () => {
-            expect(restrictCountryToLocaleMarket('en_PR', 'US')).to.equal('US');
+        it('does not throw and passes through for a locale with no registered market data on this surface', () => {
+            expect(restrictCountryToLocaleMarket('acom', 'en_PR', 'US')).to.equal('US');
+        });
+        it('does not throw and passes through for a locale unregistered on the given surface', () => {
+            expect(restrictCountryToLocaleMarket('adobe-home', 'en_GB', 'US')).to.equal('US');
+        });
+        it('does not throw and passes through for an unregistered surface', () => {
+            expect(restrictCountryToLocaleMarket(undefined, 'en_GB', 'US')).to.equal('US');
         });
         it('does not throw on undefined locale', () => {
-            expect(restrictCountryToLocaleMarket(undefined, 'US')).to.equal('US');
+            expect(restrictCountryToLocaleMarket('acom', undefined, 'US')).to.equal('US');
         });
     });
 });

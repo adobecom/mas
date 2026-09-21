@@ -434,7 +434,9 @@ describe('pipeline end to end', () => {
         // Active seasonal promo project targeting the fragment. For DE, the offer carries a promo
         // code, an OSI substitution, and an ignore-variations flag. A single global promo variation
         // lives in the default-locale (fr_FR) folder and applies wherever it is not ignored.
-        function setupPromoScenario(fetchStub) {
+        // `withPriceElement` adds an inline price carrying the offer's osi, so the wcs transformer
+        // actually resolves pricing for it (a bare `fields.osi` alone is skipped by scanMasElements).
+        function setupPromoScenario(fetchStub, { withPriceElement = false } = {}) {
             setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
 
             // Controlled base fragment: known osi, no local variations, so the only variation in play
@@ -446,7 +448,16 @@ describe('pipeline end to end', () => {
                         path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
                         id: 'some-fr-fr-fragment',
                         model: { id: CARD_MODEL_ID },
-                        fields: { variant: 'plans', osi: OFFER_OSI },
+                        fields: {
+                            variant: 'plans',
+                            osi: OFFER_OSI,
+                            ...(withPriceElement && {
+                                prices: {
+                                    value: `<span is="inline-price" data-wcs-osi="${OFFER_OSI}"></span>`,
+                                    mimeType: 'text/html',
+                                },
+                            }),
+                        },
                         references: {},
                         referencesTree: [],
                     }),
@@ -516,6 +527,27 @@ describe('pipeline end to end', () => {
             // The DE-only promo code / substitution do not apply.
             expect(result.body.fields.promoCode).to.be.undefined;
             expect(result.body.fields.osi).to.equal(OFFER_OSI);
+        });
+
+        it('DE: promo code, OSI substitution & ignore-variations match the raw request country, but WCS pricing is restricted to the locale market (MWPW-207865)', async () => {
+            setupPromoScenario(fetchStub, { withPriceElement: true });
+            const state = new MockState();
+            const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR', country: 'DE' });
+
+            expect(result.statusCode).to.equal(200);
+            // Promo targeting + grouped variation (substitute, ignore-variations) match the raw
+            // request country (DE) regardless of whether DE belongs to fr_FR's market family — that
+            // mechanism is deliberately locale-agnostic (see restrictCountryToLocaleMarket's doc comment).
+            expect(result.body.fields.promoText).to.be.undefined;
+            expect(result.body.fields.promoCode).to.equal('DE20');
+            expect(result.body.fields.osi).to.equal('OSI-DE');
+            // WCS pricing, however, is restricted to fr_FR's market family: DE is not a registered
+            // region of fr_FR on ACOM, so wcsCountry falls back to FR instead of leaking DE into the
+            // pricing lookup.
+            const wcsCalls = fetchStub.getCalls().filter((call) => String(call.args[0]).includes('web_commerce_artifact'));
+            expect(wcsCalls.length).to.be.greaterThan(0);
+            expect(wcsCalls.every((call) => String(call.args[0]).includes('country=FR'))).to.be.true;
+            expect(wcsCalls.some((call) => String(call.args[0]).includes('country=DE'))).to.be.false;
         });
     });
 

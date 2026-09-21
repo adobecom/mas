@@ -76,22 +76,6 @@ describe('rewriteImageUrlsForProd', () => {
         });
         expect(out).to.not.contain('<picture>');
     });
-
-    it('rewrites *.aem.page origins to the prod origin on a published *.aem.live host', () => {
-        const liveOrigin = 'https://main--mas-test--adobecom.aem.live';
-        const out = rewriteImageUrlsForProd(INNER, {
-            hostname: 'main--mas-test--adobecom.aem.live',
-            origin: liveOrigin,
-        });
-        const doc = parse(out);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(
-            `${liveOrigin}/test-fragments/media_1.png?width=750&format=png&optimize=medium`,
-        );
-        doc.querySelectorAll('source').forEach((s) => {
-            expect(s.getAttribute('srcset')).to.contain(`${liveOrigin}/`);
-            expect(s.getAttribute('srcset')).to.not.contain('aem.page');
-        });
-    });
 });
 
 describe('sanitizeAssetUrl', () => {

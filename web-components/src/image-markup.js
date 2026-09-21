@@ -68,11 +68,9 @@ export function buildPictureInnerMarkup(url) {
 }
 
 function isProdLocation(location) {
-    const hostname = location?.hostname ?? '';
     return (
-        hostname === 'www.adobe.com' ||
-        hostname === 'adobe.com' ||
-        hostname.endsWith('.aem.live')
+        location?.hostname === 'www.adobe.com' ||
+        location?.hostname === 'adobe.com'
     );
 }
 

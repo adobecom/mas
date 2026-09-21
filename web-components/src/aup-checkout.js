@@ -1,5 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { MODAL_TYPE_3_IN_1 } from './constants.js';
+import { AUP_CHECKOUT_CLIENT_IDS, MODAL_TYPE_3_IN_1 } from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
@@ -19,6 +19,7 @@ function withTimeout(promise, stage, ms) {
 
 export function isAupCheckoutSupported(offers, options) {
     return (
+        AUP_CHECKOUT_CLIENT_IDS.has(options.checkoutClientId) &&
         offers.length > 0 &&
         !options.upgrade &&
         !options.perpetual &&

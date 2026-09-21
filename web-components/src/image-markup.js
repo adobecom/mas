@@ -50,13 +50,15 @@ function rendition(url, width, format) {
 
 function formatFor(url) {
     const ext = new URL(url).pathname.split('.').pop().toLowerCase();
-    return FORMAT_BY_EXT[ext] ?? { type: `image/${ext}`, format: ext };
+    return FORMAT_BY_EXT[ext] ?? null;
 }
 
 export function buildPictureInnerMarkup(url) {
     if (!isSupportedAssetHostname(url)) return '';
     const safeUrl = sanitizeAssetUrl(url);
-    const { type, format } = formatFor(safeUrl);
+    const formatInfo = formatFor(safeUrl);
+    if (!formatInfo) return '';
+    const { type, format } = formatInfo;
     return [
         `<source type="image/webp" srcset="${rendition(safeUrl, DESKTOP.width, 'webply')}" media="${DESKTOP.media}">`,
         `<source type="image/webp" srcset="${rendition(safeUrl, MOBILE_WIDTH, 'webply')}">`,
@@ -66,9 +68,11 @@ export function buildPictureInnerMarkup(url) {
 }
 
 function isProdLocation(location) {
+    const hostname = location?.hostname ?? '';
     return (
-        location?.hostname === 'www.adobe.com' ||
-        location?.hostname === 'adobe.com'
+        hostname === 'www.adobe.com' ||
+        hostname === 'adobe.com' ||
+        hostname.endsWith('.aem.live')
     );
 }
 
@@ -93,8 +97,8 @@ export function rewriteImageUrlsForProd(inner, location = globalThis.location) {
     return template.content.querySelector('picture').innerHTML;
 }
 
-const BACKGROUNDS_DESKTOP_MEDIA = '(min-width: 1200px)';
-const BACKGROUNDS_TABLET_MEDIA = '(min-width: 600px)';
+export const BACKGROUNDS_DESKTOP_MEDIA = '(min-width: 1200px)';
+export const BACKGROUNDS_TABLET_MEDIA = '(min-width: 600px)';
 
 /** Extracts one breakpoint's URL out of buildBackgroundsHtml's combined markup.
  *  'desktop'/'tablet' read the matching <source media> srcset. 'mobile' reads

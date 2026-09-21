@@ -1,7 +1,9 @@
-import { isSupportedImageUrl } from './image-url.js';
-
-const DESKTOP_MEDIA = '(min-width: 1200px)';
-const TABLET_MEDIA = '(min-width: 600px)';
+import {
+    isSupportedAssetHostname as isSupportedImageUrl,
+    BACKGROUNDS_DESKTOP_MEDIA as DESKTOP_MEDIA,
+    BACKGROUNDS_TABLET_MEDIA as TABLET_MEDIA,
+    extractBackgroundUrl,
+} from '../../../web-components/src/image-markup.js';
 
 function validOrEmpty(url) {
     return isSupportedImageUrl(url) ? new URL(url).href : '';
@@ -35,13 +37,9 @@ export function buildBackgroundsHtml({ desktop = '', tablet = '', mobile = '' } 
 /** Extracts { desktop, tablet, mobile } back out of markup built by buildBackgroundsHtml. */
 export function parseBackgroundsUrls(html) {
     if (!html) return { desktop: '', tablet: '', mobile: '' };
-    const doc = new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
-    const desktopSource = doc.querySelector(`source[media="${DESKTOP_MEDIA}"]`);
-    const tabletSource = doc.querySelector(`source[media="${TABLET_MEDIA}"]`);
-    const img = doc.querySelector('img');
     return {
-        desktop: desktopSource?.getAttribute('srcset') ?? '',
-        tablet: tabletSource?.getAttribute('srcset') ?? '',
-        mobile: img?.hasAttribute('data-mobile-set') ? (img.getAttribute('src') ?? '') : '',
+        desktop: extractBackgroundUrl(html, 'desktop'),
+        tablet: extractBackgroundUrl(html, 'tablet'),
+        mobile: extractBackgroundUrl(html, 'mobile'),
     };
 }

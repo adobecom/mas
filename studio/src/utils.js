@@ -658,3 +658,17 @@ export function describeVariationsToDelete(fragment, variationsToDelete = []) {
     if (promoCount) parts.push(`${promoCount} promo`);
     return `${parts.join(', ')} variation(s)`;
 }
+
+/** Extracts the base asset URL back out of picture markup built by buildPictureInnerMarkup
+ *  (web-components/src/image-markup.js), stripping the rendition query params. */
+export function extractImageUrl(html) {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
+    const src = doc.querySelector('img')?.getAttribute('src') ?? doc.querySelector('source')?.getAttribute('srcset');
+    if (!src) return '';
+    const parsed = new URL(src);
+    parsed.searchParams.delete('width');
+    parsed.searchParams.delete('format');
+    parsed.searchParams.delete('optimize');
+    return parsed.href;
+}

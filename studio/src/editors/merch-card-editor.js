@@ -15,8 +15,11 @@ import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
-import { getFragmentMapping, showToast } from '../utils.js';
-import { buildPictureHtml, extractImageUrl, isSupportedImageUrl } from './image-url.js';
+import { extractImageUrl, getFragmentMapping, showToast } from '../utils.js';
+import {
+    buildPictureInnerMarkup as buildPictureHtml,
+    isSupportedAssetHostname as isSupportedImageUrl,
+} from '../../../web-components/src/image-markup.js';
 import { buildBackgroundsHtml, parseBackgroundsUrls } from './backgrounds-url.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
@@ -114,6 +117,7 @@ class MerchCardEditor extends LitElement {
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
         imageUrlInvalid: { type: Boolean, state: true },
+        backgroundsUrlInvalid: { type: Object, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -151,6 +155,7 @@ class MerchCardEditor extends LitElement {
         this.fieldsReady = false;
         this.previewLocaleOverride = null;
         this.imageUrlInvalid = false;
+        this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -897,6 +902,8 @@ class MerchCardEditor extends LitElement {
         }
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
+            this.imageUrlInvalid = false;
+            this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
             this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
@@ -1774,9 +1781,16 @@ class MerchCardEditor extends LitElement {
                         id="background-desktop"
                         data-field="backgrounds"
                         data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
+                        ?invalid="${this.backgroundsUrlInvalid.desktop}"
                         value="${backgroundsUrls.desktop}"
-                        @input="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
-                    ></sp-textfield>
+                        @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
+                    >
+                        ${this.backgroundsUrlInvalid.desktop
+                            ? html`<sp-help-text slot="negative-help-text"
+                                  >Enter a valid *.aem.page background desktop URL.</sp-help-text
+                              >`
+                            : nothing}
+                    </sp-textfield>
                     ${this.#renderBackgroundStatusIndicator('desktop')}
 
                     <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
@@ -1785,9 +1799,16 @@ class MerchCardEditor extends LitElement {
                         id="background-tablet"
                         data-field="backgrounds"
                         data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
+                        ?invalid="${this.backgroundsUrlInvalid.tablet}"
                         value="${backgroundsUrls.tablet}"
-                        @input="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
-                    ></sp-textfield>
+                        @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
+                    >
+                        ${this.backgroundsUrlInvalid.tablet
+                            ? html`<sp-help-text slot="negative-help-text"
+                                  >Enter a valid *.aem.page background tablet URL.</sp-help-text
+                              >`
+                            : nothing}
+                    </sp-textfield>
                     ${this.#renderBackgroundStatusIndicator('tablet')}
 
                     <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
@@ -1796,9 +1817,16 @@ class MerchCardEditor extends LitElement {
                         id="background-mobile"
                         data-field="backgrounds"
                         data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
+                        ?invalid="${this.backgroundsUrlInvalid.mobile}"
                         value="${backgroundsUrls.mobile}"
-                        @input="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
-                    ></sp-textfield>
+                        @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
+                    >
+                        ${this.backgroundsUrlInvalid.mobile
+                            ? html`<sp-help-text slot="negative-help-text"
+                                  >Enter a valid *.aem.page background mobile URL.</sp-help-text
+                              >`
+                            : nothing}
+                    </sp-textfield>
                     ${this.#renderBackgroundStatusIndicator('mobile')}
                 </sp-field-group>
                 ${this.currentVariantMapping?.image
@@ -2765,14 +2793,26 @@ class MerchCardEditor extends LitElement {
 
     /** Reads the current backgrounds field value straight from the fragment (not the
      *  effective/inherited value), so a change to one breakpoint can be merged with
-     *  the other two's own values without clobbering them. */
+     *  the other two's own values without clobbering them. When the fragment has no
+     *  own backgrounds field (fully inheriting), seeds from the parent's effective
+     *  value instead of empty strings — otherwise editing one breakpoint would drop
+     *  the other two inherited breakpoints. */
     #getOwnBackgroundsUrls() {
-        return parseBackgroundsUrls(this.fragment.getField('backgrounds')?.values?.[0] ?? '');
+        const ownField = this.fragment.getField('backgrounds');
+        if (!ownField?.values?.length) {
+            return parseBackgroundsUrls(this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '');
+        }
+        return parseBackgroundsUrls(ownField.values[0] ?? '');
     }
 
     #handleBackgroundsPartUpdate(key, event) {
+        const url = event.target.value.trim();
+        const invalid = Boolean(url) && !isSupportedImageUrl(url);
+        this.backgroundsUrlInvalid = { ...this.backgroundsUrlInvalid, [key]: invalid };
+        if (invalid) return;
+
         const current = this.#getOwnBackgroundsUrls();
-        current[key] = event.target.value.trim();
+        current[key] = url;
         this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
     }
 
@@ -2785,21 +2825,20 @@ class MerchCardEditor extends LitElement {
         this.requestUpdate();
     }
 
-    /** Per-breakpoint override state within the single combined "backgrounds" field,
-     *  mirroring Fragment#getFieldState's own/inherited/same-as-parent/overridden
-     *  semantics but scoped to one breakpoint's URL instead of the whole field value. */
+    /** Per-breakpoint override state within the combined "backgrounds" field.
+     *  Once the fragment owns the field, an empty breakpoint ships empty (not the
+     *  parent's value) — so it's compared against the parent, not reported as inherited. */
     #getBackgroundBreakpointState(key) {
         if (!this.effectiveIsVariation) return 'no-parent';
         const ownField = this.fragment.getField('backgrounds');
         if (!ownField?.values?.length) return 'inherited';
         const own = this.#getOwnBackgroundsUrls()[key];
-        if (!own) return 'inherited';
         const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
         const parent = parseBackgroundsUrls(parentRaw)[key];
         return own === parent ? 'same-as-parent' : 'overridden';
     }
 
-    async #resetBackgroundBreakpointToParent(key) {
+    #resetBackgroundBreakpointToParent(key) {
         const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
         const current = this.#getOwnBackgroundsUrls();
         current[key] = parseBackgroundsUrls(parentRaw)[key];

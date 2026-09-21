@@ -2051,6 +2051,17 @@ describe('processImage (headless-family)', () => {
 
         expect(el.querySelector('[slot="image"]')).to.not.exist;
     });
+
+    it('does not append anything for variants where image has no mapping.slot', () => {
+        const el = document.createElement('div');
+        const fields = {
+            image: '<img src="x?width=750">',
+        };
+
+        processImage(fields, el, { image: true });
+
+        expect(el.children).to.have.lengthOf(0);
+    });
 });
 
 describe('processBackgrounds (headless-family)', () => {

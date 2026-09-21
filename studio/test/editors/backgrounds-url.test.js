@@ -1,9 +1,9 @@
 import { expect } from '@esm-bundle/chai';
 import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
 
-const DESKTOP_URL = 'https://main--da-cc--adobecom.aem.page/media_desktop.png';
-const TABLET_URL = 'https://main--da-cc--adobecom.aem.page/media_tablet.png';
-const MOBILE_URL = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+const DESKTOP_URL = 'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+const TABLET_URL = 'https://main--mas-test--adobecom.aem.page/media_tablet.png';
+const MOBILE_URL = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
 
 function parse(html) {
     return new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
@@ -53,7 +53,7 @@ describe('buildBackgroundsHtml', () => {
 
 describe('buildBackgroundsHtml - attribute injection safety', () => {
     it('does not let a quote in an otherwise-valid-hostname URL break out of the srcset/src attribute', () => {
-        const malicious = 'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+        const malicious = 'https://main--mas-test--adobecom.aem.page/a.png" onerror="alert(1)';
         const doc = parse(buildBackgroundsHtml({ mobile: malicious }));
         expect(doc.querySelector('[onerror]')).to.not.exist;
     });

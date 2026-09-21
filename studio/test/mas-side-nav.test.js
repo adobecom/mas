@@ -109,7 +109,7 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('includes the image field with the source URL as preview', () => {
-            const url = 'https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png';
+            const url = 'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png';
             const picture =
                 `<source type="image/webp" srcset="${url}?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">` +
                 `<img loading="lazy" alt="" src="${url}?width=750&format=png&optimize=medium">`;
@@ -132,9 +132,9 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('splits the backgrounds field into three separate copyable rows, one per breakpoint', () => {
-            const desktop = 'https://main--da-cc--adobecom.aem.page/media_desktop.png';
-            const tablet = 'https://main--da-cc--adobecom.aem.page/media_tablet.png';
-            const mobile = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+            const desktop = 'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+            const tablet = 'https://main--mas-test--adobecom.aem.page/media_tablet.png';
+            const mobile = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
             const html =
                 `<source srcset="${desktop}" media="(min-width: 1200px)">` +
                 `<source srcset="${tablet}" media="(min-width: 600px)">` +
@@ -162,7 +162,7 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('leaves the preview empty for a breakpoint row that is not filled', () => {
-            const mobile = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+            const mobile = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
             const html = `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
             const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));

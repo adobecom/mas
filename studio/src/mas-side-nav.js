@@ -10,9 +10,9 @@ import {
     previewValue,
     previewFragmentOnPage,
     getFragmentMapping,
+    extractImageUrl,
 } from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
-import { extractImageUrl } from './editors/image-url.js';
 import { parseBackgroundsUrls } from './editors/backgrounds-url.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';

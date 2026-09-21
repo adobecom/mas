@@ -161,6 +161,10 @@ styles.innerHTML = `
     /* background image */
     --consonant-merch-card-bg-img-height: 180px;
 
+    /* backgrounds field image */
+    --consonant-merch-card-backgrounds-img-object-fit: contain;
+    --consonant-merch-card-backgrounds-img-radius: 16px;
+
     /* inline SVGs */
     --checkmark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath fill='%23fff' d='M3.788 9A.999.999 0 0 1 3 8.615l-2.288-3a1 1 0 1 1 1.576-1.23l1.5 1.991 3.924-4.991a1 1 0 1 1 1.576 1.23l-4.712 6A.999.999 0 0 1 3.788 9z' class='spectrum-UIIcon--medium'/%3E%3C/svg%3E%0A");
 
@@ -611,9 +615,9 @@ merch-card picture[slot='backgrounds'] img {
     width: 100%;
     min-height: var(--consonant-merch-card-bg-img-height);
     max-height: var(--consonant-merch-card-bg-img-height);
-    object-fit: contain;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    object-fit: var(--consonant-merch-card-backgrounds-img-object-fit);
+    border-top-left-radius: var(--consonant-merch-card-backgrounds-img-radius);
+    border-top-right-radius: var(--consonant-merch-card-backgrounds-img-radius);
 }
 
 .price-unit-type:not(.disabled)::before,

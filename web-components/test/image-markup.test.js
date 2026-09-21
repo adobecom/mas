@@ -9,7 +9,7 @@ import {
 } from '../src/image-markup.js';
 
 const AEM =
-    'https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png';
+    'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png';
 const INNER =
     `<source type="image/webp" srcset="${AEM}?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">` +
     `<source type="image/webp" srcset="${AEM}?width=750&format=webply&optimize=medium">` +
@@ -26,7 +26,7 @@ describe('aemPageToProd', () => {
                 'https://www.adobe.com',
             ),
         ).to.equal(
-            'https://www.adobe.com/cc-shared/fragments/media_1.png?width=750&format=png',
+            'https://www.adobe.com/test-fragments/media_1.png?width=750&format=png',
         );
     });
 
@@ -59,7 +59,7 @@ describe('rewriteImageUrlsForProd', () => {
         });
         const doc = parse(out);
         expect(doc.querySelector('img').getAttribute('src')).to.equal(
-            'https://www.adobe.com/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium',
+            'https://www.adobe.com/test-fragments/media_1.png?width=750&format=png&optimize=medium',
         );
         doc.querySelectorAll('source').forEach((s) => {
             expect(s.getAttribute('srcset')).to.contain(
@@ -75,6 +75,22 @@ describe('rewriteImageUrlsForProd', () => {
             origin: 'https://www.adobe.com',
         });
         expect(out).to.not.contain('<picture>');
+    });
+
+    it('rewrites *.aem.page origins to the prod origin on a published *.aem.live host', () => {
+        const liveOrigin = 'https://main--mas-test--adobecom.aem.live';
+        const out = rewriteImageUrlsForProd(INNER, {
+            hostname: 'main--mas-test--adobecom.aem.live',
+            origin: liveOrigin,
+        });
+        const doc = parse(out);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(
+            `${liveOrigin}/test-fragments/media_1.png?width=750&format=png&optimize=medium`,
+        );
+        doc.querySelectorAll('source').forEach((s) => {
+            expect(s.getAttribute('srcset')).to.contain(`${liveOrigin}/`);
+            expect(s.getAttribute('srcset')).to.not.contain('aem.page');
+        });
     });
 });
 
@@ -114,6 +130,15 @@ describe('isSupportedAssetHostname', () => {
     it('rejects an empty value', () => {
         expect(isSupportedAssetHostname('')).to.be.false;
     });
+
+    it('rejects a relative URL', () => {
+        expect(isSupportedAssetHostname('./media_x.png')).to.be.false;
+    });
+
+    it('rejects the bare aem.page apex (must be a subdomain)', () => {
+        expect(isSupportedAssetHostname('https://aem.page/media_x.png')).to.be
+            .false;
+    });
 });
 
 describe('buildPictureInnerMarkup', () => {
@@ -145,6 +170,7 @@ describe('buildPictureInnerMarkup', () => {
         expect(sources[2].getAttribute('srcset')).to.equal(
             `${AEM}?width=2000&format=png&optimize=medium`,
         );
+        expect(sources[2].getAttribute('media')).to.equal('(min-width: 600px)');
 
         expect(img.getAttribute('loading')).to.equal('lazy');
         expect(img.getAttribute('alt')).to.equal('');
@@ -158,15 +184,50 @@ describe('buildPictureInnerMarkup', () => {
         const doc = parse(buildPictureInnerMarkup(malicious));
         expect(doc.querySelector('[onerror]')).to.not.exist;
     });
+
+    it('returns empty string for a supported host with an unsupported file extension', () => {
+        expect(
+            buildPictureInnerMarkup(
+                'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.svg',
+            ),
+        ).to.equal('');
+    });
+
+    it('returns empty string when the URL path has no file extension', () => {
+        expect(
+            buildPictureInnerMarkup(
+                'https://main--mas-test--adobecom.aem.page/test-fragments/media_1',
+            ),
+        ).to.equal('');
+    });
+
+    it('maps jpg to image/jpeg source type', () => {
+        const JPG =
+            'https://main--mas-test--adobecom.aem.page/fragments/media_abc.jpg';
+        const doc = parse(buildPictureInnerMarkup(JPG));
+        const original = [...doc.querySelectorAll('source')].at(-1);
+        expect(original.getAttribute('type')).to.equal('image/jpeg');
+        expect(original.getAttribute('srcset')).to.contain('format=jpg');
+    });
+
+    it('merges the rendition params into an existing query instead of appending a second "?"', () => {
+        const AEM_WITH_QUERY = `${AEM}?rev=3`;
+        const doc = parse(buildPictureInnerMarkup(AEM_WITH_QUERY));
+        const img = doc.querySelector('img');
+        const src = img.getAttribute('src');
+        expect(src.split('?').length - 1).to.equal(1);
+        expect(src).to.contain('rev=3');
+        expect(src).to.contain('width=750');
+    });
 });
 
 describe('extractBackgroundUrl', () => {
     const DESKTOP_URL =
-        'https://main--da-cc--adobecom.aem.page/media_desktop.png';
+        'https://main--mas-test--adobecom.aem.page/media_desktop.png';
     const TABLET_URL =
-        'https://main--da-cc--adobecom.aem.page/media_tablet.png';
+        'https://main--mas-test--adobecom.aem.page/media_tablet.png';
     const MOBILE_URL =
-        'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+        'https://main--mas-test--adobecom.aem.page/media_mobile.png';
     const COMBINED =
         `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
         `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +

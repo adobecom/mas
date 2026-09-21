@@ -403,6 +403,7 @@ export function processBackgroundImage(
 }
 
 export function processImage(fields, merchCard, mapping) {
+    if (!mapping.image?.slot) return;
     if (fields.image) {
         fields.image = rewriteImageUrlsForProd(fields.image);
     }

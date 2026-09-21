@@ -22,9 +22,10 @@ async function renderCard(variant, innerHTML) {
     return card;
 }
 
-const DESKTOP_URL = 'https://main--da-cc--adobecom.aem.page/media_desktop.png';
-const TABLET_URL = 'https://main--da-cc--adobecom.aem.page/media_tablet.png';
-const MOBILE_URL = 'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+const DESKTOP_URL =
+    'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+const TABLET_URL = 'https://main--mas-test--adobecom.aem.page/media_tablet.png';
+const MOBILE_URL = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
 const BACKGROUNDS_PICTURE =
     `<picture slot="backgrounds">` +
     `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +

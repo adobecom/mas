@@ -1512,9 +1512,9 @@ describe('mas-field osi getter', () => {
 });
 
 const IMAGE_INNER =
-    '<source type="image/webp" srcset="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">' +
-    '<source type="image/webp" srcset="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=750&format=webply&optimize=medium">' +
-    '<img loading="lazy" alt="" src="https://main--da-cc--adobecom.aem.page/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium">';
+    '<source type="image/webp" srcset="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">' +
+    '<source type="image/webp" srcset="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=750&format=webply&optimize=medium">' +
+    '<img loading="lazy" alt="" src="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=750&format=png&optimize=medium">';
 
 describe('renderImageMarkup', () => {
     const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
@@ -1534,7 +1534,7 @@ describe('renderImageMarkup', () => {
             renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
         );
         expect(doc.querySelector('img').getAttribute('src')).to.contain(
-            'main--da-cc--adobecom.aem.page',
+            'main--mas-test--adobecom.aem.page',
         );
     });
 
@@ -1547,11 +1547,11 @@ describe('renderImageMarkup', () => {
         );
         const img = doc.querySelector('img');
         expect(img.getAttribute('src')).to.equal(
-            'https://www.adobe.com/cc-shared/fragments/media_1.png?width=750&format=png&optimize=medium',
+            'https://www.adobe.com/test-fragments/media_1.png?width=750&format=png&optimize=medium',
         );
         doc.querySelectorAll('source').forEach((s) => {
             expect(s.getAttribute('srcset')).to.contain(
-                'https://www.adobe.com/cc-shared/fragments/media_1.png',
+                'https://www.adobe.com/test-fragments/media_1.png',
             );
             expect(s.getAttribute('srcset')).to.not.contain('aem.page');
         });
@@ -1584,7 +1584,7 @@ describe('mas-field – image rendering', () => {
     });
 
     it('renders backgroundImage as a <picture data-role> with a single <img>', () => {
-        const url = 'https://main--da-cc--adobecom.aem.page/media/bg.png';
+        const url = 'https://main--mas-test--adobecom.aem.page/media/bg.png';
         const el = makeField('backgroundImage', url);
         const picture = el.querySelector(
             ':scope > picture[data-role="mas-field-content"]',
@@ -1614,7 +1614,7 @@ describe('mas-field – image rendering', () => {
     it('clears a previously rendered <picture> and hides the field when backgroundImage becomes empty', () => {
         const el = makeField(
             'backgroundImage',
-            'https://main--da-cc--adobecom.aem.page/media/bg.png',
+            'https://main--mas-test--adobecom.aem.page/media/bg.png',
         );
         const fragment = el.querySelector('aem-fragment');
         fragment.dispatchEvent(
@@ -1630,11 +1630,11 @@ describe('mas-field – image rendering', () => {
 
 describe('mas-field – backgrounds rendering (field="backgrounds" / "backgrounds[breakpoint]")', () => {
     const DESKTOP_URL =
-        'https://main--da-cc--adobecom.aem.page/media_desktop.png';
+        'https://main--mas-test--adobecom.aem.page/media_desktop.png';
     const TABLET_URL =
-        'https://main--da-cc--adobecom.aem.page/media_tablet.png';
+        'https://main--mas-test--adobecom.aem.page/media_tablet.png';
     const MOBILE_URL =
-        'https://main--da-cc--adobecom.aem.page/media_mobile.png';
+        'https://main--mas-test--adobecom.aem.page/media_mobile.png';
     const COMBINED =
         `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
         `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
@@ -1764,7 +1764,7 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
 
     it('does not let a quote in a stored backgrounds[breakpoint] URL break out of the src attribute', () => {
         const malicious =
-            'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+            'https://main--mas-test--adobecom.aem.page/a.png" onerror="alert(1)';
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'backgrounds[mobile]');
         const fragment = document.createElement('aem-fragment');
@@ -1793,7 +1793,7 @@ describe('mas-field, backgroundImage attribute injection safety', () => {
 
     it('does not let a quote in a stored backgroundImage URL break out of the src attribute', () => {
         const malicious =
-            'https://main--da-cc--adobecom.aem.page/a.png" onerror="alert(1)';
+            'https://main--mas-test--adobecom.aem.page/a.png" onerror="alert(1)';
         const el = makeField('backgroundImage', malicious);
         expect(el.querySelector('[onerror]')).to.not.exist;
     });

@@ -62,10 +62,21 @@ export const styles = css`
         overflow: hidden;
     }
 
+    /* sp-table resolves to display:table unless it is driven by the virtualizer, which would
+       strand sp-table-body's own flex-grow. Styling it from here re-establishes the flex column
+       so the head keeps its height and the body absorbs the rest. */
     .pages-table {
-        flex: 0 1 auto;
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
         min-height: 0;
         --spectrum-table-row-height: 48px;
+    }
+
+    /* sp-table-body only opts into overflow:auto while it carries a tabindex, which is also what
+       makes the scroll region reachable by keyboard. min-height lets it shrink under its rows. */
+    .pages-body {
+        min-height: 0;
     }
 
     /* The table markup lives in this shadow root, so the cells are styled by element selector.

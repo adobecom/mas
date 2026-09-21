@@ -1,4 +1,5 @@
 import { expect, fixture, html } from '@open-wc/testing';
+import '../../src/swc.js';
 import '../../src/references/mas-external-usage-dialog.js';
 
 const usage = {
@@ -30,6 +31,23 @@ describe('mas-external-usage-dialog', () => {
             html`<mas-external-usage-dialog .open=${false} .usage=${usage}></mas-external-usage-dialog>`,
         );
         expect(element.shadowRoot.querySelector('sp-dialog')).to.equal(null);
+    });
+
+    it('scrolls the row list instead of clipping it when the pages outrun the dialog', async () => {
+        const many = Array.from({ length: 40 }, (unused, index) => ({
+            url: `https://www.adobe.com/page-${index}`,
+            requests: 100 - index,
+            countries: ['us'],
+            region: 'Global',
+            locale: 'en_US',
+        }));
+        const element = await openDialog({ ...usage, pages: many });
+        const body = element.shadowRoot.querySelector('sp-table-body');
+        // sp-table-body only opts into `overflow: auto` when it carries a tabindex; without one it
+        // renders full height and the wrapper's `overflow: hidden` silently eats the rows below.
+        expect(body.getAttribute('tabindex')).to.equal('0');
+        expect(getComputedStyle(body).overflowY).to.not.equal('visible');
+        expect(body.scrollHeight).to.be.greaterThan(body.clientHeight);
     });
 
     it('lists every consuming page', async () => {
@@ -180,7 +198,10 @@ describe('mas-external-usage-dialog', () => {
         element.addEventListener('close', () => {
             closed = true;
         });
-        element.shadowRoot.querySelector('sp-underlay').click();
+        // sp-underlay turns a real pointer press into its own close event; it never emits click.
+        const underlay = element.shadowRoot.querySelector('sp-underlay');
+        underlay.dispatchEvent(new PointerEvent('pointerdown'));
+        underlay.dispatchEvent(new PointerEvent('pointerup'));
         expect(closed).to.equal(true);
     });
 

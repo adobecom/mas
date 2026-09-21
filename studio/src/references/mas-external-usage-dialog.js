@@ -137,7 +137,7 @@ class MasExternalUsageDialog extends LitElement {
 
         const commonHost = this.#commonHost;
         return html`
-            <sp-table emphasized scroller class="pages-table">
+            <sp-table emphasized class="pages-table">
                 <sp-table-head>
                     <sp-table-head-cell
                         sortable
@@ -148,7 +148,9 @@ class MasExternalUsageDialog extends LitElement {
                     </sp-table-head-cell>
                     <sp-table-head-cell>Countries</sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body>${pages.map((page) => this.#renderRow(page, commonHost))}</sp-table-body>
+                <sp-table-body tabindex="0" class="pages-body"
+                    >${pages.map((page) => this.#renderRow(page, commonHost))}</sp-table-body
+                >
             </sp-table>
         `;
     }
@@ -158,7 +160,9 @@ class MasExternalUsageDialog extends LitElement {
         // sp-underlay + sp-dialog rather than sp-dialog-wrapper, so the overlay is not trapped below
         // the sticky #preview-column stacking context -- same reason as the related artifacts dialog.
         return html`
-            <sp-underlay open @click=${() => this.#handleClose()}></sp-underlay>
+            <!-- sp-underlay overrides click() to emit its own non-bubbling "close" event, so it never
+                 fires a click event to bind against. -->
+            <sp-underlay open @close=${() => this.#handleClose()}></sp-underlay>
             <sp-dialog no-divider size="l" class="usage-dialog">
                 <div class="dialog-content">
                     <div class="dialog-header">

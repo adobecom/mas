@@ -69,6 +69,7 @@ export function applyDisplayAnnualDefault(host, options) {
         typeof host?.settings?.displayAnnual === 'boolean'
     ) {
         options.displayAnnual = host.settings.displayAnnual;
+        if (host.settings.displayAnnual) host.setAttribute('annualized', '');
     }
 }
 

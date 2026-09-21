@@ -313,6 +313,34 @@ describe('pipeline corner cases', () => {
         expect(wcsCalls.some((call) => String(call.args[0]).includes('country=PR'))).to.be.false;
     });
 
+    it('does not resolve WCS pricing against an account country outside the locale market (MWPW-207865)', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // en_GB is its own default locale on ACOM (regions AU, IN); a US country param must not
+        // reach the WCS pricing lookup, even though it flows through unrestricted elsewhere.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/en_GB/ccd-slice-wide-cc-all-app',
+            )
+            .returns(createResponse(200, { id: 'some-en-gb-fragment' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-gb-fragment?references=all-hydrated')
+            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: new MockState(),
+            locale: 'en_GB',
+            country: 'US',
+        });
+        expect(result.statusCode).to.equal(200);
+        const wcsCalls = fetchStub.getCalls().filter((call) => String(call.args[0]).includes('web_commerce_artifact'));
+        expect(wcsCalls.length).to.be.greaterThan(0);
+        expect(wcsCalls.every((call) => String(call.args[0]).includes('country=GB'))).to.be.true;
+        expect(wcsCalls.some((call) => String(call.args[0]).includes('country=US'))).to.be.false;
+    });
+
     it('should accept a state-supplied literal api_key', async () => {
         setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',

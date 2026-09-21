@@ -213,16 +213,14 @@ const findDecimalsDelimiter = (formatString) =>
     formatString.match(/0(.?)0/)?.[1] ?? '';
 
 /**
- * Indexes the WCS priceInfo tree for the value being shown and returns its
- * pre-split leaf. A pure index: {timescale} → {discount state} → {tax state}.
- * Returns undefined when WCS carries no leaf for that combination, so the
- * caller falls back to numeric formatting.
+ * Indexes the WCS priceInfo tree and returns the pre-split leaf for the value
+ * shown: `priceInfo[timescale][discountState].withTax`. Returns undefined when
+ * WCS carries no such leaf, so the caller falls back to numeric formatting.
  *
- * Always the tax-inclusive leaf, mirroring the numeric path: `taxDisplay` only
- * selects the "incl./excl. tax" legal line, it never selects a different number
- * to display. The tax-exclusive leaves are not display values — WCS sends a 0
- * amount on offers that carry no separate net amount (e.g. trials), so keying
- * off `taxDisplay` renders a 0.00 price.
+ * Always the tax-inclusive (`withTax`) leaf, mirroring the numeric path.
+ * `taxDisplay` only picks the incl./excl. legal line, not a different number.
+ * The `withoutTax` leaves are not display values: WCS sends 0 on offers with no
+ * separate net amount (e.g. trials), so reading them would render 0.00.
  * @param {object} args
  * @param {object} args.priceInfo - WCS priceInfo tree
  * @param {boolean} args.showWithoutDiscount - whether the pre-discount price is shown

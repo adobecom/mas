@@ -359,6 +359,46 @@
                         expect(updateStoresSpy.called).to.be.true;
                     });
 
+                    it('confirmDelete warns instead of claiming success when a staged promo variation fails to force-delete', async () => {
+                        const grouped = new Fragment({
+                            id: '55555555-5555-5555-5555-555555555555',
+                            path: '/content/dam/mas/sandbox/en_US/pac/pzn/promo-fail',
+                            title: 'Del',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        const store = new FragmentStore(grouped);
+                        editorPanel.inEdit.set(store);
+                        const parentFrag = new Fragment({
+                            id: '44444444-4444-4444-4444-444444444444',
+                            path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                            title: 'Parent',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['P'] }],
+                            tags: [],
+                        });
+                        editorPanel.localeDefaultFragment = parentFrag;
+                        editorPanel.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer/promo-fail'];
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        sandbox.stub(Store.editor, 'resetChanges');
+                        sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
+                        sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        const forceDeleteSpy = sandbox
+                            .stub(editorPanel.repository, 'forceDeletePromoVariations')
+                            .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer/promo-fail']);
+                        const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+                        sandbox.stub(editorPanel, 'unmaskOtherFragments');
+                        sandbox.stub(editorPanel.reactiveController, 'updateStores');
+
+                        await editorPanel.confirmDelete();
+
+                        expect(forceDeleteSpy.calledOnceWith(['/content/dam/mas/sandbox/en_US/promotions/summer/promo-fail']))
+                            .to.be.true;
+                        expect(toastEmitSpy.calledWithMatch({ variant: 'warning' })).to.be.true;
+                        expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+                    });
+
                     it('confirmDelete shows a failure toast and keeps the editor open when both delete attempts fail', async () => {
                         const grouped = new Fragment({
                             id: '77777777-7777-7777-7777-777777777777',
@@ -440,7 +480,7 @@
                             tags: [],
                         });
                         editorPanel.inEdit.set(new FragmentStore(fragment));
-                        sandbox.stub(editorPanel.repository, 'getPromoVariationPaths').resolves([promoPath]);
+                        sandbox.stub(fragment, 'listPromoVariations').returns([{ path: promoPath }]);
 
                         await editorPanel.deleteFragment();
 

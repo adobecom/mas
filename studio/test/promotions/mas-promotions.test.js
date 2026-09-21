@@ -85,6 +85,8 @@ describe('MasPromotions', () => {
         sandbox.stub(el, 'repository').get(() => repo);
         document.body.appendChild(el);
         await el.updateComplete;
+        await el.loadPromotions();
+        el.requestUpdate();
         await new Promise((resolve) => setTimeout(resolve, 0));
         await el.updateComplete;
         return { el, repo };
@@ -109,7 +111,6 @@ describe('MasPromotions', () => {
             const other = makePromotion({ id: 'other-1', title: 'Another promo' });
             const { el } = await mountWithRepo(promotion);
             Store.promotions.list.data.set([new FragmentStore(promotion), new FragmentStore(other)]);
-            el.promotionsData = Store.promotions.list.data.get();
             await el.updateComplete;
 
             clickDuplicateMenuItem(el);
@@ -235,12 +236,14 @@ describe('MasPromotions', () => {
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
             await el.updateComplete;
+            const componentLoadPromise = el.loadPromotions();
 
             const search = el.shadowRoot.querySelector('sp-search');
             expect(search.disabled).to.be.true;
 
             resolveLoad();
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await componentLoadPromise;
+            el.requestUpdate();
             await el.updateComplete;
 
             expect(search.disabled).to.be.false;

@@ -19,8 +19,7 @@ import {
     parsePromoCodeExceptions,
     parseOfferSubstitutions,
     parseCountriesFromGeos,
-    groupCountriesByPromoCodeForOffer,
-    groupOfferSubstitutionsForOffer,
+    groupCountriesByPromoCodeAndOsiOverrideForOffer,
     applyPromotionOfferProductTagsToSearch,
     buildRemoveOfferConfirmationMessage,
     getPromotionItemsRemovedByOfferRemoval,
@@ -778,7 +777,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderPromoCodeCell(item) {
-        if (item.groupType !== 'promoCode' || !item.promoCode) {
+        if (!item.promoCode) {
             return html`<sp-table-cell class="promo-code-cell">-</sp-table-cell>`;
         }
         return html`<sp-table-cell class="promo-code-cell"> ${item.promoCode} </sp-table-cell>`;
@@ -788,12 +787,17 @@ class MasPromotionsItemsTable extends LitElement {
         return [item?.path, item?.offerData?.offerId].filter(Boolean);
     }
 
-    #getOfferPromoCodeGroups(item) {
-        return groupCountriesByPromoCodeForOffer(
+    #getOfferGroups(item, offersBySelectorId) {
+        return groupCountriesByPromoCodeAndOsiOverrideForOffer(
             this.#exceptionsMap,
+            this.#offerSubstitutionsMap,
             this.#offerKeysFor(item),
             this.#countries,
             this.#defaultPromoCodeValue,
+            (selectorId) => {
+                const offer = offersBySelectorId.get(selectorId);
+                return offer ? this.#offerName(offer) : selectorId;
+            },
         );
     }
 
@@ -816,16 +820,16 @@ class MasPromotionsItemsTable extends LitElement {
         return new Map(entries);
     }
 
-    #buildGroupRows(offer, groups, groupType, fieldName, valueKey = fieldName) {
+    #buildGroupRows(offer, groups) {
         return groups.map((group, index) => {
             const countries = group.countries.map((country) => country.toUpperCase()).sort((a, b) => a.localeCompare(b));
             return {
                 ...offer,
-                groupType,
                 countries,
                 countriesLabel: countries.join(', '),
-                [fieldName]: group[valueKey],
-                rowKey: `${offer.path}-${groupType}-${index}`,
+                promoCode: group.promoCode,
+                osiOverrideOfferId: group.osiOverrideOfferId,
+                rowKey: `${offer.path}-${index}`,
             };
         });
     }
@@ -834,31 +838,22 @@ class MasPromotionsItemsTable extends LitElement {
         const offersBySelectorId = this.#offersBySelectorId;
         const rows = [...offersBySelectorId.values()].flatMap((rawOffer) => {
             const offer = { ...rawOffer, offerName: this.#offerName(rawOffer) };
-            const promoCodeGroups = this.#getOfferPromoCodeGroups(offer);
-            const substitutionGroups = this.#getOfferSubstitutionGroups(offer, offersBySelectorId);
+            const groups = this.#getOfferGroups(offer, offersBySelectorId);
+            const groupRows = this.#buildGroupRows(offer, groups);
 
-            const promoCodeRows = this.#buildGroupRows(offer, promoCodeGroups, 'promoCode', 'promoCode');
-            const osiOverrideRows = this.#buildGroupRows(
-                offer,
-                substitutionGroups,
-                'osiOverride',
-                'osiOverrideOfferId',
-                'offerId',
-            );
-
-            if (!promoCodeRows.length && !osiOverrideRows.length) {
+            if (!groupRows.length) {
                 return [
                     {
                         ...offer,
-                        groupType: 'promoCode',
                         countries: [],
                         countriesLabel: '',
                         promoCode: this.#defaultPromoCodeValue || '',
+                        osiOverrideOfferId: null,
                         rowKey: `${offer.path}-fallback`,
                     },
                 ];
             }
-            return [...promoCodeRows, ...osiOverrideRows];
+            return groupRows;
         });
 
         const nameRank = new Map();
@@ -867,18 +862,6 @@ class MasPromotionsItemsTable extends LitElement {
         }
         return rows.sort(
             (a, b) => nameRank.get(a.offerName) - nameRank.get(b.offerName) || a.countriesLabel.localeCompare(b.countriesLabel),
-        );
-    }
-
-    #getOfferSubstitutionGroups(item, offersBySelectorId) {
-        return groupOfferSubstitutionsForOffer(
-            this.#offerSubstitutionsMap,
-            this.#offerKeysFor(item),
-            this.#countries,
-            (selectorId) => {
-                const offer = offersBySelectorId.get(selectorId);
-                return offer ? this.#offerName(offer) : selectorId;
-            },
         );
     }
 

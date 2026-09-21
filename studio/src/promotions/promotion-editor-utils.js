@@ -768,33 +768,14 @@ export function getEffectiveIgnoreVariations(ignoredVariations, offerId, country
     return ignoredVariations?.get(`${offerId}|${country}`) === true;
 }
 
-export function groupOfferSubstitutionsForOffer(offerSubstitutions, offerKeys, countries, resolveOfferLabel) {
-    if (!offerSubstitutions?.size || !Array.isArray(countries) || !countries.length) return [];
+function getEffectiveSubstituteForOfferKeys(offerSubstitutions, offerKeys, country) {
+    if (!offerSubstitutions?.size) return null;
     const keys = Array.isArray(offerKeys) ? offerKeys.filter(Boolean) : [];
-    const groups = new Map();
-
-    for (const country of countries) {
-        let substituteSelectorId = null;
-        for (const key of keys) {
-            const candidate = offerSubstitutions.get(`${key}|${country}`);
-            if (candidate) {
-                substituteSelectorId = candidate;
-                break;
-            }
-        }
-        if (!substituteSelectorId) continue;
-        if (!groups.has(substituteSelectorId)) groups.set(substituteSelectorId, []);
-        groups.get(substituteSelectorId).push(country);
+    for (const key of keys) {
+        const candidate = offerSubstitutions.get(`${key}|${country}`);
+        if (candidate) return candidate;
     }
-
-    return [...groups.entries()]
-        .map(([offerId, countryList]) => ({
-            offerId,
-            offerLabel: resolveOfferLabel?.(offerId) ?? offerId,
-            countries: countryList,
-            countriesLabel: countryList.join(', '),
-        }))
-        .sort((a, b) => a.offerLabel.localeCompare(b.offerLabel));
+    return null;
 }
 
 export function getEffectivePromoCode(exceptions, offerId, country, defaultPromoCode) {
@@ -810,24 +791,45 @@ function getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defau
     return defaultPromoCode;
 }
 
-export function groupCountriesByPromoCodeForOffer(exceptions, offerKeys, countries, defaultPromoCode) {
+/**
+ * Groups an offer's countries by the combined (promo code, OSI override) pair that
+ * applies to each country, so a country with both an exception and a substitution
+ * produces one row instead of two.
+ */
+export function groupCountriesByPromoCodeAndOsiOverrideForOffer(
+    exceptions,
+    offerSubstitutions,
+    offerKeys,
+    countries,
+    defaultPromoCode,
+    resolveOfferLabel,
+) {
     if (!Array.isArray(countries) || !countries.length) return [];
     const groups = new Map();
 
     for (const country of countries) {
-        const code = getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defaultPromoCode);
-        if (!code) continue;
-        if (!groups.has(code)) groups.set(code, []);
-        groups.get(code).push(country);
+        const promoCode = getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defaultPromoCode);
+        const osiOverrideOfferId = getEffectiveSubstituteForOfferKeys(offerSubstitutions, offerKeys, country);
+        if (!promoCode && !osiOverrideOfferId) continue;
+        const groupKey = `${promoCode ?? ''}|${osiOverrideOfferId ?? ''}`;
+        if (!groups.has(groupKey)) {
+            groups.set(groupKey, {
+                promoCode: promoCode || null,
+                osiOverrideOfferId,
+                offerLabel: osiOverrideOfferId ? (resolveOfferLabel?.(osiOverrideOfferId) ?? osiOverrideOfferId) : null,
+                countries: [],
+            });
+        }
+        groups.get(groupKey).countries.push(country);
     }
 
-    return [...groups.entries()]
-        .map(([promoCode, countryList]) => ({
-            promoCode,
-            countries: countryList,
-            countriesLabel: countryList.join(', '),
-        }))
-        .sort((a, b) => a.promoCode.localeCompare(b.promoCode));
+    return [...groups.values()]
+        .map((group) => ({ ...group, countriesLabel: group.countries.join(', ') }))
+        .sort(
+            (a, b) =>
+                (a.promoCode || '').localeCompare(b.promoCode || '') ||
+                (a.osiOverrideOfferId || '').localeCompare(b.osiOverrideOfferId || ''),
+        );
 }
 
 export function groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode) {

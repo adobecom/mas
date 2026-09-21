@@ -19,7 +19,7 @@ import {
     getPromotionItemsRemovedByOfferRemoval,
     buildRemoveOfferConfirmationMessage,
     groupCountriesByPromoCode,
-    groupCountriesByPromoCodeForOffer,
+    groupCountriesByPromoCodeAndOsiOverrideForOffer,
     promotionOfferRecordHasDisplayName,
     normalizePromotionOfferData,
     getEffectivePromoCode,
@@ -38,7 +38,6 @@ import {
     parseIgnoredVariations,
     serializeIgnoredVariations,
     isPromotionIgnoreVariationsEntry,
-    groupOfferSubstitutionsForOffer,
     serializePromotionSurfacesForAem,
     serializePromoCodeExceptions,
     serializePromotionOffersField,
@@ -674,31 +673,6 @@ describe('promotion-editor-utils', () => {
             expect(getEffectiveSubstituteOffer(subs, 'offer-1', 'IN')).to.equal('regional-osi');
             expect(getEffectiveSubstituteOffer(subs, 'offer-1', 'US')).to.be.null;
         });
-
-        it('groupOfferSubstitutionsForOffer groups countries by substitute selector id', () => {
-            const subs = parseOfferSubstitutions([
-                'substitute|offer-1|regional-osi|IN',
-                'substitute|offer-1|regional-osi|CA_en',
-            ]);
-            const groups = groupOfferSubstitutionsForOffer(subs, ['offer-1'], ['IN', 'CA_en', 'US'], (id) =>
-                id === 'regional-osi' ? 'Regional CC Pro' : id,
-            );
-            expect(groups).to.deep.equal([
-                {
-                    offerId: 'regional-osi',
-                    offerLabel: 'Regional CC Pro',
-                    countries: ['IN', 'CA_en'],
-                    countriesLabel: 'IN, CA_en',
-                },
-            ]);
-        });
-
-        it('groupOfferSubstitutionsForOffer keeps two selector ids separate even when they resolve to the same label', () => {
-            const subs = parseOfferSubstitutions(['substitute|offer-1|osi-a|IN', 'substitute|offer-1|osi-b|CA_en']);
-            const groups = groupOfferSubstitutionsForOffer(subs, ['offer-1'], ['IN', 'CA_en'], () => 'Same Label');
-            expect(groups).to.have.lengthOf(2);
-            expect(groups.map((g) => g.offerId).sort()).to.deep.equal(['osi-a', 'osi-b']);
-        });
     });
 
     describe('geo display helpers', () => {
@@ -860,19 +834,67 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('groupCountriesByPromoCodeForOffer', () => {
+    describe('groupCountriesByPromoCodeAndOsiOverrideForOffer', () => {
         it('groups countries by effective promo code using OSI or WCS offer id keys', () => {
             const exceptions = parsePromoCodeExceptions(['osi-1|SPECIAL|US', 'osi-1|SPECIAL|CA_en', 'wcs-2|OTHER|pt_BR']);
-            const groups = groupCountriesByPromoCodeForOffer(
+            const groups = groupCountriesByPromoCodeAndOsiOverrideForOffer(
                 exceptions,
+                new Map(),
                 ['osi-1', 'wcs-2'],
                 ['US', 'CA_en', 'pt_BR'],
                 'DEFAULT',
             );
             expect(groups).to.deep.equal([
-                { promoCode: 'OTHER', countries: ['pt_BR'], countriesLabel: 'pt_BR' },
-                { promoCode: 'SPECIAL', countries: ['US', 'CA_en'], countriesLabel: 'US, CA_en' },
+                {
+                    promoCode: 'OTHER',
+                    osiOverrideOfferId: null,
+                    offerLabel: null,
+                    countries: ['pt_BR'],
+                    countriesLabel: 'pt_BR',
+                },
+                {
+                    promoCode: 'SPECIAL',
+                    osiOverrideOfferId: null,
+                    offerLabel: null,
+                    countries: ['US', 'CA_en'],
+                    countriesLabel: 'US, CA_en',
+                },
             ]);
+        });
+
+        it('merges a country appearing in both a promo code exception and an OSI override into one row', () => {
+            const exceptions = parsePromoCodeExceptions(['osi-1|PROMO-US|US']);
+            const substitutions = parseOfferSubstitutions(['substitute|osi-1|replacement-osi|US']);
+            const groups = groupCountriesByPromoCodeAndOsiOverrideForOffer(
+                exceptions,
+                substitutions,
+                ['osi-1'],
+                ['US'],
+                'DEFAULT',
+                (id) => id,
+            );
+            expect(groups).to.deep.equal([
+                {
+                    promoCode: 'PROMO-US',
+                    osiOverrideOfferId: 'replacement-osi',
+                    offerLabel: 'replacement-osi',
+                    countries: ['US'],
+                    countriesLabel: 'US',
+                },
+            ]);
+        });
+
+        it('keeps two OSI override selector ids separate even when they resolve to the same label', () => {
+            const substitutions = parseOfferSubstitutions(['substitute|offer-1|osi-a|IN', 'substitute|offer-1|osi-b|CA_en']);
+            const groups = groupCountriesByPromoCodeAndOsiOverrideForOffer(
+                new Map(),
+                substitutions,
+                ['offer-1'],
+                ['IN', 'CA_en'],
+                'DEFAULT',
+                () => 'Same Label',
+            );
+            expect(groups.map((g) => g.osiOverrideOfferId).sort()).to.deep.equal(['osi-a', 'osi-b']);
         });
     });
 

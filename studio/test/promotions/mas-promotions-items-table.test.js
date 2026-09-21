@@ -546,6 +546,31 @@ describe('MasPromotionsItemsTable', () => {
         expect(countries).to.deep.equal(['CA_EN', 'CA_EN', 'US', 'US']);
     });
 
+    it('renders one combined row when a country has both a promo code exception and an OSI override', async () => {
+        Store.promotions.selectedOffers.set(['offer-combo']);
+        Store.promotions.offerRecordsCache.set(
+            'offer-combo',
+            buildPromotionOfferRecord('offer-combo', { product_code: 'PHSP', offer_id: 'offer-combo' }, 'PA-1'),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'replacement-osi',
+            buildPromotionOfferRecord('replacement-osi', { product_code: 'ABCD', offer_id: 'replacement-osi' }, 'PA-2'),
+        );
+        const el = await fixture(html`
+            <mas-promotions-items-table
+                .type=${TABLE_TYPE.OFFERS}
+                .geos=${['mas:locale/US']}
+                .promoCodeExceptions=${['offer-combo|PROMO-US|US', 'substitute|offer-combo|replacement-osi|US']}
+            ></mas-promotions-items-table>
+        `);
+        await el.updateComplete;
+        const rows = el.shadowRoot.querySelectorAll('sp-table-row[value="offer-combo"]');
+        expect(rows.length).to.equal(1);
+        expect(rows[0].querySelector('.countries-cell').textContent.trim()).to.equal('US');
+        expect(rows[0].querySelector('.promo-code-cell').textContent.trim()).to.equal('PROMO-US');
+        expect(rows[0].querySelector('.offer-id').textContent).to.include('replacement-osi');
+    });
+
     it('shows a dash in the promo code cell and the substitute offer id in the OSI override cell when there are substitutions but no promo code exceptions', async () => {
         Store.promotions.selectedOffers.set(['offer-sub']);
         Store.promotions.offerRecordsCache.set(

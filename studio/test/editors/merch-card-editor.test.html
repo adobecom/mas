@@ -1211,7 +1211,10 @@
                     });
 
                     it('does not render the backgrounds field group for a variant without a backgrounds mapping', async () => {
-                        await setupTestEnvironment({ isVariation: false, variant: ['plans'] }, 'backgrounds-unsupported-variant');
+                        await setupTestEnvironment(
+                            { isVariation: false, variant: ['plans'] },
+                            'backgrounds-unsupported-variant',
+                        );
 
                         expect(editor.querySelector('sp-field-group#backgrounds')).to.not.exist;
                     });

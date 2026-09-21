@@ -170,20 +170,24 @@ describe('buildPictureInnerMarkup', () => {
         expect(doc.querySelector('[onerror]')).to.not.exist;
     });
 
-    it('returns empty string for a supported host with an unsupported file extension', () => {
-        expect(
-            buildPictureInnerMarkup(
-                'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.svg',
-            ),
-        ).to.equal('');
+    it('falls back to a plain img with the original URL for an unrecognized extension (no garbage format= param)', () => {
+        const SVG_URL =
+            'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.svg';
+        const doc = parse(buildPictureInnerMarkup(SVG_URL));
+        expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
+        const img = doc.querySelector('img');
+        expect(img).to.exist;
+        expect(img.getAttribute('src')).to.equal(SVG_URL);
     });
 
-    it('returns empty string when the URL path has no file extension', () => {
-        expect(
-            buildPictureInnerMarkup(
-                'https://main--mas-test--adobecom.aem.page/test-fragments/media_1',
-            ),
-        ).to.equal('');
+    it('falls back to a plain img with the original URL when the path has no file extension', () => {
+        const NO_EXT_URL =
+            'https://main--mas-test--adobecom.aem.page/test-fragments/media_1';
+        const doc = parse(buildPictureInnerMarkup(NO_EXT_URL));
+        expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
+        const img = doc.querySelector('img');
+        expect(img).to.exist;
+        expect(img.getAttribute('src')).to.equal(NO_EXT_URL);
     });
 
     it('supports a webp source instead of silently clearing the value', () => {

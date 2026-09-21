@@ -59,7 +59,7 @@ export function buildPictureInnerMarkup(url) {
     if (!isSupportedAssetHostname(url)) return '';
     const safeUrl = sanitizeAssetUrl(url);
     const formatInfo = formatFor(safeUrl);
-    if (!formatInfo) return '';
+    if (!formatInfo) return `<img loading="lazy" alt="" src="${safeUrl}">`;
     const { type, format } = formatInfo;
     return [
         `<source type="image/webp" srcset="${rendition(safeUrl, DESKTOP.width, 'webply')}" media="${DESKTOP.media}">`,

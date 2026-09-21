@@ -536,6 +536,12 @@ async function promotions(context) {
         const promoMap = buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context);
         return {
             project,
+            // Human-readable provenance for a project that touched a fragment: campaign title when
+            // available, otherwise the project id. Variation-merge and promoCode-application
+            // provenance are tracked separately (a fragment may be touched by two different
+            // projects), and exposed downstream as data-promotion-variation-project and
+            // data-promotion-project respectively.
+            label: project.title ?? project.id,
             promoMap,
             substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
             ignoreVariationOsis: buildIgnoreVariationOsis(project.ignoreVariations ?? [], { regionLocale, country }),

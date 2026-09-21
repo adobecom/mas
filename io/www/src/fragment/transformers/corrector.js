@@ -1,5 +1,4 @@
 import { getRequestInfos } from '../utils/common.js';
-import { promoProjectLabel } from './customize.js';
 import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
@@ -123,7 +122,7 @@ export function resolveCountdownTimer(context) {
     const countdownTimerFragment = findCountdownTimerFragment(body, body.referencesTree, body.references);
     if (!countdownTimerFragment) return;
     const timerProject = (context.promoProjects ?? []).find(
-        ({ project }) => promoProjectLabel(project) === countdownTimerFragment.promoProject,
+        ({ label }) => label === countdownTimerFragment.promoProject,
     )?.project;
     if (timerProject?.cdtStart && timerProject?.cdtEnd) {
         logDebug(() => `countdown timer dates taken from promo project ${timerProject.id}`, context);

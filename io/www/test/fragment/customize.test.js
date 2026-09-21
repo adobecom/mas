@@ -1231,6 +1231,8 @@ function withPromoFlags(entry) {
     return {
         ...entry,
         project: { ...entry.project, seasonal: Boolean(entry.project.endDate) },
+        // same provenance label the promotions transformer puts on each entry
+        label: entry.project.title ?? entry.project.id,
         hasWildcard: Boolean(entry.promoMap?.['*']),
     };
 }

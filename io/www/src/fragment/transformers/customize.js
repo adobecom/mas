@@ -172,14 +172,6 @@ function findPersonalizationVariation(variations, customizeContext) {
     return null;
 }
 
-// Human-readable provenance for a promo project that touched a fragment: campaign title when
-// available, otherwise the project id. Variation-merge and promoCode-application provenance are
-// tracked separately (a fragment may be touched by two different projects), and exposed downstream
-// as data-promotion-variation-project and data-promotion-project respectively.
-export function promoProjectLabel(project) {
-    return project.title ?? project.id;
-}
-
 // Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
 // Kept in sync by hand with the same constant + `-N` suffix convention in
 // studio/src/promotions/promotion-variations.js (separate runtime, no shared import).
@@ -258,7 +250,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
     if (!selectedPromoProject || isPromoVariationIgnored(root, selectedPromoProject)) {
         return {};
     }
-    const { project } = selectedPromoProject;
+    const { project, label } = selectedPromoProject;
     const { regionLocale, country } = customizeContext;
     const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
     // Paths of pzn variations added to this promo project (e.g. set(['PA-123/pzn/edu'])).
@@ -288,7 +280,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
                         `Merging promo variation ${promoPersonalizationVariation.id} for grouped variation ${personalizationVariation.id}`,
                     customizeContext,
                 );
-                return { variation: promoPersonalizationVariation, project };
+                return { variation: promoPersonalizationVariation, label };
             }
         }
     }
@@ -297,12 +289,12 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
     // If the visitor's pzn variation was not added to this promo project, then variation is empty.
     if (!variation) {
         if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
-            return { variation: {}, project };
+            return { variation: {}, label };
         }
         return {};
     }
     logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
-    return { variation, project };
+    return { variation, label };
 }
 
 function findPromoMapsForFragment(root, customizeContext) {
@@ -314,11 +306,10 @@ function findPromoMapsForFragment(root, customizeContext) {
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
-function hasExplicitMapping(osis, customizeContext, { project, promoMap, substituteMap }) {
+function hasExplicitMapping(osis, customizeContext, { project, label, promoMap, substituteMap }) {
     const value = osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
     logDebug(
-        () =>
-            `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
+        () => `Project ${label} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
         customizeContext,
     );
     return value;
@@ -371,12 +362,12 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     // priority, independent of fields.variations — unless the fragment's offer is flagged
     // "ignore variations" for this geo, in which case we fall through so regional and pzn
     // variations still apply.
-    const { variation, project } = findPromoVariation(root, customizeContext, selectedPromoProject);
+    const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;
         if (Object.keys(variation).length) {
-            merged.promoVariationProject = promoProjectLabel(project);
+            merged.promoVariationProject = label;
         }
         return merged;
     }
@@ -462,7 +453,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
-        customizedRoot.promoProject = promoProjectLabel(selectedPromoProject.project);
+        customizedRoot.promoProject = selectedPromoProject.label;
         // Record this fragment's promo scope by id. Promo code application and OSI substitution
         // happen later, in the wcs transformer (after `replace`), so OSIs injected via placeholder
         // values are covered too. Recorded on context (not on the fragment) so nothing leaks into

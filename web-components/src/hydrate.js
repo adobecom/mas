@@ -1,7 +1,10 @@
 import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
-import { rewriteImageUrlsForProd } from './image-markup.js';
+import {
+    rewriteImageUrlsForProd,
+    sanitizePictureMarkup,
+} from './image-markup.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -405,7 +408,9 @@ export function processBackgroundImage(
 export function processImage(fields, merchCard, mapping) {
     if (!mapping.image?.slot) return;
     if (fields.image) {
-        fields.image = rewriteImageUrlsForProd(fields.image);
+        fields.image = rewriteImageUrlsForProd(
+            sanitizePictureMarkup(fields.image),
+        );
     }
     appendSlot('image', fields, merchCard, mapping);
 }
@@ -413,7 +418,9 @@ export function processImage(fields, merchCard, mapping) {
 export function processBackgrounds(fields, merchCard, mapping) {
     if (!mapping.backgrounds?.slot) return;
     if (fields.backgrounds) {
-        fields.backgrounds = rewriteImageUrlsForProd(fields.backgrounds);
+        fields.backgrounds = rewriteImageUrlsForProd(
+            sanitizePictureMarkup(fields.backgrounds),
+        );
     }
     appendSlot('backgrounds', fields, merchCard, mapping);
 }

@@ -1583,6 +1583,16 @@ describe('mas-field – image rendering', () => {
             .exist;
     });
 
+    it('strips markup outside the picture/source/img allow-list from a tampered image field', () => {
+        const malicious = `${IMAGE_INNER}<script>1+1</script>`;
+        const el = makeField('image', malicious);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
     it('renders backgroundImage as a <picture data-role> with a single <img>', () => {
         const url = 'https://main--mas-test--adobecom.aem.page/media/bg.png';
         const el = makeField('backgroundImage', url);
@@ -1671,6 +1681,27 @@ describe('mas-field – backgrounds rendering (field="backgrounds" / "background
         expect(picture.querySelector('img').getAttribute('src')).to.equal(
             MOBILE_URL,
         );
+    });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered backgrounds field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: { backgrounds: `${COMBINED}<script>1+1</script>` },
+                },
+            }),
+        );
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
     });
 
     it('renders the full webp/format rendition set (not a bare img) for "backgrounds[desktop]"', () => {

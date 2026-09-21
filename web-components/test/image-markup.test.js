@@ -6,6 +6,7 @@ import {
     isSupportedAssetHostname,
     buildPictureInnerMarkup,
     extractBackgroundUrl,
+    sanitizePictureMarkup,
 } from '../src/image-markup.js';
 
 const AEM =
@@ -249,5 +250,43 @@ describe('extractBackgroundUrl', () => {
             `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
             `<img loading="lazy" alt="" src="${TABLET_URL}">`;
         expect(extractBackgroundUrl(desktopTabletOnly, 'mobile')).to.equal('');
+    });
+});
+
+describe('sanitizePictureMarkup', () => {
+    it('returns empty string for empty input', () => {
+        expect(sanitizePictureMarkup('')).to.equal('');
+    });
+
+    it('leaves well-formed source/img markup functionally untouched', () => {
+        const before = parse(INNER);
+        const after = parse(sanitizePictureMarkup(INNER));
+        expect(after.querySelectorAll('source, img')).to.have.lengthOf(
+            before.querySelectorAll('source, img').length,
+        );
+        expect(after.querySelector('img').getAttribute('src')).to.equal(
+            before.querySelector('img').getAttribute('src'),
+        );
+    });
+
+    it('strips a script tag injected alongside legitimate source/img markup', () => {
+        const malicious = `${INNER}<script>1+1</script>`;
+        const doc = parse(sanitizePictureMarkup(malicious));
+        expect(doc.querySelector('script')).to.not.exist;
+        expect(doc.querySelector('img')).to.exist;
+    });
+
+    it('strips an event-handler attribute from an otherwise-legitimate img', () => {
+        const malicious = `<img src="${AEM}" data-evil="1">`;
+        const doc = parse(sanitizePictureMarkup(malicious));
+        expect(doc.querySelector('img').hasAttribute('data-evil')).to.be.false;
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(AEM);
+    });
+
+    it('removes a wrapping element that is not source/img, along with its contents', () => {
+        const malicious = `<div data-evil="1"><img src="${AEM}"></div>`;
+        const doc = parse(sanitizePictureMarkup(malicious));
+        expect(doc.querySelector('div')).to.not.exist;
+        expect(doc.querySelector('img')).to.not.exist;
     });
 });

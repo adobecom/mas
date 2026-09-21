@@ -11,6 +11,7 @@ import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
 import {
     rewriteImageUrlsForProd,
     sanitizeAssetUrl,
+    sanitizePictureMarkup,
     buildPictureInnerMarkup,
     extractBackgroundUrl,
 } from './image-markup.js';
@@ -478,6 +479,7 @@ class MasField extends HTMLElement {
         template.innerHTML = pictureHtml;
         const picture = template.content.querySelector('picture');
         if (!picture) return;
+        picture.innerHTML = sanitizePictureMarkup(picture.innerHTML);
         picture.setAttribute('data-role', 'mas-field-content');
         const existing = this.querySelector(
             ':scope > [data-role="mas-field-content"]',

@@ -95,6 +95,39 @@ export function rewriteImageUrlsForProd(inner, location = globalThis.location) {
     return template.content.querySelector('picture').innerHTML;
 }
 
+const ALLOWED_PICTURE_TAGS = new Set(['SOURCE', 'IMG']);
+const ALLOWED_PICTURE_ATTRS = new Set([
+    'src',
+    'srcset',
+    'media',
+    'type',
+    'alt',
+    'loading',
+    'data-mobile-set',
+]);
+
+/** Strips stored image/backgrounds markup down to picture/source/img before innerHTML —
+ *  the AEM field isn't schema-constrained, so this guards render time, not Studio's output. */
+export function sanitizePictureMarkup(inner) {
+    if (typeof inner !== 'string' || !inner) return '';
+    const template = document.createElement('template');
+    template.innerHTML = `<picture>${inner}</picture>`;
+    const picture = template.content.querySelector('picture');
+    if (!picture) return '';
+    picture.querySelectorAll('*').forEach((el) => {
+        if (!ALLOWED_PICTURE_TAGS.has(el.tagName)) {
+            el.remove();
+            return;
+        }
+        [...el.attributes].forEach((attr) => {
+            if (!ALLOWED_PICTURE_ATTRS.has(attr.name.toLowerCase())) {
+                el.removeAttribute(attr.name);
+            }
+        });
+    });
+    return picture.innerHTML;
+}
+
 export const BACKGROUNDS_DESKTOP_MEDIA = '(min-width: 1200px)';
 export const BACKGROUNDS_TABLET_MEDIA = '(min-width: 600px)';
 

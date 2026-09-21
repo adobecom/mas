@@ -2062,6 +2062,20 @@ describe('processImage (headless-family)', () => {
 
         expect(el.children).to.have.lengthOf(0);
     });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered image field', () => {
+        const el = document.createElement('div');
+        const fields = {
+            image: '<img src="x?width=750" data-evil="1"><script>1+1</script>',
+        };
+
+        processImage(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="image"]');
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelector('img').hasAttribute('data-evil')).to.be
+            .false;
+    });
 });
 
 describe('processBackgrounds (headless-family)', () => {
@@ -2101,5 +2115,20 @@ describe('processBackgrounds (headless-family)', () => {
         processBackgrounds(fields, el, { backgrounds: true });
 
         expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered backgrounds field', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds:
+                '<source srcset="x?width=2000" media="(min-width: 1200px)" data-evil="1"><img src="x?width=750"><script>1+1</script>',
+        };
+
+        processBackgrounds(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="backgrounds"]');
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelector('source').hasAttribute('data-evil')).to.be
+            .false;
     });
 });

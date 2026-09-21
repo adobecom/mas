@@ -10,8 +10,14 @@ const TRANSFORMER_NAME = 'fetchFragment';
  * without waiting on default-locale variation fetch. Shared via `promises.requestInfos` so dictionary/settings inits
  * can proceed in parallel with that work.
  *
- * Also resolves `wcsCountry` here: this is the earliest point in the pipeline where `surface` is known,
- * which `restrictCountryToLocaleMarket` needs to scope its market lookup (MWPW-207865).
+ * Also resolves `country` and `wcsCountry` here: this is the earliest point in the pipeline where
+ * `surface` is known, which `restrictCountryToLocaleMarket` needs to scope its market lookup
+ * (MWPW-207865). The two travel as a pair from `resolveTerritoryCountries` but are derived from
+ * different inputs — `country` (content country) from the raw request country, matching the
+ * "fixed" value `pipeline.js` already set on `context.country` before the init fan-out;
+ * `wcsCountry` (commerce country) from that same country restricted to the locale's market first.
+ * @example
+ * // locale es_PR, country: PR -> country: PR, wcsCountry: US
  */
 async function resolveRequestInfos(initContext) {
     const { id, locale, country, fragmentsIds, preview } = initContext;
@@ -29,13 +35,15 @@ async function resolveRequestInfos(initContext) {
         };
     }
     const { parsedLocale, surface, fragmentPath } = match.groups;
-    const { wcsCountry } = resolveTerritoryCountries(locale, restrictCountryToLocaleMarket(surface, locale, country));
+    const { country: fixedCountry } = resolveTerritoryCountries(locale, country);
+    const { wcsCountry } = resolveTerritoryCountries(locale, restrictCountryToLocaleMarket(surface, locale, fixedCountry));
     return {
         status: 200,
         body: response.body,
         parsedLocale,
         surface,
         fragmentPath,
+        country: fixedCountry,
         wcsCountry,
     };
 }
@@ -64,6 +72,7 @@ async function fetchFragment(context) {
         parsedLocale: response.parsedLocale,
         surface: response.surface,
         fragmentPath: response.fragmentPath,
+        country: response.country,
         wcsCountry: response.wcsCountry,
     };
 }

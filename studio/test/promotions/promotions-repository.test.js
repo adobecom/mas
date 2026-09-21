@@ -434,7 +434,6 @@ describe('promotions-repository', () => {
                         fragments: { search },
                     },
                 },
-                wait: sandbox.stub().resolves(),
             };
 
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
@@ -461,7 +460,6 @@ describe('promotions-repository', () => {
                         fragments: { search },
                     },
                 },
-                wait: sandbox.stub().resolves(),
             };
 
             const result = await getPublishedAttachedPromoVariations(aem, promotionFragment);

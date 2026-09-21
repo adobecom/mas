@@ -28,6 +28,15 @@ import Events from '../../src/events.js';
 
 describe('promotion-publish-utils', () => {
     const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sinon, itemsByFolder);
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
 
     it('isPromotionExpiredForPublish returns true only when promotionStatus is expired', () => {
         expect(isPromotionExpiredForPublish({ promotionStatus: 'expired' })).to.be.true;
@@ -113,7 +122,6 @@ describe('promotion-publish-utils', () => {
                     fragments: { search },
                 },
             },
-            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -155,7 +163,6 @@ describe('promotion-publish-utils', () => {
                     },
                 },
             },
-            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -177,7 +184,7 @@ describe('promotion-publish-utils', () => {
         const search = makeSearchStub({
             [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' }],
         });
-        const aem = { sites: { cf: { fragments: { search } } }, wait: sinon.stub().resolves() };
+        const aem = { sites: { cf: { fragments: { search } } } };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
                 if (name === 'fragments') return [parentPath];
@@ -233,7 +240,6 @@ describe('promotion-publish-utils', () => {
                     fragments: { search },
                 },
             },
-            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -275,7 +281,6 @@ describe('promotion-publish-utils', () => {
                     },
                 },
             },
-            wait: sinon.stub().resolves(),
         };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
@@ -296,7 +301,7 @@ describe('promotion-publish-utils', () => {
         const search = makeSearchStub({
             [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' }],
         });
-        const aem = { sites: { cf: { fragments: { search } } }, wait: sinon.stub().resolves() };
+        const aem = { sites: { cf: { fragments: { search } } } };
         const promotionFragment = {
             getFieldValues: sinon.stub().callsFake((name) => {
                 if (name === 'fragments') return [parentPath];
@@ -449,7 +454,7 @@ describe('promotion-publish-utils', () => {
                 processError: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
-            const toastStub = sinon.stub(Events.toast, 'emit');
+            const toastStub = sandbox.stub(Events.toast, 'emit');
 
             const ok = await publishPromotionProject(repo, promotion, [missingPath, presentPath]);
 
@@ -469,7 +474,6 @@ describe('promotion-publish-utils', () => {
                     }),
                 ),
             ).to.be.true;
-            toastStub.restore();
         });
 
         it('skips a resolved variation that has content validation errors instead of publishing it', async () => {

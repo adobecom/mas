@@ -1532,7 +1532,6 @@ describe('MasPromotionsEditor', () => {
                             },
                         },
                     },
-                    wait: sandbox.stub().resolves(),
                 },
             });
             Store.promotions.selectedCollections.set([]);

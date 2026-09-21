@@ -220,8 +220,8 @@ export function CheckoutMixin(Base) {
                 /* c8 ignore next 2 */
                 this.checkoutActionHandler = undefined;
             }
+            this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
             if (checkoutAction) {
-                this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
                 this.masElement.toggleResolved(version, offers, options);
                 const { url, text, className, handler } = checkoutAction;
                 if (url) {
@@ -279,7 +279,11 @@ export function CheckoutMixin(Base) {
                 !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
                 !this.hasAttribute('download') &&
                 (!this.target || this.target === '_self') &&
-                isAupCheckoutSupported(this.value, this.options);
+                isAupCheckoutSupported(
+                    this.value,
+                    this.options,
+                    this.classList.contains(CLASS_NAME_UPGRADE),
+                );
             this.setAttribute(
                 this.isCheckoutLink ? 'href' : 'data-href',
                 useAup ? '#' : this.checkoutUrl,
@@ -336,7 +340,10 @@ export function CheckoutMixin(Base) {
                 cs: this.customerSegment,
                 ms: this.marketSegment,
             };
-            if (!isAupCheckoutSupported(value, options)) return false;
+            const hasUpgradeAction =
+                this.classList.contains(CLASS_NAME_UPGRADE);
+            if (!isAupCheckoutSupported(value, options, hasUpgradeAction))
+                return false;
             this.updateCheckoutUrl();
             e.preventDefault();
             if (aupCheckoutPending) return true;
@@ -355,6 +362,8 @@ export function CheckoutMixin(Base) {
                           cartItems = items;
                       }
                     : undefined,
+                undefined,
+                hasUpgradeAction,
             )
                 .catch((error) => {
                     this.masElement.log?.error(

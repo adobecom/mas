@@ -1,5 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { MODAL_TYPE_3_IN_1 } from './constants.js';
+import { AUP_CHECKOUT_CLIENT_IDS, MODAL_TYPE_3_IN_1 } from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
@@ -17,8 +17,24 @@ function withTimeout(promise, stage, ms) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-export function isAupCheckoutSupported(offers, options, hasUpgradeAction) {
+function getCheckoutClientId({ checkoutClientId, modal }) {
+    if (
+        checkoutClientId !== 'doc_cloud' &&
+        Object.values(MODAL_TYPE_3_IN_1).includes(modal)
+    ) {
+        return modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
+    }
+    return checkoutClientId;
+}
+
+export function isAupCheckoutSupported(
+    offers,
+    options,
+    hasUpgradeAction,
+    clientId = getCheckoutClientId(options),
+) {
     return (
+        AUP_CHECKOUT_CLIENT_IDS.has(clientId) &&
         offers.length > 0 &&
         !hasUpgradeAction &&
         !options.perpetual &&
@@ -27,23 +43,18 @@ export function isAupCheckoutSupported(offers, options, hasUpgradeAction) {
 }
 
 function getRequest(offers, options, hasUpgradeAction) {
-    if (!isAupCheckoutSupported(offers, options, hasUpgradeAction)) return;
+    const clientId = getCheckoutClientId(options);
+    if (!isAupCheckoutSupported(offers, options, hasUpgradeAction, clientId))
+        return;
     const [offer] = offers;
     const context = {
-        clientId: options.checkoutClientId,
+        clientId,
         clientType: 'web',
         co: options.country,
         pa: offer.productArrangementCode,
         cs: options.cs,
         ms: options.ms,
     };
-    if (
-        context.clientId !== 'doc_cloud' &&
-        Object.values(MODAL_TYPE_3_IN_1).includes(options.modal)
-    ) {
-        context.clientId =
-            options.modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
-    }
     const preselectPlan = options.preselectPlan?.toLowerCase();
     if (preselectPlan === 'edu') context.ms = 'EDU';
     if (preselectPlan === 'team') context.cs = 'TEAM';

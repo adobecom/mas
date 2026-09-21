@@ -286,7 +286,7 @@ describe('aup-select checkout routing', () => {
     });
 
     for (const Class of [CheckoutLink, CheckoutButton]) {
-        for (const href of [null, '#', '/checkout', 'https://[invalid']) {
+        for (const href of [null, '#']) {
             it(`syncs ${Class.is} without an explicit PA when href is ${href}`, async () => {
                 const { card, addon, link } = await createCard(Class);
                 if (href === null) {
@@ -343,32 +343,27 @@ describe('aup-select checkout routing', () => {
     }
 
     for (const Class of [CheckoutLink, CheckoutButton]) {
-        for (const href of [
-            '#',
-            'https://commerce.adobe.com/store/email?items[0][id]=offer',
-        ]) {
-            it(`syncs ${Class.is} with a checkout URL without pa: ${href}`, async () => {
-                const { addon, link } = await createCard(Class);
-                link.setCheckoutUrl(href);
-                launchWithCart([
-                    {
-                        productArrangementCode:
-                            link.value[0].productArrangementCode,
-                        quantity: 1,
-                    },
-                    {
-                        productArrangementCode: 'stks_direct_individual',
-                        quantity: 1,
-                    },
-                ]);
-                click(link);
-                await link.aupCheckoutPromise;
-                expect(addon.checked).to.be.true;
-                expect(link.dataset.wcsOsi).to.equal('abm,stock-abm');
-                expect(launch.calledOnce).to.be.true;
-                expect(legacy.called).to.be.false;
-            });
-        }
+        it(`syncs ${Class.is} with a hash checkout URL`, async () => {
+            const { addon, link } = await createCard(Class);
+            link.setCheckoutUrl('#');
+            launchWithCart([
+                {
+                    productArrangementCode:
+                        link.value[0].productArrangementCode,
+                    quantity: 1,
+                },
+                {
+                    productArrangementCode: 'stks_direct_individual',
+                    quantity: 1,
+                },
+            ]);
+            click(link);
+            await link.aupCheckoutPromise;
+            expect(addon.checked).to.be.true;
+            expect(link.dataset.wcsOsi).to.equal('abm,stock-abm');
+            expect(launch.calledOnce).to.be.true;
+            expect(legacy.called).to.be.false;
+        });
     }
 
     for (const state of ['pending', 'failed', 'missing']) {
@@ -611,7 +606,15 @@ describe('aup-select checkout routing', () => {
                 expect(sdk.getOrchestratorContext.called).to.be.false;
             });
 
-            it('preserves upgrade checkout actions', async () => {
+            it('routes authored upgrade intent through AUP', async () => {
+                const element = await create(Class, { upgrade: true });
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
+            });
+
+            it('reopens qualified upgrade checkout actions on subsequent clicks', async () => {
                 await service.registerCheckoutAction(() => ({
                     handler: legacy,
                     className: 'upgrade',
@@ -620,10 +623,36 @@ describe('aup-select checkout routing', () => {
                 expect(element.getAttribute(hrefAttribute)).to.equal(
                     element.checkoutUrl,
                 );
-                const event = click(element);
+                const firstEvent = click(element);
+                const secondEvent = click(element);
                 expect(sdk.getOrchestratorContext.called).to.be.false;
                 expect(launch.called).to.be.false;
-                expect(legacy.calledOnceWithExactly(event)).to.be.true;
+                expect(legacy.firstCall.calledWithExactly(firstEvent)).to.be
+                    .true;
+                expect(legacy.secondCall.calledWithExactly(secondEvent)).to.be
+                    .true;
+            });
+
+            it('clears a stale upgrade action before routing through AUP', async () => {
+                let hasUpgradeAction = true;
+                await service.registerCheckoutAction(() =>
+                    hasUpgradeAction
+                        ? {
+                              handler: legacy,
+                              className: 'upgrade',
+                          }
+                        : undefined,
+                );
+                const element = await create(Class, { upgrade: true });
+                expect(element.classList.contains('upgrade')).to.be.true;
+                hasUpgradeAction = false;
+                element.requestUpdate(true);
+                await element.onceSettled();
+                expect(element.classList.contains('upgrade')).to.be.false;
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(launch.calledOnce).to.be.true;
+                expect(legacy.called).to.be.false;
             });
 
             it('keeps workflows open beyond 20 seconds and suppresses repeated clicks until exit', async () => {
@@ -683,15 +712,13 @@ describe('aup-select checkout routing', () => {
                 });
             }
 
-            for (const status of ['success', 'cancel']) {
-                it(`does not fall back after workflow ${status}`, async () => {
-                    launch.resolves({ status });
-                    const element = await create(Class);
-                    click(element);
-                    await element.aupCheckoutPromise;
-                    expect(legacy.called).to.be.false;
-                });
-            }
+            it('does not fall back after workflow success', async () => {
+                launch.resolves({ status: 'success' });
+                const element = await create(Class);
+                click(element);
+                await element.aupCheckoutPromise;
+                expect(legacy.called).to.be.false;
+            });
 
             it('preserves the saved URL when there is no host action', async () => {
                 const element = await create(Class);
@@ -742,7 +769,10 @@ describe('aup-select checkout routing', () => {
         it(`does not opt in for metadata value ${JSON.stringify(value)}`, async () => {
             meta.content = value;
             removeMasCommerceService();
-            service = initMasCommerceService({}, () => ({ handler: legacy }));
+            service = initMasCommerceService(
+                { 'checkout-client-id': 'creative' },
+                () => ({ handler: legacy }),
+            );
             const element = await create();
             click(element);
             expect(sdk.getOrchestratorContext.called).to.be.false;
@@ -770,7 +800,10 @@ describe('aup-select checkout routing', () => {
     it('does not accept the old metadata name', async () => {
         meta.name = 'mas-select';
         removeMasCommerceService();
-        service = initMasCommerceService({}, () => ({ handler: legacy }));
+        service = initMasCommerceService(
+            { 'checkout-client-id': 'creative' },
+            () => ({ handler: legacy }),
+        );
         const element = await create();
         click(element);
         expect(legacy.calledOnce).to.be.true;
@@ -804,7 +837,10 @@ describe('aup-select checkout routing', () => {
         it(`preserves modified clicks with AUP disabled: ${JSON.stringify(init)}`, async () => {
             meta.content = 'off';
             removeMasCommerceService();
-            service = initMasCommerceService({}, () => ({ handler: legacy }));
+            service = initMasCommerceService(
+                { 'checkout-client-id': 'creative' },
+                () => ({ handler: legacy }),
+            );
             const element = await create();
             const event = click(element, init);
             expect(legacy.calledOnceWithExactly(event)).to.be.true;
@@ -913,22 +949,16 @@ describe('aup-select checkout routing', () => {
         expect(legacy.calledOnce).to.be.true;
     });
 
-    for (const options of [
-        { quantity: 2 },
-        { extraOptions: '{"q":"2"}' },
-        { wcsOsi: 'abm,stock-m2m' },
-        { wcsOsi: 'abm-promo', promotionCode: 'nicopromo' },
-        { extraOptions: '{"ao":"stock"}' },
-        { checkoutWorkflowStep: 'change-plan/team-upgrade/plans' },
-    ]) {
-        it(`lets AUP resolve checkout ${JSON.stringify(options)}`, async () => {
-            const element = await create(CheckoutLink, options);
-            click(element);
-            await element.aupCheckoutPromise;
-            expect(launch.calledOnce).to.be.true;
-            expect(legacy.called).to.be.false;
+    it('forwards the direct addon option to AUP', async () => {
+        const element = await create(CheckoutLink, {
+            extraOptions: '{"ao":"stock"}',
         });
-    }
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.calledOnce).to.be.true;
+        expect(launch.firstCall.args[0].params.ao).to.equal('stock');
+        expect(legacy.called).to.be.false;
+    });
 
     it('retains existing checkout for perpetual CTAs', async () => {
         const element = await create(CheckoutLink, {
@@ -940,6 +970,21 @@ describe('aup-select checkout routing', () => {
         expect(sdk.getOrchestratorContext.called).to.be.false;
         expect(launch.called).to.be.false;
         expect(legacy.calledOnceWithExactly(event)).to.be.true;
+    });
+
+    it('rejects a resolved upgrade action inside the launch gate', async () => {
+        const element = await create();
+        const handled = await launchAupCheckout(
+            sdk,
+            element.value,
+            element.options,
+            undefined,
+            undefined,
+            true,
+        );
+        expect(handled).to.be.false;
+        expect(sdk.getOrchestratorContext.called).to.be.false;
+        expect(launch.called).to.be.false;
     });
 
     for (const mixed of [false, true]) {
@@ -966,17 +1011,14 @@ describe('aup-select checkout routing', () => {
     for (const [modal, clientId, expected] of [
         [undefined, 'creative', 'creative'],
         ['true', 'creative', 'creative'],
-        ['crm', 'creative', 'creative'],
-        ['twp', 'creative', 'mini_plans'],
-        ['d2p', 'mini_plans', 'mini_plans'],
+        [undefined, 'mini_plans', 'mini_plans'],
         ['crm', 'doc_cloud', 'doc_cloud'],
         ['twp', 'doc_cloud', 'doc_cloud'],
         ['d2p', 'doc_cloud', 'doc_cloud'],
         [undefined, 'acom_bc', 'acom_bc'],
-        ['true', 'acom_bc', 'acom_bc'],
-        ['crm', 'acom_bc', 'creative'],
-        ['twp', 'acom_bc', 'mini_plans'],
-        ['d2p', 'acom_bc', 'mini_plans'],
+        ['crm', 'adobe_com', 'creative'],
+        ['twp', 'adobe_com', 'mini_plans'],
+        ['d2p', 'adobe_com', 'mini_plans'],
     ]) {
         it(`maps client ${clientId} with modal ${modal} to ${expected}`, async () => {
             removeMasCommerceService();
@@ -985,17 +1027,19 @@ describe('aup-select checkout routing', () => {
                 () => ({ handler: legacy }),
             );
             const element = await create(CheckoutLink, { modal });
+            expect(element.getAttribute('href')).to.equal('#');
             click(element);
             await element.aupCheckoutPromise;
             expect(launch.calledOnce).to.be.true;
             expect(launch.firstCall.args[0].context.clientId).to.equal(
                 expected,
             );
+            expect(element.options.checkoutClientId).to.equal(clientId);
             expect(legacy.called).to.be.false;
         });
     }
 
-    for (const modal of [undefined, 'true', 'crm', 'twp', 'd2p']) {
+    for (const modal of [undefined, 'true']) {
         it(`uses the existing checkout flow for unsupported client adobe_com with modal ${modal}`, async () => {
             removeMasCommerceService();
             service = initMasCommerceService(

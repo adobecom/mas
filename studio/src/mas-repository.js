@@ -50,7 +50,11 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
-import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
+import {
+    processConcurrently,
+    OFFER_DATA_CONCURRENCY_LIMIT,
+    VARIATIONS_CONCURRENCY_LIMIT,
+} from './common/utils/item-loading.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
@@ -1762,13 +1766,38 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Force-deletes each of the given promo variation paths, collecting failures instead of
+     * throwing, so callers can still delete the parent and surface a partial-failure warning.
+     * @param {string[]} paths
+     * @returns {Promise<string[]>} Paths that failed to delete
+     */
+    async forceDeletePromoVariations(paths) {
+        const failedVariations = [];
+        await processConcurrently(
+            paths,
+            async (path) => {
+                try {
+                    await this.aem.sites.cf.fragments.forceDelete({ path });
+                } catch (error) {
+                    console.error(`Failed to delete promo variation ${path}:`, error);
+                    failedVariations.push(path);
+                }
+            },
+            VARIATIONS_CONCURRENCY_LIMIT,
+        );
+        return failedVariations;
+    }
+
+    /**
      * Deletes a fragment and all its variations (locale, grouped, and promo)
      * @param {Fragment} fragment - The parent fragment to delete
+     * @param {string[]} [knownVariations] - Already known variation paths to delete
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
-    async deleteFragmentWithVariations(fragment) {
-        const promoVariationPaths = await this.getPromoVariationPaths(fragment);
-        const variations = [...new Set([...fragment.getVariations(), ...promoVariationPaths])];
+    async deleteFragmentWithVariations(fragment, knownVariations) {
+        const variations = knownVariations
+            ? [...new Set(knownVariations)]
+            : [...new Set([...fragment.getVariations(), ...(await this.getPromoVariationPaths(fragment))])];
         const failedVariations = [];
 
         if (variations.length > 0) {
@@ -1822,6 +1851,35 @@ export class MasRepository extends LitElement {
         }
 
         return { success, failedVariations };
+    }
+
+    /**
+     * Deletes a single variation fragment (locale, grouped, or promo). The parent-link removal
+     * and promo-copy cleanup only run after the fragment's own delete is confirmed, so a failed
+     * delete never leaves an orphaned parent reference or force-deleted promo copies behind.
+     * @param {Fragment} fragment - The variation fragment to delete
+     * @param {{ localeDefaultFragment?: Object, promoVariationPaths?: string[] }} [options]
+     * @returns {Promise<{deleted: boolean, failedVariations: string[], parentUpdateFailed: boolean}>}
+     */
+    async deleteVariationFragment(fragment, { localeDefaultFragment, promoVariationPaths = [] } = {}) {
+        let deleted = await this.deleteFragment(fragment, { startToast: false, endToast: false });
+        if (!deleted) {
+            deleted = await this.deleteFragment(fragment, { force: true, startToast: false, endToast: false });
+        }
+        if (!deleted) {
+            return { deleted: false, failedVariations: [], parentUpdateFailed: false };
+        }
+        let parentUpdateFailed = false;
+        if (localeDefaultFragment) {
+            try {
+                await this.removeFromParentVariations(localeDefaultFragment, fragment.path);
+            } catch (error) {
+                console.error('Failed to remove variation from parent variations field:', error);
+                parentUpdateFailed = true;
+            }
+        }
+        const failedVariations = await this.forceDeletePromoVariations(promoVariationPaths);
+        return { deleted, failedVariations, parentUpdateFailed };
     }
 
     /**

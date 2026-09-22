@@ -2,9 +2,10 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
 import { uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
+import { Placeholder } from '../../aem/placeholder.js';
 import {
     renderFragmentStatusCell,
     getStudioFragmentDisplayPath,
@@ -18,7 +19,7 @@ import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
 import { debounce, isUUID, extractSurfaceFromPath } from '../../utils.js';
 
-const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart'];
+const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart', 'placeholder'];
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -185,6 +186,26 @@ class MasItemsSelector extends LitElement {
         return true;
     }
 
+    #upsertDisplayPlaceholder(fragmentData) {
+        if (!fragmentData?.path || fragmentData.model?.path !== DICTIONARY_MODEL_PATH) return;
+        const store = this.itemsSelection.value;
+        const placeholder = new Placeholder(fragmentData);
+        const upsert = (items = []) => [placeholder, ...items.filter((item) => item.path !== placeholder.path)];
+        store.placeholdersByPaths.set(new Map(store.placeholdersByPaths.value).set(placeholder.path, placeholder));
+        store.displayPlaceholders.set(upsert(store.displayPlaceholders.value));
+        store.allPlaceholders.set(upsert(store.allPlaceholders.value));
+        return placeholder;
+    }
+
+    #appendSelectedPlaceholder(placeholder) {
+        if (!placeholder?.path) return false;
+        const store = this.itemsSelection.value;
+        const selectedPlaceholders = store.selectedPlaceholders.value || [];
+        if (selectedPlaceholders.includes(placeholder.path)) return false;
+        store.selectedPlaceholders.set([...selectedPlaceholders, placeholder.path]);
+        return true;
+    }
+
     #setImportedUrlStatus(fragmentId, status, errorMessage = null, path = null, displayName = null) {
         this.importedUrls = this.importedUrls.map((item) =>
             item.fragmentId === fragmentId ? { ...item, status, errorMessage, path, displayName } : item,
@@ -200,9 +221,13 @@ class MasItemsSelector extends LitElement {
         const store = this.itemsSelection.value;
         const valid = this.importedUrls.filter((i) => i.status === 'valid');
         const cardPaths = valid.filter((i) => i.contentType === 'merch-card').map((i) => i.path);
-        const collectionPaths = valid.filter((i) => i.contentType !== 'merch-card').map((i) => i.path);
+        const collectionPaths = valid
+            .filter((i) => i.contentType !== 'merch-card' && i.contentType !== 'placeholder')
+            .map((i) => i.path);
+        const placeholderPaths = valid.filter((i) => i.contentType === 'placeholder').map((i) => i.path);
         store.selectedCards.set(store.selectedCards.value.filter((p) => !cardPaths.includes(p)));
         store.selectedCollections.set(store.selectedCollections.value.filter((p) => !collectionPaths.includes(p)));
+        store.selectedPlaceholders.set(store.selectedPlaceholders.value.filter((p) => !placeholderPaths.includes(p)));
         this.importedUrls = [];
     }
 
@@ -210,7 +235,12 @@ class MasItemsSelector extends LitElement {
         this.importedUrls = this.importedUrls.filter((i) => i.fragmentId !== item.fragmentId);
         if (item.status !== 'valid') return;
         const store = this.itemsSelection.value;
-        const key = item.contentType === 'merch-card' ? 'selectedCards' : 'selectedCollections';
+        const key =
+            item.contentType === 'merch-card'
+                ? 'selectedCards'
+                : item.contentType === 'placeholder'
+                  ? 'selectedPlaceholders'
+                  : 'selectedCollections';
         store[key].set(store[key].value.filter((p) => p !== item.path));
     }
 
@@ -227,15 +257,19 @@ class MasItemsSelector extends LitElement {
             }
             const params = new URLSearchParams(parsedUrl.hash.slice(1));
             const contentType = params.get('content-type');
-            const fragmentId = params.get('query');
+            const fragmentId = params.get(contentType === 'placeholder' ? 'search' : 'query');
             if (!fragmentId || !isUUID(fragmentId) || !IMPORT_CONTENT_TYPES.includes(contentType)) continue;
             if (this.importedUrls.some((item) => item.fragmentId === fragmentId)) {
                 duplicates++;
                 continue;
             }
-            const allowed = this.allowedTypes.includes(
-                contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS,
-            );
+            const tableType =
+                contentType === 'merch-card'
+                    ? TABLE_TYPE.CARDS
+                    : contentType === 'placeholder'
+                      ? TABLE_TYPE.PLACEHOLDERS
+                      : TABLE_TYPE.COLLECTIONS;
+            const allowed = this.allowedTypes.includes(tableType);
             allParsed.push({ url, fragmentId, contentType, allowed });
         }
 
@@ -319,13 +353,22 @@ class MasItemsSelector extends LitElement {
                 continue;
             }
             const isCard = item.contentType === 'merch-card';
-            const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
+            const isPlaceholder = item.contentType === 'placeholder';
+            const display = isCard
+                ? this.#upsertDisplayCard(fragment)
+                : isPlaceholder
+                  ? this.#upsertDisplayPlaceholder(fragment)
+                  : this.#upsertDisplayCollection(fragment);
             if (!display) {
                 failed++;
                 this.#setImportedUrlStatus(item.fragmentId, 'error', 'Unsupported fragment type.', path, displayName);
                 continue;
             }
-            const appended = isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display);
+            const appended = isCard
+                ? this.#appendSelectedCard(display)
+                : isPlaceholder
+                  ? this.#appendSelectedPlaceholder(display)
+                  : this.#appendSelectedCollection(display);
             if (!appended) {
                 failed++;
                 this.#setImportedUrlStatus(

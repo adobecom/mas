@@ -6,7 +6,13 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
 import { resetTagCache } from '../helpers/tag-cache.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS, TABLE_TYPE } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    DICTIONARY_MODEL_PATH,
+    FRAGMENT_STATUS,
+    TABLE_TYPE,
+} from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
@@ -26,6 +32,9 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.selectedCards.set([]);
         Store.translationProjects.selectedCollections.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
+        Store.translationProjects.allPlaceholders.set([]);
+        Store.translationProjects.displayPlaceholders.set([]);
+        Store.translationProjects.placeholdersByPaths.set(new Map());
     });
 
     afterEach(() => {
@@ -36,6 +45,9 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.selectedCards.set([]);
         Store.translationProjects.selectedCollections.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
+        Store.translationProjects.allPlaceholders.set([]);
+        Store.translationProjects.displayPlaceholders.set([]);
+        Store.translationProjects.placeholdersByPaths.set(new Map());
         setItemsSelectionStore(null);
         resetTagCache(MAS_TAG_NAMESPACE);
     });
@@ -506,6 +518,9 @@ describe('MasItemsSelector', () => {
         const COPY_CODE_URL = (uuid) =>
             `https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=${uuid}`;
 
+        const PLACEHOLDER_URL = (search) =>
+            `https://mas.adobe.com/studio.html#content-type=placeholder&page=placeholders&path=sandbox&locale=en_US&search=${search}`;
+
         const mockCard = (path, uuid) => ({
             id: uuid,
             path,
@@ -515,6 +530,18 @@ describe('MasItemsSelector', () => {
             tags: [],
             fields: [],
             offerData: null,
+        });
+
+        const mockPlaceholder = (path, uuid, key = 'abm', value = 'Adobe Business Model') => ({
+            id: uuid,
+            path,
+            model: { path: DICTIONARY_MODEL_PATH },
+            status: FRAGMENT_STATUS.PUBLISHED,
+            fields: [
+                { name: 'key', values: [key] },
+                { name: 'value', values: [value] },
+                { name: 'richTextValue', values: [] },
+            ],
         });
 
         beforeEach(() => {
@@ -576,6 +603,81 @@ describe('MasItemsSelector', () => {
             await importViaUrl(el, COPY_CODE_URL(uuid));
 
             expect(Store.translationProjects.selectedCards.get()).to.include(card.path);
+        });
+
+        it('imports a placeholder UUID link into the placeholder stores', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const placeholder = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/abm', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(placeholder);
+
+            const el = await fixture(
+                html`<mas-items-selector .getDisplayName=${(item) => `placeholder: ${item.key}`}></mas-items-selector>`,
+            );
+            await importViaUrl(el, PLACEHOLDER_URL(uuid));
+
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([placeholder.path]);
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([]);
+            const display = Store.translationProjects.displayPlaceholders.get();
+            expect(display).to.have.length(1);
+            expect(display[0].key).to.equal('abm');
+            expect(display[0].value).to.equal('Adobe Business Model');
+            expect(Store.translationProjects.placeholdersByPaths.get().get(placeholder.path)).to.equal(display[0]);
+        });
+
+        it('rejects a placeholder key link as having no valid URLs', async () => {
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, PLACEHOLDER_URL('abm'));
+
+            expect(getToast(el).textContent).to.match(/No valid URLs found/);
+            expect(mockRepository.aem.sites.cf.fragments.getById.called).to.be.false;
+        });
+
+        it('rejects a placeholder link when placeholders are not allowed', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const placeholder = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/abm', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(placeholder);
+
+            const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
+            await importViaUrl(el, PLACEHOLDER_URL(uuid));
+
+            expect(el.importedUrls[0].errorMessage).to.equal('Type not allowed here.');
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
+        });
+
+        it('removes one imported placeholder without changing card or collection selections', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const placeholder = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/abm', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(placeholder);
+            Store.translationProjects.selectedCards.set(['/card']);
+            Store.translationProjects.selectedCollections.set(['/collection']);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, PLACEHOLDER_URL(uuid));
+            el.shadowRoot.querySelector('.import-item-row sp-action-button').click();
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/card']);
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal(['/collection']);
+        });
+
+        it('removes all imported placeholders without changing card or collection selections', async () => {
+            const uuid1 = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const uuid2 = '11111111-2222-3333-4444-555555555555';
+            const first = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/first', uuid1, 'first');
+            const second = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/second', uuid2, 'second');
+            mockRepository.aem.sites.cf.fragments.getById.withArgs(uuid1).resolves(first).withArgs(uuid2).resolves(second);
+            Store.translationProjects.selectedCards.set(['/card']);
+            Store.translationProjects.selectedCollections.set(['/collection']);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, `${PLACEHOLDER_URL(uuid1)} ${PLACEHOLDER_URL(uuid2)}`);
+            el.shadowRoot.querySelector('.import-footer-row sp-action-button').click();
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/card']);
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal(['/collection']);
         });
 
         it('shows URL item with valid status after fragment is added', async () => {

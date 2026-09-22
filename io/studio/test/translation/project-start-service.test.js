@@ -106,11 +106,32 @@ describe('Translation project-start-service — CF mirror helpers', () => {
                 return conflictResponse();
             });
 
-            const result = await projectStartService.addCompletedLocale('proj-1', 'fr_FR', 'token', baseParams);
+            const result = await projectStartService.addCompletedLocale('proj-1', 'fr_FR', 'token', baseParams, {
+                sleep: sinon.stub().resolves(),
+            });
 
             expect(result).to.deep.equal({ success: false, error: 'etag-conflict-retries-exhausted' });
             expect(getCalls).to.equal(3);
             expect(patchCalls).to.equal(3);
+        });
+
+        it('backs off between retries via getBackoffDelay instead of retrying immediately', async () => {
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(createProjectFragment(), 'etag');
+                return conflictResponse();
+            });
+            const sleep = sinon.stub().resolves();
+
+            await projectStartService.addCompletedLocale('proj-1', 'fr_FR', 'token', baseParams, {
+                sleep,
+                initialRetryDelayMs: 100,
+                maxRetryDelayMs: 1000,
+                jitterRatio: 0,
+            });
+
+            expect(sleep).to.have.been.calledTwice;
+            expect(sleep.firstCall.args[0]).to.equal(100);
+            expect(sleep.secondCall.args[0]).to.equal(200);
         });
     });
 
@@ -178,7 +199,9 @@ describe('Translation project-start-service — CF mirror helpers', () => {
                 return conflictResponse();
             });
 
-            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams);
+            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams, {
+                sleep: sinon.stub().resolves(),
+            });
 
             expect(result).to.deep.equal({ success: false, error: 'etag-conflict-retries-exhausted' });
             expect(getCalls).to.equal(3);
@@ -248,6 +271,7 @@ describe('Translation project-start-service — CF mirror helpers', () => {
                 { status: ['IN_PROGRESS'] },
                 'token',
                 baseParams,
+                { sleep: sinon.stub().resolves() },
             );
 
             expect(result).to.deep.equal({ success: false, error: 'etag-conflict-retries-exhausted' });
@@ -278,7 +302,9 @@ describe('Translation project-start-service — CF mirror helpers', () => {
                 return fragmentResponse(createProjectFragment(), 'etag-2');
             });
 
-            const result = await projectStartService.setProjectStatus('proj-1', 'COMPLETED', 'token', baseParams);
+            const result = await projectStartService.setProjectStatus('proj-1', 'COMPLETED', 'token', baseParams, {
+                sleep: sinon.stub().resolves(),
+            });
 
             expect(result).to.deep.equal({ success: true, etag: 'etag-2' });
         });
@@ -295,7 +321,9 @@ describe('Translation project-start-service — CF mirror helpers', () => {
                 return conflictResponse();
             });
 
-            const result = await projectStartService.setProjectStatus('proj-1', 'COMPLETED', 'token', baseParams);
+            const result = await projectStartService.setProjectStatus('proj-1', 'COMPLETED', 'token', baseParams, {
+                sleep: sinon.stub().resolves(),
+            });
 
             expect(result).to.deep.equal({ success: false, error: 'etag-conflict-retries-exhausted' });
             expect(getCalls).to.equal(3);

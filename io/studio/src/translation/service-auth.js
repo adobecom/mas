@@ -13,6 +13,11 @@ async function getCachedToken() {
 
 async function cacheToken(accessToken, expiresInSecs) {
     const ttl = Math.max(1, Math.floor(expiresInSecs) - TOKEN_EXPIRY_SAFETY_MARGIN_SECS);
+    if (expiresInSecs <= TOKEN_EXPIRY_SAFETY_MARGIN_SECS) {
+        logger.warn(
+            `IMS token expires_in (${expiresInSecs}s) is at or below the safety margin (${TOKEN_EXPIRY_SAFETY_MARGIN_SECS}s); caching with a clamped ttl of ${ttl}s, so the cache will barely help`,
+        );
+    }
     await writeValue(SERVICE_TOKEN_KEY, { accessToken }, ttl);
 }
 

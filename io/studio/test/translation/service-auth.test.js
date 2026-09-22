@@ -137,6 +137,15 @@ describe('service-auth', () => {
         expect(fetchStub).to.have.been.calledTwice;
     });
 
+    it('warns when expires_in is at or below the safety margin and the cache TTL gets clamped', async () => {
+        fetchStub.resolves(tokenResponse('token-abc', 100));
+
+        await serviceAuth.getServiceToken({ params });
+
+        expect(mockLogger.warn).to.have.been.calledOnce;
+        expect(mockLogger.warn.firstCall.args[0]).to.match(/clamped/);
+    });
+
     it('throws when the IMS token endpoint returns a non-2xx response', async () => {
         fetchStub.resolves({
             ok: false,

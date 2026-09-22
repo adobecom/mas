@@ -14,6 +14,7 @@ const {
     putToOdin,
     patchToOdin,
 } = require('../common.js');
+const { getBackoffDelay } = require('./worker-slots.js');
 
 const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 const logger = Core.Logger('translation', { level: 'info' });
@@ -483,13 +484,31 @@ function buildFieldPatchOps(projectCF, fieldPatches) {
 
 /**
  * Shared retry wrapper for the CF-mirror helpers below: runs `attempt()` up to
- * `maxRetries` times, retrying only on a 412 etag conflict (detected via
- * parseOdinHttpStatus on the thrown error) and giving up with a uniform
+ * `options.maxRetries` times, retrying only on a 412 etag conflict (detected
+ * via parseOdinHttpStatus on the thrown error) and giving up with a uniform
  * {success:false} result once exhausted. Any other error is rethrown as-is.
  * `attempt()` is called fresh each try, so it's expected to (re)fetch its own
  * etag internally rather than reuse one from a previous attempt.
+ *
+ * Retries back off (via getBackoffDelay, same helper acquireWorkerSlot uses)
+ * instead of retrying immediately: the scenario this exists for is a burst of
+ * Hoolihan events for the same project racing the same PATCH, and retrying in
+ * lockstep with no delay tends to make the same loser keep losing. `sleep` is
+ * injectable (defaults to a real timer) so tests can skip the wait.
+ *
+ * Contract note: once retries are exhausted, the {success:false,
+ * error:'etag-conflict-retries-exhausted'} result is NOT re-driven by
+ * anything here — for addCompletedLocale/completeProjectLocale that means a
+ * permanently lost locale-completion on the CF unless the caller redrives it.
+ * Since Hoolihan delivery is at-least-once, the intended recovery is for the
+ * webhook (MWPW-202035) to map a falsy `success` onto a non-2xx HTTP response
+ * so the event gets redelivered — that mapping doesn't exist yet, since these
+ * helpers have no caller in this PR.
  */
-async function retryOnEtagConflict(projectId, label, attempt, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+async function retryOnEtagConflict(projectId, label, attempt, options = {}) {
+    const maxRetries = options.maxRetries ?? DEFAULT_FIELD_PATCH_RETRIES;
+    const sleep = options.sleep || ((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)));
+
     for (let i = 1; i <= maxRetries; i++) {
         try {
             // eslint-disable-next-line no-await-in-loop
@@ -504,7 +523,12 @@ async function retryOnEtagConflict(projectId, label, attempt, maxRetries = DEFAU
                 );
                 return { success: false, error: 'etag-conflict-retries-exhausted' };
             }
-            logger.warn(`Etag conflict ${label} for translation project ${projectId} (attempt ${i}/${maxRetries}), retrying`);
+            const delayMs = getBackoffDelay(i, options);
+            logger.warn(
+                `Etag conflict ${label} for translation project ${projectId} (attempt ${i}/${maxRetries}), retrying in ${delayMs}ms`,
+            );
+            // eslint-disable-next-line no-await-in-loop
+            await sleep(delayMs);
         }
     }
     return { success: false, error: 'etag-conflict-retries-exhausted' };
@@ -517,9 +541,10 @@ async function retryOnEtagConflict(projectId, label, attempt, maxRetries = DEFAU
  * @param {Object} fieldPatches - map of fieldName -> values
  * @param {string} token
  * @param {Object} params
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
  * @returns {Promise<{success: boolean, etag?: string, error?: string}>}
  */
-async function patchProjectFields(projectId, fieldPatches, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+async function patchProjectFields(projectId, fieldPatches, token, params = {}, options = {}) {
     return retryOnEtagConflict(
         projectId,
         'patch fields',
@@ -540,7 +565,7 @@ async function patchProjectFields(projectId, fieldPatches, token, params = {}, m
 
             return { success: true, etag: response.headers.get('etag') };
         },
-        maxRetries,
+        options,
     );
 }
 
@@ -551,9 +576,10 @@ async function patchProjectFields(projectId, fieldPatches, token, params = {}, m
  * @param {string} locale
  * @param {string} token
  * @param {Object} params
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
  * @returns {Promise<{success: boolean, skipped?: boolean, etag?: string, error?: string}>}
  */
-async function addCompletedLocale(projectId, locale, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+async function addCompletedLocale(projectId, locale, token, params = {}, options = {}) {
     return retryOnEtagConflict(
         projectId,
         `add completed locale ${locale}`,
@@ -577,7 +603,7 @@ async function addCompletedLocale(projectId, locale, token, params = {}, maxRetr
 
             return { success: true, etag: response.headers.get('etag') };
         },
-        maxRetries,
+        options,
     );
 }
 
@@ -595,9 +621,10 @@ async function addCompletedLocale(projectId, locale, token, params = {}, maxRetr
  * @param {string} status - the terminal project status (e.g. 'COMPLETED')
  * @param {string} token
  * @param {Object} params
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
  * @returns {Promise<{success: boolean, etag?: string, error?: string}>}
  */
-async function completeProjectLocale(projectId, locale, status, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
+async function completeProjectLocale(projectId, locale, status, token, params = {}, options = {}) {
     return retryOnEtagConflict(
         projectId,
         `complete locale ${locale} and set status`,
@@ -623,7 +650,7 @@ async function completeProjectLocale(projectId, locale, status, token, params = 
 
             return { success: true, etag: response.headers.get('etag') };
         },
-        maxRetries,
+        options,
     );
 }
 
@@ -632,14 +659,10 @@ async function completeProjectLocale(projectId, locale, status, token, params = 
  * primitive as patchProjectFields/addCompletedLocale. Unlike them,
  * updateProjectStatus always fetches its own fresh etag internally, so a
  * conflict is retried by simply calling it again.
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
  */
-async function setProjectStatus(projectId, status, token, params = {}, maxRetries = DEFAULT_FIELD_PATCH_RETRIES) {
-    return retryOnEtagConflict(
-        projectId,
-        'set status',
-        () => updateProjectStatus(projectId, status, token, params),
-        maxRetries,
-    );
+async function setProjectStatus(projectId, status, token, params = {}, options = {}) {
+    return retryOnEtagConflict(projectId, 'set status', () => updateProjectStatus(projectId, status, token, params), options);
 }
 
 async function updateProjectStatus(projectId, status, authToken, params = {}, etag = null) {

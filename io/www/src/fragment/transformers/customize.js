@@ -280,7 +280,12 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
                         `Merging promo variation ${promoPersonalizationVariation.id} for grouped variation ${personalizationVariation.id}`,
                     customizeContext,
                 );
-                return { variation: promoPersonalizationVariation, label };
+                // The promo variation is authored as a child of the grouped variation and stores
+                // only its own overrides, so the grouped variation's content has to be layered
+                // underneath it. When the requested fragment is itself the grouped variation,
+                // root already carries that content.
+                const groupedVariation = groupedFragmentPath === rawMatchPath ? rawMatch : null;
+                return { variation: promoPersonalizationVariation, label, groupedVariation };
             }
         }
     }
@@ -362,9 +367,9 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     // priority, independent of fields.variations — unless the fragment's offer is flagged
     // "ignore variations" for this geo, in which case we fall through so regional and pzn
     // variations still apply.
-    const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
+    const { variation, label, groupedVariation } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
-        const merged = deepMerge(root, variation);
+        const merged = deepMerge(root, groupedVariation, variation);
         merged.variationId = variation.id;
         if (Object.keys(variation).length) {
             merged.promoVariationProject = label;

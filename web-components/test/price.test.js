@@ -2144,17 +2144,19 @@ describe('priceDetails-only paths (priceInfo dropped)', () => {
 describe('WCS preformatted response format', () => {
     const partsOf = (el) =>
         ['integer', 'decimals-delimiter', 'decimals']
-            .map(
-                (c) =>
-                    el.querySelector(`.price-${c}`)?.textContent ?? '',
-            )
+            .map((c) => el.querySelector(`.price-${c}`)?.textContent ?? '')
             .join('');
 
     describe('parity: new format matches the legacy snapshot', () => {
         // [name, osi, dataset, snapshot]
         const scenarios = [
             ['regular', 'puf', {}, snapshots.price],
-            ['strikethrough', 'puf', { template: 'strikethrough' }, snapshots.strikethrough],
+            [
+                'strikethrough',
+                'puf',
+                { template: 'strikethrough' },
+                snapshots.strikethrough,
+            ],
             [
                 'optical',
                 'puf',

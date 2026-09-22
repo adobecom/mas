@@ -159,7 +159,8 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
         });
     });
 
-    // Test 4: @studio-placeholders-copy-link-row-menu - Copy and reopen a placeholder Studio link.
+    // Test 4: @studio-placeholders-copy-link-row-menu
+    // A row's "..." menu has Copy Link. Copying gives a Studio link, and opening that link shows only that one placeholder.
     test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
         const { data } = features[4];
         const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}`;
@@ -197,7 +198,9 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
         });
     });
 
-    // Test 5: @studio-placeholders-copy-link-bulk - Copy two placeholder Studio links from selection.
+    // Test 5: @studio-placeholders-copy-link-bulk
+    // Selecting two rows and clicking Copy Studio Link(s) copies two different links, one per line. The fragments-only
+    // "Copy Content Link(s)" button is not offered for placeholders.
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
         const linkPattern = getPlaceholderLinkPattern(baseURL);

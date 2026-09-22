@@ -4,7 +4,9 @@ import BulkPublishSpec from '../specs/bulk_publish.spec.js';
 const { features } = BulkPublishSpec;
 
 test.describe('M@S Studio Bulk Publish Test Suite', () => {
-    // @studio-bulk-publish-import-placeholder-url - Validate UUID and key-based placeholder Studio links.
+    // @studio-bulk-publish-import-placeholder-url
+    // Pasting a copied placeholder link into a Bulk Publish project validates it as a placeholder. A link that names
+    // the placeholder by key instead of id is marked Invalid URL. Nothing is saved.
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const placeholdersPage = `${baseURL}/studio.html${miloLibs}#page=placeholders&path=nala&locale=en_US`;

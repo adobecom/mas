@@ -305,7 +305,9 @@ test.describe('M@S Studio Translations Test Suite', () => {
         });
     });
 
-    // 7. @studio-translations-import-placeholder-url – Import only UUID-based placeholder Studio links.
+    // 7. @studio-translations-import-placeholder-url
+    // Pasting a copied placeholder link into a Localization project's "Import via URL" adds it as a placeholder.
+    // A link that names the placeholder by key instead of id is rejected.
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
         const placeholdersPage = `${baseURL}/studio.html${miloLibs}#page=placeholders&path=nala&locale=en_US`;

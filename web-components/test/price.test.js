@@ -1635,6 +1635,135 @@ describe('priceInfo (WCS pre-split tree)', () => {
             expect(partsOf(info)).to.contain('21');
         });
 
+        // Optical divides by term months (12/24/36). The WCS optical leaf must
+        // win over client rounding for every term, not just annual, so a WCS
+        // vs client rounding mismatch always renders WCS. Distinct leaf digits
+        // prove the override.
+        [
+            {
+                name: 'ANNUAL',
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                price: 263.88,
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                leaf: { integer: '22', decimals: '00', full: 'US$22.00' },
+            },
+            {
+                name: 'TWO_YEARS',
+                commitment: 'TWO_YEARS',
+                term: 'TWO_YEARS',
+                price: 480,
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                leaf: { integer: '19', decimals: '99', full: 'US$19.99' },
+            },
+            {
+                name: 'THREE_YEARS',
+                commitment: 'THREE_YEARS',
+                term: 'THREE_YEARS',
+                price: 719.64,
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                leaf: { integer: '21', decimals: '11', full: 'US$21.11' },
+            },
+            {
+                // no-precision locale: leaf omits decimals
+                name: 'ANNUAL no precision',
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                price: 143880,
+                usePrecision: false,
+                formatString: "#,##0 '&#20870;'",
+                leaf: { integer: '12,000', full: '12,000 &#20870;' },
+            },
+        ].forEach((c) => {
+            it(`optical indexes the ${c.name} leaf over client rounding`, () => {
+                const offer = {
+                    offerSelectorIds: ['pi-opt'],
+                    commitment: c.commitment,
+                    term: c.term,
+                    planType: 'PUF',
+                    priceDetails: {
+                        price: c.price,
+                        usePrecision: c.usePrecision,
+                        formatString: c.formatString,
+                        taxDisplay: 'TAX_EXCLUSIVE',
+                        taxTerm: 'TAX',
+                    },
+                };
+                const info = {
+                    format: {
+                        currencySymbol: c.formatString.match(/'(.*)'/)[1],
+                        decimalsDelimiter: '.',
+                        usePrecision: c.usePrecision,
+                        isCurrencyFirst: c.formatString.startsWith("'"),
+                        hasCurrencySpace: false,
+                    },
+                    recurrence: { term: c.term },
+                    optical: { withDiscount: { withTax: c.leaf } },
+                };
+                const opticalOpts = { ...opts, template: 'optical' };
+                const numeric = partsOf(buildPriceHTML([offer], opticalOpts));
+                const shown = partsOf(
+                    buildPriceHTML([withInfo(offer, info)], opticalOpts),
+                );
+                const expected = c.leaf.decimals
+                    ? `${c.leaf.integer}.${c.leaf.decimals}`
+                    : c.leaf.integer;
+                expect(shown).to.equal(expected);
+                // leaf digits differ from the client division: override proven
+                expect(shown).to.not.equal(numeric);
+            });
+        });
+
+        // A natively tax-exclusive offer (not forced) keeps its priceInfo and
+        // renders the .withTax leaf next to the excl-tax label.
+        it('native tax-exclusive renders the leaf with the excl-tax label', () => {
+            const offer = {
+                offerSelectorIds: ['pi-te'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                planType: 'ABM',
+                priceDetails: {
+                    price: 89.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+            };
+            const info = {
+                format: {
+                    currencySymbol: 'US$',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '89',
+                            decimals: '99',
+                            full: 'US$89.99',
+                        },
+                    },
+                },
+            };
+            const html = buildPriceHTML([withInfo(offer, info)], {
+                ...opts,
+                displayTax: true,
+            });
+            expect(partsOf(html)).to.equal('89.99');
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            expect(
+                el.querySelector('.price-tax-inclusivity').textContent,
+            ).to.equal('excl. tax');
+        });
+
         // Regression: taxDisplay selects the legal line, never a different number.
         // WCS sends a 0 without-tax leaf on offers with no separate net amount
         // (trials), so keying the displayed value off taxDisplay renders 0.00.

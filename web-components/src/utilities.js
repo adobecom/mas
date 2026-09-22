@@ -40,7 +40,13 @@ export function selectOffers(offers, { country, forceTaxExclusive }) {
         selected = [offers[0]];
     }
     if (forceTaxExclusive) {
-        selected = selected.map(forceTaxExclusivePrice);
+        selected = selected.map((offer) => {
+            const amended = forceTaxExclusivePrice(offer);
+            // Net rewrite invalidates the gross priceInfo tree; drop it.
+            return amended === offer
+                ? offer
+                : { ...amended, priceInfo: undefined };
+        });
     }
     return selected;
 }

@@ -13,6 +13,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
 import * as snapshots from './price/__snapshots__/price.snapshots.js';
 import { withWcs } from './mocks/wcs.js';
+import { preformattedTrees, distinctTrees } from './mocks/priceInfo.js';
 import {
     initMasCommerceService,
     expect,
@@ -21,7 +22,7 @@ import {
 import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
-import { sumOffers } from '../src/utilities.js';
+import { sumOffers, selectOffers } from '../src/utilities.js';
 
 /**
  * @param {string} wcsOsi
@@ -2038,6 +2039,79 @@ describe('priceDetails-only paths (priceInfo dropped)', () => {
         expect(summed.priceDetails.price).to.equal(44.98);
     });
 
+    it('forceTaxExclusive drops gross priceInfo so the net amount renders', async () => {
+        // priceInfo carries the gross tree; forcing tax exclusive must render
+        // the net price, not the gross leaf.
+        const grossOffer = {
+            offerSelectorIds: ['fte'],
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+            planType: 'ABM',
+            priceDetails: {
+                price: 120,
+                priceWithoutTax: 100,
+                priceWithoutDiscount: 240,
+                priceWithoutDiscountAndTax: 200,
+                usePrecision: true,
+                formatString: "'\u00a3'#,##0.00",
+                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                taxTerm: 'VAT',
+            },
+            priceInfo: {
+                format: {
+                    currencySymbol: '\u00a3',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '120',
+                            decimals: '00',
+                            full: '\u00a3120.00',
+                        },
+                    },
+                    withoutDiscount: {
+                        withTax: {
+                            integer: '240',
+                            decimals: '00',
+                            full: '\u00a3240.00',
+                        },
+                    },
+                },
+            },
+        };
+        const { buildPriceHTML } = await initMasCommerceService();
+        const opts = { country: 'GB', language: 'en', displayTax: true };
+        const partsOf = (html) => {
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            return el.querySelector('.price-integer')?.textContent ?? '';
+        };
+
+        const [selected] = selectOffers([grossOffer], {
+            country: 'GB',
+            forceTaxExclusive: true,
+        });
+        expect(selected.priceInfo).to.equal(undefined);
+
+        // net 100 / net 200, not gross 120 / 240
+        expect(
+            partsOf(buildPriceHTML([selected], { ...opts, template: 'price' })),
+        ).to.equal('100');
+        expect(
+            partsOf(
+                buildPriceHTML([selected], {
+                    ...opts,
+                    template: 'strikethrough',
+                }),
+            ),
+        ).to.equal('200');
+    });
+
     it('dual-OSI discount computes from priceDetails and ignores priceInfo', async () => {
         // Inject a bogus priceInfo on every resolved offer; the cross-offer
         // discount must still compute 20% from priceDetails (43.99 vs 54.99).
@@ -2062,5 +2136,82 @@ describe('priceDetails-only paths (priceInfo dropped)', () => {
         expect(inlinePrice.querySelector('.discount').textContent).to.equal(
             '20%',
         );
+    });
+});
+
+// offers.json has no priceInfo, so the existing suites never hit the pre-split
+// path. These re-run representative scenarios on the new format.
+describe('WCS preformatted response format', () => {
+    const partsOf = (el) =>
+        ['integer', 'decimals-delimiter', 'decimals']
+            .map(
+                (c) =>
+                    el.querySelector(`.price-${c}`)?.textContent ?? '',
+            )
+            .join('');
+
+    describe('parity: new format matches the legacy snapshot', () => {
+        // [name, osi, dataset, snapshot]
+        const scenarios = [
+            ['regular', 'puf', {}, snapshots.price],
+            ['strikethrough', 'puf', { template: 'strikethrough' }, snapshots.strikethrough],
+            [
+                'optical',
+                'puf',
+                {
+                    template: 'optical',
+                    displayPerUnit: 'true',
+                    displayTax: 'true',
+                },
+                snapshots.optical,
+            ],
+            ['annual', 'puf', { template: 'annual' }, snapshots.annual],
+            [
+                'promo-strikethrough',
+                'abm-promo',
+                { promotionCode: 'nicopromo', displayOldPrice: 'true' },
+                snapshots.promoStrikethrough,
+            ],
+        ];
+
+        scenarios.forEach(([name, osi, dataset, snapshot]) => {
+            it(`${name}: renders identically to the numeric path`, async () => {
+                await mockFetch((f) =>
+                    withWcs(f, { priceInfo: preformattedTrees }),
+                );
+                await initMasCommerceService();
+                const inlinePrice = mockInlinePrice(`pre-${name}`, osi);
+                Object.assign(inlinePrice.dataset, dataset);
+                await inlinePrice.onceSettled();
+                expect(inlinePrice.outerHTML).to.be.html(snapshot);
+            });
+        });
+    });
+
+    describe('precedence: WCS leaf wins over client formatting', () => {
+        beforeEach(async () => {
+            await mockFetch((f) => withWcs(f, { priceInfo: distinctTrees }));
+            await initMasCommerceService();
+        });
+
+        it('regular uses the WCS integer/decimals, not the offer price', async () => {
+            const inlinePrice = mockInlinePrice('prec-regular', 'puf');
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('777.11');
+        });
+
+        it('annual indexes the annualized WCS leaf', async () => {
+            const inlinePrice = mockInlinePrice('prec-annual', 'puf');
+            inlinePrice.dataset.template = 'annual';
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('777.11');
+        });
+
+        it('optical indexes the optical WCS leaf', async () => {
+            const inlinePrice = mockInlinePrice('prec-optical', 'puf');
+            inlinePrice.dataset.template = 'optical';
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('64.77');
+        });
     });
 });

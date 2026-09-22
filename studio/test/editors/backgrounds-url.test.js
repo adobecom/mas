@@ -1,5 +1,10 @@
 import { expect } from '@esm-bundle/chai';
-import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
+import {
+    buildBackgroundsHtml,
+    parseBackgroundsUrls,
+    resolveOwnBackgroundsUrls,
+    resolveBackgroundBreakpointState,
+} from '../../src/editors/backgrounds-url.js';
 
 const DESKTOP_URL = 'https://main--mas-test--adobecom.aem.page/media_desktop.png';
 const TABLET_URL = 'https://main--mas-test--adobecom.aem.page/media_tablet.png';
@@ -21,33 +26,45 @@ describe('buildBackgroundsHtml', () => {
 
         expect(sources).to.have.lengthOf(2);
         expect(sources[0].getAttribute('media')).to.equal('(min-width: 1200px)');
-        expect(sources[0].getAttribute('srcset')).to.equal(DESKTOP_URL);
+        expect(sources[0].getAttribute('srcset')).to.equal(`${DESKTOP_URL}?width=2000&format=png&optimize=medium`);
         expect(sources[1].getAttribute('media')).to.equal('(min-width: 600px)');
-        expect(sources[1].getAttribute('srcset')).to.equal(TABLET_URL);
-        expect(img.getAttribute('src')).to.equal(MOBILE_URL);
+        expect(sources[1].getAttribute('srcset')).to.equal(`${TABLET_URL}?width=1200&format=png&optimize=medium`);
+        expect(img.getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
     });
 
     it('builds a single plain img with no sources when only mobile is provided', () => {
         const doc = parse(buildBackgroundsHtml({ mobile: MOBILE_URL }));
         expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(MOBILE_URL);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
     });
 
     it('drops a URL that fails isSupportedImageUrl, treating it as absent', () => {
         const doc = parse(buildBackgroundsHtml({ desktop: 'https://not-aem-page.com/x.png', mobile: MOBILE_URL }));
         expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(MOBILE_URL);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
     });
 
-    it('still emits a desktop and tablet source when they are explicitly set to the same URL as mobile', () => {
+    it('sizes each breakpoint to its own rendition width even when all three are explicitly set to the same URL', () => {
         const doc = parse(buildBackgroundsHtml({ desktop: MOBILE_URL, tablet: MOBILE_URL, mobile: MOBILE_URL }));
         const sources = [...doc.querySelectorAll('source')];
         expect(sources).to.have.lengthOf(2);
         expect(sources[0].getAttribute('media')).to.equal('(min-width: 1200px)');
-        expect(sources[0].getAttribute('srcset')).to.equal(MOBILE_URL);
+        expect(sources[0].getAttribute('srcset')).to.equal(`${MOBILE_URL}?width=2000&format=png&optimize=medium`);
         expect(sources[1].getAttribute('media')).to.equal('(min-width: 600px)');
-        expect(sources[1].getAttribute('srcset')).to.equal(MOBILE_URL);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(MOBILE_URL);
+        expect(sources[1].getAttribute('srcset')).to.equal(`${MOBILE_URL}?width=1200&format=png&optimize=medium`);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
+    });
+
+    it("leaves a URL with an unrecognized extension unsized, matching buildPictureInnerMarkup's svg fallback", () => {
+        const SVG_URL = 'https://main--mas-test--adobecom.aem.page/icon.svg';
+        const doc = parse(buildBackgroundsHtml({ mobile: SVG_URL }));
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(SVG_URL);
+    });
+
+    it('parses back the clean authored URL for display, not the baked-in rendition', () => {
+        const html = buildBackgroundsHtml({ desktop: DESKTOP_URL });
+        expect(parse(html).querySelector('source').getAttribute('srcset')).to.contain('width=2000');
+        expect(parseBackgroundsUrls(html).desktop).to.equal(DESKTOP_URL);
     });
 });
 
@@ -103,5 +120,53 @@ describe('parseBackgroundsUrls', () => {
             tablet: TABLET_URL,
             mobile: '',
         });
+    });
+});
+
+describe('resolveOwnBackgroundsUrls', () => {
+    it('returns the own value when the fragment has a real own value', () => {
+        const ownHtml = buildBackgroundsHtml({ desktop: DESKTOP_URL });
+        expect(resolveOwnBackgroundsUrls(ownHtml, '')).to.deep.equal({
+            desktop: DESKTOP_URL,
+            tablet: '',
+            mobile: '',
+        });
+    });
+
+    it('falls back to the parent value when the fragment has no own field', () => {
+        const parentHtml = buildBackgroundsHtml({ mobile: MOBILE_URL });
+        expect(resolveOwnBackgroundsUrls(undefined, parentHtml)).to.deep.equal({
+            desktop: '',
+            tablet: '',
+            mobile: MOBILE_URL,
+        });
+    });
+
+    it("falls back to the parent value when the own field is the explicit-empty single value ['']", () => {
+        const parentHtml = buildBackgroundsHtml({ desktop: DESKTOP_URL, tablet: TABLET_URL, mobile: MOBILE_URL });
+        expect(resolveOwnBackgroundsUrls('', parentHtml)).to.deep.equal({
+            desktop: DESKTOP_URL,
+            tablet: TABLET_URL,
+            mobile: MOBILE_URL,
+        });
+    });
+});
+
+describe('resolveBackgroundBreakpointState', () => {
+    it('reports inherited when there is no own value, even if a parent value exists', () => {
+        const parentHtml = buildBackgroundsHtml({ desktop: DESKTOP_URL });
+        expect(resolveBackgroundBreakpointState('desktop', '', parentHtml)).to.equal('inherited');
+        expect(resolveBackgroundBreakpointState('desktop', undefined, parentHtml)).to.equal('inherited');
+    });
+
+    it('reports overridden when the own value differs from the parent', () => {
+        const ownHtml = buildBackgroundsHtml({ desktop: DESKTOP_URL });
+        const parentHtml = buildBackgroundsHtml({ desktop: TABLET_URL });
+        expect(resolveBackgroundBreakpointState('desktop', ownHtml, parentHtml)).to.equal('overridden');
+    });
+
+    it('reports same-as-parent when the own value matches the parent', () => {
+        const html = buildBackgroundsHtml({ desktop: DESKTOP_URL });
+        expect(resolveBackgroundBreakpointState('desktop', html, html)).to.equal('same-as-parent');
     });
 });

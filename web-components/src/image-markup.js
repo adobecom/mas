@@ -42,7 +42,7 @@ const FORMAT_BY_EXT = {
 const DESKTOP = { width: 2000, media: '(min-width: 600px)' };
 const MOBILE_WIDTH = 750;
 
-function rendition(url, width, format) {
+export function rendition(url, width, format) {
     const parsed = new URL(url);
     parsed.searchParams.set('width', width);
     parsed.searchParams.set('format', format);
@@ -50,9 +50,25 @@ function rendition(url, width, format) {
     return parsed.href;
 }
 
-function formatFor(url) {
+export function formatFor(url) {
     const ext = new URL(url).pathname.split('.').pop().toLowerCase();
     return FORMAT_BY_EXT[ext] ?? null;
+}
+
+const RENDITION_PARAMS = ['width', 'format', 'optimize'];
+
+/** Strips the width/format/optimize params rendition() adds, recovering the plain
+ * authored URL for editing/display/copy surfaces.
+ * Returns '' for empty or unparseable input. */
+export function stripRenditionParams(url) {
+    if (!url) return '';
+    try {
+        const parsed = new URL(url);
+        RENDITION_PARAMS.forEach((param) => parsed.searchParams.delete(param));
+        return parsed.href;
+    } catch {
+        return '';
+    }
 }
 
 export function buildPictureInnerMarkup(url) {

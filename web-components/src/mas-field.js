@@ -444,20 +444,22 @@ class MasField extends HTMLElement {
         return hostOsi(this);
     }
 
-    #ensureContentElement() {
+    #ensureContentElement(requireSpan = false) {
         if (
             this.#contentElement?.isConnected &&
-            this.#contentElement.matches('[data-role="mas-field-content"]')
+            this.#contentElement.matches('[data-role="mas-field-content"]') &&
+            (!requireSpan || this.#contentElement.tagName === 'SPAN')
         ) {
             return this.#contentElement;
         }
         const existing = this.querySelector(
             ':scope > [data-role="mas-field-content"]',
         );
-        if (existing) {
+        if (existing && (!requireSpan || existing.tagName === 'SPAN')) {
             this.#contentElement = existing;
             return existing;
         }
+        if (requireSpan) existing?.remove();
         const content = document.createElement('span');
         content.setAttribute('data-role', 'mas-field-content');
         this.append(content);
@@ -589,7 +591,7 @@ class MasField extends HTMLElement {
                     }
                 }
                 this.#setFragmentIds();
-                const content = this.#ensureContentElement();
+                const content = this.#ensureContentElement(true);
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
                 this.#upgradeCheckoutLinks(content);
                 this.#decorateTooltips(content);
@@ -642,7 +644,7 @@ class MasField extends HTMLElement {
             return;
         }
 
-        const content = this.#ensureContentElement();
+        const content = this.#ensureContentElement(true);
         let html;
         if (index !== null) {
             html = this.#extractIndexedAnchor(fieldValue, index);

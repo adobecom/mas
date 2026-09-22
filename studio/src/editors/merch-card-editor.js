@@ -20,7 +20,12 @@ import {
     buildPictureInnerMarkup as buildPictureHtml,
     isSupportedAssetHostname as isSupportedImageUrl,
 } from '../../../web-components/src/image-markup.js';
-import { buildBackgroundsHtml, parseBackgroundsUrls } from './backgrounds-url.js';
+import {
+    buildBackgroundsHtml,
+    parseBackgroundsUrls,
+    resolveOwnBackgroundsUrls,
+    resolveBackgroundBreakpointState,
+} from './backgrounds-url.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
@@ -2801,12 +2806,16 @@ class MerchCardEditor extends LitElement {
      *  own backgrounds field (fully inheriting), seeds from the parent's effective
      *  value instead of empty strings — otherwise editing one breakpoint would drop
      *  the other two inherited breakpoints. */
+    get #ownBackgroundsHtml() {
+        return this.fragment.getField('backgrounds')?.values?.[0];
+    }
+
+    get #parentBackgroundsHtml() {
+        return this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+    }
+
     #getOwnBackgroundsUrls() {
-        const ownField = this.fragment.getField('backgrounds');
-        if (!ownField?.values?.length) {
-            return parseBackgroundsUrls(this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '');
-        }
-        return parseBackgroundsUrls(ownField.values[0] ?? '');
+        return resolveOwnBackgroundsUrls(this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
     }
 
     #handleBackgroundsPartUpdate(key, event) {
@@ -2829,23 +2838,17 @@ class MerchCardEditor extends LitElement {
         this.requestUpdate();
     }
 
-    /** Per-breakpoint override state within the combined "backgrounds" field.
-     *  Once the fragment owns the field, an empty breakpoint ships empty (not the
-     *  parent's value) — so it's compared against the parent, not reported as inherited. */
+    /** Own value is `['']` (not absent) once all three breakpoints are cleared, and the
+     *  platform resolves that back to the parent — so an empty own value must report
+     *  'inherited', not get compared against the parent as if it were real content. */
     #getBackgroundBreakpointState(key) {
         if (!this.effectiveIsVariation) return 'no-parent';
-        const ownField = this.fragment.getField('backgrounds');
-        if (!ownField?.values?.length) return 'inherited';
-        const own = this.#getOwnBackgroundsUrls()[key];
-        const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
-        const parent = parseBackgroundsUrls(parentRaw)[key];
-        return own === parent ? 'same-as-parent' : 'overridden';
+        return resolveBackgroundBreakpointState(key, this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
     }
 
     #resetBackgroundBreakpointToParent(key) {
-        const parentRaw = this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
         const current = this.#getOwnBackgroundsUrls();
-        current[key] = parseBackgroundsUrls(parentRaw)[key];
+        current[key] = parseBackgroundsUrls(this.#parentBackgroundsHtml)[key];
         this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
         showToast('Field restored to parent value', 'positive');
     }

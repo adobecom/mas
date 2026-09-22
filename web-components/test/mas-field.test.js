@@ -1829,3 +1829,67 @@ describe('mas-field, backgroundImage attribute injection safety', () => {
         expect(el.querySelector('[onerror]')).to.not.exist;
     });
 });
+
+describe('mas-field: switching field types on a live instance', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('replaces a stale <picture> content element when the field attribute switches from an image field to a text field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'image');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        image: '<img src="https://main--mas-test--adobecom.aem.page/x.png">',
+                        cardTitle: '<p>Hello title</p>',
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture[data-role="mas-field-content"]')).to
+            .exist;
+
+        el.setAttribute('field', 'cardTitle');
+
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.tagName).to.equal('SPAN');
+        expect(content.textContent).to.equal('Hello title');
+    });
+
+    it('replaces a stale <span> content element when the field attribute switches from a text field to an image field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'cardTitle');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        cardTitle: '<p>Hello title</p>',
+                        image: '<img src="https://main--mas-test--adobecom.aem.page/x.png">',
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to
+            .exist;
+
+        el.setAttribute('field', 'image');
+
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.tagName).to.equal('PICTURE');
+        expect(content.querySelector('img')?.getAttribute('src')).to.equal(
+            'https://main--mas-test--adobecom.aem.page/x.png',
+        );
+    });
+});

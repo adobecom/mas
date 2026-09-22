@@ -7,6 +7,9 @@ import {
     buildPictureInnerMarkup,
     extractBackgroundUrl,
     sanitizePictureMarkup,
+    rendition,
+    formatFor,
+    stripRenditionParams,
 } from '../src/image-markup.js';
 
 const AEM =
@@ -231,6 +234,65 @@ describe('buildPictureInnerMarkup', () => {
         expect(src.split('?').length - 1).to.equal(1);
         expect(src).to.contain('rev=3');
         expect(src).to.contain('width=750');
+    });
+});
+
+describe('rendition', () => {
+    it('sets width, format, and optimize=medium on the URL', () => {
+        const parsed = new URL(rendition(AEM, 750, 'webp'));
+        expect(parsed.searchParams.get('width')).to.equal('750');
+        expect(parsed.searchParams.get('format')).to.equal('webp');
+        expect(parsed.searchParams.get('optimize')).to.equal('medium');
+    });
+
+    it('merges into an existing query instead of appending a second "?"', () => {
+        const out = rendition(`${AEM}?rev=3`, 2000, 'png');
+        expect(out.split('?').length - 1).to.equal(1);
+        expect(out).to.contain('rev=3');
+    });
+});
+
+describe('formatFor', () => {
+    it('maps a png extension to the png format', () => {
+        expect(formatFor(AEM)).to.deep.equal({
+            type: 'image/png',
+            format: 'png',
+        });
+    });
+
+    it('maps a webp extension to the webp format', () => {
+        expect(
+            formatFor(
+                'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.webp',
+            ),
+        ).to.deep.equal({ type: 'image/webp', format: 'webp' });
+    });
+
+    it('returns null for an unrecognized extension', () => {
+        expect(
+            formatFor(
+                'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.svg',
+            ),
+        ).to.be.null;
+    });
+});
+
+describe('stripRenditionParams', () => {
+    it('removes width, format, and optimize params while keeping the rest of the query', () => {
+        expect(
+            stripRenditionParams(
+                `${AEM}?width=750&format=webp&optimize=medium&rev=3`,
+            ),
+        ).to.equal(`${AEM}?rev=3`);
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(stripRenditionParams('')).to.equal('');
+    });
+
+    it('returns empty string instead of throwing for an unparseable URL', () => {
+        expect(() => stripRenditionParams('not a url')).to.not.throw();
+        expect(stripRenditionParams('not a url')).to.equal('');
     });
 });
 

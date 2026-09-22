@@ -786,4 +786,9 @@ describe('extractImageUrl', () => {
     it('round-trips a URL that already had its own query string', () => {
         expect(extractImageUrl(buildPictureInnerMarkup(AEM_PAGE_WITH_QUERY))).to.equal(AEM_PAGE_WITH_QUERY);
     });
+
+    it('returns empty string instead of throwing when the src is not a parseable URL', () => {
+        expect(() => extractImageUrl('<img src="not a valid url">')).to.not.throw();
+        expect(extractImageUrl('<img src="not a valid url">')).to.equal('');
+    });
 });

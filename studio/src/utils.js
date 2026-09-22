@@ -17,6 +17,7 @@ import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
 import { isPromoVariationPath } from './promotions/promotion-model.js';
+import { stripRenditionParams } from '../../web-components/src/image-markup.js';
 
 /**
  * @param {string} input
@@ -665,10 +666,5 @@ export function extractImageUrl(html) {
     if (!html) return '';
     const doc = new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
     const src = doc.querySelector('img')?.getAttribute('src') ?? doc.querySelector('source')?.getAttribute('srcset');
-    if (!src) return '';
-    const parsed = new URL(src);
-    parsed.searchParams.delete('width');
-    parsed.searchParams.delete('format');
-    parsed.searchParams.delete('optimize');
-    return parsed.href;
+    return stripRenditionParams(src);
 }

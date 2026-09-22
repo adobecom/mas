@@ -1,4 +1,7 @@
 import { fixture, html, expect } from '@open-wc/testing';
+// Registers the real sp-* components: against unregistered stubs the underlay and scroll contracts
+// below silently pass no matter what the dialog binds.
+import '../../src/swc.js';
 import '../../src/references/mas-related-artifacts-dialog.js';
 
 const collRow = (title, id) => ({
@@ -29,6 +32,30 @@ const openDialog = async (bucketData = buckets()) => {
 };
 
 describe('mas-related-artifacts-dialog', () => {
+    it('closes when the underlay is clicked', async () => {
+        const el = await openDialog();
+        let closed = false;
+        el.addEventListener('close', () => {
+            closed = true;
+        });
+        // sp-underlay turns a real pointer press into its own close event; it never emits click.
+        const underlay = el.shadowRoot.querySelector('sp-underlay');
+        underlay.dispatchEvent(new PointerEvent('pointerdown'));
+        underlay.dispatchEvent(new PointerEvent('pointerup'));
+        expect(closed).to.equal(true);
+    });
+
+    it('scrolls the rows instead of clipping them when a tab outruns the dialog', async () => {
+        const many = Array.from({ length: 40 }, (unused, index) => collRow(`Row ${index}`, `c-${index}`));
+        const el = await openDialog([{ key: 'collections', label: 'Collections', rows: many }]);
+        const body = el.shadowRoot.querySelector('sp-table-body');
+        // The table must stay a flex column for the body to be height-bounded. When it is not, the
+        // body grows to fit every row, scrollHeight equals clientHeight and nothing can scroll --
+        // which is what sp-table-body checks before granting itself overflow:auto.
+        expect(getComputedStyle(el.shadowRoot.querySelector('.dialog-table')).display).to.equal('flex');
+        expect(body.scrollHeight).to.be.greaterThan(body.clientHeight);
+    });
+
     it('renders nothing while closed', async () => {
         const el = await fixture(html`<mas-related-artifacts-dialog></mas-related-artifacts-dialog>`);
         el.buckets = buckets();

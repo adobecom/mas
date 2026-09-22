@@ -110,8 +110,8 @@ jobs:
                   path: ${{ inputs.odin-bucket-path || inputs.vault-path }}
                   env-fields: odin_bucket
 
-            # AOS / OST credentials are identical across environments — stored once in a shared
-            # path so they don't need to live in every workspace's .env blob.
+            # AOS / OST credentials are identical across environments — stored once in a
+            # shared path so they don't need to live in every workspace's .env blob.
             - name: Fetch shared service secrets from Vault
               uses: ./.github/actions/vault-secrets
               with:

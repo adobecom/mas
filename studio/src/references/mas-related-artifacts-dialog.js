@@ -1,4 +1,6 @@
-import { LitElement, html, nothing } from 'lit';
+import { html, nothing } from 'lit';
+import { MasDialogShell } from './mas-dialog-shell.js';
+import { dialogShellStyles } from './mas-dialog-shell.css.js';
 import { styles } from './mas-related-artifacts-dialog.css.js';
 import { ARTIFACT_TYPE_KEYS, REFERENCE_TYPES } from './references-repository.js';
 
@@ -7,11 +9,11 @@ const LABEL_BY_KEY = new Map(REFERENCE_TYPES.map((type) => [type.key, type.label
 // Modal listing the internal Studio artifacts (collections + projects) that reference the open
 // fragment, one tab per type, each a sortable table of deep links. Data comes from
 // getReferencingFragments; visibility is controlled by the `open` property from the parent editor.
-class MasRelatedArtifactsDialog extends LitElement {
-    static styles = styles;
+class MasRelatedArtifactsDialog extends MasDialogShell {
+    static styles = [dialogShellStyles, styles];
 
     static properties = {
-        open: { type: Boolean },
+        ...MasDialogShell.properties,
         buckets: { type: Array },
         selectedTab: { state: true },
         sortDirection: { state: true },
@@ -19,7 +21,6 @@ class MasRelatedArtifactsDialog extends LitElement {
 
     constructor() {
         super();
-        this.open = false;
         this.buckets = [];
         this.selectedTab = ARTIFACT_TYPE_KEYS[0];
         this.sortDirection = 'asc';
@@ -55,10 +56,6 @@ class MasRelatedArtifactsDialog extends LitElement {
         this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     }
 
-    #handleClose() {
-        this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
-    }
-
     #renderRow(row) {
         const title = this.#rowTitle(row);
         const link = row.representative?.link;
@@ -82,7 +79,7 @@ class MasRelatedArtifactsDialog extends LitElement {
             return html`<div class="empty-tab-message">No ${LABEL_BY_KEY.get(this.selectedTab)} references</div>`;
         }
         return html`
-            <sp-table emphasized scroller class="artifacts-table">
+            <sp-table emphasized class="dialog-table">
                 <sp-table-head>
                     <sp-table-head-cell
                         sortable
@@ -92,36 +89,25 @@ class MasRelatedArtifactsDialog extends LitElement {
                         Page
                     </sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body>${rows.map((row) => this.#renderRow(row))}</sp-table-body>
+                <sp-table-body class="dialog-table-body">${rows.map((row) => this.#renderRow(row))}</sp-table-body>
             </sp-table>
         `;
     }
 
     render() {
         if (!this.open) return nothing;
-        // sp-underlay + sp-dialog (the editor's own dialog pattern) rather than sp-dialog-wrapper, so
-        // the overlay is not trapped below the sticky #preview-column stacking context.
-        return html`
-            <sp-underlay open @click=${() => this.#handleClose()}></sp-underlay>
-            <sp-dialog no-divider size="l" class="artifacts-dialog">
-                <div class="dialog-content">
-                    <div class="dialog-header">
-                        <h2 class="dialog-title">Related studio artifacts</h2>
-                        <sp-action-button quiet label="Close" class="dialog-close" @click=${() => this.#handleClose()}>
-                            <sp-icon-close slot="icon"></sp-icon-close>
-                        </sp-action-button>
-                    </div>
-                    <sp-tabs class="tabs-row" quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
-                        ${ARTIFACT_TYPE_KEYS.map(
-                            (key) =>
-                                html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,
-                        )}
-                    </sp-tabs>
-                    <sp-divider size="s"></sp-divider>
-                    <div class="table-wrapper">${this.#renderTable()}</div>
-                </div>
-            </sp-dialog>
-        `;
+        return this.renderShell(
+            'Related studio artifacts',
+            html`
+                <sp-tabs class="tabs-row" quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
+                    ${ARTIFACT_TYPE_KEYS.map(
+                        (key) => html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,
+                    )}
+                </sp-tabs>
+                <sp-divider size="s"></sp-divider>
+                <div class="table-wrapper">${this.#renderTable()}</div>
+            `,
+        );
     }
 }
 

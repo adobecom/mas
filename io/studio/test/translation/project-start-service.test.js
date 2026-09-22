@@ -199,9 +199,16 @@ describe('Translation project-start-service — CF mirror helpers', () => {
                 return conflictResponse();
             });
 
-            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams, {
-                sleep: sinon.stub().resolves(),
-            });
+            const result = await projectStartService.completeProjectLocale(
+                'proj-1',
+                'fr_FR',
+                'COMPLETED',
+                'token',
+                baseParams,
+                {
+                    sleep: sinon.stub().resolves(),
+                },
+            );
 
             expect(result).to.deep.equal({ success: false, error: 'etag-conflict-retries-exhausted' });
             expect(getCalls).to.equal(3);

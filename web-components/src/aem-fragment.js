@@ -20,6 +20,9 @@ const ATTRIBUTE_LOADING = 'loading';
 const ATTRIBUTE_MASK = 'mask';
 const ATTRIBUTE_PZN = 'pzn';
 const ATTRIBUTE_TIMEOUT = 'timeout';
+// Attributes that take part in the fragment endpoint & cache key. Changing any of them
+// on a live element (e.g. from a Target/MEP activity) has to trigger a refetch.
+const ENDPOINT_ATTRIBUTES = [ATTRIBUTE_FRAGMENT, ATTRIBUTE_MASK, ATTRIBUTE_PZN];
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
 const LOADING_CACHE = 'cache';
@@ -234,6 +237,13 @@ export class AemFragment extends HTMLElement {
         }
         if (name === ATTRIBUTE_PREVIEW) {
             this.#preview = newValue;
+        }
+        if (
+            ENDPOINT_ATTRIBUTES.includes(name) &&
+            oldValue !== newValue &&
+            this.#fetchPromise
+        ) {
+            this.refresh(false);
         }
     }
 

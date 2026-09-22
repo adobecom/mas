@@ -874,6 +874,61 @@ runTests(async () => {
                     'frag-id-p_seg1-m_story',
                 );
             });
+
+            it('refetches when pzn is set after the fragment has loaded', async () => {
+                cache.clear();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+                const count = aemMock.count;
+
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fetch.lastCall.firstArg).to.include('&pzn=segment1');
+                aemFragment.remove();
+            });
+
+            it('refetches when mask changes after the fragment has loaded', async () => {
+                cache.clear();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+                const count = aemMock.count;
+
+                aemFragment.setAttribute('mask', 'story');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fetch.lastCall.firstArg).to.include('&mask=story');
+                aemFragment.remove();
+            });
+
+            it('does not refetch when pzn is re-set to the same value', async () => {
+                cache.clear();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+                const count = aemMock.count;
+
+                aemFragment.setAttribute('pzn', 'segment1');
+                await delay(50);
+
+                expect(aemMock.count).to.equal(count);
+                aemFragment.remove();
+            });
+
+            it('does not refetch when pzn is present before the first fetch', async () => {
+                cache.clear();
+                const count = aemMock.count;
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                document.body.appendChild(aemFragment);
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 1);
+                aemFragment.remove();
+            });
         });
 
         describe('getFragmentClientUrl', () => {

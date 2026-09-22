@@ -1,31 +1,9 @@
 import { css } from 'lit';
 
+// Layered over dialogShellStyles, which supplies the overlay, frame, header and scroll plumbing.
 export const styles = css`
-    :host {
-        display: contents;
-    }
-
-    /* Raise both above the sticky #preview-column (z-index auto) so the modal is not painted under
-       the fragment editor's right panel. */
-    sp-underlay {
-        z-index: 40;
-    }
-
-    .usage-dialog {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 41;
-        background: var(--spectrum-white);
-        border-radius: 16px;
-    }
-
     .dialog-content {
-        display: flex;
-        flex-direction: column;
         width: min(720px, 90vw);
-        max-width: 100%;
         /* Sized to content so a fragment with three pages does not open a modal two thirds empty,
            while a busy fragment still scrolls inside the table rather than growing off screen. */
         min-height: 240px;
@@ -33,50 +11,22 @@ export const styles = css`
     }
 
     .dialog-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         gap: 16px;
         margin-bottom: 16px;
-        flex-shrink: 0;
     }
 
     .dialog-title {
-        margin: 0;
         font-size: 24px;
-        font-weight: 700;
-        color: var(--spectrum-global-color-gray-900);
-    }
-
-    .dialog-close {
-        flex-shrink: 0;
     }
 
     .table-wrapper {
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
         border: 1px solid var(--spectrum-global-color-gray-300);
         border-radius: 12px;
         overflow: hidden;
     }
 
-    /* sp-table resolves to display:table unless it is driven by the virtualizer, which would
-       strand sp-table-body's own flex-grow. Styling it from here re-establishes the flex column
-       so the head keeps its height and the body absorbs the rest. */
     .pages-table {
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-        min-height: 0;
         --spectrum-table-row-height: 48px;
-    }
-
-    /* sp-table-body only opts into overflow:auto while it carries a tabindex, which is also what
-       makes the scroll region reachable by keyboard. min-height lets it shrink under its rows. */
-    .pages-body {
-        min-height: 0;
     }
 
     /* The table markup lives in this shadow root, so the cells are styled by element selector.

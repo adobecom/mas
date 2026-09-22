@@ -1,4 +1,6 @@
-import { LitElement, html, nothing } from 'lit';
+import { html, nothing } from 'lit';
+import { MasDialogShell } from './mas-dialog-shell.js';
+import { dialogShellStyles } from './mas-dialog-shell.css.js';
 import { styles } from './mas-external-usage-dialog.css.js';
 /**
  * Modal listing the external pages that requested the open fragment, derived from Akamai CDN
@@ -8,11 +10,11 @@ import { styles } from './mas-external-usage-dialog.css.js';
  * this fragment", this one answers "what out on the web actually serves it", and from which
  * countries.
  */
-class MasExternalUsageDialog extends LitElement {
-    static styles = styles;
+class MasExternalUsageDialog extends MasDialogShell {
+    static styles = [dialogShellStyles, styles];
 
     static properties = {
-        open: { type: Boolean },
+        ...MasDialogShell.properties,
         usage: { type: Object },
         loading: { type: Boolean },
         sortDirection: { state: true },
@@ -20,7 +22,6 @@ class MasExternalUsageDialog extends LitElement {
 
     constructor() {
         super();
-        this.open = false;
         this.usage = null;
         this.loading = false;
         this.sortDirection = 'asc';
@@ -80,10 +81,6 @@ class MasExternalUsageDialog extends LitElement {
         this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     }
 
-    #handleClose() {
-        this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
-    }
-
     async #copyUrl(url) {
         await navigator.clipboard?.writeText(url);
     }
@@ -137,7 +134,7 @@ class MasExternalUsageDialog extends LitElement {
 
         const commonHost = this.#commonHost;
         return html`
-            <sp-table emphasized class="pages-table">
+            <sp-table emphasized class="pages-table dialog-table">
                 <sp-table-head>
                     <sp-table-head-cell
                         sortable
@@ -148,7 +145,7 @@ class MasExternalUsageDialog extends LitElement {
                     </sp-table-head-cell>
                     <sp-table-head-cell>Countries</sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body tabindex="0" class="pages-body"
+                <sp-table-body class="dialog-table-body"
                     >${pages.map((page) => this.#renderRow(page, commonHost))}</sp-table-body
                 >
             </sp-table>
@@ -157,27 +154,15 @@ class MasExternalUsageDialog extends LitElement {
 
     render() {
         if (!this.open) return nothing;
-        // sp-underlay + sp-dialog rather than sp-dialog-wrapper, so the overlay is not trapped below
-        // the sticky #preview-column stacking context -- same reason as the related artifacts dialog.
-        return html`
-            <!-- sp-underlay overrides click() to emit its own non-bubbling "close" event, so it never
-                 fires a click event to bind against. -->
-            <sp-underlay open @close=${() => this.#handleClose()}></sp-underlay>
-            <sp-dialog no-divider size="l" class="usage-dialog">
-                <div class="dialog-content">
-                    <div class="dialog-header">
-                        <h2 class="dialog-title">Related pages</h2>
-                        <sp-action-button quiet label="Close" class="dialog-close" @click=${() => this.#handleClose()}>
-                            <sp-icon-close slot="icon"></sp-icon-close>
-                        </sp-action-button>
-                    </div>
-                    <div class="table-wrapper">${this.#renderBody()}</div>
-                    ${this.usage?.updatedAt
-                        ? html`<div class="usage-freshness">Updated ${new Date(this.usage.updatedAt).toLocaleString()}</div>`
-                        : nothing}
-                </div>
-            </sp-dialog>
-        `;
+        return this.renderShell(
+            'Related pages',
+            html`
+                <div class="table-wrapper">${this.#renderBody()}</div>
+                ${this.usage?.updatedAt
+                    ? html`<div class="usage-freshness">Updated ${new Date(this.usage.updatedAt).toLocaleString()}</div>`
+                    : nothing}
+            `,
+        );
     }
 }
 

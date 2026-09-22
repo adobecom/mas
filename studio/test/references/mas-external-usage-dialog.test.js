@@ -43,10 +43,10 @@ describe('mas-external-usage-dialog', () => {
         }));
         const element = await openDialog({ ...usage, pages: many });
         const body = element.shadowRoot.querySelector('sp-table-body');
-        // sp-table-body only opts into `overflow: auto` when it carries a tabindex; without one it
-        // renders full height and the wrapper's `overflow: hidden` silently eats the rows below.
-        expect(body.getAttribute('tabindex')).to.equal('0');
-        expect(getComputedStyle(body).overflowY).to.not.equal('visible');
+        // The table must stay a flex column for the body to be height-bounded. When it is not, the
+        // body grows to fit every row, scrollHeight equals clientHeight and nothing can scroll --
+        // which is what sp-table-body checks before granting itself overflow:auto.
+        expect(getComputedStyle(element.shadowRoot.querySelector('.dialog-table')).display).to.equal('flex');
         expect(body.scrollHeight).to.be.greaterThan(body.clientHeight);
     });
 

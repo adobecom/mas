@@ -220,6 +220,34 @@ describe('MasPromotions', () => {
     });
 
     describe('search', () => {
+        it('filters promotions by the selected environment and shows both environments when cleared', async () => {
+            const production = makePromotion({
+                id: 'production-1',
+                title: 'Production promotion',
+                surfaces: ['acom'],
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const test = makePromotion({
+                id: 'test-1',
+                title: 'Test promotion',
+                surfaces: ['sandbox'],
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const { el } = await mountWithRepo(production);
+            Store.promotions.list.data.set([new FragmentStore(production), new FragmentStore(test)]);
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(1);
+            expect(el.shadowRoot.querySelector('sp-table-row').textContent).to.include('Production promotion');
+
+            el.environmentFilter = [];
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(2);
+        });
+
         it('disables the search input while promotions are loading and enables it once they finish loading', async () => {
             let resolveLoad;
             const loadPromise = new Promise((resolve) => {

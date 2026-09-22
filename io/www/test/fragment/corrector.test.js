@@ -603,4 +603,24 @@ describe('corrector', () => {
             );
         });
     });
+    describe('countdown timer dates', () => {
+        const CDT_LINK = '<p>Ends in <a href="/promo">countdown-timer</a></p>';
+
+        it('exposes no dates when no promotion project is active', async () => {
+            const context = {
+                body: {
+                    priceLiterals: {},
+                    promoProject: 'NalaEvergreen',
+                    fields: { description: { mimeType: 'text/html', value: CDT_LINK } },
+                    references: {},
+                    referencesTree: [],
+                },
+            };
+
+            const result = await transformer.process(context);
+
+            expect(result.body.cdtStart).to.be.undefined;
+            expect(result.body.cdtEnd).to.be.undefined;
+        });
+    });
 });

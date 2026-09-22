@@ -160,19 +160,20 @@ export class OstPlaceholderPanel extends LitElement {
                           <div>
                               <sp-field-label size="s">Reference offer OSI</sp-field-label>
                               <div class="reference-osi-field">
-                                <sp-textfield
-                                    data-testid="ost-reference-osi-input"
-                                    size="s"
-                                    placeholder="e.g. base price OSI for comparison"
-                                    .value=${this.referenceOsi}
-                                    @input=${this.handleReferenceOsiInput}
-                                ></sp-textfield>
-                                <sp-checkbox
-                                    data-testid="ost-reference-osi-checkbox"
-                                    size="m"
-                                    ?checked=${this.isDiscountAmount}
-                                    @change=${this.handleDiscountAmount}
-                                >Amount</sp-checkbox>
+                                  <sp-textfield
+                                      data-testid="ost-reference-osi-input"
+                                      size="s"
+                                      placeholder="e.g. base price OSI for comparison"
+                                      .value=${this.referenceOsi}
+                                      @input=${this.handleReferenceOsiInput}
+                                  ></sp-textfield>
+                                  <sp-checkbox
+                                      data-testid="ost-reference-osi-checkbox"
+                                      size="m"
+                                      ?checked=${this.isDiscountAmount}
+                                      @change=${this.handleDiscountAmount}
+                                      >Amount</sp-checkbox
+                                  >
                               </div>
                           </div>
                       `

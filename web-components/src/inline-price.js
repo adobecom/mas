@@ -435,7 +435,11 @@ export class InlinePrice extends HTMLSpanElement {
             }
 
             // Dual-OSI discount: use individual prices for cross-offer percentage
-            if ((options.template === 'discount' || options.template === 'discount-amount') && offers.length === 2) {
+            if (
+                (options.template === 'discount' ||
+                    options.template === 'discount-amount') &&
+                offers.length === 2
+            ) {
                 const [discountedOffer, referenceOffer] = offers;
                 const crossOffer = {
                     ...discountedOffer,

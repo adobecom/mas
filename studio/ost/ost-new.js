@@ -2569,7 +2569,9 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         }
     `);customElements.define("ost-checkout-options",Lo);me();var Ro,Bo,_r,Wg,Yg,Do=class extends M{constructor(){super();be(this,_r);be(this,Ro,null);be(this,Bo,!1);this.placeholderType="price",this.referenceOsi="",this.isDiscountAmount=!1}connectedCallback(){super.connectedCallback(),this.handleStoreChange=()=>this.requestUpdate(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}willUpdate(){let t=this.effectiveOffer;t&&n.applyOfferContextDefaults(t);let r=N(this,_r,Yg).call(this);ve(this,Bo,r?.staticDiscount??!1),ve(this,Ro,r?.node??null)}get effectiveOsi(){return this.osi||n.selectedOsi}get effectiveOffer(){return this.offer||n.selectedOffer}buildPlaceholderOptions(){let t=this.effectiveOsi,r=n.masCommerceService;if(!t||!r||typeof r.createInlinePrice!="function")return null;let s=this.placeholderType,a=s==="discount"&&this.isDiscountAmount?"-amount":"";if(!s)return null;let i=this.closest(".placeholder-row")?.querySelector("ost-checkout-options")?.checkout,c=n.getEffectiveOptions(s),m=s==="discount"&&this.referenceOsi?[t,this.referenceOsi]:t.split(","),d={...c,promotionCode:n.effectivePromoCode,wcsOsi:m,template:`${s}${a}`,clientId:n.checkoutClientId,country:n.country,landscape:n.landscape,"mas-ff-defaults":!0};return i&&(d.workflowStep=i.workflowStep,d.checkoutWorkflowStep=i.workflowStep,i.enableModal&&(d.modal=i.modalType),i.entitlement&&(d.entitlement=!0),i.upgrade&&(d.upgrade=!0),d.ctaText=i.ctaText),d.workflow="UCv3",d.marketSegment=n.aosParams.marketSegment||"COM",{type:s,placeholderOptions:d,service:r}}getTypeName(){let t=this.placeholderType;return t?n.placeholderTypes.find(s=>s.type===t)?.name||t:""}getDiscountType(){return this.placeholderType!=="discount"?"":this.isDiscountAmount?" amount":" percentage"}render(){let t=this.getTypeName(),r=this.getDiscountType();return l`
             <div class="preview-card" data-testid="ost-live-preview">
-                <div class="label">Live Preview ${t?l`<span class="type-badge">${t}${r}</span>`:C}</div>
+                <div class="label">
+                    Live Preview ${t?l`<span class="type-badge">${t}${r}</span>`:C}
+                </div>
                 <div class="placeholder-container" data-testid="ost-preview-container">
                     ${J(this,Bo)?l`<span class="discount" data-template="discount">0${this.isDiscountAmount?"":"%"}</span>`:J(this,Ro)??C}
                 </div>
@@ -2702,19 +2704,20 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                           <div>
                               <sp-field-label size="s">Reference offer OSI</sp-field-label>
                               <div class="reference-osi-field">
-                                <sp-textfield
-                                    data-testid="ost-reference-osi-input"
-                                    size="s"
-                                    placeholder="e.g. base price OSI for comparison"
-                                    .value=${this.referenceOsi}
-                                    @input=${this.handleReferenceOsiInput}
-                                ></sp-textfield>
-                                <sp-checkbox
-                                    data-testid="ost-reference-osi-checkbox"
-                                    size="m"
-                                    ?checked=${this.isDiscountAmount}
-                                    @change=${this.handleDiscountAmount}
-                                >Amount</sp-checkbox>
+                                  <sp-textfield
+                                      data-testid="ost-reference-osi-input"
+                                      size="s"
+                                      placeholder="e.g. base price OSI for comparison"
+                                      .value=${this.referenceOsi}
+                                      @input=${this.handleReferenceOsiInput}
+                                  ></sp-textfield>
+                                  <sp-checkbox
+                                      data-testid="ost-reference-osi-checkbox"
+                                      size="m"
+                                      ?checked=${this.isDiscountAmount}
+                                      @change=${this.handleDiscountAmount}
+                                      >Amount</sp-checkbox
+                                  >
                               </div>
                           </div>
                       `:C}

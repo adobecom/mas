@@ -254,7 +254,9 @@ export class OstLivePreview extends LitElement {
         const discountType = this.getDiscountType();
         return html`
             <div class="preview-card" data-testid="ost-live-preview">
-                <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}${discountType}</span>` : nothing}</div>
+                <div class="label">
+                    Live Preview ${typeName ? html`<span class="type-badge">${typeName}${discountType}</span>` : nothing}
+                </div>
                 <div class="placeholder-container" data-testid="ost-preview-container">
                     ${this.#staticDiscount
                         ? html`<span class="discount" data-template="discount">0${!this.isDiscountAmount ? '%' : ''}</span>`

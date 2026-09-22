@@ -565,6 +565,9 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.priceLiterals).to.be.an('object');
             expect(result.body.priceLiterals.recurrenceLabel).to.equal('{{price-literal-recurrence-label}}');
+            expect(result.body.priceLiterals.priceUnavailableLabel).to.equal(
+                '{{price-literal-price-unavailable-label}}',
+            );
         });
 
         it('applies settings to collection model references', async () => {

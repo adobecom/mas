@@ -3,6 +3,7 @@ import {
     defaultLiterals,
     formatLiteral,
     literalKeys as templateLiteralKeys,
+    createPriceTemplate,
 } from '../price/template.js';
 
 const literalKeys = {
@@ -57,4 +58,15 @@ const createDiscountTemplate = () => (context, value) => {
     return `<span class="discount">${text}</span>`;
 };
 
-export { getDiscount, createDiscountTemplate };
+const createDiscountAmountTemplate = () => (context, value, attributes) => {
+    const { price, priceWithoutDiscount } = value;
+    const discount = getDiscount(price, priceWithoutDiscount);
+    const discountAmount = discount ? priceWithoutDiscount - price : 0;
+    return createPriceTemplate()(
+        context,
+        { ...value, price: discountAmount },
+        attributes,
+    );
+};
+
+export { getDiscount, createDiscountTemplate, createDiscountAmountTemplate };

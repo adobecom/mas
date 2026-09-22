@@ -30,7 +30,7 @@ const DEFAULT_PLACEHOLDER_TYPES = [
         name: 'Promo strikethrough price',
         description: 'Formatted price displayed as promo strikethrough',
     },
-    { type: 'discount', name: 'Discount percentage', description: 'Percentage discount between regular and current price' },
+    { type: 'discount', name: 'Discount', description: 'Discount between regular and current price' },
     {
         type: 'legal',
         name: 'Legal disclaimer',

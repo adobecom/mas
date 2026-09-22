@@ -210,6 +210,7 @@ describe('commerce service', () => {
                     env: 'PRODUCTION',
                     extraOptions: {},
                     forceTaxExclusive: false,
+                    hasExplicitCountry: false,
                     landscape: 'PUBLISHED',
                     language: 'en',
                     locale: 'en_US',

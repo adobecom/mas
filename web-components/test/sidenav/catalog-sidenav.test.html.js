@@ -199,6 +199,20 @@ runTests(async () => {
                     .querySelectorAll('sp-sidenav-item').length,
             ).to.equal(1);
         });
+
+        it('relocates the aria-label from the sidenav item onto its inner anchor', async () => {
+            const item = document
+                .querySelectorAll('merch-sidenav-list')[1]
+                .querySelector('sp-sidenav-item');
+            await item.updateComplete;
+            expect(item.hasAttribute('aria-label')).to.be.false;
+            const anchor =
+                item.shadowRoot.querySelector('#item-link') ??
+                item.shadowRoot.querySelector('a[href]');
+            expect(anchor.getAttribute('aria-label')).to.equal(
+                'Special Offers - opens in a new window',
+            );
+        });
     });
 
     describe('Search desktop sidenav', async () => {

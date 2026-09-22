@@ -211,10 +211,34 @@ export class MerchSidenavList extends LitElement {
         super.connectedCallback();
         this.addEventListener('click', this.handleClickDebounced);
         this.updateComplete.then(() => {
+            this.relocateItemAriaLabels();
             if (!this.deeplink) return;
             paramsToHash(['filter', 'single_app']);
             this.startDeeplink();
         });
+    }
+
+    /**
+     * sp-sidenav-item does not expose its inner anchor for authoring, so an
+     * accessible name authored on the item itself never reaches the focusable
+     * #item-link anchor; move it there so screen readers announce it.
+     */
+    async relocateItemAriaLabels() {
+        const items = [...this.querySelectorAll('sp-sidenav-item[aria-label]')];
+        if (!items.length) return;
+        await customElements.whenDefined('sp-sidenav-item');
+        await Promise.all(
+            items.map(async (item) => {
+                const label = item.getAttribute('aria-label');
+                await item.updateComplete;
+                const anchor =
+                    item.shadowRoot?.querySelector('#item-link') ??
+                    item.shadowRoot?.querySelector('a[href]');
+                if (!anchor) return;
+                anchor.setAttribute('aria-label', label);
+                item.removeAttribute('aria-label');
+            }),
+        );
     }
 
     disconnectedCallback() {

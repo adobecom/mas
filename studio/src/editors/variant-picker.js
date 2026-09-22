@@ -186,10 +186,12 @@ export const getVariantTreeData = (surface) =>
         if (!surface) return true;
         if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
         return v.surfaces.some((s) => s.name === surface);
-    }).map((v) => ({
-        name: v.value,
-        label: v.label,
-    }));
+    })
+        .map((v) => ({
+            name: v.value,
+            label: v.label,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 
 class VariantPicker extends LitElement {
     static styles = css`
@@ -217,12 +219,18 @@ class VariantPicker extends LitElement {
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
+        surface: { type: String },
     };
 
+    #surfaceVariantNames() {
+        return new Set(getVariantTreeData(this.surface).map((v) => v.name));
+    }
+
     get variants() {
-        return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
-            (variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`,
-        );
+        const allowed = this.#surfaceVariantNames();
+        return VARIANTS.filter((variant) => this.showAll || (variant.value != 'all' && allowed.has(variant.value)))
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map((variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`);
     }
 
     #handleChange(e) {

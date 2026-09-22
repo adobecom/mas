@@ -39,11 +39,16 @@ import {
     printMeasure,
     setForegroundTimeout,
     clearForegroundTimeout,
-    shouldHideStPriceLabels,
 } from './utils.js';
 import { toPromotionCodes } from './utilities.js';
-import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
-import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
+import { hostOsi } from './plan-type-text.js';
+import {
+    applyContextPromotionCode,
+    applyDisplayAnnualDefault,
+    applyHideStPriceLabels,
+    mergePriceLiterals,
+    registerContextOptionsProviders,
+} from './mas-context.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -64,23 +69,9 @@ const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
-    if (card.priceLiterals) {
-        options.literals ??= {};
-        Object.assign(options.literals, card.priceLiterals);
-    }
-
-    if (shouldHideStPriceLabels(element)) {
-        options.displayPerUnit = false;
-        options.displayTax = false;
-    }
-
-    if (
-        !options.promotionCode &&
-        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
-            card.hasAttribute('data-promotion-project'))
-    ) {
-        options.promotionCode = card.contextPromotionCode;
-    }
+    mergePriceLiterals(card.priceLiterals, options);
+    applyHideStPriceLabels(element, options);
+    applyContextPromotionCode(card, options);
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }
@@ -88,36 +79,21 @@ function priceOptionsProvider(element, options) {
     if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
     }
-    if (
-        options.displayAnnual === undefined &&
-        typeof card.settings?.displayAnnual === 'boolean'
-    ) {
-        options.displayAnnual = card.settings.displayAnnual;
-    }
+    applyDisplayAnnualDefault(card, options);
 }
 
 function checkoutOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
-    if (
-        !options.promotionCode &&
-        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
-            card.hasAttribute('data-promotion-project'))
-    ) {
-        options.promotionCode = card.contextPromotionCode;
-    }
+    applyContextPromotionCode(card, options);
 }
 
 function registerOptionsProviders(masCommerceService) {
-    if (!masCommerceService.providers.has(priceOptionsProvider)) {
-        masCommerceService.providers.price(priceOptionsProvider);
-    }
-    if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
-        masCommerceService.providers.checkout(checkoutOptionsProvider);
-    }
-    if (!masCommerceService.providers.has(planTypeTextOptionsProvider)) {
-        masCommerceService.providers.price(planTypeTextOptionsProvider);
-    }
+    registerContextOptionsProviders(
+        masCommerceService,
+        priceOptionsProvider,
+        checkoutOptionsProvider,
+    );
 }
 
 const intersectionObserver = new IntersectionObserver((entries) => {
@@ -928,7 +904,9 @@ export class MerchCard extends LitElement {
         return this.querySelector('[slot="price"]');
     }
 
-    handleAddonAndQuantityUpdate({ detail: { id, items } }) {
+    handleAddonAndQuantityUpdate({
+        detail: { id, items, productArrangementCode },
+    }) {
         if (!id || !items?.length) return;
         const parentTab = this.closest('[role="tabpanel"][hidden="true"]');
         if (parentTab) return;
@@ -937,8 +915,9 @@ export class MerchCard extends LitElement {
             (link) => link.getAttribute('data-modal-id') === id,
         );
         if (!cta) return;
-        const url = new URL(cta.getAttribute('href'));
-        const pa = url.searchParams.get('pa');
+        const pa =
+            productArrangementCode ?? cta.value?.[0]?.productArrangementCode;
+        if (!pa) return;
         const mainProductQuantity = items.find(
             (item) => item.productArrangementCode === pa,
         )?.quantity;

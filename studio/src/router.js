@@ -50,7 +50,7 @@ export function promoHashIsSearchSync(previousHash, nextHash) {
         nextHash,
         PAGE_NAMES.PROMOTIONS_EDITOR,
         'promotionId',
-        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region']),
+        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region', 'status']),
     );
 }
 
@@ -276,7 +276,7 @@ export class Router extends EventTarget {
                     if (targetPage !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
-                        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                        Store.filters.set((prev) => ({ ...prev, tags: undefined, status: undefined }));
                     }
                     if (
                         (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&
@@ -537,7 +537,7 @@ export class Router extends EventTarget {
         const normalizedOnStart = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
-        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
+        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled', 'status'], {
             locale: 'en_US',
             personalizationFilterEnabled: false,
         });

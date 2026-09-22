@@ -104,6 +104,17 @@ describe('MasSearchAndFilters', () => {
             expect(Store.search.get()).to.equal(globalSearch);
             expect(Store.filters.get()).to.equal(globalFilters);
         });
+
+        it('writes to the store captured at connect on disconnect, even if the global store was swapped by another editor', async () => {
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set([{ path: '/a' }]);
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
+            await el.updateComplete;
+            setItemsSelectionStore(Store.compareChart);
+            expect(() => el.remove()).to.not.throw();
+            expect(Store.promotions.displayCards.get()).to.deep.equal(Store.promotions.allCards.get());
+        });
     });
 
     describe('initialization', () => {
@@ -468,11 +479,16 @@ describe('MasSearchAndFilters', () => {
             });
         });
 
-        it('renders a Status filter with Published/Draft/Modified options', async () => {
+        it('renders the same five Status options as the fragments table', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
-            expect(el.statusOptions.map((o) => o.id)).to.have.members(['PUBLISHED', 'DRAFT', 'MODIFIED']);
-            expect(el.statusOptions.map((o) => o.title)).to.have.members(['Published', 'Draft', 'Modified']);
+            expect(el.statusOptions.map((o) => o.title)).to.deep.equal([
+                'Published',
+                'Draft',
+                'New',
+                'Modified',
+                'Unpublished',
+            ]);
         });
 
         it('does not populate Status options when searchOnly is true', async () => {
@@ -931,6 +947,7 @@ describe('MasSearchAndFilters', () => {
                 locale: 'en_US',
                 tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
+                status: undefined,
             });
         });
 
@@ -1322,6 +1339,7 @@ describe('MasSearchAndFilters', () => {
                 locale: 'en_US',
                 tags: 'mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
+                status: undefined,
             });
         });
     });

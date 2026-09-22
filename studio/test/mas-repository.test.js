@@ -484,62 +484,22 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.processError.called).to.be.false;
         });
 
-        it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
-            const repository = createFullRepository();
-            const { default: Store } = await import('../src/store.js');
-            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
-            const originalSearch = structuredClone(Store.search.get());
-            const originalFilters = structuredClone(Store.filters.get());
-            Store.search.set({ ...originalSearch, path: 'acom' });
-            Store.filters.set({ ...originalFilters, locale: 'en_US' });
-            let resolveList;
-            const deferred = new Promise((r) => {
-                resolveList = r;
-            });
-            repository.searchFragmentList = sandbox.stub().returns(deferred);
-            Store.translationProjects.allCollections.set([]);
-            const collectionsSnapshot = Store.translationProjects.allCollections.get();
-            setItemsSelectionStore(Store.translationProjects);
-            try {
-                const loadP = repository.loadAllCollections();
-                await Promise.resolve();
-                setItemsSelectionStore(null);
-                resolveList([
-                    {
-                        path: '/content/dam/mas/acom/en_US/collections/c1',
-                        title: 'C1',
-                        fields: [],
-                        model: { path: COLLECTION_MODEL_PATH },
-                    },
-                ]);
-                await loadP;
-                expect(Store.translationProjects.allCollections.get()).to.equal(collectionsSnapshot);
-            } finally {
-                Store.search.set(originalSearch);
-                Store.filters.set(originalFilters);
-                setItemsSelectionStore(null);
-            }
-        });
-
         it('loadAllCollections in PROMOTIONS_EDITOR searches without locale in path', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');
-            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
             const originalFilters = structuredClone(Store.filters.get());
             Store.filters.set({ ...originalFilters, locale: 'en_US' });
             repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
             Store.promotions.itemPickerSurface.set('acom');
             repository.searchFragmentList = sandbox.stub().resolves([]);
-            setItemsSelectionStore(Store.promotions);
             try {
-                await repository.loadAllCollections();
+                await repository.loadAllCollections(Store.promotions);
                 const searchPath = repository.searchFragmentList.firstCall.args[0].path;
                 expect(searchPath).to.equal('/content/dam/mas/acom');
                 expect(searchPath).to.not.include('en_US');
             } finally {
                 Store.filters.set(originalFilters);
                 Store.promotions.itemPickerSurface.set(null);
-                setItemsSelectionStore(null);
             }
         });
 
@@ -806,6 +766,7 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'locale') return 'en_US';
                     if (key === 'tags') return '';
                     if (key === 'createdBy') return '';
+                    if (key === 'status') return '';
                     if (key === 'personalizationFilterEnabled') return false;
                     return null;
                 }),
@@ -2056,7 +2017,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('handles published tag filter by setting status', async () => {
+        it('no longer treats mas:status/published as a status filter (tag passes through untouched)', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -2088,8 +2049,8 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 const searchOptions = searchStub.firstCall.args[0];
-                expect(searchOptions.status).to.equal('PUBLISHED');
-                expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
+                expect(searchOptions.status).to.equal(undefined);
+                expect(searchOptions.tags).to.deep.equal(['mas:status/published', 'mas:custom-tag']);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -2962,6 +2923,118 @@ describe('MasRepository dictionary helpers', () => {
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('searchFragments status wiring', () => {
+        const createMockCursorFromPages = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
+        const setupStatusSearchTest = async ({ tags = '', status } = {}) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags, status } };
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages([[]]));
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                searchStub,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('no longer translates the mas:status/published tag into a status filter', async () => {
+            const { repository, searchStub, cleanup } = await setupStatusSearchTest({
+                tags: 'mas:status/published',
+            });
+            try {
+                await repository.searchFragments();
+                const options = searchStub.firstCall.args[0];
+                expect(options.status).to.equal(undefined);
+                expect(options.tags).to.include('mas:status/published');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sends filters.value.status to AEM as an array on localSearch.status', async () => {
+            const { repository, searchStub, cleanup } = await setupStatusSearchTest({
+                status: 'DRAFT,NEW',
+            });
+            try {
+                await repository.searchFragments();
+                const options = searchStub.firstCall.args[0];
+                expect(options.status).to.deep.equal(['DRAFT', 'NEW']);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('omits localSearch.status entirely when no status filter is set', async () => {
+            const { repository, searchStub, cleanup } = await setupStatusSearchTest({});
+            try {
+                await repository.searchFragments();
+                const options = searchStub.firstCall.args[0];
+                expect(options).to.not.have.property('status');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('persists status metadata and re-runs the search when status changes', async () => {
+            const { repository, searchStub, mockDataStore, cleanup } = await setupStatusSearchTest({
+                status: 'DRAFT',
+            });
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.setMeta.calledWith('status', 'DRAFT')).to.be.true;
+
+                mockDataStore.get.returns([{ get: () => ({ path: `${ROOT_PATH}/acom/en_US/x`, status: 'DRAFT' }) }]);
+                mockDataStore.getMeta.withArgs('path').returns('acom');
+                mockDataStore.getMeta.withArgs('query').returns('');
+                mockDataStore.getMeta.withArgs('locale').returns('en_US');
+                mockDataStore.getMeta.withArgs('tags').returns('');
+                mockDataStore.getMeta.withArgs('createdBy').returns('');
+                mockDataStore.getMeta.withArgs('status').returns('DRAFT');
+
+                repository.filters = { value: { locale: 'en_US', tags: '', status: 'DRAFT,NEW' } };
+                await repository.searchFragments();
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
             }
         });
     });
@@ -4245,6 +4318,219 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('forceDeletePromoVariations', () => {
+        it('force-deletes promo variations concurrently instead of one at a time', async () => {
+            const repository = createRepository();
+            const paths = [
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/a',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/b',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/c',
+            ];
+            const resolvers = [];
+            let concurrentCalls = 0;
+            let maxConcurrentCalls = 0;
+            repository.aem = createAemMock({
+                fragments: {
+                    forceDelete: sandbox.stub().callsFake(
+                        () =>
+                            new Promise((resolve) => {
+                                concurrentCalls += 1;
+                                maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
+                                resolvers.push(() => {
+                                    concurrentCalls -= 1;
+                                    resolve();
+                                });
+                            }),
+                    ),
+                },
+            });
+
+            const resultPromise = repository.forceDeletePromoVariations(paths);
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(resolvers.length).to.equal(3);
+            expect(maxConcurrentCalls).to.equal(3);
+
+            resolvers.forEach((resolve) => resolve());
+            const failedVariations = await resultPromise;
+            expect(failedVariations).to.deep.equal([]);
+        });
+
+        it('collects paths that fail to force-delete without stopping the others', async () => {
+            const repository = createRepository();
+            const paths = [
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/a',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/b',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/c',
+            ];
+            const forceDelete = sandbox.stub();
+            forceDelete.withArgs({ path: paths[0] }).resolves();
+            forceDelete.withArgs({ path: paths[1] }).rejects(new Error('boom'));
+            forceDelete.withArgs({ path: paths[2] }).resolves();
+            repository.aem = createAemMock({ fragments: { forceDelete } });
+            const errorSpy = sandbox.stub(console, 'error');
+
+            const failedVariations = await repository.forceDeletePromoVariations(paths);
+
+            expect(failedVariations).to.deep.equal([paths[1]]);
+            expect(errorSpy.calledWith(`Failed to delete promo variation ${paths[1]}:`, sinon.match.instanceOf(Error))).to.be
+                .true;
+        });
+    });
+
+    describe('deleteVariationFragment', () => {
+        const buildVariationFragment = () =>
+            new Fragment({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+                fields: [],
+            });
+
+        it('cascades the parent-link removal and promo cleanup only after the fragment delete is confirmed', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            const localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/sandbox/en_US/my-fragment' };
+            const calls = [];
+            sandbox.stub(repository, 'deleteFragment').callsFake(async () => {
+                calls.push('deleteFragment');
+                return true;
+            });
+            sandbox.stub(repository, 'removeFromParentVariations').callsFake(async () => {
+                calls.push('removeFromParentVariations');
+            });
+            sandbox.stub(repository, 'forceDeletePromoVariations').callsFake(async () => {
+                calls.push('forceDeletePromoVariations');
+                return [];
+            });
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment,
+                promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+
+            expect(calls).to.deep.equal(['deleteFragment', 'removeFromParentVariations', 'forceDeletePromoVariations']);
+            expect(result).to.deep.equal({ deleted: true, failedVariations: [], parentUpdateFailed: false });
+        });
+
+        it('retries with force delete when the reference-aware delete fails, then still cascades', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            const deleteFragment = sandbox.stub(repository, 'deleteFragment');
+            deleteFragment.onFirstCall().resolves(false);
+            deleteFragment.onSecondCall().resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: [],
+            });
+
+            expect(deleteFragment.callCount).to.equal(2);
+            expect(deleteFragment.secondCall.calledWith(fragment, { force: true, startToast: false, endToast: false })).to.be
+                .true;
+            expect(result.deleted).to.be.true;
+        });
+
+        it('does not remove the parent link or force-delete promo variations when both delete attempts fail', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(false);
+            const removeFromParentVariations = sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            const forceDeletePromoVariations = sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+
+            expect(removeFromParentVariations.called).to.be.false;
+            expect(forceDeletePromoVariations.called).to.be.false;
+            expect(result).to.deep.equal({ deleted: false, failedVariations: [], parentUpdateFailed: false });
+        });
+
+        it('skips removing the parent link when no localeDefaultFragment is given', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            const removeFromParentVariations = sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            await repository.deleteVariationFragment(fragment, { promoVariationPaths: [] });
+
+            expect(removeFromParentVariations.called).to.be.false;
+        });
+
+        it('surfaces promo variations that failed to force-delete', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            sandbox
+                .stub(repository, 'forceDeletePromoVariations')
+                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment']);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+
+            expect(result.failedVariations).to.deep.equal([
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+            ]);
+        });
+
+        it('surfaces a failure to update the parent variations field instead of swallowing it', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').rejects(new Error('save failed'));
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: [],
+            });
+
+            expect(result).to.deep.equal({ deleted: true, failedVariations: [], parentUpdateFailed: true });
+        });
+    });
+
+    describe('deleteFragmentWithVariations reusing already-known variations', () => {
+        it('skips the promo-variation network probe when known variations are provided', async () => {
+            const repository = createRepository();
+            const fragment = new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                fields: [],
+            });
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves({ id: 'parent-id', fields: [] }),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            const getPromoVariationPaths = sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment, [
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/my-fragment',
+            ]);
+
+            expect(getPromoVariationPaths.called).to.be.false;
+            expect(result.success).to.be.true;
+            expect(
+                repository.aem.sites.cf.fragments.forceDelete.calledWith({
+                    path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/my-fragment',
+                }),
+            ).to.be.true;
+        });
+    });
+
     describe('Store subscription lifecycle', () => {
         const connectAndDisconnect = (repository) => {
             sandbox.stub(repository, 'loadFolders').resolves();
@@ -4641,5 +4927,53 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls refreshFragment for each published fragment', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.refreshFragment.calledTwice).to.be.true;
+    });
+});
+
+describe('status filter narrowing', () => {
+    const createRepository = () => new MasRepository();
+
+    it('treats adding a status to an unfiltered list as narrowing', () => {
+        const repository = createRepository();
+        const narrowed = repository.testOnlyIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+        );
+        expect(narrowed).to.equal(true);
+    });
+
+    it('treats adding a status to an existing filter as widening (must refetch)', () => {
+        const repository = createRepository();
+        const narrowed = repository.testOnlyIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
+        );
+        expect(narrowed).to.equal(false);
+    });
+
+    it('treats tightening to a subset as narrowing', () => {
+        const repository = createRepository();
+        const narrowed = repository.testOnlyIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+        );
+        expect(narrowed).to.equal(true);
+    });
+
+    it('filters in memory on item.status, not tags', () => {
+        const repository = createRepository();
+        const stores = [
+            { value: { id: 'a', path: '/a', status: 'DRAFT', tags: [], fields: [] } },
+            { value: { id: 'b', path: '/b', status: 'PUBLISHED', tags: [], fields: [] } },
+        ];
+        const result = repository.testOnlyApplyInMemoryFilter(stores, {
+            query: '',
+            tags: [],
+            variants: [],
+            contentTypes: [],
+            createdBy: [],
+            status: ['DRAFT'],
+        });
+        expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
     });
 });

@@ -76,7 +76,7 @@ function getObjectDifference(values, defaults) {
     return difference;
 }
 
-export const attributeFilter = (key) => /^(class|data-|is|href|title|target)/.test(key);
+export const attributeFilter = (key) => /^(class|data-|is|href|title|target|aria-label)/.test(key);
 
 const OST_TYPE_MAPPING = {
     price: null,
@@ -226,7 +226,15 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
-        if (offerElement) {
+        // Opening a new OST (no placeholder double-clicked) still has a target:
+        // the card's own OSI field. Deep-link to it so the author lands on that
+        // offer instead of an empty plate. Single-valued by construction — the
+        // "OSI Search" field holds one offerSelectorId (osi-field.js), unlike a
+        // placeholder's comma-joined data-wcs-osi — so no bundle/discount split.
+        if (!offerElement) {
+            searchOfferSelectorId =
+                triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('osi', 0)?.trim() || undefined;
+        } else {
             searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkoutUrl');
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);

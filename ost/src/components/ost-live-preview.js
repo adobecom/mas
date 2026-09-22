@@ -5,6 +5,7 @@ export class OstLivePreview extends LitElement {
     static properties = {
         placeholderType: { type: String },
         referenceOsi: { type: String },
+        isDiscountAmount: { type: Boolean },
         osi: { type: String },
         offer: { type: Object },
     };
@@ -107,6 +108,7 @@ export class OstLivePreview extends LitElement {
         super();
         this.placeholderType = 'price';
         this.referenceOsi = '';
+        this.isDiscountAmount = false;
     }
 
     connectedCallback() {
@@ -147,6 +149,7 @@ export class OstLivePreview extends LitElement {
         if (typeof service.createInlinePrice !== 'function') return null;
 
         const type = this.placeholderType;
+        const subtype = type === 'discount' && this.isDiscountAmount ? '-amount' : '';
         if (!type) return null;
         // Scope the checkout controller to this row — tryBuy renders one
         // checkout row per offer, each with its own ost-checkout-options.
@@ -161,7 +164,7 @@ export class OstLivePreview extends LitElement {
             ...options,
             promotionCode: store.effectivePromoCode,
             wcsOsi,
-            template: type,
+            template: `${type}${subtype}`,
             clientId: store.checkoutClientId,
             country: store.country,
             landscape: store.landscape,
@@ -224,7 +227,11 @@ export class OstLivePreview extends LitElement {
         }
 
         if (node && type && type !== 'price') {
-            node.dataset.template = type;
+            if (type === 'discount' && this.isDiscountAmount) {
+                node.dataset.template = 'discount-amount';
+            } else {
+                node.dataset.template = type;
+            }
         }
 
         return { node };
@@ -237,14 +244,20 @@ export class OstLivePreview extends LitElement {
         return match?.name || type;
     }
 
+    getDiscountType() {
+        if (this.placeholderType !== 'discount') return '';
+        return this.isDiscountAmount ? ' amount' : ' percentage';
+    }
+
     render() {
         const typeName = this.getTypeName();
+        const discountType = this.getDiscountType();
         return html`
             <div class="preview-card" data-testid="ost-live-preview">
-                <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : nothing}</div>
+                <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}${discountType}</span>` : nothing}</div>
                 <div class="placeholder-container" data-testid="ost-preview-container">
                     ${this.#staticDiscount
-                        ? html`<span class="discount" data-template="discount">0%</span>`
+                        ? html`<span class="discount" data-template="discount">0${!this.isDiscountAmount ? '%' : ''}</span>`
                         : (this.#placeholderNode ?? nothing)}
                 </div>
             </div>

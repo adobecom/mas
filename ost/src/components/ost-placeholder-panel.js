@@ -67,12 +67,16 @@ export class OstPlaceholderPanel extends LitElement {
 
         .reference-osi-field {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            gap: 11px;
         }
 
         .reference-osi-field sp-textfield {
             width: 100%;
+        }
+
+        .reference-osi-field sp-checkbox {
+            position: relative;
+            top: -3px;
         }
 
         .empty-state {
@@ -83,6 +87,7 @@ export class OstPlaceholderPanel extends LitElement {
 
     static properties = {
         referenceOsi: { type: String, state: true },
+        isDiscountAmount: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -121,6 +126,10 @@ export class OstPlaceholderPanel extends LitElement {
         this.referenceOsi = e.target.value;
     }
 
+    handleDiscountAmount(e) {
+        this.isDiscountAmount = e.target.checked;
+    }
+
     renderRow(type, group) {
         const isDiscount = type.type === 'discount';
         const isCheckoutUrl = type.type === 'checkoutUrl';
@@ -137,6 +146,7 @@ export class OstPlaceholderPanel extends LitElement {
                         <ost-code-output
                             .placeholderType=${type.type}
                             .referenceOsi=${rowReferenceOsi}
+                            .isDiscountAmount=${this.isDiscountAmount}
                             .osi=${group.osi}
                             .offer=${group.offer}
                         ></ost-code-output>
@@ -147,15 +157,23 @@ export class OstPlaceholderPanel extends LitElement {
                 ${isCheckoutUrl ? html`<ost-checkout-options></ost-checkout-options>` : nothing}
                 ${isDiscount
                     ? html`
-                          <div class="reference-osi-field">
+                          <div>
                               <sp-field-label size="s">Reference offer OSI</sp-field-label>
-                              <sp-textfield
-                                  data-testid="ost-reference-osi-input"
-                                  size="s"
-                                  placeholder="e.g. base price OSI for comparison"
-                                  .value=${this.referenceOsi}
-                                  @input=${this.handleReferenceOsiInput}
-                              ></sp-textfield>
+                              <div class="reference-osi-field">
+                                <sp-textfield
+                                    data-testid="ost-reference-osi-input"
+                                    size="s"
+                                    placeholder="e.g. base price OSI for comparison"
+                                    .value=${this.referenceOsi}
+                                    @input=${this.handleReferenceOsiInput}
+                                ></sp-textfield>
+                                <sp-checkbox
+                                    data-testid="ost-reference-osi-checkbox"
+                                    size="m"
+                                    ?checked=${this.isDiscountAmount}
+                                    @change=${this.handleDiscountAmount}
+                                >Amount</sp-checkbox>
+                              </div>
                           </div>
                       `
                     : nothing}
@@ -165,6 +183,7 @@ export class OstPlaceholderPanel extends LitElement {
                     .referenceOsi=${rowReferenceOsi}
                     .osi=${group.osi}
                     .offer=${group.offer}
+                    .isDiscountAmount=${this.isDiscountAmount}
                 ></ost-live-preview>
             </div>
         `;

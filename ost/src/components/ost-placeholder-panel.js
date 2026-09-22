@@ -115,7 +115,7 @@ export class OstPlaceholderPanel extends LitElement {
 
     applyDeepLink() {
         if (this.deepLinkApplied) return;
-        const config = this.getRootNode()?.host?.config;
+        const config = this.getRootNode()?.host?.getRootNode()?.host?.config;
         if (config?.initialReferenceOsi) {
             this.deepLinkApplied = true;
             this.referenceOsi = config.initialReferenceOsi;

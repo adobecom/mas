@@ -390,4 +390,10 @@ describe('sanitizePictureMarkup', () => {
             parse(INNER).querySelector('img').getAttribute('src'),
         );
     });
+
+    it('preserves a role="none" attribute on img (decorative-image marker used when there is no alt text)', () => {
+        const markup = `<img loading="lazy" role="none" src="${AEM}">`;
+        const doc = parse(sanitizePictureMarkup(markup));
+        expect(doc.querySelector('img').getAttribute('role')).to.equal('none');
+    });
 });

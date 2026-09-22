@@ -120,6 +120,7 @@ const ALLOWED_PICTURE_ATTRS = new Set([
     'media',
     'type',
     'alt',
+    'role',
     'loading',
     'data-mobile-set',
 ]);

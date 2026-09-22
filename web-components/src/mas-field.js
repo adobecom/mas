@@ -52,6 +52,12 @@ const CONTEXT_ATTRIBUTES = [
  * never left with no CTA. For an indexed ref we return null so the single
  * requested slot renders nothing rather than shifting to its neighbour.
  */
+/** Escapes text for safe embedding inside a double-quoted HTML attribute
+ *  (e.g. alt text), before it's parsed via template.innerHTML. */
+function escapeAttr(value) {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
 function stripTrialCtas(html, indexed) {
     const template = document.createElement('template');
     template.innerHTML = html;
@@ -478,6 +484,19 @@ class MasField extends HTMLElement {
         this.#stampContext(picture);
     }
 
+    /** Real alt text when authored,
+     *  otherwise role="none" (not an empty alt) to mark the image decorative. */
+    #backgroundImageMarkup(url) {
+        const altText = this.#unwrapSingleParagraph(
+            this.#normalizeFieldValue(this.#fields.backgroundImageAltText),
+        );
+        const altAttr =
+            typeof altText === 'string' && altText
+                ? `alt="${escapeAttr(altText)}"`
+                : 'role="none"';
+        return `<img loading="lazy" ${altAttr} src="${sanitizeAssetUrl(url)}">`;
+    }
+
     #normalizeFieldValue(value) {
         if (value && typeof value === 'object' && 'value' in value)
             return value.value;
@@ -604,7 +623,7 @@ class MasField extends HTMLElement {
                 const inner =
                     fieldName === 'image' || fieldName === 'backgrounds'
                         ? value
-                        : `<img loading="lazy" alt="" src="${sanitizeAssetUrl(value)}">`;
+                        : this.#backgroundImageMarkup(value);
                 this.#renderPictureContent(renderImageMarkup(inner));
             } else {
                 this.#clearContent();

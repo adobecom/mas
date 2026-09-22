@@ -1828,6 +1828,75 @@ describe('mas-field, backgroundImage attribute injection safety', () => {
         const el = makeField('backgroundImage', malicious);
         expect(el.querySelector('[onerror]')).to.not.exist;
     });
+
+    it('does not let a quote in backgroundImageAltText break out of the alt attribute', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgroundImage');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgroundImage:
+                            'https://main--mas-test--adobecom.aem.page/bg.png',
+                        backgroundImageAltText: '" onerror="alert(1)',
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
+describe('mas-field, backgroundImage alt text', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    function makeBackgroundImageField(backgroundImage, backgroundImageAltText) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgroundImage');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: { backgroundImage, backgroundImageAltText },
+                },
+            }),
+        );
+        return el;
+    }
+
+    it('uses backgroundImageAltText as the alt text when present', () => {
+        const el = makeBackgroundImageField(
+            'https://main--mas-test--adobecom.aem.page/bg.png',
+            'Autumn sale banner',
+        );
+        const img = el.querySelector(
+            'picture[data-role="mas-field-content"] img',
+        );
+        expect(img.getAttribute('alt')).to.equal('Autumn sale banner');
+    });
+
+    it('marks the image decorative with role="none" (not an empty alt) when backgroundImageAltText is absent, matching hydrate.js', () => {
+        const el = makeBackgroundImageField(
+            'https://main--mas-test--adobecom.aem.page/bg.png',
+            undefined,
+        );
+        const img = el.querySelector(
+            'picture[data-role="mas-field-content"] img',
+        );
+        expect(img.hasAttribute('alt')).to.be.false;
+        expect(img.getAttribute('role')).to.equal('none');
+    });
 });
 
 describe('mas-field: switching field types on a live instance', () => {

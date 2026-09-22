@@ -605,6 +605,21 @@ describe('MasItemsSelector', () => {
             expect(Store.translationProjects.selectedCards.get()).to.include(card.path);
         });
 
+        it('reports "Already added." when the pasted card path is already in selectedCards', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/existing-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+            Store.translationProjects.selectedCards.set([card.path]);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.importedUrls[0].status).to.equal('error');
+            expect(el.importedUrls[0].errorMessage).to.equal('Already added.');
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([card.path]);
+            expect(getToast(el).textContent).to.match(/Already added/);
+        });
+
         it('imports a placeholder UUID link into the placeholder stores', async () => {
             const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
             const placeholder = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/abm', uuid);
@@ -622,6 +637,40 @@ describe('MasItemsSelector', () => {
             expect(display[0].key).to.equal('abm');
             expect(display[0].value).to.equal('Adobe Business Model');
             expect(Store.translationProjects.placeholdersByPaths.get().get(placeholder.path)).to.equal(display[0]);
+        });
+
+        it('reports "Already added." when the pasted placeholder path is already in selectedPlaceholders', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const placeholder = mockPlaceholder('/content/dam/mas/sandbox/en_US/dictionary/abm', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(placeholder);
+            Store.translationProjects.selectedPlaceholders.set([placeholder.path]);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, PLACEHOLDER_URL(uuid));
+
+            expect(el.importedUrls[0].status).to.equal('error');
+            expect(el.importedUrls[0].errorMessage).to.equal('Already added.');
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([placeholder.path]);
+            expect(getToast(el).textContent).to.match(/Already added/);
+        });
+
+        it('rejects a placeholder link whose fragment locale does not match the store locale', async () => {
+            const previousFilters = Store.filters.get();
+            Store.filters.set({ locale: 'en_US' });
+            try {
+                const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+                const placeholder = mockPlaceholder('/content/dam/mas/sandbox/fr_FR/dictionary/abm', uuid);
+                mockRepository.aem.sites.cf.fragments.getById.resolves(placeholder);
+
+                const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+                await importViaUrl(el, PLACEHOLDER_URL(uuid));
+
+                expect(el.importedUrls[0].status).to.equal('error');
+                expect(el.importedUrls[0].errorMessage).to.equal('fr_FR not allowed here.');
+                expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
+            } finally {
+                Store.filters.set(previousFilters);
+            }
         });
 
         it('rejects a placeholder key link as having no valid URLs', async () => {
@@ -1148,6 +1197,22 @@ describe('MasItemsSelector', () => {
 
             expect(el.importedUrls.map((i) => i.status)).to.deep.equal(['valid', 'valid']);
             expect(Store.translationProjects.selectedCards.get()).to.have.length(2);
+        });
+
+        it('still reports the cap message, not "Already added.", when a genuinely new card hits maxSelectedCards', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/new-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+            Store.translationProjects.selectedCards.set(['/content/dam/mas/sandbox/en_US/existing-card']);
+
+            const el = await fixture(html`<mas-items-selector .maxSelectedCards=${1}></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.importedUrls[0].status).to.equal('error');
+            expect(el.importedUrls[0].errorMessage).to.equal('Max 1 fragments reached.');
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([
+                '/content/dam/mas/sandbox/en_US/existing-card',
+            ]);
         });
 
         it('shows URL item with error status when fragment is not found', async () => {

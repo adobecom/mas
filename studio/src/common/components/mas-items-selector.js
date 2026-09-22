@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
+import Store from '../../store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
 import { uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
@@ -17,7 +18,7 @@ import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
-import { debounce, isUUID, extractSurfaceFromPath } from '../../utils.js';
+import { debounce, isUUID, extractSurfaceFromPath, extractLocaleFromPath } from '../../utils.js';
 
 const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart', 'placeholder'];
 
@@ -340,6 +341,14 @@ class MasItemsSelector extends LitElement {
                 );
                 continue;
             }
+            if (item.contentType === 'placeholder') {
+                const locale = extractLocaleFromPath(fragment.path);
+                if (locale !== Store.localeOrRegion()) {
+                    failed++;
+                    this.#setImportedUrlStatus(item.fragmentId, 'error', `${locale} not allowed here.`, path, displayName);
+                    continue;
+                }
+            }
             const validation = this.validateImportFragment(fragment);
             if (validation !== true) {
                 failed++;
@@ -362,6 +371,13 @@ class MasItemsSelector extends LitElement {
             if (!display) {
                 failed++;
                 this.#setImportedUrlStatus(item.fragmentId, 'error', 'Unsupported fragment type.', path, displayName);
+                continue;
+            }
+            const selectedField = isCard ? 'selectedCards' : isPlaceholder ? 'selectedPlaceholders' : 'selectedCollections';
+            const selectedPaths = this.itemsSelection.value[selectedField].value || [];
+            if (selectedPaths.includes(display.path)) {
+                duplicates++;
+                this.#setImportedUrlStatus(item.fragmentId, 'error', 'Already added.', path, displayName);
                 continue;
             }
             const appended = isCard
@@ -390,6 +406,8 @@ class MasItemsSelector extends LitElement {
             this.openToast(`${added} added, ${failed} not found`, 'negative');
         } else if (failed > 0) {
             this.openToast(failed === 1 ? 'Fragment not found' : `${failed} fragments not found`, 'negative');
+        } else if (duplicates > 0) {
+            this.openToast(duplicates === 1 ? 'Already added' : `${duplicates} already added`, 'negative');
         }
     }
 

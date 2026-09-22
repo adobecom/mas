@@ -7,7 +7,7 @@ import './mas-placeholders-creation-modal.js';
 import './mas-placeholders-item.js';
 import Events from '../events.js';
 import { MasRepository } from '../mas-repository.js';
-import { removeFromIndexFragment } from './mas-placeholders-repository.js';
+import { removeFromIndexFragment, getDictionaryFolderPath } from './mas-placeholders-repository.js';
 import '../mas-selection-panel.js';
 import { isUUID, showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
@@ -284,9 +284,19 @@ class MasPlaceholders extends LitElement {
     async handleCopyStudioLinks(selection) {
         if (!selection?.length) return;
 
-        const ids = selection.map(
-            (key) => this.placeholders.find((placeholderStore) => placeholderStore.get().key === key).get().id,
+        const records = selection.map((key) =>
+            this.placeholders.find((placeholderStore) => placeholderStore.get().key === key),
         );
+        if (records.some((record) => !record)) {
+            showToast('Selection is out of date. Reselect and try again.', 'negative');
+            return;
+        }
+        const folder = getDictionaryFolderPath(Store.surface(), Store.localeOrRegion());
+        if (records.some((record) => !record.get().path?.startsWith(`${folder}/`))) {
+            showToast('Selection is out of date. Reselect and try again.', 'negative');
+            return;
+        }
+        const ids = records.map((record) => record.get().id);
         const links = buildPlaceholderStudioLinks(ids, {
             path: Store.surface(),
             locale: Store.localeOrRegion(),

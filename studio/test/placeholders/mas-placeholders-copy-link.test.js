@@ -13,10 +13,11 @@ const PLACEHOLDER_IDS = [
     'b8bb460d-cf4d-47e7-b03f-a1117dd1628e',
 ];
 
-function makePlaceholderStore(id, key, value) {
+function makePlaceholderStore(id, key, value, path = `/content/dam/mas/sandbox/en_US/dictionary/${key}`) {
     return new FragmentStore(
         new Placeholder({
             id,
+            path,
             fields: [
                 { name: 'key', values: [key] },
                 { name: 'value', values: [value] },
@@ -63,7 +64,35 @@ describe('mas-placeholders copy links', () => {
         await element.handleCopyStudioLinks(['first']);
 
         expect(clipboardWrite.calledOnce).to.be.true;
-        expect(clipboardWrite.firstCall.args[0]).to.include(`search=${PLACEHOLDER_IDS[0]}`);
+        expect(clipboardWrite.firstCall.args[0]).to.equal(
+            `${window.location.origin}/studio.html#content-type=placeholder&page=placeholders&path=sandbox&locale=en_US&search=${PLACEHOLDER_IDS[0]}`,
+        );
+    });
+
+    it('shows a negative toast and does not copy when a selected key is no longer loaded', async () => {
+        await element.handleCopyStudioLinks(['first', 'missing']);
+
+        expect(clipboardWrite.called).to.be.false;
+        expect(
+            toastStub.calledWith(
+                sinon.match({ variant: 'negative', content: 'Selection is out of date. Reselect and try again.' }),
+            ),
+        ).to.be.true;
+    });
+
+    it('shows a negative toast and does not copy when a selected record is under a different locale/surface folder', async () => {
+        Store.placeholders.list.data.set([
+            makePlaceholderStore(PLACEHOLDER_IDS[0], 'first', 'First', '/content/dam/mas/sandbox/fr_FR/dictionary/first'),
+        ]);
+
+        await element.handleCopyStudioLinks(['first']);
+
+        expect(clipboardWrite.called).to.be.false;
+        expect(
+            toastStub.calledWith(
+                sinon.match({ variant: 'negative', content: 'Selection is out of date. Reselect and try again.' }),
+            ),
+        ).to.be.true;
     });
 
     it('copies newline-separated UUID links without a trailing newline', async () => {

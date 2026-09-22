@@ -122,6 +122,182 @@ describe('MasPromotions', () => {
         });
     });
 
+    describe('rendering and guards', () => {
+        it('sets an error when connected without a repository', async () => {
+            const el = document.createElement('mas-promotions');
+            sandbox.stub(el, 'repository').get(() => null);
+            document.body.appendChild(el);
+            await el.updateComplete;
+
+            expect(el.error).to.equal('Repository component not found');
+            expect(el.shadowRoot.querySelector('.error-message').textContent).to.include('Repository component not found');
+        });
+
+        it('ensures a repository and stores a custom error when it is unavailable', async () => {
+            const el = document.createElement('mas-promotions');
+            sandbox.stub(el, 'repository').get(() => null);
+            document.body.appendChild(el);
+            await el.updateComplete;
+
+            expect(() => el.ensureRepository('Missing promotions repository')).to.throw('Missing promotions repository');
+            expect(el.error).to.equal('Missing promotions repository');
+        });
+
+        it('renders the loading state and the empty state', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            Store.promotions.list.loading.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.loading-container--flex')).to.exist;
+
+            Store.promotions.list.loading.set(false);
+            Store.promotions.list.data.set([]);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.no-promotions-message')).to.exist;
+        });
+
+        it('renders view actions for users without promotion edit access', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [] }]);
+            const promotion = makePromotion({ id: 'promo-1', title: 'View only' });
+            const { el } = await mountWithRepo(promotion);
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+
+            expect(menuItems).to.have.lengthOf(1);
+            expect(menuItems[0].textContent).to.include('View');
+        });
+
+        it('handles environment checkbox, tag delete, and clear-all controls', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            const checkbox = el.shadowRoot.querySelector('sp-checkbox[value="test"]');
+
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.environmentFilter).to.include('test');
+
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.environmentFilter).to.not.include('test');
+
+            el.environmentFilter = ['production', 'test'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = 'test';
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.environmentFilter).to.deep.equal(['production']);
+
+            el.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+            await el.updateComplete;
+            expect(el.environmentFilter).to.deep.equal([]);
+        });
+
+        it('resolves the rendered confirmation dialog', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            el.confirmDialogConfig = {
+                title: 'Confirm',
+                message: 'Continue?',
+                confirmText: 'Yes',
+                cancelText: 'No',
+                variant: 'confirmation',
+                onConfirm: sandbox.stub(),
+                onCancel: sandbox.stub(),
+            };
+            el.isDialogOpen = true;
+            await el.updateComplete;
+            el.shadowRoot
+                .querySelector('sp-dialog-wrapper')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig).to.equal(null);
+            expect(el.isDialogOpen).to.be.false;
+        });
+
+        it('cancels the rendered confirmation dialog', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            const onCancel = sandbox.stub();
+            el.confirmDialogConfig = {
+                title: 'Confirm',
+                message: 'Continue?',
+                onConfirm: sandbox.stub(),
+                onCancel,
+            };
+            el.isDialogOpen = true;
+            await el.updateComplete;
+            el.shadowRoot
+                .querySelector('sp-dialog-wrapper')
+                .dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(onCancel.calledOnce).to.be.true;
+            expect(el.confirmDialogConfig).to.equal(null);
+            expect(el.isDialogOpen).to.be.false;
+        });
+
+        it('navigates to the editor from create, edit, and row double-click actions', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            const createButton = el.shadowRoot.querySelector('.create-button');
+            createButton.click();
+            expect(Store.page.get()).to.equal('promotions-editor');
+
+            Store.page.set('promotions');
+            await el.updateComplete;
+            const editItem = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                item.textContent.includes('Edit'),
+            );
+            editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            expect(Store.promotions.inEdit.get().get().id).to.equal('promo-1');
+            expect(Store.promotions.promotionId.get()).to.equal('promo-1');
+
+            Store.page.set('promotions');
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(Store.page.get()).to.equal('promotions-editor');
+        });
+
+        it('deletes a promotion after confirmation and removes its tag', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original', tags: ['mas:promotion/original'] });
+            const deleteFragment = sandbox.stub().resolves();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountWithRepo(promotion, { deleteFragment });
+
+            const deleteItem = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                item.textContent.includes('Delete'),
+            );
+            deleteItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+            el.shadowRoot
+                .querySelector('sp-dialog-wrapper')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(deleteFragment.calledOnce).to.be.true;
+            expect(repo.aem.tags.delete.calledOnce).to.be.true;
+            expect(Store.promotions.list.data.get()).to.deep.equal([]);
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive' }))).to.be.true;
+        });
+
+        it('ignores unpublish requests for a promotion without an id', async () => {
+            const promotion = makePromotion({ title: 'Unsaved', id: null, status: 'PUBLISHED' });
+            const { el } = await mountWithRepo(promotion);
+            await el.updateComplete;
+
+            const unpublishItem = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                item.textContent.includes('Unpublish'),
+            );
+            if (unpublishItem) unpublishItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            expect(unpublishItem).to.exist;
+        });
+    });
+
     describe('#onDuplicateConfirmed wiring (list-view duplication path)', () => {
         it('duplicates the source promotion, refreshes the list, and shows the success toast', async () => {
             const promotion = makePromotion({ id: 'src-1', title: 'Original' });

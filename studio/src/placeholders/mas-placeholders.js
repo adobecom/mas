@@ -9,10 +9,11 @@ import Events from '../events.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment } from './mas-placeholders-repository.js';
 import '../mas-selection-panel.js';
-import { showToast } from '../utils.js';
+import { isUUID, showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { buildPlaceholderStudioLinks } from './placeholder-studio-link.js';
 
 const placeholdersSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -56,6 +57,7 @@ class MasPlaceholders extends LitElement {
         this.toggleCreationModal = this.toggleCreationModal.bind(this);
         this.onDeleted = this.onDeleted.bind(this);
         this.onBulkDelete = this.onBulkDelete.bind(this);
+        this.handleCopyStudioLinks = this.handleCopyStudioLinks.bind(this);
         this.updatePending = this.updatePending.bind(this);
     }
 
@@ -157,12 +159,13 @@ class MasPlaceholders extends LitElement {
         let filtered = this.placeholders;
         if (this.searchTerm) {
             const removeFromSelection = [];
+            const query = this.searchTerm.toLowerCase();
+            const isIdSearch = isUUID(this.searchTerm);
             filtered = this.placeholders.filter((placeholderStore) => {
                 const placeholder = placeholderStore.get();
-                const query = this.searchTerm.toLowerCase();
                 const key = placeholder.key?.toLowerCase() || '';
                 const value = placeholder.value?.toLowerCase() || '';
-                const matches = key.includes(query) || value.includes(query);
+                const matches = isIdSearch ? placeholder.id === query : key.includes(query) || value.includes(query);
                 if (!matches) {
                     if (this.selection.includes(placeholder.key)) removeFromSelection.push(placeholder.key);
                 }
@@ -278,6 +281,26 @@ class MasPlaceholders extends LitElement {
         this.refresh();
     }
 
+    async handleCopyStudioLinks(selection) {
+        if (!selection?.length) return;
+
+        const ids = selection.map(
+            (key) => this.placeholders.find((placeholderStore) => placeholderStore.get().key === key).get().id,
+        );
+        const links = buildPlaceholderStudioLinks(ids, {
+            path: Store.surface(),
+            locale: Store.localeOrRegion(),
+        });
+
+        try {
+            await navigator.clipboard.writeText(links);
+            showToast(`Copied ${selection.length} placeholder link(s)`, 'positive');
+        } catch (e) {
+            console.error(e);
+            showToast('Failed to copy to clipboard', 'negative');
+        }
+    }
+
     updatePending(value) {
         this.pending = value;
     }
@@ -349,6 +372,7 @@ class MasPlaceholders extends LitElement {
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
                 .onDelete=${this.onBulkDelete}
+                .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
         `;
@@ -423,6 +447,7 @@ class MasPlaceholders extends LitElement {
                                           .toggleEditing=${this.toggleEditing}
                                           .toggleDropdown=${this.toggleDropdown}
                                           .updatePending=${this.updatePending}
+                                          .onCopyStudioLinks=${this.handleCopyStudioLinks}
                                       ></mas-placeholders-item>
                                   `;
                               },

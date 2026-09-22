@@ -1616,6 +1616,81 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });
+
+        it('publishes the attached promo variation together with the project when the checkbox is checked on confirm', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+                fragments: [parentPath],
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2030-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT', title: 'Unpublished variation' }],
+            });
+            const getWithEtag = sandbox.stub();
+            getWithEtag
+                .withArgs('promo-1')
+                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
+            const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
+            const publishFragments = sandbox.stub().resolves();
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                publish: sandbox.stub().resolves(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath,
+                                search,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(publishFragments.calledOnce).to.be.true;
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments.map((fragment) => fragment.path)).to.include(promoVarPath);
+        });
     });
 
     describe('selected items edit button', () => {

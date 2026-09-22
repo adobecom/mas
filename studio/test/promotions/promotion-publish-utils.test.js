@@ -130,7 +130,7 @@ describe('promotion-publish-utils', () => {
             }),
             tags: [{ id: 'mas:promotion/black-friday' }],
         };
-        const showDialog = sinon.stub().resolves(false);
+        const showDialog = sinon.stub().resolves({ confirmed: false, checked: false });
         const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: false, variationPaths: [] });
         expect(showDialog.calledOnce).to.be.true;
@@ -171,7 +171,7 @@ describe('promotion-publish-utils', () => {
             }),
             tags: [{ id: 'mas:promotion/black-friday' }],
         };
-        const showDialog = sinon.stub().resolves(true);
+        const showDialog = sinon.stub().resolves({ confirmed: true, checked: true });
         const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
         expect(showDialog.firstCall.args[1]).to.equal(unpublishedPromoVariationsPublishMessage(2));
@@ -248,7 +248,7 @@ describe('promotion-publish-utils', () => {
             }),
             tags: [{ id: 'mas:promotion/black-friday' }],
         };
-        const showDialog = sinon.stub().resolves(false);
+        const showDialog = sinon.stub().resolves({ confirmed: false, checked: false });
         const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: false, variationPaths: [] });
         expect(showDialog.calledOnce).to.be.true;
@@ -289,7 +289,7 @@ describe('promotion-publish-utils', () => {
             }),
             tags: [{ id: 'mas:promotion/black-friday' }],
         };
-        const showDialog = sinon.stub().resolves(true);
+        const showDialog = sinon.stub().resolves({ confirmed: true, checked: true });
         const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
     });

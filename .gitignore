@@ -79,3 +79,7 @@ scripts/content/fragments
 
 # Python cache from the Piñata configuration tests
 .pinata/scripts/__pycache__/
+
+# Copilot config
+.github
+.mcp.json

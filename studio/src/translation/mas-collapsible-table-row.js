@@ -8,7 +8,6 @@ import {
     renderInheritedTagsNotice,
     shouldIgnoreRowClickForSelection,
 } from '../common/utils/render-utils.js';
-import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';

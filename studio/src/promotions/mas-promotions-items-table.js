@@ -794,10 +794,6 @@ class MasPromotionsItemsTable extends LitElement {
             this.#offerKeysFor(item),
             this.#countries,
             this.#defaultPromoCodeValue,
-            (selectorId) => {
-                const offer = offersBySelectorId.get(selectorId);
-                return offer ? this.#offerName(offer) : selectorId;
-            },
         );
     }
 

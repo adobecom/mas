@@ -847,14 +847,12 @@ describe('promotion-editor-utils', () => {
                 {
                     promoCode: 'OTHER',
                     osiOverrideOfferId: null,
-                    offerLabel: null,
                     countries: ['pt_BR'],
                     countriesLabel: 'pt_BR',
                 },
                 {
                     promoCode: 'SPECIAL',
                     osiOverrideOfferId: null,
-                    offerLabel: null,
                     countries: ['US', 'CA_en'],
                     countriesLabel: 'US, CA_en',
                 },
@@ -876,7 +874,6 @@ describe('promotion-editor-utils', () => {
                 {
                     promoCode: 'PROMO-US',
                     osiOverrideOfferId: 'replacement-osi',
-                    offerLabel: 'replacement-osi',
                     countries: ['US'],
                     countriesLabel: 'US',
                 },

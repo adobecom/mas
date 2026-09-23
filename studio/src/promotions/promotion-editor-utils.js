@@ -809,7 +809,6 @@ export function groupCountriesByPromoCodeAndOsiOverrideForOffer(
     offerKeys,
     countries,
     defaultPromoCode,
-    resolveOfferLabel,
 ) {
     if (!Array.isArray(countries) || !countries.length) return [];
     const groups = new Map();
@@ -822,7 +821,6 @@ export function groupCountriesByPromoCodeAndOsiOverrideForOffer(
             groups.set(groupKey, {
                 promoCode: promoCode || null,
                 osiOverrideOfferId,
-                offerLabel: osiOverrideOfferId ? (resolveOfferLabel?.(osiOverrideOfferId) ?? osiOverrideOfferId) : null,
                 countries: [],
             });
         }

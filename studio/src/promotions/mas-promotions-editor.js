@@ -650,6 +650,8 @@ class MasPromotionsEditor extends LitElement {
                 { name: 'offers', type: 'text', multiple: true, values: [] },
                 { name: 'startDate', values: [''] },
                 { name: 'endDate', values: [''] },
+                { name: 'cdtStart', values: [''] },
+                { name: 'cdtEnd', values: [''] },
                 { name: 'tags', values: [] },
                 { name: 'surfaces', type: 'text', multiple: true, values: [] },
                 { name: 'geos', type: 'tag', multiple: true, values: [] },
@@ -731,6 +733,18 @@ class MasPromotionsEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [parsed.toISOString()]);
     }
 
+    // AEM rejects empty strings on date-time fields; an unset countdown date means "no value".
+    #patchPromotionCountdownDatesForAem() {
+        for (const fieldName of ['cdtStart', 'cdtEnd']) {
+            const field = this.fragment?.getField?.(fieldName);
+            if (!field) continue;
+            const values = field.values.filter(Boolean);
+            if (values.length === field.values.length) continue;
+            field.values = values;
+            this.fragment.hasChanges = true;
+        }
+    }
+
     #patchPromotionSurfacesFieldForAem() {
         const field = this.fragment?.getField?.('surfaces');
         if (!field) return;
@@ -744,6 +758,10 @@ class MasPromotionsEditor extends LitElement {
         switch (field.name) {
             case 'endDate':
                 return this.evergreenEnabled ? [] : field.values;
+            // AEM rejects empty strings on date-time fields; an unset countdown date means "no value".
+            case 'cdtStart':
+            case 'cdtEnd':
+                return field.values.filter(Boolean);
             case 'surfaces':
                 return serializePromotionSurfacesForAem(field.values);
             case 'fragments':
@@ -834,6 +852,7 @@ class MasPromotionsEditor extends LitElement {
             if (endDateField) endDateField.values = [];
         }
         this.#patchPromotionSurfacesFieldForAem();
+        this.#patchPromotionCountdownDatesForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
         let saved;
@@ -1731,6 +1750,24 @@ class MasPromotionsEditor extends LitElement {
                                 @change=${this.#handleStagedToggle}
                                 >Staged</sp-switch
                             >
+                            <sp-field-label for="cdtStart">Countdown Timer Start (UTC)</sp-field-label>
+                            <input
+                                type="datetime-local"
+                                id="cdtStart"
+                                value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
+                                data-field="cdtStart"
+                                ?disabled=${readOnly}
+                                @change=${this.#handleDateUpdate}
+                            />
+                            <sp-field-label for="cdtEnd">Countdown Timer End (UTC)</sp-field-label>
+                            <input
+                                type="datetime-local"
+                                id="cdtEnd"
+                                value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
+                                data-field="cdtEnd"
+                                ?disabled=${readOnly}
+                                @change=${this.#handleDateUpdate}
+                            />
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"

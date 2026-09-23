@@ -37,6 +37,7 @@ const ALLOWED_KEYS = new Set([
     'apc',
     'appctxid',
     'cli',
+    'closeWindow',
     'co',
     'cs',
     'csm',
@@ -44,6 +45,7 @@ const ALLOWED_KEYS = new Set([
     'ctxRtUrl',
     'DCWATC',
     'dp', // Enable digital payments for iframe context
+    'exitApp',
     'fr', // represents the commerce app redirecting to UC
     'gsp',
     'ijt',
@@ -54,6 +56,7 @@ const ALLOWED_KEYS = new Set([
     'mv',
     'mv2',
     'nglwfdata',
+    'openBrowser',
     'ot',
     'otac',
     'pa',
@@ -66,7 +69,9 @@ const ALLOWED_KEYS = new Set([
     'sdid',
     'sid', // x-adobe-clientsession
     'spint',
+    'static',
     'svar',
+    'takeAction',
     'th',
     'thm',
     'trackingid',
@@ -142,6 +147,11 @@ const ALLOWED_URL_PARAMS = new Set([
     'gcpagetype',
     'mv',
     'mv2',
+    'closeWindow',
+    'openBrowser',
+    'static',
+    'takeAction',
+    'exitApp',
 ]);
 
 /**

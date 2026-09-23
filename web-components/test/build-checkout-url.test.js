@@ -150,6 +150,42 @@ describe('addParamsFromPageUrl', () => {
         expect(url.searchParams.has('anotherBad')).to.be.false;
     });
 
+    it('should preserve the mandatory Genuine NC parameters alongside other page params', () => {
+        window.history.replaceState(
+            {},
+            '',
+            '?closeWindow=1&openBrowser=1&static=0&takeAction=1&exitApp=1&gid=123&notAllowed=x',
+        );
+
+        const url = new URL('https://commerce.adobe.com/store/checkout');
+        addParamsFromPageUrl(url);
+
+        expect(url.searchParams.get('closeWindow')).to.equal('1');
+        expect(url.searchParams.get('openBrowser')).to.equal('1');
+        expect(url.searchParams.get('static')).to.equal('0');
+        expect(url.searchParams.get('takeAction')).to.equal('1');
+        expect(url.searchParams.get('exitApp')).to.equal('1');
+        expect(url.searchParams.get('gid')).to.equal('123');
+        expect(url.searchParams.has('notAllowed')).to.be.false;
+    });
+
+    it('should preserve the Genuine NC parameters when they are empty', () => {
+        window.history.replaceState(
+            {},
+            '',
+            '?closeWindow=&openBrowser=&static=&takeAction=&exitApp=',
+        );
+
+        const url = new URL('https://commerce.adobe.com/store/checkout');
+        addParamsFromPageUrl(url);
+
+        expect(url.searchParams.get('closeWindow')).to.equal('');
+        expect(url.searchParams.get('openBrowser')).to.equal('');
+        expect(url.searchParams.get('static')).to.equal('');
+        expect(url.searchParams.get('takeAction')).to.equal('');
+        expect(url.searchParams.get('exitApp')).to.equal('');
+    });
+
     it('should handle empty page URL search params', () => {
         window.history.replaceState({}, '', window.location.pathname);
         const url = new URL('https://commerce.adobe.com/store/checkout');
@@ -590,6 +626,32 @@ describe('buildCheckoutUrl', () => {
         expect(parsedUrl.searchParams.get('af')).to.equal(
             'uc_new_user_iframe,uc_new_system_close',
         );
+    });
+
+    it('should preserve the Genuine NC parameters supplied via checkoutData', () => {
+        const checkoutData = {
+            env: PROVIDER_ENVIRONMENT.PRODUCTION,
+            workflowStep: CheckoutWorkflowStep.COMMITMENT,
+            clientId: 'testClient',
+            country: 'US',
+            items: [{ quantity: 1 }],
+            closeWindow: '1',
+            openBrowser: '1',
+            static: '0',
+            takeAction: '1',
+            exitApp: '1',
+            unknownParam: 'x',
+        };
+        const url = buildCheckoutUrl(checkoutData);
+        const parsedUrl = new URL(url);
+        expect(parsedUrl.searchParams.get('closeWindow')).to.equal('1');
+        expect(parsedUrl.searchParams.get('openBrowser')).to.equal('1');
+        expect(parsedUrl.searchParams.get('static')).to.equal('0');
+        expect(parsedUrl.searchParams.get('takeAction')).to.equal('1');
+        expect(parsedUrl.searchParams.get('exitApp')).to.equal('1');
+        expect(parsedUrl.searchParams.get('cli')).to.equal('testClient');
+        expect(parsedUrl.searchParams.get('co')).to.equal('US');
+        expect(parsedUrl.searchParams.has('unknownParam')).to.be.false;
     });
 
     it('should append 3-in-1 af values to existing draft landscape af parameter', () => {

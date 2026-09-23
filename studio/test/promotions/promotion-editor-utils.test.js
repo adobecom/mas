@@ -1400,8 +1400,8 @@ describe('promotion-editor-utils', () => {
 
         it('preserves other field values unchanged', () => {
             const source = makeSourceFragment([
-                { name: 'promoCode', type: 'text', values: ['CODE'] },
                 { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'promoCode', type: 'text', values: ['CODE'] },
             ]);
             const payload = buildPromotionDuplicatePayload(source, 'Original copy');
             expect(payload.fields.find((f) => f.name === 'promoCode').values).to.deep.equal(['CODE']);

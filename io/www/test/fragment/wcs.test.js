@@ -598,8 +598,9 @@ describe('wcs OSI substitution', function () {
 
         context = await wcs.process(context);
 
-        expect(context.body.fields.promoCode).to.equal('BTS26');
+        expect(context.body.fields.promoCode).to.be.undefined;
         expect(context.body.fields.description).to.include('data-wcs-osi="SUB-INJECTED"');
+        expect(context.body.fields.description).to.include('data-promotion-code="BTS26"');
         expect(context.body.wcs.prod).to.have.property('SUB-INJECTED-us-mult-bts26');
     });
 
@@ -929,11 +930,37 @@ describe('wcs OSI helpers', function () {
     });
 
     it('updateOffers prefers the fragment own osi promo code over rich text OSIs', function () {
-        const { context } = run(
+        const { context, elements } = run(
             { f: { promoMap: { OWN: 'OWN-CODE', RICH: 'RICH-CODE' }, substituteMap: {} } },
             { id: 'f', fields: { osi: 'OWN', description: '<span data-wcs-osi="RICH"></span>' } },
         );
         expect(context.body.fields.promoCode).to.equal('OWN-CODE');
+        expect(context.body.fields.description).to.include('data-promotion-code="RICH-CODE"');
+        expect(elements).to.deep.equal([{ osi: 'RICH', promotionCode: 'RICH-CODE' }]);
+    });
+
+    it('updateOffers applies distinct explicit promo codes to each rich text osi', function () {
+        const { context, elements } = run(
+            { f: { promoMap: { CROSS_SELL: 'CROSS-CODE', TEAMS: 'TEAMS-CODE' }, substituteMap: {} } },
+            {
+                id: 'f',
+                fields: {
+                    osi: 'OWN',
+                    description:
+                        '<span data-wcs-osi="CROSS_SELL"></span>' +
+                        '<span data-wcs-osi="TEAMS"></span>',
+                },
+            },
+        );
+        expect(context.body.fields.promoCode).to.be.undefined;
+        expect(context.body.fields.description).to.equal(
+            '<span data-wcs-osi="CROSS_SELL" data-promotion-code="CROSS-CODE"></span>' +
+                '<span data-wcs-osi="TEAMS" data-promotion-code="TEAMS-CODE"></span>',
+        );
+        expect(elements).to.deep.equal([
+            { osi: 'CROSS_SELL', promotionCode: 'CROSS-CODE' },
+            { osi: 'TEAMS', promotionCode: 'TEAMS-CODE' },
+        ]);
     });
 
     it('updateOffers does not set a promo code (even wildcard) when the fragment has no osi', function () {

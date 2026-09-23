@@ -156,9 +156,11 @@ function hasMasElement(value) {
  * pass and reports the final osi; the original osi is kept too, so promo code matching can look it
  * up in the project map. Headless fragments price against inline OSIs that differ from their own
  * osi field, so those must participate as well (MWPW-201713).
+ * Explicit promo-project mappings are stamped on their matching elements so multiple OSIs in one
+ * fragment can carry different promo codes without inheriting whichever mapping appeared first.
  * @returns {{ osi: string, rawOsi: string, promotionCode?: string }[]}
  */
-function scanMasElements(fields, substituteMap, context) {
+function scanMasElements(fields, substituteMap, context, promoMap = {}) {
     const elements = [];
     if (!fields) return elements;
     for (const [key, field] of Object.entries(fields)) {
@@ -190,20 +192,29 @@ function scanMasElements(fields, substituteMap, context) {
                     }
                 }
             }
-            const promotionCode = injectedPromo ?? existingPromo;
+            let projectPromo;
+            if (!injectedPromo && !existingPromo) {
+                for (const part of [...rawOsi.split(','), ...osi.split(',')]) {
+                    if (!promoMap[part]) continue;
+                    projectPromo = promoMap[part];
+                    break;
+                }
+            }
+            const promotionCode = injectedPromo ?? existingPromo ?? projectPromo;
             elements.push({ osi, rawOsi, promotionCode });
             let updated = element;
             if (osi !== rawOsi) updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
-            if (injectedPromo && injectedPromo !== existingPromo) {
+            const promoToInject = injectedPromo ?? projectPromo;
+            if (promoToInject && promoToInject !== existingPromo) {
                 // Overriding an element's own promo (conditioned match) replaces its attribute in place;
                 // adding one to a promo-free element inserts it right after data-wcs-osi.
                 updated = existingPromo
-                    ? updated.replace(/data-promotion-code="[^"]*"/, `data-promotion-code="${injectedPromo}"`)
-                    : updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${injectedPromo}"`);
+                    ? updated.replace(/data-promotion-code="[^"]*"/, `data-promotion-code="${promoToInject}"`)
+                    : updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${promoToInject}"`);
             }
             if (updated === element) return element;
             logDebug(
-                () => `Substituting OSI ${rawOsi} with ${osi}${injectedPromo ? ` (promo ${injectedPromo})` : ''}`,
+                () => `Substituting OSI ${rawOsi} with ${osi}${promoToInject ? ` (promo ${promoToInject})` : ''}`,
                 context,
             );
             changed = true;
@@ -217,19 +228,16 @@ function scanMasElements(fields, substituteMap, context) {
 }
 
 /**
- * Sets a fragment's promoCode from its promo project scope. The fragment's own osi has priority,
- * then any OSIs referenced in its rich text; an explicit osi entry (directly or via the project's
- * osi substitution) wins over the project wildcard ('*'). `richTextOsis` are the original
- * (pre-substitution) OSIs collected by scanMasElements.
+ * Sets a fragment's context promoCode from its own osi or the project wildcard. Explicit mappings
+ * for rich-text-only OSIs are stamped directly on those elements by scanMasElements; promoting one
+ * of them to fragment context would leak its code onto unrelated elements in the same fragment.
  */
-function resolvePromoCode(fields, richTextOsis, { promoMap, substituteMap }, context) {
-    // No osi (own or referenced in rich text) => nothing priceable, so no promo code (not even wildcard).
-    // Each entry may itself be a comma-joined OSI pair (discount badges, MWPW-201714) — split before matching.
-    const osis = []
-        .concat(fields.osi ?? [])
-        .concat(richTextOsis)
-        .flatMap((osi) => osi.split(','));
-    if (!osis.length) return;
+function resolvePromoCode(fields, hasRichTextOsis, { promoMap, substituteMap }, context) {
+    const osis = [].concat(fields.osi ?? []).flatMap((osi) => osi.split(','));
+    if (!osis.length) {
+        if (hasRichTextOsis && promoMap['*']) fields.promoCode = promoMap['*'];
+        return;
+    }
     let explicitPromoCode;
     for (const osi of osis) {
         if (promoMap[osi]) {
@@ -283,15 +291,9 @@ function updateOffers(context, offerMap = {}) {
             substituteMap[source] = { osi };
         }
         const hasSubstitutions = Object.keys(substituteMap).length > 0;
-        const elements = scanMasElements(fields, hasSubstitutions ? substituteMap : undefined, context);
+        const elements = scanMasElements(fields, hasSubstitutions ? substituteMap : undefined, context, scope?.promoMap);
         if (scope && fields) {
-            // Promo code matching keys off the promo project's own (string) map only.
-            resolvePromoCode(
-                fields,
-                elements.map((element) => element.rawOsi),
-                scope,
-                context,
-            );
+            resolvePromoCode(fields, elements.length > 0, scope, context);
         }
         if (fields && hasSubstitutions) {
             substituteOwnOsi(fields, substituteMap);

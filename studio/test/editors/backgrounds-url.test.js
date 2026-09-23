@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import {
     buildBackgroundsHtml,
     parseBackgroundsUrls,
+    parseBackgroundsDimensions,
     resolveOwnBackgroundsUrls,
     resolveBackgroundBreakpointState,
 } from '../../src/editors/backgrounds-url.js';
@@ -19,40 +20,71 @@ describe('buildBackgroundsHtml', () => {
         expect(buildBackgroundsHtml({})).to.equal('');
     });
 
-    it('builds a desktop source, a tablet source, and a mobile img when all three differ', () => {
-        const doc = parse(buildBackgroundsHtml({ desktop: DESKTOP_URL, tablet: TABLET_URL, mobile: MOBILE_URL }));
-        const sources = [...doc.querySelectorAll('source')];
-        const img = doc.querySelector('img');
+    const r = (url, width, format) => `${url}?width=${width}&format=${format}&optimize=medium`;
+    const describeSources = (doc) =>
+        [...doc.querySelectorAll('source')].map((s) => [
+            s.getAttribute('type'),
+            s.getAttribute('media'),
+            s.getAttribute('srcset'),
+        ]);
 
-        expect(sources).to.have.lengthOf(2);
-        expect(sources[0].getAttribute('media')).to.equal('(min-width: 1200px)');
-        expect(sources[0].getAttribute('srcset')).to.equal(`${DESKTOP_URL}?width=2000&format=png&optimize=medium`);
-        expect(sources[1].getAttribute('media')).to.equal('(min-width: 600px)');
-        expect(sources[1].getAttribute('srcset')).to.equal(`${TABLET_URL}?width=1200&format=png&optimize=medium`);
-        expect(img.getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
+    it('builds EDS-style webply + original-format sources per breakpoint and a mobile img when all three differ', () => {
+        const doc = parse(buildBackgroundsHtml({ desktop: DESKTOP_URL, tablet: TABLET_URL, mobile: MOBILE_URL }));
+        expect(describeSources(doc)).to.deep.equal([
+            ['image/webp', '(min-width: 1200px)', r(DESKTOP_URL, 2000, 'webply')],
+            ['image/png', '(min-width: 1200px)', r(DESKTOP_URL, 2000, 'png')],
+            ['image/webp', '(min-width: 600px)', r(TABLET_URL, 750, 'webply')],
+            ['image/png', '(min-width: 600px)', r(TABLET_URL, 750, 'png')],
+            ['image/webp', null, r(MOBILE_URL, 750, 'webply')],
+        ]);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(r(MOBILE_URL, 750, 'png'));
     });
 
-    it('builds a single plain img with no sources when only mobile is provided', () => {
+    it('builds only a mobile webply source and img when only mobile is provided', () => {
         const doc = parse(buildBackgroundsHtml({ mobile: MOBILE_URL }));
-        expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
+        expect(describeSources(doc)).to.deep.equal([['image/webp', null, r(MOBILE_URL, 750, 'webply')]]);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(r(MOBILE_URL, 750, 'png'));
     });
 
     it('drops a URL that fails isSupportedImageUrl, treating it as absent', () => {
         const doc = parse(buildBackgroundsHtml({ desktop: 'https://not-aem-page.com/x.png', mobile: MOBILE_URL }));
-        expect(doc.querySelectorAll('source')).to.have.lengthOf(0);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
+        expect(doc.querySelectorAll('source[media]')).to.have.lengthOf(0);
+        expect(doc.querySelector('img').getAttribute('src')).to.equal(r(MOBILE_URL, 750, 'png'));
     });
 
-    it('sizes each breakpoint to its own rendition width even when all three are explicitly set to the same URL', () => {
+    it('keeps a source per explicitly-set breakpoint even when all three share the same URL', () => {
         const doc = parse(buildBackgroundsHtml({ desktop: MOBILE_URL, tablet: MOBILE_URL, mobile: MOBILE_URL }));
-        const sources = [...doc.querySelectorAll('source')];
-        expect(sources).to.have.lengthOf(2);
-        expect(sources[0].getAttribute('media')).to.equal('(min-width: 1200px)');
-        expect(sources[0].getAttribute('srcset')).to.equal(`${MOBILE_URL}?width=2000&format=png&optimize=medium`);
-        expect(sources[1].getAttribute('media')).to.equal('(min-width: 600px)');
-        expect(sources[1].getAttribute('srcset')).to.equal(`${MOBILE_URL}?width=1200&format=png&optimize=medium`);
-        expect(doc.querySelector('img').getAttribute('src')).to.equal(`${MOBILE_URL}?width=750&format=png&optimize=medium`);
+        expect(doc.querySelectorAll('source[media="(min-width: 1200px)"]')).to.have.lengthOf(2);
+        expect(doc.querySelectorAll('source[media="(min-width: 600px)"]')).to.have.lengthOf(2);
+    });
+
+    it('stores the original width/height and never requests a rendition wider than the original', () => {
+        const dims = { width: 757, height: 426 };
+        const html = buildBackgroundsHtml(
+            { desktop: DESKTOP_URL, tablet: TABLET_URL, mobile: MOBILE_URL },
+            { desktop: dims, tablet: { width: 1600, height: 569 }, mobile: { width: 500, height: 300 } },
+        );
+        const doc = parse(html);
+        expect(describeSources(doc).map(([, , srcset]) => srcset)).to.deep.equal([
+            r(DESKTOP_URL, 757, 'webply'),
+            r(DESKTOP_URL, 757, 'png'),
+            r(TABLET_URL, 750, 'webply'),
+            r(TABLET_URL, 750, 'png'),
+            r(MOBILE_URL, 500, 'webply'),
+        ]);
+        const img = doc.querySelector('img');
+        expect(img.getAttribute('src')).to.equal(r(MOBILE_URL, 500, 'png'));
+        expect([img.getAttribute('width'), img.getAttribute('height')]).to.deep.equal(['500', '300']);
+        expect(parseBackgroundsDimensions(html)).to.deep.equal({
+            desktop: dims,
+            tablet: { width: 1600, height: 569 },
+            mobile: { width: 500, height: 300 },
+        });
+    });
+
+    it('stores an escaped alt on the img', () => {
+        const doc = parse(buildBackgroundsHtml({ mobile: MOBILE_URL }, {}, 'a "quoted" <alt>'));
+        expect(doc.querySelector('img').getAttribute('alt')).to.equal('a "quoted" <alt>');
     });
 
     it("leaves a URL with an unrecognized extension unsized, matching buildPictureInnerMarkup's svg fallback", () => {

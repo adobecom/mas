@@ -18,11 +18,14 @@ import '../fields/quantity-select-settings-field.js';
 import { extractImageUrl, getFragmentMapping, showToast } from '../utils.js';
 import {
     buildPictureInnerMarkup as buildPictureHtml,
+    extractImageDimensions,
+    getImageDimensions,
     isSupportedAssetHostname as isSupportedImageUrl,
 } from '../../../web-components/src/image-markup.js';
 import {
     buildBackgroundsHtml,
     parseBackgroundsUrls,
+    parseBackgroundsDimensions,
     resolveOwnBackgroundsUrls,
     resolveBackgroundBreakpointState,
 } from './backgrounds-url.js';
@@ -123,6 +126,8 @@ class MerchCardEditor extends LitElement {
         previewLocaleOverride: { type: String, state: true },
         imageUrlInvalid: { type: Boolean, state: true },
         backgroundsUrlInvalid: { type: Object, state: true },
+        imageDimensionsInvalid: { type: Boolean, state: true },
+        backgroundsDimensionsInvalid: { type: Object, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -143,6 +148,8 @@ class MerchCardEditor extends LitElement {
     availableWhatsIncludedDividerColors = [];
     availableBadgeColors = [];
     availableBackgroundColors = [];
+    imageUpdateId = 0;
+    backgroundsUpdateId = 0;
     quantitySelectorValues = '';
     lastMnemonicState = null;
     reactiveController = null;
@@ -161,6 +168,8 @@ class MerchCardEditor extends LitElement {
         this.previewLocaleOverride = null;
         this.imageUrlInvalid = false;
         this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
+        this.imageDimensionsInvalid = false;
+        this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -909,6 +918,8 @@ class MerchCardEditor extends LitElement {
             this.fieldsReady = false;
             this.imageUrlInvalid = false;
             this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
+            this.imageDimensionsInvalid = false;
+            this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
             this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
@@ -1788,7 +1799,7 @@ class MerchCardEditor extends LitElement {
                                   id="background-desktop"
                                   data-field="backgrounds"
                                   data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
-                                  ?invalid="${this.backgroundsUrlInvalid.desktop}"
+                                  ?invalid="${this.backgroundsUrlInvalid.desktop || this.backgroundsDimensionsInvalid.desktop}"
                                   value="${backgroundsUrls.desktop}"
                                   @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
                               >
@@ -1796,7 +1807,11 @@ class MerchCardEditor extends LitElement {
                                       ? html`<sp-help-text slot="negative-help-text"
                                             >Enter a valid *.aem.page background desktop URL.</sp-help-text
                                         >`
-                                      : nothing}
+                                      : this.backgroundsDimensionsInvalid.desktop
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The background image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
                               </sp-textfield>
                               ${this.#renderBackgroundStatusIndicator('desktop')}
 
@@ -1806,7 +1821,7 @@ class MerchCardEditor extends LitElement {
                                   id="background-tablet"
                                   data-field="backgrounds"
                                   data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
-                                  ?invalid="${this.backgroundsUrlInvalid.tablet}"
+                                  ?invalid="${this.backgroundsUrlInvalid.tablet || this.backgroundsDimensionsInvalid.tablet}"
                                   value="${backgroundsUrls.tablet}"
                                   @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
                               >
@@ -1814,7 +1829,11 @@ class MerchCardEditor extends LitElement {
                                       ? html`<sp-help-text slot="negative-help-text"
                                             >Enter a valid *.aem.page background tablet URL.</sp-help-text
                                         >`
-                                      : nothing}
+                                      : this.backgroundsDimensionsInvalid.tablet
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The background image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
                               </sp-textfield>
                               ${this.#renderBackgroundStatusIndicator('tablet')}
 
@@ -1824,7 +1843,7 @@ class MerchCardEditor extends LitElement {
                                   id="background-mobile"
                                   data-field="backgrounds"
                                   data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
-                                  ?invalid="${this.backgroundsUrlInvalid.mobile}"
+                                  ?invalid="${this.backgroundsUrlInvalid.mobile || this.backgroundsDimensionsInvalid.mobile}"
                                   value="${backgroundsUrls.mobile}"
                                   @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
                               >
@@ -1832,7 +1851,11 @@ class MerchCardEditor extends LitElement {
                                       ? html`<sp-help-text slot="negative-help-text"
                                             >Enter a valid *.aem.page background mobile URL.</sp-help-text
                                         >`
-                                      : nothing}
+                                      : this.backgroundsDimensionsInvalid.mobile
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The background image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
                               </sp-textfield>
                               ${this.#renderBackgroundStatusIndicator('mobile')}
                           </sp-field-group>
@@ -1847,7 +1870,7 @@ class MerchCardEditor extends LitElement {
                                   id="image-url"
                                   data-field="image"
                                   data-field-state="${this.getFieldState('image')}"
-                                  ?invalid="${this.imageUrlInvalid}"
+                                  ?invalid="${this.imageUrlInvalid || this.imageDimensionsInvalid}"
                                   value="${extractImageUrl(form.image?.values?.[0] ?? '')}"
                                   @change="${this.#handleImageUpdate}"
                               >
@@ -1855,7 +1878,11 @@ class MerchCardEditor extends LitElement {
                                       ? html`<sp-help-text slot="negative-help-text"
                                             >Enter a valid *.aem.page image URL.</sp-help-text
                                         >`
-                                      : nothing}
+                                      : this.imageDimensionsInvalid
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
                               </sp-textfield>
                               ${this.renderFieldStatusIndicator('image')}
                           </sp-field-group>
@@ -2783,14 +2810,31 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentUpdate(syntheticEvent);
     };
 
-    #handleImageUpdate = (event) => {
+    #handleImageUpdate = async (event) => {
+        const updateId = ++this.imageUpdateId;
         const url = event.target.value.trim();
         this.imageUrlInvalid = Boolean(url) && !isSupportedImageUrl(url);
         if (this.imageUrlInvalid) return;
 
+        const storedMarkup = this.fragmentStore.get()?.getFieldValue?.('image') ?? '';
+        const storedUrl = extractImageUrl(storedMarkup);
+        let dimensions = url && url === storedUrl ? extractImageDimensions(storedMarkup) : undefined;
+        if (url) {
+            if (!dimensions) {
+                try {
+                    dimensions = await getImageDimensions(url);
+                } catch {
+                    this.imageDimensionsInvalid = true;
+                }
+            }
+        }
+        if (updateId !== this.imageUpdateId) return;
+        if (url && !dimensions) return;
+        this.imageDimensionsInvalid = false;
+
         const syntheticEvent = {
             target: {
-                value: url ? buildPictureHtml(url) : '',
+                value: url ? buildPictureHtml(url, dimensions) : '',
                 dataset: {
                     field: 'image',
                 },
@@ -2818,7 +2862,8 @@ class MerchCardEditor extends LitElement {
         return resolveOwnBackgroundsUrls(this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
     }
 
-    #handleBackgroundsPartUpdate(key, event) {
+    #handleBackgroundsPartUpdate = async (key, event) => {
+        const updateId = ++this.backgroundsUpdateId;
         const url = event.target.value.trim();
         const invalid = Boolean(url) && !isSupportedImageUrl(url);
         this.backgroundsUrlInvalid = { ...this.backgroundsUrlInvalid, [key]: invalid };
@@ -2826,8 +2871,37 @@ class MerchCardEditor extends LitElement {
 
         const current = this.#getOwnBackgroundsUrls();
         current[key] = url;
-        this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
-    }
+        const dimensions = {};
+        const dimensionsInvalid = {};
+        const storedDimensions = {
+            ...parseBackgroundsDimensions(this.#ownBackgroundsHtml),
+            ...parseBackgroundsDimensions(this.#parentBackgroundsHtml),
+        };
+        await Promise.all(
+            Object.entries(current).map(async ([breakpoint, value]) => {
+                if (!value) return;
+                const previousUrl = this.#getOwnBackgroundsUrls()[breakpoint];
+                if (value === previousUrl && storedDimensions[breakpoint]) {
+                    dimensions[breakpoint] = storedDimensions[breakpoint];
+                    return;
+                }
+                try {
+                    dimensions[breakpoint] = await getImageDimensions(value);
+                } catch {
+                    dimensionsInvalid[breakpoint] = true;
+                }
+            }),
+        );
+        if (updateId !== this.backgroundsUpdateId) return;
+        this.backgroundsDimensionsInvalid = {
+            ...this.backgroundsDimensionsInvalid,
+            desktop: Boolean(dimensionsInvalid.desktop),
+            tablet: Boolean(dimensionsInvalid.tablet),
+            mobile: Boolean(dimensionsInvalid.mobile),
+        };
+        if (Object.keys(dimensionsInvalid).length) return;
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current, dimensions));
+    };
 
     #commitBackgroundsHtml(html) {
         const updated = this.fragmentStore.updateField('backgrounds', [html]);
@@ -2846,10 +2920,20 @@ class MerchCardEditor extends LitElement {
         return resolveBackgroundBreakpointState(key, this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
     }
 
-    #resetBackgroundBreakpointToParent(key) {
+    async #resetBackgroundBreakpointToParent(key) {
         const current = this.#getOwnBackgroundsUrls();
-        current[key] = parseBackgroundsUrls(this.#parentBackgroundsHtml)[key];
-        this.#commitBackgroundsHtml(buildBackgroundsHtml(current));
+        const parentUrls = parseBackgroundsUrls(this.#parentBackgroundsHtml);
+        const parentDimensions = parseBackgroundsDimensions(this.#parentBackgroundsHtml);
+        current[key] = parentUrls[key];
+        if (current[key] && !parentDimensions[key]) {
+            try {
+                parentDimensions[key] = await getImageDimensions(current[key]);
+            } catch {
+                this.backgroundsDimensionsInvalid = { ...this.backgroundsDimensionsInvalid, [key]: true };
+                return;
+            }
+        }
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current, parentDimensions));
         showToast('Field restored to parent value', 'positive');
     }
 

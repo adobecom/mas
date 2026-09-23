@@ -235,6 +235,47 @@ describe('buildPictureInnerMarkup', () => {
         expect(src).to.contain('rev=3');
         expect(src).to.contain('width=750');
     });
+
+    it('stores the original width/height on the img and never upscales renditions', () => {
+        const doc = parse(
+            buildPictureInnerMarkup(
+                AEM,
+                { width: 1600, height: 569 },
+                'Alt "text"',
+            ),
+        );
+        const sources = [...doc.querySelectorAll('source')];
+        expect(sources.map((s) => s.getAttribute('srcset'))).to.deep.equal([
+            `${AEM}?width=1600&format=webply&optimize=medium`,
+            `${AEM}?width=750&format=webply&optimize=medium`,
+            `${AEM}?width=1600&format=png&optimize=medium`,
+        ]);
+        sources.forEach((s) => expect(s.hasAttribute('width')).to.be.false);
+        const img = doc.querySelector('img');
+        expect(img.getAttribute('src')).to.equal(
+            `${AEM}?width=750&format=png&optimize=medium`,
+        );
+        expect(img.getAttribute('width')).to.equal('1600');
+        expect(img.getAttribute('height')).to.equal('569');
+        expect(img.getAttribute('alt')).to.equal('Alt "text"');
+    });
+
+    it('caps the mobile rendition at the original width for small images', () => {
+        const img = parse(
+            buildPictureInnerMarkup(AEM, { width: 500, height: 300 }),
+        ).querySelector('img');
+        expect(img.getAttribute('src')).to.contain('width=500');
+    });
+
+    it('keeps width/height through sanitizePictureMarkup', () => {
+        const img = parse(
+            sanitizePictureMarkup(
+                buildPictureInnerMarkup(AEM, { width: 1600, height: 569 }),
+            ),
+        ).querySelector('img');
+        expect(img.getAttribute('width')).to.equal('1600');
+        expect(img.getAttribute('height')).to.equal('569');
+    });
 });
 
 describe('rendition', () => {

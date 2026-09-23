@@ -50,12 +50,52 @@ export function rendition(url, width, format) {
     return parsed.href;
 }
 
+/** Never request a rendition wider than the original — upscaling only adds bytes. */
+export function renditionWidth(width, dimensions) {
+    return dimensions?.width ? Math.min(width, dimensions.width) : width;
+}
+
 export function formatFor(url) {
     const ext = new URL(url).pathname.split('.').pop().toLowerCase();
     return FORMAT_BY_EXT[ext] ?? null;
 }
 
 const RENDITION_PARAMS = ['width', 'format', 'optimize'];
+
+export function getImageDimensions(url) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () =>
+            resolve({ width: image.naturalWidth, height: image.naturalHeight });
+        image.onerror = reject;
+        image.src = url;
+    });
+}
+
+export function extractImageDimensions(inner) {
+    if (!inner) return undefined;
+    const doc = new DOMParser().parseFromString(
+        `<picture>${inner}</picture>`,
+        'text/html',
+    );
+    const image = doc.querySelector('img');
+    const width = Number(image?.getAttribute('width'));
+    const height = Number(image?.getAttribute('height'));
+    return width && height ? { width, height } : undefined;
+}
+
+export function escapeAttribute(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+}
+
+export function dimensionsAttributes(dimensions) {
+    if (!dimensions?.width || !dimensions?.height) return '';
+    return ` width="${dimensions.width}" height="${dimensions.height}"`;
+}
 
 /** Strips the width/format/optimize params rendition() adds, recovering the plain
  * authored URL for editing/display/copy surfaces.
@@ -71,17 +111,24 @@ export function stripRenditionParams(url) {
     }
 }
 
-export function buildPictureInnerMarkup(url) {
+export function buildPictureInnerMarkup(url, dimensions, alt = '') {
     if (!isSupportedAssetHostname(url)) return '';
     const safeUrl = sanitizeAssetUrl(url);
     const formatInfo = formatFor(safeUrl);
-    if (!formatInfo) return `<img loading="lazy" alt="" src="${safeUrl}">`;
+    if (!formatInfo)
+        return `<img loading="lazy" alt="${escapeAttribute(alt)}"${dimensionsAttributes(dimensions)} src="${safeUrl}">`;
     const { type, format } = formatInfo;
+    const desktopWidth = renditionWidth(DESKTOP.width, dimensions);
+    const mobileWidth = renditionWidth(MOBILE_WIDTH, dimensions);
     return [
-        `<source type="image/webp" srcset="${rendition(safeUrl, DESKTOP.width, 'webply')}" media="${DESKTOP.media}">`,
-        `<source type="image/webp" srcset="${rendition(safeUrl, MOBILE_WIDTH, 'webply')}">`,
-        `<source type="${type}" srcset="${rendition(safeUrl, DESKTOP.width, format)}" media="${DESKTOP.media}">`,
-        `<img loading="lazy" alt="" src="${rendition(safeUrl, MOBILE_WIDTH, format)}">`,
+        `<source type="image/webp" srcset="${rendition(safeUrl, desktopWidth, 'webply')}" media="${DESKTOP.media}">`,
+        `<source type="image/webp" srcset="${rendition(safeUrl, mobileWidth, 'webply')}">`,
+        `<source type="${type}" srcset="${rendition(safeUrl, desktopWidth, format)}" media="${DESKTOP.media}">`,
+        `<img loading="lazy" alt="${escapeAttribute(alt)}" src="${rendition(
+            safeUrl,
+            mobileWidth,
+            format,
+        )}"${dimensionsAttributes(dimensions)}>`,
     ].join('');
 }
 
@@ -123,6 +170,8 @@ const ALLOWED_PICTURE_ATTRS = new Set([
     'role',
     'loading',
     'data-mobile-set',
+    'width',
+    'height',
 ]);
 
 /** Strips stored image/backgrounds markup down to picture/source/img before innerHTML —

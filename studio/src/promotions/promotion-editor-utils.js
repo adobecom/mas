@@ -839,34 +839,6 @@ export function groupCountriesByPromoCodeAndOsiOverrideForOffer(
         );
 }
 
-export function groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode) {
-    if (!Array.isArray(countries) || !countries.length) return [];
-    const groups = new Map();
-    const offers = Array.isArray(offerIds) && offerIds.length ? offerIds : [null];
-
-    for (const country of countries) {
-        const codes = new Set(
-            offers
-                .map((offerId) =>
-                    offerId ? getEffectivePromoCode(exceptions, offerId, country, defaultPromoCode) : defaultPromoCode,
-                )
-                .filter(Boolean),
-        );
-        const code = codes.size ? [...codes][0] : defaultPromoCode;
-        if (!code) continue;
-        if (!groups.has(code)) groups.set(code, []);
-        groups.get(code).push(country);
-    }
-
-    return [...groups.entries()]
-        .map(([promoCode, countryList]) => ({
-            promoCode,
-            countries: countryList,
-            countriesLabel: countryList.join(', '),
-        }))
-        .sort((a, b) => a.promoCode.localeCompare(b.promoCode));
-}
-
 const GEO_LOCALE_PREFIXES = ['mas:locale/', '/content/cq:tags/mas/locale/'];
 const GEO_PZN_PREFIXES = ['mas:pzn/', '/content/cq:tags/mas/pzn/'];
 const GEO_DISPLAY_PREFIXES = [...GEO_LOCALE_PREFIXES, ...GEO_PZN_PREFIXES];

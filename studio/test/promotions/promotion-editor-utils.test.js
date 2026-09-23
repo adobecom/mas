@@ -18,7 +18,6 @@ import {
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
     getPromotionItemsRemovedByOfferRemoval,
     buildRemoveOfferConfirmationMessage,
-    groupCountriesByPromoCode,
     groupCountriesByPromoCodeAndOsiOverrideForOffer,
     promotionOfferRecordHasDisplayName,
     normalizePromotionOfferData,
@@ -1051,35 +1050,6 @@ describe('promotion-editor-utils', () => {
             Store.filters.set((prev) => ({ ...prev, tags: 'mas:product_code/phsp' }));
             applyPromotionOfferProductTagsToSearch(new Map(), []);
             expect(Store.filters.get().tags).to.be.undefined;
-        });
-    });
-
-    describe('groupCountriesByPromoCode', () => {
-        it('returns empty array when countries is empty', () => {
-            expect(groupCountriesByPromoCode(new Map(), ['osi-1'], [], 'DEFAULT')).to.deep.equal([]);
-        });
-
-        it('groups all countries under default code when no exceptions', () => {
-            const result = groupCountriesByPromoCode(new Map(), ['osi-1'], ['US', 'CA'], 'PROMO10');
-            expect(result).to.have.length(1);
-            expect(result[0].promoCode).to.equal('PROMO10');
-            expect(result[0].countries).to.deep.equal(['US', 'CA']);
-        });
-
-        it('splits countries into separate groups when exceptions differ', () => {
-            const exceptions = new Map([['osi-1|US', 'SAVE20']]);
-            const result = groupCountriesByPromoCode(exceptions, ['osi-1'], ['US', 'CA'], 'PROMO10');
-            expect(result).to.have.length(2);
-            const codes = result.map((g) => g.promoCode).sort();
-            expect(codes).to.include('PROMO10');
-            expect(codes).to.include('SAVE20');
-        });
-
-        it('sorts groups by promoCode', () => {
-            const exceptions = new Map([['osi-1|US', 'ZZZ']]);
-            const result = groupCountriesByPromoCode(exceptions, ['osi-1'], ['US', 'CA'], 'AAA');
-            expect(result[0].promoCode).to.equal('AAA');
-            expect(result[1].promoCode).to.equal('ZZZ');
         });
     });
 

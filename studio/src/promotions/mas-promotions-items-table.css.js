@@ -17,7 +17,6 @@ export const promotionsItemsTableStyles = [
             position: relative;
             width: 100%;
             display: flex;
-            width: 100%;
             min-height: 0;
         }
 

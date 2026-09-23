@@ -12,8 +12,6 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 
 const tooltipTimeout = new ReactiveStore(null);
-// Deferred so a second click of a double click (which opens the editor) can cancel it.
-const SELECTION_CLICK_DELAY = 300;
 
 class MasFragment extends LitElement {
     static properties = {
@@ -25,8 +23,6 @@ class MasFragment extends LitElement {
 
     static styles = [styles];
 
-    #selectionClickTimeout;
-
     constructor() {
         super();
         this.expanded = false;
@@ -35,11 +31,6 @@ class MasFragment extends LitElement {
 
     createRenderRoot() {
         return this;
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        clearTimeout(this.#selectionClickTimeout);
     }
 
     reactiveController = new ReactiveController(this, [Store.selecting, Store.selection, Store.fragments.expandedId]);
@@ -82,13 +73,8 @@ class MasFragment extends LitElement {
         if (Store.selecting.value) return;
         if (shouldIgnoreRowClickForSelection(event)) return;
 
-        if (event.detail <= 1) {
-            clearTimeout(this.#selectionClickTimeout);
-            const fragmentId = this.fragmentStore.value?.id;
-            this.#selectionClickTimeout = setTimeout(() => {
-                toggleSelection(fragmentId);
-            }, SELECTION_CLICK_DELAY);
-        }
+        // Let @dblclick handle the second click.
+        if (event.detail === 1) toggleSelection(this.fragmentStore.value?.id);
 
         clearTimeout(tooltipTimeout.get());
         const currentTarget = event.currentTarget;
@@ -147,7 +133,6 @@ class MasFragment extends LitElement {
 
     async edit(event) {
         if (Store.selecting.value) return;
-        clearTimeout(this.#selectionClickTimeout);
         // Remove tooltip
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
@@ -187,7 +172,7 @@ class MasFragment extends LitElement {
                     @mouseleave=${this.handleMouseLeave}
                     @dblclick=${this.edit}
                 ></mas-fragment-table
-                ><sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
+                ><sp-tooltip slot="hover-content" placement="top">Click to select, double click to edit.</sp-tooltip>
             </overlay-trigger>
             ${this.expanded
                 ? html`<mas-fragment-variations

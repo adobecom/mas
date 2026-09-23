@@ -4,8 +4,6 @@ import Store from '../src/store.js';
 import '../src/mas-fragment.js';
 import '../src/mas-toolbar.js';
 
-const SELECTION_CLICK_DELAY = 300;
-
 describe('MasFragment click selection', () => {
     let sandbox;
 
@@ -50,10 +48,8 @@ describe('MasFragment click selection', () => {
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
             const routerModule = await import('../src/router.js');
             const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor').resolves();
-            const clock = sandbox.useFakeTimers();
 
             click(el.querySelector('mas-fragment-render'));
-            clock.tick(SELECTION_CLICK_DELAY);
 
             expect(Store.selection.get()).to.deep.equal(['fragment-1']);
             expect(navigateSpy.called).to.be.false;
@@ -62,15 +58,12 @@ describe('MasFragment click selection', () => {
         it('removes the fragment on a second click (cumulative toggle)', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
-            const clock = sandbox.useFakeTimers();
             const target = el.querySelector('mas-fragment-render');
 
             click(target);
-            clock.tick(SELECTION_CLICK_DELAY);
             expect(Store.selection.get()).to.deep.equal(['fragment-1']);
 
             click(target);
-            clock.tick(SELECTION_CLICK_DELAY);
             expect(Store.selection.get()).to.deep.equal([]);
         });
 
@@ -79,43 +72,61 @@ describe('MasFragment click selection', () => {
             const fragmentStoreB = createFragmentStore('fragment-b');
             const elA = await fixture(html`<mas-fragment .fragmentStore=${fragmentStoreA} view="render"></mas-fragment>`);
             const elB = await fixture(html`<mas-fragment .fragmentStore=${fragmentStoreB} view="render"></mas-fragment>`);
-            const clock = sandbox.useFakeTimers();
 
             click(elA.querySelector('mas-fragment-render'));
-            clock.tick(SELECTION_CLICK_DELAY);
             click(elB.querySelector('mas-fragment-render'));
-            clock.tick(SELECTION_CLICK_DELAY);
 
             expect(Store.selection.get().slice().sort()).to.deep.equal(['fragment-a', 'fragment-b']);
         });
 
-        it('opens the editor on double click and leaves no queued selection toggle', async () => {
+        it('opens the editor on double click and leaves the card selected', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
             const routerModule = await import('../src/router.js');
             const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor').resolves();
-            const clock = sandbox.useFakeTimers();
             const target = el.querySelector('mas-fragment-render');
 
             click(target, 1);
             click(target, 2);
             target.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
-            clock.tick(SELECTION_CLICK_DELAY);
 
             expect(navigateSpy.calledOnceWith('fragment-1')).to.be.true;
-            expect(Store.selection.get()).to.deep.equal([]);
+            expect(Store.selection.get()).to.deep.equal(['fragment-1']);
         });
 
         it('ignores clicks on interactive controls inside the fragment', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
-            const clock = sandbox.useFakeTimers();
             const target = el.querySelector('mas-fragment-render');
             const checkbox = document.createElement('sp-checkbox');
             target.appendChild(checkbox);
 
             click(checkbox);
-            clock.tick(SELECTION_CLICK_DELAY);
+
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('ignores clicks on a CTA link inside the card', async () => {
+            const fragmentStore = createFragmentStore();
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
+            const target = el.querySelector('mas-fragment-render');
+            const cta = document.createElement('a');
+            cta.href = 'https://example.com';
+            target.appendChild(cta);
+
+            click(cta);
+
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('ignores CTA clicks retargeted to a merch-card footer', async () => {
+            const fragmentStore = createFragmentStore();
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
+            const target = el.querySelector('mas-fragment-render');
+            const footer = document.createElement('footer');
+            target.appendChild(footer);
+
+            click(footer);
 
             expect(Store.selection.get()).to.deep.equal([]);
         });

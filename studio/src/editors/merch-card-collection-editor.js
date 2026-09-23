@@ -1506,7 +1506,9 @@ class MerchCardCollectionEditor extends LitElement {
     get #status() {
         return html`
             <div class="section-staged-status">
-                <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}">Staged</sp-switch>                    
+                <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}"
+                    >Staged</sp-switch
+                >
                 <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
             </div>
         `;

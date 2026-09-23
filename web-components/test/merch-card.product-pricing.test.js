@@ -14,9 +14,6 @@ before(async () => {
     ({ ProductPricing } = await import('../src/variants/product-pricing.js'));
 });
 
-// SYNCED_ROWS = ['heading-s', 'body-xs', 'price']; resyncOnReflow keys on width
-// plus each row's height, so the async legal clone (grows .price) and a font
-// reflow re-sync, while our own min-height writes leave the key unchanged.
 describe('ProductPricing.resyncOnReflow', () => {
     it('re-syncs on a real reflow but dedupes unchanged geometry', () => {
         const layout = Object.create(ProductPricing.prototype);
@@ -65,9 +62,6 @@ describe('ProductPricing.resyncOnReflow', () => {
     });
 });
 
-// syncHeights lines up the variable slots across a row of cards in a collection.
-// It delegates row grouping to the base syncRowHeights (group by rect.top,
-// publish the row max as a min-height var), so these drive a fake collection.
 describe('ProductPricing.syncHeights across a collection', () => {
     const makeCard = ({ top = 0, heights = {} } = {}) => {
         const styles = {};

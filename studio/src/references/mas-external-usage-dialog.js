@@ -7,8 +7,12 @@ import { styles } from './mas-external-usage-dialog.css.js';
  * referer logs (MWPW-185891).
  *
  * The counterpart to mas-related-artifacts-dialog: that one answers "what inside Studio points at
- * this fragment", this one answers "what out on the web actually serves it", and from which
- * countries.
+ * this fragment", this one answers "what out on the web actually serves it", how often, and from
+ * which countries.
+ *
+ * Request counts cover the action's rolling 7-day retention window, not all time, and reflect the
+ * pages that survived its per-hour cap — so they rank pages against each other rather than being a
+ * guaranteed-complete traffic total.
  */
 class MasExternalUsageDialog extends MasDialogShell {
     static styles = [dialogShellStyles, styles];
@@ -17,6 +21,7 @@ class MasExternalUsageDialog extends MasDialogShell {
         ...MasDialogShell.properties,
         usage: { type: Object },
         loading: { type: Boolean },
+        sortColumn: { state: true },
         sortDirection: { state: true },
     };
 
@@ -24,12 +29,14 @@ class MasExternalUsageDialog extends MasDialogShell {
         super();
         this.usage = null;
         this.loading = false;
-        this.sortDirection = 'asc';
+        this.sortColumn = 'requests';
+        this.sortDirection = 'desc';
     }
 
     willUpdate(changedProperties) {
         if (changedProperties.has('open') && this.open) {
-            this.sortDirection = 'asc';
+            this.sortColumn = 'requests';
+            this.sortDirection = 'desc';
         }
     }
 
@@ -71,14 +78,33 @@ class MasExternalUsageDialog extends MasDialogShell {
     }
 
     #sortedPages() {
-        // Locale breaks the tie so the rows of one URL keep a stable order between renders, rather
-        // than depending on whatever order the action happened to return them in.
+        // Url then locale is the stable tie-break: two rows can share a url and differ only in
+        // locale, so without it equally busy pages reorder between renders depending on whatever
+        // order the action happened to return them in.
+        const byPage = (a, b) => a.url.localeCompare(b.url) || a.locale.localeCompare(b.locale);
         const direction = this.sortDirection === 'desc' ? -1 : 1;
-        return [...this.#pages].sort((a, b) => (a.url.localeCompare(b.url) || a.locale.localeCompare(b.locale)) * direction);
+        const comparator =
+            this.sortColumn === 'requests'
+                ? (a, b) => (a.requests - b.requests) * direction || byPage(a, b)
+                : (a, b) => byPage(a, b) * direction;
+        return [...this.#pages].sort(comparator);
     }
 
-    #toggleSort() {
-        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    #toggleSort(column) {
+        if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            return;
+        }
+        // A column starts in the direction it is normally read in: busiest first for counts,
+        // A→Z for text.
+        this.sortColumn = column;
+        this.sortDirection = column === 'requests' ? 'desc' : 'asc';
+    }
+
+    /** Only the active column carries a direction, otherwise every header shows a sort arrow. */
+    #sortDirectionFor(column) {
+        if (this.sortColumn !== column) return nothing;
+        return this.sortDirection === 'desc' ? 'descending' : 'ascending';
     }
 
     async #copyUrl(url) {
@@ -104,6 +130,9 @@ class MasExternalUsageDialog extends MasDialogShell {
                     >
                         <sp-icon-copy slot="icon"></sp-icon-copy>
                     </sp-action-button>
+                </sp-table-cell>
+                <sp-table-cell class="requests-column">
+                    <span class="page-requests">${(Number(page.requests) || 0).toLocaleString()}</span>
                 </sp-table-cell>
                 <sp-table-cell>
                     <span class="page-countries">${page.countries.join(', ')}</span>
@@ -138,10 +167,18 @@ class MasExternalUsageDialog extends MasDialogShell {
                 <sp-table-head>
                     <sp-table-head-cell
                         sortable
-                        sort-direction=${this.sortDirection === 'desc' ? 'descending' : 'ascending'}
-                        @click=${() => this.#toggleSort()}
+                        sort-direction=${this.#sortDirectionFor('page')}
+                        @click=${() => this.#toggleSort('page')}
                     >
                         ${commonHost ? `Page on ${commonHost}` : 'Page'}
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        sortable
+                        class="requests-column"
+                        sort-direction=${this.#sortDirectionFor('requests')}
+                        @click=${() => this.#toggleSort('requests')}
+                    >
+                        Requests (7d)
                     </sp-table-head-cell>
                     <sp-table-head-cell>Countries</sp-table-head-cell>
                 </sp-table-head>

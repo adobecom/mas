@@ -30,8 +30,8 @@ export const styles = css`
     }
 
     /* The table markup lives in this shadow root, so the cells are styled by element selector.
-       Both columns are sized here rather than on the head alone, otherwise the body cells size
-       themselves and the "Countries" heading drifts away from the values underneath it. */
+       Every column is sized here rather than on the head alone, otherwise the body cells size
+       themselves and the headings drift away from the values underneath them. */
     sp-table-head-cell:first-child,
     sp-table-cell:first-child {
         flex: 1 1 auto;
@@ -39,6 +39,17 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 4px;
+    }
+
+    .requests-column {
+        flex: 0 0 120px;
+    }
+
+    /* Counts are read by comparing them down the column, so the digits are held to a common width
+       instead of shifting with each row's glyphs. */
+    .page-requests {
+        font-variant-numeric: tabular-nums;
+        color: var(--spectrum-global-color-gray-900);
     }
 
     sp-table-head-cell:last-child,

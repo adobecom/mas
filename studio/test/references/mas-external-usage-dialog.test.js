@@ -24,6 +24,9 @@ async function openDialog(data = usage) {
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());
 const pageHrefs = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.getAttribute('href'));
+const requestCounts = (element) =>
+    [...element.shadowRoot.querySelectorAll('.page-requests')].map((node) => node.textContent.trim());
+const headerCell = (element, index) => element.shadowRoot.querySelectorAll('sp-table-head-cell')[index];
 
 describe('mas-external-usage-dialog', () => {
     it('renders nothing while closed', async () => {
@@ -58,8 +61,8 @@ describe('mas-external-usage-dialog', () => {
     it('makes each page url the link that opens it in a new tab', async () => {
         const element = await openDialog();
         expect(pageHrefs(element)).to.deep.equal([
-            'https://www.adobe.com/ca/creativecloud/business.html',
             'https://www.adobe.com/express/',
+            'https://www.adobe.com/ca/creativecloud/business.html',
             'https://www.adobe.com/express/business',
         ]);
         for (const link of element.shadowRoot.querySelectorAll('.page-url')) {
@@ -69,7 +72,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('drops the host every row shares, which is the part that is never what tells them apart', async () => {
         const element = await openDialog();
-        expect(pageLabels(element)).to.deep.equal(['/ca/creativecloud/business.html', '/express/', '/express/business']);
+        expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
         expect(element.shadowRoot.querySelector('sp-table-head-cell').textContent).to.contain('www.adobe.com');
     });
 
@@ -88,16 +91,14 @@ describe('mas-external-usage-dialog', () => {
             ],
         });
         expect(pageLabels(element)).to.deep.equal([
-            'https://mwpw-1--mas--adobecom.aem.live/express/',
             'https://www.adobe.com/express/',
+            'https://mwpw-1--mas--adobecom.aem.live/express/',
         ]);
     });
 
     it('still shows the whole url in the tooltip when the host is hidden', async () => {
         const element = await openDialog();
-        expect(element.shadowRoot.querySelector('.page-url').getAttribute('title')).to.equal(
-            'https://www.adobe.com/ca/creativecloud/business.html',
-        );
+        expect(element.shadowRoot.querySelector('.page-url').getAttribute('title')).to.equal('https://www.adobe.com/express/');
     });
 
     it('keeps a copy action on every row', async () => {
@@ -113,13 +114,13 @@ describe('mas-external-usage-dialog', () => {
     it('lists the countries each page was served to', async () => {
         const element = await openDialog();
         const countries = [...element.shadowRoot.querySelectorAll('.page-countries')].map((node) => node.textContent.trim());
-        expect(countries).to.deep.equal(['ca', 'us, uk', '']);
+        expect(countries).to.deep.equal(['us, uk', 'ca', '']);
     });
 
     it('labels a row with its locale, which is what tells two rows of one url apart', async () => {
         const element = await openDialog();
         const locales = [...element.shadowRoot.querySelectorAll('.page-locale')].map((node) => node.textContent.trim());
-        expect(locales).to.deep.equal(['en_CA', 'en_US']);
+        expect(locales).to.deep.equal(['en_US', 'en_CA']);
     });
 
     it('keeps the rows of one url adjacent and in a stable order', async () => {
@@ -131,7 +132,7 @@ describe('mas-external-usage-dialog', () => {
             ],
         });
         const locales = [...element.shadowRoot.querySelectorAll('.page-locale')].map((node) => node.textContent.trim());
-        expect(locales).to.deep.equal(['en_GB', 'en_US']);
+        expect(locales).to.deep.equal(['en_US', 'en_GB']);
     });
 
     it('titles itself Related pages', async () => {
@@ -139,8 +140,36 @@ describe('mas-external-usage-dialog', () => {
         expect(element.shadowRoot.querySelector('.dialog-title').textContent.trim()).to.equal('Related pages');
     });
 
-    it('sorts pages alphabetically by default', async () => {
+    it('shows how many requests each page made', async () => {
         const element = await openDialog();
+        expect(requestCounts(element)).to.deep.equal(['900', '120', '40']);
+    });
+
+    it('groups the thousands so large counts stay readable', async () => {
+        const element = await openDialog({ ...usage, pages: [{ ...usage.pages[0], requests: 1234567 }] });
+        expect(requestCounts(element)[0]).to.equal((1234567).toLocaleString());
+    });
+
+    it('opens on the busiest pages, which is the ranking the action already computed', async () => {
+        const element = await openDialog();
+        expect(pageHrefs(element)).to.deep.equal([
+            'https://www.adobe.com/express/',
+            'https://www.adobe.com/ca/creativecloud/business.html',
+            'https://www.adobe.com/express/business',
+        ]);
+    });
+
+    it('reverses to the quietest pages when the Requests header is toggled', async () => {
+        const element = await openDialog();
+        headerCell(element, 1).click();
+        await element.updateComplete;
+        expect(requestCounts(element)).to.deep.equal(['40', '120', '900']);
+    });
+
+    it('switches to an alphabetical page order when the Page header is picked', async () => {
+        const element = await openDialog();
+        headerCell(element, 0).click();
+        await element.updateComplete;
         expect(pageHrefs(element)).to.deep.equal([
             'https://www.adobe.com/ca/creativecloud/business.html',
             'https://www.adobe.com/express/',
@@ -148,14 +177,26 @@ describe('mas-external-usage-dialog', () => {
         ]);
     });
 
-    it('reverses the order when the Page header is toggled', async () => {
-        const element = await openDialog();
-        element.shadowRoot.querySelector('sp-table-head-cell').click();
-        await element.updateComplete;
-        expect(pageHrefs(element)[0]).to.equal('https://www.adobe.com/express/business');
+    it('keeps equally busy pages in a stable order rather than letting them shuffle', async () => {
+        const tied = [
+            { url: 'https://www.adobe.com/b', requests: 10, countries: ['us'], region: 'Global', locale: 'en_US' },
+            { url: 'https://www.adobe.com/a', requests: 10, countries: ['us'], region: 'Global', locale: 'en_US' },
+        ];
+        const element = await openDialog({ ...usage, pages: tied });
+        expect(pageHrefs(element)).to.deep.equal(['https://www.adobe.com/a', 'https://www.adobe.com/b']);
     });
 
-    it('no longer reports traffic counts, which are out of scope for this panel', async () => {
+    it('marks only the active column as sorted, so one arrow shows at a time', async () => {
+        const element = await openDialog();
+        expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal(null);
+        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal('descending');
+        headerCell(element, 0).click();
+        await element.updateComplete;
+        expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal('ascending');
+        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal(null);
+    });
+
+    it('still omits the aggregate traffic panel, which stayed out of scope', async () => {
         const element = await openDialog();
         expect(element.shadowRoot.querySelector('.usage-summary')).to.equal(null);
     });
@@ -207,12 +248,13 @@ describe('mas-external-usage-dialog', () => {
 
     it('resets the sort order each time it reopens', async () => {
         const element = await openDialog();
-        element.shadowRoot.querySelector('sp-table-head-cell').click();
+        headerCell(element, 0).click();
         await element.updateComplete;
         element.open = false;
         await element.updateComplete;
         element.open = true;
         await element.updateComplete;
-        expect(element.sortDirection).to.equal('asc');
+        expect(element.sortColumn).to.equal('requests');
+        expect(element.sortDirection).to.equal('desc');
     });
 });

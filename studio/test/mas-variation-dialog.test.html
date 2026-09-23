@@ -409,6 +409,42 @@
                             ).to.be.true;
                         });
 
+                        it('should resolve product-pricing grouped offer data from inline price OSI', async () => {
+                            const service = document.createElement('mas-commerce-service');
+                            service.collectPriceOptions = stub().returns({ some: 'options' });
+                            service.resolveOfferSelectors = stub().returns([
+                                Promise.resolve([{ productArrangementCode: 'pac-from-inline-price' }]),
+                            ]);
+                            document.body.append(service);
+
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/acom/en_US/product-pricing-card',
+                                fields: [
+                                    { name: 'variant', values: ['product-pricing'] },
+                                    {
+                                        name: 'prices',
+                                        values: [
+                                            '<span is="inline-price" data-wcs-osi="inline-price-osi"></span>',
+                                        ],
+                                    },
+                                ],
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = null;
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(service.collectPriceOptions.calledWith({ wcsOsi: 'inline-price-osi' })).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
+                                    productArrangementCode: 'pac-from-inline-price',
+                                }),
+                            ).to.be.true;
+                        });
+
                         it('should show error on submission failure', async () => {
                             mockRepository.createVariation.rejects(new Error('Network error'));
                             dialog.selectedLocale = 'en_CA';

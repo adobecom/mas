@@ -1910,7 +1910,10 @@ class MasCompareChartEditor extends LitElement {
     get #generalInfo() {
         return html`
             <div class="compchart-general-info">
-                <h3 class="compchart-general-info-title">General info</h3>
+                <div class="compchart-general-info-title-status">
+                    <h3 class="compchart-general-info-title">General info</h3>
+                    <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+                </div>
                 <div class="compchart-general-info-grid">
                     <sp-field-group>
                         <sp-field-label for="compchart-fragment-title" required>Fragment title</sp-field-label>

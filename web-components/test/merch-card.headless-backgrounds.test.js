@@ -33,7 +33,7 @@ const BACKGROUNDS_PICTURE =
     `<img loading="lazy" alt="" data-mobile-set="true" src="${MOBILE_URL}">` +
     `</picture>`;
 
-for (const variant of ['headless', 'marquee', 'banner-blade']) {
+for (const variant of ['marquee', 'banner-blade']) {
     describe(`${variant} variant – Backgrounds row expand/collapse`, () => {
         let card;
         afterEach(() => card?.remove());

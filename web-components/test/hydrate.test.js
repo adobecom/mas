@@ -37,7 +37,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
-import { HEADLESS_AEM_FRAGMENT_MAPPING } from '../src/variants/headless.js';
+import { MARQUEE_AEM_FRAGMENT_MAPPING } from '../src/variants/marquee.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
 import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
@@ -2030,14 +2030,14 @@ describe('appendSlot', () => {
     });
 });
 
-describe('processImage (headless-family)', () => {
+describe('processImage (marquee)', () => {
     it('slots stored image markup into a <picture slot="image">', () => {
         const el = document.createElement('div');
         const fields = {
             image: '<source srcset="x?width=750"><img src="x?width=750">',
         };
 
-        processImage(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+        processImage(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
 
         const picture = el.querySelector('picture[slot="image"]');
         expect(picture).to.exist;
@@ -2047,7 +2047,7 @@ describe('processImage (headless-family)', () => {
     it('does not slot anything when the image field is empty', () => {
         const el = document.createElement('div');
 
-        processImage({ image: '' }, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+        processImage({ image: '' }, el, MARQUEE_AEM_FRAGMENT_MAPPING);
 
         expect(el.querySelector('[slot="image"]')).to.not.exist;
     });
@@ -2069,7 +2069,7 @@ describe('processImage (headless-family)', () => {
             image: '<img src="x?width=750" data-evil="1"><script>1+1</script>',
         };
 
-        processImage(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+        processImage(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
 
         const picture = el.querySelector('picture[slot="image"]');
         expect(picture.querySelector('script')).to.not.exist;
@@ -2078,7 +2078,7 @@ describe('processImage (headless-family)', () => {
     });
 });
 
-describe('processBackgrounds (headless-family)', () => {
+describe('processBackgrounds (marquee)', () => {
     it('slots stored backgrounds markup into a <picture slot="backgrounds">', () => {
         const el = document.createElement('div');
         const fields = {
@@ -2086,7 +2086,7 @@ describe('processBackgrounds (headless-family)', () => {
                 '<source srcset="x?width=2000" media="(min-width: 1200px)"><img src="x?width=750">',
         };
 
-        processBackgrounds(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+        processBackgrounds(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
 
         const picture = el.querySelector('picture[slot="backgrounds"]');
         expect(picture).to.exist;
@@ -2100,13 +2100,13 @@ describe('processBackgrounds (headless-family)', () => {
         processBackgrounds(
             { backgrounds: '' },
             el,
-            HEADLESS_AEM_FRAGMENT_MAPPING,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
         );
 
         expect(el.querySelector('[slot="backgrounds"]')).to.not.exist;
     });
 
-    it('does not slot anything for variants where backgrounds is a boolean flag (e.g. marquee/banner-blade)', () => {
+    it('does not slot anything for variants where backgrounds is a boolean flag', () => {
         const el = document.createElement('div');
         const fields = {
             backgrounds: '<img src="x?width=750">',
@@ -2124,7 +2124,7 @@ describe('processBackgrounds (headless-family)', () => {
                 '<source srcset="x?width=2000" media="(min-width: 1200px)" data-evil="1"><img src="x?width=750"><script>1+1</script>',
         };
 
-        processBackgrounds(fields, el, HEADLESS_AEM_FRAGMENT_MAPPING);
+        processBackgrounds(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
 
         const picture = el.querySelector('picture[slot="backgrounds"]');
         expect(picture.querySelector('script')).to.not.exist;

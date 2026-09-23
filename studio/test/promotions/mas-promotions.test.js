@@ -6,6 +6,8 @@ import '../../src/promotions/mas-promotions.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
+import { UserFriendlyError } from '../../src/utils.js';
+import { STAGED } from '../../src/constants.js';
 import '../../src/swc.js';
 
 function makeFragmentData(overrides = {}) {
@@ -102,6 +104,15 @@ describe('MasPromotions', () => {
         el.shadowRoot
             .querySelector('mas-promotion-duplicate-dialog')
             .dispatchEvent(new CustomEvent('duplicate-confirmed', { bubbles: true, composed: true, detail }));
+    }
+
+    function stagePromotion(promotion) {
+        promotion.getField('tags').values = [STAGED.TAG];
+        return promotion;
+    }
+
+    function findMenuItem(el, text) {
+        return [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) => item.textContent.includes(text));
     }
 
     describe('#handleDuplicatePromotionFromList', () => {
@@ -296,6 +307,219 @@ describe('MasPromotions', () => {
             if (unpublishItem) unpublishItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
             expect(unpublishItem).to.exist;
         });
+
+        it('resolves the repository from the DOM when the getter is not stubbed', async () => {
+            sandbox.stub(globalThis, 'fetch').rejects(new Error('no network in test'));
+            const repoEl = document.createElement('mas-repository');
+            repoEl.setAttribute('bucket', 'test-bucket');
+            document.body.appendChild(repoEl);
+            const el = document.createElement('mas-promotions');
+            document.body.appendChild(el);
+            await el.updateComplete;
+
+            expect(el.repository).to.equal(repoEl);
+            repoEl.remove();
+        });
+
+        it('returns the repository from ensureRepository when it is available', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el, repo } = await mountWithRepo(promotion);
+
+            expect(el.ensureRepository()).to.equal(repo);
+        });
+
+        it('derives promotionsData filtered by status and environment', async () => {
+            const active = makePromotion({
+                id: 'promo-1',
+                title: 'Active',
+                status: 'PUBLISHED',
+                surfaces: ['acom'],
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const draftTest = makePromotion({ id: 'promo-2', title: 'Draft test', status: 'DRAFT', surfaces: ['sandbox'] });
+            const { el } = await mountWithRepo(active);
+            Store.promotions.list.data.set([new FragmentStore(active), new FragmentStore(draftTest)]);
+            el.filter = 'active';
+            el.environmentFilter = ['production'];
+            await el.updateComplete;
+
+            expect(el.promotionsData).to.have.lengthOf(1);
+            expect(el.promotionsData[0].value.title).to.equal('Active');
+        });
+
+        it('closes the duplicate dialog when the dialog is cancelled', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            clickDuplicateMenuItem(el);
+            await el.updateComplete;
+            expect(el.duplicateDialogOpen).to.be.true;
+
+            el.shadowRoot
+                .querySelector('mas-promotion-duplicate-dialog')
+                .dispatchEvent(new CustomEvent('duplicate-cancelled', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(el.duplicateDialogOpen).to.be.false;
+        });
+
+        it('does not navigate to the editor when a double-click originates from the action menu', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            Store.page.set('promotions');
+
+            el.shadowRoot
+                .querySelector('sp-action-menu')
+                .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+
+            expect(Store.page.get()).to.equal('promotions');
+        });
+
+        it('ignores delete requests while a confirmation dialog is already open', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const deleteFragment = sandbox.stub().resolves();
+            const { el, repo } = await mountWithRepo(promotion, { deleteFragment });
+            el.isDialogOpen = true;
+            await el.updateComplete;
+
+            findMenuItem(el, 'Delete').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(repo.deleteFragment.called).to.be.false;
+        });
+
+        it('shows a failure toast and does not clear the list when deleting a promotion fails', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original', tags: ['mas:promotion/original'] });
+            const deleteFragment = sandbox.stub().rejects(new Error('boom'));
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountWithRepo(promotion, { deleteFragment });
+
+            findMenuItem(el, 'Delete').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+            el.shadowRoot
+                .querySelector('sp-dialog-wrapper')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(deleteFragment.calledOnce).to.be.true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to delete promotion campaign.' })))
+                .to.be.true;
+        });
+
+        it('ignores duplicate requests from the list while another duplicate is in progress', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            el.duplicating = true;
+            await el.updateComplete;
+
+            clickDuplicateMenuItem(el);
+
+            expect(el.duplicateDialogOpen).to.be.false;
+        });
+    });
+
+    describe('#handlePublishPromotionFromList', () => {
+        function makePublishableRepo(overrides = {}) {
+            return {
+                operation: { set: sandbox.stub() },
+                aem: {
+                    sites: { cf: { fragments: { publish: sandbox.stub().resolves() } } },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
+                ...overrides,
+            };
+        }
+
+        it('publishes a promotion project and refreshes the list', async () => {
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Ready',
+                status: 'DRAFT',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const { el, repo } = await mountWithRepo(promotion, makePublishableRepo());
+
+            findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
+
+            expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+            expect(repo.loadPromotions.calledTwice).to.be.true;
+        });
+
+        it('shows the staged confirmation dialog before publishing and aborts when cancelled', async () => {
+            const promotion = stagePromotion(
+                makePromotion({
+                    id: 'promo-1',
+                    title: 'Staged',
+                    status: 'DRAFT',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                }),
+            );
+            const { el, repo } = await mountWithRepo(promotion, makePublishableRepo());
+
+            findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+
+            el.shadowRoot
+                .querySelector('sp-dialog-wrapper')
+                .dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+            expect(el.isDialogOpen).to.be.false;
+        });
+
+        it('skips publishing when a confirmation dialog is already open', async () => {
+            const promotion = stagePromotion(
+                makePromotion({
+                    id: 'promo-1',
+                    title: 'Staged',
+                    status: 'DRAFT',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                }),
+            );
+            const { el, repo } = await mountWithRepo(promotion, makePublishableRepo());
+            el.isDialogOpen = true;
+            await el.updateComplete;
+
+            findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        });
+    });
+
+    describe('#handleUnpublishPromotionFromList', () => {
+        it('unpublishes a promotion project and refreshes the list', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Live', status: 'PUBLISHED' });
+            const { el, repo } = await mountWithRepo(promotion, {
+                operation: { set: sandbox.stub() },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getWithEtag: sandbox.stub().resolves({ id: 'promo-1', etag: '"x"' }),
+                                unpublish: sandbox.stub().resolves(),
+                            },
+                        },
+                    },
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
+                },
+            });
+
+            findMenuItem(el, 'Unpublish').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
+
+            expect(repo.aem.sites.cf.fragments.unpublish.calledOnce).to.be.true;
+            expect(repo.loadPromotions.calledTwice).to.be.true;
+        });
     });
 
     describe('#onDuplicateConfirmed wiring (list-view duplication path)', () => {
@@ -379,6 +603,23 @@ describe('MasPromotions', () => {
                 .true;
             expect(el.duplicateDialogOpen).to.be.false;
             expect(el.duplicating).to.be.false;
+        });
+
+        it('shows the UserFriendlyError message when duplication fails with a friendly error', async () => {
+            const promotion = makePromotion({ id: 'src-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion, {
+                createFragment: sandbox.stub().rejects(new UserFriendlyError('Custom friendly message')),
+            });
+
+            clickDuplicateMenuItem(el);
+            await el.updateComplete;
+
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            dispatchDuplicateConfirmed(el);
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
+
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Custom friendly message' }))).to.be.true;
         });
 
         it('does nothing when fired without a pending duplicate fragment', async () => {

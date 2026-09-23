@@ -2377,10 +2377,7 @@ export default class MasFragmentEditor extends LitElement {
                 </div>
                 <div class="artifacts-counts">
                     ${regions.map(
-                        ({ region, pages }) =>
-                            html`<div class="artifacts-count-line">
-                                ${pages.length} ${pages.length === 1 ? 'page' : 'pages'} · ${region}
-                            </div>`,
+                        ({ region, pages }) => html`<div class="artifacts-count-line">${pages.length} ${region}</div>`,
                     )}
                 </div>
             </div>

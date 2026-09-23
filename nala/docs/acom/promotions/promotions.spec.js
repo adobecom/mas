@@ -15,7 +15,6 @@ export const features = [
             promoPrice: PRICE_PATTERN.FAKE.promo,
             price: PRICE_PATTERN.FAKE.regular,
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
     {
@@ -98,7 +97,6 @@ export const features = [
             promoPrice: PRICE_PATTERN.FAKE.promo,
             price: PRICE_PATTERN.FAKE.regular,
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
     // add grouped variation card in grouped variation collection when MWPW-197436 is fixed
@@ -113,7 +111,6 @@ export const features = [
             promotionProject: 'NalaEvergreen',
             badgeText: 'Nala Promo',
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
     {
@@ -131,10 +128,7 @@ export const features = [
             regionalCode: 'MILIPROMO',
             regionalPrice: PRICE_PATTERN.FAKE.milipromo,
         },
-        browserParams: {
-            intro: ['?mas.preview=on', 'instant=2026-07-10'],
-            regional: '?mas.preview=on',
-        },
+        browserParams: [['instant=2026-07-10'], []],
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
     {
@@ -148,6 +142,7 @@ export const features = [
             badgeText: 'Nala Seasonal',
         },
         browserParams: ['?mas.preview=on', 'instant=2026-09-10'],
+        previewOnly: true,
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
 ];

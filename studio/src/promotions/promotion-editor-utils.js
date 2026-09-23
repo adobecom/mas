@@ -817,7 +817,6 @@ export function groupCountriesByPromoCodeAndOsiOverrideForOffer(
     for (const country of countries) {
         const promoCode = getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defaultPromoCode);
         const osiOverrideOfferId = getEffectiveSubstituteForOfferKeys(offerSubstitutions, offerKeys, country);
-        if (!promoCode && !osiOverrideOfferId) continue;
         const groupKey = `${promoCode ?? ''}|${osiOverrideOfferId ?? ''}`;
         if (!groups.has(groupKey)) {
             groups.set(groupKey, {

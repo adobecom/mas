@@ -588,6 +588,35 @@ export function resolveTerritoryCountries(locale, country) {
     return { ...entry };
 }
 
+/**
+ * Rejects a request `country` that cannot belong to `locale`'s market family on `surface`
+ * (e.g. `en_GB` + `country=FR`: FR is never a registered region of en_GB on ACOM), falling back
+ * to the locale's own country instead. A locale with no registered market data on this surface
+ * is left unvalidated.
+ *
+ * MWPW-207865: without this, a mismatched country (e.g. a signed-in user's account-country
+ * cookie on a page priced for a different market) flows unchecked into the WCS pricing lookup,
+ * which then resolves against a market the page was never rendered for. Scoped to wcsCountry
+ * only — promo/geo-tag targeting elsewhere in the pipeline is deliberately country-agnostic to
+ * locale (a request can legitimately target an arbitrary country regardless of page locale).
+ * @param {string} surface - request surface (e.g. 'acom'), needed to scope the lookup to its own DEFAULT_LOCALES
+ * @param {string} locale - request locale (e.g. 'en_GB')
+ * @param {string|undefined} country - incoming request country
+ * @returns {string|undefined}
+ */
+export function restrictCountryToLocaleMarket(surface, locale, country) {
+    if (!country) return country;
+    const [lang, localeCountry] = parseLocaleCode(locale);
+    const upperCountry = country.toUpperCase();
+    if (!localeCountry || upperCountry === localeCountry.toUpperCase()) return country;
+    const entry = getDefaultLocales(surface).find(
+        ({ lang: entryLang, country: entryCountry, regions }) =>
+            entryLang === lang && (entryCountry === localeCountry || regions?.includes(localeCountry)),
+    );
+    if (!entry || upperCountry === entry.country || entry.regions?.includes(upperCountry)) return country;
+    return localeCountry;
+}
+
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**

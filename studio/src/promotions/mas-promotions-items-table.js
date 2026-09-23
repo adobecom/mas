@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
+import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
 import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
@@ -219,7 +220,8 @@ class MasPromotionsItemsTable extends LitElement {
             return;
         }
         const paths = this.selectedPaths;
-        const key = `${this.#promotionTagId ?? ''}|${paths.slice().sort().join('|')}`;
+        const keySource = this.type === TABLE_TYPE.CARDS ? getItemsSelectionStore().selectedCards.value : paths;
+        const key = `${this.#promotionTagId ?? ''}|${keySource.slice().sort().join('|')}`;
         if (key === this.#loadedPathsKey) return;
         this.#loadedPathsKey = key;
         this.#loadSelected(paths);
@@ -333,31 +335,46 @@ class MasPromotionsItemsTable extends LitElement {
         const variationsByPath = new Map(scopedEntries(previousVariations));
         const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
         const probedByPath = (await this.#promoVariationProbe) ?? new Map();
+        const selectedGroupedVariationPaths = new Set(getItemsSelectionStore().selectedCards.value);
+        const preservePrevious = (path) => {
+            if (previousGeos.has(path)) {
+                geosByPath.set(path, previousGeos.get(path) || []);
+                variationsByPath.set(path, previousVariations.get(path) || []);
+                if (previousEmptyGeoPaths.has(path)) emptyGeoPaths.add(path);
+            }
+        };
         if (signal.aborted) return;
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
                 const groupedVariationPaths = new Fragment(item)
                     .getVariations()
-                    .filter((path) => Fragment.isGroupedVariationPath(path));
+                    .filter((path) => Fragment.isGroupedVariationPath(path) && selectedGroupedVariationPaths.has(path));
                 let allVariations = [];
+                let missingPaths = [];
                 try {
-                    const missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
+                    missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
                     if (missingPaths.length) {
                         const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
                         for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
                     allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);
                 } catch {
-                    if (previousGeos.has(item.path)) {
-                        geosByPath.set(item.path, previousGeos.get(item.path) || []);
-                        variationsByPath.set(item.path, previousVariations.get(item.path) || []);
-                        if (previousEmptyGeoPaths.has(item.path)) emptyGeoPaths.add(item.path);
-                    }
+                    preservePrevious(item.path);
                     return;
                 }
                 if (signal.aborted) return;
-                if (!allVariations.length) return;
+                if (!allVariations.length) {
+                    // Trust an empty result only if this item's own path was actually probed.
+                    if (!probedByPath.has(item.path)) {
+                        preservePrevious(item.path);
+                    } else {
+                        geosByPath.delete(item.path);
+                        variationsByPath.delete(item.path);
+                        emptyGeoPaths.delete(item.path);
+                    }
+                    return;
+                }
                 const enrichedVariations = await enrichPromoVariations(allVariations, item, {
                     getDisplayName: this.getDisplayName,
                 });
@@ -468,6 +485,7 @@ class MasPromotionsItemsTable extends LitElement {
             this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
             this.fragmentHasEmptyGeosVariation = existingVariations.some((variation) => !variation.pznTags?.length);
             if (Fragment.isGroupedVariationPath(item.path)) {
+                this.createPromoVariationLoading = false;
                 await this.#createPromoVariationForItem(item, [], this.fragmentHasEmptyGeosVariation);
                 return;
             }
@@ -1026,7 +1044,14 @@ class MasPromotionsItemsTable extends LitElement {
                 tableToRender = this.#renderCollectionsTable();
                 break;
         }
-        return html` ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender} `;
+        return html`
+            ${this.createPromoVariationLoading
+                ? html`<div class="loading-overlay">
+                      <sp-progress-circle size="l" indeterminate label="Creating promo variation"></sp-progress-circle>
+                  </div>`
+                : nothing}
+            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender}
+        `;
     }
 }
 

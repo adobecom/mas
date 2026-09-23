@@ -1021,11 +1021,17 @@ describe('hydrate', () => {
         await hydrate(fragment, merchCard);
 
         expect(merchCard.getAttribute('consonant')).to.equal('true');
-        expect(merchCard.querySelector('[slot="heading-s"]').textContent).to.equal('Photoshop');
-        expect(merchCard.querySelector('[slot="heading-xs"] [data-wcs-osi="main"]')).to.exist;
-        expect(merchCard.querySelector('[slot="footer"] [data-wcs-osi="main"]')).to.exist;
+        expect(
+            merchCard.querySelector('[slot="heading-s"]').textContent,
+        ).to.equal('Photoshop');
+        expect(
+            merchCard.querySelector(
+                '[slot="heading-xs"] [data-wcs-osi="main"]',
+            ),
+        ).to.exist;
+        expect(merchCard.querySelector('[slot="footer"] [data-wcs-osi="main"]'))
+            .to.exist;
     });
-
 
     it('copies fragment promoCode into contextPromotionCode', async () => {
         const litCard = document.createElement('merch-card');

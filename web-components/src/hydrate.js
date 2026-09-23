@@ -1113,8 +1113,11 @@ export async function hydrate(fragment, merchCard) {
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
-    const mapping = merchCard.variantLayout?.aemFragmentMapping ?? getFragmentMapping(variant);
-    if (!mapping) throw new Error(`hydrate: variant mapping not found for ${id}`);
+    const mapping =
+        merchCard.variantLayout?.aemFragmentMapping ??
+        getFragmentMapping(variant);
+    if (!mapping)
+        throw new Error(`hydrate: variant mapping not found for ${id}`);
 
     if (mapping.style === 'consonant') {
         merchCard.setAttribute('consonant', true);

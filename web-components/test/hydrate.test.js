@@ -1007,6 +1007,26 @@ describe('hydrate', () => {
         expect(merchCard.compatVersion).to.equal('1');
     });
 
+    it('hydrates product-pricing when variant layout is not initialized yet', async () => {
+        const fragment = {
+            id: 'product-pricing-card',
+            fields: {
+                variant: 'product-pricing',
+                cardTitle: 'Photoshop',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+            },
+        };
+
+        await hydrate(fragment, merchCard);
+
+        expect(merchCard.getAttribute('consonant')).to.equal('true');
+        expect(merchCard.querySelector('[slot="heading-s"]').textContent).to.equal('Photoshop');
+        expect(merchCard.querySelector('[slot="heading-xs"] [data-wcs-osi="main"]')).to.exist;
+        expect(merchCard.querySelector('[slot="footer"] [data-wcs-osi="main"]')).to.exist;
+    });
+
+
     it('copies fragment promoCode into contextPromotionCode', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);

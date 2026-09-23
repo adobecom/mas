@@ -32,6 +32,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    STAGED,
     BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
@@ -1585,6 +1586,8 @@ export class MasRepository extends LitElement {
                 }
             }
 
+            await this.#clearStagedTag(fragment);
+
             if (withToast) {
                 const message =
                     fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
@@ -1597,6 +1600,41 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+        }
+    }
+
+    /**
+     * Clears the internal staged tag once a fragment has been successfully published.
+     * No-ops when the fragment isn't staged. Persistence failures are reported via
+     * processError but never turn a successful publish into a reported failure.
+     * @param {Fragment|object} fragmentData
+     */
+    async #clearStagedTag(fragmentData) {
+        if (!fragmentData) return;
+        const fragment = fragmentData instanceof Fragment ? fragmentData : new Fragment(fragmentData);
+        if (!fragment.isStaged) return;
+
+        if (fragment.model?.path === COLLECTION_MODEL_PATH) {
+            const index = fragment.tags?.findIndex((tag) => tag.id === STAGED.TAG) ?? -1;
+            if (index !== -1) fragment.tags.splice(index, 1);
+            fragment.newTags = fragment.tags?.map((tag) => tag.id) ?? [];
+            fragment.hasChanges = true;
+        } else {
+            const tags = fragment.getField('tags')?.values || [];
+            fragment.updateField(
+                'tags',
+                tags.filter((tag) => tag !== STAGED.TAG),
+            );
+        }
+
+        try {
+            const saved = await this.aem.sites.cf.fragments.save(fragment, { refetchEtag: true });
+            if (!saved) return;
+            fragment.refreshFrom(saved);
+            const store = findFragmentStoreById(fragment.id, Store.fragments.list.data.get());
+            if (typeof store?.refreshFrom === 'function') store.refreshFrom(saved);
+        } catch (error) {
+            this.processError(error, 'Failed to clear staged flag after publish.');
         }
     }
 
@@ -1681,6 +1719,8 @@ export class MasRepository extends LitElement {
             }
 
             await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+
+            await Promise.all(fragments.map((fragment) => this.#clearStagedTag(fragment)));
 
             const refreshPromises = fragmentIds.map((id) => {
                 const store = findFragmentStoreById(id, listStores);

@@ -298,6 +298,14 @@ function updateOffers(context, offerMap = {}) {
         }
         for (const { osi, promotionCode } of elements) masElements.push({ osi, promotionCode });
     }
+    // An addon applied via a settings override (rather than authored as a card field) carries
+    // inline-price OSIs but lands on body.settings, which the per-fragment fields scan above never
+    // reaches. Scan it too, otherwise those offers are absent from the cache and the agent must
+    // fetch them live. Bare settings OSIs inherit the fragment's contextual promoCode downstream,
+    // exactly like bare field OSIs.
+    for (const { osi, promotionCode } of scanMasElements(context.body?.settings, undefined, context)) {
+        masElements.push({ osi, promotionCode });
+    }
     return masElements;
 }
 

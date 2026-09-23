@@ -5,7 +5,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
 import { confirmation } from '../mas-confirm-dialog.js';
-import { showToast } from '../utils.js';
+import { showToast, normalizeKey } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
 import '../rte/rte-field.js';
@@ -76,7 +76,7 @@ class MasPlaceholdersItem extends LitElement {
     // #region Handlers
 
     handleKeyChange(event) {
-        this.placeholderStore.updateField('key', [event.target.value || '']);
+        this.placeholderStore.updateField('key', [normalizeKey(event.target.value)]);
     }
 
     handleValueChange(event) {

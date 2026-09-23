@@ -116,6 +116,10 @@ merch-card[variant="product-pricing"] [slot="heading-xs"] .price-strikethrough {
     color: #5c5c5c;
 }
 
+merch-card[variant="product-pricing"] [slot="legal"] {
+    margin: 0;
+}
+
 merch-card[variant="product-pricing"] span[data-template="legal"] {
     display: block;
     font-size: 12px;
@@ -133,6 +137,22 @@ merch-card[variant="product-pricing"] span[data-template="legal"] .price-unit-ty
 merch-card[variant="product-pricing"] span[data-template="legal"] .price-unit-type:not(.disabled)::before,
 merch-card[variant="product-pricing"] span[data-template="legal"] .price-tax-inclusivity:not(.disabled)::before {
     content: none;
+}
+
+merch-card[variant="product-pricing"] [slot="short-description"] {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    color: #000;
+}
+
+merch-card[variant="product-pricing"] [slot="short-description"] p {
+    margin: 0;
+}
+
+merch-card[variant="product-pricing"] [slot="short-description"] a.spectrum-Link--secondary {
+    color: inherit;
 }
 
 merch-card[variant="product-pricing"] [slot="footer"] {

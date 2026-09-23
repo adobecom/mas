@@ -9,7 +9,22 @@ import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
-const SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs'];
+// Synced across a collection so siblings share baselines; price and
+// short-description are one row so a "Free" price aligns with a priced amount.
+const SYNCED_ROWS = [
+    {
+        name: 'heading-s',
+        getElement: (card) => card.querySelector('[slot="heading-s"]'),
+    },
+    {
+        name: 'body-xs',
+        getElement: (card) => card.querySelector('[slot="body-xs"]'),
+    },
+    {
+        name: 'price',
+        getElement: (card) => card.shadowRoot?.querySelector('.price'),
+    },
+];
 
 export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -19,6 +34,7 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'h3', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
+    shortDescription: { tag: 'div', slot: 'short-description' },
     ctas: { slot: 'footer', size: 'm' },
     planType: true,
     style: 'consonant',
@@ -65,11 +81,23 @@ export class ProductPricing extends VariantLayout {
             if (price.options.displayPlanType)
                 price.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
-            price.parentNode.insertBefore(legal, price.nextSibling);
+            this.legalHost().appendChild(legal);
             await legal.onceSettled();
         } catch {
             // Proceed with the other post-update adjustments
         }
+    }
+
+    // Legal renders in its own slot, sharing the sub-row with short-description,
+    // so the price line (not price+legal) is what aligns across cards.
+    legalHost() {
+        let host = this.card.querySelector('p[slot="legal"]');
+        if (!host) {
+            host = document.createElement('p');
+            host.setAttribute('slot', 'legal');
+            this.card.appendChild(host);
+        }
+        return host;
     }
 
     async postCardUpdateHook() {
@@ -85,12 +113,7 @@ export class ProductPricing extends VariantLayout {
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
         if (!window.matchMedia(SYNC_MIN_WIDTH).matches) return;
-        this.syncRowHeights(
-            SYNCED_SLOTS.map((slot) => ({
-                name: slot,
-                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
-            })),
-        );
+        this.syncRowHeights(SYNCED_ROWS);
     }
 
     // Cards with no authored price must not reserve the synced price row.
@@ -105,14 +128,13 @@ export class ProductPricing extends VariantLayout {
     resyncOnReflow() {
         const width = this.card.getBoundingClientRect().width;
         if (width <= 2) return;
-        const height = (selector) =>
-            Math.round(
-                this.card.querySelector(selector)?.getBoundingClientRect()
-                    .height || 0,
-            );
         const key = [
             Math.round(width),
-            ...SYNCED_SLOTS.map((slot) => height(`[slot="${slot}"]`)),
+            ...SYNCED_ROWS.map(({ getElement }) =>
+                Math.round(
+                    getElement(this.card)?.getBoundingClientRect().height || 0,
+                ),
+            ),
         ].join(':');
         if (key === this.lastSyncKey) return;
         this.lastSyncKey = key;
@@ -126,6 +148,8 @@ export class ProductPricing extends VariantLayout {
         this.#sizeObserver.observe(this.card);
         const desc = this.card.querySelector('[slot="body-xs"]');
         if (desc) this.#sizeObserver.observe(desc);
+        const shortDesc = this.card.querySelector('[slot="short-description"]');
+        if (shortDesc) this.#sizeObserver.observe(shortDesc);
     }
 
     disconnectedCallbackHook() {
@@ -149,7 +173,13 @@ export class ProductPricing extends VariantLayout {
                 </div>
                 <div class="spacer"></div>
                 <div class="price-buttons">
-                    <slot name="heading-xs"></slot>
+                    <div class="price">
+                        <slot name="heading-xs"></slot>
+                        <div class="fine">
+                            <slot name="legal"></slot>
+                            <slot name="short-description"></slot>
+                        </div>
+                    </div>
                     <footer><slot name="footer"></slot></footer>
                 </div>
             </div>
@@ -217,22 +247,20 @@ export class ProductPricing extends VariantLayout {
                 --consonant-merch-card-product-pricing-body-xs-height
             );
         }
-        /* Bottom-align so a strikethrough on one card and a single price on
-           another share the same price baseline across the synced row. */
         :host([variant='product-pricing']) slot[name='heading-xs'] {
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
-            min-height: var(
-                --consonant-merch-card-product-pricing-heading-xs-height
-            );
         }
 
-        /* No price authored: reserve nothing for the price row, else the row's
-           synced min-height leaves a blank band above the CTAs. Chrome rejects
-           :has() inside :host(), so the flag is an attribute (see syncHeights). */
+        /* No price authored: hide the price slot and drop the reserved row
+           height, else it leaves a blank band above the CTAs. Chrome rejects
+           :has() inside :host(), so the flag is an attribute (see flagPriceRow). */
         :host([variant='product-pricing'][no-price]) slot[name='heading-xs'] {
             display: none;
+        }
+
+        :host([variant='product-pricing'][no-price]) .price {
+            min-height: 0;
         }
 
         :host([variant='product-pricing'][no-price]) .price-buttons {
@@ -249,6 +277,27 @@ export class ProductPricing extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 24px;
+        }
+
+        /* Price + short-description: one bottom-aligned synced row (SYNCED_ROWS). */
+        :host([variant='product-pricing']) .price {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 8px;
+            min-height: var(
+                --consonant-merch-card-product-pricing-price-height
+            );
+        }
+
+        /* Legal + short-description share this sub-row; a card shows one. */
+        :host([variant='product-pricing']) .fine {
+            display: flex;
+            flex-direction: column;
+        }
+
+        :host([variant='product-pricing']) slot[name='short-description'] {
+            display: block;
         }
 
         :host([variant='product-pricing']) footer {

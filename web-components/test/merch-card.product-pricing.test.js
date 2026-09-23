@@ -14,25 +14,26 @@ before(async () => {
     ({ ProductPricing } = await import('../src/variants/product-pricing.js'));
 });
 
-// SYNCED_SLOTS = ['heading-s', 'body-xs', 'heading-xs']; resyncOnReflow keys on
-// width plus each slot's height, so the async legal clone (grows heading-xs) and
-// a font reflow re-sync, while our own min-height writes leave the key unchanged.
+// SYNCED_ROWS = ['heading-s', 'body-xs', 'price']; resyncOnReflow keys on width
+// plus each row's height, so the async legal clone (grows .price) and a font
+// reflow re-sync, while our own min-height writes leave the key unchanged.
 describe('ProductPricing.resyncOnReflow', () => {
     it('re-syncs on a real reflow but dedupes unchanged geometry', () => {
         const layout = Object.create(ProductPricing.prototype);
         const rect = { width: 0 };
-        const heights = { 'heading-s': 18, 'body-xs': 54, 'heading-xs': 20 };
+        const heights = { 'heading-s': 18, 'body-xs': 54, price: 20 };
+        const box = (h) => ({ getBoundingClientRect: () => ({ height: h }) });
         layout.card = {
             getBoundingClientRect: () => rect,
             querySelector: (sel) => {
                 const slot = sel.match(/slot="([^"]+)"/)?.[1];
-                return slot
-                    ? {
-                          getBoundingClientRect: () => ({
-                              height: heights[slot],
-                          }),
-                      }
+                return slot && heights[slot] != null
+                    ? box(heights[slot])
                     : null;
+            },
+            shadowRoot: {
+                querySelector: (sel) =>
+                    sel.includes('.price') ? box(heights.price) : null,
             },
         };
         const sync = sinon.stub(layout, 'syncHeights');
@@ -47,9 +48,9 @@ describe('ProductPricing.resyncOnReflow', () => {
         layout.resyncOnReflow();
         expect(sync.calledOnce, 'deduped on unchanged geometry').to.be.true;
 
-        heights['heading-xs'] = 40; // legal clone grows the price line
+        heights.price = 40; // legal clone grows the price row
         layout.resyncOnReflow();
-        expect(sync.calledTwice, 're-syncs when a synced slot reflows').to.be
+        expect(sync.calledTwice, 're-syncs when a synced row reflows').to.be
             .true;
     });
 
@@ -77,6 +78,12 @@ describe('ProductPricing.syncHeights across a collection', () => {
                 const slot = sel.match(/slot="([^"]+)"/)?.[1];
                 const h = heights[slot];
                 return h == null ? null : { __h: h };
+            },
+            shadowRoot: {
+                querySelector: (sel) =>
+                    sel.includes('.price') && heights.price != null
+                        ? { __h: heights.price }
+                        : null,
             },
             style: {
                 setProperty: (k, v) => (styles[k] = v),
@@ -172,13 +179,18 @@ describe('ProductPricing reflow wiring', () => {
         window.ResizeObserver = FakeObserver;
         try {
             const desc = { tag: 'desc' };
+            const shortDesc = { tag: 'short-desc' };
             const listeners = {};
             // A real instance (not Object.create) so the #onPriceResolved
             // private field is installed by the constructor.
             const card = {
                 addEventListener: (evt, cb) => (listeners[evt] = cb),
                 removeEventListener: sinon.spy(),
-                querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+                querySelector: (sel) => {
+                    if (sel.includes('body-xs')) return desc;
+                    if (sel.includes('short-description')) return shortDesc;
+                    return null;
+                },
             };
             const layout = new ProductPricing(card);
             const resync = sinon.stub(layout, 'resyncOnReflow');
@@ -186,6 +198,9 @@ describe('ProductPricing reflow wiring', () => {
             layout.connectedCallbackHook();
             expect(observed, 'observes card and description').to.include(card);
             expect(observed).to.include(desc);
+            expect(observed, 'observes the short description').to.include(
+                shortDesc,
+            );
             expect(listeners[EVENT_TYPE_RESOLVED], 'listens for resolve').to
                 .exist;
 
@@ -246,25 +261,29 @@ describe('ProductPricing.adjustLegal', () => {
             onceSettled: () => Promise.resolve(),
             dataset: {},
         };
-        const insertBefore = sinon.spy();
         const price = {
             dataset: {},
             options: {},
             cloneNode: () => clone,
             onceSettled: () => Promise.resolve(),
-            parentNode: { insertBefore },
-            nextSibling: 'next',
             ...priceOverrides,
         };
+        const legalHost = { appendChild: sinon.spy() };
         const layout = new ProductPricing({
             updateComplete: Promise.resolve(),
-            querySelector: (sel) => (sel.includes('heading-xs') ? price : null),
+            querySelector: (sel) =>
+                sel.includes('slot="legal"')
+                    ? legalHost
+                    : sel.includes('heading-xs')
+                      ? price
+                      : null,
+            appendChild: sinon.spy(),
         });
-        return { layout, price, clone, insertBefore };
+        return { layout, price, clone, legalHost };
     };
 
-    it('strips fine print off the bold price and clones a legal sibling', async () => {
-        const { layout, price, clone, insertBefore } = makeFixture({
+    it('strips fine print off the bold price and clones a legal line', async () => {
+        const { layout, price, clone, legalHost } = makeFixture({
             options: {
                 displayPerUnit: true,
                 displayTax: true,
@@ -277,27 +296,61 @@ describe('ProductPricing.adjustLegal', () => {
         expect(price.dataset.displayPerUnit).to.equal('false');
         expect(price.dataset.displayTax).to.equal('false');
         expect(price.dataset.displayPlanType).to.equal('false');
-        expect(insertBefore.calledWith(clone, 'next')).to.be.true;
+        expect(legalHost.appendChild.calledWith(clone)).to.be.true;
+    });
+
+    it('creates a slot="legal" host when missing', async () => {
+        const clone = {
+            setAttribute: sinon.spy(),
+            onceSettled: () => Promise.resolve(),
+            dataset: {},
+        };
+        const price = {
+            dataset: {},
+            options: {},
+            cloneNode: () => clone,
+            onceSettled: () => Promise.resolve(),
+        };
+        const host = { setAttribute: sinon.spy(), appendChild: sinon.spy() };
+        const card = {
+            updateComplete: Promise.resolve(),
+            querySelector: (sel) =>
+                sel.includes('slot="legal"')
+                    ? null
+                    : sel.includes('heading-xs')
+                      ? price
+                      : null,
+            appendChild: sinon.spy(),
+        };
+        const create = sinon.stub(document, 'createElement').returns(host);
+        try {
+            await new ProductPricing(card).adjustLegal();
+            expect(host.setAttribute.calledWith('slot', 'legal')).to.be.true;
+            expect(card.appendChild.calledWith(host)).to.be.true;
+            expect(host.appendChild.calledWith(clone)).to.be.true;
+        } finally {
+            create.restore();
+        }
     });
 
     it('runs only once', async () => {
-        const { layout, insertBefore } = makeFixture();
+        const { layout, legalHost } = makeFixture();
         await layout.adjustLegal();
         await layout.adjustLegal();
-        expect(insertBefore.callCount).to.equal(1);
+        expect(legalHost.appendChild.callCount).to.equal(1);
     });
 
     it('does nothing without a price', async () => {
-        const { layout, insertBefore } = makeFixture();
+        const { layout, legalHost } = makeFixture();
         layout.card.querySelector = () => null;
         await layout.adjustLegal();
-        expect(insertBefore.called).to.be.false;
+        expect(legalHost.appendChild.called).to.be.false;
     });
 
     it('bails when the price settles without options', async () => {
-        const { layout, insertBefore } = makeFixture({ options: null });
+        const { layout, legalHost } = makeFixture({ options: null });
         await layout.adjustLegal();
-        expect(insertBefore.called).to.be.false;
+        expect(legalHost.appendChild.called).to.be.false;
     });
 
     it('swallows errors from the clone', async () => {

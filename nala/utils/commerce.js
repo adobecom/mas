@@ -322,7 +322,7 @@ function createWorkerPageSetup(config = {}) {
         pages = [],
         extraHTTPHeaders = { 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' },
         loadTimeout = 5000,
-        setupTimeout = 60000,
+        setupTimeout = 60000, // Default 60 second timeout for worker setup
         concurrency = Infinity,
         retries = 0,
         retryDelay = 1000,
@@ -342,6 +342,7 @@ function createWorkerPageSetup(config = {}) {
     async function setupWorkerPages({ browser, baseURL }) {
         console.info('[Worker Setup]: Initializing worker-scoped pages...');
 
+        // Set timeout for the current test (beforeAll hook)
         test.setTimeout(setupTimeout);
 
         workerContext = await browser.newContext({ extraHTTPHeaders });
@@ -362,10 +363,12 @@ function createWorkerPageSetup(config = {}) {
             const page = await workerContext.newPage();
             workerPages[name] = page;
 
+            // Set up MAS request logger
             const masRequestLogger = await setupMasRequestLogger(masRequestErrors);
             page.on('response', masRequestLogger.responseListener);
             page.on('requestfailed', masRequestLogger.requestFailedListener);
 
+            // Set up console listener
             const consoleListener = await setupMasConsoleListener(consoleErrors);
             page.on('console', consoleListener);
 

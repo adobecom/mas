@@ -811,6 +811,11 @@ export default class EditorPanel extends LitElement {
         router.navigateToPage(PAGE_NAMES.VERSION)();
     }
 
+    async openFullScreenEditor() {
+        if (!this.fragment?.id) return;
+        await router.navigateToFragmentEditor(this.fragment.id, { viewPage: true });
+    }
+
     get fragmentEditorToolbar() {
         return html`
             <div id="editor-toolbar">
@@ -904,6 +909,17 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-move slot="icon"></sp-icon-move>
                         <sp-tooltip self-managed placement="bottom">Position next to card</sp-tooltip>
                     </sp-action-button>
+                    ${this.fragment?.model?.path === COLLECTION_MODEL_PATH
+                        ? html`<sp-action-button
+                              label="Full screen"
+                              title="Open in full screen editor"
+                              value="full-screen"
+                              @click="${this.openFullScreenEditor}"
+                          >
+                              <sp-icon-full-screen slot="icon"></sp-icon-full-screen>
+                              <sp-tooltip self-managed placement="bottom">Open in full screen editor</sp-tooltip>
+                          </sp-action-button>`
+                        : nothing}
                     <sp-action-button title="Close (Esc)" label="Close" value="close" @click="${this.closeEditor}">
                         <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
                         <sp-tooltip self-managed placement="bottom">Close (Esc)</sp-tooltip>

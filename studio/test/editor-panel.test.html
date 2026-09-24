@@ -131,6 +131,27 @@
                         expect(versionHistoryButton.getAttribute('label')).to.equal('Version History');
                     });
 
+                    it('displays a full screen button in the toolbar for collections', async () => {
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+                        await delay(100);
+
+                        const fullScreenButton = editorPanel.querySelector('sp-action-button[value="full-screen"]');
+                        expect(fullScreenButton).to.exist;
+                        expect(fullScreenButton.getAttribute('label')).to.equal('Full screen');
+                    });
+
+                    it('openFullScreenEditor navigates to the full-page editor with viewPage true', async () => {
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+                        const router = (await import('../src/router.js')).default;
+                        const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+
+                        await editorPanel.openFullScreenEditor();
+
+                        expect(navStub.calledOnceWith(editorPanel.fragment.id, { viewPage: true })).to.be.true;
+                    });
+
                     it('has openVersionHistory method that navigates to version page', async () => {
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;

@@ -41,7 +41,7 @@ describe('promotion-model', () => {
     });
 
     describe('canProbePromoVariationsForFragment', () => {
-        it('returns false for collection fragments and non-DAM paths', () => {
+        it('returns false for non-DAM paths', () => {
             expect(
                 canProbePromoVariationsForFragment({
                     path: '/content/mas/collections/all',
@@ -56,6 +56,15 @@ describe('promotion-model', () => {
                 canProbePromoVariationsForFragment({
                     path: defaultPath,
                     model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                }),
+            ).to.be.true;
+        });
+
+        it('returns true for default MAS collection paths', () => {
+            expect(
+                canProbePromoVariationsForFragment({
+                    path: defaultPath,
+                    model: { path: '/conf/mas/settings/dam/cfm/models/collection' },
                 }),
             ).to.be.true;
         });

@@ -226,6 +226,8 @@ const findDecimalsDelimiter = (formatString) =>
  * @param {boolean} args.showWithoutDiscount - whether the pre-discount price is shown
  * @param {boolean} args.displayAnnual - whether the annualized value is shown
  * @param {boolean} args.displayOptical - whether the per-month equivalent is shown
+ * @param {string} [args.commitment] - offer commitment
+ * @param {string} [args.term] - offer term
  * @param {object} [args.promotion] - active promotion, if any
  * @returns {{ integer: string, decimals?: string, full: string } | undefined}
  */
@@ -234,12 +236,24 @@ const selectPreformattedPrice = ({
     showWithoutDiscount,
     displayAnnual,
     displayOptical,
+    commitment,
+    term,
     promotion,
 }) => {
     // Promo-weighted annual totals depend on request-time promo resolution and
     // are still summed client-side, so WCS has no matching leaf.
     if (displayAnnual && promotion) return undefined;
-    const timescale = displayAnnual
+    // `formatAnnualPrice` only annualizes YEAR/MONTHLY and renders the plain
+    // price otherwise, so the annualized leaf is gated the same way: a
+    // `template="annual"` M2M card would otherwise pair annual digits with a
+    // /mo label. Other commitments fall through to `asIs`, matching what the
+    // numeric path renders. WCS sends no `annualized` block for those offers
+    // today, so this only guards against contract drift.
+    const isAnnualized =
+        displayAnnual &&
+        commitment === Commitment.YEAR &&
+        term === Term.MONTHLY;
+    const timescale = isAnnualized
         ? 'annualized'
         : displayOptical
           ? 'optical'
@@ -298,11 +312,10 @@ function formatPrice(
             accessiblePrice: preformatted.full,
             currencySymbol: priceInfoFormat?.currencySymbol ?? currencySymbol,
             decimals: preformatted.decimals ?? '',
-            decimalsDelimiter:
-                preformatted.decimals == null
-                    ? ''
-                    : (priceInfoFormat?.decimalsDelimiter ??
-                      findDecimalsDelimiter(formatString)),
+            decimalsDelimiter: !preformatted.decimals
+                ? ''
+                : (priceInfoFormat?.decimalsDelimiter ??
+                  findDecimalsDelimiter(formatString)),
             hasCurrencySpace:
                 priceInfoFormat?.hasCurrencySpace ?? hasCurrencySpace,
             integer: preformatted.integer,

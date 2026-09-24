@@ -104,6 +104,17 @@ describe('MasSearchAndFilters', () => {
             expect(Store.search.get()).to.equal(globalSearch);
             expect(Store.filters.get()).to.equal(globalFilters);
         });
+
+        it('writes to the store captured at connect on disconnect, even if the global store was swapped by another editor', async () => {
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set([{ path: '/a' }]);
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
+            await el.updateComplete;
+            setItemsSelectionStore(Store.compareChart);
+            expect(() => el.remove()).to.not.throw();
+            expect(Store.promotions.displayCards.get()).to.deep.equal(Store.promotions.allCards.get());
+        });
     });
 
     describe('initialization', () => {
@@ -450,6 +461,7 @@ describe('MasSearchAndFilters', () => {
                     { id: 'mas:product_code/photoshop', title: 'Photoshop' },
                     { id: 'mas:offer_type/base', title: 'Base' },
                     { id: 'mas:plan_type/abm', title: 'ABM' },
+                    { id: 'mas:workflow-step/email', title: 'Email' },
                     { id: 'mas:custom/featured', title: 'Featured' },
                     { id: 'mas:pzn/country/us', title: 'US' },
                 ],
@@ -461,7 +473,7 @@ describe('MasSearchAndFilters', () => {
             const filterTriggers = el.shadowRoot.querySelectorAll('sp-action-button[slot="trigger"]');
             const tagPickers = el.shadowRoot.querySelectorAll('aem-tag-picker-field');
             expect(filterTriggers.length).to.equal(2);
-            expect(tagPickers.length).to.equal(7);
+            expect(tagPickers.length).to.equal(8);
             tagPickers.forEach((tagPicker) => {
                 expect(tagPicker.multiple).to.be.true;
                 expect(tagPicker.selection).to.equal('checkbox');
@@ -493,6 +505,7 @@ describe('MasSearchAndFilters', () => {
             expect(tops).to.deep.equal([
                 'offer_type',
                 'plan_type',
+                'workflow-step',
                 'market_segments',
                 'customer_segment',
                 'product_code',
@@ -1775,6 +1788,90 @@ describe('MasSearchAndFilters', () => {
             tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
             await el.updateComplete;
             expect(el.tagFilter).to.not.include('mas:custom/featured');
+        });
+    });
+
+    describe('workflow-step tag filter', () => {
+        const fragmentWithTags = (tags, extras = {}) =>
+            createMockFragment({ tags: tags.map((id) => ({ id, title: id.split('/').pop() })), ...extras });
+
+        const seedWorkflowStepTaxonomy = (ids = ['email', 'payment']) => {
+            const entries = ids.map((id) => {
+                const path = `${MAS_TAG_NAMESPACE}/workflow-step/${id}`;
+                return [path, { path, name: id, title: id }];
+            });
+            seedTagCache(MAS_TAG_NAMESPACE, entries);
+        };
+
+        it('initializes workflowStepFilter as empty', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            expect(el.workflowStepFilter).to.deep.equal([]);
+        });
+
+        it('populates workflow step options from the AEM taxonomy, not loaded fragments', async () => {
+            seedWorkflowStepTaxonomy(['email', 'payment']);
+            Store.translationProjects.allCards.set([createMockFragment({ tags: [] })]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            expect(el.workflowStepOptions.map((o) => o.id).sort()).to.deep.equal([
+                'mas:workflow-step/email',
+                'mas:workflow-step/payment',
+            ]);
+        });
+
+        it('renders the Workflow Step filter picker', async () => {
+            seedWorkflowStepTaxonomy(['email']);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[label="Workflow Step"]');
+            expect(picker).to.exist;
+            expect(picker.top).to.equal('workflow-step');
+        });
+
+        it('filters cards by workflow-step', async () => {
+            seedWorkflowStepTaxonomy(['email', 'payment']);
+            const a = fragmentWithTags(['mas:workflow-step/email'], { title: 'a' });
+            const b = fragmentWithTags(['mas:workflow-step/payment'], { title: 'b' });
+            Store.translationProjects.allCards.set([a, b]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.workflowStepFilter = ['mas:workflow-step/email'];
+            await el.updateComplete;
+            const display = Store.translationProjects.displayCards.get();
+            expect(display.map((f) => f.title)).to.deep.equal(['a']);
+        });
+
+        it('renders applied-filters chip for the Workflow Step filter type', async () => {
+            seedWorkflowStepTaxonomy(['email']);
+            Store.translationProjects.allCards.set([fragmentWithTags(['mas:workflow-step/email'])]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.workflowStepFilter = ['mas:workflow-step/email'];
+            await el.updateComplete;
+            expect(el.appliedFilters.map((f) => f.type)).to.deep.equal([FILTER_TYPE.WORKFLOW_STEP]);
+        });
+
+        it('clearAllFilters resets workflowStepFilter', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.workflowStepOptions = [{ id: 'mas:workflow-step/email', title: 'Email' }];
+            el.workflowStepFilter = ['mas:workflow-step/email'];
+            await el.updateComplete;
+            const clearButton = el.shadowRoot.querySelector('.applied-filters sp-action-button');
+            clearButton.click();
+            await el.updateComplete;
+            expect(el.workflowStepFilter).to.deep.equal([]);
+        });
+
+        it('removes Workflow Step chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.workflowStepOptions = [{ id: 'mas:workflow-step/email', title: 'Email' }];
+            el.workflowStepFilter = ['mas:workflow-step/email'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.WORKFLOW_STEP, id: 'mas:workflow-step/email' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.workflowStepFilter).to.not.include('mas:workflow-step/email');
         });
     });
 });

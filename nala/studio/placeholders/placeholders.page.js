@@ -29,9 +29,13 @@ export default class PlaceholdersPage {
 
         // Creation modal
         this.creationModal = page.locator('mas-placeholders-creation-modal');
+        this.creationModalKeyInput = this.creationModal.locator('#placeholder-key input');
 
         // Selection panel
-        this.selectionPanel = page.locator('mas-selection-panel');
+        this.selectionPanel = page.locator('mas-selection-panel[open]');
+        this.selectionActionBar = this.selectionPanel.locator('sp-action-bar[open]');
+        this.copyStudioLinksButton = this.selectionPanel.locator('sp-action-button[label="Copy Studio Link(s)"]');
+        this.copyContentLinksButton = this.selectionPanel.locator('sp-action-button[label="Copy Content Link(s)"]');
 
         // Loading indicator
         this.progressBar = page.locator('sp-progress-bar');
@@ -43,14 +47,37 @@ export default class PlaceholdersPage {
     }
 
     // Helper methods
-    async getPlaceholderByKey(key) {
-        return this.page.locator(`sp-table-row[value="${key}"]`);
+    getPlaceholderByKey(key) {
+        return this.placeholderRows.filter({ has: this.page.locator(`sp-table-row[value="${key}"]`) });
+    }
+
+    getPlaceholderTableRow(key) {
+        return this.getPlaceholderByKey(key).locator(`sp-table-row[value="${key}"]`);
+    }
+
+    getRowMenuButton(key) {
+        return this.getPlaceholderByKey(key).locator('button.action-menu-button:has(sp-icon-more)');
+    }
+
+    getRowMenuItems(key) {
+        return this.getPlaceholderByKey(key).locator('.dropdown-menu .dropdown-item');
+    }
+
+    getPlaceholderKeyCell(key) {
+        return this.getPlaceholderTableRow(key).locator('sp-table-cell.key');
     }
 
     async searchPlaceholder(searchTerm) {
         await this.searchInput.fill(searchTerm);
-        await this.page.keyboard.press('Enter');
-        await this.page.waitForTimeout(1000);
+        await this.getPlaceholderByKey(searchTerm).waitFor({ state: 'visible', timeout: 10000 });
+    }
+
+    async selectPlaceholder(key) {
+        const checkboxCell = this.getPlaceholderTableRow(key).locator('sp-table-checkbox-cell');
+        await checkboxCell.waitFor({ state: 'visible', timeout: 10000 });
+        await checkboxCell.click();
+        await this.selectionPanel.waitFor({ state: 'attached', timeout: 10000 });
+        await this.selectionActionBar.waitFor({ state: 'visible', timeout: 10000 });
     }
 
     async waitForTableToLoad() {
@@ -76,7 +103,16 @@ export default class PlaceholdersPage {
 
     async clickCreateButton() {
         await this.createButton.click();
-        await this.creationModal.waitFor({ timeout: 10000 });
+        await this.creationModalKeyInput.waitFor({ timeout: 10000 });
+    }
+
+    async typePlaceholderKey(text) {
+        await this.creationModalKeyInput.click();
+        await this.creationModalKeyInput.pressSequentially(text);
+    }
+
+    async getPlaceholderKeyValue() {
+        return this.creationModalKeyInput.inputValue();
     }
 
     async selectLocale(locale) {

@@ -6,13 +6,7 @@ on:
             - 'io/studio/**'
 
 jobs:
-    identity:
-        uses: ./.github/workflows/resolve-aio-identity.yaml
-        with:
-            login: ${{ github.event.pull_request.user.login }}
-
     preflight:
-        needs: identity
         runs-on: self-hosted
         steps:
             # Fail fast: confirm Vault is reachable and the PR author's path is seeded.
@@ -23,7 +17,7 @@ jobs:
                   VAULT_ADDR: https://vault-amer.adobe.net
                   ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
                   SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
-                  SECRET_PATH: merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
+                  SECRET_PATH: merch-at-scale/aio-studio/${{ github.event.pull_request.user.login }}
               run: |
                   set -euo pipefail
                   path=$(printf '%s' "$SECRET_PATH" | tr '[:upper:]' '[:lower:]')
@@ -70,11 +64,11 @@ jobs:
               run: npm test
 
     deploy:
-        needs: [preflight, tests, identity]
+        needs: [preflight, tests]
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             run_tests: false
-            vault-path: merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
+            vault-path: merch-at-scale/aio-studio/${{ github.event.pull_request.user.login }}
             odin-bucket-path: merch-at-scale/aio-studio/qa
         secrets: inherit
 

@@ -111,7 +111,9 @@ describe('MasFragment click selection', () => {
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`);
             const target = el.querySelector('mas-fragment-render');
             const cta = document.createElement('a');
-            cta.href = 'https://example.com';
+            // Same-page href: shouldIgnoreRowClickForSelection only looks at the
+            // attribute, and a cross-origin one would navigate the test runner away.
+            cta.setAttribute('href', '#cta');
             target.appendChild(cta);
 
             click(cta);

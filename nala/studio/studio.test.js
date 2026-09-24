@@ -146,7 +146,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).click();
-            await expect(page.locator('sp-tooltip')).toHaveText('Double click the card to start editing.');
+            await expect(page.locator('sp-tooltip')).toHaveText('Click to select, double click to edit.');
         });
 
         await test.step('step-3: Double-click on the card and open editor', async () => {

@@ -39,6 +39,10 @@ export const styles = [
             border-radius: 0;
         }
 
+        .actions-head-cell {
+            max-width: 80px;
+        }
+
         :host([data-type='view-only']) {
             --mod-table-selected-row-background-color: transparent;
         }

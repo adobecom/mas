@@ -25,19 +25,40 @@ export const styles = [
             width: 100%;
         }
 
+        .title,
         .path,
-        .offer-id {
+        .offer-id,
+        .osi {
             min-width: 0;
             overflow: hidden;
         }
 
-        .path span {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
+        .path {
+            overlay-trigger {
+                min-width: 0;
+            }
+
+            div:not([slot='trigger']) {
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
         }
 
-        .offer-id {
+        .title {
+            overlay-trigger {
+                min-width: 0;
+            }
+
+            div {
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
+        }
+
+        .offer-id,
+        .osi {
             color: var(--spectrum-blue-900);
 
             overlay-trigger {
@@ -98,6 +119,20 @@ export const styles = [
         .expand-button {
             background: none;
             border: none;
+        }
+
+        .promo-variations-table sp-table-head {
+            background: var(--spectrum-gray-75);
+            border-bottom: 1px solid var(--spectrum-gray-300);
+        }
+
+        .related-pages sp-action-button {
+            --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
+        }
+
+        .country {
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         sp-tabs {
@@ -185,6 +220,11 @@ export const styles = [
 
         .preview-cell sp-icon-preview {
             cursor: default;
+        }
+
+        .actions-head-cell,
+        .actions-cell {
+            max-width: 80px;
         }
 
         .actions-cell {

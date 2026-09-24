@@ -707,29 +707,6 @@ describe('MasPromotionsItemsTable', () => {
         expect(img.src).to.include('example.com/icon.svg');
     });
 
-    it('renders preview icon for cards with CARD_MODEL_PATH', async () => {
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        el.viewOnlyFragments = [
-            {
-                path: '/content/dam/mas/card-preview',
-                id: 'preview-card-id',
-                title: 'Previewable',
-                studioPath: '/content/dam/mas/card-preview',
-                status: 'DRAFT',
-                model: { path: CARD_MODEL_PATH },
-                fields: [],
-                tags: [],
-            },
-        ];
-        await el.updateComplete;
-        const selectItemsTable = el.shadowRoot.querySelector('mas-select-items-table');
-        await selectItemsTable.updateComplete;
-        const row = selectItemsTable.shadowRoot.querySelector('mas-collapsible-table-row');
-        await row.updateComplete;
-        const previewIcon = row.shadowRoot.querySelector('sp-icon-preview');
-        expect(previewIcon).to.not.be.null;
-    });
-
     it('does not render preview icon for collections', async () => {
         const el = await fixture(
             html`<mas-promotions-items-table .type=${TABLE_TYPE.COLLECTIONS}></mas-promotions-items-table>`,
@@ -2121,6 +2098,123 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promoB));
             await el.updateComplete;
             await waitUntil(() => search.callCount > callsBeforeSwitch, 'search should re-probe promo variations for promo-b');
+        });
+    });
+    describe('cards table columns', () => {
+        const card = {
+            path: '/content/dam/mas/card-cols',
+            id: 'card-cols-id',
+            title: 'Columns Card',
+            studioPath: '/content/dam/mas/card-cols',
+            status: 'DRAFT',
+            model: { path: CARD_MODEL_PATH },
+            fields: [{ name: 'osi', values: ['osi-xyz'] }],
+            tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }],
+            offerData: { offerId: 'offer-abc-123' },
+        };
+
+        const renderCardsTable = async () => {
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [card];
+            await el.updateComplete;
+            const selectItemsTable = el.shadowRoot.querySelector('mas-select-items-table');
+            await selectItemsTable.updateComplete;
+            const row = selectItemsTable.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row.updateComplete;
+            return { el, selectItemsTable, row };
+        };
+
+        it('renders the cards table headers in the expected order', async () => {
+            const { selectItemsTable } = await renderCardsTable();
+            const headers = [...selectItemsTable.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) =>
+                h.textContent.trim(),
+            );
+            expect(headers).to.deep.equal([
+                '',
+                'Offer',
+                'Actions',
+                'Fragment title',
+                'Path',
+                'Related pages',
+                'Offer ID',
+                'OSI',
+                'Status',
+            ]);
+        });
+
+        it('renders offer id and osi from different sources', async () => {
+            const { row } = await renderCardsTable();
+            expect(row.shadowRoot.querySelector('.offer-id').textContent).to.include('offer-abc-123');
+            expect(row.shadowRoot.querySelector('.osi').textContent).to.include('osi-xyz');
+            expect(row.shadowRoot.querySelector('.osi').textContent).to.not.include('offer-abc-123');
+        });
+
+        it('opens the "to be implemented" dialog when View pages is clicked', async () => {
+            const { el, row } = await renderCardsTable();
+            row.shadowRoot.querySelector('.related-pages sp-action-button').click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('sp-dialog-wrapper.related-pages-dialog');
+            expect(dialog).to.not.be.null;
+            expect(dialog.textContent).to.include('To be implemented');
+        });
+
+        it('closes the related pages dialog when it dispatches close', async () => {
+            const { el, row } = await renderCardsTable();
+            row.shadowRoot.querySelector('.related-pages sp-action-button').click();
+            await el.updateComplete;
+            expect(el.relatedPagesDialogOpen).to.be.true;
+            el.shadowRoot.querySelector('sp-dialog-wrapper.related-pages-dialog').dispatchEvent(new CustomEvent('close'));
+            await el.updateComplete;
+            expect(el.relatedPagesDialogOpen).to.be.false;
+            expect(el.shadowRoot.querySelector('sp-dialog-wrapper.related-pages-dialog')).to.be.null;
+        });
+
+        it('renders the nested promotion variations table headers', async () => {
+            const variationPath = '/content/dam/mas/promotions/bf/card-cols';
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [card];
+            el.existingPromoVariationsByPath = new Map([
+                [card.path, [{ path: variationPath, title: 'BF variation', fields: [], tags: [] }]],
+            ]);
+            await el.updateComplete;
+            const selectItemsTable = el.shadowRoot.querySelector('mas-select-items-table');
+            await selectItemsTable.updateComplete;
+            const row = selectItemsTable.shadowRoot.querySelector('mas-collapsible-table-row');
+            row.isTopLevelExpanded = true;
+            await row.updateComplete;
+            const headers = [...row.shadowRoot.querySelectorAll('.promo-variations-table sp-table-head-cell')].map((h) =>
+                h.textContent.trim(),
+            );
+            expect(headers).to.deep.equal([
+                'Offer',
+                'Actions',
+                'Fragment title',
+                'Path',
+                'Related pages',
+                'Country',
+                'Offer ID',
+                'OSI',
+                'Applies to',
+                'Status',
+            ]);
+        });
+
+        it('offers only "View variation" in the actions menu of a promo variation', async () => {
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/bf/card-cols';
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [card];
+            el.existingPromoVariationsByPath = new Map([
+                [card.path, [{ path: variationPath, id: 'bf-id', title: 'BF variation', fields: [], tags: [] }]],
+            ]);
+            await el.updateComplete;
+            const selectItemsTable = el.shadowRoot.querySelector('mas-select-items-table');
+            await selectItemsTable.updateComplete;
+            const row = selectItemsTable.shadowRoot.querySelector('mas-collapsible-table-row');
+            row.isTopLevelExpanded = true;
+            await row.updateComplete;
+            const variationRow = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"]`);
+            const menuItems = [...variationRow.querySelectorAll('sp-menu-item')].map((i) => i.textContent.trim());
+            expect(menuItems).to.deep.equal(['View variation']);
         });
     });
 });

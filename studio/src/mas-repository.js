@@ -1586,7 +1586,7 @@ export class MasRepository extends LitElement {
                 }
             }
 
-            await this.#clearStagedTag(fragment);
+            await this.clearStagedTag(fragment);
 
             if (withToast) {
                 const message =
@@ -1609,7 +1609,7 @@ export class MasRepository extends LitElement {
      * processError but never turn a successful publish into a reported failure.
      * @param {Fragment|object} fragmentData
      */
-    async #clearStagedTag(fragmentData) {
+    async clearStagedTag(fragmentData) {
         if (!fragmentData) return;
         const fragment = fragmentData instanceof Fragment ? fragmentData : new Fragment(fragmentData);
         if (!fragment.isStaged) return;
@@ -1657,6 +1657,7 @@ export class MasRepository extends LitElement {
         for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
             const chunk = valid.slice(i, i + CHUNK_SIZE);
             await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
+            await Promise.all(chunk.map((ref) => this.clearStagedTag(ref)));
         }
     }
 
@@ -1720,7 +1721,7 @@ export class MasRepository extends LitElement {
 
             await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
-            await Promise.all(fragments.map((fragment) => this.#clearStagedTag(fragment)));
+            await Promise.all(fragments.map((fragment) => this.clearStagedTag(fragment)));
 
             const refreshPromises = fragmentIds.map((id) => {
                 const store = findFragmentStoreById(id, listStores);

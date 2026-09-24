@@ -196,6 +196,7 @@ export async function publishPromotionProject(repository, promotionFragment, pro
         repository.operation.set(OPERATIONS.PUBLISH);
         if (!promoVariationPaths.length) {
             await repository.aem.sites.cf.fragments.publish(promotionFragment, publishReferencesWithStatus);
+            await repository.clearStagedTag(promotionFragment);
         } else {
             const promotionWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
             if (!promotionWithEtag) {
@@ -209,6 +210,7 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 if (variationWithEtag) fragments.push(variationWithEtag);
             }
             await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            await Promise.all(fragments.map((fragment) => repository.clearStagedTag(fragment)));
             const expectedFragmentCount = promoVariationPaths.length + 1;
             const shortfall = expectedFragmentCount - fragments.length;
             if (shortfall > 0) {

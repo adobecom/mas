@@ -45,8 +45,10 @@ function makeProject({
     startDate = START,
     endDate = END,
     tags = [PROMO_TAG],
+    cdtStart,
+    cdtEnd,
 } = {}) {
-    return { id, path, fields: { surfaces, geos, startDate, endDate, tags } };
+    return { id, path, fields: { surfaces, geos, startDate, endDate, tags, cdtStart, cdtEnd } };
 }
 
 function makeHydratedProject({
@@ -215,6 +217,24 @@ describe('promotions', () => {
             expect(result.activeProjects[0].title).to.equal('Summer Sale 2026');
             expect(result.activeProjects[0].startDate).to.equal(START);
             expect(result.activeProjects[0].endDate).to.equal(END);
+            expect(result.activeProjects[0].cdtStart).to.equal(null);
+            expect(result.activeProjects[0].cdtEnd).to.equal(null);
+        });
+
+        it('carries the countdown timer dates through hydration', async () => {
+            const project = makeProject({
+                id: 'proj-1',
+                surfaces: ['acom'],
+                geos: ['/content/cq:tags/mas/locale/en_US'],
+                cdtStart: '2026-11-20T00:00:00Z',
+                cdtEnd: '2026-11-30T23:59:59Z',
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].cdtStart).to.equal('2026-11-20T00:00:00Z');
+            expect(result.activeProjects[0].cdtEnd).to.equal('2026-11-30T23:59:59Z');
         });
 
         it('ignores instant on published content when instant is not provided', async () => {

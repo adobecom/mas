@@ -4,12 +4,12 @@ import sinon from 'sinon';
 const MOCK_MCP_LOCAL_URL = 'http://localhost:3001';
 const MOCK_MCP_PROD_URL = 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleMCP';
 
-let executeMCPTool;
+let executeOperation;
 let executeStudioOperation;
 
 function stubDeps(mcpUrl) {
     const mod = {
-        MCP_SERVER_URL: mcpUrl,
+        OPERATIONS_SERVICE_URL: mcpUrl,
     };
     return mod;
 }
@@ -54,8 +54,8 @@ describe('mcp-client', () => {
                 getAttribute: () => 'https://aem.example.com',
             });
 
-        const module = await import('../../src/services/mcp-client.js');
-        executeMCPTool = module.executeMCPTool;
+        const module = await import('../../src/services/operations-client.js');
+        executeOperation = module.executeOperation;
         executeStudioOperation = module.executeStudioOperation;
     });
 
@@ -65,14 +65,14 @@ describe('mcp-client', () => {
         window.adobeid = originalAdobeId;
     });
 
-    describe('executeMCPTool', () => {
+    describe('executeOperation', () => {
         it('sends correct headers with auth token', async () => {
             fetchStub.resolves({
                 ok: true,
                 json: () => Promise.resolve({ success: true }),
             });
 
-            await executeMCPTool('publish_card', { id: 'frag-1' });
+            await executeOperation('publish_card', { id: 'frag-1' });
 
             const [, options] = fetchStub.firstCall.args;
             expect(options.headers['Authorization']).to.equal('Bearer test-token-123');
@@ -85,7 +85,7 @@ describe('mcp-client', () => {
                 json: () => Promise.resolve({ success: true }),
             });
 
-            await executeMCPTool('publish_card', { id: 'frag-1' });
+            await executeOperation('publish_card', { id: 'frag-1' });
 
             const [, options] = fetchStub.firstCall.args;
             expect(options.headers['x-gw-ims-org-id']).to.equal('test-org-id@AdobeOrg');
@@ -98,7 +98,7 @@ describe('mcp-client', () => {
                 json: () => Promise.resolve({ success: true }),
             });
 
-            await executeMCPTool('search_cards', { query: 'test' });
+            await executeOperation('search_cards', { query: 'test' });
 
             const [, options] = fetchStub.firstCall.args;
             const body = JSON.parse(options.body);
@@ -116,7 +116,7 @@ describe('mcp-client', () => {
                 json: () => Promise.resolve(mockResult),
             });
 
-            const result = await executeMCPTool('get_card', { id: 'frag-1' });
+            const result = await executeOperation('get_card', { id: 'frag-1' });
 
             expect(result).to.deep.equal(mockResult);
         });
@@ -129,7 +129,7 @@ describe('mcp-client', () => {
             });
 
             try {
-                await executeMCPTool('publish_card', { id: 'frag-1' });
+                await executeOperation('publish_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Failed to execute');
@@ -145,7 +145,7 @@ describe('mcp-client', () => {
             });
 
             try {
-                await executeMCPTool('publish_card', { id: 'frag-1' });
+                await executeOperation('publish_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Failed to execute');
@@ -157,7 +157,7 @@ describe('mcp-client', () => {
             fetchStub.rejects(new Error('Network error'));
 
             try {
-                await executeMCPTool('publish_card', { id: 'frag-1' });
+                await executeOperation('publish_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Failed to execute');
@@ -174,7 +174,7 @@ describe('mcp-client', () => {
                 json: () => Promise.resolve({ success: true }),
             });
 
-            await executeMCPTool('get_card', { id: 'frag-1' });
+            await executeOperation('get_card', { id: 'frag-1' });
 
             const [, options] = fetchStub.firstCall.args;
             expect(options.headers['Authorization']).to.equal('Bearer ims-token-456');
@@ -189,7 +189,7 @@ describe('mcp-client', () => {
             };
 
             try {
-                await executeMCPTool('get_card', { id: 'frag-1' });
+                await executeOperation('get_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Not authenticated');
@@ -206,7 +206,7 @@ describe('mcp-client', () => {
             };
 
             try {
-                await executeMCPTool('publish_card', { id: 'frag-1' });
+                await executeOperation('publish_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Not authenticated');

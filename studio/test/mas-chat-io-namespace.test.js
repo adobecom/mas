@@ -1,7 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import {
     getAIChatBaseURL,
-    getMCPServerURL,
+    getOperationsServiceURL,
     getKnowledgeServiceURL,
     getIoMcpURL,
     getIoStudioURL,
@@ -78,7 +78,7 @@ describe('mas-chat IO namespace resolution', () => {
         });
 
         it('keeps MCP on the same namespace rather than a second hardcoded one', () => {
-            expect(getMCPServerURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(`${DEV_NAMESPACE}/MerchAtScaleMCP`);
+            expect(getOperationsServiceURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(`${DEV_NAMESPACE}/MerchAtScaleMCP`);
         });
 
         it('keeps the knowledge service on it too', () => {
@@ -96,7 +96,7 @@ describe('mas-chat IO namespace resolution', () => {
                 [
                     getAIChatBaseURL(loc('mas.adobe.com')),
                     getIoStudioURL(),
-                    getMCPServerURL(loc('mas.adobe.com')),
+                    getOperationsServiceURL(loc('mas.adobe.com')),
                     getKnowledgeServiceURL(loc('mas.adobe.com')),
                     getIoMcpURL(),
                 ].map((url) => new URL(url).host),
@@ -111,7 +111,7 @@ describe('mas-chat IO namespace resolution', () => {
         it('falls back to the shared namespace, never a personal one', () => {
             for (const url of [
                 getAIChatBaseURL(loc('mas.adobe.com')),
-                getMCPServerURL(loc('mas.adobe.com')),
+                getOperationsServiceURL(loc('mas.adobe.com')),
                 getKnowledgeServiceURL(loc('mas.adobe.com')),
             ]) {
                 expect(url, url).to.not.include(PERSONAL);
@@ -132,7 +132,7 @@ describe('mas-chat IO namespace resolution', () => {
         });
 
         it('honours ?mcp.server on localhost', () => {
-            expect(getMCPServerURL(loc('localhost', '?mcp.server=https%3A%2F%2Flocal.test%2Fmcp'))).to.equal(
+            expect(getOperationsServiceURL(loc('localhost', '?mcp.server=https%3A%2F%2Flocal.test%2Fmcp'))).to.equal(
                 'https://local.test/mcp',
             );
         });
@@ -144,7 +144,7 @@ describe('mas-chat IO namespace resolution', () => {
         });
 
         it('ignores ?mcp.server off localhost', () => {
-            expect(getMCPServerURL(loc('mas.adobe.com', '?mcp.server=https%3A%2F%2Fattacker.example%2Fmcp'))).to.not.include(
+            expect(getOperationsServiceURL(loc('mas.adobe.com', '?mcp.server=https%3A%2F%2Fattacker.example%2Fmcp'))).to.not.include(
                 'attacker.example',
             );
         });

@@ -1,19 +1,19 @@
 /**
- * MCP Client Service
+ * Operations Client Service
  *
- * Handles communication with the MAS MCP Server for executing operations.
- * This client sends tool execution requests to the MCP server via HTTP.
+ * Handles communication with the MAS Operations Service for executing operations.
+ * This client sends tool execution requests to the operations service via HTTP.
  */
 
-import { MCP_SERVER_URL } from '../mas-chat/config.js';
+import { OPERATIONS_SERVICE_URL } from '../mas-chat/config.js';
 
 /**
- * Execute an MCP tool on the MCP server
+ * Execute an MCP tool on the operations service
  * @param {string} toolName - Name of the MCP tool (e.g., 'publish_card')
  * @param {Object} params - Tool parameters
  * @returns {Promise<Object>} - Tool execution result
  */
-export async function executeMCPTool(toolName, params) {
+export async function executeOperation(toolName, params) {
     try {
         const accessToken = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
         if (typeof accessToken !== 'string' || accessToken.length === 0) {
@@ -40,9 +40,9 @@ export async function executeMCPTool(toolName, params) {
         const ACTION_NAME_OVERRIDES = {
             get_variations: 'get-fragment-variations',
         };
-        const isLocal = MCP_SERVER_URL.includes('localhost');
+        const isLocal = OPERATIONS_SERVICE_URL.includes('localhost');
         const actionName = ACTION_NAME_OVERRIDES[toolName] ?? toolName.replace(/_/g, '-');
-        const endpoint = isLocal ? `${MCP_SERVER_URL}/tools/${toolName}` : `${MCP_SERVER_URL}/${actionName}`;
+        const endpoint = isLocal ? `${OPERATIONS_SERVICE_URL}/tools/${toolName}` : `${OPERATIONS_SERVICE_URL}/${actionName}`;
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -71,7 +71,7 @@ export async function executeMCPTool(toolName, params) {
  * @returns {Promise<Object>} - Standardized operation result
  */
 export async function executeStudioOperation(mcpTool, mcpParams) {
-    const result = await executeMCPTool(mcpTool, mcpParams);
+    const result = await executeOperation(mcpTool, mcpParams);
 
     switch (mcpTool) {
         case 'publish_card': {

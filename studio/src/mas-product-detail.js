@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { executeMCPTool } from './services/mcp-client.js';
+import { executeOperation } from './services/operations-client.js';
 import { fetchProductDetail } from './services/product-api.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
@@ -148,7 +148,7 @@ class MasProductDetail extends LitElement {
         this.creating = true;
         try {
             const parentPath = `/content/dam/mas/${surface}/${locale}`;
-            const result = await executeMCPTool('create_release_cards', {
+            const result = await executeOperation('create_release_cards', {
                 arrangement_code: product.arrangement_code,
                 variants,
                 parentPath,

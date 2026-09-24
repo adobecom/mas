@@ -1732,7 +1732,7 @@ export class MasChat extends LitElement {
             if (operation.type !== 'mcp_operation') {
                 throw new Error('Unsupported operation format');
             }
-            const { executeStudioOperation } = await import('./services/mcp-client.js');
+            const { executeStudioOperation } = await import('./services/operations-client.js');
             operationResult = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
 
             if (operationResult?.success && !silent) {

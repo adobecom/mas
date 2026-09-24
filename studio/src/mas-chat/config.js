@@ -12,7 +12,7 @@ function isLocalhostHostname(hostname) {
  *
  * studio.html writes it into the `io-base-url` meta tag, honouring
  * ?io.studio.env=, and users.js, translation and bulk-publish already read it.
- * Reading it here too means the assistant, MCP and knowledge services follow
+ * Reading it here too means the assistant, operations and knowledge services follow
  * whatever environment the page was loaded for, instead of a namespace baked
  * into the bundle.
  *
@@ -43,7 +43,7 @@ export function getAIChatBaseURL(location = window.location) {
     return localOverride(location, 'ai.chat') || ioStudioBaseURL();
 }
 
-export function getMCPServerURL(location = window.location) {
+export function getOperationsServiceURL(location = window.location) {
     return localOverride(location, 'mcp.server') || siblingPackageURL('MerchAtScaleMCP');
 }
 
@@ -62,7 +62,7 @@ export function getIoStudioURL() {
 }
 
 export const AI_CHAT_BASE_URL = getAIChatBaseURL();
-export const MCP_SERVER_URL = getMCPServerURL();
+export const OPERATIONS_SERVICE_URL = getOperationsServiceURL();
 export const TEMPLATE_PREVIEWS = {
     'ccd-slice': '0ef2a804-e788-4959-abb8-b4d96a18b0ef',
     'ccd-suggested': '45783ec8-ed85-4595-a445-3f018ac4ad9d',

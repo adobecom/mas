@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { getAIChatBaseURL, getMCPServerURL } from '../src/mas-chat/config.js';
+import { getAIChatBaseURL, getOperationsServiceURL } from '../src/mas-chat/config.js';
 
 const ATTACKER_AI_CHAT = 'https://attacker.example/chat';
 const ATTACKER_MCP = 'https://attacker.example/mcp';
@@ -21,7 +21,7 @@ describe('constants — IO Runtime URL overrides', () => {
         });
 
         it('honors mcp.server override on localhost', () => {
-            const url = getMCPServerURL(loc('localhost', `?mcp.server=${encodeURIComponent(ATTACKER_MCP)}`));
+            const url = getOperationsServiceURL(loc('localhost', `?mcp.server=${encodeURIComponent(ATTACKER_MCP)}`));
             expect(url).to.equal(ATTACKER_MCP);
         });
 
@@ -32,7 +32,7 @@ describe('constants — IO Runtime URL overrides', () => {
 
         it('returns default URL when no override is given on localhost', () => {
             const aiChat = getAIChatBaseURL(loc('localhost', ''));
-            const mcp = getMCPServerURL(loc('localhost', ''));
+            const mcp = getOperationsServiceURL(loc('localhost', ''));
             expect(aiChat).to.include(PROD_AI_CHAT_HOST);
             expect(mcp).to.include(PROD_MCP_HOST);
         });
@@ -46,7 +46,7 @@ describe('constants — IO Runtime URL overrides', () => {
         });
 
         it('ignores mcp.server override on a production hostname', () => {
-            const url = getMCPServerURL(loc('studio.adobe.com', `?mcp.server=${encodeURIComponent(ATTACKER_MCP)}`));
+            const url = getOperationsServiceURL(loc('studio.adobe.com', `?mcp.server=${encodeURIComponent(ATTACKER_MCP)}`));
             expect(url).to.not.equal(ATTACKER_MCP);
             expect(url).to.include(PROD_MCP_HOST);
         });
@@ -54,7 +54,7 @@ describe('constants — IO Runtime URL overrides', () => {
         it('ignores both overrides on an aem.live preview host even when both are set', () => {
             const search = `?ai.chat=${encodeURIComponent(ATTACKER_AI_CHAT)}&mcp.server=${encodeURIComponent(ATTACKER_MCP)}`;
             const aiChat = getAIChatBaseURL(loc('main--mas--adobecom.aem.live', search));
-            const mcp = getMCPServerURL(loc('main--mas--adobecom.aem.live', search));
+            const mcp = getOperationsServiceURL(loc('main--mas--adobecom.aem.live', search));
             expect(aiChat).to.not.equal(ATTACKER_AI_CHAT);
             expect(mcp).to.not.equal(ATTACKER_MCP);
         });

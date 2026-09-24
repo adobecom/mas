@@ -1,6 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
-import { isOdinHost, installEdsThrottleOnContext } from './eds-throttle.js';
+import { installNetworkGuard, attachResponseWatcher } from './network-guard.js';
 import { setCurrentTestName } from '../utils/fragment-tracker.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
@@ -84,15 +84,9 @@ const masTest = base.extend({
         versions = new VersionPage(page);
         placeholders = new PlaceholdersPage(page);
 
-        await installEdsThrottleOnContext(context);
+        await installNetworkGuard(context);
+        attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
         await GlobalRequestCounter.init(page);
-
-        // Log ODIN 429s so we know if rate limiting is happening
-        page.on('response', (response) => {
-            if (isOdinHost(response.url()) && response.status() === 429) {
-                console.warn(`[NALA] ODIN 429 Too Many Requests: ${response.url()}`);
-            }
-        });
 
         try {
             await use(page);

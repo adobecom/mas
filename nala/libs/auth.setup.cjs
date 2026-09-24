@@ -1,7 +1,7 @@
 /* eslint-disable import/no-import-module-exports */
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
-import { installEdsThrottleOnContext } from './eds-throttle.js';
+import { installNetworkGuard, attachResponseWatcher } from './network-guard.js';
 
 const authFile = path.join(__dirname, '../../nala/.auth/user.json');
 
@@ -15,7 +15,8 @@ setup('authenticate, @mas-studio', async ({ page, context, baseURL, browserName 
     expect(process.env.IMS_EMAIL, 'ERROR: No environment variable for email provided for IMS Test.').toBeTruthy();
     expect(process.env.IMS_PASS, 'ERROR: No environment variable for password provided for IMS Test.').toBeTruthy();
 
-    await installEdsThrottleOnContext(context);
+    await installNetworkGuard(context);
+    attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
     await page.goto(`${baseURL}/studio.html`);
     await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
 

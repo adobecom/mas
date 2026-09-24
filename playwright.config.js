@@ -1,8 +1,11 @@
 import { devices } from '@playwright/test';
 
-// NALA_SHARD_ID gives each shard a distinct UA so ODIN rate-limits them separately.
-const shardSuffix = process.env.NALA_SHARD_ID ? `-${process.env.NALA_SHARD_ID}` : '';
-const USER_AGENT_DESKTOP = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS${shardSuffix}`;
+// One shared UA for every shard/job/run. We intentionally do NOT differentiate by shard or run
+// anymore — EDS's 200 rps and ODIN's 20 rps/UA budgets are treated as single global pools, and
+// network-guard.js's reactive 429 handling (with cross-run pause propagation) is what keeps
+// everyone within them in practice, not per-UA/per-shard isolation.
+const USER_AGENT_DESKTOP =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -30,10 +33,15 @@ const config = {
     /* Retry on CI only */
     retries: process.env.CI ? 1 : 0,
     /*
-     * Worker count drives the EDS throttle: eds-throttle.js derives per-worker RPS as
-     * min(floor(180 / workers), 45). NALA_PLAYWRIGHT_WORKERS is set per-job in the workflow
-     * to match each runner's EDS budget. SJ and Oregon runners are independent (own IP, 4 workers).
-     * Noida runner shares its IP with nala-docs (studio: 3 workers + docs: 1 worker = 180 RPS).
+     * Worker count for THIS job/process. NALA_PLAYWRIGHT_WORKERS is set per-job in the workflow.
+     * Both EDS's 200 rps and ODIN's 20 rps/UA budgets are single global pools (one shared UA for
+     * everyone — see above), so network-guard.js derives static per-worker pacing as
+     * budget / NALA_TOTAL_WORKERS (set per-job in run-nala.yml), NOT this job's own local worker
+     * count — dividing by the local count only would let every shard assume it owns the full
+     * budget. That static division assumes a known, fixed total worker count, which only holds if
+     * at most one full Nala run is active repo-wide (see the docs-job mutex step in
+     * run-nala.yml) — network-guard.js's reactive 429 handling is the real safety net beyond that
+     * assumption, since it also propagates pauses across concurrent runs best-effort.
      */
     workers: (() => {
         const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);

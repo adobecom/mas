@@ -13,7 +13,14 @@ import { mockFetch } from './mocks/fetch.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
 import * as snapshots from './price/__snapshots__/price.snapshots.js';
 import { withWcs } from './mocks/wcs.js';
-import { preformattedTrees, distinctTrees } from './mocks/priceInfo.js';
+import {
+    preformattedTrees,
+    distinctTrees,
+    segmentTrees,
+    segmentGrossAmount,
+    segmentNetAmount,
+    taxInclusiveGrossTree,
+} from './mocks/priceInfo.js';
 import {
     initMasCommerceService,
     expect,
@@ -263,6 +270,57 @@ describe('class "InlinePrice"', () => {
         inlinePrice.dataset.displayOldPrice = 'false';
         await inlinePrice.onceSettled();
         expect(inlinePrice.outerHTML).to.be.html(snapshots.taxExclusive);
+    });
+
+    // The test above resolves an already TAX_EXCLUSIVE offer, so
+    // forceTaxExclusive leaves the amount untouched. tax-exclusive-mult is
+    // TAX_INCLUSIVE_DETAILS with distinct gross/net amounts, so forcing it
+    // must change the digits under both WCS response formats.
+    ['legacy', 'preformatted'].forEach((format) => {
+        it(`forces tax exclusivity on a tax-inclusive offer (${format} WCS format)`, async () => {
+            if (format === 'preformatted') {
+                await mockFetch((f) =>
+                    withWcs(f, { priceInfo: taxInclusiveGrossTree }),
+                );
+            }
+            await initMasCommerceService({ country: 'DE', language: 'de' });
+            const amountOf = (el) =>
+                ['integer', 'decimals']
+                    .map(
+                        (c) =>
+                            el.querySelector(`.price-${c}`)?.textContent ?? '',
+                    )
+                    .join(',');
+
+            const gross = mockInlinePrice(`taxIncl-${format}`, 'tax-exclusive');
+            gross.dataset.displayTax = 'true';
+            gross.dataset.forceTaxExclusive = 'false';
+            await gross.onceSettled();
+            expect(amountOf(gross)).to.equal('49,98');
+            expect(
+                gross.querySelector('.price-tax-inclusivity').textContent,
+            ).to.equal('inkl. MwSt.');
+
+            const net = mockInlinePrice(`taxExcl-${format}`, 'tax-exclusive');
+            net.dataset.displayTax = 'true';
+            net.dataset.forceTaxExclusive = 'true';
+            await net.onceSettled();
+            // Net 41.65, not the gross 49.98 leaf WCS sent.
+            expect(amountOf(net)).to.equal('41,65');
+            expect(
+                net.querySelector('.price-tax-inclusivity').textContent,
+            ).to.equal('exkl. MwSt.');
+
+            const strikethrough = mockInlinePrice(
+                `taxExclSt-${format}`,
+                'tax-exclusive',
+            );
+            strikethrough.dataset.template = 'strikethrough';
+            strikethrough.dataset.forceTaxExclusive = 'true';
+            await strikethrough.onceSettled();
+            // Net without discount 52.06, not the gross 62.47 leaf.
+            expect(amountOf(strikethrough)).to.equal('52,06');
+        });
     });
 
     it('renders discount percentage', async () => {
@@ -1152,44 +1210,80 @@ describe('class "InlinePrice"', () => {
 
         const SEGMENTS = ['individual', 'business', 'student', 'university'];
 
+        // The segment offers are 1.99 gross / 1.59 net, so a forced row must
+        // switch the amount as well as the label. Running the matrix on the
+        // pre-split tree too would multiply 344 cases, so a representative
+        // subset carries the new format: one locale per tax outcome.
+        //   AT_de: tax label, forced for business/university only
+        //   MU_en: forced for every segment
+        //   JP_ja: tax label, never forced
+        //   US_en: no tax label
+        const PREFORMATTED_LOCALES = ['AT_de', 'MU_en', 'JP_ja', 'US_en'];
+
         TESTS.forEach((test) => {
             SEGMENTS.forEach((segment, index) => {
-                it(`renders price with tax info for "${test.locale}" and "${segment}"`, async () => {
-                    const localeArray = test.locale.split('_');
-                    const country = localeArray[0];
-                    const language = localeArray[1];
-                    await initMasCommerceService({ country, language });
-                    const literals = await getPriceLiterals(
-                        {
-                            language,
-                        },
-                        priceLiteralsJson.data,
-                    );
+                const [displaysTax, forcesTaxExclusive] = test.expected[index];
+                const formats = PREFORMATTED_LOCALES.includes(test.locale)
+                    ? ['legacy', 'preformatted']
+                    : ['legacy'];
 
-                    const inlinePrice = mockInlinePrice(segment, segment);
-                    inlinePrice.removeAttribute('data-display-tax');
-                    inlinePrice.removeAttribute('data-force-tax-exclusive');
-                    await inlinePrice.onceSettled();
-                    const priceTaxElement = inlinePrice.querySelector(
-                        '.price-tax-inclusivity',
-                    );
-                    if (test.expected[index][0]) {
-                        expect(priceTaxElement.classList.contains('disabled'))
-                            .to.be.false;
-                        let taxInclExclLabel;
-                        if (test.expected[index][1]) {
-                            // forceTaxExclusive: true
-                            taxInclExclLabel = literals.taxExclusiveLabel;
-                        } else {
-                            taxInclExclLabel = literals.taxInclusiveLabel;
+                formats.forEach((format) => {
+                    it(`renders price with tax info for "${test.locale}" and "${segment}" (${format} WCS format)`, async () => {
+                        const localeArray = test.locale.split('_');
+                        const country = localeArray[0];
+                        const language = localeArray[1];
+                        if (format === 'preformatted') {
+                            await mockFetch((f) =>
+                                withWcs(f, { priceInfo: segmentTrees }),
+                            );
                         }
-                        const taxLabel =
-                            taxInclExclLabel.match(/TAX \{(.*?)\}/)[1];
-                        expect(priceTaxElement.textContent).to.equal(taxLabel);
-                    } else {
-                        expect(priceTaxElement.classList.contains('disabled'))
-                            .to.be.true;
-                    }
+                        await initMasCommerceService({ country, language });
+                        const literals = await getPriceLiterals(
+                            {
+                                language,
+                            },
+                            priceLiteralsJson.data,
+                        );
+
+                        const inlinePrice = mockInlinePrice(segment, segment);
+                        inlinePrice.removeAttribute('data-display-tax');
+                        inlinePrice.removeAttribute('data-force-tax-exclusive');
+                        await inlinePrice.onceSettled();
+                        const priceTaxElement = inlinePrice.querySelector(
+                            '.price-tax-inclusivity',
+                        );
+                        if (displaysTax) {
+                            expect(
+                                priceTaxElement.classList.contains('disabled'),
+                            ).to.be.false;
+                            const taxInclExclLabel = forcesTaxExclusive
+                                ? literals.taxExclusiveLabel
+                                : literals.taxInclusiveLabel;
+                            const taxLabel =
+                                taxInclExclLabel.match(/TAX \{(.*?)\}/)[1];
+                            expect(priceTaxElement.textContent).to.equal(
+                                taxLabel,
+                            );
+                        } else {
+                            expect(
+                                priceTaxElement.classList.contains('disabled'),
+                            ).to.be.true;
+                        }
+                        // The label alone would not catch a gross amount shown
+                        // next to an excluding-tax label, so assert the digits.
+                        const amount = ['integer', 'decimals']
+                            .map(
+                                (c) =>
+                                    inlinePrice.querySelector(`.price-${c}`)
+                                        ?.textContent ?? '',
+                            )
+                            .join('.');
+                        expect(amount).to.equal(
+                            forcesTaxExclusive
+                                ? segmentNetAmount
+                                : segmentGrossAmount,
+                        );
+                    });
                 });
             });
         });

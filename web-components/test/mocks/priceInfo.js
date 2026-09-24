@@ -11,6 +11,20 @@ const usdFormat = {
 
 const leaf = (integer, decimals, full) => ({ integer, decimals, full });
 
+const format = ({
+    currencySymbol,
+    isCurrencyFirst,
+    hasCurrencySpace,
+    decimalsDelimiter = '.',
+    usePrecision = true,
+}) => ({
+    currencySymbol,
+    decimalsDelimiter,
+    usePrecision,
+    isCurrencyFirst,
+    hasCurrencySpace,
+});
+
 // puf-mult: US$599.88/yr, optical US$49.99/mo, no discount.
 const puf = {
     format: usdFormat,
@@ -63,6 +77,133 @@ export const distinctTrees = {
         asIs: { withDiscount: { withTax: leaf('88', '22', 'US$88.22') } },
         annualized: {
             withDiscount: { withTax: leaf('911', '33', 'US$911.33') },
+        },
+    },
+};
+
+// Both discount states carry the same leaf: the price/index.test.js fixtures
+// have priceWithoutDiscount === price, so strikethrough shows the same digits.
+const bothStates = (withTax) => ({
+    withDiscount: { withTax },
+    withoutDiscount: { withTax },
+});
+
+// Trees for the template matrix fixtures in test/price/data.json, keyed by the
+// fixture prefix. Digits and format mirror what the numeric path renders, so
+// the matrix can run on both response formats against one set of snapshots.
+// `annualized` only where WCS would send it (YEAR commitment); the other
+// fixtures exercise the missing-leaf fallback.
+export const dataTrees = {
+    ABM: {
+        format: format({
+            currencySymbol: 'US$',
+            isCurrencyFirst: false,
+            hasCurrencySpace: true,
+        }),
+        recurrence: { term: 'MONTHLY' },
+        asIs: bothStates(leaf('1', '23', '1.23 US$')),
+        annualized: bothStates(leaf('14', '81', '14.81 US$')),
+        optical: { withDiscount: { withTax: leaf('1', '23', '1.23 US$') } },
+    },
+    M2M: {
+        format: format({
+            currencySymbol: 'US$',
+            isCurrencyFirst: true,
+            hasCurrencySpace: true,
+            usePrecision: false,
+        }),
+        recurrence: { term: 'MONTHLY' },
+        asIs: bothStates(leaf('12', undefined, 'US$ 12')),
+        optical: {
+            withDiscount: { withTax: leaf('13', undefined, 'US$ 13') },
+        },
+    },
+    PERPETUAL: {
+        format: format({
+            currencySymbol: 'US$',
+            isCurrencyFirst: true,
+            hasCurrencySpace: false,
+        }),
+        recurrence: { term: 'NONE' },
+        asIs: bothStates(leaf('123', '46', 'US$123.46')),
+        optical: {
+            withDiscount: { withTax: leaf('123', '46', 'US$123.46') },
+        },
+    },
+    PUF: {
+        format: format({
+            currencySymbol: 'US$',
+            isCurrencyFirst: false,
+            hasCurrencySpace: false,
+            usePrecision: false,
+        }),
+        recurrence: { term: 'ANNUAL' },
+        asIs: bothStates(leaf('1,235', undefined, '1,235US$')),
+        annualized: bothStates(leaf('1,235', undefined, '1,235US$')),
+        optical: {
+            withDiscount: { withTax: leaf('103', undefined, '103US$') },
+        },
+    },
+    'PUF-CHF-1YEAR': {
+        format: format({
+            currencySymbol: 'CHF',
+            isCurrencyFirst: true,
+            hasCurrencySpace: true,
+        }),
+        recurrence: { term: 'ANNUAL' },
+        asIs: bothStates(leaf('1,234', '57', 'CHF 1,234.57')),
+        annualized: bothStates(leaf('1,234', '57', 'CHF 1,234.57')),
+        optical: {
+            withDiscount: { withTax: leaf('102', '88', 'CHF 102.88') },
+        },
+    },
+    'PUF-CHF-2YEARS': {
+        format: format({
+            currencySymbol: 'CHF',
+            isCurrencyFirst: true,
+            hasCurrencySpace: true,
+        }),
+        recurrence: { term: 'TWO_YEARS' },
+        asIs: bothStates(leaf('2,345', '68', 'CHF 2,345.68')),
+        annualized: bothStates(leaf('2,345', '68', 'CHF 2,345.68')),
+        optical: {
+            withDiscount: { withTax: leaf('97', '74', 'CHF 97.74') },
+        },
+    },
+};
+
+// Gross tree for the segment offers used by the tax matrix: price 1.99 gross,
+// priceWithoutTax 1.59. WCS only sends the gross leaf, so a locale/segment that
+// forces tax exclusivity must fall back to the net amount instead of pairing
+// these digits with an excluding-tax label.
+export const segmentTrees = Object.fromEntries(
+    ['individual', 'business', 'student', 'university'].map((segment) => [
+        segment,
+        {
+            format: usdFormat,
+            recurrence: { term: 'MONTHLY' },
+            asIs: { withDiscount: { withTax: leaf('1', '99', 'US$1.99') } },
+        },
+    ]),
+);
+export const segmentGrossAmount = '1.99';
+export const segmentNetAmount = '1.59';
+
+// tax-exclusive-mult is TAX_INCLUSIVE_DETAILS with distinct gross/net amounts
+// (49.98 / 41.65 and 62.47 / 52.06), so forcing tax exclusivity changes the
+// number. The tree carries the gross digits it must not render when forced.
+export const taxInclusiveGrossTree = {
+    'tax-exclusive': {
+        format: format({
+            currencySymbol: '&euro;',
+            isCurrencyFirst: false,
+            hasCurrencySpace: true,
+            decimalsDelimiter: ',',
+        }),
+        recurrence: { term: 'MONTHLY' },
+        asIs: {
+            withDiscount: { withTax: leaf('49', '98', '49,98 &euro;') },
+            withoutDiscount: { withTax: leaf('62', '47', '62,47 &euro;') },
         },
     },
 };

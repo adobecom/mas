@@ -24,8 +24,7 @@ import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
 import { parseAIResponse, extractJSON, flowIdField, isDeadEndGuidedStep, withDeadEndRecovery } from './response-parser.js';
 import { handleOperation, withResolvedArrangementCode } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
-import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
-import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
+import { getVariantConfig } from './variant-configs.js';
 import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
 import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
@@ -51,61 +50,6 @@ import { validateEnvelope, collectObservedIds } from './envelope-validator.js';
  * deployment environments use different IMS clients, add them here.
  */
 const MAS_CLIENT_IDS = ['mas-studio'];
-
-/**
- * All known variant names for detection
- */
-const ALL_VARIANT_NAMES = Object.keys(VARIANT_METADATA);
-
-/**
- * Detect variant mentioned in user message
- * @param {string} message - User message
- * @param {Object} context - Enriched context
- * @returns {string|null} - Detected variant name or null
- */
-function detectVariantFromMessage(message, context) {
-    const lowerMessage = message.toLowerCase();
-
-    for (const variant of ALL_VARIANT_NAMES) {
-        if (lowerMessage.includes(variant.toLowerCase())) {
-            return variant;
-        }
-    }
-
-    const variantAliases = {
-        'special offer': 'special-offers',
-        'special-offer': 'special-offers',
-        student: 'plans-students',
-        students: 'plans-students',
-        education: 'plans-education',
-        edu: 'plans-education',
-        desktop: 'ccd-suggested',
-        'creative cloud desktop': 'ccd-suggested',
-        slice: 'ccd-slice',
-        suggested: 'ccd-suggested',
-        'try buy': 'ah-try-buy-widget',
-        'try-buy': 'ah-try-buy-widget',
-        promoted: 'ah-promoted-plans',
-        express: 'simplified-pricing-express',
-        pricing: 'plans',
-        subscription: 'plans',
-        compact: 'mini',
-        small: 'mini',
-        commerce: 'fries',
-    };
-
-    for (const [alias, variant] of Object.entries(variantAliases)) {
-        if (lowerMessage.includes(alias)) {
-            return variant;
-        }
-    }
-
-    if (context?.suggestedVariants?.length === 1) {
-        return context.suggestedVariants[0];
-    }
-
-    return null;
-}
 
 /**
  * Get response headers for web action
@@ -354,7 +298,6 @@ function enrichContextWithSurface(context) {
 
         if (surface) {
             enrichedContext.surface = surface;
-            enrichedContext.suggestedVariants = getVariantsForSurface(surface);
         }
     }
 
@@ -410,8 +353,6 @@ function createKnowledgeClient(params) {
  * @param {KnowledgeClient|null} knowledgeClient - Knowledge service client
  * @param {Object} options - Enhancement options
  * @param {boolean} options.isDocumentation - Whether this is a documentation query
- * @param {boolean} options.ragVariantDetails - Whether to query RAG for variant details
- * @param {string|null} options.detectedVariant - Detected variant from message
  * @returns {Promise<{prompt: string, sources: Array}>} - Enhanced system prompt and sources
  */
 export function isQuestionShaped(message) {
@@ -468,7 +409,7 @@ export function isRetrievableQuery(message) {
 }
 
 export async function retrieveRAGContext(message, knowledgeClient, options = {}) {
-    const { isDocumentation = false, ragVariantDetails = false, detectedVariant = null } = options;
+    const { isDocumentation = false } = options;
 
     if (!knowledgeClient || !isRetrievableQuery(message)) {
         return { ragContext: '', sources: [] };
@@ -491,26 +432,6 @@ export async function retrieveRAGContext(message, knowledgeClient, options = {})
             }
         } catch (error) {
             console.warn('[RAG] Failed to retrieve documentation knowledge:', error.message);
-        }
-    }
-
-    if (ragVariantDetails && detectedVariant) {
-        try {
-            const variantQuery = buildVariantRAGQuery(detectedVariant);
-            console.log('[RAG] Querying for variant field details:', variantQuery);
-
-            const { context, sources } = await knowledgeClient.queryWithSources(variantQuery, {
-                topK: 2,
-                minScore: 0.6,
-            });
-
-            if (context) {
-                console.log('[RAG] Retrieved variant field details, sources:', sources.length);
-                ragContext += `\n=== VARIANT FIELD DETAILS FOR ${detectedVariant.toUpperCase()} ===\n${context}\n`;
-                allSources.push(...sources);
-            }
-        } catch (error) {
-            console.warn('[RAG] Failed to retrieve variant field details:', error.message);
         }
     }
 
@@ -838,13 +759,6 @@ async function main(params) {
             console.log('[Backend] Release/NPI intent detected, appending release workflow instructions');
         }
 
-        const detectedVariant = isCardCreation ? detectVariantFromMessage(message, enrichedContext) : null;
-        const ragVariantDetails = params.RAG_VARIANT_DETAILS === 'true';
-
-        if (detectedVariant) {
-            console.log('[RAG] Detected variant from message:', detectedVariant);
-        }
-
         // Retrieved knowledge rides in the dynamic (uncached) context block —
         // appending it to the system prompt would invalidate the prompt cache
         // on every distinct documentation query.
@@ -855,8 +769,6 @@ async function main(params) {
         // and ungrounded feature answers contradict the docs.
         const { ragContext, sources: ragSources } = await retrieveRAGContext(message, knowledgeClient, {
             isDocumentation: isDocumentation || isQuestionShaped(message),
-            ragVariantDetails,
-            detectedVariant,
         });
         if (ragContext) {
             enrichedContext.ragContext = ragContext;

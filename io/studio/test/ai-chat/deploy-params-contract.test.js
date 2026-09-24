@@ -6,13 +6,9 @@ const path = require('path');
  * An action reads its configuration from `params`, and `params` is filled from
  * the `inputs:` block in app.config.yaml. A var the code reads but the manifest
  * never declares is ALWAYS undefined in deployment — there is no error, no log
- * line, and locally it often works because the developer has it in .env.
- *
- * RAG_VARIANT_DETAILS sat like that: index.js:799 gates the variant-knowledge
- * retrieval on `params.RAG_VARIANT_DETAILS === 'true'`, the manifest never
- * passed it, so variant-knowledge-builder.js could not run in deployment no
- * matter how the flag was set. The assistant answered variant questions from
- * whatever generic chunk the retriever happened to score highest.
+ * line, and locally it often works because the developer has it in .env. A
+ * feature gated on such a var silently never fires in production, however the
+ * flag is set, so this test fails the build instead.
  *
  * The mirror of this test lives in io/mcp-server (deploy-inputs-contract),
  * which checks the other direction: manifest vars the deploy workflow forgets.

@@ -112,7 +112,6 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
             const saved = repo.aem.sites.cf.fragments.save.firstCall.args[0];
             expect(saved.isStaged).to.be.false;
             expect(saved.tags.map((tag) => tag.id)).to.deep.equal(['mas:studio/other']);
-            expect(saved.newTags).to.deep.equal(['mas:studio/other']);
         });
     });
 

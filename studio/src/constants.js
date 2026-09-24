@@ -150,7 +150,7 @@ export const PAGE_NAMES = {
  * rather than editing this.
  *
  * One namespace serves the assistant: MerchAtScaleStudio (ai-chat,
- * ost-products-read) and MerchAtScaleMCP must both be deployed to it, and both
+ * ost-products-read) and MerchAtScaleOperations must both be deployed to it, and both
  * URLs are derived from this one base. MerchAtScaleKnowledge is not fetched
  * over HTTP at all — the corpus ships inside the ai-chat action.
  */

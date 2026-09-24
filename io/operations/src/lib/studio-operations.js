@@ -110,11 +110,11 @@ function extractFieldValue(fragment, name) {
 
 /**
  * Studio Operations Tools
- * MCP tools for Studio AI Chat operations (NO AI CALLS - pure execution only)
+ * Operations for Studio AI Chat (NO AI CALLS - pure execution only)
  *
  * These tools handle AEM operations requested through Studio's AI chat.
  * AI intent detection happens in Adobe I/O Runtime, these tools only execute.
- * Auto-synced to io/mcp-server via Claude Code hook (verified working)
+ * Auto-synced to io/operations via Claude Code hook (verified working)
  */
 export class StudioOperations {
     constructor(aemClient, urlBuilder) {
@@ -899,7 +899,7 @@ export class StudioOperations {
 
                     console.log('[BulkUpdate] Processing card:', {
                         id,
-                        updatesFromMCP: JSON.stringify(updates, null, 2),
+                        updatesFromOperation: JSON.stringify(updates, null, 2),
                         hasTextReplacements: textReplacements.length > 0,
                         fragmentTitle: fragment.title,
                     });

@@ -39,8 +39,8 @@ jobs:
             - name: Pin milo
               run: npm add github:adobecom/milo#stage
 
-            - name: Operations suite (io/mcp-server)
-              run: npm run test:ci -w io/mcp-server
+            - name: Operations suite (io/operations)
+              run: npm run test:ci -w io/operations
 
             # Scoped to the assistant's own tests (test/ai-chat) plus the eval
             # gates. The io/studio package also holds unrelated features

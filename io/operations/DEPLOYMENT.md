@@ -1,8 +1,8 @@
-# MCP Runtime Deployment Guide
+# Operations Runtime Deployment Guide
 
 > **Note (MWPW-183572):** the Studio frontend has already been migrated
 > to call Runtime actions directly — see `studio/src/constants.js`
-> `MCP_SERVER_URL` and `getMCPServerURL()`. The post-deployment steps
+> `OPERATIONS_SERVICE_URL` and `getOperationsServiceURL()`. The post-deployment steps
 > below describe that historical migration; treat them as reference
 > material, not a current checklist. The retired Express bridge on
 > port 3001 has been removed.
@@ -21,7 +21,7 @@ aio runtime action get publish-card --url
 
 The URL will look like:
 ```
-https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleMCP/publish-card
+https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/publish-card
 ```
 
 ### 2. Update Studio Constants
@@ -30,23 +30,23 @@ Edit [`studio/src/constants.js`](../../studio/src/constants.js) line 150:
 
 **Before:**
 ```javascript
-export const MCP_SERVER_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://mas-mcp.adobe.com';
+export const OPERATIONS_SERVICE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://mas-mcp.adobe.com';
 ```
 
 **After:**
 ```javascript
-export const MCP_SERVER_URL = window.location.hostname === 'localhost'
+export const OPERATIONS_SERVICE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:3001'
-    : 'https://adobeioruntime.net/api/v1/web/<your-namespace>/MerchAtScaleMCP';
+    : 'https://adobeioruntime.net/api/v1/web/<your-namespace>/MerchAtScaleOperations';
 ```
 
 ### 3. Update MCP Client
 
-The Studio MCP client ([`studio/src/services/mcp-client.js`](../../studio/src/services/mcp-client.js)) will need to use the Runtime action names instead of the `/tools/:toolName` pattern:
+The Studio operations client ([`studio/src/services/operations-client.js`](../../studio/src/services/operations-client.js)) will need to use the Runtime action names instead of the `/tools/:toolName` pattern:
 
 **Current:**
 ```javascript
-const response = await fetch(`${MCP_SERVER_URL}/tools/${toolName}`, {
+const response = await fetch(`${OPERATIONS_SERVICE_URL}/tools/${toolName}`, {
     method: 'POST',
     headers,
     body: JSON.stringify(requestBody),
@@ -55,7 +55,7 @@ const response = await fetch(`${MCP_SERVER_URL}/tools/${toolName}`, {
 
 **Update to:**
 ```javascript
-const response = await fetch(`${MCP_SERVER_URL}/${toolName.replace('studio_', '')}`, {
+const response = await fetch(`${OPERATIONS_SERVICE_URL}/${toolName.replace('studio_', '')}`, {
     method: 'POST',
     headers,
     body: JSON.stringify(requestBody),
@@ -83,17 +83,17 @@ For different environments:
 
 **Development (localhost):**
 ```javascript
-MCP_SERVER_URL = 'http://localhost:3001'
+OPERATIONS_SERVICE_URL = 'http://localhost:3001'
 ```
 
 **Staging:**
 ```javascript
-MCP_SERVER_URL = 'https://adobeioruntime.net/api/v1/web/stage-namespace/MerchAtScaleMCP'
+OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/stage-namespace/MerchAtScaleOperations'
 ```
 
 **Production:**
 ```javascript
-MCP_SERVER_URL = 'https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleMCP'
+OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations'
 ```
 
 ## Rollback Plan

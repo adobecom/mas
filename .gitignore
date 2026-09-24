@@ -77,7 +77,7 @@ web-components/commerce.json
 web-components/mas.json
 web-components/stats.json
 *.jsonl
-mcp-server.log
+operations.log
 
 # MWPW-183572 workspace-local (not shipped with PR)
 io/knowledge/

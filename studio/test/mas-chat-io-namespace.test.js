@@ -22,14 +22,14 @@ import {
  *
  *   MerchAtScaleStudio/ai-chat            the assistant
  *   MerchAtScaleStudio/ost-products-read  the OST product catalog
- *   MerchAtScaleMCP/*                     the tools the assistant executes
+ *   MerchAtScaleOperations/*                     the tools the assistant executes
  *   MerchAtScaleKnowledge/query           the docs corpus
  *
  * That is a deployment requirement, not just a client one. When a package is
  * missing from the selected namespace, OpenWhisk answers with a 404 that
  * carries no CORS headers, so the browser rejects the request before reading a
  * status and the assistant reports "Failed to fetch" rather than a 404. That is
- * exactly how a namespace holding ai-chat but not MerchAtScaleMCP presented:
+ * exactly how a namespace holding ai-chat but not MerchAtScaleOperations presented:
  * the chat answered, then every tool call died.
  */
 const PERSONAL = 'merchatscale-axel';
@@ -78,7 +78,7 @@ describe('mas-chat IO namespace resolution', () => {
         });
 
         it('keeps MCP on the same namespace rather than a second hardcoded one', () => {
-            expect(getOperationsServiceURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(`${DEV_NAMESPACE}/MerchAtScaleMCP`);
+            expect(getOperationsServiceURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(`${DEV_NAMESPACE}/MerchAtScaleOperations`);
         });
 
         it('keeps the knowledge service on it too', () => {
@@ -88,7 +88,7 @@ describe('mas-chat IO namespace resolution', () => {
         });
 
         it('keeps the product detail lookup on it', () => {
-            expect(getIoMcpURL()).to.equal(`${DEV_NAMESPACE}/MerchAtScaleMCP`);
+            expect(getIoMcpURL()).to.equal(`${DEV_NAMESPACE}/MerchAtScaleOperations`);
         });
 
         it('puts every assistant package in one namespace, so one deploy target serves them all', () => {

@@ -16,7 +16,7 @@ function isLocalhostHostname(hostname) {
  * whatever environment the page was loaded for, instead of a namespace baked
  * into the bundle.
  *
- * MerchAtScaleStudio and MerchAtScaleMCP must both be deployed to that
+ * MerchAtScaleStudio and MerchAtScaleOperations must both be deployed to that
  * namespace. When one is missing, it answers with a 404 that carries no CORS
  * headers, so the browser reports it as "Failed to fetch" rather than as a
  * status — which reads as a network fault rather than a missing deployment.
@@ -44,7 +44,7 @@ export function getAIChatBaseURL(location = window.location) {
 }
 
 export function getOperationsServiceURL(location = window.location) {
-    return localOverride(location, 'mcp.server') || siblingPackageURL('MerchAtScaleMCP');
+    return localOverride(location, 'mcp.server') || siblingPackageURL('MerchAtScaleOperations');
 }
 
 export function getKnowledgeServiceURL(location = window.location) {
@@ -53,7 +53,7 @@ export function getKnowledgeServiceURL(location = window.location) {
 
 /** The MCP package without the localhost override, for non-chat callers. */
 export function getIoMcpURL() {
-    return siblingPackageURL('MerchAtScaleMCP');
+    return siblingPackageURL('MerchAtScaleOperations');
 }
 
 /** The Studio package without the localhost override, for non-chat callers. */

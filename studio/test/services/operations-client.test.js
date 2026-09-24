@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 
 const MOCK_MCP_LOCAL_URL = 'http://localhost:3001';
-const MOCK_MCP_PROD_URL = 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleMCP';
+const MOCK_MCP_PROD_URL = 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleOperations';
 
 let executeOperation;
 let executeStudioOperation;

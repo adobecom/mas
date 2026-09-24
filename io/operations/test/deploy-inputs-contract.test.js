@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MANIFEST = path.join(HERE, '../app.config.yaml');
-const WORKFLOW = path.join(HERE, '../../../.github/workflows/deploy-mcp-runtime.yml');
+const WORKFLOW = path.join(HERE, '../../../.github/workflows/deploy-operations-runtime.yml');
 const ACTIONS_DIR = path.join(HERE, '../src/actions');
 
 /**
@@ -61,7 +61,7 @@ function workflowVars() {
     return new Set([...envBlock[1].matchAll(/^\s+([A-Z][A-Z0-9_]*):/gm)].map((m) => m[1]));
 }
 
-describe('mcp-server deploy inputs contract', () => {
+describe('operations deploy inputs contract', () => {
     it('finds the manifest and the deploy workflow', () => {
         expect(fs.existsSync(MANIFEST), MANIFEST).to.equal(true);
         expect(fs.existsSync(WORKFLOW), WORKFLOW).to.equal(true);

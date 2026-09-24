@@ -8,7 +8,7 @@
         "studio",
         "web-components",
         "io/studio",
-        "io/mcp-server",
+        "io/operations",
         "mas-ost",
         "ost",
         "scripts/content"

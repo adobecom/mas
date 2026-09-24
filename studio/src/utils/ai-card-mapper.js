@@ -426,7 +426,7 @@ export function validateAIConfig(aiConfig, variantConfig, options = {}) {
  * Build MCS-aligned tag list for a release-flow card so the io/www settings
  * transformer can match the right per-surface overrides (secure label,
  * plan-type copy, etc.). Mirrors the shape emitted by
- * io/mcp-server/src/actions/create-release-cards.js.
+ * io/operations/src/actions/create-release-cards.js.
  *
  * @param {Object} product - Selected release product (from MCS)
  * @returns {string[]} - Tag IDs in `mas:...` form

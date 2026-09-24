@@ -10,7 +10,7 @@ const path = require('path');
  * feature gated on such a var silently never fires in production, however the
  * flag is set, so this test fails the build instead.
  *
- * The mirror of this test lives in io/mcp-server (deploy-inputs-contract),
+ * The mirror of this test lives in io/operations (deploy-inputs-contract),
  * which checks the other direction: manifest vars the deploy workflow forgets.
  */
 

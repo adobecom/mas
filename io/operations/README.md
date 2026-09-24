@@ -1,10 +1,10 @@
-# MAS MCP Server - Adobe I/O Runtime Actions
+# MAS Operations Service - Adobe I/O Runtime Actions
 
-Adobe I/O Runtime actions for MAS Studio MCP operations. These serverless functions provide AEM Content Fragment operations for Studio's AI chat.
+Adobe I/O Runtime actions for MAS Studio operations. These serverless functions provide AEM Content Fragment operations for Studio's AI chat.
 
 ## Architecture
 
-This is the production deployment of the MAS MCP Server using Adobe I/O Runtime. It replaces the local Express HTTP server with serverless functions that auto-deploy on git push.
+This is the production deployment of the MAS Operations Service using Adobe I/O Runtime. It replaces the local Express HTTP server with serverless functions that auto-deploy on git push.
 
 ### Actions
 
@@ -28,7 +28,7 @@ This is the production deployment of the MAS MCP Server using Adobe I/O Runtime.
 
 1. Install dependencies:
    ```bash
-   cd io/mcp-server
+   cd io/operations
    npm install
    ```
 
@@ -68,7 +68,7 @@ aio runtime action invoke publish-card --param id <card-id> --result
 
 ## Auto-Deployment
 
-The GitHub Actions workflow [`.github/workflows/deploy-mcp-runtime.yml`](../../.github/workflows/deploy-mcp-runtime.yml) automatically deploys actions when changes are pushed to `main` branch.
+The GitHub Actions workflow [`.github/workflows/deploy-operations-runtime.yml`](../../.github/workflows/deploy-operations-runtime.yml) automatically deploys actions when changes are pushed to `main` branch.
 
 ### Required Secrets
 
@@ -83,18 +83,18 @@ Configure these in GitHub repository settings:
 
 After deployment, actions are available at:
 ```
-https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleMCP/<action-name>
+https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/<action-name>
 ```
 
 Example:
 ```
-https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleMCP/publish-card
+https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations/publish-card
 ```
 
 ## Local development
 
 Run `aio app dev` from this directory to start the Runtime actions
-locally. Studio's MCP client (`studio/src/services/mcp-client.js`)
+locally. Studio's operations client (`studio/src/services/operations-client.js`)
 routes to your local dev server when the Studio URL includes
 `?mcp.server=<local-runtime-url>`.
 
@@ -116,7 +116,7 @@ aio runtime activation logs <activation-id>
 ### Test authentication
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleMCP/get-card?id=<card-id>
+  https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/get-card?id=<card-id>
 ```
 
 ### Undeploy actions
@@ -126,6 +126,6 @@ aio app undeploy
 
 ## Related Documentation
 
-- [MAS MCP Server (Express)](../../mas-mcp-server/README.md)
+- [MAS Operations Service (Express)](../../mas-mcp-server/README.md)
 - [Adobe I/O Runtime Documentation](https://developer.adobe.com/runtime/docs/)
-- [Studio MCP Integration](../../MCP_INTEGRATION.md)
+- [Studio operations integration](../../MCP_INTEGRATION.md)

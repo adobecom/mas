@@ -4,7 +4,7 @@ application:
         test: npm run test
     runtimeManifest:
         packages:
-            MerchAtScaleMCP:
+            MerchAtScaleOperations:
                 license: Apache-2.0
                 actions:
                     publish-card:

@@ -1,8 +1,8 @@
 {
-    "name": "MerchAtScaleMCP",
+    "name": "MerchAtScaleOperations",
     "version": "1.0.0",
     "private": true,
-    "description": "Adobe I/O Runtime actions for MAS Studio MCP operations",
+    "description": "Adobe I/O Runtime actions for MAS Studio operations",
     "type": "module",
     "dependencies": {
         "@adobe/aio-lib-ims": "^7.0.2",

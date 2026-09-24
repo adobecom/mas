@@ -23,7 +23,7 @@ const path = require('path');
  * either without a very good reason.
  */
 
-const ACTIONS_DIR = path.join(__dirname, '../../../mcp-server/src/actions');
+const ACTIONS_DIR = path.join(__dirname, '../../../operations/src/actions');
 const OPERATIONS_CLIENT = path.join(__dirname, '../../../../studio/src/services/operations-client.js');
 
 /**

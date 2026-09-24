@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'io/mcp-server/**'
+      - 'io/operations/**'
       - '.github/workflows/deploy-mcp-runtime.yml'
   workflow_dispatch:
 
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: io/mcp-server/package-lock.json
+          cache-dependency-path: io/operations/package-lock.json
 
       - name: Install Adobe I/O CLI
         run: npm install -g @adobe/aio-cli
@@ -36,11 +36,11 @@ jobs:
           aio config:set runtime.auth $AIO_RUNTIME_AUTH
 
       - name: Install dependencies
-        working-directory: io/mcp-server
+        working-directory: io/operations
         run: npm ci
 
       - name: Deploy to Adobe I/O Runtime
-        working-directory: io/mcp-server
+        working-directory: io/operations
         env:
           AEM_BASE_URL: ${{ secrets.AEM_BASE_URL }}
           STUDIO_BASE_URL: ${{ secrets.STUDIO_BASE_URL }}
@@ -53,7 +53,7 @@ jobs:
         run: aio app deploy --all
 
       - name: Verify deployment
-        working-directory: io/mcp-server
+        working-directory: io/operations
         run: aio runtime action list
 
       - name: Deployment summary

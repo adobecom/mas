@@ -54,4 +54,15 @@ export const distinctTrees = {
         },
         optical: { withDiscount: { withTax: leaf('64', '77', 'US$64.77') } },
     },
+    // abm-mult is YEAR/MONTHLY, the annualized path. `annualized` differs from
+    // `asIs` and from both 54.99 * 12 (offer price) and 88.22 * 12 (asIs leaf),
+    // so only indexing the annualized leaf can produce it.
+    abm: {
+        format: usdFormat,
+        recurrence: { term: 'MONTHLY' },
+        asIs: { withDiscount: { withTax: leaf('88', '22', 'US$88.22') } },
+        annualized: {
+            withDiscount: { withTax: leaf('911', '33', 'US$911.33') },
+        },
+    },
 };

@@ -2338,6 +2338,19 @@ describe('WCS preformatted response format', () => {
             expect(partsOf(inlinePrice)).to.equal('777.11');
         });
 
+        it('annualized monthly subscription indexes the annualized leaf, not asIs or price * 12', async () => {
+            const inlinePrice = mockInlinePrice('prec-annual-abm', 'abm');
+            inlinePrice.dataset.template = 'annual';
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('911.33');
+        });
+
+        it('annualized monthly subscription without the annual template shows asIs', async () => {
+            const inlinePrice = mockInlinePrice('prec-asis-abm', 'abm');
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('88.22');
+        });
+
         it('optical indexes the optical WCS leaf', async () => {
             const inlinePrice = mockInlinePrice('prec-optical', 'puf');
             inlinePrice.dataset.template = 'optical';

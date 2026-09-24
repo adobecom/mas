@@ -5,6 +5,7 @@ import {
 } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
+import { getFragmentMapping } from './variants/variants.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -1138,7 +1139,9 @@ export async function hydrate(fragment, merchCard) {
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
-    const { aemFragmentMapping: mapping } = merchCard.variantLayout;
+    const mapping =
+        merchCard.variantLayout?.aemFragmentMapping ??
+        getFragmentMapping(variant);
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 

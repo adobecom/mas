@@ -172,6 +172,48 @@ describe('Translation project-start-service — CF mirror helpers', () => {
             expect(patchBody[0].value).to.deep.equal(['fr_FR', 'de_DE', 'es_ES']);
         });
 
+        it('skips the status update when merged locales do not yet cover all targetLocales', async () => {
+            const fragment = createProjectFragment({
+                targetLocales: ['fr_FR', 'de_DE', 'es_ES'],
+                completedLocales: ['fr_FR'],
+            });
+            let patchBody;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchBody = JSON.parse(options.body);
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'de_DE', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, etag: 'etag-2' });
+            expect(patchBody).to.deep.equal([{ op: 'replace', path: '/fields/2/values', value: ['fr_FR', 'de_DE'] }]);
+        });
+
+        it('writes the status when targetLocales is missing, since coverage cannot be verified', async () => {
+            const fragment = {
+                id: 'proj-1',
+                fields: [
+                    { name: 'status', values: ['ASYNC_PROCESSING'] },
+                    { name: 'completedLocales', values: [] },
+                ],
+            };
+            let patchBody;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchBody = JSON.parse(options.body);
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, etag: 'etag-2' });
+            expect(patchBody).to.deep.equal([
+                { op: 'replace', path: '/fields/1/values', value: ['fr_FR'] },
+                { op: 'replace', path: '/fields/0/values', value: ['COMPLETED'] },
+            ]);
+        });
+
         it('aborts without patching when completedLocales or status is not found on the fragment', async () => {
             const fragment = { id: 'proj-1', fields: [{ name: 'targetLocales', values: ['fr_FR'] }] };
             let patchCalls = 0;

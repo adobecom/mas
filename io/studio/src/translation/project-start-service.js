@@ -616,8 +616,18 @@ async function addCompletedLocale(projectId, locale, token, params = {}, options
  * still retrying while the status write lands, leaving the CF COMPLETED with
  * an incomplete completedLocales array (Hoolihan delivery is at-least-once
  * and unordered, so that window is real, not theoretical).
+ *
+ * The caller passes `locale` as "the final one", but Hoolihan delivery is
+ * unordered as well as at-least-once, so a caller can't actually know that
+ * without racing other deliveries. Inside the etag-guarded attempt this
+ * re-derives it from the fragment's own `targetLocales`: the status is only
+ * written when the merged completedLocales covers every targetLocale:
+ * otherwise only the locale append is patched, leaving status untouched so a
+ * later call (for the true final locale) can still set it. If `targetLocales`
+ * itself is missing, there is nothing to guard against, so the status is
+ * written as requested.
  * @param {string} projectId
- * @param {string} locale - the final locale being marked completed
+ * @param {string} locale - the locale being marked completed
  * @param {string} status - the terminal project status (e.g. 'COMPLETED')
  * @param {string} token
  * @param {Object} params
@@ -638,14 +648,24 @@ async function completeProjectLocale(projectId, locale, status, token, params = 
             }
 
             const mergedLocales = existing.includes(locale) ? existing : [...existing, locale];
+            const { values: targetLocales } = getValues(fragment, 'targetLocales') ?? {};
+            const allLocalesCompleted =
+                !targetLocales || targetLocales.every((targetLocale) => mergedLocales.includes(targetLocale));
+
+            const ops = [{ op: 'replace', path: `${localesPath}/values`, value: mergedLocales }];
+            if (allLocalesCompleted) {
+                ops.push({ op: 'replace', path: `${statusPath}/values`, value: [status] });
+            } else {
+                logger.warn(
+                    `Not all target locales completed for translation project ${projectId} (${mergedLocales.length}/${targetLocales.length}), skipping status update to ${status}`,
+                );
+            }
+
             const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
                 method: 'PATCH',
                 contentType: 'application/json-patch+json',
                 etag,
-                body: JSON.stringify([
-                    { op: 'replace', path: `${localesPath}/values`, value: mergedLocales },
-                    { op: 'replace', path: `${statusPath}/values`, value: [status] },
-                ]),
+                body: JSON.stringify(ops),
             });
 
             return { success: true, etag: response.headers.get('etag') };
@@ -659,6 +679,12 @@ async function completeProjectLocale(projectId, locale, status, token, params = 
  * primitive as patchProjectFields/addCompletedLocale. Unlike them,
  * updateProjectStatus always fetches its own fresh etag internally, so a
  * conflict is retried by simply calling it again.
+ *
+ * This performs no completedLocales/targetLocales guard: unlike
+ * completeProjectLocale, it will happily write a terminal status (e.g.
+ * 'COMPLETED') even when locales are still outstanding. Do not call this
+ * directly with a terminal status from locale-completion flows; use
+ * completeProjectLocale instead, which verifies coverage first.
  * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
  */
 async function setProjectStatus(projectId, status, token, params = {}, options = {}) {

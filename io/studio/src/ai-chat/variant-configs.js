@@ -1,119 +1,10 @@
 /**
  * Variant Configurations
  *
- * Simplified variant metadata for AI chat. Full field mappings are retrieved
- * dynamically via RAG from the knowledge base (io/knowledge/src/knowledge-chunks/developer/variants/).
- *
- * This file contains:
- * - SURFACE_MAPPINGS: Which variants are available for each surface
- * - VARIANT_METADATA: Minimal CTA styling info needed at runtime
- * - VARIANT_CONFIGS: Full configs (deprecated - use RAG for field details)
+ * Full variant field configurations for the AI chat card-creation flow,
+ * keyed by variant name and read through getVariantConfig.
  */
 
-/**
- * Surface to variant mappings
- * Defines which card variants are appropriate for each surface
- */
-const SURFACE_MAPPINGS = {
-    acom: ['plans', 'plans-students', 'plans-education', 'catalog', 'special-offers', 'mini', 'simplified-pricing-express'],
-    ccd: ['ccd-slice', 'ccd-suggested'],
-    commerce: ['fries'],
-    'adobe-home': ['ah-try-buy-widget', 'ah-promoted-plans'],
-    express: ['full-pricing-express', 'simplified-pricing-express'],
-};
-
-/**
- * Minimal variant metadata
- * Only contains CTA styling info needed at runtime - field mappings come from RAG
- */
-export const VARIANT_METADATA = {
-    plans: {
-        name: 'Plans',
-        description: 'Subscription plan cards with pricing and features',
-        ctaStyle: 'primary-outline',
-        ctaSize: 'm',
-    },
-    'plans-students': {
-        name: 'Plans Students',
-        description: 'Student discounted plan cards',
-        ctaStyle: 'primary-outline',
-        ctaSize: 'm',
-    },
-    'plans-education': {
-        name: 'Plans Education',
-        description: 'Education institution plan cards',
-        ctaStyle: 'primary-outline',
-        ctaSize: 'm',
-    },
-    fries: {
-        name: 'Fries',
-        description: 'Commerce-focused product cards with horizontal layout',
-        ctaStyle: 'primary',
-        ctaSize: 'M',
-    },
-    mini: {
-        name: 'Mini',
-        description: 'Compact cards for quick CTAs',
-        ctaStyle: 'primary-outline',
-        ctaSize: 'S',
-    },
-    'ccd-slice': {
-        name: 'CCD Slice',
-        description: 'Creative Cloud Desktop compact cards',
-        ctaStyle: 'primary-outline',
-        ctaSize: 'S',
-    },
-    'ccd-suggested': {
-        name: 'CCD Suggested',
-        description: 'Creative Cloud Desktop suggested product cards',
-        ctaStyle: 'primary',
-        ctaSize: 'M',
-    },
-    'special-offers': {
-        name: 'Special Offers',
-        description: 'Limited time promotions with urgency styling',
-        ctaStyle: 'accent',
-        ctaSize: 'l',
-    },
-    catalog: {
-        name: 'Catalog',
-        description: 'Product catalog cards with action menus',
-        ctaStyle: 'primary-outline',
-        ctaSize: 'm',
-    },
-    'ah-try-buy-widget': {
-        name: 'Adobe Home Try Buy Widget',
-        description: 'Adobe Home compact widget for try/buy actions',
-        ctaStyle: 'primary',
-        ctaSize: 'S',
-    },
-    'ah-promoted-plans': {
-        name: 'Adobe Home Promoted Plans',
-        description: 'Adobe Home promoted plan cards with gradient border support',
-        ctaStyle: 'primary',
-        ctaSize: 'S',
-    },
-    'simplified-pricing-express': {
-        name: 'Simplified Pricing Express',
-        description: 'Simplified pricing cards for Adobe Express',
-        ctaStyle: 'primary',
-        ctaSize: 'XL',
-    },
-    'full-pricing-express': {
-        name: 'Full Pricing Express',
-        description: 'Full Express pricing cards with complete feature details',
-        ctaStyle: 'primary',
-        ctaSize: 'XL',
-    },
-};
-
-/**
- * @deprecated Use VARIANT_METADATA for CTA info and RAG for field mappings.
- * This constant is kept for backward compatibility during migration.
- * Set RAG_VARIANT_DETAILS=true in params to enable dynamic field retrieval.
- *
- * Full variant configurations including field mappings
- */
 const VARIANT_CONFIGS = {
     plans: {
         name: 'Plans',
@@ -380,20 +271,8 @@ const VARIANT_CONFIGS = {
 };
 
 /**
- * Get variant configuration by name
- * @deprecated Use VARIANT_METADATA and RAG for field details
+ * Get a variant's full field configuration by name.
  */
 export function getVariantConfig(variantName) {
     return VARIANT_CONFIGS[variantName];
 }
-
-/**
- * Get variants available for a specific surface
- */
-export function getVariantsForSurface(surface) {
-    return SURFACE_MAPPINGS[surface] || [];
-}
-
-/**
- * Get surface for a given variant
- */

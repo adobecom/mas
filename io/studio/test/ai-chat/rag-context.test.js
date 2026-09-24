@@ -31,7 +31,7 @@ describe('ai-chat/retrieveRAGContext', () => {
         expect(result.sources).to.have.length(1);
     });
 
-    it('skips retrieval for non-documentation queries without variant details', async () => {
+    it('skips retrieval for non-documentation queries', async () => {
         let called = false;
         const client = {
             queryWithSources: async () => {
@@ -42,17 +42,6 @@ describe('ai-chat/retrieveRAGContext', () => {
         const result = await retrieveRAGContext('publish my card', client, { isDocumentation: false });
         expect(called).to.equal(false);
         expect(result.ragContext).to.equal('');
-    });
-
-    it('appends variant field details when enabled', async () => {
-        const client = fakeClient({ context: 'Catalog cards require a size field.', sources: [{ title: 'Variants' }] });
-        const result = await retrieveRAGContext('make a catalog card', client, {
-            isDocumentation: false,
-            ragVariantDetails: true,
-            detectedVariant: 'catalog',
-        });
-        expect(result.ragContext).to.include('VARIANT FIELD DETAILS FOR CATALOG');
-        expect(result.ragContext).to.include('Catalog cards require a size field.');
     });
 
     it('swallows knowledge-service errors and returns empty context', async () => {

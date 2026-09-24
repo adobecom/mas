@@ -183,6 +183,30 @@ export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code
 /** Tag id prefix in short form */
 export const MAS_PRODUCT_CODE_PREFIX = 'mas:product_code/';
 
+export const TAG_WORKFLOW_STEP = 'mas:workflow-step';
+
+export const WORKFLOW_STEP = {
+    EMAIL: 'email',
+    COMMITMENT: 'commitment',
+    RECOMMENDATION: 'recommendation',
+    SEGMENTATION: 'segmentation',
+    BUNDLE: 'bundle',
+    PAYMENT: 'payment',
+    CHANGE_PLAN_TEAM_PLANS: 'change_plan_team_plans',
+    CHANGE_PLAN_TEAM_PAYMENT: 'change_plan_team_payment',
+};
+
+export const WORKFLOW_STEP_OPTIONS = [
+    { id: WORKFLOW_STEP.EMAIL, title: 'Email' },
+    { id: WORKFLOW_STEP.COMMITMENT, title: 'Commitment' },
+    { id: WORKFLOW_STEP.RECOMMENDATION, title: 'Recommendation' },
+    { id: WORKFLOW_STEP.SEGMENTATION, title: 'Segmentation' },
+    { id: WORKFLOW_STEP.BUNDLE, title: 'Bundle' },
+    { id: WORKFLOW_STEP.PAYMENT, title: 'Payment' },
+    { id: WORKFLOW_STEP.CHANGE_PLAN_TEAM_PLANS, title: 'Change Plan Team Plans' },
+    { id: WORKFLOW_STEP.CHANGE_PLAN_TEAM_PAYMENT, title: 'Change Plan Team Payment' },
+];
+
 export const TAG_MODEL_ID_MAPPING = {
     [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
     [TAG_MERCH_CARD]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
@@ -281,6 +305,7 @@ export const FILTER_TYPE = {
     PRODUCT: 'product',
     OFFER_TYPE: 'offerType',
     PLAN_TYPE: 'planType',
+    WORKFLOW_STEP: 'workflowStep',
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',

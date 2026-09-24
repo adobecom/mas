@@ -1811,6 +1811,62 @@ describe('priceInfo (WCS pre-split tree)', () => {
             });
         });
 
+        // `template="annual"` has no planType gate (price.js), while
+        // `formatAnnualPrice` only annualizes YEAR/MONTHLY. On an M2M offer the
+        // annualized leaf must be ignored, or annual digits would render with a
+        // /mo label. WCS sends no annualized block for M2M today, so this pins
+        // the contract rather than a live bug.
+        it('ignores the annualized leaf on a non-YEAR/MONTHLY offer', () => {
+            const offer = {
+                offerSelectorIds: ['pi-m2m'],
+                commitment: 'MONTH',
+                term: 'MONTHLY',
+                planType: 'M2M',
+                priceDetails: {
+                    price: 9.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+            };
+            const info = {
+                format: {
+                    currencySymbol: 'US$',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '9',
+                            decimals: '99',
+                            full: 'US$9.99',
+                        },
+                    },
+                },
+                // WCS would not send this for MONTH/MONTHLY; if it ever did,
+                // rendering it beside a /mo label is a 12x error.
+                annualized: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '119',
+                            decimals: '88',
+                            full: 'US$119.88',
+                        },
+                    },
+                },
+            };
+            const html = buildPriceHTML([withInfo(offer, info)], {
+                ...opts,
+                template: 'annual',
+            });
+            expect(partsOf(html)).to.equal('9.99');
+        });
+
         // A natively tax-exclusive offer (not forced) keeps its priceInfo and
         // renders the .withTax leaf next to the excl-tax label.
         it('native tax-exclusive renders the leaf with the excl-tax label', () => {
@@ -1838,10 +1894,14 @@ describe('priceInfo (WCS pre-split tree)', () => {
                 recurrence: { term: 'MONTHLY' },
                 asIs: {
                     withDiscount: {
+                        // Digits deliberately differ from the offer's 89.99, so
+                        // the assertion fails if the numeric path renders
+                        // instead of the leaf. A fixture echoing the net price
+                        // would pass either way.
                         withTax: {
-                            integer: '89',
-                            decimals: '99',
-                            full: 'US$89.99',
+                            integer: '77',
+                            decimals: '11',
+                            full: 'US$77.11',
                         },
                     },
                 },
@@ -1850,7 +1910,8 @@ describe('priceInfo (WCS pre-split tree)', () => {
                 ...opts,
                 displayTax: true,
             });
-            expect(partsOf(html)).to.equal('89.99');
+            expect(partsOf(html)).to.equal('77.11');
+            expect(partsOf(buildPriceHTML([offer], opts))).to.equal('89.99');
             const el = document.createElement('div');
             el.innerHTML = html;
             expect(

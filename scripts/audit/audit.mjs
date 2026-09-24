@@ -1,5 +1,11 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
+import {
+    formatAnnualPrice,
+    formatOpticalPrice,
+    formatRegularPrice,
+    selectPreformattedPrice,
+} from '../../web-components/src/price/utilities.js';
 
 const AUDIT_TARGET = {
     ost: 'ost',
@@ -513,6 +519,72 @@ const searchStringMatch = (pageContent, searchStrings) => {
 
 const prefixWcsKey = (key) => 'wcs ' + key;
 
+const wcsKeyOf = (osi, locale) => `${osi}|${locale ?? ''}`;
+
+const PRICE_NUMERIC = 'price numeric';
+const PRICE_PREFORMATTED = 'price preformatted';
+const PRICE_MATCH = 'price match';
+const PRICE_MISMATCH_MODES = 'price mismatch modes';
+const PRICE_KEYS = [PRICE_NUMERIC, PRICE_PREFORMATTED, PRICE_MATCH, PRICE_MISMATCH_MODES];
+
+const PRICE_RENDERERS = {
+    regular: formatRegularPrice,
+    annual: formatAnnualPrice,
+    optical: formatOpticalPrice,
+};
+
+const renderedPrice = ({ currencySymbol, decimals, decimalsDelimiter, hasCurrencySpace, integer, isCurrencyFirst }) => {
+    const space = hasCurrencySpace ? ' ' : '';
+    const digits = `${integer}${decimalsDelimiter}${decimals}`;
+    return isCurrencyFirst ? `${currencySymbol}${space}${digits}` : `${digits}${space}${currencySymbol}`;
+};
+
+// Returns undefined when WCS carries no leaf for this mode, i.e. the numeric
+// path still owns it.
+const comparePriceMode = (offer, country, mode) => {
+    const { priceDetails: details, commitment, term, priceInfo } = offer;
+    const preformatted = selectPreformattedPrice({
+        priceInfo,
+        showWithoutDiscount: false,
+        displayAnnual: mode === 'annual',
+        displayOptical: mode === 'optical',
+        commitment,
+        term,
+    });
+    if (!preformatted) return undefined;
+    const data = {
+        commitment,
+        term,
+        formatString: details.formatString,
+        price: details.price,
+        originalPrice: details.price,
+        priceWithoutDiscount: details.priceWithoutDiscount,
+        usePrecision: details.usePrecision,
+        isIndianPrice: country === 'IN',
+    };
+    const render = PRICE_RENDERERS[mode];
+    return {
+        numeric: renderedPrice(render(data)),
+        preformatted: renderedPrice(render({ ...data, preformatted, priceInfoFormat: priceInfo.format })),
+    };
+};
+
+const comparePrices = (offer, country) => {
+    if (!offer?.priceInfo || !offer.priceDetails) return {};
+    const compared = Object.keys(PRICE_RENDERERS)
+        .map((mode) => ({ mode, ...comparePriceMode(offer, country, mode) }))
+        .filter(({ numeric }) => numeric !== undefined);
+    if (compared.length === 0) return {};
+    const mismatched = compared.filter(({ numeric, preformatted }) => numeric !== preformatted);
+    const shown = compared.find(({ mode }) => mode === 'regular') ?? compared[0];
+    return {
+        [PRICE_NUMERIC]: shown.numeric,
+        [PRICE_PREFORMATTED]: shown.preformatted,
+        [PRICE_MATCH]: mismatched.length === 0,
+        [PRICE_MISMATCH_MODES]: mismatched.map(({ mode }) => mode).join(' '),
+    };
+};
+
 function getLocaleSettings(locale) {
     if (!locale) {
         return {
@@ -533,7 +605,7 @@ function getLocaleSettings(locale) {
     };
 }
 
-async function setCommerceData(osi, locale) {
+async function setCommerceData(wcsKey, osi, locale) {
     const localeSettings = getLocaleSettings(locale);
     const response = await fetchDocument(wcsUrl(osi, localeSettings));
     const data = {};
@@ -551,12 +623,15 @@ async function setCommerceData(osi, locale) {
                 }
                 data[prefixWcsKey(key)] = object;
             });
+            Object.entries(comparePrices(offer, localeSettings.country)).forEach(([key, value]) => {
+                data[prefixWcsKey(key)] = value;
+            });
         }
     }
     if (Object.keys(data).length == 0) {
-        console.log(`no data for osi ${osi}`);
+        console.log(`no data for osi ${osi} (${localeSettings.locale})`);
     }
-    mapWcs[osi] = data;
+    mapWcs[wcsKey] = { ...mapWcs[wcsKey], ...data };
 }
 
 function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
@@ -569,9 +644,10 @@ function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
         keys.add(left);
     }
     if (entry.osi) {
-        mapWcs[entry.osi] = {};
+        entry.wcsKey = wcsKeyOf(entry.osi, ctx.localeRewrite);
+        mapWcs[entry.wcsKey] = { osi: entry.osi };
         if (ctx.localeRewrite) {
-            mapWcs[entry.osi].locale = ctx.localeRewrite;
+            mapWcs[entry.wcsKey].locale = ctx.localeRewrite;
         }
     }
     collection.push(entry);
@@ -776,6 +852,14 @@ async function auditPage(ctx, pageUrl, depth = 0) {
     }
 }
 
+// Formatted prices contain the locale's grouping separator, which is a comma in
+// en-US, so cells have to be quoted.
+const csvCell = (value) => {
+    if (value === undefined || value === null || value === '') return '';
+    const text = String(value);
+    return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+
 const writeIframeUsagesToFile = () => {
     console.log(`collected ${foundUsages.length} entries`);
     let headers = ['page URL', 'fragment URL', 'iFrame URL'];
@@ -792,21 +876,33 @@ const writeOstUsagesToFile = () => {
     headers.unshift('fragment');
     headers.unshift('origin');
     headers.push('postExcerpt');
-    headers = headers.concat(WCS_KEYS.map(prefixWcsKey));
+    headers = headers.concat(WCS_KEYS.concat(PRICE_KEYS).map(prefixWcsKey));
     fs.writeFileSync(
         file,
         `${headers.join(',')}\n${ostUsages
             .map((o) => {
-                if (mapWcs[o.osi]) {
-                    o = { ...o, ...mapWcs[o.osi] };
+                if (mapWcs[o.wcsKey]) {
+                    o = { ...o, ...mapWcs[o.wcsKey] };
                 }
-                return headers.map((k) => o?.[k] || '').join(',');
+                return headers.map((k) => csvCell(o?.[k])).join(',');
             })
             .join('\n')}`,
     );
     if (searchMatches.length > 0) {
         fs.writeFileSync(searchFile + '.matches', searchMatches.join('\n'));
     }
+    reportPriceMismatches();
+};
+
+const reportPriceMismatches = () => {
+    const compared = Object.entries(mapWcs).filter(([, data]) => data?.[prefixWcsKey(PRICE_MATCH)] !== undefined);
+    const mismatched = compared.filter(([, data]) => data[prefixWcsKey(PRICE_MATCH)] === false);
+    console.log(`price comparison: ${compared.length} osis compared, ${mismatched.length} mismatched`);
+    mismatched.forEach(([, data]) => {
+        console.log(
+            `  ${data.osi} [${data.locale ?? 'us'}]: numeric ${data[prefixWcsKey(PRICE_NUMERIC)]} != preformatted ${data[prefixWcsKey(PRICE_PREFORMATTED)]} (${data[prefixWcsKey(PRICE_MISMATCH_MODES)]})`,
+        );
+    });
 };
 
 const collectOsiData = async () => {
@@ -819,7 +915,9 @@ const collectOsiData = async () => {
         osisToFetch = osisToFetch.length >= defaultBufferSize ? osisToFetch.slice(defaultBufferSize) : [];
 
         // Add timeout for the entire batch
-        const batchPromise = Promise.allSettled(buffer.map((osi) => setCommerceData(osi, mapWcs[osi].locale)));
+        const batchPromise = Promise.allSettled(
+            buffer.map((wcsKey) => setCommerceData(wcsKey, mapWcs[wcsKey].osi, mapWcs[wcsKey].locale)),
+        );
         // Create a timeout promise
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => {

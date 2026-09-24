@@ -304,6 +304,8 @@ const createPriceTemplate =
                       showWithoutDiscount,
                       displayAnnual,
                       displayOptical,
+                      commitment,
+                      term,
                       promotion,
                   })
                 : undefined;

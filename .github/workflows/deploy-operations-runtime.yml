@@ -1,4 +1,4 @@
-name: Deploy MCP Runtime Actions
+name: Deploy Operations Runtime Actions
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'io/operations/**'
-      - '.github/workflows/deploy-mcp-runtime.yml'
+      - '.github/workflows/deploy-operations-runtime.yml'
   workflow_dispatch:
 
 jobs:

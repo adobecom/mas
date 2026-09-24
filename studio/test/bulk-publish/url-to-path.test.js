@@ -10,6 +10,19 @@ describe('parseStudioUrl', () => {
         });
     });
 
+    it('extracts a placeholder fragmentId from a UUID search param', () => {
+        const url =
+            'https://mas.adobe.com/studio.html#content-type=placeholder&page=placeholders&path=sandbox&search=9a75e22f-9c48-418d-8da3-687e8f635282';
+        expect(parseStudioUrl(url)).to.deep.equal({
+            fragmentId: '9a75e22f-9c48-418d-8da3-687e8f635282',
+        });
+    });
+
+    it('rejects a plain-text placeholder search param', () => {
+        const url = 'https://mas.adobe.com/studio.html#content-type=placeholder&page=placeholders&path=sandbox&search=abm';
+        expect(parseStudioUrl(url)).to.be.null;
+    });
+
     it('returns null for non-Studio URLs', () => {
         expect(parseStudioUrl('https://example.com')).to.be.null;
     });

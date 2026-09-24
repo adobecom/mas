@@ -1576,17 +1576,17 @@ export class MasRepository extends LitElement {
 
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
+                await this.clearStagedTag(fragment);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
                 const allRefIds = [...variations, ...cards].map((r) => r.id);
                 if (allRefIds.length) await this.#publishRefIds(allRefIds);
             } else {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
+                await this.clearStagedTag(fragment);
                 if (selectedRefIds?.length) {
                     await this.#publishRefIds(selectedRefIds);
                 }
             }
-
-            await this.clearStagedTag(fragment);
 
             if (withToast) {
                 const message =

@@ -58,14 +58,14 @@ describe('ai-chat/registry drift — client dispatcher vs intent registry', () =
         expect(unknown, 'remove these from STATE_CHANGING_INTENTS — not in intent-registry.js').to.deep.equal([]);
     });
 
-    it('lists only registered null-tool_target intents in client NON_MCP_INTENTS', () => {
-        const wrong = [...dispatcher.NON_MCP_INTENTS].filter((name) => {
+    it('lists only registered null-tool_target intents in client NON_OPERATION_INTENTS', () => {
+        const wrong = [...dispatcher.NON_OPERATION_INTENTS].filter((name) => {
             const intent = INTENTS.find((entry) => entry.name === name);
             return !intent || Boolean(intent.tool_target);
         });
         expect(
             wrong,
-            'these NON_MCP_INTENTS entries have a tool_target in intent-registry.js (or are unregistered) — fix studio/src/utils/ai-chat-envelope-dispatcher.js',
+            'these NON_OPERATION_INTENTS entries have a tool_target in intent-registry.js (or are unregistered) — fix studio/src/utils/ai-chat-envelope-dispatcher.js',
         ).to.deep.equal([]);
     });
 
@@ -74,10 +74,10 @@ describe('ai-chat/registry drift — client dispatcher vs intent registry', () =
             .map((intent) => intent.name)
             .filter(
                 (name) =>
-                    !dispatcher.NON_MCP_INTENTS.has(name) &&
+                    !dispatcher.NON_OPERATION_INTENTS.has(name) &&
                     !dispatcher.META_INTENTS.has(name) &&
                     !dispatcher.STATE_CHANGING_INTENTS.has(name),
             );
-        expect(missing, 'add these to NON_MCP_INTENTS in the client dispatcher').to.deep.equal([]);
+        expect(missing, 'add these to NON_OPERATION_INTENTS in the client dispatcher').to.deep.equal([]);
     });
 });

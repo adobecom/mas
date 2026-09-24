@@ -458,7 +458,7 @@ describe('mcp-client', () => {
                 expect(result.message).to.equal('✓ "From card" has been published to production.');
             });
 
-            it('publish_card falls back to mcpParams.id when result is empty', async () => {
+            it('publish_card falls back to operationParams.id when result is empty', async () => {
                 fetchStub.resolves({ ok: true, json: () => Promise.resolve({}) });
                 const result = await executeStudioOperation('publish_card', { id: 'param-id' });
                 expect(result.fragmentId).to.equal('param-id');

@@ -83,9 +83,9 @@ describe('ai-chat/index main handler', () => {
             const uuid = 'F2F0A049-4B13-4592-9A1C-A0E6C962E21B';
             const result = await main(makeParams({ message: uuid }));
             expect(result.statusCode).to.equal(200);
-            expect(result.body.type).to.equal('mcp_operation');
-            expect(result.body.mcpTool).to.equal('get_card');
-            expect(result.body.mcpParams.id).to.equal(uuid.toLowerCase());
+            expect(result.body.type).to.equal('studio_operation');
+            expect(result.body.operationName).to.equal('get_card');
+            expect(result.body.operationParams.id).to.equal(uuid.toLowerCase());
             expect(result.body.envelope.intent).to.equal('get_card');
             expect(result.body.envelope.confidence).to.equal('high');
             expect(sendStub.called).to.equal(false);
@@ -94,9 +94,9 @@ describe('ai-chat/index main handler', () => {
         it('routes a quoted title search straight to search_cards with titleSearch', async () => {
             const result = await main(makeParams({ message: 'show cards titled "Photoshop Pro plan"' }));
             expect(result.statusCode).to.equal(200);
-            expect(result.body.mcpTool).to.equal('search_cards');
-            expect(result.body.mcpParams.query).to.equal('Photoshop Pro plan');
-            expect(result.body.mcpParams.titleSearch).to.equal(true);
+            expect(result.body.operationName).to.equal('search_cards');
+            expect(result.body.operationParams.query).to.equal('Photoshop Pro plan');
+            expect(result.body.operationParams.titleSearch).to.equal(true);
             expect(result.body.envelope.intent).to.equal('search_cards');
             expect(sendStub.called).to.equal(false);
         });
@@ -110,8 +110,8 @@ describe('ai-chat/index main handler', () => {
                 }),
             );
             expect(result.statusCode).to.equal(200);
-            expect(result.body.mcpTool).to.equal('get_offer_by_id');
-            expect(result.body.mcpParams.offerId).to.equal(offerId);
+            expect(result.body.operationName).to.equal('get_offer_by_id');
+            expect(result.body.operationParams.offerId).to.equal(offerId);
             expect(result.body.envelope.intent).to.equal('get_offer_by_id');
             expect(sendStub.called).to.equal(false);
         });
@@ -124,8 +124,8 @@ describe('ai-chat/index main handler', () => {
                 }),
             );
             expect(result.statusCode).to.equal(200);
-            expect(result.body.mcpTool).to.equal('get_product_by_arrangement_code');
-            expect(result.body.mcpParams.arrangementCode).to.equal('phsp_direct_individual');
+            expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+            expect(result.body.operationParams.arrangementCode).to.equal('phsp_direct_individual');
             expect(sendStub.called).to.equal(false);
         });
 
@@ -138,7 +138,7 @@ describe('ai-chat/index main handler', () => {
                 }),
             );
             expect(result.statusCode).to.equal(200);
-            expect(result.body.mcpTool).to.equal(undefined);
+            expect(result.body.operationName).to.equal(undefined);
             expect(sendStub.called).to.equal(true);
             const bypassLine = console.log.args
                 .map((args) => args[0])
@@ -156,8 +156,8 @@ describe('ai-chat/index main handler', () => {
                 }),
             );
             expect(result.statusCode).to.equal(200);
-            expect(result.body.mcpTool).to.equal('resolve_offer_selector');
-            expect(result.body.mcpParams.offerSelectorId).to.equal(osi);
+            expect(result.body.operationName).to.equal('resolve_offer_selector');
+            expect(result.body.operationParams.offerSelectorId).to.equal(osi);
             expect(sendStub.called).to.equal(false);
         });
     });
@@ -333,19 +333,19 @@ describe('ai-chat/index main handler', () => {
             expect(correctiveMessage).to.include('could not be parsed');
         });
 
-        it('executes an mcp_operation produced by the corrective parse retry', async () => {
+        it('executes an studio_operation produced by the corrective parse retry', async () => {
             sendStub.onCall(0).resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
             sendStub
                 .onCall(1)
                 .resolves(
                     textResponse(
-                        '```json\n{"type": "mcp_operation", "mcpTool": "list_products", "mcpParams": {"searchText": "creative cloud pro"}, "message": "Looking up creative cloud pro in the catalog..."}\n```',
+                        '```json\n{"type": "studio_operation", "operationName": "list_products", "operationParams": {"searchText": "creative cloud pro"}, "message": "Looking up creative cloud pro in the catalog..."}\n```',
                     ),
                 );
             const result = await main(makeParams({ message: 'please continue from before' }));
             expect(result.statusCode).to.equal(200);
-            expect(result.body.type).to.equal('mcp_operation');
-            expect(result.body.mcpTool).to.equal('list_products');
+            expect(result.body.type).to.equal('studio_operation');
+            expect(result.body.operationName).to.equal('list_products');
             expect(sendStub.callCount).to.equal(2);
         });
 
@@ -389,17 +389,17 @@ describe('ai-chat/index main handler', () => {
             it(`returns the retry operation through the ${nativeGuided === 'on' ? 'native' : 'text'} guided path`, async () => {
                 const step = { type: 'guided_step', flowId: 'release', message: 'Let me look that up.' };
                 const operation = {
-                    type: 'mcp_operation',
+                    type: 'studio_operation',
                     flowId: 'release',
-                    mcpTool: 'list_products',
-                    mcpParams: { searchText: 'creative cloud pro' },
+                    operationName: 'list_products',
+                    operationParams: { searchText: 'creative cloud pro' },
                     message: 'Looking up the product.',
                 };
                 if (nativeGuided === 'on') {
                     sendStub.onCall(0).resolves({ ...textResponse(''), toolUse: { name: 'emit_guided_step', input: step } });
                     sendStub
                         .onCall(1)
-                        .resolves({ ...textResponse(''), toolUse: { name: 'emit_mcp_operation', input: operation } });
+                        .resolves({ ...textResponse(''), toolUse: { name: 'emit_studio_operation', input: operation } });
                 } else {
                     sendStub.onCall(0).resolves(textResponse(JSON.stringify(step)));
                     sendStub.onCall(1).resolves(textResponse(JSON.stringify(operation)));
@@ -413,8 +413,8 @@ describe('ai-chat/index main handler', () => {
                     }),
                 );
 
-                expect(result.body).to.include({ type: 'mcp_operation', flowId: 'release', mcpTool: 'list_products' });
-                expect(result.body.mcpParams).to.deep.equal({ searchText: 'creative cloud pro' });
+                expect(result.body).to.include({ type: 'studio_operation', flowId: 'release', operationName: 'list_products' });
+                expect(result.body.operationParams).to.deep.equal({ searchText: 'creative cloud pro' });
                 expect(sendStub.callCount).to.equal(2);
             });
         }
@@ -432,10 +432,10 @@ describe('ai-chat/index main handler', () => {
             sendStub.onCall(1).resolves(
                 textResponse(
                     JSON.stringify({
-                        type: 'mcp_operation',
+                        type: 'studio_operation',
                         flowId: 'release',
-                        mcpTool: 'unsupported_tool',
-                        mcpParams: {},
+                        operationName: 'unsupported_tool',
+                        operationParams: {},
                         message: 'Running.',
                     }),
                 ),
@@ -444,7 +444,7 @@ describe('ai-chat/index main handler', () => {
             const result = await main(makeParams({ message: 'create cards', intentHint: 'release', NATIVE_GUIDED: 'off' }));
 
             expect(result.body.type).to.equal('error');
-            expect(result.body.message).to.include('Invalid MCP tool');
+            expect(result.body.message).to.include('Invalid operation');
         });
     });
 
@@ -481,19 +481,19 @@ describe('ai-chat/index main handler', () => {
             expect(historyTail.content).to.include('```json');
         });
 
-        it('executes an mcp_operation emitted through a guided tool', async () => {
+        it('executes an studio_operation emitted through a guided tool', async () => {
             sendStub.resolves(
-                guidedToolResponse('emit_mcp_operation', {
-                    mcpTool: 'list_products',
-                    mcpParams: { searchText: 'creative cloud pro' },
+                guidedToolResponse('emit_studio_operation', {
+                    operationName: 'list_products',
+                    operationParams: { searchText: 'creative cloud pro' },
                     message: 'Looking up creative cloud pro in the catalog...',
                 }),
             );
             const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
             expect(result.statusCode).to.equal(200);
-            expect(result.body.type).to.equal('mcp_operation');
-            expect(result.body.mcpTool).to.equal('list_products');
-            expect(result.body.mcpParams.searchText).to.equal('creative cloud pro');
+            expect(result.body.type).to.equal('studio_operation');
+            expect(result.body.operationName).to.equal('list_products');
+            expect(result.body.operationParams.searchText).to.equal('creative cloud pro');
         });
 
         it('stays on the plain text path when NATIVE_GUIDED is off', async () => {

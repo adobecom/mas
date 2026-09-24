@@ -30,15 +30,15 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('id-lookup');
             expect(result.confidence).to.equal(0.99);
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'get_card',
-                mcpParams: { id: UUID },
+                operationName: 'get_card',
+                operationParams: { id: UUID },
             });
         });
 
         it('classifies an embedded UUID', () => {
             const result = classifySearchIntent(`open card ${UUID} please`);
             expect(result.intent).to.equal('id-lookup');
-            expect(result.dispatch.mcpParams.id).to.equal(UUID);
+            expect(result.dispatch.operationParams.id).to.equal(UUID);
         });
 
         it('falls back to unknown when multiple UUIDs are present', () => {
@@ -51,28 +51,28 @@ describe('ai-chat-search-router', () => {
             const result = classifySearchIntent(`find all variations of ${UUID}`);
             expect(result.intent).to.equal('variations-lookup');
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'get_variations',
-                mcpParams: { id: UUID },
+                operationName: 'get_variations',
+                operationParams: { id: UUID },
             });
         });
 
         it('classifies "grouped variations from parent <UUID>" as variations-lookup', () => {
             const result = classifySearchIntent(`Find all grouped variations from parent ${UUID}`);
             expect(result.intent).to.equal('variations-lookup');
-            expect(result.dispatch.mcpTool).to.equal('get_variations');
-            expect(result.dispatch.mcpParams.id).to.equal(UUID);
+            expect(result.dispatch.operationName).to.equal('get_variations');
+            expect(result.dispatch.operationParams.id).to.equal(UUID);
         });
 
         it('falls back to id-lookup for bare UUID (no variations anchor)', () => {
             const result = classifySearchIntent(`open ${UUID}`);
             expect(result.intent).to.equal('id-lookup');
-            expect(result.dispatch.mcpTool).to.equal('get_card');
+            expect(result.dispatch.operationName).to.equal('get_card');
         });
 
         it('classifies "does this card have variations? <UUID>" as variations-lookup', () => {
             const result = classifySearchIntent(`does this card have variations? ${UUID}`);
             expect(result.intent).to.equal('variations-lookup');
-            expect(result.dispatch.mcpTool).to.equal('get_variations');
+            expect(result.dispatch.operationName).to.equal('get_variations');
         });
 
         it('abstains on mutation verbs with a UUID so the model routes them', () => {
@@ -95,18 +95,18 @@ describe('ai-chat-search-router', () => {
             });
             expect(result.intent).to.equal('osi-lookup');
             expect(result.confidence).to.equal(0.95);
-            expect(result.dispatch.mcpTool).to.equal('search_cards');
-            expect(result.dispatch.mcpParams).to.deep.equal({
+            expect(result.dispatch.operationName).to.equal('search_cards');
+            expect(result.dispatch.operationParams).to.deep.equal({
                 osi: REAL_OSI,
                 surface: 'acom',
                 locale: 'en_US',
             });
         });
 
-        it('omits surface from mcpParams when no surface in context', () => {
+        it('omits surface from operationParams when no surface in context', () => {
             const result = classifySearchIntent(`look up cards by osi ${SHORT_OSI}`);
             expect(result.intent).to.equal('osi-lookup');
-            expect(result.dispatch.mcpParams).to.deep.equal({ osi: SHORT_OSI });
+            expect(result.dispatch.operationParams).to.deep.equal({ osi: SHORT_OSI });
         });
 
         it('classifies a bare OSI-shaped token alone (medium confidence)', () => {
@@ -114,7 +114,7 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('osi-lookup');
             expect(result.confidence).to.be.at.least(0.5);
             expect(result.confidence).to.be.below(0.85);
-            expect(result.dispatch.mcpParams.osi).to.equal(REAL_OSI);
+            expect(result.dispatch.operationParams.osi).to.equal(REAL_OSI);
         });
 
         it('does not classify a bare OSI-shaped token inside a sentence', () => {
@@ -130,9 +130,9 @@ describe('ai-chat-search-router', () => {
             });
             expect(result.intent).to.equal('offer-id-lookup');
             expect(result.confidence).to.equal(0.9);
-            expect(result.dispatch.mcpTool).to.equal('search_cards');
-            expect(result.dispatch.mcpParams.osi).to.equal(OFFER_ID);
-            expect(result.dispatch.mcpParams.surface).to.equal('commerce');
+            expect(result.dispatch.operationName).to.equal('search_cards');
+            expect(result.dispatch.operationParams.osi).to.equal(OFFER_ID);
+            expect(result.dispatch.operationParams.surface).to.equal('commerce');
         });
 
         it('does not classify a 32-hex token without offer keyword', () => {
@@ -148,22 +148,22 @@ describe('ai-chat-search-router', () => {
                 currentLocale: 'en_US',
             });
             expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.mcpParams.locale).to.equal('all');
-            expect(result.dispatch.mcpParams.surface).to.equal('acom');
+            expect(result.dispatch.operationParams.locale).to.equal('all');
+            expect(result.dispatch.operationParams.surface).to.equal('acom');
         });
 
         it('sets locale=all when message contains "across all locales"', () => {
             const result = classifySearchIntent('find cards titled "Promo" across all locales', {
                 currentSurface: 'acom',
             });
-            expect(result.dispatch.mcpParams.locale).to.equal('all');
+            expect(result.dispatch.operationParams.locale).to.equal('all');
         });
 
         it('sets locale=all when message contains "across every locale"', () => {
             const result = classifySearchIntent('find cards titled "Promo" across every locale', {
                 currentSurface: 'acom',
             });
-            expect(result.dispatch.mcpParams.locale).to.equal('all');
+            expect(result.dispatch.operationParams.locale).to.equal('all');
         });
 
         it('uses an explicit locale code from the message', () => {
@@ -171,7 +171,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
                 currentLocale: 'en_US',
             });
-            expect(result.dispatch.mcpParams.locale).to.equal('fr_FR');
+            expect(result.dispatch.operationParams.locale).to.equal('fr_FR');
         });
 
         it('falls back to currentLocale when no locale phrasing is present', () => {
@@ -179,7 +179,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
                 currentLocale: 'de_DE',
             });
-            expect(result.dispatch.mcpParams.locale).to.equal('de_DE');
+            expect(result.dispatch.operationParams.locale).to.equal('de_DE');
         });
     });
 
@@ -192,8 +192,8 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('title-search');
             expect(result.confidence).to.equal(0.8);
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'search_cards',
-                mcpParams: {
+                operationName: 'search_cards',
+                operationParams: {
                     query: 'Photoshop plan',
                     surface: 'acom',
                     locale: 'en_US',
@@ -218,7 +218,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.mcpParams.query).to.equal('Promo Q4');
+            expect(result.dispatch.operationParams.query).to.equal('Promo Q4');
         });
 
         it('handles trailing "in <surface>" gracefully', () => {
@@ -226,7 +226,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'sandbox',
             });
             expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.mcpParams.query).to.equal('Promo');
+            expect(result.dispatch.operationParams.query).to.equal('Promo');
         });
 
         it('does NOT misclassify "usages of \\"X\\"" as title-search (real bug)', () => {
@@ -249,7 +249,7 @@ describe('ai-chat-search-router', () => {
                 // It must NOT dispatch a title-search (which always returns 0
                 // for content phrases that don't appear in card titles).
                 if (result.dispatch) {
-                    expect(result.dispatch.mcpParams.titleSearch, `Failed for: ${msg}`).to.not.equal(true);
+                    expect(result.dispatch.operationParams.titleSearch, `Failed for: ${msg}`).to.not.equal(true);
                 }
             }
         });
@@ -259,8 +259,8 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('content-search');
-            expect(result.dispatch.mcpParams.query).to.equal('get 20+ apps');
-            expect(result.dispatch.mcpParams.titleSearch).to.equal(undefined);
+            expect(result.dispatch.operationParams.query).to.equal('get 20+ apps');
+            expect(result.dispatch.operationParams.titleSearch).to.equal(undefined);
         });
 
         it('abstains on "within a card\'s description" (field-scope)', () => {
@@ -276,7 +276,7 @@ describe('ai-chat-search-router', () => {
             // include the description.
             expect(result.intent).to.be.oneOf(['content-search', 'unknown']);
             if (result.dispatch) {
-                expect(result.dispatch.mcpParams.titleSearch).to.not.equal(true);
+                expect(result.dispatch.operationParams.titleSearch).to.not.equal(true);
             }
         });
 
@@ -285,11 +285,11 @@ describe('ai-chat-search-router', () => {
                 'Find all cards with fragment title "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo" in all locales';
             const result = classifySearchIntent(msg, { currentSurface: 'acom' });
             expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.mcpParams.query).to.equal(
+            expect(result.dispatch.operationParams.query).to.equal(
                 'CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo',
             );
-            expect(result.dispatch.mcpParams.titleSearch).to.equal(true);
-            expect(result.dispatch.mcpParams.locale).to.equal('all');
+            expect(result.dispatch.operationParams.titleSearch).to.equal(true);
+            expect(result.dispatch.operationParams.locale).to.equal('all');
         });
     });
 
@@ -302,10 +302,10 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('content-search');
             expect(result.confidence).to.equal(0.8);
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'search_cards',
-                mcpParams: { query: 'firefly', surface: 'acom', locale: 'en_US' },
+                operationName: 'search_cards',
+                operationParams: { query: 'firefly', surface: 'acom', locale: 'en_US' },
             });
-            expect(result.dispatch.mcpParams.titleSearch).to.equal(undefined);
+            expect(result.dispatch.operationParams.titleSearch).to.equal(undefined);
         });
 
         it('handles "find cards mentioning X" phrasing', () => {
@@ -313,7 +313,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('content-search');
-            expect(result.dispatch.mcpParams.query).to.equal('Photoshop');
+            expect(result.dispatch.operationParams.query).to.equal('Photoshop');
         });
 
         it('handles "show all cards with X" phrasing', () => {
@@ -321,7 +321,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('content-search');
-            expect(result.dispatch.mcpParams.query).to.equal('Premium');
+            expect(result.dispatch.operationParams.query).to.equal('Premium');
         });
 
         it('handles "list cards about X" phrasing', () => {
@@ -329,7 +329,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'commerce',
             });
             expect(result.intent).to.equal('content-search');
-            expect(result.dispatch.mcpParams.query).to.equal('firefly');
+            expect(result.dispatch.operationParams.query).to.equal('firefly');
         });
 
         it('asks for surface when none in context for content-search', () => {
@@ -345,7 +345,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('content-search');
-            expect(result.dispatch.mcpParams.locale).to.equal('all');
+            expect(result.dispatch.operationParams.locale).to.equal('all');
         });
     });
 
@@ -358,8 +358,8 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('variant-search');
             expect(result.confidence).to.equal(0.85);
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'search_cards',
-                mcpParams: { variant: 'plans', surface: 'acom', locale: 'en_US' },
+                operationName: 'search_cards',
+                operationParams: { variant: 'plans', surface: 'acom', locale: 'en_US' },
             });
         });
 
@@ -374,7 +374,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+            expect(result.dispatch.operationParams.variant).to.equal('plans');
         });
 
         it('classifies "of type fries" phrasing', () => {
@@ -382,7 +382,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'commerce',
             });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.variant).to.equal('fries');
+            expect(result.dispatch.operationParams.variant).to.equal('fries');
         });
 
         it('matches multi-word dashed variants like plans-students', () => {
@@ -390,13 +390,13 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.variant).to.equal('plans-students');
+            expect(result.dispatch.operationParams.variant).to.equal('plans-students');
         });
 
         it('is case-insensitive on the anchor and the variant', () => {
             const result = classifySearchIntent('TEMPLATE PLANS', { currentSurface: 'acom' });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+            expect(result.dispatch.operationParams.variant).to.equal('plans');
         });
 
         it('asks for surface when no context surface', () => {
@@ -425,8 +425,8 @@ describe('ai-chat-search-router', () => {
         it('does not hijack a title search ("find cards titled Plans")', () => {
             const result = classifySearchIntent('find cards titled Plans', { currentSurface: 'acom' });
             expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.mcpParams.query).to.equal('Plans');
-            expect(result.dispatch.mcpParams.titleSearch).to.equal(true);
+            expect(result.dispatch.operationParams.query).to.equal('Plans');
+            expect(result.dispatch.operationParams.titleSearch).to.equal(true);
         });
 
         it('beats content-search when the message ends with a template anchor ("find cards with Plans template")', () => {
@@ -435,13 +435,13 @@ describe('ai-chat-search-router', () => {
             // phrase. The variant detector must win for this phrasing.
             const result = classifySearchIntent('find cards with Plans template', { currentSurface: 'acom' });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+            expect(result.dispatch.operationParams.variant).to.equal('plans');
         });
 
         it('beats content-search for "show cards with the Plans template"', () => {
             const result = classifySearchIntent('show cards with the Plans template', { currentSurface: 'acom' });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+            expect(result.dispatch.operationParams.variant).to.equal('plans');
         });
 
         it('honors trailing "in <surface>" as an override of currentSurface', () => {
@@ -449,13 +449,13 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'sandbox',
             });
             expect(result.intent).to.equal('variant-search');
-            expect(result.dispatch.mcpParams.surface).to.equal('commerce');
-            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+            expect(result.dispatch.operationParams.surface).to.equal('commerce');
+            expect(result.dispatch.operationParams.variant).to.equal('plans');
         });
 
         it('falls back to currentSurface when no trailing "in <surface>"', () => {
             const result = classifySearchIntent('find cards with Plans template', { currentSurface: 'sandbox' });
-            expect(result.dispatch.mcpParams.surface).to.equal('sandbox');
+            expect(result.dispatch.operationParams.surface).to.equal('sandbox');
         });
 
         it('still asks for surface slot-fill when trailing in <unknown>', () => {
@@ -478,13 +478,13 @@ describe('ai-chat-search-router', () => {
             ];
             for (const msg of inputs) {
                 const result = classifySearchIntent(msg, { currentSurface: 'sandbox' });
-                expect(result.dispatch?.mcpParams?.surface, `Failed for: ${msg}`).to.equal('acom');
+                expect(result.dispatch?.operationParams?.surface, `Failed for: ${msg}`).to.equal('acom');
             }
         });
 
         it('honors trailing "in <SURFACE>" in any case', () => {
             const result = classifySearchIntent('find cards with Plans template in ACOM', { currentSurface: 'sandbox' });
-            expect(result.dispatch.mcpParams.surface).to.equal('acom');
+            expect(result.dispatch.operationParams.surface).to.equal('acom');
         });
     });
 
@@ -495,7 +495,7 @@ describe('ai-chat-search-router', () => {
             });
             expect(result.intent).to.equal('title-search');
             expect(result.confidence).to.be.at.least(0.85);
-            expect(result.dispatch.mcpParams.query).to.equal('Photoshop plan');
+            expect(result.dispatch.operationParams.query).to.equal('Photoshop plan');
         });
 
         it('classifies a quoted title with the noun "cards"', () => {
@@ -503,7 +503,7 @@ describe('ai-chat-search-router', () => {
                 currentSurface: 'acom',
             });
             expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.mcpParams.query).to.equal('Premium tier');
+            expect(result.dispatch.operationParams.query).to.equal('Premium tier');
         });
 
         it('does not classify a casual quoted phrase without anchor', () => {
@@ -529,8 +529,8 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('title-search');
             expect(result.missingSlot).to.equal(null);
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'search_cards',
-                mcpParams: {
+                operationName: 'search_cards',
+                operationParams: {
                     query: 'Promo Q4',
                     surface: 'acom',
                     locale: 'en_US',
@@ -541,7 +541,7 @@ describe('ai-chat-search-router', () => {
 
         it('normalizes case and whitespace on the surface reply', () => {
             const result = resumeWithSlot('  ACOM ', pendingTitleSearch);
-            expect(result.dispatch.mcpParams.surface).to.equal('acom');
+            expect(result.dispatch.operationParams.surface).to.equal('acom');
         });
 
         it('completes a content-search dispatch (no titleSearch flag)', () => {
@@ -555,10 +555,10 @@ describe('ai-chat-search-router', () => {
             const result = resumeWithSlot('acom', pendingContent);
             expect(result.intent).to.equal('content-search');
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'search_cards',
-                mcpParams: { query: 'firefly', surface: 'acom', locale: 'en_US' },
+                operationName: 'search_cards',
+                operationParams: { query: 'firefly', surface: 'acom', locale: 'en_US' },
             });
-            expect(result.dispatch.mcpParams.titleSearch).to.equal(undefined);
+            expect(result.dispatch.operationParams.titleSearch).to.equal(undefined);
         });
 
         it('returns unknown for an unrecognized reply', () => {
@@ -588,8 +588,8 @@ describe('ai-chat-search-router', () => {
             const result = resumeWithSlot('acom', pendingVariant);
             expect(result.intent).to.equal('variant-search');
             expect(result.dispatch).to.deep.equal({
-                mcpTool: 'search_cards',
-                mcpParams: { variant: 'plans', surface: 'acom', locale: 'en_US' },
+                operationName: 'search_cards',
+                operationParams: { variant: 'plans', surface: 'acom', locale: 'en_US' },
             });
         });
     });
@@ -679,7 +679,7 @@ describe('ai-chat-search-router', () => {
             // Either abstains entirely, OR dispatches a clean (no-quote) query
             // — but never dispatches a query containing an unbalanced quote.
             if (result.dispatch) {
-                const q = result.dispatch.mcpParams.query;
+                const q = result.dispatch.operationParams.query;
                 expect((q.match(/"/g) || []).length % 2, `Odd quote count in: ${q}`).to.equal(0);
             }
         });
@@ -817,7 +817,7 @@ describe('ai-chat-search-router', () => {
         it('handles a UUID inside a markdown link', () => {
             const result = classifySearchIntent(`[card](https://example.com/${UUID})`);
             expect(result.intent).to.equal('id-lookup');
-            expect(result.dispatch.mcpParams.id).to.equal(UUID);
+            expect(result.dispatch.operationParams.id).to.equal(UUID);
         });
 
         it('returns unknown when a 32-hex looks like a hash but no offer keyword', () => {

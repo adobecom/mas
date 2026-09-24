@@ -88,28 +88,28 @@ describe('MasChat renders products before the follow-up turn', () => {
 
     it('ignores a follow-up that just re-issues the lookup we already ran', async () => {
         sinon.stub(el, 'callAIChatAction').resolves({
-            type: 'mcp_operation',
-            mcpTool: 'list_products',
-            mcpParams: {},
+            type: 'studio_operation',
+            operationName: 'list_products',
+            operationParams: {},
             message: 'Here are the products from the catalog:',
         });
 
         await el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
 
-        expect(el.messages.some((m) => m.mcpOperation?.mcpTool === 'list_products')).to.equal(false);
+        expect(el.messages.some((m) => m.studioOperation?.operationName === 'list_products')).to.equal(false);
         expect(cardMessages(el)).to.have.length(1);
     });
 
     it('keeps a follow-up that moves the chain forward', async () => {
         sinon.stub(el, 'callAIChatAction').resolves({
-            type: 'mcp_operation',
-            mcpTool: 'search_offers',
-            mcpParams: { arrangementCode: 'phsp_direct_individual' },
+            type: 'studio_operation',
+            operationName: 'search_offers',
+            operationParams: { arrangementCode: 'phsp_direct_individual' },
             message: 'Searching offers...',
         });
 
         await el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
 
-        expect(el.messages.some((m) => m.mcpOperation?.mcpTool === 'search_offers')).to.equal(true);
+        expect(el.messages.some((m) => m.studioOperation?.operationName === 'search_offers')).to.equal(true);
     });
 });

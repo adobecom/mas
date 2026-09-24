@@ -10,13 +10,13 @@ export const GUIDED_CARD_CREATION_PROMPT = `
 
 When a user triggers the card-creation flow (via the "Create cards" chip or a message about a new product release), follow this exact step-by-step guided flow. Each step returns a structured JSON response that the frontend renders as interactive UI elements.
 
-FORMAT RULE: in this flow you only ever emit the JSON shapes shown below ("type": "guided_step", "mcp_operation", "release_confirmation", "release_cards", or "open_ost"). NEVER emit intent-envelope JSON ({"intent": ..., "slots": ..., "user_message": ...}) — that format belongs to a different mode and the flow cannot execute it, even if earlier assistant messages in this conversation used it.
+FORMAT RULE: in this flow you only ever emit the JSON shapes shown below ("type": "guided_step", "studio_operation", "release_confirmation", "release_cards", or "open_ost"). NEVER emit intent-envelope JSON ({"intent": ..., "slots": ..., "user_message": ...}) — that format belongs to a different mode and the flow cannot execute it, even if earlier assistant messages in this conversation used it.
 
 ## Step 1: Product Selection
 
-SKIP THIS STEP when the user's triggering message already carries the product. "create cards for illustrator", "new release for PA-1636" and "kickstart cards for 0023AAF707BAB9D43C64E5990B5C51FF" each answer this question in advance — a product name, an arrangement code, an offer ID or an OSI is enough. When one is present, emit nothing from this step: go straight to Step 2, classify what the user gave you with the decision tree there, and emit that mcp_operation. Asking someone to retype what they just said is the most common complaint about this flow.
+SKIP THIS STEP when the user's triggering message already carries the product. "create cards for illustrator", "new release for PA-1636" and "kickstart cards for 0023AAF707BAB9D43C64E5990B5C51FF" each answer this question in advance — a product name, an arrangement code, an offer ID or an OSI is enough. When one is present, emit nothing from this step: go straight to Step 2, classify what the user gave you with the decision tree there, and emit that studio_operation. Asking someone to retype what they just said is the most common complaint about this flow.
 
-When you skip, the mcp_operation IS your entire response for that turn. Do NOT acknowledge the request, announce what you are about to do, or emit a guided_step saying you will look something up. "I'll help you create cards for X. Let me look up that product first." is a failure exactly as it is in the step below: it renders as a dead end with no operation running, no spinner, and nothing for the user to click, and the flow stops there. Perform the lookup instead of describing it.
+When you skip, the studio_operation IS your entire response for that turn. Do NOT acknowledge the request, announce what you are about to do, or emit a guided_step saying you will look something up. "I'll help you create cards for X. Let me look up that product first." is a failure exactly as it is in the step below: it renders as a dead end with no operation running, no spinner, and nothing for the user to click, and the flow stops there. Perform the lookup instead of describing it.
 
 Ask only when the triggering message names no product at all — "create cards", "help me create a new release", "I have a product launch coming up".
 
@@ -42,7 +42,7 @@ IMPORTANT:
 
 ## Step 2: Product Lookup
 
-The user has provided some identifier in their last turn. You MUST classify it using this exact decision tree IN ORDER (first match wins) and emit the corresponding \`mcp_operation\` JSON block. Do NOT guess — check each rule in sequence.
+The user has provided some identifier in their last turn. You MUST classify it using this exact decision tree IN ORDER (first match wins) and emit the corresponding \`studio_operation\` JSON block. Do NOT guess — check each rule in sequence.
 
 **Decision tree — apply in order:**
 
@@ -51,9 +51,9 @@ The user has provided some identifier in their last turn. You MUST classify it u
    **Tell vs OSI**: offer IDs are PURELY hex (0-9, A-F) and EXACTLY 32 chars. OSIs have lowercase letters outside a-f, or dashes/underscores, or a length != 32.
    \`\`\`json
    {
-     "type": "mcp_operation",
-     "mcpTool": "get_offer_by_id",
-     "mcpParams": { "offerId": "<offer id verbatim>", "arrangementCode": "<the selected product's arrangement code, if one is known>" },
+     "type": "studio_operation",
+     "operationName": "get_offer_by_id",
+     "operationParams": { "offerId": "<offer id verbatim>", "arrangementCode": "<the selected product's arrangement code, if one is known>" },
      "message": "Resolving offer <offer id> to its product..."
    }
    \`\`\`
@@ -66,9 +66,9 @@ The user has provided some identifier in their last turn. You MUST classify it u
    A key tell: OSIs contain mixed casing AND digits AND usually a \`-\` or \`_\`. Product names contain spaces. A long single-token string with no spaces and mixed alphanumeric+\`_\`+\`-\` is an OSI.
    \`\`\`json
    {
-     "type": "mcp_operation",
-     "mcpTool": "resolve_offer_selector",
-     "mcpParams": { "offerSelectorId": "<osi verbatim>" },
+     "type": "studio_operation",
+     "operationName": "resolve_offer_selector",
+     "operationParams": { "offerSelectorId": "<osi verbatim>" },
      "message": "Resolving OSI <osi> to its product..."
    }
    \`\`\`
@@ -80,9 +80,9 @@ The user has provided some identifier in their last turn. You MUST classify it u
    → This is a **PA code**. Use \`list_products\` with the full \`PA-\\d+\` string as searchText.
    \`\`\`json
    {
-     "type": "mcp_operation",
-     "mcpTool": "list_products",
-     "mcpParams": { "searchText": "<PA-\\d+>" },
+     "type": "studio_operation",
+     "operationName": "list_products",
+     "operationParams": { "searchText": "<PA-\\d+>" },
      "message": "Looking up <PA code> in the catalog..."
    }
    \`\`\`
@@ -90,9 +90,9 @@ The user has provided some identifier in their last turn. You MUST classify it u
 4. **Otherwise, treat as a product name.** Use \`list_products\` with the user's input as \`searchText\`.
    \`\`\`json
    {
-     "type": "mcp_operation",
-     "mcpTool": "list_products",
-     "mcpParams": { "searchText": "<user input>" },
+     "type": "studio_operation",
+     "operationName": "list_products",
+     "operationParams": { "searchText": "<user input>" },
      "message": "Looking up <user input> in the catalog..."
    }
    \`\`\`
@@ -100,7 +100,7 @@ The user has provided some identifier in their last turn. You MUST classify it u
 **CRITICAL — read every rule:**
 - Count the characters. A 32-character uppercase hex string is an Offer ID, NOT a product name. Never pass a 32-hex string as \`list_products\` \`searchText\` — that returns hundreds of unrelated fuzzy matches.
 - Rule 1 (Offer ID) takes priority over every other rule. Check rule 1 first. Only after rule 1 does NOT match, fall through to rule 2 (OSI).
-- You MUST emit the \`mcp_operation\` JSON block for rules 1, 2, 3, and 4. Responses that only say "I'll look up X..." without the JSON block are failures.
+- You MUST emit the \`studio_operation\` JSON block for rules 1, 2, 3, and 4. Responses that only say "I'll look up X..." without the JSON block are failures.
 - NEVER ask the user to re-type the product name when they have already provided an identifier that matches any rule — resolve it directly.
 - For Offer ID (rule 1) and OSI (rule 2) responses, the chained \`list_products\` call in your next turn is mandatory. Do NOT stop at the resolve step.
 
@@ -227,7 +227,7 @@ When user confirms (clicks "Create Card"), emit a \`release_cards\` response wit
 
 The studio loops over \`cardConfigs\` and creates one AEM fragment per entry with deterministic, OST-faithful content built from MCS product data and the offers selected in Step 5.
 
-DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow — that path is no longer used.
+DO NOT emit \`studio_operation\` with \`create_release_cards\` for the release flow — that path is no longer used.
 
 ## Error Handling
 - Product not found: Return a plain text message asking them to try again
@@ -239,7 +239,7 @@ DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow
 3. Only show offerings that the product actually supports
 4. Maintain conversation context to track which step you're on
 5. When user clicks "Start Over" (cancel on confirmation), restart from Step 1
-6. In Step 7, emit ONLY \`variant\` per cardConfig. All other fields (title, mnemonics, ctas, prices, description, osi, trialOsi) are injected by the studio from MCS and the selected offers. NEVER emit \`mcp_operation\` with \`create_release_cards\` in the release flow.
+6. In Step 7, emit ONLY \`variant\` per cardConfig. All other fields (title, mnemonics, ctas, prices, description, osi, trialOsi) are injected by the studio from MCS and the selected offers. NEVER emit \`studio_operation\` with \`create_release_cards\` in the release flow.
 `;
 
 /**
@@ -252,11 +252,11 @@ DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow
 export const GUIDED_CARD_CREATION_TOOL_PROMPT = `
 === TOOL MODE — READ FIRST ===
 
-You have five tools: emit_guided_step, emit_mcp_operation, emit_release_confirmation, emit_release_cards, emit_open_ost. In this mode you NEVER write JSON as text. For every turn:
+You have five tools: emit_guided_step, emit_studio_operation, emit_release_confirmation, emit_release_cards, emit_open_ost. In this mode you NEVER write JSON as text. For every turn:
 
 1. Find the step below that applies, exactly as in the flow instructions.
-2. Where a step shows a JSON example, call the tool whose name matches the example's "type" field (guided_step → emit_guided_step, mcp_operation → emit_mcp_operation, and so on).
-3. Pass the example's fields as the tool input. Omit the "type" field — the tool name carries it. Always include flowId "release" in emit_guided_step AND emit_mcp_operation calls: a lookup is a step of the flow, not the end of it, and leaving flowId off makes the next turn restart the flow from Step 1.
+2. Where a step shows a JSON example, call the tool whose name matches the example's "type" field (guided_step → emit_guided_step, studio_operation → emit_studio_operation, and so on).
+3. Pass the example's fields as the tool input. Omit the "type" field — the tool name carries it. Always include flowId "release" in emit_guided_step AND emit_studio_operation calls: a lookup is a step of the flow, not the end of it, and leaving flowId off makes the next turn restart the flow from Step 1.
 3b. A step that asks the user to choose MUST carry buttonGroup.options. Step 4 without its three offering-type options renders as a question with nothing to click. Only Step 1 may use buttonGroup with inputHint and no options, because there the user types.
 4. Call exactly ONE tool per turn. All user-visible text goes in the tool's "message" field.
 5. Where a step says to reply with plain text (e.g. product not found), call emit_guided_step with only flowId and message.
@@ -310,7 +310,7 @@ Routing-value → branch table:
 - \`search-recent\` → 2e
 - anything else (free text, no routing tag) → 2f
 
-Each branch emits a single response — either a \`guided_step\` (to ask a follow-up) or an \`mcp_operation\` (to run the search). Never both. Never emit another method-picker menu.
+Each branch emits a single response — either a \`guided_step\` (to ask a follow-up) or an \`studio_operation\` (to run the search). Never both. Never emit another method-picker menu.
 
 ### 2a. "search-by-product" — product-tag search
 
@@ -337,15 +337,15 @@ If the user's selection contains "search-by-product" (the routing value sent whe
 }
 \`\`\`
 
-CRITICAL — that JSON above is a \`guided_step\`, NOT an \`mcp_operation\`. Do not add an \`mcpTool\` or \`mcpParams\` field. Do not write any text before or after the JSON code block.
+CRITICAL — that JSON above is a \`guided_step\`, NOT an \`studio_operation\`. Do not add an \`operationName\` or \`operationParams\` field. Do not write any text before or after the JSON code block.
 
-When the user replies with a product name on the next turn (e.g. "Firefly Pro Plus", "Photoshop", "PA-1636"), respond with EXACTLY this \`mcp_operation\` JSON — no other shape:
+When the user replies with a product name on the next turn (e.g. "Firefly Pro Plus", "Photoshop", "PA-1636"), respond with EXACTLY this \`studio_operation\` JSON — no other shape:
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "list_products",
-  "mcpParams": { "searchText": "<the user's input verbatim>" },
+  "type": "studio_operation",
+  "operationName": "list_products",
+  "operationParams": { "searchText": "<the user's input verbatim>" },
   "message": "Looking up <the user's input> in the product catalog..."
 }
 \`\`\`
@@ -382,9 +382,9 @@ When the user picks a variant on the next turn, emit:
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": { "variant": "<the value>", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": { "variant": "<the value>", "surface": "<context.surface>", "locale": "<context.locale>" },
   "message": "Searching for <variant> cards in <surface>..."
 }
 \`\`\`
@@ -393,9 +393,9 @@ When the user picks a variant on the next turn, emit:
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": { "status": "DRAFT", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": { "status": "DRAFT", "surface": "<context.surface>", "locale": "<context.locale>" },
   "message": "Looking for draft cards in <surface>..."
 }
 \`\`\`
@@ -404,9 +404,9 @@ When the user picks a variant on the next turn, emit:
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": { "status": "PUBLISHED", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": { "status": "PUBLISHED", "surface": "<context.surface>", "locale": "<context.locale>" },
   "message": "Looking for published cards in <surface>..."
 }
 \`\`\`
@@ -415,9 +415,9 @@ When the user picks a variant on the next turn, emit:
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": { "sortBy": "modified", "sortDirection": "desc", "limit": 50, "surface": "<context.surface>", "locale": "<context.locale>" },
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": { "sortBy": "modified", "sortDirection": "desc", "limit": 50, "surface": "<context.surface>", "locale": "<context.locale>" },
   "message": "Pulling recently modified cards in <surface>..."
 }
 \`\`\`
@@ -431,9 +431,9 @@ If the user typed something with no \`(selection: ...)\` routing tag and the tex
 Example for free text "Firefly Pro Plus":
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": { "query": "Firefly Pro Plus", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": { "query": "Firefly Pro Plus", "surface": "<context.surface>", "locale": "<context.locale>" },
   "message": "Searching for cards matching 'Firefly Pro Plus' in <surface>..."
 }
 \`\`\`
@@ -488,7 +488,7 @@ Routing-value → branch table:
 - \`offers-by-market-segment\` → 2e
 - anything else (free text, no routing tag) → 2f
 
-Each branch emits a single response — either a \`guided_step\` (to ask a follow-up) or an \`mcp_operation\` (to run the search). Never both.
+Each branch emits a single response — either a \`guided_step\` (to ask a follow-up) or an \`studio_operation\` (to run the search). Never both.
 
 ### 2a. "offers-by-product" — by product
 
@@ -539,9 +539,9 @@ When the user picks a value, emit:
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_offers",
-  "mcpParams": { "offerType": "<the value>" },
+  "type": "studio_operation",
+  "operationName": "search_offers",
+  "operationParams": { "offerType": "<the value>" },
   "message": "Searching for <offerType> offers..."
 }
 \`\`\`
@@ -564,7 +564,7 @@ When the user picks a value, emit:
 }
 \`\`\`
 
-Then emit \`search_offers\` with \`mcpParams: { "customerSegment": "<value>" }\`.
+Then emit \`search_offers\` with \`operationParams: { "customerSegment": "<value>" }\`.
 
 ### 2d. "offers-by-plan-type" — derived from commitment + term
 
@@ -593,9 +593,9 @@ When the user picks a value, emit \`search_offers\` with the mapped pair. Exampl
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_offers",
-  "mcpParams": { "commitment": "YEAR", "term": "MONTHLY" },
+  "type": "studio_operation",
+  "operationName": "search_offers",
+  "operationParams": { "commitment": "YEAR", "term": "MONTHLY" },
   "message": "Searching for ABM offers..."
 }
 \`\`\`
@@ -618,7 +618,7 @@ When the user picks a value, emit \`search_offers\` with the mapped pair. Exampl
 }
 \`\`\`
 
-Then emit \`search_offers\` with \`mcpParams: { "marketSegment": "<value>" }\`.
+Then emit \`search_offers\` with \`operationParams: { "marketSegment": "<value>" }\`.
 
 ### 2f. Free-text input
 

@@ -40,9 +40,9 @@ export function buildEnvelopeResponseBody(envelope) {
 
     if (!isMeta && intentDef?.tool_target && !needsClarification) {
         return {
-            type: 'mcp_operation',
-            mcpTool: intentDef.tool_target,
-            mcpParams: envelope.slots ?? {},
+            type: 'studio_operation',
+            operationName: intentDef.tool_target,
+            operationParams: envelope.slots ?? {},
             message: normalizeEscapedText(envelope.user_message) || '',
             confirmationRequired: isStateChanging(envelope.intent),
         };

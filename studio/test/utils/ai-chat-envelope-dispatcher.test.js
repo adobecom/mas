@@ -36,12 +36,12 @@ describe('ai-chat envelope dispatcher', () => {
         });
 
         it('routes a plain state-changing intent through the confirmation gate', () => {
-            expect(classifyEnvelopeIntent({ intent: 'publish_card' })).to.equal('mcp-state-changing');
-            expect(classifyEnvelopeIntent({ intent: 'create_locale_variation' })).to.equal('mcp-state-changing');
+            expect(classifyEnvelopeIntent({ intent: 'publish_card' })).to.equal('operation-state-changing');
+            expect(classifyEnvelopeIntent({ intent: 'create_locale_variation' })).to.equal('operation-state-changing');
         });
 
         it('treats anything else as a read-only MCP call', () => {
-            expect(classifyEnvelopeIntent({ intent: 'search_cards' })).to.equal('mcp-readonly');
+            expect(classifyEnvelopeIntent({ intent: 'search_cards' })).to.equal('operation-readonly');
         });
 
         it('does not throw on a malformed envelope', () => {
@@ -77,10 +77,10 @@ describe('ai-chat envelope dispatcher', () => {
         });
 
         it('keys every confirmation template to an intent that reaches the gate', () => {
-            // A template only renders for an intent classified mcp-state-changing.
+            // A template only renders for an intent classified operation-state-changing.
             // Any other key is dead, whether by typo or by routing.
             const orphaned = [...STATE_CHANGING_INTENTS].filter(
-                (intent) => classifyEnvelopeIntent({ intent }) !== 'mcp-state-changing',
+                (intent) => classifyEnvelopeIntent({ intent }) !== 'operation-state-changing',
             );
             expect(orphaned, `state-changing intents that never reach the gate: ${orphaned.join(', ')}`).to.deep.equal([]);
 

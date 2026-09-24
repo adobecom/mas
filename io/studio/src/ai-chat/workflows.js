@@ -12,7 +12,7 @@
 
 export const WORKFLOWS_LIST = `=== AVAILABLE WORKFLOWS ===
 
-operations    = run MCP tools on existing cards/offers/products. Use for: search, find, list, show, get, publish, unpublish, delete, copy, update, edit cards or offers; lookups by ID/OSI/PA code; tag/variant/locale filtering. Also for "create" requests when MCS data is needed (route to operations so create_release_cards is available).
+operations    = run operations on existing cards/offers/products. Use for: search, find, list, show, get, publish, unpublish, delete, copy, update, edit cards or offers; lookups by ID/OSI/PA code; tag/variant/locale filtering. Also for "create" requests when MCS data is needed (route to operations so create_release_cards is available).
 
 documentation = explain MAS concepts, troubleshoot, point to wiki/Slack. Use for: "what is X", "how do I Y", "why does Z fail", "explain", "troubleshoot", platform-architecture questions. NOT for action requests.
 

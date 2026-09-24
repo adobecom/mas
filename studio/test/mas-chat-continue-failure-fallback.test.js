@@ -29,7 +29,7 @@ const RAW = [
     },
 ];
 
-describe('MasChat continueWithMCPResult failure fallback', () => {
+describe('MasChat continueWithOperationResult failure fallback', () => {
     let el;
 
     beforeEach(async () => {
@@ -45,7 +45,7 @@ describe('MasChat continueWithMCPResult failure fallback', () => {
     });
 
     it('still shows the products when the follow-up call fails', async () => {
-        await el.continueWithMCPResult('list_products', { products: RAW });
+        await el.continueWithOperationResult('list_products', { products: RAW });
 
         const withCards = el.messages.find((m) => m.productCards?.length);
         expect(withCards, 'the fetched products should still be rendered').to.not.equal(undefined);
@@ -53,7 +53,7 @@ describe('MasChat continueWithMCPResult failure fallback', () => {
     });
 
     it('still reports that the follow-up did not complete', async () => {
-        await el.continueWithMCPResult('list_products', { products: RAW });
+        await el.continueWithOperationResult('list_products', { products: RAW });
 
         const error = el.messages.find((m) => m.role === 'error');
         expect(error).to.not.equal(undefined);
@@ -61,7 +61,7 @@ describe('MasChat continueWithMCPResult failure fallback', () => {
     });
 
     it('shows the products before the error, so the useful part reads first', async () => {
-        await el.continueWithMCPResult('list_products', { products: RAW });
+        await el.continueWithOperationResult('list_products', { products: RAW });
 
         const cardsAt = el.messages.findIndex((m) => m.productCards?.length);
         const errorAt = el.messages.findIndex((m) => m.role === 'error');
@@ -69,7 +69,7 @@ describe('MasChat continueWithMCPResult failure fallback', () => {
     });
 
     it('clears the loading state on failure', async () => {
-        await el.continueWithMCPResult('list_products', { products: RAW });
+        await el.continueWithOperationResult('list_products', { products: RAW });
 
         expect(el.isLoading).to.equal(false);
     });

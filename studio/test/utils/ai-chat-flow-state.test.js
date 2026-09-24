@@ -10,7 +10,7 @@ import {
 const dispatchResult = (confidence) => ({
     intent: 'id-lookup',
     confidence,
-    dispatch: { mcpTool: 'get_card', mcpParams: { id: 'frag-1' } },
+    dispatch: { operationName: 'get_card', operationParams: { id: 'frag-1' } },
     missingSlot: null,
 });
 
@@ -53,7 +53,7 @@ describe('ai-chat-flow-state', () => {
 
     describe('nextGuidedFlowState', () => {
         it('clears the flow on every terminal response type', () => {
-            for (const type of ['mcp_operation', 'card', 'message', 'operation']) {
+            for (const type of ['studio_operation', 'card', 'message', 'operation']) {
                 const next = nextGuidedFlowState({ flow: 'guided_search', turns: 2 }, type);
                 expect(next).to.deep.equal({ flow: null, turns: 0 });
             }

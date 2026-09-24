@@ -30,7 +30,7 @@ const product = (i) => ({
     },
 });
 
-describe('MasChat continueWithMCPResult payload', () => {
+describe('MasChat continueWithOperationResult payload', () => {
     let el;
     let sendStub;
 
@@ -49,7 +49,7 @@ describe('MasChat continueWithMCPResult payload', () => {
     const sentBody = () => sendStub.firstCall.args[0];
 
     it('omits icon urls, descriptions and the misc blob the model cannot act on', async () => {
-        await el.continueWithMCPResult('list_products', { products: [product(1)] });
+        await el.continueWithOperationResult('list_products', { products: [product(1)] });
 
         const { message } = sentBody();
         expect(message).to.not.include('https://example.com');
@@ -59,7 +59,7 @@ describe('MasChat continueWithMCPResult payload', () => {
     });
 
     it('keeps the name and arrangement code the model chooses between', async () => {
-        await el.continueWithMCPResult('list_products', { products: [product(1)] });
+        await el.continueWithOperationResult('list_products', { products: [product(1)] });
 
         const { message } = sentBody();
         expect(message).to.include('Adobe Product 1');
@@ -67,7 +67,7 @@ describe('MasChat continueWithMCPResult payload', () => {
     });
 
     it('does not repeat the summary in both the message and the history', async () => {
-        await el.continueWithMCPResult('list_products', { products: [product(1), product(2)] });
+        await el.continueWithOperationResult('list_products', { products: [product(1), product(2)] });
 
         const { message, conversationHistory } = sentBody();
         const repeats = conversationHistory.filter((turn) => turn.content === message).length;
@@ -77,7 +77,7 @@ describe('MasChat continueWithMCPResult payload', () => {
     it('keeps twenty products small enough to survive the action budget', async () => {
         const products = Array.from({ length: 20 }, (unused, i) => product(i));
 
-        await el.continueWithMCPResult('list_products', { products });
+        await el.continueWithOperationResult('list_products', { products });
 
         const { message } = sentBody();
         expect(message).to.include('Adobe Product 0');
@@ -89,7 +89,7 @@ describe('MasChat continueWithMCPResult payload', () => {
     it('still reports how many products were left out', async () => {
         const products = Array.from({ length: 25 }, (unused, i) => product(i));
 
-        await el.continueWithMCPResult('list_products', { products });
+        await el.continueWithOperationResult('list_products', { products });
 
         expect(sentBody().message).to.include('5 more');
     });

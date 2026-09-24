@@ -14,7 +14,7 @@ describe('ai-chat/operations-handler', () => {
         handleOperation = mod.handleOperation;
     });
 
-    describe('registry-derived MCP tool allowlist', () => {
+    describe('registry-derived operation allowlist', () => {
         const LEGACY_HARDCODED_TOOLS = [
             'publish_card',
             'get_card',
@@ -35,14 +35,14 @@ describe('ai-chat/operations-handler', () => {
         // registry with the seven translation intents, and the allowlist is
         // derived from the registry, so it is gone from here too.
 
-        function toolNameVerdict(mcpTool) {
-            const result = validateOperation({ type: 'mcp_operation', mcpTool, mcpParams: { any: true } });
+        function toolNameVerdict(operationName) {
+            const result = validateOperation({ type: 'studio_operation', operationName, operationParams: { any: true } });
             return result.error ?? '';
         }
 
         it('keeps accepting every tool from the previous hardcoded list', () => {
             for (const tool of LEGACY_HARDCODED_TOOLS) {
-                expect(toolNameVerdict(tool), tool).to.not.include('Invalid MCP tool');
+                expect(toolNameVerdict(tool), tool).to.not.include('Invalid operation');
             }
         });
 
@@ -59,12 +59,12 @@ describe('ai-chat/operations-handler', () => {
             ];
             expect(REGISTRY_ONLY_TOOLS.length, 'this test is worthless with an empty list').to.be.above(0);
             for (const tool of REGISTRY_ONLY_TOOLS) {
-                expect(toolNameVerdict(tool), tool).to.not.include('Invalid MCP tool');
+                expect(toolNameVerdict(tool), tool).to.not.include('Invalid operation');
             }
         });
 
         it('still rejects tools that exist nowhere', () => {
-            expect(toolNameVerdict('totally_fake_tool')).to.include('Invalid MCP tool');
+            expect(toolNameVerdict('totally_fake_tool')).to.include('Invalid operation');
         });
     });
 
@@ -75,22 +75,22 @@ describe('ai-chat/operations-handler', () => {
             expect(parseOperationRequest(undefined)).to.equal(null);
         });
 
-        it('parses a JSON code block containing an MCP operation', () => {
-            const text = '```json\n{"type":"mcp_operation","mcpTool":"publish_card","mcpParams":{"id":"frag-1"}}\n```';
+        it('parses a JSON code block containing an operation', () => {
+            const text = '```json\n{"type":"studio_operation","operationName":"publish_card","operationParams":{"id":"frag-1"}}\n```';
             const result = parseOperationRequest(text);
             expect(result).to.not.equal(null);
-            expect(result.type).to.equal('mcp_operation');
-            expect(result.mcpTool).to.equal('publish_card');
-            expect(result.mcpParams.id).to.equal('frag-1');
+            expect(result.type).to.equal('studio_operation');
+            expect(result.operationName).to.equal('publish_card');
+            expect(result.operationParams.id).to.equal('frag-1');
         });
 
-        it('parses a raw JSON object containing an MCP operation', () => {
+        it('parses a raw JSON object containing an operation', () => {
             const text =
-                'Here is the operation: {"type":"mcp_operation","mcpTool":"get_card","mcpParams":{"id":"frag-2"}} done.';
+                'Here is the operation: {"type":"studio_operation","operationName":"get_card","operationParams":{"id":"frag-2"}} done.';
             const result = parseOperationRequest(text);
             expect(result).to.not.equal(null);
-            expect(result.type).to.equal('mcp_operation');
-            expect(result.mcpTool).to.equal('get_card');
+            expect(result.type).to.equal('studio_operation');
+            expect(result.operationName).to.equal('get_card');
         });
 
         it('returns null for legacy {operation: "publish"} format (no longer supported, audit M9)', () => {
@@ -104,7 +104,7 @@ describe('ai-chat/operations-handler', () => {
         });
 
         it('rejects oversized input to prevent ReDoS (returns null in <500ms)', () => {
-            const adversarial = `${'{'.repeat(70 * 1024)}"type": "mcp_operation"`;
+            const adversarial = `${'{'.repeat(70 * 1024)}"type": "studio_operation"`;
             const start = Date.now();
             const result = parseOperationRequest(adversarial);
             const duration = Date.now() - start;
@@ -114,13 +114,13 @@ describe('ai-chat/operations-handler', () => {
 
         it('handles a long valid input under the size cap without backtracking explosion', () => {
             const padding = 'x'.repeat(10 * 1024);
-            const text = `${padding}\n{"type":"mcp_operation","mcpTool":"search_cards","mcpParams":{"query":"test"}}\n${padding}`;
+            const text = `${padding}\n{"type":"studio_operation","operationName":"search_cards","operationParams":{"query":"test"}}\n${padding}`;
             const start = Date.now();
             const result = parseOperationRequest(text);
             const duration = Date.now() - start;
             expect(duration).to.be.lessThan(500);
             expect(result).to.not.equal(null);
-            expect(result.mcpTool).to.equal('search_cards');
+            expect(result.operationName).to.equal('search_cards');
         });
     });
 
@@ -130,34 +130,34 @@ describe('ai-chat/operations-handler', () => {
             expect(validateOperation(undefined).valid).to.equal(false);
         });
 
-        it('accepts a valid MCP operation', () => {
+        it('accepts a valid operation', () => {
             const result = validateOperation({
-                type: 'mcp_operation',
-                mcpTool: 'publish_card',
-                mcpParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
+                type: 'studio_operation',
+                operationName: 'publish_card',
+                operationParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             });
             expect(result.valid).to.equal(true);
         });
 
-        it('rejects MCP operation with invalid tool name', () => {
+        it('rejects operation with invalid tool name', () => {
             const result = validateOperation({
-                type: 'mcp_operation',
-                mcpTool: 'evil_tool',
-                mcpParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
+                type: 'studio_operation',
+                operationName: 'evil_tool',
+                operationParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             });
             expect(result.valid).to.equal(false);
-            expect(result.error).to.include('Invalid MCP tool');
+            expect(result.error).to.include('Invalid operation');
         });
 
-        it('strips studio_ prefix from MCP tool names', () => {
+        it('strips studio_ prefix from operation names', () => {
             const op = {
-                type: 'mcp_operation',
-                mcpTool: 'studio_publish_card',
-                mcpParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
+                type: 'studio_operation',
+                operationName: 'studio_publish_card',
+                operationParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             };
             const result = validateOperation(op);
             expect(result.valid).to.equal(true);
-            expect(op.mcpTool).to.equal('publish_card');
+            expect(op.operationName).to.equal('publish_card');
         });
     });
 
@@ -166,17 +166,17 @@ describe('ai-chat/operations-handler', () => {
             expect(handleOperation('Hello, how can I help?')).to.equal(null);
         });
 
-        it('processes a valid MCP operation', () => {
+        it('processes a valid operation', () => {
             const text =
-                '```json\n{"type":"mcp_operation","mcpTool":"get_card","mcpParams":{"id":"0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf"}}\n```';
+                '```json\n{"type":"studio_operation","operationName":"get_card","operationParams":{"id":"0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf"}}\n```';
             const result = handleOperation(text);
             expect(result).to.not.equal(null);
-            expect(result.type).to.equal('mcp_operation');
-            expect(result.mcpTool).to.equal('get_card');
+            expect(result.type).to.equal('studio_operation');
+            expect(result.operationName).to.equal('get_card');
         });
 
         it('returns null for adversarial oversized input', () => {
-            const adversarial = `${'{'.repeat(70 * 1024)}"type": "mcp_operation"`;
+            const adversarial = `${'{'.repeat(70 * 1024)}"type": "studio_operation"`;
             const start = Date.now();
             const result = handleOperation(adversarial);
             const duration = Date.now() - start;
@@ -213,13 +213,13 @@ describe('ai-chat/operations-handler server-authoritative hardening', () => {
 
     const UUID = '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf';
     const opText = (tool, params, extra = '') =>
-        `\`\`\`json\n{"type":"mcp_operation","mcpTool":"${tool}","mcpParams":${JSON.stringify(params)}${extra}}\n\`\`\``;
+        `\`\`\`json\n{"type":"studio_operation","operationName":"${tool}","operationParams":${JSON.stringify(params)}${extra}}\n\`\`\``;
 
     it('forces confirmation for state-changing tools even when the model says false', () => {
         const result = handleOperationFn(
             opText('update_card', { id: UUID, fields: { title: 'x' } }, ',"confirmationRequired":false'),
         );
-        expect(result.type).to.equal('mcp_operation');
+        expect(result.type).to.equal('studio_operation');
         expect(result.confirmationRequired).to.equal(true);
     });
 
@@ -246,9 +246,9 @@ describe('ai-chat/operations-handler server-authoritative hardening', () => {
 
     it('rejects params whose values fail registry slot validation', () => {
         const validation = validateOperationFn({
-            type: 'mcp_operation',
-            mcpTool: 'get_card',
-            mcpParams: { id: 'not-a-uuid' },
+            type: 'studio_operation',
+            operationName: 'get_card',
+            operationParams: { id: 'not-a-uuid' },
         });
         expect(validation.valid).to.equal(false);
         expect(validation.error).to.include('id');
@@ -258,18 +258,18 @@ describe('ai-chat/operations-handler server-authoritative hardening', () => {
         // Was bulk_publish_cards until the bulk tools were removed.
         // list_context_cards is the surviving intent that takes an id array.
         const validation = validateOperationFn({
-            type: 'mcp_operation',
-            mcpTool: 'list_context_cards',
-            mcpParams: { fragmentIds: ['definitely-not-a-uuid'] },
+            type: 'studio_operation',
+            operationName: 'list_context_cards',
+            operationParams: { fragmentIds: ['definitely-not-a-uuid'] },
         });
         expect(validation.valid).to.equal(false);
     });
 
     it('accepts operations with registry-valid param values', () => {
         const validation = validateOperationFn({
-            type: 'mcp_operation',
-            mcpTool: 'get_card',
-            mcpParams: { id: UUID },
+            type: 'studio_operation',
+            operationName: 'get_card',
+            operationParams: { id: UUID },
         });
         expect(validation.valid).to.equal(true);
     });

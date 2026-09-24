@@ -6,7 +6,7 @@ let GUIDED_TOOL_CHOICE;
 
 const EXPECTED_TOOL_NAMES = [
     'emit_guided_step',
-    'emit_mcp_operation',
+    'emit_studio_operation',
     'emit_release_confirmation',
     'emit_release_cards',
     'emit_open_ost',
@@ -34,17 +34,17 @@ describe('ai-chat/guided-tool-definitions', () => {
             }
         });
 
-        it('requires mcpTool and mcpParams on emit_mcp_operation', () => {
-            const operationTool = buildGuidedTools().find((tool) => tool.name === 'emit_mcp_operation');
-            expect(operationTool.input_schema.required).to.include.members(['mcpTool', 'mcpParams']);
+        it('requires operationName and operationParams on emit_studio_operation', () => {
+            const operationTool = buildGuidedTools().find((tool) => tool.name === 'emit_studio_operation');
+            expect(operationTool.input_schema.required).to.include.members(['operationName', 'operationParams']);
         });
 
         it('keeps payload-carrying objects open so downstream validation stays the semantic gate', () => {
             const tools = buildGuidedTools();
             const releaseCards = tools.find((tool) => tool.name === 'emit_release_cards');
             expect(releaseCards.input_schema.properties.cardConfigs.items.additionalProperties).to.equal(true);
-            const operation = tools.find((tool) => tool.name === 'emit_mcp_operation');
-            expect(operation.input_schema.properties.mcpParams.additionalProperties).to.equal(true);
+            const operation = tools.find((tool) => tool.name === 'emit_studio_operation');
+            expect(operation.input_schema.properties.operationParams.additionalProperties).to.equal(true);
         });
 
         it('returns byte-identical definitions on every call for prompt-cache stability', () => {
@@ -62,7 +62,7 @@ describe('ai-chat/guided-tool-definitions', () => {
         it('maps each guided tool name to its legacy response type', () => {
             const expectations = {
                 emit_guided_step: 'guided_step',
-                emit_mcp_operation: 'mcp_operation',
+                emit_studio_operation: 'studio_operation',
                 emit_release_confirmation: 'release_confirmation',
                 emit_release_cards: 'release_cards',
                 emit_open_ost: 'open_ost',

@@ -443,7 +443,7 @@ export class FoundryClient {
                     }
                 }
                 contextBlock += '\nIMPORTANT: This is an Offer Selector ID from OST.\n';
-                contextBlock += `- To get offer details: Use resolve_offer_selector with mcpParams.offerSelectorId = ${wrapUntrusted('osi', context.osi)}\n`;
+                contextBlock += `- To get offer details: Use resolve_offer_selector with operationParams.offerSelectorId = ${wrapUntrusted('osi', context.osi)}\n`;
                 contextBlock += `- Do NOT use get_offer_by_id (that requires a direct Offer ID)\n`;
             }
 
@@ -467,11 +467,11 @@ export class FoundryClient {
 
                 contextBlock +=
                     '\nIMPORTANT: When user says "this card" or asks about attached cards, use these IDs directly:\n';
-                contextBlock += `- For get_card: use mcpParams.id = ${wrapUntrusted('fragment-id', firstId)}\n`;
-                contextBlock += `- For bulk operations: use mcpParams.fragmentIds = ${wrappedIdsArrayLiteral}\n`;
+                contextBlock += `- For get_card: use operationParams.id = ${wrapUntrusted('fragment-id', firstId)}\n`;
+                contextBlock += `- For bulk operations: use operationParams.fragmentIds = ${wrappedIdsArrayLiteral}\n`;
 
                 if (firstOsi) {
-                    contextBlock += `- For offer/pricing queries: Use resolve_offer_selector with mcpParams.offerSelectorId = ${wrapUntrusted('osi', firstOsi)}\n`;
+                    contextBlock += `- For offer/pricing queries: Use resolve_offer_selector with operationParams.offerSelectorId = ${wrapUntrusted('osi', firstOsi)}\n`;
                 } else {
                     contextBlock += `- For offer/pricing queries: OSI not available. Call get_card first to get the OSI.\n`;
                 }

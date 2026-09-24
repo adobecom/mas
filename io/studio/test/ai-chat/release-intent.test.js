@@ -23,7 +23,7 @@ describe('ai-chat/isReleaseIntent', () => {
     });
 
     /**
-     * The marker is produced only by continueWithMCPResult, which the client
+     * The marker is produced only by continueWithOperationResult, which the client
      * calls only when the active flow is NOT release — the release flow renders
      * its product selection locally instead. Treating the marker as a release
      * request loaded the guided release prompt and its tools onto a turn that

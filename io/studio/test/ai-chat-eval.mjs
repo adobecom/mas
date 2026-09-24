@@ -18,7 +18,7 @@ function exitWith(code, msg) {
 // Guided turns (release, card creation, active flows) never emit an envelope:
 // index.js routes them to the guided path so their rich payloads survive. Such
 // a case asserts the response shape and its visible content instead.
-const RESPONSE_TYPES = new Set(['guided_step', 'mcp_operation', 'message', 'open_ost']);
+const RESPONSE_TYPES = new Set(['guided_step', 'studio_operation', 'message', 'open_ost']);
 
 const isGuidedCase = (c) => Boolean(c.expect?.response_type);
 

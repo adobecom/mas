@@ -21,15 +21,15 @@ import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js
  * it rather than keeping a second copy of that keyword list.
  *
  * Captured live on the branch page before this fix, the first response was
- * `{ type: 'mcp_operation', mcpTool: 'list_products' }` with no flowId at all:
+ * `{ type: 'studio_operation', operationName: 'list_products' }` with no flowId at all:
  * the model emitted it and the response body dropped it. That half is fixed in
  * io/studio; this covers the client reading it.
  */
 const releaseLookup = (flowId) => ({
-    type: 'mcp_operation',
+    type: 'studio_operation',
     ...(flowId ? { flowId } : {}),
-    mcpTool: 'list_products',
-    mcpParams: { searchText: 'firefly standard' },
+    operationName: 'list_products',
+    operationParams: { searchText: 'firefly standard' },
     message: 'Looking up firefly standard in the catalog...',
 });
 

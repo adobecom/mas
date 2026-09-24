@@ -6,13 +6,13 @@
  * the envelope into one of:
  *
  *   - `meta`            — ASK_USER / ABORT / START_OVER / SHOW_HELP / REPORT_ERROR
- *   - `mcp`             — read-only or state-changing MCP intent, with a tool_target
+ *   - `operation`             — read-only or state-changing operation intent, with a tool_target
  *   - `guided`          — guided-step intent inside a flow (release_create.*, attach_offer, etc.)
  *   - `unknown`         — intent not in the registry → fall back to old response.type
  *
- * Intent → MCP tool mapping is held inline. For state-changing/read-only intents
+ * Intent → operation mapping is held inline. For state-changing/read-only intents
  * `tool_target` equals the intent name (per intent-registry.js); the few intents
- * with no tool_target are listed explicitly in NON_MCP_INTENTS.
+ * with no tool_target are listed explicitly in NON_OPERATION_INTENTS.
  *
  * The old type-based path stays in place as a safety net — if envelope dispatch
  * throws, the caller catches and re-runs the old switch.
@@ -22,9 +22,9 @@ export const META_INTENTS = new Set(['ASK_USER', 'ABORT', 'START_OVER', 'SHOW_HE
 
 /**
  * Intents whose tool_target is null in the registry. These have UI-side or
- * frontend-only handlers and never dispatch an MCP tool.
+ * frontend-only handlers and never dispatch an operation.
  */
-export const NON_MCP_INTENTS = new Set([
+export const NON_OPERATION_INTENTS = new Set([
     'attach_offer',
     'copy_card_link',
     'open_card_editor',
@@ -39,7 +39,7 @@ export const NON_MCP_INTENTS = new Set([
 /**
  * State-changing intents — these need a confirmation gate before execution.
  * Mirrors `category: 'state-changing'` entries in intent-registry.js whose
- * tool_target is an actual MCP tool.
+ * tool_target is an actual operation.
  */
 export const STATE_CHANGING_INTENTS = new Set([
     'publish_card',
@@ -56,7 +56,7 @@ export const STATE_CHANGING_INTENTS = new Set([
  * `confirmation_template` field in intent-registry.js, kept here as a small
  * subset to avoid importing the full backend registry.
  *
- * Keys must be intents that classify as mcp-state-changing. A dotted intent
+ * Keys must be intents that classify as operation-state-changing. A dotted intent
  * never does — it routes to 'guided' first, and a guided flow renders its own
  * confirmation — so a template keyed to one can never be looked up.
  */
@@ -75,7 +75,7 @@ const CONFIRMATION_TEMPLATES = {
  * Classify the envelope's intent for dispatch routing.
  *
  * @param {object} envelope
- * @returns {'meta'|'mcp-readonly'|'mcp-state-changing'|'guided'|'unknown'}
+ * @returns {'meta'|'operation-readonly'|'operation-state-changing'|'guided'|'unknown'}
  */
 export function classifyEnvelopeIntent(envelope) {
     if (!envelope || typeof envelope.intent !== 'string') return 'unknown';
@@ -85,9 +85,9 @@ export function classifyEnvelopeIntent(envelope) {
     // own confirmation (the release flow's Card Configuration summary), so it
     // must not also go through the generic gate below. Anything dotted
     // therefore never reaches STATE_CHANGING_INTENTS.
-    if (intent.includes('.') || NON_MCP_INTENTS.has(intent)) return 'guided';
-    if (STATE_CHANGING_INTENTS.has(intent)) return 'mcp-state-changing';
-    return 'mcp-readonly';
+    if (intent.includes('.') || NON_OPERATION_INTENTS.has(intent)) return 'guided';
+    if (STATE_CHANGING_INTENTS.has(intent)) return 'operation-state-changing';
+    return 'operation-readonly';
 }
 
 /**

@@ -57,15 +57,15 @@ describe('ai-chat/envelope-native', () => {
     });
 
     describe('buildEnvelopeResponseBody', () => {
-        it('maps a read-only registry intent to an mcp_operation without confirmation', () => {
+        it('maps a read-only registry intent to an studio_operation without confirmation', () => {
             const body = buildEnvelopeResponseBody({
                 intent: 'get_card',
                 slots: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
                 confidence: 0.95,
             });
-            expect(body.type).to.equal('mcp_operation');
-            expect(body.mcpTool).to.equal('get_card');
-            expect(body.mcpParams).to.deep.equal({ id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' });
+            expect(body.type).to.equal('studio_operation');
+            expect(body.operationName).to.equal('get_card');
+            expect(body.operationParams).to.deep.equal({ id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' });
             expect(body.confirmationRequired).to.equal(false);
         });
 
@@ -76,7 +76,7 @@ describe('ai-chat/envelope-native', () => {
                 confidence: 0.99,
                 confirmationRequired: false,
             });
-            expect(body.type).to.equal('mcp_operation');
+            expect(body.type).to.equal('studio_operation');
             expect(body.confirmationRequired).to.equal(true);
         });
 
@@ -130,18 +130,18 @@ describe('ai-chat/envelope-native', () => {
             expect(body.message).to.equal('It has:\n- a title\nAnd a real break.');
         });
 
-        it('normalizes the message on the mcp_operation branch too', () => {
+        it('normalizes the message on the studio_operation branch too', () => {
             const body = buildEnvelopeResponseBody({
                 intent: 'get_card',
                 slots: { id: 'abc' },
                 confidence: 0.95,
                 user_message: 'Fetching the card.\\n\\nOne moment.',
             });
-            expect(body.type).to.equal('mcp_operation');
+            expect(body.type).to.equal('studio_operation');
             expect(body.message).to.equal('Fetching the card.\n\nOne moment.');
         });
 
-        it('returns a message body for intents without an MCP tool target', () => {
+        it('returns a message body for intents without an operation target', () => {
             const body = buildEnvelopeResponseBody({
                 intent: 'open_ost',
                 slots: {},

@@ -490,7 +490,7 @@ describe('ChatSessionManager', () => {
             expect(data.activeSessionId).to.equal(null);
         });
 
-        it('strips mcpOperation metadata from persisted message history (defense against replay)', () => {
+        it('strips studioOperation metadata from persisted message history (defense against replay)', () => {
             storage[STORAGE_KEY] = JSON.stringify({
                 sessions: {
                     'session-1': {
@@ -501,8 +501,8 @@ describe('ChatSessionManager', () => {
                             {
                                 role: 'assistant',
                                 content: 'ok',
-                                mcpOperation: { mcpTool: 'bulk_update_cards', mcpParams: { fragmentIds: ['x', 'y'] } },
-                                operationType: 'mcp_operation',
+                                studioOperation: { operationName: 'bulk_update_cards', operationParams: { fragmentIds: ['x', 'y'] } },
+                                operationType: 'studio_operation',
                                 confirmationRequired: false,
                             },
                         ],
@@ -515,7 +515,7 @@ describe('ChatSessionManager', () => {
             const message = data.sessions['session-1'].messages[1];
             expect(message.role).to.equal('assistant');
             expect(message.content).to.equal('ok');
-            expect(message.mcpOperation).to.be.undefined;
+            expect(message.studioOperation).to.be.undefined;
             expect(message.operationType).to.be.undefined;
             expect(message.confirmationRequired).to.be.undefined;
         });
@@ -573,7 +573,7 @@ describe('ChatSessionManager', () => {
             expect(data.sessions['session-1'].messages[0].operationType).to.be.undefined;
         });
 
-        it('preserves messages without mcpOperation metadata unchanged', () => {
+        it('preserves messages without studioOperation metadata unchanged', () => {
             storage[STORAGE_KEY] = JSON.stringify({
                 sessions: {
                     'session-1': {

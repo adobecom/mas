@@ -180,7 +180,7 @@ const MEDIUM_CONFIDENCE = 0.55;
  *              surface?: string, locale?: string, titleSearch?: boolean }} slots
  * @property {number} confidence
  * @property {{ slot: 'surface', prompt: string } | null} missingSlot
- * @property {{ mcpTool: string, mcpParams: object } | null} dispatch
+ * @property {{ operationName: string, operationParams: object } | null} dispatch
  */
 
 /**
@@ -258,8 +258,8 @@ export function classifySearchIntent(message, context = {}) {
                 confidence: 0.99,
                 missingSlot: null,
                 dispatch: {
-                    mcpTool: 'get_variations',
-                    mcpParams: { id: uuidMatch[1] },
+                    operationName: 'get_variations',
+                    operationParams: { id: uuidMatch[1] },
                 },
             };
         }
@@ -270,8 +270,8 @@ export function classifySearchIntent(message, context = {}) {
                 confidence: 0.99,
                 missingSlot: null,
                 dispatch: {
-                    mcpTool: 'get_card',
-                    mcpParams: { id: uuidMatch[1] },
+                    operationName: 'get_card',
+                    operationParams: { id: uuidMatch[1] },
                 },
             };
         }
@@ -422,8 +422,8 @@ function buildOsiDispatch(osi, surface, locale, confidence, intent) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: surface ? { osi, surface, locale } : { osi },
+            operationName: 'search_cards',
+            operationParams: surface ? { osi, surface, locale } : { osi },
         },
     };
 }
@@ -451,8 +451,8 @@ function buildTitleDispatch(title, surface, locale, confidence) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: { query: cleaned, surface, locale, titleSearch: true },
+            operationName: 'search_cards',
+            operationParams: { query: cleaned, surface, locale, titleSearch: true },
         },
     };
 }
@@ -480,8 +480,8 @@ function buildContentDispatch(term, surface, locale, confidence) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: { query: cleaned, surface, locale },
+            operationName: 'search_cards',
+            operationParams: { query: cleaned, surface, locale },
         },
     };
 }
@@ -494,8 +494,8 @@ function buildContentDispatchFromSlots(slots, confidence) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: {
+            operationName: 'search_cards',
+            operationParams: {
                 query: slots.query,
                 surface: slots.surface,
                 locale: slots.locale || 'en_US',
@@ -525,8 +525,8 @@ function buildVariantDispatch(variant, surface, locale, confidence) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: { variant, surface, locale },
+            operationName: 'search_cards',
+            operationParams: { variant, surface, locale },
         },
     };
 }
@@ -539,8 +539,8 @@ function buildVariantDispatchFromSlots(slots, confidence) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: {
+            operationName: 'search_cards',
+            operationParams: {
                 variant: slots.variant,
                 surface: slots.surface,
                 locale: slots.locale || 'en_US',
@@ -557,8 +557,8 @@ function buildTitleDispatchFromSlots(slots, confidence) {
         confidence,
         missingSlot: null,
         dispatch: {
-            mcpTool: 'search_cards',
-            mcpParams: {
+            operationName: 'search_cards',
+            operationParams: {
                 query: slots.query,
                 surface: slots.surface,
                 locale: slots.locale || 'en_US',

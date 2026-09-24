@@ -19,20 +19,20 @@ export function isValidFragmentId(value) {
     return typeof value === 'string' && UUID_RE.test(value);
 }
 
-export function validateFragmentIds(mcpTool, mcpParams) {
-    if (!TOOLS_REQUIRING_FRAGMENT_ID.has(mcpTool)) return { ok: true };
-    if (!mcpParams || typeof mcpParams !== 'object') return { ok: true };
+export function validateFragmentIds(operationName, operationParams) {
+    if (!TOOLS_REQUIRING_FRAGMENT_ID.has(operationName)) return { ok: true };
+    if (!operationParams || typeof operationParams !== 'object') return { ok: true };
 
     const invalid = [];
 
     for (const key of FRAGMENT_ID_PARAMS) {
-        const value = mcpParams[key];
+        const value = operationParams[key];
         if (value === undefined || value === null) continue;
         if (!isValidFragmentId(value)) invalid.push(value);
     }
 
     for (const key of FRAGMENT_IDS_PARAMS) {
-        const value = mcpParams[key];
+        const value = operationParams[key];
         if (!Array.isArray(value)) continue;
         for (const item of value) {
             if (!isValidFragmentId(item)) invalid.push(item);

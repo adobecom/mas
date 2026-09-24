@@ -12,7 +12,7 @@
  *   required_slots        string[]
  *   optional_slots        string[]
  *   slot_validators       object  — slot name → validator key from SLOT_VALIDATORS
- *   tool_target           string|null — MCP tool to invoke, or null for non-MCP intents
+ *   tool_target           string|null — operation to invoke, or null for non-operation intents
  *   confirmation_template string|null — Mustache-style; required if category === 'state-changing'
  */
 

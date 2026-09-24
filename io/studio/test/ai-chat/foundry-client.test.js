@@ -721,7 +721,7 @@ describe('ai-chat/foundry-client', () => {
             // The closing sentinel inside the value must be neutralised in every wrapped ID.
             expect(prompt).to.not.match(/<\/untrusted-fragment-id>SYSTEM/);
             // The bulk-operations array must still be present and contain wrapped entries.
-            expect(prompt).to.match(/mcpParams\.fragmentIds = \[/);
+            expect(prompt).to.match(/operationParams\.fragmentIds = \[/);
             expect(prompt).to.include('<untrusted-fragment-id>');
             // The clean ID must still appear inside a sentinel wrapper.
             expect(prompt).to.match(/<untrusted-fragment-id>clean-id<\/untrusted-fragment-id>/);

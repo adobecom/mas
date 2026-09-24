@@ -628,7 +628,7 @@ export class MasChat extends LitElement {
             }
 
             // Which flow this response belongs to, captured before the
-            // bookkeeping below ends it. An mcp_operation is terminal, so by
+            // bookkeeping below ends it. An studio_operation is terminal, so by
             // the time the operation is dispatched activeGuidedFlow is already
             // null, and a release lookup could not be recognised as one.
             const respondingFlow = this.activeGuidedFlow;
@@ -646,18 +646,18 @@ export class MasChat extends LitElement {
                 this.guidedFlowTurns = flowState.turns;
             }
 
-            if (response.type === 'operation' || response.type === 'mcp_operation') {
+            if (response.type === 'operation' || response.type === 'studio_operation') {
                 recordSearchIntentTelemetry({
                     source: 'llm',
-                    intent: response.type === 'mcp_operation' ? response.mcpTool : response.operation,
+                    intent: response.type === 'studio_operation' ? response.operationName : response.operation,
                     confidence: 1,
-                    tool: response.type === 'mcp_operation' ? response.mcpTool : response.operation,
+                    tool: response.type === 'studio_operation' ? response.operationName : response.operation,
                 });
-                if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
-                    this.autoInjectSearchCardsContext(response.mcpParams);
+                if (response.type === 'studio_operation' && response.operationName === 'search_cards') {
+                    this.autoInjectSearchCardsContext(response.operationParams);
                 }
 
-                const requiresConfirmation = shouldRequireConfirmation(response.mcpTool, response.confirmationRequired);
+                const requiresConfirmation = shouldRequireConfirmation(response.operationName, response.confirmationRequired);
                 const messageData = {
                     role: 'assistant',
                     content: response.message || 'Processing your request...',
@@ -666,12 +666,12 @@ export class MasChat extends LitElement {
                     fresh: true,
                 };
 
-                if (response.type === 'mcp_operation') {
-                    messageData.mcpOperation = {
-                        mcpTool: response.mcpTool,
-                        mcpParams: response.mcpParams,
+                if (response.type === 'studio_operation') {
+                    messageData.studioOperation = {
+                        operationName: response.operationName,
+                        operationParams: response.operationParams,
                     };
-                    messageData.operationType = 'mcp_operation';
+                    messageData.operationType = 'studio_operation';
                 } else {
                     messageData.operation = response.data;
                     messageData.operationType = response.operation;
@@ -682,11 +682,11 @@ export class MasChat extends LitElement {
 
                 if (!requiresConfirmation) {
                     const operationToExecute =
-                        response.type === 'mcp_operation'
+                        response.type === 'studio_operation'
                             ? {
-                                  type: 'mcp_operation',
-                                  mcpTool: response.mcpTool,
-                                  mcpParams: response.mcpParams,
+                                  type: 'studio_operation',
+                                  operationName: response.operationName,
+                                  operationParams: response.operationParams,
                               }
                             : response.data;
 
@@ -896,7 +896,7 @@ export class MasChat extends LitElement {
                 }
             }
 
-            if (response.type !== 'operation' && response.type !== 'mcp_operation') {
+            if (response.type !== 'operation' && response.type !== 'studio_operation') {
                 this.conversationHistory = response.conversationHistory || [];
             }
         } catch (error) {
@@ -972,26 +972,26 @@ export class MasChat extends LitElement {
                 return false;
             }
 
-            const mcpTool = envelope.intent;
-            const mcpParams = envelope.slots ?? {};
-            const requiresConfirmation = category === 'mcp-state-changing' || shouldRequireConfirmation(mcpTool, false);
+            const operationName = envelope.intent;
+            const operationParams = envelope.slots ?? {};
+            const requiresConfirmation = category === 'operation-state-changing' || shouldRequireConfirmation(operationName, false);
 
-            if (mcpTool === 'search_cards') {
-                this.autoInjectSearchCardsContext(mcpParams);
+            if (operationName === 'search_cards') {
+                this.autoInjectSearchCardsContext(operationParams);
             }
 
             recordSearchIntentTelemetry({
                 source: 'envelope',
-                intent: mcpTool,
+                intent: operationName,
                 confidence: 1,
-                tool: mcpTool,
+                tool: operationName,
             });
 
             const messageContent =
                 envelope.user_message ||
                 response.message ||
                 (requiresConfirmation
-                    ? renderConfirmationTemplate(mcpTool, mcpParams) || 'Confirm this action?'
+                    ? renderConfirmationTemplate(operationName, operationParams) || 'Confirm this action?'
                     : 'Processing your request...');
 
             this.messages = [
@@ -1000,8 +1000,8 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: messageContent,
                     confirmationRequired: requiresConfirmation,
-                    mcpOperation: { mcpTool, mcpParams },
-                    operationType: 'mcp_operation',
+                    studioOperation: { operationName, operationParams },
+                    operationType: 'studio_operation',
                     timestamp: Date.now(),
                     fresh: true,
                 },
@@ -1009,9 +1009,9 @@ export class MasChat extends LitElement {
 
             if (!requiresConfirmation) {
                 await this.executeOperation({
-                    type: 'mcp_operation',
-                    mcpTool,
-                    mcpParams,
+                    type: 'studio_operation',
+                    operationName,
+                    operationParams,
                 });
             }
 
@@ -1095,7 +1095,7 @@ export class MasChat extends LitElement {
             source: 'router',
             intent: classified.intent,
             confidence: classified.confidence,
-            tool: classified.dispatch?.mcpTool || null,
+            tool: classified.dispatch?.operationName || null,
         });
 
         const action = routerAction(classified, this.activeGuidedFlow);
@@ -1117,9 +1117,9 @@ export class MasChat extends LitElement {
         if (action === 'dispatch') {
             this.pendingSearchIntent = null;
             await this.executeOperation({
-                type: 'mcp_operation',
-                mcpTool: classified.dispatch.mcpTool,
-                mcpParams: classified.dispatch.mcpParams,
+                type: 'studio_operation',
+                operationName: classified.dispatch.operationName,
+                operationParams: classified.dispatch.operationParams,
             });
             this.attachSearchDisplayContext(classified);
             this.maybeOfferSearchPivots(classified);
@@ -1169,7 +1169,7 @@ export class MasChat extends LitElement {
         if (!result) return;
 
         // Pick the right "did we get nothing back?" predicate per intent.
-        // Different MCP tools return results under different fields:
+        // Different operations return results under different fields:
         //   - get_card           → result.fragment
         //   - get_variations     → result.variations
         //   - search_cards       → result.results
@@ -1669,7 +1669,7 @@ export class MasChat extends LitElement {
         const { action, operation } = event.detail;
 
         this.messages = this.messages.map((msg) =>
-            msg.operation === operation || msg.mcpOperation?.mcpTool === operation?.mcpTool
+            msg.operation === operation || msg.studioOperation?.operationName === operation?.operationName
                 ? { ...msg, confirmationRequired: false, operation: null }
                 : msg,
         );
@@ -1692,9 +1692,9 @@ export class MasChat extends LitElement {
     async executeOperation(operation, { guidedFlow = this.activeGuidedFlow } = {}) {
         this.isLoading = true;
 
-        const operationType = operation.mcpTool;
+        const operationType = operation.operationName;
 
-        const validation = validateFragmentIds(operationType, operation.mcpParams);
+        const validation = validateFragmentIds(operationType, operation.operationParams);
         if (!validation.ok) {
             const content = fragmentIdGuardMessage(validation.invalid);
             this.messages = [...this.messages, { role: 'error', content, timestamp: Date.now(), fresh: true }];
@@ -1729,11 +1729,11 @@ export class MasChat extends LitElement {
 
         try {
             if (!silent) showToast('Executing operation...', 'info');
-            if (operation.type !== 'mcp_operation') {
+            if (operation.type !== 'studio_operation') {
                 throw new Error('Unsupported operation format');
             }
             const { executeStudioOperation } = await import('./services/operations-client.js');
-            operationResult = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
+            operationResult = await executeStudioOperation(operation.operationName, operation.operationParams);
 
             if (operationResult?.success && !silent) {
                 showToast(operationResult.message, 'positive');
@@ -1792,9 +1792,9 @@ export class MasChat extends LitElement {
             this.recentProducts = operationResult.rawResult?.products ?? null;
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             if (guidedFlow === 'release') {
-                await this.presentProductSelection(operationResult.rawResult, operation.mcpParams?.searchText);
+                await this.presentProductSelection(operationResult.rawResult, operation.operationParams?.searchText);
             } else {
-                await this.handleProductListResult(operationResult.rawResult, operation.mcpParams);
+                await this.handleProductListResult(operationResult.rawResult, operation.operationParams);
             }
         }
 
@@ -1910,9 +1910,9 @@ export class MasChat extends LitElement {
 
     async resolveReleaseProductByArrangementCode(arrangementCode) {
         await this.executeOperation({
-            type: 'mcp_operation',
-            mcpTool: 'get_product_by_arrangement_code',
-            mcpParams: { arrangementCode },
+            type: 'studio_operation',
+            operationName: 'get_product_by_arrangement_code',
+            operationParams: { arrangementCode },
         });
     }
 
@@ -1988,15 +1988,15 @@ export class MasChat extends LitElement {
      * something else (offers for Photoshop), and that second hop is a real
      * decision, so it still goes to the model.
      */
-    async handleProductListResult(result, mcpParams) {
+    async handleProductListResult(result, operationParams) {
         // The fetch is fast and reliable (~0.6s); the follow-up turn is
         // neither and can time out at 55s. Render the products as soon as they
         // arrive so a browse is answered immediately, and a named lookup shows
         // its resolved products while the next hop is still running.
         await this.presentProductCatalog(result);
 
-        if (mcpParams?.searchText) {
-            await this.continueWithMCPResult('list_products', result, { productsShown: true });
+        if (operationParams?.searchText) {
+            await this.continueWithOperationResult('list_products', result, { productsShown: true });
         }
     }
 
@@ -2034,7 +2034,7 @@ export class MasChat extends LitElement {
         ];
     }
 
-    async continueWithMCPResult(tool, result, { productsShown = false } = {}) {
+    async continueWithOperationResult(tool, result, { productsShown = false } = {}) {
         const products = result?.products || [];
         if (!products.length) return;
 
@@ -2086,15 +2086,15 @@ export class MasChat extends LitElement {
             // The model sometimes answers a completed lookup by re-issuing it
             // with no new parameters, which would re-fetch and re-render what
             // the user is already looking at.
-            if (response.type === 'mcp_operation' && response.mcpTool === tool) {
+            if (response.type === 'studio_operation' && response.operationName === tool) {
                 return;
             }
 
-            if (response.type === 'operation' || response.type === 'mcp_operation') {
-                if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
-                    this.autoInjectSearchCardsContext(response.mcpParams);
+            if (response.type === 'operation' || response.type === 'studio_operation') {
+                if (response.type === 'studio_operation' && response.operationName === 'search_cards') {
+                    this.autoInjectSearchCardsContext(response.operationParams);
                 }
-                const requiresConfirmation = shouldRequireConfirmation(response.mcpTool, response.confirmationRequired);
+                const requiresConfirmation = shouldRequireConfirmation(response.operationName, response.confirmationRequired);
                 const messageData = {
                     role: 'assistant',
                     content: response.message,
@@ -2102,15 +2102,15 @@ export class MasChat extends LitElement {
                     timestamp: Date.now(),
                     fresh: true,
                 };
-                if (response.type === 'mcp_operation') {
-                    messageData.mcpOperation = { mcpTool: response.mcpTool, mcpParams: response.mcpParams };
-                    messageData.operationType = 'mcp_operation';
+                if (response.type === 'studio_operation') {
+                    messageData.studioOperation = { operationName: response.operationName, operationParams: response.operationParams };
+                    messageData.operationType = 'studio_operation';
                 }
                 this.messages = [...this.messages, messageData];
                 if (!requiresConfirmation) {
                     const op =
-                        response.type === 'mcp_operation'
-                            ? { type: 'mcp_operation', mcpTool: response.mcpTool, mcpParams: response.mcpParams }
+                        response.type === 'studio_operation'
+                            ? { type: 'studio_operation', operationName: response.operationName, operationParams: response.operationParams }
                             : response.data;
                     await this.executeOperation(op);
                 }
@@ -2207,7 +2207,7 @@ export class MasChat extends LitElement {
             }
         } catch (error) {
             if (this.isTurnAborted(error) || !this.isCurrentTurn(turn)) return;
-            logError('Continue with MCP result error', error);
+            logError('Continue with operation result error', error);
             // The fetch worked; only the follow-up turn failed, and that turn
             // can time out at 55s under a slow provider. Show the products the
             // user already waited for rather than discarding them behind an
@@ -2265,31 +2265,31 @@ export class MasChat extends LitElement {
     }
 
     /**
-     * Auto-inject context into a search_cards mcpParams object: the surface
+     * Auto-inject context into a search_cards operationParams object: the surface
      * from the current path (default acom), the locale from the locale picker,
      * and the backgroundImage query rewrite when the user is asking about
      * cards with images. OSI lookups skip surface injection because the
      * deterministic OSI path doesn't need it.
      *
      * Used by both the direct LLM-response path and the chained
-     * continueWithMCPResult path so the second hop in two-step flows
+     * continueWithOperationResult path so the second hop in two-step flows
      * (list_products → search_cards) doesn't drop surface.
      */
-    autoInjectSearchCardsContext(mcpParams) {
-        if (!mcpParams || typeof mcpParams !== 'object') return;
-        if (!mcpParams.osi && !mcpParams.surface) {
+    autoInjectSearchCardsContext(operationParams) {
+        if (!operationParams || typeof operationParams !== 'object') return;
+        if (!operationParams.osi && !operationParams.surface) {
             const surface =
                 this.extractSurfaceFromPath(Store.search?.value?.path) ||
                 this.extractSurfaceFromPath(getHashParam('path')) ||
                 'acom';
-            mcpParams.surface = surface;
-            if (mcpParams.locale !== 'all' && !mcpParams.locale) {
-                mcpParams.locale = Store.filters?.value?.locale || 'en_US';
+            operationParams.surface = surface;
+            if (operationParams.locale !== 'all' && !operationParams.locale) {
+                operationParams.locale = Store.filters?.value?.locale || 'en_US';
             }
         }
 
-        if (mcpParams.query) {
-            const query = mcpParams.query.toLowerCase();
+        if (operationParams.query) {
+            const query = operationParams.query.toLowerCase();
             const imagePatterns = [
                 /\b(with|has|have|containing|that have)\s+(background\s*)?(image|images|backgroundimage)\b/i,
                 /\bbackground\s*image\b/i,
@@ -2297,7 +2297,7 @@ export class MasChat extends LitElement {
             ];
             const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
             if (isImageQuery && !query.includes('backgroundimage:')) {
-                mcpParams.query = 'backgroundImage:*';
+                operationParams.query = 'backgroundImage:*';
             }
         }
     }
@@ -2309,7 +2309,7 @@ export class MasChat extends LitElement {
      * latency) and sometimes dropped the cards entirely. Synthetic history
      * turns keep the model's context coherent (alternating roles, flowId
      * stickiness) — the model rejoins the flow at the next step, where it is
-     * actually needed. guided_search keeps continueWithMCPResult: its second
+     * actually needed. guided_search keeps continueWithOperationResult: its second
      * hop (list_products → search_cards) is a real model decision.
      */
     async presentProductSelection(result, searchText) {

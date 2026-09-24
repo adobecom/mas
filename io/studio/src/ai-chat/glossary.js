@@ -2,8 +2,8 @@
  * MAS Glossary — sourced from FluffyJaws on 2026-05-07
  *
  * Compact term definitions used to ground the AI assistant's reasoning.
- * Loaded as a cached preamble in every system prompt that talks to MCP tools
- * or runs intent classification.
+ * Loaded as a cached preamble in every system prompt that runs studio
+ * operations or intent classification.
  *
  * Schema per entry:
  *   TERM = short definition. Format/example. Resolves via <tool>. Distinct from <neighbor>.
@@ -143,8 +143,8 @@ OST (Offer Selector Tool) = authoring UI in M@S Studio that lets authors search/
   Connects to: WCS/AOS so authors can attach offer IDs, dynamic prices, checkout URLs to cards.
   Distinct from: OSI (the ID); offer selector (the query object).
 
-MCP = Model Context Protocol — standardized contract for AI tools. In MAS context: mcp-server action exposes search_cards, publish_card, etc.
-  NOT: "Merchandising Content Provider" or other expansions.
+Operations service = the MAS I/O Runtime backend that runs the card, offer, and product actions (search_cards, publish_card, etc.) the assistant requests.
+  Distinct from: the assistant, which only decides which action to run; the operations service executes it.
 
 RAG = Retrieval-Augmented Generation. AI pattern where the LLM retrieves relevant docs at query time.
   M@S relation: used by internal AI assistants (FluffyJaws) for documentation queries; not in the M@S card-delivery runtime.

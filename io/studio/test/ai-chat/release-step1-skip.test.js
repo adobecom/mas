@@ -70,7 +70,7 @@ describe('ai-chat/guided card creation — offer lookup carries the product', ()
     it('asks for arrangementCode alongside the offer id', () => {
         // AOS does not filter by offer id, so a bare offerId lookup scans an
         // unfiltered page and reports "not found" for offers that exist.
-        expect(GUIDED_CARD_CREATION_PROMPT).to.include('"mcpTool": "get_offer_by_id"');
+        expect(GUIDED_CARD_CREATION_PROMPT).to.include('"operationName": "get_offer_by_id"');
         expect(GUIDED_CARD_CREATION_PROMPT).to.include('arrangementCode');
         expect(GUIDED_CARD_CREATION_PROMPT).to.match(/ALWAYS include .?arrangementCode/);
     });
@@ -87,7 +87,7 @@ describe('ai-chat/guided card creation — skipping must act, not narrate', () =
         // Observed four times: the model answered "I'll help you create cards
         // for X. Let me look up that product first." and emitted no operation,
         // so the flow dead-ended with no spinner and nothing to click.
-        expect(GUIDED_CARD_CREATION_PROMPT).to.include('the mcp_operation IS your entire response');
+        expect(GUIDED_CARD_CREATION_PROMPT).to.include('the studio_operation IS your entire response');
         expect(GUIDED_CARD_CREATION_PROMPT).to.match(/Do NOT acknowledge the request/);
         expect(GUIDED_CARD_CREATION_PROMPT).to.include('Perform the lookup instead of describing it');
     });

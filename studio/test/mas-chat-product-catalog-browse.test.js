@@ -78,7 +78,7 @@ describe('MasChat catalog browse renders locally', () => {
     });
 
     it('still hands a named product lookup to the model, and shows the products first', async () => {
-        const continueStub = sinon.stub(el, 'continueWithMCPResult').resolves();
+        const continueStub = sinon.stub(el, 'continueWithOperationResult').resolves();
         const catalogSpy = sinon.spy(el, 'presentProductCatalog');
 
         await el.handleProductListResult({ products: RAW }, { searchText: 'photoshop' });
@@ -91,7 +91,7 @@ describe('MasChat catalog browse renders locally', () => {
     });
 
     it('renders locally when the lookup carried no search text', async () => {
-        const continueStub = sinon.stub(el, 'continueWithMCPResult').resolves();
+        const continueStub = sinon.stub(el, 'continueWithOperationResult').resolves();
 
         await el.handleProductListResult({ products: RAW }, {});
 

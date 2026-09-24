@@ -85,7 +85,7 @@ describe('fragment-id-guard', () => {
             expect(result.ok).to.equal(true);
         });
 
-        it('passes when mcpParams is null', () => {
+        it('passes when operationParams is null', () => {
             const result = validateFragmentIds('list_context_cards', null);
             expect(result.ok).to.equal(true);
         });

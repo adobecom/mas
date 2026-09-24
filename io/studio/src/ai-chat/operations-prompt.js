@@ -1,11 +1,11 @@
 /**
- * AEM Operations System Prompt (MCP Format) - Tiered
+ * AEM Operations System Prompt (operation format) - Tiered
  *
  * Split into keyword-triggered tiers to reduce token consumption.
  * Only relevant operation groups are loaded based on message content.
  *
- * AI detects intent and returns MCP tool instructions.
- * Frontend executes operations via MCP server (no AI in MCP).
+ * AI detects intent and returns operation instructions.
+ * Frontend executes operations via operations service (no AI involved).
  */
 
 const OPERATIONS_PREAMBLE = `
@@ -44,7 +44,7 @@ Do NOT guess or recall product codes from memory. Always fetch from MCS.
 
 === CARD CREATION FROM MCS DATA (MANDATORY) ===
 
-When you have MCS product data in the conversation (from a \`list_products\` call) and the user wants to create a card, you MUST use the \`create_release_cards\` MCP operation. NEVER use the standard card creation format (type: "card") when MCS data is available. This applies even for a single card.
+When you have MCS product data in the conversation (from a \`list_products\` call) and the user wants to create a card, you MUST use the \`create_release_cards\` operation. NEVER use the standard card creation format (type: "card") when MCS data is available. This applies even for a single card.
 
 \`create_release_cards\` only needs 3 parameters — the server handles all MCS field mapping and tagging automatically:
 - \`arrangement_code\`: The product arrangement_code field from the list_products response (e.g., "acrobat_direct_individual", "phsp_direct_individual"). NEVER use a PA code (PA-XXXX) here — PA codes are only for searching.
@@ -53,9 +53,9 @@ When you have MCS product data in the conversation (from a \`list_products\` cal
 
 You do NOT need to construct fields, tags, or icon URLs. The server looks up the product in MCS and maps everything.
 
-=== AVAILABLE AEM OPERATIONS (via MCP) ===
+=== AVAILABLE AEM OPERATIONS (via the operations service) ===
 
-In addition to creating cards, you can perform these AEM operations through the MCP server:
+In addition to creating cards, you can perform these AEM operations through the operations service:
 
 === CONTEXT DATA STRUCTURE ===
 
@@ -88,7 +88,7 @@ Example context format:
 When using lastOperation.fragmentIds with list_context_cards:
 - You MUST include the COMPLETE array without truncation
 - DO NOT reduce the array for brevity in your JSON response
-- If the array has 26 items, your mcpParams.fragmentIds MUST have all 26 items
+- If the array has 26 items, your operationParams.fragmentIds MUST have all 26 items
 - This is NOT optional - all IDs must be included for the operation to work correctly
 
 === OPERATION CONTEXT ===
@@ -141,12 +141,12 @@ Publish a card or collection to production.
 
 **When to use**: User says "publish", "go live", "make it live", "deploy"
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "publish_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "publish_card",
+  "operationParams": {
     "id": "abc-123-def-456",
     "publishReferences": true
   },
@@ -155,9 +155,9 @@ Publish a card or collection to production.
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation" (tells frontend to use MCP)
-- mcpTool: "publish_card" (MCP tool name)
-- mcpParams: Object with tool parameters
+- type: "studio_operation" (tells the frontend to run an operation)
+- operationName: "publish_card" (operation name)
+- operationParams: Object with tool parameters
   - id: Fragment ID to publish
   - publishReferences: true/false (optional, default true)
 - message: User-friendly explanation
@@ -166,7 +166,7 @@ Publish a card or collection to production.
 
 User: "Publish this card"
 → Use currentCardId from context
-→ Return: { type: "mcp_operation", mcpTool: "publish_card", mcpParams: { id: currentCardId }, ... }
+→ Return: { type: "studio_operation", operationName: "publish_card", operationParams: { id: currentCardId }, ... }
 `;
 
 const CRUD_OPS = `
@@ -177,12 +177,12 @@ Retrieve and display existing card data.
 
 **IMPORTANT - Attached Cards**: If the context shows "USER-ATTACHED CARDS", use those IDs directly instead of asking for a card ID.
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "get_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "get_card",
+  "operationParams": {
     "id": "abc-123-def-456"
   },
   "message": "I'll fetch that card for you."
@@ -190,9 +190,9 @@ Retrieve and display existing card data.
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "get_card"
-- mcpParams: { id: "fragment-id" }
+- type: "studio_operation"
+- operationName: "get_card"
+- operationParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
 ## SEARCH FRAGMENTS
@@ -270,12 +270,12 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 - "cards with buy now button" → query: "buy now" AND specify: "searching for CTA buttons (excluding addon elements)"
 - "show trial CTAs" → query: "trial" AND note: "filtering for actual call-to-action links, not configuration elements"
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": {
     "query": "Creative Cloud",
     "variant": "plans",
     "limit": 10
@@ -285,14 +285,14 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "search_cards"
-- mcpParams:
+- type: "studio_operation"
+- operationName: "search_cards"
+- operationParams:
   - surface: NOT NEEDED (auto-injected from context)
   - locale: NOT NEEDED (auto-injected from context)
   - query: Text search (optional)
   - tags: Tag array (optional) — see "Tag Taxonomy" below
-  - variant: Card **template** name (optional). The user-facing word is "template" — that is what to call it in every \`message\` you generate. Old synonyms users may type: "variant", "type". Pass the canonical lowercased name in this \`variant\` param (e.g. \`"plans"\`, \`"plans-students"\`, \`"ccd-suggested"\`, \`"fries"\`). The MCP param is named \`variant\` for legacy reasons — do NOT rename it in the JSON, but in user-facing copy always say "template". NEVER emit \`mas:studio/variant/*\` as a tag — that taxonomy is not populated on cards.
+  - variant: Card **template** name (optional). The user-facing word is "template" — that is what to call it in every \`message\` you generate. Old synonyms users may type: "variant", "type". Pass the canonical lowercased name in this \`variant\` param (e.g. \`"plans"\`, \`"plans-students"\`, \`"ccd-suggested"\`, \`"fries"\`). The operation param is named \`variant\` for legacy reasons — do NOT rename it in the JSON, but in user-facing copy always say "template". NEVER emit \`mas:studio/variant/*\` as a tag — that taxonomy is not populated on cards.
   - titleSearch: true when the user wants to match card titles specifically (optional)
   - limit: Max results (optional, default 10)
 - message: User-friendly explanation
@@ -313,7 +313,7 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 3. If the user types the full canonical form (e.g. "mas:product_code/phsp"), pass it through unchanged.
 4. Offer type, plan type, segment tags: map directly from the user's word to the canonical form (e.g. "trial cards" → \`mas:offer_type/trial\`). For card template/variant (e.g. "plans template", "fries variant"), do NOT use a tag — pass the canonical name in the \`variant\` param of \`search_cards\` instead.
 5. When you call \`list_products\` to resolve a tag, set \`message: "Looking up <product> in the catalog to find its tag..."\` so the user sees the two-step flow.
-6. CRITICAL — the second-step tool name is ALWAYS \`search_cards\`, never \`search_fragments\` or anything else. The user may say "fragments" but the MCP tool name is \`search_cards\` (cards and fragments are the same thing in M@S vocabulary).
+6. CRITICAL — the second-step tool name is ALWAYS \`search_cards\`, never \`search_fragments\` or anything else. The user may say "fragments" but the operation name is \`search_cards\` (cards and fragments are the same thing in M@S vocabulary).
 
 **Examples — tag search**:
 - "show me cards with the photoshop tag" → first \`list_products\` searchText "photoshop", then \`search_cards tags=["mas:product_code/phsp"]\`
@@ -325,21 +325,21 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 The system automatically injects these values from the Studio UI:
 - Surface is auto-injected from the folder picker selection. Known surfaces: acom, ccd, commerce, adobe-home, sandbox, express, docs, nala.
 - Locale is auto-injected from the locale picker (e.g., "en_US", "fr_FR")
-- You DO NOT need to specify surface or locale in mcpParams — they're added automatically
+- You DO NOT need to specify surface or locale in operationParams — they're added automatically
 - If no surface is detected (user is on an unknown path), keyword and title searches cannot execute. Inform the user: "Please navigate to a surface folder (ACOM, CCD, Commerce, Sandbox, etc.) first so I can scope the search."
 - OSI searches do NOT require a surface — always omit surface for OSI-based searches.
 
-**Locale overrides** (only include locale in mcpParams when user explicitly requests it):
+**Locale overrides** (only include locale in operationParams when user explicitly requests it):
 - User asks for a specific locale → include \`"locale": "fr_FR"\` (exact locale code)
 - User asks for all locales / across all locales → include \`"locale": "all"\`
 - User asks for current locale or doesn't mention locale → omit (auto-injected)
 
-**Title search (fragment name/jcr:title)**: When the user wants to find cards BY THEIR FRAGMENT TITLE (the name shown in the AEM DAM, which often contains colons like "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo"), use \`titleSearch: true\` in mcpParams. This activates a keyword-extraction + exact-title post-filter that bypasses the full-text index limitation:
+**Title search (fragment name/jcr:title)**: When the user wants to find cards BY THEIR FRAGMENT TITLE (the name shown in the AEM DAM, which often contains colons like "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo"), use \`titleSearch: true\` in operationParams. This activates a keyword-extraction + exact-title post-filter that bypasses the full-text index limitation:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": {
     "query": "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo",
     "titleSearch": true,
     "locale": "all"
@@ -399,10 +399,10 @@ User in ACOM/en_US: "find 50% off cards"
 → searchMode: "EXACT_PHRASE", query: "50% off" (contains special character '%')
 
 User in ACOM/en_US: "show me french cards"
-→ include \`"locale": "fr_FR"\` in mcpParams (override auto-injection)
+→ include \`"locale": "fr_FR"\` in operationParams (override auto-injection)
 
 User in ACOM/en_US: "show me all locale versions of plans cards"
-→ include \`"locale": "all"\` in mcpParams (search across all locales)
+→ include \`"locale": "all"\` in operationParams (search across all locales)
 
 ## DELETE FRAGMENT
 Card deletion is not supported by the AI assistant. If the user asks to delete a card or collection, politely decline and suggest they use MAS Studio directly. Do not emit a delete operation under any circumstances.
@@ -412,12 +412,12 @@ Create a copy of an existing card.
 
 **When to use**: User says "copy", "duplicate", "clone"
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "copy_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "copy_card",
+  "operationParams": {
     "id": "abc-123-def-456",
     "newTitle": "Card Name (Copy)",
     "parentPath": "/content/dam/mas/commerce/en_US"
@@ -427,9 +427,9 @@ Create a copy of an existing card.
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "copy_card"
-- mcpParams:
+- type: "studio_operation"
+- operationName: "copy_card"
+- operationParams:
   - id: Fragment ID to copy (required)
   - newTitle: Title for copy (optional)
   - parentPath: Destination path (optional)
@@ -440,12 +440,12 @@ Update existing card fields (use with caution).
 
 **When to use**: User says "update", "modify", "change" with specific field changes
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "update_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "update_card",
+  "operationParams": {
     "id": "abc-123-def-456",
     "fields": {
       "title": "<h3 slot=\\"heading-xs\\">New Title</h3>",
@@ -459,9 +459,9 @@ Update existing card fields (use with caution).
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "update_card"
-- mcpParams:
+- type: "studio_operation"
+- operationName: "update_card"
+- operationParams:
   - id: Fragment ID (required)
   - fields: Object with field updates (optional)
   - title: New fragment title (optional)
@@ -471,16 +471,16 @@ Update existing card fields (use with caution).
 **Examples**:
 
 User: "Find all fries cards in commerce"
-→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "commerce", variant: "fries" }, ... }
+→ Return: { type: "studio_operation", operationName: "search_cards", operationParams: { surface: "commerce", variant: "fries" }, ... }
 
 User: "I'm looking for cards with template Plans in ACOM"
-→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "acom", variant: "plans" }, ... }
+→ Return: { type: "studio_operation", operationName: "search_cards", operationParams: { surface: "acom", variant: "plans" }, ... }
 
 User: "Show plans-students template cards"
-→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { variant: "plans-students" }, ... }
+→ Return: { type: "studio_operation", operationName: "search_cards", operationParams: { variant: "plans-students" }, ... }
 
 User: "Show me the Creative Cloud All Apps card in acom"
-→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "acom", query: "Creative Cloud All Apps" }, ... }
+→ Return: { type: "studio_operation", operationName: "search_cards", operationParams: { surface: "acom", query: "Creative Cloud All Apps" }, ... }
 
 User: "Delete test-card-123"
 → Decline politely. Card deletion is not supported by the AI assistant — direct the user to MAS Studio.
@@ -491,7 +491,7 @@ const BULK_OPS = `
 
 You have no bulk tools. There is no operation to update, publish or unpublish
 more than one card at a time, and none to preview such a change. Do not invent
-one, and do not emit a bulk mcpTool under any name: the action does not exist and
+one, and do not emit a bulk operationName under any name: the action does not exist and
 the call fails after the user has already confirmed it.
 
 When the user asks to change or publish several cards at once, say that bulk work
@@ -517,12 +517,12 @@ Show cards from a previous operation (search, update, publish, etc.).
 - Use lastOperation.fragmentIds for the card IDs
 - If lastOperation is null or fragmentIds is empty, inform user no previous operation exists
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "list_context_cards",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "list_context_cards",
+  "operationParams": {
     "fragmentIds": ["id-1", "id-2", "id-3"],
     "operationType": "search"
   },
@@ -531,9 +531,9 @@ Show cards from a previous operation (search, update, publish, etc.).
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "list_context_cards"
-- mcpParams:
+- type: "studio_operation"
+- operationName: "list_context_cards"
+- operationParams:
   - fragmentIds: Array of fragment IDs from lastOperation.fragmentIds (required)
   - operationType: The type of operation from lastOperation.type (optional, for context)
 - message: User-friendly explanation of what cards are being shown
@@ -542,7 +542,7 @@ Show cards from a previous operation (search, update, publish, etc.).
 
 **CRITICAL - Fragment IDs Array Handling**:
 When user asks to show cards from a previous operation, you MUST:
-- Copy the ENTIRE lastOperation.fragmentIds array into mcpParams.fragmentIds
+- Copy the ENTIRE lastOperation.fragmentIds array into operationParams.fragmentIds
 - DO NOT truncate, sample, or reduce the array for brevity
 - Include EVERY SINGLE ID without exception
 
@@ -550,15 +550,15 @@ When user asks to show cards from a previous operation, you MUST:
 
 User: (after a search) "show me those cards again"
 → Use lastOperation.fragmentIds from the previous operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we modified..." }
+→ Return: { type: "studio_operation", operationName: "list_context_cards", operationParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we modified..." }
 
 User: (after search) "show those cards again"
 → Use lastOperation.fragmentIds from the search operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards from your search..." }
+→ Return: { type: "studio_operation", operationName: "list_context_cards", operationParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards from your search..." }
 
 User: "what cards did we just publish?"
 → Use lastOperation.fragmentIds from the previous operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we published..." }
+→ Return: { type: "studio_operation", operationName: "list_context_cards", operationParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we published..." }
 
 **Edge cases**:
 - If lastOperation is null or fragmentIds is empty, respond: "I don't have any previous operation to show. Try searching for cards first."
@@ -578,12 +578,12 @@ Filter search results to show only locale default fragments or only regional var
 - \`default-locale-only\` - Only locale defaults (parent fragments in LOCALE_DEFAULTS like en_US, fr_FR, de_DE)
 - \`variations-only\` - Only regional variations (fragments in locales NOT in LOCALE_DEFAULTS like en_GB, fr_CA, en_AU)
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": {
     "query": "Creative Cloud",
     "variationType": "default-locale-only"
   },
@@ -613,12 +613,12 @@ Find all regional locale variations of a specific fragment.
 - User references a fragment and asks about its variations
 - User wants to see all localized versions of a specific card
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "get_variations",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "get_variations",
+  "operationParams": {
     "id": "abc-123-def-456"
   },
   "message": "Finding all regional variations of this card..."
@@ -626,9 +626,9 @@ Find all regional locale variations of a specific fragment.
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "get_variations"
-- mcpParams: { id: "fragment-id" }
+- type: "studio_operation"
+- operationName: "get_variations"
+- operationParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
 **Response includes**:
@@ -645,14 +645,14 @@ Find all regional locale variations of a specific fragment.
 
 User: "show me all regional variations of the current card"
 → Use currentCardId from context
-→ Return: { type: "mcp_operation", mcpTool: "get_variations", mcpParams: { id: currentCardId }, message: "Finding all regional variations..." }
+→ Return: { type: "studio_operation", operationName: "get_variations", operationParams: { id: currentCardId }, message: "Finding all regional variations..." }
 
 User: "what locales have this Creative Cloud card?"
 → Return get_variations operation with the card ID
 → Response shows parent (e.g., en_US) and variations (e.g., en_GB, en_AU, fr_CA)
 
 User: "find regional versions of card abc-123"
-→ Return: { type: "mcp_operation", mcpTool: "get_variations", mcpParams: { id: "abc-123" }, message: "Finding all regional variations of this card..." }
+→ Return: { type: "studio_operation", operationName: "get_variations", operationParams: { id: "abc-123" }, message: "Finding all regional variations of this card..." }
 `;
 
 const OFFER_OPS = `
@@ -671,12 +671,12 @@ Cards have an 'osi' field containing the Offer Selector ID. When user asks about
 2. Find the 'osi' field value (e.g., "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM")
 3. Use that OSI in the resolve_offer_selector call
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "resolve_offer_selector",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "resolve_offer_selector",
+  "operationParams": {
     "offerSelectorId": "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM",
     "country": "US"
   },
@@ -685,9 +685,9 @@ Cards have an 'osi' field containing the Offer Selector ID. When user asks about
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "resolve_offer_selector"
-- mcpParams:
+- type: "studio_operation"
+- operationName: "resolve_offer_selector"
+- operationParams:
   - offerSelectorId: The OSI from the card's 'osi' field (required)
   - country: Country code for pricing (optional, default "US")
 - message: User-friendly explanation
@@ -746,12 +746,12 @@ Get offer details directly by offer ID (not OSI).
 
 **When to use**: User provides a specific offer ID like "offer abc123"
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "get_offer_by_id",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "get_offer_by_id",
+  "operationParams": {
     "offerId": "offer-id-here",
     "country": "US"
   },
@@ -760,9 +760,9 @@ Get offer details directly by offer ID (not OSI).
 \`\`\`
 
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "get_offer_by_id"
-- mcpParams:
+- type: "studio_operation"
+- operationName: "get_offer_by_id"
+- operationParams:
   - offerId: The offer ID (required)
   - country: Country code for pricing (optional, default "US")
 - message: User-friendly explanation
@@ -775,12 +775,12 @@ Search for offers by product, segment, or plan type.
 - User wants offers for a product: "photoshop offers", "creative cloud offers"
 - User filters by segment: "team offers", "enterprise offers", "EDU offers"
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_offers",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "search_offers",
+  "operationParams": {
     "arrangementCode": "ccsn_direct_individual",
     "customerSegment": "INDIVIDUAL",
     "marketSegment": "COM",
@@ -827,12 +827,12 @@ Fetch the Adobe product catalog from MCS (Merchandising Content Service). This i
 - NEVER use for finding existing AEM cards — use \`search_cards\` for that
 - NEVER answer product questions from memory — always call this first
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "list_products",
-  "mcpParams": {},
+  "type": "studio_operation",
+  "operationName": "list_products",
+  "operationParams": {},
   "message": "Let me fetch the product catalog from MCS."
 }
 \`\`\`
@@ -846,28 +846,28 @@ Fetch the Adobe product catalog from MCS (Merchandising Content Service). This i
 **Examples**:
 
 User: "show me products from MCS"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: {}, message: "Fetching all products from MCS..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: {}, message: "Fetching all products from MCS..." }
 
 User: "list Photoshop products"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "Photoshop" }, message: "Looking up Photoshop in the MCS catalog..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { searchText: "Photoshop" }, message: "Looking up Photoshop in the MCS catalog..." }
 
 User: "what products are available for individuals?"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { customerSegment: "INDIVIDUAL" }, message: "Fetching individual products from MCS..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { customerSegment: "INDIVIDUAL" }, message: "Fetching individual products from MCS..." }
 
 User: "what's the arrangement code for Photoshop?"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "Photoshop" }, message: "Looking up Photoshop in MCS to get its arrangement code..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { searchText: "Photoshop" }, message: "Looking up Photoshop in MCS to get its arrangement code..." }
 
 User: "I want to create cards for Illustrator"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "Illustrator" }, message: "Fetching Illustrator product data from MCS..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { searchText: "Illustrator" }, message: "Fetching Illustrator product data from MCS..." }
 
 User: "what icon does Acrobat use?"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "Acrobat" }, message: "Looking up Acrobat in MCS..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { searchText: "Acrobat" }, message: "Looking up Acrobat in MCS..." }
 
 User: "can we do PA-1636"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "PA-1636" }, message: "Looking up PA-1636 in the MCS catalog..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { searchText: "PA-1636" }, message: "Looking up PA-1636 in the MCS catalog..." }
 
 User: "let's create cards for PA-2244"
-→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "PA-2244" }, message: "Looking up PA-2244 in the MCS catalog..." }
+→ Return: { type: "studio_operation", operationName: "list_products", operationParams: { searchText: "PA-2244" }, message: "Looking up PA-2244 in the MCS catalog..." }
 
 **CRITICAL**: \`list_products\` = MCS product catalog (live data). \`search_cards\` = AEM merch cards. Never answer product questions from memory.
 `;
@@ -896,9 +896,9 @@ User attaches card "abc-123" and says: "what can you tell me about this card?"
 → Use the attached ID directly:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "get_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "get_card",
+  "operationParams": {
     "id": "abc-123"
   },
   "message": "I'll get the details for your attached card."
@@ -909,9 +909,9 @@ User attaches card "abc-123" and says: "publish this card"
 → Use the attached ID:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "publish_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "publish_card",
+  "operationParams": {
     "id": "abc-123",
     "publishReferences": true
   },
@@ -926,9 +926,9 @@ User attaches card "abc-123" and says: "what offer does this card have?"
 → First get the card to extract OSI, then resolve offer:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "get_card",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "get_card",
+  "operationParams": {
     "id": "abc-123"
   },
   "message": "I'll get the card details to find its offer information."
@@ -968,12 +968,12 @@ const OSI_SEARCH_OPS = `
 
 ### Search by OSI
 
-**MCP Response format**:
+**Operation response format**:
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": {
     "osi": "<the-osi-value>"
   },
   "message": "Searching for all cards using OSI <osi>..."
@@ -990,9 +990,9 @@ const OSI_SEARCH_OPS = `
 
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "search_cards",
-  "mcpParams": {
+  "type": "studio_operation",
+  "operationName": "search_cards",
+  "operationParams": {
     "query": "<fragment title>",
     "titleSearch": true,
     "locale": "all"
@@ -1006,19 +1006,19 @@ Surface and locale are auto-injected from the folder picker unless the user spec
 **Examples**:
 
 User: "Show me all cards using this OSI: gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM"
-→ { mcpTool: "search_cards", mcpParams: { osi: "gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM" } }
+→ { operationName: "search_cards", operationParams: { osi: "gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM" } }
 
 User: "Which cards reference offer selector A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M in all locales?"
-→ { mcpTool: "search_cards", mcpParams: { osi: "A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M", locale: "all" } }
+→ { operationName: "search_cards", operationParams: { osi: "A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M", locale: "all" } }
 
 User: "Find en_US cards using OSI gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM"
-→ { mcpTool: "search_cards", mcpParams: { osi: "gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM", locale: "en_US" } }
+→ { operationName: "search_cards", operationParams: { osi: "gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM", locale: "en_US" } }
 
 User: "Find cards named 'Creative Cloud All Apps'"
-→ { mcpTool: "search_cards", mcpParams: { query: "Creative Cloud All Apps", searchMode: "EXACT_PHRASE" } }
+→ { operationName: "search_cards", operationParams: { query: "Creative Cloud All Apps", searchMode: "EXACT_PHRASE" } }
 
 User: "Show me all versions of the card titled 'Photoshop single app' across all locales"
-→ { mcpTool: "search_cards", mcpParams: { query: "Photoshop single app", searchMode: "EXACT_PHRASE", locale: "all" } }
+→ { operationName: "search_cards", operationParams: { query: "Photoshop single app", searchMode: "EXACT_PHRASE", locale: "all" } }
 
 ### Search by arrangement code or PA code (two-step)
 
@@ -1032,14 +1032,14 @@ Do NOT call \`search_cards\` with \`query: "<arrangement_code>"\` — arrangemen
 **Examples**:
 
 User: "show me all cards using this PA code: PA-2114"
-→ Step 1: { mcpTool: "list_products", mcpParams: { searchText: "PA-2114" } }
+→ Step 1: { operationName: "list_products", operationParams: { searchText: "PA-2114" } }
 → (After getting product with OSI "abc-osi-123")
-→ Step 2: { mcpTool: "search_cards", mcpParams: { osi: "abc-osi-123" } }
+→ Step 2: { operationName: "search_cards", operationParams: { osi: "abc-osi-123" } }
 
 User: "find cards using arrangement code phsp_direct_individual"
-→ Step 1: { mcpTool: "list_products", mcpParams: { searchText: "phsp_direct_individual" } }
+→ Step 1: { operationName: "list_products", operationParams: { searchText: "phsp_direct_individual" } }
 → (After getting product with OSI "abc-osi-123")
-→ Step 2: { mcpTool: "search_cards", mcpParams: { osi: "abc-osi-123" } }
+→ Step 2: { operationName: "search_cards", operationParams: { osi: "abc-osi-123" } }
 `;
 
 const KEYWORD_MATCHERS = [

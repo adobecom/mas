@@ -24,7 +24,7 @@ const path = require('path');
  */
 
 const ACTIONS_DIR = path.join(__dirname, '../../../mcp-server/src/actions');
-const MCP_CLIENT = path.join(__dirname, '../../../../studio/src/services/mcp-client.js');
+const OPERATIONS_CLIENT = path.join(__dirname, '../../../../studio/src/services/operations-client.js');
 
 /**
  * tool_targets with no action behind them today.
@@ -77,7 +77,7 @@ function actionFileFor(toolTarget) {
 
 /** Names the client rewrites before calling, e.g. get_variations. */
 function readClientAliases() {
-    const src = fs.readFileSync(MCP_CLIENT, 'utf8');
+    const src = fs.readFileSync(OPERATIONS_CLIENT, 'utf8');
     const block = src.match(/ACTION_NAME_OVERRIDES\s*=\s*\{([\s\S]*?)\}/);
     if (!block) return {};
     const aliases = {};

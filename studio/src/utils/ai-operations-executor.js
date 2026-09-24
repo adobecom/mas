@@ -1,9 +1,9 @@
 /**
- * Destructive-tool gating for MCP operations requested via natural language.
+ * Destructive-tool gating for operations requested via natural language.
  */
 
 /**
- * MCP tools that mutate or destroy data and must always be gated behind a
+ * operations that mutate or destroy data and must always be gated behind a
  * user confirmation step. Authorization for these operations must NEVER
  * depend on the model honoring an instruction — the client enforces the
  * gate regardless of what the backend `confirmationRequired` flag says.
@@ -16,7 +16,7 @@ export const DESTRUCTIVE_TOOLS = new Set(['publish_card', 'create_release_cards'
  * allowlist so that a missing or false backend flag cannot bypass
  * confirmation for tools that mutate state.
  *
- * @param {string|undefined} toolName - MCP tool name
+ * @param {string|undefined} toolName - operation name
  * @param {boolean|undefined} backendConfirmationRequired - Backend's flag
  * @returns {boolean} - true if a confirmation gate must be shown
  */

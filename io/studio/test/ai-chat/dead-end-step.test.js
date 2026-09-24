@@ -51,7 +51,7 @@ describe('ai-chat/dead-end guided step', () => {
         });
 
         it('leaves every other response type alone', () => {
-            expect(isDeadEndGuidedStep({ type: 'mcp_operation', mcpTool: 'list_products' })).to.equal(false);
+            expect(isDeadEndGuidedStep({ type: 'studio_operation', operationName: 'list_products' })).to.equal(false);
             expect(isDeadEndGuidedStep({ type: 'release_confirmation', confirmationSummary: {} })).to.equal(false);
             expect(isDeadEndGuidedStep({ type: 'open_ost', searchParams: {} })).to.equal(false);
             expect(isDeadEndGuidedStep(null)).to.equal(false);

@@ -10,7 +10,7 @@ const clarification = (text) => ({ role: 'assistant', content: text });
 const userTurn = (text) => ({ role: 'user', content: text });
 const operationTurn = () => ({
     role: 'assistant',
-    content: '{"type":"mcp_operation","mcpTool":"search_cards","mcpParams":{"surface":"acom"}}',
+    content: '{"type":"studio_operation","operationName":"search_cards","operationParams":{"surface":"acom"}}',
 });
 
 describe('ai-chat/inferGuidedFlowFromHistory', () => {
@@ -89,11 +89,11 @@ describe('ai-chat/inferGuidedFlowFromHistory', () => {
         expect(inferGuidedFlowFromHistory([serialized])).to.equal('release');
     });
 
-    it('treats a serialized guided mcp_operation tool call as terminal', () => {
+    it('treats a serialized guided studio_operation tool call as terminal', () => {
         const serialized = {
             role: 'assistant',
             content: `\`\`\`json\n${JSON.stringify(
-                { mcpTool: 'list_products', mcpParams: { searchText: 'x' }, message: 'Looking up…', type: 'mcp_operation' },
+                { operationName: 'list_products', operationParams: { searchText: 'x' }, message: 'Looking up…', type: 'studio_operation' },
                 null,
                 2,
             )}\n\`\`\``,

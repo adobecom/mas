@@ -1,21 +1,21 @@
 /**
- * AEM Operations Handler (MCP Format)
+ * AEM Operations Handler (operation format)
  *
  * Detects and validates AEM operations requested by the AI.
- * This runs in Adobe I/O Runtime (serverless) and returns MCP operation
- * instructions that the frontend will execute via MCP server.
+ * This runs in Adobe I/O Runtime (serverless) and returns operation
+ * instructions that the frontend will execute via operations service.
  *
  * Note: This handler does NOT execute operations. It only validates
- * and formats them for MCP execution in the frontend.
+ * and formats them for execution in the frontend.
  */
 
 import { getIntent, isStateChanging, INTENTS, SLOT_VALIDATORS } from './intent-registry.js';
 
 /**
- * MCP tool allowlist, derived from the intent registry so the two can never
+ * operation allowlist, derived from the intent registry so the two can never
  * drift — every registered tool_target is a valid prose-path operation.
  */
-const VALID_MCP_TOOLS = new Set(INTENTS.map((intent) => intent.tool_target).filter(Boolean));
+const VALID_OPERATIONS = new Set(INTENTS.map((intent) => intent.tool_target).filter(Boolean));
 
 const MAX_RESPONSE_LENGTH = 64 * 1024;
 
@@ -29,17 +29,17 @@ const FORCED_CONFIRMATION_TOOLS = new Set(['create_release_cards']);
  * Confirmation is a server decision derived from the intent registry —
  * never trust the model-emitted confirmationRequired flag to opt out.
  */
-function requiresServerConfirmation(mcpTool) {
-    return FORCED_CONFIRMATION_TOOLS.has(mcpTool) || isStateChanging(mcpTool);
+function requiresServerConfirmation(operationName) {
+    return FORCED_CONFIRMATION_TOOLS.has(operationName) || isStateChanging(operationName);
 }
 
-function validateParamValues(mcpTool, mcpParams) {
-    const registered = getIntent(mcpTool);
+function validateParamValues(operationName, operationParams) {
+    const registered = getIntent(operationName);
     if (!registered) return { valid: true };
-    for (const [param, value] of Object.entries(mcpParams)) {
+    for (const [param, value] of Object.entries(operationParams)) {
         const validator = SLOT_VALIDATORS[registered.slot_validators?.[param]];
         if (validator && value != null && !validator(value)) {
-            return { valid: false, error: `Invalid value for mcpParams.${param}` };
+            return { valid: false, error: `Invalid value for operationParams.${param}` };
         }
     }
     return { valid: true };
@@ -103,8 +103,8 @@ function findJSONObject(text, predicate) {
 }
 
 /**
- * Parse an MCP operation request from an AI response.
- * Returns the parsed operation object or null if no MCP operation is detected.
+ * Parse an operation request from an AI response.
+ * Returns the parsed operation object or null if no operation is detected.
  * Legacy `{operation: "publish"}` format is no longer supported (audit M9).
  *
  * @param {string} responseText - AI response text
@@ -126,10 +126,10 @@ export function parseOperationRequest(responseText) {
     }
 
     if (!operationData) {
-        operationData = findJSONObject(responseText, (obj) => obj?.type === 'mcp_operation');
+        operationData = findJSONObject(responseText, (obj) => obj?.type === 'studio_operation');
     }
 
-    return operationData?.type === 'mcp_operation' ? operationData : null;
+    return operationData?.type === 'studio_operation' ? operationData : null;
 }
 
 /**
@@ -151,7 +151,7 @@ export function extractOperationMessage(responseText) {
         if (!candidate) break;
         try {
             const parsed = JSON.parse(candidate);
-            if (parsed && parsed.type === 'mcp_operation') {
+            if (parsed && parsed.type === 'studio_operation') {
                 text = (text.slice(0, braceIdx) + text.slice(braceIdx + candidate.length)).trim();
                 continue;
             }
@@ -165,7 +165,7 @@ export function extractOperationMessage(responseText) {
 }
 
 /**
- * Validate an MCP operation request from the AI.
+ * Validate an operation request from the AI.
  * Legacy operation formats are no longer supported (audit M9).
  *
  * @param {Object} operation - Operation object from AI
@@ -175,17 +175,17 @@ export function validateOperation(operation) {
     if (!operation) {
         return { valid: false, error: 'No operation provided' };
     }
-    if (operation.type !== 'mcp_operation') {
-        return { valid: false, error: 'Only mcp_operation format is supported' };
+    if (operation.type !== 'studio_operation') {
+        return { valid: false, error: 'Only studio_operation format is supported' };
     }
-    return validateMCPOperation(operation);
+    return validateStudioOperation(operation);
 }
 
 /**
  * Common LLM-hallucinated tool aliases. These map alternate phrasings the
  * model occasionally emits — usually echoing the user's vocabulary
- * ("fragments" vs "cards") — onto the canonical MCP tool name. Keeps the
- * UX flowing instead of returning "Invalid MCP tool: ..." errors.
+ * ("fragments" vs "cards") — onto the canonical operation name. Keeps the
+ * UX flowing instead of returning "Invalid operation: ..." errors.
  */
 const TOOL_NAME_ALIASES = {
     search_fragments: 'search_cards',
@@ -200,12 +200,12 @@ const TOOL_NAME_ALIASES = {
 };
 
 /**
- * Normalize MCP tool name by stripping the 'studio_' prefix if present and
+ * Normalize operation name by stripping the 'studio_' prefix if present and
  * applying common aliases for LLM hallucinations.
  * @param {string} toolName - Original tool name
  * @returns {string} - Normalized tool name
  */
-function normalizeMCPToolName(toolName) {
+function normalizeOperationName(toolName) {
     if (!toolName) return toolName;
     let normalized = toolName.startsWith('studio_') ? toolName.slice(7) : toolName;
     if (TOOL_NAME_ALIASES[normalized]) {
@@ -215,61 +215,61 @@ function normalizeMCPToolName(toolName) {
 }
 
 /**
- * Validate MCP operation format
+ * Validate operation format
  * @private
  */
-function validateMCPOperation(operation) {
-    if (!operation.mcpTool) {
-        return { valid: false, error: 'mcpTool is required for MCP operations' };
+function validateStudioOperation(operation) {
+    if (!operation.operationName) {
+        return { valid: false, error: 'operationName is required for operations' };
     }
 
-    operation.mcpTool = normalizeMCPToolName(operation.mcpTool);
+    operation.operationName = normalizeOperationName(operation.operationName);
 
-    if (!VALID_MCP_TOOLS.has(operation.mcpTool)) {
-        return { valid: false, error: `Invalid MCP tool: ${operation.mcpTool}` };
+    if (!VALID_OPERATIONS.has(operation.operationName)) {
+        return { valid: false, error: `Invalid operation: ${operation.operationName}` };
     }
 
-    if (!operation.mcpParams || typeof operation.mcpParams !== 'object') {
-        return { valid: false, error: 'mcpParams object is required for MCP operations' };
+    if (!operation.operationParams || typeof operation.operationParams !== 'object') {
+        return { valid: false, error: 'operationParams object is required for operations' };
     }
 
-    switch (operation.mcpTool) {
+    switch (operation.operationName) {
         case 'publish_card':
         case 'get_card':
         case 'copy_card':
         case 'update_card':
-            if (!operation.mcpParams.id) {
-                return { valid: false, error: `${operation.mcpTool} requires mcpParams.id` };
+            if (!operation.operationParams.id) {
+                return { valid: false, error: `${operation.operationName} requires operationParams.id` };
             }
             break;
 
         case 'search_cards':
-            if (!operation.mcpParams.surface && !operation.mcpParams.osi && !operation.mcpParams.titleSearch) {
+            if (!operation.operationParams.surface && !operation.operationParams.osi && !operation.operationParams.titleSearch) {
                 return {
                     valid: false,
                     error:
-                        operation.mcpParams.query || operation.mcpParams.tags?.length
+                        operation.operationParams.query || operation.operationParams.tags?.length
                             ? 'search_cards with query or tags requires a surface. Please navigate to a surface folder (ACOM, CCD, Commerce, Sandbox, etc.) before searching by keyword or title.'
-                            : 'search_cards requires either mcpParams.surface or mcpParams.osi',
+                            : 'search_cards requires either operationParams.surface or operationParams.osi',
                 };
             }
             break;
 
         case 'get_variations':
-            if (!operation.mcpParams.id) {
-                return { valid: false, error: 'get_variations requires mcpParams.id' };
+            if (!operation.operationParams.id) {
+                return { valid: false, error: 'get_variations requires operationParams.id' };
             }
             break;
 
         case 'resolve_offer_selector':
-            if (!operation.mcpParams.offerSelectorId) {
-                return { valid: false, error: 'resolve_offer_selector requires mcpParams.offerSelectorId' };
+            if (!operation.operationParams.offerSelectorId) {
+                return { valid: false, error: 'resolve_offer_selector requires operationParams.offerSelectorId' };
             }
             break;
 
         case 'get_offer_by_id':
-            if (!operation.mcpParams.offerId) {
-                return { valid: false, error: 'get_offer_by_id requires mcpParams.offerId' };
+            if (!operation.operationParams.offerId) {
+                return { valid: false, error: 'get_offer_by_id requires operationParams.offerId' };
             }
             break;
 
@@ -280,35 +280,35 @@ function validateMCPOperation(operation) {
             break;
 
         case 'get_product_by_arrangement_code':
-            if (!operation.mcpParams.arrangementCode) {
+            if (!operation.operationParams.arrangementCode) {
                 return {
                     valid: false,
-                    error: 'get_product_by_arrangement_code requires mcpParams.arrangementCode',
+                    error: 'get_product_by_arrangement_code requires operationParams.arrangementCode',
                 };
             }
             break;
 
         case 'create_release_cards':
-            if (!operation.mcpParams.arrangement_code) {
-                return { valid: false, error: 'create_release_cards requires mcpParams.arrangement_code' };
+            if (!operation.operationParams.arrangement_code) {
+                return { valid: false, error: 'create_release_cards requires operationParams.arrangement_code' };
             }
-            if (!Array.isArray(operation.mcpParams.variants) || operation.mcpParams.variants.length === 0) {
-                return { valid: false, error: 'create_release_cards requires mcpParams.variants array' };
+            if (!Array.isArray(operation.operationParams.variants) || operation.operationParams.variants.length === 0) {
+                return { valid: false, error: 'create_release_cards requires operationParams.variants array' };
             }
-            if (!operation.mcpParams.parentPath) {
-                return { valid: false, error: 'create_release_cards requires mcpParams.parentPath' };
+            if (!operation.operationParams.parentPath) {
+                return { valid: false, error: 'create_release_cards requires operationParams.parentPath' };
             }
             break;
 
         case 'create_tags':
-            if (!operation.mcpParams.tags || !Array.isArray(operation.mcpParams.tags)) {
-                return { valid: false, error: 'create_tags requires mcpParams.tags array' };
+            if (!operation.operationParams.tags || !Array.isArray(operation.operationParams.tags)) {
+                return { valid: false, error: 'create_tags requires operationParams.tags array' };
             }
             break;
 
         case 'create_offer_selector':
-            if (!operation.mcpParams.productArrangementCode) {
-                return { valid: false, error: 'create_offer_selector requires mcpParams.productArrangementCode' };
+            if (!operation.operationParams.productArrangementCode) {
+                return { valid: false, error: 'create_offer_selector requires operationParams.productArrangementCode' };
             }
             break;
 
@@ -316,16 +316,16 @@ function validateMCPOperation(operation) {
         // is the one surviving operation that takes an id array, and it needs the
         // same check: an absent or empty array renders nothing and reads as a bug.
         case 'list_context_cards':
-            if (!operation.mcpParams.fragmentIds || !Array.isArray(operation.mcpParams.fragmentIds)) {
-                return { valid: false, error: `${operation.mcpTool} requires mcpParams.fragmentIds array` };
+            if (!operation.operationParams.fragmentIds || !Array.isArray(operation.operationParams.fragmentIds)) {
+                return { valid: false, error: `${operation.operationName} requires operationParams.fragmentIds array` };
             }
-            if (operation.mcpParams.fragmentIds.length === 0) {
-                return { valid: false, error: `${operation.mcpTool} requires at least one fragment ID` };
+            if (operation.operationParams.fragmentIds.length === 0) {
+                return { valid: false, error: `${operation.operationName} requires at least one fragment ID` };
             }
             break;
     }
 
-    return validateParamValues(operation.mcpTool, operation.mcpParams);
+    return validateParamValues(operation.operationName, operation.operationParams);
 }
 
 /**
@@ -346,17 +346,17 @@ function processOperation(operation, message) {
     }
 
     return {
-        type: 'mcp_operation',
+        type: 'studio_operation',
         // A guided flow labels its turns so the client can tell a release
         // lookup from an ordinary one. Rebuilding the operation from a fixed
         // field list used to drop it here, and a free-text start never marks
         // the conversation as a release any other way, so the lookup was
         // dispatched as ordinary and the products were rendered twice.
         ...(operation.flowId ? { flowId: operation.flowId } : {}),
-        mcpTool: operation.mcpTool,
-        mcpParams: operation.mcpParams,
-        message: message || operation.message || `Executing ${operation.mcpTool} operation...`,
-        confirmationRequired: requiresServerConfirmation(operation.mcpTool) || operation.confirmationRequired || false,
+        operationName: operation.operationName,
+        operationParams: operation.operationParams,
+        message: message || operation.message || `Executing ${operation.operationName} operation...`,
+        confirmationRequired: requiresServerConfirmation(operation.operationName) || operation.confirmationRequired || false,
     };
 }
 
@@ -373,12 +373,12 @@ export function handleOperation(responseText, enrichedContext) {
         return null;
     }
 
-    if (enrichedContext && operation.mcpTool === 'search_cards') {
-        if (enrichedContext.surface && !operation.mcpParams.surface) {
-            operation.mcpParams.surface = enrichedContext.surface;
+    if (enrichedContext && operation.operationName === 'search_cards') {
+        if (enrichedContext.surface && !operation.operationParams.surface) {
+            operation.operationParams.surface = enrichedContext.surface;
         }
-        if (enrichedContext.locale && !operation.mcpParams.locale) {
-            operation.mcpParams.locale = enrichedContext.locale;
+        if (enrichedContext.locale && !operation.operationParams.locale) {
+            operation.operationParams.locale = enrichedContext.locale;
         }
     }
 
@@ -452,11 +452,11 @@ function contextArrangementCodeFor(context, offerId) {
  * being looked up rather than whatever was mentioned earlier.
  */
 export function withResolvedArrangementCode(operation, conversationHistory, context = null) {
-    if (operation?.mcpTool !== 'get_offer_by_id') return operation;
-    if (operation.mcpParams?.arrangementCode) return operation;
+    if (operation?.operationName !== 'get_offer_by_id') return operation;
+    if (operation.operationParams?.arrangementCode) return operation;
     const arrangementCode =
-        contextArrangementCodeFor(context, operation.mcpParams?.offerId) ||
+        contextArrangementCodeFor(context, operation.operationParams?.offerId) ||
         resolveArrangementCodeFromHistory(conversationHistory);
     if (!arrangementCode) return operation;
-    return { ...operation, mcpParams: { ...operation.mcpParams, arrangementCode } };
+    return { ...operation, operationParams: { ...operation.operationParams, arrangementCode } };
 }

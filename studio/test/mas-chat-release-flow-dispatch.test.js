@@ -11,7 +11,7 @@ import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js
  *
  * The release flow has a local renderer for exactly this, presentProductSelection,
  * which draws the tiles and skips the follow-up round trip. It was unreachable.
- * 'mcp_operation' is a terminal response type, so the flow bookkeeping in
+ * 'studio_operation' is a terminal response type, so the flow bookkeeping in
  * handleSendMessage cleared activeGuidedFlow before the operation was
  * dispatched, and the branch that reads it four lines later could never see
  * 'release'. The envelope path returns before that bookkeeping and sets the
@@ -21,9 +21,9 @@ import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js
  * rather than reading state the same turn has already torn down.
  */
 const LIST_PRODUCTS = {
-    type: 'mcp_operation',
-    mcpTool: 'list_products',
-    mcpParams: { searchText: 'photoshop' },
+    type: 'studio_operation',
+    operationName: 'list_products',
+    operationParams: { searchText: 'photoshop' },
     message: 'Looking up products',
 };
 
@@ -95,7 +95,7 @@ describe('MasChat routes a product list by the flow it was dispatched with', () 
     it('passes the caller-supplied flow through to the regular operation path', async () => {
         const regular = sinon.stub(el, 'executeRegularOperation').resolves();
 
-        await el.executeOperation({ type: 'mcp_operation', mcpTool: 'list_products' }, { guidedFlow: 'release' });
+        await el.executeOperation({ type: 'studio_operation', operationName: 'list_products' }, { guidedFlow: 'release' });
 
         expect(regular.firstCall.args[2]).to.equal('release');
     });
@@ -104,7 +104,7 @@ describe('MasChat routes a product list by the flow it was dispatched with', () 
         const regular = sinon.stub(el, 'executeRegularOperation').resolves();
         el.activeGuidedFlow = 'release';
 
-        await el.executeOperation({ type: 'mcp_operation', mcpTool: 'list_products' });
+        await el.executeOperation({ type: 'studio_operation', operationName: 'list_products' });
 
         expect(regular.firstCall.args[2]).to.equal('release');
     });

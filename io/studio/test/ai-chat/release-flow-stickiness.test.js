@@ -21,8 +21,8 @@ const recordedTurn = (payload) => ({
  *
  * Two causes, both in the tool schemas.
  *
- * 1. emit_mcp_operation carried no flowId. index.js records the tool payload as
- *    the assistant turn, so the turn after Step 2 held "mcpTool" and no flowId.
+ * 1. emit_studio_operation carried no flowId. index.js records the tool payload as
+ *    the assistant turn, so the turn after Step 2 held "operationName" and no flowId.
  *    inferGuidedFlowFromHistory matches that against its terminal pattern and
  *    returns null, so the flow was treated as concluded at exactly the point it
  *    was half done. Every later turn re-classified from scratch and the model,
@@ -42,8 +42,8 @@ describe('ai-chat/release flow stickiness', () => {
     });
 
     describe('the flow survives its own product lookup', () => {
-        it('requires flowId on emit_mcp_operation, as it already does on emit_guided_step', () => {
-            const schema = toolNamed('emit_mcp_operation').input_schema;
+        it('requires flowId on emit_studio_operation, as it already does on emit_guided_step', () => {
+            const schema = toolNamed('emit_studio_operation').input_schema;
             expect(schema.properties).to.have.property('flowId');
             expect(schema.required).to.include('flowId');
         });
@@ -52,10 +52,10 @@ describe('ai-chat/release flow stickiness', () => {
             const history = [
                 { role: 'user', content: 'create cards for illustrator' },
                 recordedTurn({
-                    type: 'mcp_operation',
+                    type: 'studio_operation',
                     flowId: 'release',
-                    mcpTool: 'list_products',
-                    mcpParams: { searchText: 'illustrator' },
+                    operationName: 'list_products',
+                    operationParams: { searchText: 'illustrator' },
                 }),
             ];
             expect(inferGuidedFlowFromHistory(history)).to.equal('release');
@@ -64,14 +64,14 @@ describe('ai-chat/release flow stickiness', () => {
         it('still ends the flow on a lookup turn with no flowId, so termination is not broken', () => {
             const history = [
                 { role: 'user', content: 'create cards for illustrator' },
-                recordedTurn({ type: 'mcp_operation', mcpTool: 'list_products', mcpParams: { searchText: 'illustrator' } }),
+                recordedTurn({ type: 'studio_operation', operationName: 'list_products', operationParams: { searchText: 'illustrator' } }),
             ];
             expect(inferGuidedFlowFromHistory(history)).to.equal(null);
         });
 
         it('tells the model to carry flowId through the lookup', () => {
-            expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.include('emit_mcp_operation');
-            expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.match(/flowId[^.]*emit_mcp_operation|emit_mcp_operation[^.]*flowId/);
+            expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.include('emit_studio_operation');
+            expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.match(/flowId[^.]*emit_studio_operation|emit_studio_operation[^.]*flowId/);
         });
     });
 

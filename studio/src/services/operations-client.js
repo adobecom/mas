@@ -8,8 +8,8 @@
 import { OPERATIONS_SERVICE_URL } from '../mas-chat/config.js';
 
 /**
- * Execute an MCP tool on the operations service
- * @param {string} toolName - Name of the MCP tool (e.g., 'publish_card')
+ * Execute an operation on the operations service
+ * @param {string} toolName - Name of the operation (e.g., 'publish_card')
  * @param {Object} params - Tool parameters
  * @returns {Promise<Object>} - Tool execution result
  */
@@ -52,30 +52,30 @@ export async function executeOperation(toolName, params) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `MCP server returned ${response.status}`);
+            throw new Error(errorData.error || `operations service returned ${response.status}`);
         }
 
         const result = await response.json();
         return result;
     } catch (error) {
-        console.error(`MCP tool execution failed (${toolName}):`, error);
+        console.error(`operation execution failed (${toolName}):`, error);
         throw new Error(`Failed to execute ${toolName}: ${error.message}`);
     }
 }
 
 /**
- * Execute studio operation via MCP
- * Maps MCP tool results to the format expected by the Studio UI
- * @param {string} mcpTool - MCP tool name
- * @param {Object} mcpParams - MCP tool parameters
+ * Execute studio operation via the operations service
+ * Maps operation results to the format expected by the Studio UI
+ * @param {string} operationName - operation name
+ * @param {Object} operationParams - operation parameters
  * @returns {Promise<Object>} - Standardized operation result
  */
-export async function executeStudioOperation(mcpTool, mcpParams) {
-    const result = await executeOperation(mcpTool, mcpParams);
+export async function executeStudioOperation(operationName, operationParams) {
+    const result = await executeOperation(operationName, operationParams);
 
-    switch (mcpTool) {
+    switch (operationName) {
         case 'publish_card': {
-            const id = result.id || result.card?.id || mcpParams.id;
+            const id = result.id || result.card?.id || operationParams.id;
             const title = result.title || result.card?.title || '';
             return {
                 success: true,
@@ -117,7 +117,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             return {
                 success: true,
                 operation: 'copy',
-                originalId: mcpParams.id,
+                originalId: operationParams.id,
                 newFragmentId: newCard.id,
                 newFragmentTitle: title,
                 newFragmentPath: newCard.path,
@@ -127,14 +127,14 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
         }
 
         case 'update_card': {
-            const id = result.id || result.card?.id || mcpParams.id;
+            const id = result.id || result.card?.id || operationParams.id;
             const title = result.title || result.card?.title || '';
             return {
                 success: true,
                 operation: 'update',
                 fragmentId: id,
                 fragmentTitle: title,
-                updatedFields: Object.keys(mcpParams.updates || {}),
+                updatedFields: Object.keys(operationParams.updates || {}),
                 message: title ? `✓ Updated "${title}"` : '✓ Card updated.',
                 deepLink: result.deepLink,
             };
@@ -169,9 +169,9 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 success: true,
                 operation: 'get_product_by_arrangement_code',
                 product,
-                arrangementCode: result.arrangementCode || mcpParams.arrangementCode,
+                arrangementCode: result.arrangementCode || operationParams.arrangementCode,
                 message:
-                    result.message || (product ? `Found product for ${mcpParams.arrangementCode}` : 'No MCS product match.'),
+                    result.message || (product ? `Found product for ${operationParams.arrangementCode}` : 'No MCS product match.'),
                 rawResult: result,
             };
         }
@@ -190,12 +190,12 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
         case 'search_offers': {
             const offers = Array.isArray(result.offers) ? result.offers : [];
             const filterParts = [];
-            if (mcpParams.productArrangementCode) filterParts.push(`product ${mcpParams.productArrangementCode}`);
-            if (mcpParams.customerSegment) filterParts.push(mcpParams.customerSegment);
-            if (mcpParams.marketSegment) filterParts.push(mcpParams.marketSegment);
-            if (mcpParams.offerType) filterParts.push(mcpParams.offerType);
-            if (mcpParams.commitment) filterParts.push(mcpParams.commitment);
-            if (mcpParams.term) filterParts.push(mcpParams.term);
+            if (operationParams.productArrangementCode) filterParts.push(`product ${operationParams.productArrangementCode}`);
+            if (operationParams.customerSegment) filterParts.push(operationParams.customerSegment);
+            if (operationParams.marketSegment) filterParts.push(operationParams.marketSegment);
+            if (operationParams.offerType) filterParts.push(operationParams.offerType);
+            if (operationParams.commitment) filterParts.push(operationParams.commitment);
+            if (operationParams.term) filterParts.push(operationParams.term);
             const filterDesc = filterParts.length ? ` for ${filterParts.join(' / ')}` : '';
             const fallbackMessage =
                 offers.length > 0
@@ -219,7 +219,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 operation: 'get_offer_by_id',
                 offer,
                 studioLinks: result.studioLinks,
-                message: result.message || (offer ? `Found offer ${offer.offerId || mcpParams.offerId}` : 'Offer not found'),
+                message: result.message || (offer ? `Found offer ${offer.offerId || operationParams.offerId}` : 'Offer not found'),
                 rawResult: result,
             };
         }
@@ -229,7 +229,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             const products = Array.isArray(result.products) ? result.products : [];
             return {
                 success: true,
-                operation: mcpTool,
+                operation: operationName,
                 products,
                 count: products.length,
                 message:
@@ -241,7 +241,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
 
         default: {
             console.warn(
-                `executeStudioOperation: no explicit mapping for MCP tool "${mcpTool}" — using generic wrapper. Add a case to keep the {success, message, results} contract consistent.`,
+                `executeStudioOperation: no explicit mapping for operation "${operationName}" — using generic wrapper. Add a case to keep the {success, message, results} contract consistent.`,
             );
             let items = Array.isArray(result.results) ? result.results : [];
             if (items.length === 0 && Array.isArray(result.cards)) {
@@ -249,10 +249,10 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             }
             const fallbackMessage =
                 result.message ||
-                `${mcpTool.replace(/_/g, ' ')} completed${items.length > 0 ? ` — ${items.length} result${items.length !== 1 ? 's' : ''}` : ''}.`;
+                `${operationName.replace(/_/g, ' ')} completed${items.length > 0 ? ` — ${items.length} result${items.length !== 1 ? 's' : ''}` : ''}.`;
             return {
                 success: result.success ?? true,
-                operation: mcpTool,
+                operation: operationName,
                 message: fallbackMessage,
                 results: items,
                 count: items.length,

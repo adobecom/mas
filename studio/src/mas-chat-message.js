@@ -40,7 +40,7 @@ export class MasChatMessage extends LitElement {
         if (this.revealDone || !this.message?.fresh) return;
         if (this.message.role !== 'assistant' || this.message.isLoading) return;
         if (
-            this.message.mcpOperation ||
+            this.message.studioOperation ||
             this.message.buttonGroup ||
             this.message.cardConfig ||
             this.message.operationResult ||
@@ -323,11 +323,11 @@ export class MasChatMessage extends LitElement {
     }
 
     handleOperationAction(action) {
-        const operationData = this.message.mcpOperation
+        const operationData = this.message.studioOperation
             ? {
-                  type: 'mcp_operation',
-                  mcpTool: this.message.mcpOperation.mcpTool,
-                  mcpParams: this.message.mcpOperation.mcpParams,
+                  type: 'studio_operation',
+                  operationName: this.message.studioOperation.operationName,
+                  operationParams: this.message.studioOperation.operationParams,
               }
             : this.message.operation;
 
@@ -411,7 +411,7 @@ export class MasChatMessage extends LitElement {
             this.message.buttonGroup ||
             this.message.openOst ||
             this.message.confirmationSummary ||
-            this.message.mcpOperation ||
+            this.message.studioOperation ||
             this.showSuggestions;
 
         if (!hasDisplayableContent && !isUser) {
@@ -530,7 +530,7 @@ export class MasChatMessage extends LitElement {
                           ></mas-chat-confirmation-summary>`
                         : nothing}
                     ${cardConfig || fragmentId ? this.renderCardPreview() : nothing}
-                    ${operation || (this.message.mcpOperation && this.message.confirmationRequired)
+                    ${operation || (this.message.studioOperation && this.message.confirmationRequired)
                         ? this.renderOperationRequest()
                         : nothing}
                     ${operationLoading ? this.renderOperationProgress() : nothing}

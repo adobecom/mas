@@ -16,7 +16,7 @@ export const GUIDED_TOOL_CHOICE = { type: 'any' };
 
 const GUIDED_TOOL_TYPES = {
     emit_guided_step: 'guided_step',
-    emit_mcp_operation: 'mcp_operation',
+    emit_studio_operation: 'studio_operation',
     emit_release_confirmation: 'release_confirmation',
     emit_release_cards: 'release_cards',
     emit_open_ost: 'open_ost',
@@ -83,7 +83,7 @@ export function buildGuidedTools() {
             },
         },
         {
-            name: 'emit_mcp_operation',
+            name: 'emit_studio_operation',
             description:
                 'Run a catalog/offer lookup (list_products, get_offer_by_id, resolve_offer_selector) as part of ' +
                 'the flow. The message is shown to the user while the operation runs.',
@@ -98,12 +98,12 @@ export function buildGuidedTools() {
                             'recorded in the transcript, and without this the next turn reads it as terminal and ' +
                             'restarts the flow from the beginning.',
                     },
-                    mcpTool: { type: 'string', description: 'The MCP tool name, e.g. list_products.' },
-                    mcpParams: { type: 'object', additionalProperties: true },
+                    operationName: { type: 'string', description: 'The operation name, e.g. list_products.' },
+                    operationParams: { type: 'object', additionalProperties: true },
                     message: { type: 'string', description: 'Progress text shown while the tool runs.' },
                     confirmationRequired: { type: 'boolean' },
                 },
-                required: ['flowId', 'mcpTool', 'mcpParams', 'message'],
+                required: ['flowId', 'operationName', 'operationParams', 'message'],
             },
         },
         {

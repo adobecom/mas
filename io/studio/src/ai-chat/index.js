@@ -249,7 +249,7 @@ function extractSurfaceFromPath(path) {
  */
 /**
  * Note on the `[MCS product data retrieved ...]` marker: it is deliberately not
- * a release signal. The client emits it only from continueWithMCPResult, which
+ * a release signal. The client emits it only from continueWithOperationResult, which
  * runs only when the active flow is NOT release — the release flow renders its
  * product selection locally. Treating it as a release loaded the guided release
  * prompt and tools onto a turn needing neither, pushing it past the budget.
@@ -575,7 +575,7 @@ async function main(params) {
             : { thinking };
 
         // Deterministic identifier shortcut: when the user message is a bare
-        // identifier, classify it by shape and emit the correct MCP operation
+        // identifier, classify it by shape and emit the correct operation
         // without consulting the LLM. The LLM misroutes ~all of these because
         // the shapes are visually similar. Precedence (narrowest first):
         //   1. Offer ID          — exactly 32 hex chars.
@@ -599,9 +599,9 @@ async function main(params) {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
                     body: {
-                        type: 'mcp_operation',
-                        mcpTool: 'get_card',
-                        mcpParams: { id: fragmentId },
+                        type: 'studio_operation',
+                        operationName: 'get_card',
+                        operationParams: { id: fragmentId },
                         message: 'Fetching that card...',
                         confirmationRequired: false,
                         envelope,
@@ -634,9 +634,9 @@ async function main(params) {
                 const wantsAllLocales = /\ball\s+locales?\b/i.test(message);
                 console.log(`[Backend] Deterministic title search bypass: "${titleQuery}" allLocales=${wantsAllLocales}`);
                 const titleSearchBody = {
-                    type: 'mcp_operation',
-                    mcpTool: 'search_cards',
-                    mcpParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
+                    type: 'studio_operation',
+                    operationName: 'search_cards',
+                    operationParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
                     message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
                     confirmationRequired: false,
                     conversationHistory: [...conversationHistory, { role: 'user', content: message }],
@@ -689,14 +689,14 @@ async function main(params) {
                 ? {
                       intent: 'get_offer_by_id',
                       slots: { offerId: bareOfferId[1] },
-                      mcpParams: { offerId: bareOfferId[1] },
+                      operationParams: { offerId: bareOfferId[1] },
                       message: `Resolving offer ${bareOfferId[1]} to its product...`,
                   }
                 : looksLikeArrangement
                   ? {
                         intent: 'get_product_by_arrangement_code',
                         slots: { arrangementCode },
-                        mcpParams: { arrangementCode },
+                        operationParams: { arrangementCode },
                         message: `Looking up product for arrangement code ${arrangementCode}...`,
                     }
                   : looksLikeOsi
@@ -704,13 +704,13 @@ async function main(params) {
                         ? {
                               intent: 'search_cards',
                               slots: { osi: osiCandidate },
-                              mcpParams: { osi: osiCandidate },
+                              operationParams: { osi: osiCandidate },
                               message: `Searching for all cards using OSI ${osiCandidate}...`,
                           }
                         : {
                               intent: 'resolve_offer_selector',
                               slots: { offerSelectorId: osiCandidate },
-                              mcpParams: { offerSelectorId: osiCandidate },
+                              operationParams: { offerSelectorId: osiCandidate },
                               message: `Resolving OSI ${osiCandidate} to its product...`,
                           }
                     : null;
@@ -722,22 +722,22 @@ async function main(params) {
                 // transcript names no product at all. The offer payload does.
                 const bypassBody = withResolvedArrangementCode(
                     {
-                        type: 'mcp_operation',
-                        mcpTool: identifierBypass.intent,
-                        mcpParams: identifierBypass.mcpParams,
+                        type: 'studio_operation',
+                        operationName: identifierBypass.intent,
+                        operationParams: identifierBypass.operationParams,
                         message: identifierBypass.message,
                         confirmationRequired: false,
                     },
                     conversationHistory,
                     context,
                 );
-                // The client dispatches from envelope.slots, not from mcpParams,
+                // The client dispatches from envelope.slots, not from operationParams,
                 // so the product has to be in the slots or it never reaches the
                 // lookup. Enrich before the envelope is built from them.
-                if (bypassBody.mcpParams?.arrangementCode && !identifierBypass.slots.arrangementCode) {
+                if (bypassBody.operationParams?.arrangementCode && !identifierBypass.slots.arrangementCode) {
                     identifierBypass.slots = {
                         ...identifierBypass.slots,
-                        arrangementCode: bypassBody.mcpParams.arrangementCode,
+                        arrangementCode: bypassBody.operationParams.arrangementCode,
                     };
                 }
                 const envelope = buildDeterministicEnvelope(identifierBypass.intent, identifierBypass.slots);
@@ -948,11 +948,11 @@ async function main(params) {
                     finalEnvelope?.intent === 'get_offer_by_id' &&
                     finalEnvelope.slots &&
                     !finalEnvelope.slots.arrangementCode &&
-                    envelopeBody.mcpParams?.arrangementCode
+                    envelopeBody.operationParams?.arrangementCode
                 ) {
                     finalEnvelope.slots = {
                         ...finalEnvelope.slots,
-                        arrangementCode: envelopeBody.mcpParams.arrangementCode,
+                        arrangementCode: envelopeBody.operationParams.arrangementCode,
                     };
                 }
                 return {
@@ -1058,7 +1058,7 @@ async function main(params) {
                 [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
                 'That reply gave the user nothing to act on: no operation ran and there was no button, ' +
                     'product list or input prompt. Do not describe an action you can take — take it. ' +
-                    'Emit the mcp_operation for the step you are on, or a guided_step whose buttonGroup ' +
+                    'Emit the studio_operation for the step you are on, or a guided_step whose buttonGroup ' +
                     'carries options or an inputHint, or open_ost if the Offer Selector Tool is needed.',
                 guidedToolMode ? GUIDED_CARD_CREATION_TOOL_PROMPT : effectiveSystemPrompt,
                 enrichedContext,
@@ -1093,7 +1093,7 @@ async function main(params) {
         operationResult = withResolvedArrangementCode(operationResult, conversationHistory, context);
 
         if (operationResult) {
-            if (operationResult.type === 'mcp_operation') {
+            if (operationResult.type === 'studio_operation') {
                 return {
                     statusCode: 200,
                     headers: {
@@ -1101,10 +1101,10 @@ async function main(params) {
                     },
                     body: {
                         ...envelopePayload,
-                        type: 'mcp_operation',
+                        type: 'studio_operation',
                         ...(operationResult.flowId ? { flowId: operationResult.flowId } : {}),
-                        mcpTool: operationResult.mcpTool,
-                        mcpParams: operationResult.mcpParams,
+                        operationName: operationResult.operationName,
+                        operationParams: operationResult.operationParams,
                         message: operationResult.message,
                         confirmationRequired: operationResult.confirmationRequired,
                         usage: totalUsage,
@@ -1512,7 +1512,7 @@ export function inferGuidedFlowFromHistory(conversationHistory) {
         return null;
     }
     const knownFlows = ['guided_search', 'guided_offer_search', 'guided_help', 'release'];
-    const terminalPattern = /"(?:mcpTool|cardConfigs?)"\s*:|"type"\s*:\s*"(?:mcp_operation|card|collection|release_cards)"/;
+    const terminalPattern = /"(?:operationName|cardConfigs?)"\s*:|"type"\s*:\s*"(?:studio_operation|card|collection|release_cards)"/;
     let scanned = 0;
     for (let i = conversationHistory.length - 1; i >= 0 && scanned < 4; i -= 1) {
         const msg = conversationHistory[i];
@@ -1608,7 +1608,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         'osi',
         // Card creation phrasings — these are operations, not docs questions.
         // "make me a card", "create a card", "build a card", "I need a card" all
-        // mean "do something for me using the MCP tools", which is what the
+        // mean "do something for me using the operations", which is what the
         // operations prompt enables (it includes create_release_cards).
         'make me',
         'make a card',

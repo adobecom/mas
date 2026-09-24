@@ -31,7 +31,7 @@ const SAFE_OPERATION_TYPES = new Set([
 
 /**
  * Sanitize a single message before exposing it to the UI.
- * Strips execution metadata (mcpOperation, confirmationRequired, operation) so
+ * Strips execution metadata (studioOperation, confirmationRequired, operation) so
  * historical messages cannot be replayed as live operations. `operationType` is
  * preserved only when it is in the whitelist of safe render discriminators
  * (needed so the "cards created" container and other result views survive
@@ -40,7 +40,7 @@ const SAFE_OPERATION_TYPES = new Set([
  */
 function sanitizeMessage(message) {
     if (!message || typeof message !== 'object') return null;
-    const { mcpOperation, operationType, confirmationRequired, operation, ...safe } = message;
+    const { studioOperation, operationType, confirmationRequired, operation, ...safe } = message;
     if (typeof operationType === 'string' && SAFE_OPERATION_TYPES.has(operationType)) {
         safe.operationType = operationType;
     }

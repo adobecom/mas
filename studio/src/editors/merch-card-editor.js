@@ -2874,8 +2874,8 @@ class MerchCardEditor extends LitElement {
         const dimensions = {};
         const dimensionsInvalid = {};
         const storedDimensions = {
-            ...parseBackgroundsDimensions(this.#ownBackgroundsHtml),
             ...parseBackgroundsDimensions(this.#parentBackgroundsHtml),
+            ...parseBackgroundsDimensions(this.#ownBackgroundsHtml),
         };
         await Promise.all(
             Object.entries(current).map(async ([breakpoint, value]) => {
@@ -2924,16 +2924,19 @@ class MerchCardEditor extends LitElement {
         const current = this.#getOwnBackgroundsUrls();
         const parentUrls = parseBackgroundsUrls(this.#parentBackgroundsHtml);
         const parentDimensions = parseBackgroundsDimensions(this.#parentBackgroundsHtml);
+        const dimensions = { ...parentDimensions, ...parseBackgroundsDimensions(this.#ownBackgroundsHtml) };
         current[key] = parentUrls[key];
-        if (current[key] && !parentDimensions[key]) {
+        dimensions[key] = parentDimensions[key];
+        if (current[key] && !dimensions[key]) {
             try {
-                parentDimensions[key] = await getImageDimensions(current[key]);
+                dimensions[key] = await getImageDimensions(current[key]);
             } catch {
                 this.backgroundsDimensionsInvalid = { ...this.backgroundsDimensionsInvalid, [key]: true };
                 return;
             }
         }
-        this.#commitBackgroundsHtml(buildBackgroundsHtml(current, parentDimensions));
+        this.backgroundsDimensionsInvalid = { ...this.backgroundsDimensionsInvalid, [key]: false };
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current, dimensions));
         showToast('Field restored to parent value', 'positive');
     }
 

@@ -2,6 +2,7 @@ import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 import {
+    makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
     renderBackgroundsDetailRow,
     renderBackgroundsToggleButton,
@@ -25,7 +26,7 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
  */
 const MARQUEE_FIELDS = [
     { slot: 'image', label: 'Image' },
-    { slot: 'backgrounds', label: 'Background Desktop' },
+    { slot: 'backgrounds', label: 'Background' },
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Product description' },
     { slot: 'short-description', label: 'Short Description' },
@@ -44,6 +45,8 @@ export class Marquee extends VariantLayout {
 
     toggleBackgroundsDetail = makeToggleBackgroundsDetail(() => this.card);
 
+    refreshBackgroundsDetail = makeRefreshBackgroundsDetail(() => this.card);
+
     renderLayout() {
         return html`
             <div class="headless">
@@ -52,7 +55,12 @@ export class Marquee extends VariantLayout {
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
                             <span class="headless-value" data-slot="${slot}">
-                                <slot name="${slot}"></slot>
+                                <slot
+                                    name="${slot}"
+                                    @slotchange=${slot === 'backgrounds'
+                                        ? this.refreshBackgroundsDetail
+                                        : nothing}
+                                ></slot>
                                 ${slot === 'backgrounds'
                                     ? renderBackgroundsToggleButton(
                                           this.toggleBackgroundsDetail,

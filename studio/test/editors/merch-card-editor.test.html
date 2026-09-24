@@ -94,6 +94,27 @@
             import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
             import { delay } from '../utils.js';
 
+            // Background URL edits measure the image before committing; test URLs don't resolve,
+            // so fake a successful load with fixed natural dimensions.
+            const stubImageLoading = () => {
+                const OriginalImage = window.Image;
+                window.Image = class {
+                    naturalWidth = 1600;
+                    naturalHeight = 900;
+                    set src(value) {
+                        setTimeout(() => this.onload?.());
+                    }
+                };
+                return () => {
+                    window.Image = OriginalImage;
+                };
+            };
+
+            const waitFor = async (check, timeout = 1000) => {
+                const start = Date.now();
+                while (!check() && Date.now() - start < timeout) await delay(10);
+            };
+
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
 
@@ -1116,14 +1137,20 @@
 
                         const tabletField = editor.querySelector('sp-textfield#background-tablet');
                         expect(tabletField).to.exist;
-                        tabletField.value = MOBILE_URL;
-                        tabletField.dispatchEvent(new Event('change', { bubbles: true }));
+                        const restoreImage = stubImageLoading();
+                        try {
+                            tabletField.value = MOBILE_URL;
+                            tabletField.dispatchEvent(new Event('change', { bubbles: true }));
+                            await waitFor(() => Store.editor.hasChanges);
 
-                        await editor.updateComplete;
-                        await sideNav.updateComplete;
+                            await editor.updateComplete;
+                            await sideNav.updateComplete;
 
-                        expect(Store.editor.hasChanges).to.be.true;
-                        expect(saveNavItem.disabled).to.be.false;
+                            expect(Store.editor.hasChanges).to.be.true;
+                            expect(saveNavItem.disabled).to.be.false;
+                        } finally {
+                            restoreImage();
+                        }
                     });
 
                     it('does not clear the textfield mid-edit when the in-progress value is not yet a valid URL', async () => {
@@ -1163,9 +1190,15 @@
                         expect(desktopField.value).to.equal(PARENT_DESKTOP);
 
                         const NEW_DESKTOP = 'https://main--mas-test--adobecom.aem.page/media_desktop-override.png';
-                        desktopField.value = NEW_DESKTOP;
-                        desktopField.dispatchEvent(new Event('change', { bubbles: true }));
-                        await editor.updateComplete;
+                        const restoreImage = stubImageLoading();
+                        try {
+                            desktopField.value = NEW_DESKTOP;
+                            desktopField.dispatchEvent(new Event('change', { bubbles: true }));
+                            await waitFor(() => fragmentStore.get().getFieldValue('backgrounds', 0)?.includes(NEW_DESKTOP));
+                            await editor.updateComplete;
+                        } finally {
+                            restoreImage();
+                        }
 
                         const ownBackgroundsHtml = fragmentStore.get().getFieldValue('backgrounds', 0);
                         expect(parseBackgroundsUrls(ownBackgroundsHtml)).to.deep.equal({

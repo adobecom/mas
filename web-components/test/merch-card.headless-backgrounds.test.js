@@ -38,13 +38,13 @@ for (const variant of ['marquee', 'banner-blade']) {
         let card;
         afterEach(() => card?.remove());
 
-        it('renders a "Background Desktop" row with a toggle button', async () => {
+        it('renders a "Background" row with a toggle button', async () => {
             card = await renderCard(variant, BACKGROUNDS_PICTURE);
             const rows = [...card.shadowRoot.querySelectorAll('.headless-row')];
             const row = rows.find(
                 (r) =>
                     r.querySelector('.headless-label')?.textContent ===
-                    'Background Desktop',
+                    'Background',
             );
             expect(row).to.exist;
             expect(row.querySelector('.headless-backgrounds-toggle')).to.exist;

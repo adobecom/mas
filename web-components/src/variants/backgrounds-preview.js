@@ -47,6 +47,19 @@ export function makeToggleBackgroundsDetail(getCard) {
     };
 }
 
+/** Builds a `slotchange` handler that keeps an expanded detail in sync when
+ *  the backgrounds slot is re-hydrated (e.g. after a Studio edit or restore). */
+export function makeRefreshBackgroundsDetail(getCard) {
+    return function refreshBackgroundsDetail() {
+        const card = getCard();
+        const detail = card.shadowRoot?.querySelector(
+            '.headless-backgrounds-detail',
+        );
+        if (!detail || detail.classList.contains('hidden')) return;
+        populateBackgroundsDetail(card, detail);
+    };
+}
+
 export function renderBackgroundsToggleButton(onClick) {
     return html`
         <button

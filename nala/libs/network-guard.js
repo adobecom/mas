@@ -1,6 +1,7 @@
 /**
- * Single network guard for all Nala browser traffic: proactive RPS pacing for the two named,
- * budgeted systems (EDS/Helix preview hosts, ODIN AEM author/preview hosts) PLUS generic reactive
+ * Single network guard for all Nala browser traffic: proactive RPS pacing for the named,
+ * budgeted systems (EDS/Helix preview hosts, ODIN AEM author/preview hosts, and the
+ * countries-lookup API the Studio app itself calls for CTA generation) PLUS generic reactive
  * throttle-response (429, and by default 503/529) handling for ANY host any test talks to.
  *
  * All shards/jobs now use ONE shared User-Agent (see playwright.config.js) — there is no more
@@ -11,6 +12,16 @@
  * That assumption only holds if at most one full Nala workflow run is active repo-wide at a time
  * — see the repo-wide `concurrency:` block at the top of nala-execution.yml, which enforces
  * exactly that (queues, rather than runs concurrently, any other PR's full run).
+ *
+ * On the documented EDS limits ("200 rps/project/IP" for delivery `.aem.live`/`.hlx.page`/
+ * `.hlx.live` endpoints, "10 rps/project/IP" for the separate Admin API, e.g. `admin.hlx.page`):
+ * Nala only ever talks to delivery hostnames (isEdsEdgeHost() below) — grep confirms no test or
+ * util calls an Admin API endpoint — so the stricter 10 rps/IP Admin limit never applies to our
+ * traffic, and EDS_SAFE_TOTAL_RPS=180 (below) is correctly scoped against the 200 rps delivery
+ * limit. Do note isEdsEdgeHost()'s `hostname.endsWith('.hlx.page')` check would also (incorrectly)
+ * classify a future `admin.hlx.page` call under the looser 180 rps EDS budget instead of the
+ * 10 rps Admin one — harmless today since nothing calls it, but worth tightening if Admin API
+ * usage is ever added.
  *
  * Static pacing keeps normal-case traffic under budget proactively. Reactive throttle handling is
  * a LOCAL (in-process only) safety net for whatever the static pacing didn't account for (bursts,
@@ -23,12 +34,31 @@
  * at a time. A sibling worker or job not immediately learning about another's 429 is an accepted
  * trade-off: an isolated 429 is far more likely transient burstiness than sustained overage.
  *
+ * Two additional protections beyond the original per-worker rps pacing:
+ *   1. Startup jitter (see installNetworkGuard): each Playwright WORKER PROCESS is a separate OS
+ *      process, so the pacing state below (module-level Maps) is per-process, not shared across
+ *      workers, let alone across the 3 concurrently-running shards on 3 different VMs. When many
+ *      worker processes across many shards all start at nearly the same wall-clock moment, their
+ *      very first request in each process is never delayed by pacing (which only smooths gaps
+ *      AFTER a process's own first call) — producing a real synchronized burst that steady-state
+ *      rps math doesn't account for. A small randomized delay before each worker's first guarded
+ *      request desynchronizes this.
+ *   2. Bounded retry-with-backoff for connection-level failures (see RETRYABLE_DOMAIN_KEYS) on
+ *      the two systems most prone to them (odin, countries) — previously any ERR_ABORTED/
+ *      ERR_FAILED/etc. was diagnostic-only with no retry at all, so a single transient network
+ *      hiccup mid-test became a hard failure with no self-healing.
+ *
  * Override env vars:
- *   NALA_EDS_THROTTLE_DISABLED=1     disable EDS proactive pacing
- *   NALA_EDS_MAX_RPS=<n>             force a specific per-worker EDS cap
- *   NALA_ODIN_MAX_RPS=<n>            force a specific TOTAL (not per-worker) ODIN cap (default 20)
- *   NALA_429_DEFAULT_PAUSE_MS=<n>    default pause when a 429 has no Retry-After (default 60000)
- *   NALA_THROTTLE_STATUS_CODES=<csv> status codes treated as throttle-like (default "429,503,529")
+ *   NALA_EDS_THROTTLE_DISABLED=1       disable EDS proactive pacing
+ *   NALA_EDS_MAX_RPS=<n>               force a specific per-worker EDS cap
+ *   NALA_ODIN_MAX_RPS=<n>              force a specific TOTAL (not per-worker) ODIN cap (default 20)
+ *   NALA_COUNTRIES_MAX_RPS=<n>         force a specific TOTAL (not per-worker) countries-API cap (default 10)
+ *   NALA_429_DEFAULT_PAUSE_MS=<n>      default pause when a 429 has no Retry-After (default 60000)
+ *   NALA_THROTTLE_STATUS_CODES=<csv>   status codes treated as throttle-like (default "429,503,529")
+ *   NALA_STARTUP_JITTER_DISABLED=1     disable the one-time per-worker startup jitter
+ *   NALA_STARTUP_JITTER_MAX_MS=<n>     max random jitter component in ms (default 1500)
+ *   NALA_CONNECTION_RETRY_DISABLED=1   disable retry-with-backoff for connection-level failures
+ *   NALA_CONNECTION_RETRY_MAX_ATTEMPTS=<n> max attempts (incl. first) per request (default 3)
  */
 
 /** Combined RPS budget with headroom under the 200 rps/hostname tenant limit. */
@@ -39,6 +69,22 @@ const EDS_MAX_RPS_PER_WORKER = 45;
 
 /** Default pause duration (ms) when a 429 response has no usable Retry-After header. */
 const DEFAULT_429_PAUSE_MS = 60000;
+
+/** Domain keys that get real request-level retry-with-backoff on connection-level failures (see
+ * RETRYABLE_CONNECTION_ERROR for what counts). Scoped to odin/countries — NOT eds, which is
+ * high-volume static asset delivery (~150 requests/page) where routing every request through
+ * route.fetch()+fulfill() would add meaningful overhead for comparatively low observed benefit;
+ * eds failures seen in practice were mostly benign navigation-cancel noise, not sustained blocks. */
+const RETRYABLE_DOMAIN_KEYS = new Set(['odin', 'countries']);
+
+/** Connection-level error text patterns worth retrying — a WAF/CDN/backend resetting or dropping
+ * the connection instead of returning a proper HTTP response. Same set attachResponseWatcher logs
+ * as "looks like a connection block", plus ERR_ABORTED (excluded there to avoid noise from benign
+ * navigation cancels, but worth one retry attempt here since a genuine mid-request drop and a
+ * benign cancel are indistinguishable from the error text alone, and retrying a truly-cancelled
+ * request is a harmless no-op once the page has moved on). */
+const RETRYABLE_CONNECTION_ERROR =
+    /ERR_CONNECTION|ERR_HTTP2|ERR_EMPTY_RESPONSE|ERR_TIMED_OUT|ERR_NETWORK_CHANGED|ERR_FAILED|ERR_ABORTED/;
 
 /**
  * Resolve the divisor for the shared RPS budgets: prefer NALA_TOTAL_WORKERS (workers across every
@@ -72,6 +118,20 @@ export function resolveOdinMaxRps() {
     return Math.max(1, Math.floor((Number.isFinite(totalLimit) && totalLimit > 0 ? totalLimit : 20) / n));
 }
 
+/**
+ * The "countries" API is a third-party (non-EDS/ODIN) lookup the Studio app itself calls to
+ * render CTA links — it has its own capacity limits, entirely independent of the EDS/ODIN
+ * budgets, and was previously unpaced (no proactive throttling at all). Its real limit isn't
+ * documented anywhere Nala has access to, so this default is a conservative guess, tunable via
+ * NALA_COUNTRIES_MAX_RPS.
+ */
+export function resolveCountriesMaxRps() {
+    if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
+    const totalLimit = Number.parseInt(process.env.NALA_COUNTRIES_MAX_RPS ?? '10', 10);
+    const n = resolveBudgetDivisor();
+    return Math.max(1, Math.floor((Number.isFinite(totalLimit) && totalLimit > 0 ? totalLimit : 10) / n));
+}
+
 export function isEdsEdgeHost(url) {
     try {
         const { hostname } = new URL(url);
@@ -97,17 +157,31 @@ export function isOdinHost(url) {
     }
 }
 
+/** The countries-lookup API the Studio app calls directly for CTA generation — a small,
+ * independent (non-EDS/ODIN) third party with its own capacity, not just a random unbudgeted
+ * host. Matches both the staging and prod hostnames in case the app ever targets prod in a test
+ * environment. */
+export function isCountriesHost(url) {
+    try {
+        const { hostname } = new URL(url);
+        return hostname === 'countries-stage.adobe.io' || hostname === 'countries.adobe.io';
+    } catch {
+        return false;
+    }
+}
+
 /**
- * Classify a URL into a rate-limit domain key: the two named/budgeted systems get a fixed class
- * ("eds"/"odin") so their pacing + reactive pause is shared CI-wide by system, not by exact
- * hostname (each PR branch is technically a different EDS hostname, but the limit is believed to
- * be tenant-wide — see the IP-vs-tenant discussion). Anything else falls back to its own
- * hostname, so 429s from unrelated services (IMS, adobeioruntime, etc.) still get paced/paused,
- * just scoped to that one hostname instead of a shared class.
+ * Classify a URL into a rate-limit domain key: the named/budgeted systems get a fixed class
+ * ("eds"/"odin"/"countries") so their pacing + reactive pause is shared CI-wide by system, not by
+ * exact hostname (each PR branch is technically a different EDS hostname, but the limit is
+ * believed to be tenant-wide — see the IP-vs-tenant discussion). Anything else falls back to its
+ * own hostname, so 429s from unrelated services (IMS, adobeioruntime, etc.) still get
+ * paced/paused, just scoped to that one hostname instead of a shared class.
  */
 export function domainKeyFor(url) {
     if (isEdsEdgeHost(url)) return 'eds';
     if (isOdinHost(url)) return 'odin';
+    if (isCountriesHost(url)) return 'countries';
     try {
         return new URL(url).hostname;
     } catch {
@@ -283,9 +357,82 @@ function logThrottleStartOnce(domainKey, maxRps, budgetLabel) {
     );
 }
 
+function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Whether this process's one-time startup jitter has already run (see applyStartupJitterOnce). */
+let startupJitterApplied = false;
+
+/**
+ * Delay this WORKER PROCESS's very first guarded request by a small, randomized amount so that
+ * many worker processes across many shards/VMs starting at nearly the same wall-clock moment
+ * don't all fire their first (otherwise-unpaced) request simultaneously — see the module doc
+ * comment's "startup jitter" point. Runs exactly once per process (subsequent calls are no-ops),
+ * regardless of which call site (auth setup, a docs test, a studio test) happens to install the
+ * guard first in this process. Combines a per-worker-index stagger (desyncs workers within one
+ * job) with a random component (desyncs the same worker index across different concurrently
+ * running shards/jobs, which each number their own workers 0..N-1 independently).
+ */
+async function applyStartupJitterOnce() {
+    if (startupJitterApplied || process.env.NALA_STARTUP_JITTER_DISABLED === '1') return;
+    startupJitterApplied = true;
+    const workerIndex = Number.parseInt(process.env.TEST_WORKER_INDEX ?? process.env.TEST_PARALLEL_INDEX ?? '0', 10) || 0;
+    const maxRandomMs = Number.parseInt(process.env.NALA_STARTUP_JITTER_MAX_MS ?? '1500', 10);
+    const randomMs = Math.floor(Math.random() * (Number.isFinite(maxRandomMs) && maxRandomMs > 0 ? maxRandomMs : 1500));
+    const jitterMs = workerIndex * 400 + randomMs;
+    if (jitterMs <= 0) return;
+    console.info(`[NALA] Startup jitter: worker ${workerIndex} delaying its first request by ~${jitterMs}ms.\n`);
+    await sleep(jitterMs);
+}
+
+/**
+ * Perform a routed request with bounded retry-with-backoff for connection-level failures
+ * (RETRYABLE_CONNECTION_ERROR), for domains in RETRYABLE_DOMAIN_KEYS. Uses route.fetch()/
+ * route.fulfill() so the page still sees a normal response object (attachResponseWatcher's
+ * 'response' listener still fires for throttle-status handling) — retrying only guards against
+ * the connection never producing a response at all. On the final attempt (or a non-retryable
+ * error), falls back to route.continue() so any last-resort native-network behavior and existing
+ * 'requestfailed' diagnostic logging are unchanged from before this retry logic existed.
+ * @param {import('@playwright/test').Route} route
+ * @param {string} domainKey
+ * @param {number} maxRps
+ */
+async function resolveRouteWithRetry(route, domainKey, maxRps) {
+    const maxAttempts = Number.parseInt(process.env.NALA_CONNECTION_RETRY_MAX_ATTEMPTS ?? '3', 10);
+    const attempts = Number.isFinite(maxAttempts) && maxAttempts > 0 ? maxAttempts : 3;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        await waitIfPaused(domainKey);
+        if (maxRps > 0) await throttleGap(domainKey, maxRps);
+
+        try {
+            const response = await route.fetch();
+            await route.fulfill({ response });
+            return;
+        } catch (error) {
+            const errorText = error?.message ?? String(error);
+            const retryable = RETRYABLE_CONNECTION_ERROR.test(errorText);
+            if (!retryable || attempt === attempts) break;
+            const backoffMs = 300 * attempt;
+            console.warn(
+                `[NALA] Connection-level failure on "${domainKey}" (attempt ${attempt}/${attempts}): ${errorText} — ` +
+                    `retrying in ${backoffMs}ms.\n  method/url: ${route.request().method()} ${route.request().url()}\n`,
+            );
+            await sleep(backoffMs);
+        }
+    }
+
+    // Exhausted retries (or a non-retryable/non-connection error) — fall back to the normal path
+    // so behavior (including attachResponseWatcher's 'requestfailed' diagnostic logging) matches
+    // what happened before this retry logic existed.
+    await route.continue();
+}
+
 /**
  * Register handlers on a Playwright browser context that:
- *   1. Pace outgoing requests to EDS and ODIN hosts to their static per-worker RPS caps.
+ *   1. Pace outgoing requests to EDS, ODIN, and countries-API hosts to their static per-worker
+ *      RPS caps, retrying odin/countries requests with backoff on connection-level failures.
  *   2. Before every request to any domain, wait out any active 429 pause (local or shared).
  * Covers all pages in the context, including those created after this call, via context.on('page').
  * Call attachResponseWatcher(page) for any page that already exists BEFORE this call, since
@@ -293,18 +440,27 @@ function logThrottleStartOnce(domainKey, maxRps, budgetLabel) {
  * @param {import('@playwright/test').BrowserContext} context
  */
 export async function installNetworkGuard(context) {
+    await applyStartupJitterOnce();
+
     const edsMaxRps = resolveEdsMaxRps();
     const odinMaxRps = resolveOdinMaxRps();
+    const countriesMaxRps = resolveCountriesMaxRps();
     logThrottleStartOnce('eds', edsMaxRps, `${EDS_SAFE_TOTAL_RPS} rps`);
     logThrottleStartOnce('odin', odinMaxRps, `${process.env.NALA_ODIN_MAX_RPS ?? '20'} rps`);
+    logThrottleStartOnce('countries', countriesMaxRps, `${process.env.NALA_COUNTRIES_MAX_RPS ?? '10'} rps`);
 
     await context.route('**/*', async (route) => {
         const url = route.request().url();
         const domainKey = domainKeyFor(url);
 
+        if (process.env.NALA_CONNECTION_RETRY_DISABLED !== '1' && RETRYABLE_DOMAIN_KEYS.has(domainKey)) {
+            const maxRps = domainKey === 'odin' ? odinMaxRps : countriesMaxRps;
+            await resolveRouteWithRetry(route, domainKey, maxRps);
+            return;
+        }
+
         await waitIfPaused(domainKey);
         if (domainKey === 'eds' && edsMaxRps > 0) await throttleGap('eds', edsMaxRps);
-        if (domainKey === 'odin' && odinMaxRps > 0) await throttleGap('odin', odinMaxRps);
 
         await route.continue();
     });
@@ -347,9 +503,8 @@ export function attachResponseWatcher(page) {
         // in-flight request with net::ERR_ABORTED) — only surface this for the two budgeted
         // systems, or for errors that actually look like a connection-level block/reset (as
         // opposed to a routine cancel), to avoid drowning the throttle signal in noise.
-        const looksLikeConnectionBlock = /ERR_CONNECTION|ERR_HTTP2|ERR_EMPTY_RESPONSE|ERR_TIMED_OUT|ERR_NETWORK_CHANGED|ERR_FAILED/.test(
-            errorText,
-        );
+        const looksLikeConnectionBlock =
+            /ERR_CONNECTION|ERR_HTTP2|ERR_EMPTY_RESPONSE|ERR_TIMED_OUT|ERR_NETWORK_CHANGED|ERR_FAILED/.test(errorText);
         if (domainKey !== 'eds' && domainKey !== 'odin' && !looksLikeConnectionBlock) return;
 
         const workerId = process.env.TEST_WORKER_INDEX ?? process.env.TEST_PARALLEL_INDEX ?? '?';
@@ -365,4 +520,3 @@ export function attachResponseWatcher(page) {
         );
     });
 }
-

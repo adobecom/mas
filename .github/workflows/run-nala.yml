@@ -55,12 +55,90 @@ jobs:
                   echo "::error::Add the 'run nala' label to merge this PR"
                   exit 1
 
-    run-nala-studio-tests:
-        name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
+    nala-auth:
+        name: Nala Shared Authentication
         needs: nala-gate
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
+        # All 3 studio shards test the IDENTICAL PR preview hostname (see
+        # nala/utils/global.setup.js), so the IMS-login-derived storageState (cookies) is portable
+        # across all of them — there is no reason for each shard to independently do its own full
+        # IMS login (~17-20s of real UI form-filling against auth.services.adobe.com, visible as
+        # the "[setup] authenticate" step in each shard's log). That was previously 3 separate
+        # logins per run, adding avoidable concurrent load to the IMS login flow and ~1 minute of
+        # duplicated wall-clock work. Login is done ONCE here; the resulting
+        # nala/.auth/user.json is uploaded as an artifact and downloaded by each shard below,
+        # which then skips its own login (see SKIP_AUTH_SETUP below and nala/libs/auth.setup.cjs).
+        # Runs on nala-studio-sj (not ubuntu-latest) purely because Playwright/Chromium are
+        # already installed there via the shards' setup steps' caching — using a GitHub-hosted
+        # runner would work too but would need its own `npx playwright install` from scratch.
+        runs-on: [self-hosted, Linux, X64, nala-studio-sj]
+        timeout-minutes: 10
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20.x
+                  cache: 'npm'
+                  cache-dependency-path: |
+                      **/package-lock.json
+                      **/yarn.lock
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v4
+              id: playwright-cache
+              continue-on-error: true
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
+
+            - name: Install Playwright system dependencies
+              uses: ./.github/actions/prep-apt
+
+            - name: Install/verify Playwright browsers
+              run: npx playwright install
+
+            - name: Log in once via the 'setup' project
+              run: npx playwright test --config=./playwright.config.js --project=setup
+              env:
+                  prOrg: ${{ github.event.pull_request.head.repo.owner.login }}
+                  prRepo: ${{ github.event.pull_request.head.repo.name }}
+                  GITHUB_ACTION_PATH: ${{ github.workspace }}
+                  IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
+                  IMS_PASS: ${{ secrets.IMS_PASS }}
+                  FORCE_COLOR: 3
+
+            - name: Upload shared auth state
+              uses: actions/upload-artifact@v4
+              with:
+                  name: nala-auth-state-${{ github.run_id }}
+                  path: nala/.auth/user.json
+                  retention-days: 1
+                  if-no-files-found: error
+
+    run-nala-studio-tests:
+        name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
+        needs: [nala-gate, nala-auth]
+        # `always()` + explicit nala-gate check (instead of the default "all needs succeeded")
+        # so a nala-auth FAILURE doesn't block every shard — nala-auth is a perf/load
+        # optimization, not a hard requirement; each shard falls back to its own full login if the
+        # shared auth state didn't download (see "Download shared auth state" step below and
+        # SKIP_AUTH_SETUP's file-existence check in nala/libs/auth.setup.cjs). A nala-gate failure
+        # (missing label) should still block, same as before.
+        if: |
+            always() &&
+            needs.nala-gate.result == 'success' &&
+            (github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
         timeout-minutes: 30
         # Each shard is pinned to its runner via matrix.runner (unique label per machine). All
@@ -133,6 +211,18 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 2
+
+            # Best-effort: if nala-auth failed/was skipped or the artifact is otherwise
+            # unavailable, this step fails but the job continues (continue-on-error) — the
+            # "Run Nala Studio Tests" step below falls back to a normal full per-shard login
+            # automatically, since SKIP_AUTH_SETUP's effect in auth.setup.cjs requires the file to
+            # actually exist.
+            - name: Download shared auth state
+              uses: actions/download-artifact@v4
+              continue-on-error: true
+              with:
+                  name: nala-auth-state-${{ github.run_id }}
+                  path: nala/.auth
 
             # Answers "how many workers can this VM actually handle?" — Playwright's own guidance
             # is workers <= CPU cores (often cores-1, since headless Chromium is CPU-bound and the
@@ -244,6 +334,11 @@ jobs:
                   # used everywhere (playwright.config.js), so ODIN's 20 rps/UA cap is a single
                   # global pool too.
                   NALA_SHARD_ID: ${{ matrix.shard }}-${{ github.run_id }}
+                  # Tells the 'setup' project (auth.setup.cjs) to skip its own real IMS login and
+                  # reuse the nala-auth job's downloaded storageState instead — but only takes
+                  # effect if that file actually downloaded successfully above; otherwise
+                  # auth.setup.cjs's file-existence check falls back to a full login itself.
+                  SKIP_AUTH_SETUP: 'true'
 
             - name: Cleanup cloned cards
               if: always()
@@ -258,6 +353,14 @@ jobs:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
+                  # Teardown runs as a single Node process (not via playwright.config.js, which is
+                  # what normally sets NALA_WORKER_COUNT from NALA_PLAYWRIGHT_WORKERS) — so set it
+                  # directly here. Without it, network-guard's pacing log shows "?"/NaN
+                  # placeholders during teardown's own cleanup requests (cosmetic only;
+                  # resolveBudgetDivisor() already has a safe fallback either way), but this keeps
+                  # the log accurate and teardown's pacing correctly scoped to the shared budget.
+                  NALA_WORKER_COUNT: 1
+                  NALA_TOTAL_WORKERS: 12
 
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests

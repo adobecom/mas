@@ -1,4 +1,5 @@
 import { Fragment } from '../aem/fragment.js';
+import { VARIANTS, normalizeVariantName } from '../editors/variant-picker.js';
 import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalization-utils.js';
 import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
 import { ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
@@ -901,6 +902,61 @@ function formatGeoDisplayLabel(raw) {
         label = parts[parts.length - 1] || label;
     }
     return label;
+}
+
+export const GROUP_BY = { NONE: 'none', TEMPLATE: 'template', OFFER: 'offer' };
+
+const GROUP_OTHER_LABEL = 'Other';
+
+function getPromotionFragmentVariant(item) {
+    if (!item) return '';
+    if (typeof item.getFieldValue === 'function') return item.getFieldValue('variant') ?? '';
+    if (item.variant != null) return item.variant;
+    return item.fields?.find((field) => field.name === 'variant')?.values?.[0] ?? '';
+}
+
+/**
+ * Resolves a promotion fragment's template (variant) display label from the variant registry.
+ * @param {object} item
+ * @returns {string}
+ */
+export function getPromotionFragmentTemplateLabel(item) {
+    const code = getPromotionFragmentVariant(item);
+    if (!code) return GROUP_OTHER_LABEL;
+    const normalized = normalizeVariantName(code);
+    return VARIANTS.find((variant) => variant.value === normalized)?.label ?? code;
+}
+
+/**
+ * Resolves a promotion fragment's offer label from its product-code tag, falling back to offer id.
+ * @param {object} item
+ * @returns {string}
+ */
+export function getPromotionFragmentOfferLabel(item) {
+    const title = item?.tags?.find((tag) => tag?.id?.startsWith('mas:product_code/'))?.title;
+    if (title) return title;
+    return item?.offerData?.offerId ?? item?.offerData?.offer_id ?? GROUP_OTHER_LABEL;
+}
+
+/**
+ * Buckets promotion fragments into ordered sections by template or offer, first-seen order.
+ * @param {object[]} items
+ * @param {string} groupBy
+ * @returns {Array<{ key: string, label: string, items: object[] }>}
+ */
+export function groupPromotionFragments(items, groupBy) {
+    const list = Array.isArray(items) ? items : [];
+    if (groupBy !== GROUP_BY.TEMPLATE && groupBy !== GROUP_BY.OFFER) {
+        return [{ key: GROUP_BY.NONE, label: '', items: list }];
+    }
+    const labelFor = groupBy === GROUP_BY.TEMPLATE ? getPromotionFragmentTemplateLabel : getPromotionFragmentOfferLabel;
+    const groups = new Map();
+    for (const item of list) {
+        const label = labelFor(item) || GROUP_OTHER_LABEL;
+        if (!groups.has(label)) groups.set(label, { key: label, label, items: [] });
+        groups.get(label).items.push(item);
+    }
+    return [...groups.values()];
 }
 
 export function parseCountriesFromGeos(geoValues) {

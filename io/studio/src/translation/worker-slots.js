@@ -212,6 +212,7 @@ module.exports = {
     DEFAULT_MAX_RETRY_DELAY_MS,
     DEFAULT_JITTER_RATIO,
     isSlotExpired,
+    getBackoffDelay,
     acquireWorkerSlot,
     getActiveSlots,
     renewWorkerSlot,

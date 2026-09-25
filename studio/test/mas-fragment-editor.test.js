@@ -34,7 +34,9 @@ describe('MasFragmentEditor', () => {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
-            aem: aem || { sites: { cf: { fragments: {} } } },
+            aem: aem || {
+                sites: { cf: { fragments: { getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }) } } },
+            },
             loadPromotions: sandbox.stub().resolves(),
         };
 
@@ -76,6 +78,7 @@ describe('MasFragmentEditor', () => {
                                     tags: [{ id: 'mas:promotion/back-to-school' }],
                                 }),
                                 getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -350,6 +353,7 @@ describe('MasFragmentEditor', () => {
                             fragments: {
                                 getById: sandbox.stub(),
                                 getTranslations: sandbox.stub().resolves({ languageCopies: [] }),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -1610,6 +1614,7 @@ describe('MasFragmentEditor', () => {
                 ],
             });
             const mockRepo = {
+                loadPromotions: sandbox.stub().resolves(),
                 aem: {
                     sites: {
                         cf: {
@@ -1619,6 +1624,7 @@ describe('MasFragmentEditor', () => {
                                     fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
                                 }),
                                 search,
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -1662,7 +1668,16 @@ describe('MasFragmentEditor', () => {
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;
             Store.fragmentEditor.fragmentId.value = fragment.id;
             sandbox.stub(el, 'repository').get(() => ({
-                aem: { sites: { cf: { fragments: { search: makeSearchStub(sandbox, {}) } } } },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub(sandbox, {}),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
+                            },
+                        },
+                    },
+                },
                 loadPromotions: sandbox.stub().resolves(),
             }));
 
@@ -2103,6 +2118,13 @@ describe('MasFragmentEditor', () => {
             expect(host.textContent).to.not.include('Other');
         });
 
+        it('renders View artifacts as a button so keyboard users can reach it', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            const host = renderSection(editor);
+            expect(host.querySelector('.artifacts-view-link').tagName).to.equal('SP-ACTION-BUTTON');
+        });
+
         it('opens the dialog when the View artifacts link is clicked', () => {
             const editor = withCard();
             editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
@@ -2151,6 +2173,73 @@ describe('MasFragmentEditor', () => {
             const collections = editor.referencingFragments.find((b) => b.key === 'collections');
             expect(collections.rows).to.have.lengthOf(1);
             expect(collections.rows[0].representative.id).to.equal('b1');
+        });
+
+        describe('after a failed load', () => {
+            const collection = {
+                id: 'coll-id',
+                path: '/content/dam/mas/acom/en_US/coll',
+                model: { path: COLLECTION_MODEL_PATH },
+            };
+            let editor;
+            let repository;
+            let getReferencedByFragmentId;
+
+            beforeEach(async () => {
+                getReferencedByFragmentId = sandbox.stub();
+                getReferencedByFragmentId.onCall(0).rejects(new Error('503 Service Unavailable'));
+                getReferencedByFragmentId.resolves({ items: [] });
+                ({ editor, repository } = createEditor({
+                    aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } },
+                }));
+                repository.saveFragment = sandbox.stub().resolves({});
+                sandbox.stub(editor, 'fragment').get(() => collection);
+                sandbox.stub(console, 'error');
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+            });
+
+            it('does not request the references again on every render', async () => {
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+
+                expect(getReferencedByFragmentId.callCount).to.equal(1);
+            });
+
+            it('loads the references again once the fragment is saved', async () => {
+                await editor.saveFragment();
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+
+                expect(getReferencedByFragmentId.callCount).to.equal(2);
+                expect(editor.referencingFragmentsError).to.equal(false);
+            });
+        });
+
+        it('lists the promotion project of an open promo variation', async () => {
+            const originalPromotions = Store.promotions.list.data.get();
+            const project = {
+                id: 'aug-id',
+                path: '/content/dam/mas/promotions/augdemo',
+                title: 'AugDemo',
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            };
+            Store.promotions.list.data.value = [{ get: () => project }];
+            const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
+            const { editor } = createEditor({ aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } } });
+            sandbox.stub(editor, 'fragment').get(() => ({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_US/promotions/augdemo/marquee',
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            }));
+
+            editor.willUpdate(new Map());
+            await new Promise((r) => setTimeout(r, 10));
+            Store.promotions.list.data.value = originalPromotions;
+
+            const promoProjects = editor.referencingFragments.find((b) => b.key === 'promoProjects');
+            expect(promoProjects.rows[0].representative.id).to.equal('aug-id');
         });
     });
 });

@@ -720,7 +720,6 @@ export default class MasFragmentEditor extends LitElement {
         if (!fragment?.id) return;
         const modelPath = fragment.model?.path;
         if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return;
-        if (typeof this.repository?.aem?.sites?.cf?.fragments?.getReferencedByFragmentId !== 'function') return;
         if (fragment.id === this.#referencingLoadedForId || fragment.id === this.#referencingLoadingForId) return;
         void this.#loadReferencingFragmentsFor(fragment);
     }
@@ -736,19 +735,24 @@ export default class MasFragmentEditor extends LitElement {
         this.isLoadingReferencingFragments = true;
         try {
             const result = await getReferencingFragments(this.repository.aem, fragment, {
-                signal: abortController.signal,
+                abortController,
+                loadPromotionProjects: () =>
+                    promotionsRepository.getPromotionProjectsForProbe(() => this.repository.loadPromotions()),
             });
             if (token !== this.#referencingLoadToken) return;
             this.referencingFragments = result;
-            this.#referencingLoadedForId = fragment.id;
         } catch (error) {
             if (token !== this.#referencingLoadToken) return;
             if (error?.name === 'AbortError') return;
             console.error('Failed to load referencing fragments:', error);
             this.referencingFragmentsError = true;
         } finally {
+            // A failed load also counts as loaded, so re-renders do not hammer a failing endpoint;
+            // saving the fragment clears it and loads again.
             if (token === this.#referencingLoadToken) {
                 this.isLoadingReferencingFragments = false;
+                this.#referencingLoadingForId = null;
+                this.#referencingLoadedForId = fragment.id;
             }
         }
     }
@@ -1804,6 +1808,7 @@ export default class MasFragmentEditor extends LitElement {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });
+            if (savedFragment) this.#referencingLoadedForId = null;
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');
             }
@@ -2323,10 +2328,10 @@ export default class MasFragmentEditor extends LitElement {
             <div class="references-container">
                 <div class="artifacts-header">
                     ${title}
-                    <a class="artifacts-view-link clickable" @click=${() => this.#openArtifactsDialog()}>
-                        <span>View artifacts</span>
+                    <sp-action-button class="artifacts-view-link" quiet size="s" @click=${() => this.#openArtifactsDialog()}>
+                        View artifacts
                         <sp-icon-open-in size="s"></sp-icon-open-in>
-                    </a>
+                    </sp-action-button>
                 </div>
                 <div class="artifacts-counts">
                     ${displayBuckets.map(

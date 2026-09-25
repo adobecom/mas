@@ -11,15 +11,14 @@ import {
 } from '../../src/constants.js';
 import {
     ARTIFACT_TYPE_KEYS,
+    REFERENCED_BY_MAX_PAGES,
     REFERENCED_BY_PAGE_LIMIT,
     REFERENCE_TYPES,
-    buildGroupKey,
     chooseRepresentative,
     fetchAllReferencingItems,
     getReferencingFragments,
-    groupBulkPublishProjects,
+    groupFlatReferences,
     groupReferencesByCollection,
-    isBulkPublishProjectReference,
     isCrossSurfaceReference,
     isExcludedReference,
     isGroupedVariationReference,
@@ -79,10 +78,6 @@ describe('references-repository', () => {
         it('keeps a fragmentPath that is not a promo variation', () => {
             expect(isPromoVariationReference('plans-two-wide-reflow-all')).to.be.false;
         });
-
-        it('is false for non-string input', () => {
-            expect(isPromoVariationReference(undefined)).to.be.false;
-        });
     });
 
     describe('isSelfLocaleVariationReference (self-locale-variation predicate)', () => {
@@ -123,7 +118,7 @@ describe('references-repository', () => {
             expect(parsePathTokens('/content/dam/mas/promotions/campaign-card')).to.equal(null);
         });
 
-        it('returns null for non-string input', () => {
+        it('returns null for a missing path', () => {
             expect(parsePathTokens(undefined)).to.equal(null);
         });
 
@@ -132,20 +127,6 @@ describe('references-repository', () => {
             expect(tokens.surface).to.equal('acom');
             expect(tokens.parsedLocale).to.equal(null);
             expect(tokens.fragmentPath).to.equal('holiday-push');
-        });
-    });
-
-    describe('buildGroupKey', () => {
-        it('groups by surface + fragmentPath, ignoring locale', () => {
-            const keyEnUS = buildGroupKey('/content/dam/mas/acom/en_US/plans-two-wide-reflow-all');
-            const keyFrFR = buildGroupKey('/content/dam/mas/acom/fr_FR/plans-two-wide-reflow-all');
-            expect(keyEnUS).to.equal('acom/plans-two-wide-reflow-all');
-            expect(keyEnUS).to.equal(keyFrFR);
-        });
-
-        it('falls back to the raw path when PATH_TOKENS does not match', () => {
-            const path = '/content/dam/mas/promotions/campaign-card';
-            expect(buildGroupKey(path)).to.equal(path);
         });
     });
 
@@ -177,25 +158,14 @@ describe('references-repository', () => {
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
 
+        it('keeps a promotion project, which is stored outside every surface folder', () => {
+            const reference = { path: '/content/dam/mas/promotions/summer-sale', model: { path: PROMOTION_MODEL_PATH } };
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
+        });
+
         it('keeps an unparseable path rather than excluding it', () => {
             const reference = { path: '/content/dam/mas/acom/weird-path' };
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
-        });
-    });
-
-    describe('isBulkPublishProjectReference', () => {
-        it('identifies a bulk-publish-project parent by model path', () => {
-            const reference = { model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH } };
-            expect(isBulkPublishProjectReference(reference)).to.be.true;
-        });
-
-        it('is false for a collection model', () => {
-            const reference = { model: { path: COLLECTION_MODEL_PATH } };
-            expect(isBulkPublishProjectReference(reference)).to.be.false;
-        });
-
-        it('is false when model is missing', () => {
-            expect(isBulkPublishProjectReference({})).to.be.false;
         });
     });
 
@@ -279,8 +249,8 @@ describe('references-repository', () => {
         });
     });
 
-    describe('groupBulkPublishProjects', () => {
-        it('buckets project parents separately, suppressing the locale chip', () => {
+    describe('groupFlatReferences', () => {
+        it('lists one row per project, suppressing the locale chip', () => {
             const items = [
                 {
                     path: `/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`,
@@ -291,7 +261,7 @@ describe('references-repository', () => {
                 },
             ];
 
-            const [project] = groupBulkPublishProjects(items);
+            const [project] = groupFlatReferences(items);
 
             expect(project.groupKey).to.equal(items[0].path);
             expect(project.locales).to.deep.equal([]);
@@ -306,7 +276,7 @@ describe('references-repository', () => {
                 model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
             };
 
-            const projects = groupBulkPublishProjects([item, { ...item }]);
+            const projects = groupFlatReferences([item, { ...item }]);
 
             expect(projects).to.have.lengthOf(1);
         });
@@ -342,14 +312,38 @@ describe('references-repository', () => {
             expect(getReferencedByFragmentId.calledOnce).to.be.true;
         });
 
-        it('wraps a provided abort signal for the aem layer', async () => {
+        it('passes the abort controller through to the aem layer', async () => {
             const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
-            const signal = {};
+            const abortController = { signal: {} };
 
-            await fetchAllReferencingItems(aem, 'fragment-id', { signal });
+            await fetchAllReferencingItems(aem, 'fragment-id', { abortController });
 
-            expect(getReferencedByFragmentId.firstCall.args[1].abortController).to.deep.equal({ signal });
+            expect(getReferencedByFragmentId.firstCall.args[1].abortController).to.equal(abortController);
+        });
+
+        it(`stops after ${REFERENCED_BY_MAX_PAGES} pages even when the server keeps returning a cursor`, async () => {
+            const getReferencedByFragmentId = sandbox.stub().callsFake(async (id, { cursor }) => {
+                if (getReferencedByFragmentId.callCount > REFERENCED_BY_MAX_PAGES) throw new Error('pagination is unbounded');
+                return { items: [{ id: `ref-${cursor}` }], cursor: `${cursor ?? 0}+` };
+            });
+            const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
+
+            await fetchAllReferencingItems(aem, 'fragment-id');
+
+            expect(getReferencedByFragmentId.callCount).to.equal(REFERENCED_BY_MAX_PAGES);
+        });
+
+        it('stops when the server returns the cursor it was just given', async () => {
+            const getReferencedByFragmentId = sandbox.stub().callsFake(async () => {
+                if (getReferencedByFragmentId.callCount > 2) throw new Error('a repeated cursor is followed');
+                return { items: [{ id: 'ref' }], cursor: 'stuck' };
+            });
+            const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
+
+            await fetchAllReferencingItems(aem, 'fragment-id');
+
+            expect(getReferencedByFragmentId.callCount).to.equal(2);
         });
     });
 
@@ -380,7 +374,7 @@ describe('references-repository', () => {
                     model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
                 },
                 {
-                    path: '/content/dam/mas/acom/en_US/summer-sale',
+                    path: '/content/dam/mas/promotions/summer-sale',
                     id: 'promo-proj',
                     title: 'Summer',
                     model: { path: PROMOTION_MODEL_PATH },
@@ -416,6 +410,43 @@ describe('references-repository', () => {
             expect(bucket(result, 'localizationProjects').rows[0].representative.link).to.include(
                 'translationProjectId=loc-proj',
             );
+        });
+
+        describe('promo variations', () => {
+            const promoVariation = {
+                id: 'variation-id',
+                path: `/content/dam/mas/sandbox/en_US/${PROMOTIONS_PATH_PREFIX}augdemo/marquee`,
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            };
+            const project = (id, promoName) => ({
+                id,
+                path: `/content/dam/mas/promotions/${promoName}`,
+                title: promoName,
+                tags: [{ id: `mas:promotion/${promoName}` }],
+            });
+            const noReferences = () => ({
+                sites: { cf: { fragments: { getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }) } } },
+            });
+
+            it('lists the project a promo variation belongs to, which referencedBy never returns', async () => {
+                const loadPromotionProjects = sandbox
+                    .stub()
+                    .resolves([project('other-id', 'springsale'), project('aug-id', 'augdemo')]);
+
+                const result = await getReferencingFragments(noReferences(), promoVariation, { loadPromotionProjects });
+
+                const [row] = bucket(result, 'promoProjects').rows;
+                expect(row.representative.id).to.equal('aug-id');
+                expect(row.representative.link).to.include('promotionId=aug-id');
+            });
+
+            it('does not load promotion projects for a fragment without a promotion tag', async () => {
+                const loadPromotionProjects = sandbox.stub().resolves([]);
+
+                await getReferencingFragments(noReferences(), fragment, { loadPromotionProjects });
+
+                expect(loadPromotionProjects.called).to.be.false;
+            });
         });
 
         it('returns an empty array when there are no references', async () => {
@@ -473,7 +504,8 @@ describe('references-repository', () => {
                 id: 'proj1',
                 model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
             };
-            const [row] = groupBulkPublishProjects([project]);
+            const { buildLink } = REFERENCE_TYPES.find((type) => type.key === 'bulkPublishProjects');
+            const [row] = groupFlatReferences([project], buildLink);
             expect(row.representative.link).to.be.a('string');
             expect(row.representative.link).to.include('bulkPublishProjectId=proj1');
             expect(row.representative.link).to.not.include('content-type=');

@@ -18,12 +18,19 @@ import {
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../locales.js';
+import { findPromotionProjectIdByTag, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
 
 /**
  * Verified cap for the GET-by-id `referencedBy` endpoint. `limit=99` is rejected with a 400;
  * 50 and below is accepted. The spec's "no maximum" claim is not to be trusted.
  */
 export const REFERENCED_BY_PAGE_LIMIT = 50;
+
+/**
+ * Most pages followed for one fragment (1,000 references). Guards against a server that keeps
+ * returning a cursor, which would otherwise loop forever.
+ */
+export const REFERENCED_BY_MAX_PAGES = 20;
 
 const MAS_CONTENT_ROOT = '/content/dam/mas';
 
@@ -41,7 +48,6 @@ const MAS_CONTENT_ROOT = '/content/dam/mas';
  * @returns {{ surface: string, parsedLocale: string|null, fragmentPath: string }|null}
  */
 export function parsePathTokens(path) {
-    if (typeof path !== 'string') return null;
     const match = PATH_TOKENS.exec(path);
     if (!match?.groups) return null;
     const rawLocale = match.groups.parsedLocale;
@@ -67,7 +73,7 @@ export function isGroupedVariationReference(path) {
  * @returns {boolean}
  */
 export function isPromoVariationReference(fragmentPath) {
-    return typeof fragmentPath === 'string' && fragmentPath.startsWith(PROMOTIONS_PATH_PREFIX);
+    return fragmentPath.startsWith(PROMOTIONS_PATH_PREFIX);
 }
 
 /**
@@ -99,13 +105,15 @@ export function isCrossSurfaceReference(path, surface) {
 
 /**
  * Runs all four exclusion predicates against a single `referencedBy` item, relative to the
- * fragment currently open in the editor.
+ * fragment currently open in the editor. Promotion projects skip them: they are stored globally
+ * under `/content/dam/mas/promotions`, so every surface-based check would drop them.
  *
  * @param {Object} reference raw `referencedBy` item
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
  * @returns {boolean}
  */
 export function isExcludedReference(reference, openFragmentTokens) {
+    if (reference.model?.path === PROMOTION_MODEL_PATH) return false;
     if (isGroupedVariationReference(reference.path)) return true;
     if (isCrossSurfaceReference(reference.path, openFragmentTokens.surface)) return true;
     const tokens = parsePathTokens(reference.path);
@@ -117,31 +125,6 @@ export function isExcludedReference(reference, openFragmentTokens) {
         openFragmentTokens.surface,
         openFragmentTokens.fragmentPath,
     );
-}
-
-/**
- * A `bulk-publish-project` parent is identified by its model path. (The path also drives suppression
- * of the bogus locale segment once we know it is a project.)
- *
- * @param {Object} reference raw `referencedBy` item
- * @returns {boolean}
- */
-export function isBulkPublishProjectReference(reference) {
-    return reference?.model?.path === BULK_PUBLISH_PROJECT_MODEL_PATH;
-}
-
-/**
- * Builds the grouping key for a collection reference: `surface + '/' + fragmentPath`, so all
- * locale copies of the same logical collection collapse into one row. Falls back to the raw path
- * when `PATH_TOKENS` cannot parse it, rather than dropping the row.
- *
- * @param {string} path
- * @returns {string}
- */
-export function buildGroupKey(path) {
-    const tokens = parsePathTokens(path);
-    if (!tokens) return path;
-    return `${tokens.surface}/${tokens.fragmentPath}`;
 }
 
 /**
@@ -162,7 +145,9 @@ export function chooseRepresentative(items, openLocale, defaultLocale) {
 }
 
 /**
- * Groups filtered, non-project references by logical collection across locales.
+ * Groups filtered, non-project references by logical collection across locales. The group key is
+ * `surface + '/' + fragmentPath`, so locale copies collapse into one row; a path `PATH_TOKENS`
+ * cannot parse keeps its raw path as the key rather than being dropped.
  *
  * @param {Array<Object>} items filtered `referencedBy` items (projects already removed)
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
@@ -202,11 +187,11 @@ export function groupReferencesByCollection(items, openFragmentTokens, openLocal
 }
 
 /**
- * Buckets `bulk-publish-project` parents separately from collections, deduplicating by path and
- * suppressing the bogus `bulk-publish-projects` locale segment entirely (projects are never
- * grouped across locales).
+ * Lists one row per project reference, deduplicated by path. Projects are never grouped across
+ * locales, so rows carry no locale chip.
  *
- * @param {Array<Object>} items filtered `referencedBy` items already known to be projects
+ * @param {Array<Object>} items filtered `referencedBy` items of a single flat reference type
+ * @param {(item: Object) => string|null} [buildLink] deep link for a row
  * @returns {Array<{ groupKey: string, title: string|null, modelPath: string|null, representative: Object|null, locales: string[], localeCount: number }>}
  */
 export function groupFlatReferences(items, buildLink) {
@@ -227,10 +212,6 @@ export function groupFlatReferences(items, buildLink) {
         locales: [],
         localeCount: 0,
     }));
-}
-
-export function groupBulkPublishProjects(items) {
-    return groupFlatReferences(items, (item) => buildBulkPublishProjectDeepLink(item.id));
 }
 
 /**
@@ -286,27 +267,45 @@ export function classifyReference(reference) {
  *
  * `aem.sites.cf.fragments.getReferencedByFragmentId` is expected to resolve a single page as
  * `{ items, cursor }`; this function owns the pagination loop so the aem layer stays a thin,
- * single-request client.
+ * single-request client. It stops after `REFERENCED_BY_MAX_PAGES`, or when the server hands back
+ * the cursor it was just given.
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} fragmentId
- * @param {{ signal?: AbortSignal }} [options]
+ * @param {{ abortController?: AbortController }} [options]
  * @returns {Promise<Array<Object>>}
  */
-export async function fetchAllReferencingItems(aem, fragmentId, { signal } = {}) {
-    const abortController = signal ? { signal } : undefined;
+export async function fetchAllReferencingItems(aem, fragmentId, { abortController } = {}) {
     const items = [];
     let cursor;
-    do {
+    for (let pageIndex = 0; pageIndex < REFERENCED_BY_MAX_PAGES; pageIndex += 1) {
         const page = await aem.sites.cf.fragments.getReferencedByFragmentId(fragmentId, {
             cursor,
             limit: REFERENCED_BY_PAGE_LIMIT,
             abortController,
         });
         items.push(...(page?.items ?? []));
-        cursor = page?.cursor;
-    } while (cursor);
+        if (!page?.cursor || page.cursor === cursor) break;
+        cursor = page.cursor;
+    }
     return items;
+}
+
+/**
+ * Finds the promotion project a promo variation belongs to. `referencedBy` never returns it: the
+ * project's `fragments` field holds the default card, not the variation, so the variation's
+ * `mas:promotion/` tag is the only link.
+ *
+ * @param {Object} fragment the fragment currently open in the editor
+ * @param {() => Promise<Array<Object>>} [loadPromotionProjects]
+ * @returns {Promise<Object|null>}
+ */
+async function findPromotionProjectForVariation(fragment, loadPromotionProjects) {
+    const promotionTagId = getPromotionTagFromFragment(fragment);
+    if (!promotionTagId || !loadPromotionProjects) return null;
+    const projects = await loadPromotionProjects();
+    const projectId = findPromotionProjectIdByTag(promotionTagId, projects);
+    return projects.find((project) => project.id === projectId) ?? null;
 }
 
 /**
@@ -314,13 +313,14 @@ export async function fetchAllReferencingItems(aem, fragmentId, { signal } = {})
  * `referencedBy` endpoint, drops false positives (grouped/pzn variations, promo variations,
  * self-locale variations, cross-surface clones), then buckets what remains by reference type
  * (collections, cards, promo/bulk-publish/localization projects, other) in display order.
+ * A promo variation also lists its own promotion project, resolved from its tag.
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragment the fragment currently open in the editor
- * @param {{ signal?: AbortSignal }} [options]
+ * @param {{ abortController?: AbortController, loadPromotionProjects?: () => Promise<Array<Object>> }} [options]
  * @returns {Promise<Array<{ key: string, label: string, rows: Array<Object> }>>} ordered, non-empty type buckets
  */
-export async function getReferencingFragments(aem, fragment, { signal } = {}) {
+export async function getReferencingFragments(aem, fragment, { abortController, loadPromotionProjects } = {}) {
     // The open fragment is normally a card/collection whose path parses cleanly. If it does not
     // (e.g. a promo-type path that fails PATH_TOKENS), `surface` is null and the cross-surface and
     // self-locale exclusions become no-ops for this session — references are still listed, just
@@ -332,13 +332,15 @@ export async function getReferencingFragments(aem, fragment, { signal } = {}) {
     };
     const openLocale = fragment?.locale ?? openFragmentTokens.parsedLocale;
 
-    const items = await fetchAllReferencingItems(aem, fragment.id, { signal });
+    const items = await fetchAllReferencingItems(aem, fragment.id, { abortController });
     const kept = items.filter((item) => !isExcludedReference(item, openFragmentTokens));
 
     const itemsByType = new Map(REFERENCE_TYPES.map((type) => [type.key, []]));
     for (const item of kept) {
         itemsByType.get(classifyReference(item)).push(item);
     }
+    const promotionProject = await findPromotionProjectForVariation(fragment, loadPromotionProjects);
+    if (promotionProject) itemsByType.get('promoProjects').push(promotionProject);
 
     const buckets = [];
     for (const type of REFERENCE_TYPES) {

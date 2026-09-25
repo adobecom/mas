@@ -134,7 +134,7 @@ async function cleanupClonedCards() {
 
         // Import request counter to track teardown requests
         const GlobalRequestCounter = (await import('../libs/global-request-counter.js')).default;
-        const { installEdsThrottleOnPage } = await import('../libs/eds-throttle.js');
+        const { installNetworkGuard, attachResponseWatcher } = await import('../libs/network-guard.js');
 
         const browser = await chromium.launch({
             args: ['--disable-web-security', '--disable-gpu'],
@@ -153,7 +153,8 @@ async function cleanupClonedCards() {
             'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
         });
 
-        await installEdsThrottleOnPage(page);
+        await installNetworkGuard(context);
+        attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
         await GlobalRequestCounter.init(page);
 
         const baseURL =
@@ -307,13 +308,27 @@ async function cleanupClonedCards() {
                 const requestReporter = new RequestCountingReporter();
                 requestReporter.printRequestSummary();
 
-                // Fail if any path found no fragments (test suite should create fragments)
-                const pathsWithNoFragments = pathResults.filter((result) => result.fragmentsFound === 0 && !result.timedOut);
+                // NOTE: we intentionally do NOT fail just because an individual locale path (e.g.
+                // fr_FR/en_CA/en_GB/en_AU) found 0 fragments. That was fine when the whole suite
+                // ran as one job — every locale-specific spec always ran, so every path always
+                // had something to clean up. Now that Studio runs as 3 shards split by directory,
+                // a given shard's subset of test files may legitimately touch only some locales
+                // (or only the default path), so 0-found-in-that-path is expected, not an error —
+                // per-path strictness here was producing false-positive job failures on shards
+                // that cleaned up successfully. Instead, fail only if NOTHING was found/deleted
+                // anywhere across all paths — that still catches a genuinely broken run (e.g. the
+                // suite failed before creating any fragments at all).
+                const pathsThatTimedOut = pathResults.filter((result) => result.timedOut);
+                const allPathsEmpty = pathResults.every((result) => result.fragmentsFound === 0);
 
-                if (pathsWithNoFragments.length > 0) {
-                    const pathNames = pathsWithNoFragments.map((r) => r.path).join(', ');
+                if (pathsThatTimedOut.length > 0) {
+                    const pathNames = pathsThatTimedOut.map((r) => r.path).join(', ');
+                    console.warn(`\x1b[33m⚠️\x1b[0m The following paths timed out while checking for fragments: ${pathNames}.`);
+                }
+
+                if (allPathsEmpty && totalFragmentsDeleted === 0) {
                     throw new Error(
-                        `No fragments found in the following paths on GitHub: ${pathNames}. This is unexpected after a test suite run. Fragment loading may have failed.`,
+                        `No fragments found in any of the checked paths on GitHub (${pathResults.map((r) => r.path).join(', ')}). This is unexpected after a test suite run. Fragment loading may have failed.`,
                     );
                 }
             }

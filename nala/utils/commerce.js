@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { installNetworkGuard } from '../libs/network-guard.js';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
@@ -346,6 +346,7 @@ function createWorkerPageSetup(config = {}) {
         test.setTimeout(setupTimeout);
 
         workerContext = await browser.newContext({ extraHTTPHeaders });
+        await installNetworkGuard(workerContext);
 
         consoleErrors = [];
         masRequestErrors = [];
@@ -372,19 +373,9 @@ function createWorkerPageSetup(config = {}) {
             const consoleListener = await setupMasConsoleListener(consoleErrors);
             page.on('console', consoleListener);
 
-            await installEdsThrottleOnPage(page);
-
-            // Load the page, retrying against a rate-limited host (e.g. AEM/EDS 429s/timeouts)
-            for (let attempt = 1; attempt <= retries + 1; attempt++) {
-                try {
-                    await page.goto(fullUrl);
-                    await page.waitForLoadState('networkidle');
-                    break;
-                } catch (error) {
-                    if (attempt > retries) throw error;
-                    await page.waitForTimeout(retryDelay * attempt);
-                }
-            }
+            // Load the page
+            await page.goto(fullUrl);
+            await page.waitForLoadState('networkidle');
             await page.waitForTimeout(loadTimeout);
 
             console.info(`[Worker Setup]: ${name} page fully loaded:`, await page.url());

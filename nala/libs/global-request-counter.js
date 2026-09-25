@@ -8,6 +8,8 @@ import * as path from 'path';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
+    ODIN_PREVIEW: 'https://odinpreview.corp.adobe.com',
+    ODIN_PUBLISHED: 'https://odin.adobe.com',
     // Future: Add more services
     // WCS: 'https://www.adobe.com/web_commerce_artifact',
     // MAS_IO: 'https://mas.adobe.com/io',

@@ -2,14 +2,21 @@ import { expect, test } from '@playwright/test';
 import { features } from './benchmark.spec.js';
 import BenchmarkPage from './benchmark.page.js';
 import { constructTestUrl } from '../../utils/commerce.js';
+import { installNetworkGuard, attachResponseWatcher } from '../../libs/network-guard.js';
 
-test.beforeEach(async ({ page, browserName }) => {
+test.beforeEach(async ({ page, context, browserName }) => {
     test.skip(browserName !== 'chromium', 'Not supported to run on multiple browsers.');
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({ 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' });
     }
-    // disabling cache
-    await page.route('**', (route) => route.continue());
+    // installNetworkGuard's context.route('**/*', ...) both paces/watches EDS+ODIN traffic AND
+    // (as a side effect of any route interception) disables the HTTP cache for matched requests —
+    // it replaces the previous standalone no-op `page.route('**', route => route.continue())`
+    // that existed here only for that cache-disabling side effect. Keeping both would have been
+    // actively harmful: Playwright resolves overlapping routes LIFO, so a later-registered no-op
+    // page.route('**', ...) would shadow/bypass this context-level guard entirely.
+    await installNetworkGuard(context);
+    attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
 });
 
 test.describe('Benchmark feature test suite', () => {

@@ -1,11 +1,25 @@
 /* eslint-disable import/no-import-module-exports */
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
-import { installEdsThrottleOnPage } from './eds-throttle.js';
+import fs from 'fs';
+import { installNetworkGuard, attachResponseWatcher } from './network-guard.js';
 
 const authFile = path.join(__dirname, '../../nala/.auth/user.json');
 
-setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
+setup('authenticate, @mas-studio', async ({ page, context, baseURL, browserName }) => {
+    // All studio shards test the identical PR preview hostname, so a single storageState
+    // (cookies) from one real IMS login is valid for all of them — see the nala-auth job in
+    // run-nala.yml, which logs in once and uploads nala/.auth/user.json as an artifact that each
+    // shard downloads before running this project. When that download succeeded, skip the real
+    // login here entirely (saves ~17-20s of real IMS UI form-filling per shard, and avoids 3
+    // concurrent logins hitting auth.services.adobe.com at once). Requires BOTH the flag and the
+    // file to actually be present, so a failed/skipped nala-auth job (file never downloaded)
+    // transparently falls back to this shard doing its own full login below.
+    if (process.env.SKIP_AUTH_SETUP === 'true' && fs.existsSync(authFile)) {
+        console.log(`[NALA] Skipping IMS login — reusing shared auth state from the nala-auth job (${authFile}).\n`);
+        return;
+    }
+
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({
             'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
@@ -15,7 +29,8 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
     expect(process.env.IMS_EMAIL, 'ERROR: No environment variable for email provided for IMS Test.').toBeTruthy();
     expect(process.env.IMS_PASS, 'ERROR: No environment variable for password provided for IMS Test.').toBeTruthy();
 
-    await installEdsThrottleOnPage(page);
+    await installNetworkGuard(context);
+    attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
     await page.goto(`${baseURL}/studio.html`);
     await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
 

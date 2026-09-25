@@ -2,8 +2,14 @@ import { expect, test } from '@playwright/test';
 import { features } from './masks.spec.js';
 import MasksPage from './masks.page.js';
 import { constructTestUrl } from '../../utils/commerce.js';
+import { installNetworkGuard, attachResponseWatcher } from '../../libs/network-guard.js';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
+
+test.beforeEach(async ({ page, context }) => {
+    await installNetworkGuard(context);
+    attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
+});
 
 test.describe('MAS Docs Masks feature test suite', () => {
     // @MAS-Docs-Masks

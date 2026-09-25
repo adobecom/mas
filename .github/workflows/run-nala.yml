@@ -6,69 +6,284 @@ on:
             - main
         types: [opened, synchronize, labeled, unlabeled]
 
-# Prevent multiple runs from happening at the same time
+# PER-PR cancel-on-repush: scoped to github.ref, so a re-push to THIS PR cancels only this PR's
+# own previous run. Different PRs are in different groups here, so they never cancel each other.
+#
+# Cross-PR queuing (a different PR's Nala run doesn't run traffic alongside this one) is
+# deliberately NOT enforced by any explicit lock/gate — it falls out for free from each shard
+# being pinned to one exclusive self-hosted runner label bound to a single physical VM (see
+# `runs-on:` below): GitHub can only ever run one job at a time per runner label, so PR B's
+# `or`-shard job automatically queues ("waiting for a runner") behind PR A's `or`-shard job, and
+# starts as soon as THAT specific shard frees up — independent of whether PR A's other
+# shards/docs are still running. This means shard queuing is per-shard, not "wait for the other
+# PR's ENTIRE run" — a stricter whole-run lock was tried (via both a job-level `concurrency:`
+# group, which incorrectly also serialized SIBLING jobs of the same run against each other, and
+# a custom polling step) and rejected as unnecessary complexity: since each shard has a fixed,
+# capped worker count (see run-nala-studio-tests below), the only residual risk is a brief,
+# partial worker-count overlap at shard-boundary transitions between two different PRs — already
+# tolerated by the reactive local-pause/429-retry handling in nala/libs/network-guard.js.
+#
+# Jobs are defined directly here (not in a separate reusable `workflow_call` file) so that
+# GitHub's native "re-run failed jobs" / "re-run this job" granularity works per shard. Calling a
+# reusable workflow via `uses:` collapses all of its internal jobs into one re-run unit — clicking
+# re-run on any single job re-runs the ENTIRE called workflow (all shards), and other jobs don't
+# get their own re-run option at all. This is a documented GitHub Actions limitation, not a config
+# mistake; keeping the jobs inline here avoids it entirely.
+#
+# cancel-in-progress is intentionally conditional, NOT a flat `true`: every event type in the
+# `types:` list above (opened/synchronize/labeled/unlabeled) starts a new run in this SAME group,
+# so a flat `true` meant simply adding/removing any label (e.g. the required 'run nala' label)
+# would cancel an already-running test pass with no code change involved. Only `synchronize` (an
+# actual new commit/re-push) represents staleness worth cancelling for; labeled/unlabeled events
+# instead QUEUE behind an in-progress run (cancel-in-progress evaluates false) and start once it
+# finishes.
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event.action == 'synchronize' }}
 
 jobs:
-    check-paths:
-        name: Check Changed Paths
-        runs-on: ubuntu-latest
-        outputs:
-            is-trivial: ${{ steps.filter.outputs.trivial }}
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
-            - name: Detect trivial-only changes
-              id: filter
-              uses: ./.github/actions/detect-trivial
-              with:
-                  base-ref: ${{ github.event.pull_request.base.ref }}
-
     nala-gate:
         name: Nala Gate
-        needs: check-paths
-        if: always()
         runs-on: ubuntu-latest
         steps:
-            - name: Fail if check-paths did not succeed
-              if: needs.check-paths.result != 'success'
-              run: |
-                  echo "::error::check-paths job did not succeed (result: ${{ needs.check-paths.result }})"
-                  exit 1
-            - name: Pass gate for trivial PRs
-              if: needs.check-paths.outputs.is-trivial == 'true'
-              run: echo "Trivial PR — skipping Nala gate"
             - name: Require 'run nala' label
-              # Bypass only via git-computed is-trivial (check-paths), not the mutable 'trivial' label.
+              # Only enforce label requirement for synchronize events, not when PR is first opened
               if: |
-                  needs.check-paths.outputs.is-trivial != 'true' &&
                   github.event.action != 'opened' &&
                   !contains(github.event.pull_request.labels.*.name, 'run nala')
               run: |
                   echo "::error::Add the 'run nala' label to merge this PR"
                   exit 1
 
-    run-nala-studio-tests:
-        name: Running Nala Studio E2E UI Tests
-        needs: [nala-gate, check-paths]
+    nala-auth:
+        name: Nala Shared Authentication
+        needs: nala-gate
         if: |
-            needs.nala-gate.result == 'success' &&
-            needs.check-paths.outputs.is-trivial != 'true' &&
-            (github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala'))
-        runs-on: [self-hosted, Linux, X64, nala-studio]
-        timeout-minutes: 45 # Prevent hanging jobs
-        strategy:
-            matrix:
-                node-version: [20.x]
+            github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala')
+        # All 3 studio shards test the IDENTICAL PR preview hostname (see
+        # nala/utils/global.setup.js), so the IMS-login-derived storageState (cookies) is portable
+        # across all of them — there is no reason for each shard to independently do its own full
+        # IMS login (~17-20s of real UI form-filling against auth.services.adobe.com, visible as
+        # the "[setup] authenticate" step in each shard's log). That was previously 3 separate
+        # logins per run, adding avoidable concurrent load to the IMS login flow and ~1 minute of
+        # duplicated wall-clock work. Login is done ONCE here; the resulting
+        # nala/.auth/user.json is uploaded as an artifact and downloaded by each shard below,
+        # which then skips its own login (see SKIP_AUTH_SETUP below and nala/libs/auth.setup.cjs).
+        # Runs on nala-studio-sj (not ubuntu-latest) purely because Playwright/Chromium are
+        # already installed there via the shards' setup steps' caching — using a GitHub-hosted
+        # runner would work too but would need its own `npx playwright install` from scratch.
+        runs-on: [self-hosted, Linux, X64, nala-studio-sj]
+        timeout-minutes: 10
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
                   fetch-depth: 2
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20.x
+                  cache: 'npm'
+                  cache-dependency-path: |
+                      **/package-lock.json
+                      **/yarn.lock
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v4
+              id: playwright-cache
+              continue-on-error: true
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
+
+            - name: Install Playwright system dependencies
+              uses: ./.github/actions/prep-apt
+
+            - name: Install/verify Playwright browsers
+              run: npx playwright install
+
+            - name: Log in once via the 'setup' project
+              run: npx playwright test --config=./playwright.config.js --project=setup
+              env:
+                  prOrg: ${{ github.event.pull_request.head.repo.owner.login }}
+                  prRepo: ${{ github.event.pull_request.head.repo.name }}
+                  GITHUB_ACTION_PATH: ${{ github.workspace }}
+                  IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
+                  IMS_PASS: ${{ secrets.IMS_PASS }}
+                  FORCE_COLOR: 3
+
+            - name: Upload shared auth state
+              uses: actions/upload-artifact@v4
+              with:
+                  name: nala-auth-state-${{ github.run_id }}
+                  path: nala/.auth/user.json
+                  retention-days: 1
+                  if-no-files-found: error
+
+    run-nala-studio-tests:
+        name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
+        needs: [nala-gate, nala-auth]
+        # `!cancelled()` + explicit nala-gate check (instead of the default "all needs succeeded")
+        # so a nala-auth FAILURE doesn't block every shard — nala-auth is a perf/load
+        # optimization, not a hard requirement; each shard falls back to its own full login if the
+        # shared auth state didn't download (see "Download shared auth state" step below and
+        # SKIP_AUTH_SETUP's file-existence check in nala/libs/auth.setup.cjs). A nala-gate failure
+        # (missing label) should still block, same as before.
+        # IMPORTANT: use `!cancelled()`, NOT `always()`, here. `always()` evaluates to true even
+        # when the workflow run has been cancelled, which defeats "Cancel workflow" — a
+        # not-yet-started job gated by `always()` still gets scheduled/run after cancellation is
+        # requested. `!cancelled()` still tolerates a nala-auth *failure* (only skips on an actual
+        # cancellation), so it preserves the fallback behavior while keeping cancel working.
+        if: |
+            !cancelled() &&
+            needs.nala-gate.result == 'success' &&
+            (github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala'))
+        runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
+        timeout-minutes: 30
+        # Each shard is pinned to its runner via matrix.runner (unique label per machine). All
+        # shards + docs share ONE User-Agent (playwright.config.js) and ONE 200 rps EDS / 20 rps
+        # ODIN budget — see NALA_TOTAL_WORKERS below. Working hypothesis: EDS/ODIN enforce these
+        # limits per TENANT (the PR preview hostname all 4 jobs test identically — confirmed via
+        # nala/utils/global.setup.js), not per client IP, so the grouping is "all jobs testing
+        # this PR" rather than "jobs on the same machine/IP". nala-studio-no and nala-docs run on
+        # separate VMs that happen to share a public IP — that's incidental to this budget
+        # grouping too (all 4 jobs share it regardless of IP, under the tenant hypothesis above).
+        # If EDS/ODIN turn out to rate-limit per source IP instead, the no/docs IP overlap
+        # would become directly relevant (they'd need to share a sub-pool together regardless of
+        # tenant), while sj/or (if on distinct IPs) could each get independent pools — see the
+        # per-IP-vs-tenant discussion; this has not been confirmed either way.
+        # This fixed 12-worker pool is per-PR, not a hard repo-wide guarantee — see the top-level
+        # comment above on why cross-PR overlap is deliberately left to the natural per-shard
+        # runner queuing instead of an explicit lock, and why the residual risk is acceptable.
+        #
+        # The 'saves' shard is deliberately SEPARATE from the directory-based split above, and
+        # pinned to nala-studio-sj with a deliberately LOW worker count (2). This is not about
+        # EDS/ODIN's RPS budget (still divided the same way via NALA_TOTAL_WORKERS below) — it's
+        # about ODIN's AEM *author* instance being a single, non-horizontally-scaled write-path
+        # bottleneck (unlike EDS's CDN-backed read path). Every *_save.test.js suite does a
+        # save-then-publish round trip against that one author instance; scattering them across
+        # every shard/worker (as before) meant up to ~8 concurrent ODIN writes at once, which was
+        # enough to blow past studio.page.js's saveCard() toast-wait timeout under load even
+        # without ever getting a 429 (see NALA_SAVE_TOAST_TIMEOUT_MS in studio.page.js). Grouping
+        # every save suite onto one shard with only 2 workers caps peak concurrent ODIN writes at
+        # 2, while the other two (now save-free) shards can run their lighter CSS/edit-only
+        # traffic at higher worker counts without contributing to that specific bottleneck.
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - shard: saves
+                      node-version: 20.x
+                      runner: nala-studio-sj # San Jose — dedicated to *_save.test.js, see above
+                      # sj has 4 CPUs / 16GB RAM. Save files alone (8 files) can't fill 4 workers
+                      # densely enough to matter, so ost/sandbox (plain CSS/edit tests, no
+                      # save/publish calls) are folded into this same shard/invocation to use the
+                      # rest of the machine — see "Resolve shard directories" below. Worst case,
+                      # Playwright schedules up to 4 save files concurrently (vs. the 2-worker cap
+                      # used previously); still far below the ~8 that caused the original
+                      # saveCard() timeout issue, and studio.page.js's toast wait is now
+                      # configurable/longer to absorb it either way.
+                      workers: 4
+                      extra_dirs: nala/studio/ost nala/studio/sandbox
+                    - shard: acom-ahome-ccd-commerce
+                      node-version: 20.x
+                      dirs: nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce
+                      runner: nala-studio-or # Oregon
+                      # Confirmed: every VM has 4 CPUs / 16GB RAM. Using all 4 (matches sj, which
+                      # runs 4 workers too) — no cores held back. If the "Report runner capacity"
+                      # step shows load/swap issues under this, drop to 3 on the affected VM only.
+                      workers: 4
+                      # Save-suite files under these dirs are excluded (they run on the 'saves'
+                      # shard instead) — see "Resolve shard directories" below.
+                    - shard: rest
+                      node-version: 20.x
+                      runner: nala-studio-no # Noida — slower VM, deliberately given fewer files
+                      # (see above) AND kept at 3 workers (not bumped to 4 like or) — only or was
+                      # raised to use its full core count; no stays at cores-1 for headroom, per
+                      # explicit instruction. Total pool: sj-saves(4) + or(4) + no(3) + docs(1) = 12.
+                      workers: 3
+                      # dirs intentionally omitted — auto-discovered at runtime. Save-suite files
+                      # (none live here today) would be excluded the same way, defensively. ost
+                      # and sandbox are claimed by the 'saves' shard's extra_dirs above, not here.
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            # Best-effort: if nala-auth failed/was skipped or the artifact is otherwise
+            # unavailable, this step fails but the job continues (continue-on-error) — the
+            # "Run Nala Studio Tests" step below falls back to a normal full per-shard login
+            # automatically, since SKIP_AUTH_SETUP's effect in auth.setup.cjs requires the file to
+            # actually exist.
+            - name: Download shared auth state
+              uses: actions/download-artifact@v4
+              continue-on-error: true
+              with:
+                  name: nala-auth-state-${{ github.run_id }}
+                  path: nala/.auth
+
+            # Answers "how many workers can this VM actually handle?" — Playwright's own guidance
+            # is workers <= CPU cores (often cores-1, since headless Chromium is CPU-bound and the
+            # OS/runner agent need headroom), with enough free RAM to avoid swapping. This step
+            # prints that data straight into each shard's job log so it can be compared against
+            # the `workers:` value set in the matrix above for that specific runner. If a shard
+            # here shows nproc < workers, that shard is oversubscribed and should be lowered.
+            - name: Report runner capacity (CPU/RAM) for this VM
+              run: |
+                  echo "Runner: ${{ matrix.runner }} (shard: ${{ matrix.shard }}, configured workers: ${{ matrix.workers }})"
+                  echo "CPU cores (nproc): $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo unknown)"
+                  echo "Memory:"; free -h 2>/dev/null || vm_stat 2>/dev/null || echo "  (free/vm_stat unavailable)"
+                  echo "Load average:"; uptime
+
+            - name: Resolve shard directories
+              run: |
+                  # Every shard excludes *_save.test.js files from its own selection — they
+                  # always run on the dedicated 'saves' shard (nala-studio-sj) instead, regardless
+                  # of which directory they physically live in. See the matrix comment above for
+                  # why (capping concurrent ODIN author writes, not an EDS/ODIN RPS concern).
+                  if [ "${{ matrix.shard }}" == "saves" ]; then
+                    DIRS=$(find nala/studio -name '*_save.test.js' | sort | xargs)
+                    for d in ${{ matrix.extra_dirs }}; do
+                      for f in $(find "$d" -name '*.test.js' | grep -v '_save\.test\.js' | sort); do
+                        DIRS="$DIRS $f"
+                      done
+                    done
+                    echo "SHARD_DIRS=$(echo $DIRS | xargs)" >> $GITHUB_ENV
+                  elif [ -n "${{ matrix.dirs }}" ]; then
+                    FILES=""
+                    for d in ${{ matrix.dirs }}; do
+                      for f in $(find "$d" -name '*.test.js' | grep -v '_save\.test\.js' | sort); do
+                        FILES="$FILES $f"
+                      done
+                    done
+                    echo "SHARD_DIRS=$(echo $FILES | xargs)" >> $GITHUB_ENV
+                  else
+                    # Shard catch-all: every studio dir/file not claimed by the other shards.
+                    # New directories are automatically included here — no workflow change needed.
+                    CLAIMED="nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce nala/studio/ost nala/studio/sandbox"
+                    DIRS=""
+                    for path in nala/studio/*/; do
+                      dir="${path%/}"
+                      echo "$CLAIMED" | grep -qw "$dir" || DIRS="$DIRS $dir"
+                    done
+                    FILES=""
+                    for d in $DIRS; do
+                      for f in $(find "$d" -name '*.test.js' | grep -v '_save\.test\.js' | sort); do
+                        FILES="$FILES $f"
+                      done
+                    done
+                    for f in nala/studio/*.test.js; do
+                      [ -f "$f" ] && case "$f" in *_save.test.js) ;; *) FILES="$FILES $f" ;; esac
+                    done
+                    echo "SHARD_DIRS=$(echo $FILES | xargs)" >> $GITHUB_ENV
+                  fi
 
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
@@ -95,8 +310,6 @@ jobs:
 
             - name: Install/verify Playwright browsers
               run: |
-                  # Always run this - it's idempotent and fast when browsers are already correct
-                  # It checks version compatibility and only installs if browsers are missing or outdated
                   npx playwright install
 
             - name: Set execute permission for gh.run.sh
@@ -117,9 +330,20 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # studio:3 + docs:1 = 4 workers × 45 RPS = 180 RPS, safely under 200 RPS EDS limit.
-                  # Both jobs share the same self-hosted runner pool — 4 total workers = 4 vCPUs.
-                  NALA_PLAYWRIGHT_WORKERS: 3
+                  # Workers per shard declared in matrix (see above).
+                  NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
+                  # Single shared tenant-wide budget pool: sj-saves(4) + or(4) + no(3) + docs(1).
+                  # Keep in sync with the `workers:` values above and the docs job below.
+                  NALA_TOTAL_WORKERS: 12
+                  # Label only (log/display), no longer used to vary the UA — one shared UA is
+                  # used everywhere (playwright.config.js), so ODIN's 20 rps/UA cap is a single
+                  # global pool too.
+                  NALA_SHARD_ID: ${{ matrix.shard }}-${{ github.run_id }}
+                  # Tells the 'setup' project (auth.setup.cjs) to skip its own real IMS login and
+                  # reuse the nala-auth job's downloaded storageState instead — but only takes
+                  # effect if that file actually downloaded successfully above; otherwise
+                  # auth.setup.cjs's file-existence check falls back to a full login itself.
+                  SKIP_AUTH_SETUP: 'true'
 
             - name: Cleanup cloned cards
               if: always()
@@ -134,17 +358,30 @@ jobs:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
+                  # Teardown runs as a single Node process (not via playwright.config.js, which is
+                  # what normally sets NALA_WORKER_COUNT from NALA_PLAYWRIGHT_WORKERS) — so set it
+                  # directly here. Without it, network-guard's pacing log shows "?"/NaN
+                  # placeholders during teardown's own cleanup requests (cosmetic only;
+                  # resolveBudgetDivisor() already has a safe fallback either way), but this keeps
+                  # the log accurate and teardown's pacing correctly scoped to the shared budget.
+                  NALA_WORKER_COUNT: 1
+                  NALA_TOTAL_WORKERS: 12
 
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
-        needs: [nala-gate, check-paths]
+        needs: nala-gate
+        # Run when PR is opened (no label needed) OR when 'run nala' label exists
+        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
         if: |
-            needs.nala-gate.result == 'success' &&
-            needs.check-paths.outputs.is-trivial != 'true' &&
-            (github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala'))
-        runs-on: [self-hosted, Linux, X64, nala-studio]
+            github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala')
+        runs-on: [self-hosted, Linux, X64, nala-docs]
         timeout-minutes: 20 # Prevent hanging jobs
+        # Cross-PR overlap for this job is left to natural per-runner queuing (see top-level
+        # comment above) rather than an explicit lock/gate — a job-level `concurrency:` group was
+        # tried here first and was wrong: it serialized this job against its OWN siblings (the 3
+        # studio shards) too, since concurrency matches by group-name equality with no "same run"
+        # exception.
         strategy:
             matrix:
                 node-version: [20.x]
@@ -155,19 +392,20 @@ jobs:
                   fetch-depth: 0
 
             - name: Fetch base branch for diff
-              env:
-                  BASE_REF: ${{ github.event.pull_request.base.ref }}
-              run: git fetch origin "${BASE_REF}"
+              run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
             - name: Detect io/www changes
               id: filter
-              env:
-                  BASE_REF: ${{ github.event.pull_request.base.ref }}
               run: |
-                  if git diff --quiet "origin/${BASE_REF}...HEAD" -- io/www/ 2>/dev/null; then
-                      echo "io-www=false" >> "$GITHUB_OUTPUT"
+                  if git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; then
+                      echo "io-www=false" >> $GITHUB_OUTPUT
                   else
-                      echo "io-www=true" >> "$GITHUB_OUTPUT"
+                      status=$?
+                      if [ "$status" -eq 1 ]; then
+                          echo "io-www=true" >> $GITHUB_OUTPUT
+                      else
+                          echo "io-www=false" >> $GITHUB_OUTPUT
+                      fi
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}
@@ -190,11 +428,14 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            # Docs tests run on GitHub-hosted runners (ubuntu-latest) — no unattended-upgrades
-            # lock contention, so the prep-apt composite action is not needed here.
+            # This job actually runs on the self-hosted nala-docs VM (not GitHub-hosted
+            # ubuntu-latest, despite what an earlier version of this comment claimed) — it can hit
+            # the same unattended-upgrades apt-lock contention as the studio shards, so it needs
+            # the same prep-apt composite action (stop background apt services, wait out/clear
+            # locks, retry install-deps).
             - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: npx playwright install-deps
+              uses: ./.github/actions/prep-apt
 
             - name: Install/verify Playwright browsers
               run: |
@@ -207,16 +448,14 @@ jobs:
 
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
-              env:
-                  ACTOR_NS: ${{ secrets[format('AIO_NS_{0}', github.event.pull_request.user.login)] }}
-                  ACTOR_LOGIN: ${{ github.event.pull_request.user.login }}
               run: |
-                  if [ -z "$ACTOR_NS" ]; then
-                    echo "::error::Missing AIO namespace secret AIO_NS_${ACTOR_LOGIN} for PR author"
+                  if [ -z "${{ secrets.AIO_WWW_NS }}" ]; then
+                    echo "::error::Missing required secret: AIO_WWW_NS"
                     exit 1
                   fi
-                  echo "Using AIO namespace for PR author ${ACTOR_LOGIN}"
-                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> "$GITHUB_ENV"
+                  ACTOR_NS="${{ secrets.AIO_WWW_NS }}-${{ github.event.pull_request.user.login }}"
+                  echo "Using AIO namespace: PR author (${{ github.event.pull_request.user.login }})"
+                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh
@@ -231,4 +470,16 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
+                  # This job runs on a separate VM from nala-studio-no that happens to share its
+                  # public IP, but that's not why it shares a budget with it — see the tenant-wide
+                  # rationale in run-nala-studio-tests's matrix comment above. This job tests the
+                  # exact same PR preview hostname as all 3 studio shards, so it shares ONE pool
+                  # with all of them, not just with the no shard. Cross-PR overlap is left to
+                  # natural per-runner queuing — see the top-level comment at the top of this file.
                   NALA_PLAYWRIGHT_WORKERS: 1
+                  # Single shared tenant-wide budget pool: sj-saves(4) + or(4) + no(3) + docs(1).
+                  # Keep in sync with the studio job's NALA_TOTAL_WORKERS.
+                  NALA_TOTAL_WORKERS: 12
+                  # Label only (log/display), no longer used to vary the UA — one shared UA is
+                  # used everywhere (playwright.config.js).
+                  NALA_SHARD_ID: docs-${{ github.run_id }}

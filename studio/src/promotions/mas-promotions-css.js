@@ -101,11 +101,15 @@ export const styles = css`
 
     .environment-filter-picker {
         display: flex;
-    }
-
-    sp-action-button.environment-filter {
-        display: flex;
-        flex-direction: row-reverse;
+        height: 32px;
+        padding: 0 11px 0 12px;
+        justify-content: flex-end;
+        align-items: flex-start;
+        gap: 6px;
+        align-self: flex-start;
+        border-radius: 8px;
+        border: 2px solid var(--Palette-gray-300, #dadada);
+        background: var(--Palette-gray-25, #fff);
     }
 
     .filter-popover {
@@ -179,8 +183,10 @@ export const styles = css`
 
     .filters-container {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 12px;
+        align-self: stretch;
     }
 
     .promotions-table {

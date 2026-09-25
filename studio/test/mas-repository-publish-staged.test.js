@@ -92,6 +92,7 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
         it('leaves the staged tag untouched when the publish call fails', async () => {
             const repo = makeRepo();
             repo.aem.sites.cf.fragments.publish = sandbox.stub().rejects(new Error('network down'));
+            repo.clearStagedTag = sandbox.stub().resolves();
             const fragment = stagedCardFragment();
 
             const result = await repo.publishFragment(fragment);
@@ -162,6 +163,7 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
             const repo = makeRepo();
             repo.aem.sites.cf.fragments.publishFragments = sandbox.stub().rejects(new Error('network down'));
             sandbox.stub(repo, 'refreshFragment').resolves();
+            sandbox.stub(repo, 'clearStagedTag').resolves();
             const staged1 = stagedCardFragment({ id: 'card-1' });
             const staged2 = stagedCardFragment({ id: 'card-3' });
             setListStores([staged1, staged2]);

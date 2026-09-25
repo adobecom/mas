@@ -1574,15 +1574,14 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
 
+            await this.clearStagedTag(fragment);
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
-                await this.clearStagedTag(fragment);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
                 const allRefIds = [...variations, ...cards].map((r) => r.id);
                 if (allRefIds.length) await this.#publishRefIds(allRefIds);
             } else {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
-                await this.clearStagedTag(fragment);
                 if (selectedRefIds?.length) {
                     await this.#publishRefIds(selectedRefIds);
                 }
@@ -1656,8 +1655,8 @@ export class MasRepository extends LitElement {
         if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
         for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
             const chunk = valid.slice(i, i + CHUNK_SIZE);
-            await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
             await Promise.all(chunk.map((ref) => this.clearStagedTag(ref)));
+            await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
         }
     }
 
@@ -1719,9 +1718,8 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
-            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
-
             await Promise.all(fragments.map((fragment) => this.clearStagedTag(fragment)));
+            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
             const refreshPromises = fragmentIds.map((id) => {
                 const store = findFragmentStoreById(id, listStores);

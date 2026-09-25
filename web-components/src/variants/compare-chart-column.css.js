@@ -16,6 +16,20 @@ export const CSS = `
         margin: 0 !important;
     }
 
+    merch-card[variant='compare-chart-column'] [slot='badge'],
+    mas-compare-chart [data-compare-chart-slot][slot$='-badge'] {
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    merch-card[variant='compare-chart-column'] [slot='badge'] merch-badge,
+    mas-compare-chart [data-compare-chart-slot][slot$='-badge'] merch-badge {
+        --merch-badge-border-radius: 4px !important;
+        inset-inline-start: 0 !important;
+        max-width: 100% !important;
+        text-align: center !important;
+    }
+
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'],
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'] p {
         color: var(--C1-Text-text, #2C2C2C) !important;

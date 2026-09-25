@@ -2279,10 +2279,10 @@ export default class MasFragmentEditor extends LitElement {
             <div class="references-container">
                 <div class="artifacts-header">
                     ${title}
-                    <a class="artifacts-view-link clickable" @click=${() => this.#openArtifactsDialog()}>
-                        <span>View artifacts</span>
+                    <sp-action-button class="artifacts-view-link" quiet size="s" @click=${() => this.#openArtifactsDialog()}>
+                        View artifacts
                         <sp-icon-open-in size="s"></sp-icon-open-in>
-                    </a>
+                    </sp-action-button>
                 </div>
                 <div class="artifacts-counts">
                     ${displayBuckets.map(

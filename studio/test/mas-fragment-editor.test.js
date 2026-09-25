@@ -2118,6 +2118,13 @@ describe('MasFragmentEditor', () => {
             expect(host.textContent).to.not.include('Other');
         });
 
+        it('renders View artifacts as a button so keyboard users can reach it', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            const host = renderSection(editor);
+            expect(host.querySelector('.artifacts-view-link').tagName).to.equal('SP-ACTION-BUTTON');
+        });
+
         it('opens the dialog when the View artifacts link is clicked', () => {
             const editor = withCard();
             editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];

@@ -1049,13 +1049,16 @@ sp-progress-circle.preview {
 }
 
 .artifacts-view-link {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--spectrum-blue-900);
-    font-size: 14px;
-    cursor: pointer;
-    text-decoration: none;
+    --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
+    --mod-actionbutton-content-color-hover: var(--spectrum-blue-900);
+    --mod-actionbutton-content-color-down: var(--spectrum-blue-900);
+    --mod-actionbutton-content-color-focus: var(--spectrum-blue-900);
+    --mod-actionbutton-font-size: 14px;
+}
+
+.artifacts-view-link sp-icon-open-in {
+    margin-inline-start: 6px;
+    vertical-align: middle;
 }
 
 .artifacts-counts {

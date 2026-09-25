@@ -324,6 +324,11 @@ function applyCollectionSettings(context, locale, settings, country) {
         noSearchResultsText: '{{coll-no-search-results-text}}',
         noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
         showMoreText: '{{coll-show-more-text}}',
+        allFilters: '{{coll-all-filters-text}}',
+        filtersCategory: '{{coll-filters-category-text}}',
+        filtersApplied: '{{coll-filters-applied-text}}',
+        filtersResults: '{{coll-filters-results-text}}',
+        filtersReset: '{{coll-filters-reset-text}}',
     };
 
     context.dictionary = {
@@ -334,8 +339,23 @@ function applyCollectionSettings(context, locale, settings, country) {
     };
 
     context.body.settings = context.body.settings || {};
+    // A `{{coll-tag-filter-<key>}}` placeholder per tag namespace and leaf, so
+    // authors label groups and checkboxes from the dictionary. The key mirrors
+    // Studio's normalizeKey so `market_segments` -> `coll-tag-filter-marketsegments`.
+    const placeholderKey = (key) =>
+        key
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+    const tagKeys = new Set();
+    for (const tag of context.body.fields?.tagFilters ?? []) {
+        const parts = tag.replace(/^mas:/, '').split('/');
+        if (parts.length < 2) continue;
+        tagKeys.add(parts[0]);
+        tagKeys.add(parts[parts.length - 1]);
+    }
     context.body.settings.tagLabels =
-        Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
+        Object.fromEntries([...tagKeys].map((key) => [key, `{{coll-tag-filter-${placeholderKey(key)}}}`])) || {};
 }
 
 // Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)

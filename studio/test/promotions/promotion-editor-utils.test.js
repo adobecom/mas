@@ -1,6 +1,5 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../../src/store.js';
-import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     PROMOTION_FIELD_TYPE_MAP,
     pruneOrphanedGroupedVariationSelection,
@@ -46,7 +45,12 @@ import {
     splitPromotionTagsFieldValues,
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
+    isPromotionTitleTaken,
+    buildDuplicatePromotionToastArgs,
+    getPromotionTitles,
+    buildPromotionDuplicatePayload,
 } from '../../src/promotions/promotion-editor-utils.js';
+import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
@@ -1165,20 +1169,18 @@ describe('promotion-editor-utils', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
             Store.promotions.offerRecordsCache.clear();
-            setItemsSelectionStore(Store.promotions);
-        });
-
-        afterEach(() => {
-            setItemsSelectionStore(null);
         });
 
         it('adds the offer to selectedOffers and returns true', async () => {
-            const added = await handlePromotionOstOfferSelect({
-                detail: {
-                    offerSelectorId: 'phsp-osi',
-                    offer: { product_arrangement_code: 'PA-999', product_code: 'PHSP' },
+            const added = await handlePromotionOstOfferSelect(
+                {
+                    detail: {
+                        offerSelectorId: 'phsp-osi',
+                        offer: { product_arrangement_code: 'PA-999', product_code: 'PHSP' },
+                    },
                 },
-            });
+                Store.promotions,
+            );
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
             expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.true;
@@ -1186,26 +1188,32 @@ describe('promotion-editor-utils', () => {
 
         it('returns false and does not duplicate when offer is already selected', async () => {
             Store.promotions.selectedOffers.set(['phsp-osi']);
-            const added = await handlePromotionOstOfferSelect({
-                detail: {
-                    offerSelectorId: 'phsp-osi',
-                    offer: { product_arrangement_code: 'PA-999' },
+            const added = await handlePromotionOstOfferSelect(
+                {
+                    detail: {
+                        offerSelectorId: 'phsp-osi',
+                        offer: { product_arrangement_code: 'PA-999' },
+                    },
                 },
-            });
+                Store.promotions,
+            );
             expect(added).to.be.false;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
         });
 
         it('still adds the offer when commerce service is unavailable (no productArrangementCode)', async () => {
-            const added = await handlePromotionOstOfferSelect({
-                detail: { offerSelectorId: 'unknown-osi', offer: {} },
-            });
+            const added = await handlePromotionOstOfferSelect(
+                {
+                    detail: { offerSelectorId: 'unknown-osi', offer: {} },
+                },
+                Store.promotions,
+            );
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.include('unknown-osi');
         });
 
         it('returns false for a missing offerSelectorId', async () => {
-            const added = await handlePromotionOstOfferSelect({ detail: { offerSelectorId: '', offer: {} } });
+            const added = await handlePromotionOstOfferSelect({ detail: { offerSelectorId: '', offer: {} } }, Store.promotions);
             expect(added).to.be.false;
         });
     });
@@ -1236,6 +1244,138 @@ describe('promotion-editor-utils', () => {
                 'geos',
                 'fragments',
             ]);
+        });
+    });
+
+    describe('isPromotionTitleTaken', () => {
+        it('returns true when a case-insensitive match exists', () => {
+            expect(isPromotionTitleTaken('black friday', ['Black Friday', 'Cyber Monday'])).to.be.true;
+        });
+
+        it('returns false when no match exists', () => {
+            expect(isPromotionTitleTaken('New Title', ['Black Friday', 'Cyber Monday'])).to.be.false;
+        });
+
+        it('ignores leading/trailing whitespace when comparing', () => {
+            expect(isPromotionTitleTaken('  Black Friday  ', ['Black Friday'])).to.be.true;
+        });
+
+        it('returns false for an empty title', () => {
+            expect(isPromotionTitleTaken('', ['Black Friday'])).to.be.false;
+        });
+
+        it('returns false when existingTitles is empty or missing', () => {
+            expect(isPromotionTitleTaken('Black Friday', [])).to.be.false;
+            expect(isPromotionTitleTaken('Black Friday')).to.be.false;
+        });
+
+        it('treats spaces and dashes as equivalent, matching the AEM slug collision (normalizeKey)', () => {
+            expect(isPromotionTitleTaken('Black Friday', ['Black-Friday'])).to.be.true;
+        });
+
+        it('treats titles differing only by punctuation as equivalent, matching normalizeKey', () => {
+            expect(isPromotionTitleTaken('Q3 FY26 BTSPromo LATM!', ['Q3-FY26-BTSPromo-LATM'])).to.be.true;
+        });
+    });
+
+    describe('buildDuplicatePromotionToastArgs', () => {
+        it('returns a positive success toast when there are no failed variations', () => {
+            expect(buildDuplicatePromotionToastArgs([])).to.deep.equal(['Project successfully duplicated.', 'positive']);
+            expect(buildDuplicatePromotionToastArgs()).to.deep.equal(['Project successfully duplicated.', 'positive']);
+        });
+
+        it('returns a warning toast with singular wording for exactly one failed variation', () => {
+            expect(buildDuplicatePromotionToastArgs([{ path: '/a', error: new Error('x') }])).to.deep.equal([
+                'Project duplicated, 1 variation failed.',
+                'warning',
+            ]);
+        });
+
+        it('returns a warning toast with plural wording for multiple failed variations', () => {
+            const failed = [
+                { path: '/a', error: new Error('x') },
+                { path: '/b', error: new Error('y') },
+            ];
+            expect(buildDuplicatePromotionToastArgs(failed)).to.deep.equal([
+                'Project duplicated, 2 variations failed.',
+                'warning',
+            ]);
+        });
+    });
+
+    describe('getPromotionTitles', () => {
+        it('extracts the title field value from each project', () => {
+            const projects = [{ getFieldValue: () => 'Black Friday' }, { getFieldValue: () => 'Cyber Monday' }];
+            expect(getPromotionTitles(projects)).to.deep.equal(['Black Friday', 'Cyber Monday']);
+        });
+
+        it('filters out projects with an empty or missing title', () => {
+            const projects = [
+                { getFieldValue: () => 'Black Friday' },
+                { getFieldValue: () => '' },
+                { getFieldValue: () => null },
+            ];
+            expect(getPromotionTitles(projects)).to.deep.equal(['Black Friday']);
+        });
+
+        it('returns an empty array when projects is empty or missing', () => {
+            expect(getPromotionTitles([])).to.deep.equal([]);
+            expect(getPromotionTitles()).to.deep.equal([]);
+        });
+    });
+
+    describe('buildPromotionDuplicatePayload', () => {
+        function makeSourceFragment(fields) {
+            return { fields };
+        }
+
+        it('sets the new title as the title field value', () => {
+            const source = makeSourceFragment([{ name: 'title', type: 'text', values: ['Original'] }]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'title').values).to.deep.equal(['Original copy']);
+        });
+
+        it('derives name from a normalized slug of the new title', () => {
+            const source = makeSourceFragment([{ name: 'title', type: 'text', values: ['Original'] }]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original Copy!');
+            expect(payload.name).to.equal('original-copy');
+        });
+
+        it('replaces the old promotion tag with one derived from the new title, keeping other tags', () => {
+            const source = makeSourceFragment([
+                { name: 'tags', type: 'tag', multiple: true, values: ['mas:status/published', 'mas:promotion/original'] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal(['mas:status/published', `${TAG_PROMOTION_PREFIX}original-copy`]);
+        });
+
+        it('drops the collections field', () => {
+            const source = makeSourceFragment([
+                { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: ['/some/collection'] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'collections')).to.be.undefined;
+        });
+
+        it('preserves fragments field values unchanged (default fragments are not duplicated)', () => {
+            const fragmentsPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const source = makeSourceFragment([
+                { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: [fragmentsPath] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'fragments').values).to.deep.equal([fragmentsPath]);
+        });
+
+        it('preserves other field values unchanged', () => {
+            const source = makeSourceFragment([
+                { name: 'title', type: 'text', values: ['Original'] },
+                { name: 'promoCode', type: 'text', values: ['CODE'] },
+            ]);
+            const payload = buildPromotionDuplicatePayload(source, 'Original copy');
+            expect(payload.fields.find((f) => f.name === 'promoCode').values).to.deep.equal(['CODE']);
         });
     });
 });

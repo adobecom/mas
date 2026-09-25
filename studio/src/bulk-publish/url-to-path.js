@@ -15,7 +15,7 @@ export function parseStudioUrl(raw) {
 
     const hash = url.hash.startsWith('#') ? url.hash.slice(1) : url.hash;
     const params = new URLSearchParams(hash);
-    const fragmentId = params.get('query');
+    const fragmentId = params.get('query') ?? (params.get('content-type') === 'placeholder' ? params.get('search') : null);
     if (!fragmentId || !UUID_RE.test(fragmentId)) return null;
 
     return { fragmentId };

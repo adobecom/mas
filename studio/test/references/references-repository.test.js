@@ -13,13 +13,11 @@ import {
     ARTIFACT_TYPE_KEYS,
     REFERENCED_BY_PAGE_LIMIT,
     REFERENCE_TYPES,
-    buildGroupKey,
     chooseRepresentative,
     fetchAllReferencingItems,
     getReferencingFragments,
-    groupBulkPublishProjects,
+    groupFlatReferences,
     groupReferencesByCollection,
-    isBulkPublishProjectReference,
     isCrossSurfaceReference,
     isExcludedReference,
     isGroupedVariationReference,
@@ -135,20 +133,6 @@ describe('references-repository', () => {
         });
     });
 
-    describe('buildGroupKey', () => {
-        it('groups by surface + fragmentPath, ignoring locale', () => {
-            const keyEnUS = buildGroupKey('/content/dam/mas/acom/en_US/plans-two-wide-reflow-all');
-            const keyFrFR = buildGroupKey('/content/dam/mas/acom/fr_FR/plans-two-wide-reflow-all');
-            expect(keyEnUS).to.equal('acom/plans-two-wide-reflow-all');
-            expect(keyEnUS).to.equal(keyFrFR);
-        });
-
-        it('falls back to the raw path when PATH_TOKENS does not match', () => {
-            const path = '/content/dam/mas/promotions/campaign-card';
-            expect(buildGroupKey(path)).to.equal(path);
-        });
-    });
-
     describe('isExcludedReference', () => {
         const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'my-card' };
 
@@ -185,22 +169,6 @@ describe('references-repository', () => {
         it('keeps an unparseable path rather than excluding it', () => {
             const reference = { path: '/content/dam/mas/acom/weird-path' };
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
-        });
-    });
-
-    describe('isBulkPublishProjectReference', () => {
-        it('identifies a bulk-publish-project parent by model path', () => {
-            const reference = { model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH } };
-            expect(isBulkPublishProjectReference(reference)).to.be.true;
-        });
-
-        it('is false for a collection model', () => {
-            const reference = { model: { path: COLLECTION_MODEL_PATH } };
-            expect(isBulkPublishProjectReference(reference)).to.be.false;
-        });
-
-        it('is false when model is missing', () => {
-            expect(isBulkPublishProjectReference({})).to.be.false;
         });
     });
 
@@ -284,8 +252,8 @@ describe('references-repository', () => {
         });
     });
 
-    describe('groupBulkPublishProjects', () => {
-        it('buckets project parents separately, suppressing the locale chip', () => {
+    describe('groupFlatReferences', () => {
+        it('lists one row per project, suppressing the locale chip', () => {
             const items = [
                 {
                     path: `/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`,
@@ -296,7 +264,7 @@ describe('references-repository', () => {
                 },
             ];
 
-            const [project] = groupBulkPublishProjects(items);
+            const [project] = groupFlatReferences(items);
 
             expect(project.groupKey).to.equal(items[0].path);
             expect(project.locales).to.deep.equal([]);
@@ -311,7 +279,7 @@ describe('references-repository', () => {
                 model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
             };
 
-            const projects = groupBulkPublishProjects([item, { ...item }]);
+            const projects = groupFlatReferences([item, { ...item }]);
 
             expect(projects).to.have.lengthOf(1);
         });
@@ -515,7 +483,8 @@ describe('references-repository', () => {
                 id: 'proj1',
                 model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
             };
-            const [row] = groupBulkPublishProjects([project]);
+            const { buildLink } = REFERENCE_TYPES.find((type) => type.key === 'bulkPublishProjects');
+            const [row] = groupFlatReferences([project], buildLink);
             expect(row.representative.link).to.be.a('string');
             expect(row.representative.link).to.include('bulkPublishProjectId=proj1');
             expect(row.representative.link).to.not.include('content-type=');

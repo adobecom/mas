@@ -123,31 +123,6 @@ export function isExcludedReference(reference, openFragmentTokens) {
 }
 
 /**
- * A `bulk-publish-project` parent is identified by its model path. (The path also drives suppression
- * of the bogus locale segment once we know it is a project.)
- *
- * @param {Object} reference raw `referencedBy` item
- * @returns {boolean}
- */
-export function isBulkPublishProjectReference(reference) {
-    return reference?.model?.path === BULK_PUBLISH_PROJECT_MODEL_PATH;
-}
-
-/**
- * Builds the grouping key for a collection reference: `surface + '/' + fragmentPath`, so all
- * locale copies of the same logical collection collapse into one row. Falls back to the raw path
- * when `PATH_TOKENS` cannot parse it, rather than dropping the row.
- *
- * @param {string} path
- * @returns {string}
- */
-export function buildGroupKey(path) {
-    const tokens = parsePathTokens(path);
-    if (!tokens) return path;
-    return `${tokens.surface}/${tokens.fragmentPath}`;
-}
-
-/**
  * Picks the representative row for a group of same-collection references across locales:
  * the fragment's own locale if present in the group, else the surface's default locale, else
  * whichever item happens to be first. Mirrors the tie-break `resolveHydratedParentFragment`
@@ -165,7 +140,9 @@ export function chooseRepresentative(items, openLocale, defaultLocale) {
 }
 
 /**
- * Groups filtered, non-project references by logical collection across locales.
+ * Groups filtered, non-project references by logical collection across locales. The group key is
+ * `surface + '/' + fragmentPath`, so locale copies collapse into one row; a path `PATH_TOKENS`
+ * cannot parse keeps its raw path as the key rather than being dropped.
  *
  * @param {Array<Object>} items filtered `referencedBy` items (projects already removed)
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
@@ -205,11 +182,11 @@ export function groupReferencesByCollection(items, openFragmentTokens, openLocal
 }
 
 /**
- * Buckets `bulk-publish-project` parents separately from collections, deduplicating by path and
- * suppressing the bogus `bulk-publish-projects` locale segment entirely (projects are never
- * grouped across locales).
+ * Lists one row per project reference, deduplicated by path. Projects are never grouped across
+ * locales, so rows carry no locale chip.
  *
- * @param {Array<Object>} items filtered `referencedBy` items already known to be projects
+ * @param {Array<Object>} items filtered `referencedBy` items of a single flat reference type
+ * @param {(item: Object) => string|null} [buildLink] deep link for a row
  * @returns {Array<{ groupKey: string, title: string|null, modelPath: string|null, representative: Object|null, locales: string[], localeCount: number }>}
  */
 export function groupFlatReferences(items, buildLink) {
@@ -230,10 +207,6 @@ export function groupFlatReferences(items, buildLink) {
         locales: [],
         localeCount: 0,
     }));
-}
-
-export function groupBulkPublishProjects(items) {
-    return groupFlatReferences(items, (item) => buildBulkPublishProjectDeepLink(item.id));
 }
 
 /**

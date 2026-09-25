@@ -28,6 +28,7 @@ const HREF_REGEXPS = {
     [AUDIT_TARGET.ost]: {
         fragment: '/fragments/',
         ost: 'https://milo.adobe.com/tools/ost?(?<parameters>.+)',
+        mas: 'mas\\.adobe\\.com/studio\\.html#(?<hash>.+)',
     },
     [AUDIT_TARGET.modal]: {
         fragment: '/fragments/',
@@ -205,6 +206,9 @@ const GeoMap = {
 };
 const wcsUrl = (osi, locale) =>
     `https://wcs.adobe.com/web_commerce_artifact?offer_selector_ids=${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=wcms-commerce-ims-ro-user-milo&landscape=PUBLISHED`;
+const MAS_FETCH_TIMEOUT = 20000; // fragment pipeline main timeout is 15s
+const masUrl = (id, { locale, country }) =>
+    `https://www.adobe.com/mas/io/fragment?id=${id}&api_key=wcms-commerce-ims-ro-user-milo&locale=${locale}${locale.endsWith(`_${country}`) ? '' : `&country=${country}`}`;
 const mapWcs = {};
 const WCS_KEYS = [
     'offerId',
@@ -272,7 +276,7 @@ const getUriAndDomain = (url) => {
     };
 };
 
-const fetchDocument = async (url) => {
+const fetchDocument = async (url, timeout = MAX_FETCH_TIMEOUT) => {
     if (!url) {
         console.log('Warning: Empty URL passed to fetchDocument');
         throw new Error('Empty URL passed to fetchDocument');
@@ -283,7 +287,7 @@ const fetchDocument = async (url) => {
 
     // Add timeout to fetch requests to prevent hanging
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), MAX_FETCH_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
         const response = await fetch(url, {
@@ -525,12 +529,18 @@ const PRICE_NUMERIC = 'price numeric';
 const PRICE_PREFORMATTED = 'price preformatted';
 const PRICE_MATCH = 'price match';
 const PRICE_MISMATCH_MODES = 'price mismatch modes';
-const PRICE_KEYS = [PRICE_NUMERIC, PRICE_PREFORMATTED, PRICE_MATCH, PRICE_MISMATCH_MODES];
+const PRICE_COMPARED_MODES = 'price compared modes';
+const PRICE_KEYS = [PRICE_NUMERIC, PRICE_PREFORMATTED, PRICE_MATCH, PRICE_MISMATCH_MODES, PRICE_COMPARED_MODES];
 
-const PRICE_RENDERERS = {
-    regular: formatRegularPrice,
-    annual: formatAnnualPrice,
-    optical: formatOpticalPrice,
+// One entry per value an inline-price can show. The strikethrough modes are the
+// pre-discount price shown beside a promo. Optical has none: template.js keeps
+// the discounted leaf under optical.
+const PRICE_MODES = {
+    regular: { render: formatRegularPrice },
+    annual: { render: formatAnnualPrice, displayAnnual: true },
+    optical: { render: formatOpticalPrice, displayOptical: true },
+    strikethrough: { render: formatRegularPrice, withoutDiscount: true },
+    'annual-strikethrough': { render: formatAnnualPrice, displayAnnual: true, withoutDiscount: true },
 };
 
 const renderedPrice = ({ currencySymbol, decimals, decimalsDelimiter, hasCurrencySpace, integer, isCurrencyFirst }) => {
@@ -541,28 +551,34 @@ const renderedPrice = ({ currencySymbol, decimals, decimalsDelimiter, hasCurrenc
 
 // Returns undefined when WCS carries no leaf for this mode, i.e. the numeric
 // path still owns it.
-const comparePriceMode = (offer, country, mode) => {
-    const { priceDetails: details, commitment, term, priceInfo } = offer;
+const comparePriceMode = (
+    offer,
+    country,
+    { render, displayAnnual = false, displayOptical = false, withoutDiscount = false },
+) => {
+    const { priceDetails: details, commitment, term, priceInfo, promotion } = offer;
+    if (withoutDiscount && details.priceWithoutDiscount == null) return undefined;
     const preformatted = selectPreformattedPrice({
         priceInfo,
-        showWithoutDiscount: false,
-        displayAnnual: mode === 'annual',
-        displayOptical: mode === 'optical',
+        showWithoutDiscount: withoutDiscount,
+        displayAnnual,
+        displayOptical,
         commitment,
         term,
+        promotion,
     });
     if (!preformatted) return undefined;
     const data = {
         commitment,
         term,
         formatString: details.formatString,
-        price: details.price,
+        price: withoutDiscount ? details.priceWithoutDiscount : details.price,
         originalPrice: details.price,
         priceWithoutDiscount: details.priceWithoutDiscount,
+        promotion,
         usePrecision: details.usePrecision,
         isIndianPrice: country === 'IN',
     };
-    const render = PRICE_RENDERERS[mode];
     return {
         numeric: renderedPrice(render(data)),
         preformatted: renderedPrice(render({ ...data, preformatted, priceInfoFormat: priceInfo.format })),
@@ -571,8 +587,8 @@ const comparePriceMode = (offer, country, mode) => {
 
 const comparePrices = (offer, country) => {
     if (!offer?.priceInfo || !offer.priceDetails) return {};
-    const compared = Object.keys(PRICE_RENDERERS)
-        .map((mode) => ({ mode, ...comparePriceMode(offer, country, mode) }))
+    const compared = Object.entries(PRICE_MODES)
+        .map(([mode, options]) => ({ mode, ...comparePriceMode(offer, country, options) }))
         .filter(({ numeric }) => numeric !== undefined);
     if (compared.length === 0) return {};
     const mismatched = compared.filter(({ numeric, preformatted }) => numeric !== preformatted);
@@ -582,10 +598,11 @@ const comparePrices = (offer, country) => {
         [PRICE_PREFORMATTED]: shown.preformatted,
         [PRICE_MATCH]: mismatched.length === 0,
         [PRICE_MISMATCH_MODES]: mismatched.map(({ mode }) => mode).join(' '),
+        [PRICE_COMPARED_MODES]: compared.map(({ mode }) => mode).join(' '),
     };
 };
 
-function getLocaleSettings(locale) {
+function getLocaleSettings(locale, geoMap = GeoMap) {
     if (!locale) {
         return {
             country: 'US',
@@ -593,7 +610,7 @@ function getLocaleSettings(locale) {
             locale: 'en_US',
         };
     }
-    let [country = 'US', language = 'en'] = (GeoMap[locale] ?? locale).split('_', 2);
+    let [country = 'US', language = 'en'] = (geoMap[locale] ?? locale).split('_', 2);
 
     country = country.toUpperCase();
     language = language.toLowerCase();
@@ -605,28 +622,43 @@ function getLocaleSettings(locale) {
     };
 }
 
+// /mas/io takes milo's locales, not WCS's (milo libs/blocks/merch/merch.js
+// GeoMap and EXTRA_MAS_LOCALES).
+const MAS_GEO_MAP = {
+    ...GeoMap,
+    africa: 'MU_en',
+    cn: 'CN_zh',
+    tw: 'TW_zh',
+    hk_zh: 'HK_zh',
+    id_id: 'ID_id',
+    il_he: 'IL_he',
+    cis_en: 'TM_en',
+    cis_ru: 'TM_ru',
+};
+const masLocaleSettings = (locale) => {
+    const settings = getLocaleSettings(locale, MAS_GEO_MAP);
+    return locale === 'pr' ? { ...settings, locale: 'es_PR' } : settings;
+};
+
+const offerData = (offer, country) => {
+    const data = {};
+    WCS_KEYS.forEach((key) => {
+        data[prefixWcsKey(key)] = key.split('.').reduce((object, subkey) => object?.[subkey], offer);
+    });
+    Object.entries(comparePrices(offer, country)).forEach(([key, value]) => {
+        data[prefixWcsKey(key)] = value;
+    });
+    return data;
+};
+
 async function setCommerceData(wcsKey, osi, locale) {
     const localeSettings = getLocaleSettings(locale);
     const response = await fetchDocument(wcsUrl(osi, localeSettings));
-    const data = {};
+    let data = {};
     if (response.ok) {
         const json = await response.json();
         const offer = json.resolvedOffers[0];
-        if (offer) {
-            WCS_KEYS.forEach((key) => {
-                let subkeys = key.split('.');
-                let object = offer;
-                while (subkeys?.length > 0) {
-                    const subkey = subkeys[0];
-                    subkeys = subkeys.slice(1);
-                    object = object[subkey];
-                }
-                data[prefixWcsKey(key)] = object;
-            });
-            Object.entries(comparePrices(offer, localeSettings.country)).forEach(([key, value]) => {
-                data[prefixWcsKey(key)] = value;
-            });
-        }
+        if (offer) data = offerData(offer, localeSettings.country);
     }
     if (Object.keys(data).length == 0) {
         console.log(`no data for osi ${osi} (${localeSettings.locale})`);
@@ -653,6 +685,14 @@ function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
     collection.push(entry);
 }
 
+// Card and collection links: milo autoblocks read the fragment id from the
+// `fragment` or `query` hash param (milo libs/blocks/merch/merch.js getOptions).
+function extractMasUsage(ctx, hash, collection) {
+    const params = new URLSearchParams(hash.replaceAll('&#x26;', '&').replaceAll('&amp;', '&'));
+    const fragmentId = params.get('fragment') ?? params.get('query');
+    if (fragmentId) collection.push({ ...ctx, fragmentId, masKey: `${fragmentId}|${ctx.localeRewrite ?? ''}` });
+}
+
 async function extractUrlsFromSiteMap(sitemapUrl) {
     const response = await fetchDocument(sitemapUrl);
     const sitemapContent = await response.text();
@@ -676,6 +716,7 @@ const rewriteUrlLocale = (localeRewrite, url) => {
 };
 
 const ostUsages = [];
+const masUsages = [];
 const searchMatches = [];
 const keys = new Set();
 let searchFile;
@@ -775,6 +816,8 @@ async function auditPage(ctx, pageUrl, depth = 0) {
         } catch (error) {
             console.log(`Error processing OST usage for ${url}: ${error.message}`);
         }
+
+        result?.mas?.forEach(({ patternMatch }) => extractMasUsage(ctx, patternMatch.groups.hash, masUsages));
 
         // Process iframe usages
         try {
@@ -898,9 +941,16 @@ const reportPriceMismatches = () => {
     const compared = Object.entries(mapWcs).filter(([, data]) => data?.[prefixWcsKey(PRICE_MATCH)] !== undefined);
     const mismatched = compared.filter(([, data]) => data[prefixWcsKey(PRICE_MATCH)] === false);
     console.log(`price comparison: ${compared.length} osis compared, ${mismatched.length} mismatched`);
+    const modeCounts = {};
+    compared.forEach(([, data]) =>
+        data[prefixWcsKey(PRICE_COMPARED_MODES)].split(' ').forEach((mode) => {
+            modeCounts[mode] = (modeCounts[mode] ?? 0) + 1;
+        }),
+    );
+    console.log(`  by mode: ${JSON.stringify(modeCounts)}`);
     mismatched.forEach(([, data]) => {
         console.log(
-            `  ${data.osi} [${data.locale ?? 'us'}]: numeric ${data[prefixWcsKey(PRICE_NUMERIC)]} != preformatted ${data[prefixWcsKey(PRICE_PREFORMATTED)]} (${data[prefixWcsKey(PRICE_MISMATCH_MODES)]})`,
+            `  ${data.osi} [${data.locale ?? 'us'}]${data.fragmentId ? ` fragment ${data.fragmentId}` : ''}: numeric ${data[prefixWcsKey(PRICE_NUMERIC)]} != preformatted ${data[prefixWcsKey(PRICE_PREFORMATTED)]} (${data[prefixWcsKey(PRICE_MISMATCH_MODES)]})`,
         );
     });
 };
@@ -931,6 +981,54 @@ const collectOsiData = async () => {
             console.error(`Error processing batch: ${error.message}`);
         }
     }
+};
+
+// Fetches each referenced fragment once per locale and compares every offer in
+// its `wcs.prod` section: the resolved offers the fragment pipeline prefetched
+// (offer mappings and promo codes applied) and the browser renders from.
+const fetchMasOffers = async (masKey) => {
+    const [fragmentId, locale] = masKey.split('|');
+    const localeSettings = masLocaleSettings(locale || undefined);
+    try {
+        const response = await fetchDocument(masUrl(fragmentId, localeSettings), MAS_FETCH_TIMEOUT);
+        if (!response.ok) {
+            console.log(`no fragment ${fragmentId} (${localeSettings.locale}): ${response.status}`);
+            return [masKey, []];
+        }
+        const { wcs } = await response.json();
+        const offers = Object.entries(wcs?.prod ?? {})
+            .filter(([, resolvedOffers]) => resolvedOffers?.[0])
+            .map(([masCacheKey, [offer]]) => ({
+                masCacheKey,
+                osi: offer.offerSelectorIds?.[0],
+                data: offerData(offer, localeSettings.country),
+            }));
+        return [masKey, offers];
+    } catch (error) {
+        console.log(`error fetching fragment ${fragmentId} (${localeSettings.locale}): ${error.message}`);
+        return [masKey, []];
+    }
+};
+
+const collectMasData = async () => {
+    console.log(`collected ${masUsages.length} fragment usages`);
+    const masKeys = [...new Set(masUsages.map(({ masKey }) => masKey))];
+    const masOffers = {};
+    for (let i = 0; i < masKeys.length; i += defaultBufferSize) {
+        console.log(`${masKeys.length - i} fragments remaining...`);
+        const settled = await Promise.all(masKeys.slice(i, i + defaultBufferSize).map(fetchMasOffers));
+        Object.assign(masOffers, Object.fromEntries(settled));
+    }
+    keys.add('osi');
+    keys.add('fragmentId');
+    keys.add('masCacheKey');
+    masUsages.forEach(({ masKey, ...usage }) => {
+        masOffers[masKey].forEach(({ masCacheKey, osi, data }) => {
+            const wcsKey = `mas|${masKey}|${masCacheKey}`;
+            mapWcs[wcsKey] ??= { osi, locale: usage.localeRewrite, fragmentId: usage.fragmentId, ...data };
+            ostUsages.push({ ...usage, osi, masCacheKey, wcsKey });
+        });
+    });
 };
 
 const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
@@ -1042,6 +1140,7 @@ async function main() {
                 break;
             case AUDIT_TARGET.ost:
                 await collectOsiData();
+                await collectMasData();
                 writeOstUsagesToFile();
                 break;
             default:

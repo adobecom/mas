@@ -200,7 +200,17 @@ export async function reportThrottled(domainKey, url, retryAfterHeader, status =
     const existingLocal = localPauseUntil.get(domainKey) ?? 0;
     localPauseUntil.set(domainKey, Math.max(existingLocal, pauseUntil));
 
-    const source = retryAfterHeader ? `Retry-After=${retryAfterHeader}` : 'no Retry-After header, using default';
+    if (!retryAfterHeader) {
+        console.warn(
+            `[NALA] ${status} response from "${domainKey}" (${url}) had NO Retry-After header — a well-behaved ` +
+                `429/503/529 SHOULD include one (seconds, per RFC 9110 §10.2.3). Falling back to the default ` +
+                `pause (${Math.round(DEFAULT_429_PAUSE_MS / 1000)}s, override via NALA_429_DEFAULT_PAUSE_MS). ` +
+                `Consider flagging this to the backend/CDN team so pause durations can be precise instead of guessed.\n`,
+        );
+    }
+    const source = retryAfterHeader
+        ? `Retry-After=${retryAfterHeader}${/^\d+$/.test(String(retryAfterHeader).trim()) ? 's' : ' (HTTP-date)'}`
+        : 'no Retry-After header, using default';
     console.warn(
         `[NALA] ${status} response from "${domainKey}" (${url}). Pausing this worker's calls to "${domainKey}" for ` +
             `~${Math.round(delayMs / 1000)}s (${source}).\n`,
@@ -305,9 +315,15 @@ export async function installNetworkGuard(context) {
 /**
  * Watch a page's responses for throttle-like statuses (429/503/529 by default, see
  * NALA_THROTTLE_STATUS_CODES) on ANY host: always logs full diagnostic detail, and triggers
- * reportThrottled() to pause + broadcast. Call this explicitly for pages that exist before
- * installNetworkGuard(context) runs (context.on('page') only covers pages created after that
- * call).
+ * reportThrottled() to pause + broadcast. Also watches 'requestfailed' for connection-level
+ * blocks (TCP reset, aborted connection, etc.) that never produce an HTTP response at all — a
+ * WAF/CDN under load may drop the connection instead of returning a proper 429/503/529, in which
+ * case 'response' never fires and only 'requestfailed' does. These are logged (with the
+ * network-level error text) but NOT treated as a throttle signal on their own (no Retry-After to
+ * honor, and plenty of legitimate causes — e.g. a test navigating away mid-request — produce the
+ * same event), so they don't trigger reportThrottled()/pausing.
+ * Call this explicitly for pages that exist before installNetworkGuard(context) runs
+ * (context.on('page') only covers pages created after that call).
  * @param {import('@playwright/test').Page} page
  */
 export function attachResponseWatcher(page) {
@@ -320,6 +336,33 @@ export function attachResponseWatcher(page) {
         reportThrottled(domainKey, response.url(), retryAfter, status).catch((error) => {
             console.warn(`[NALA] Error while handling ${status} for "${domainKey}": ${error.message}\n`);
         });
+    });
+
+    page.on('requestfailed', (request) => {
+        const domainKey = domainKeyFor(request.url());
+        const failure = request.failure();
+        const errorText = failure ? failure.errorText : '<unknown>';
+
+        // 'requestfailed' fires very often for benign reasons (e.g. a navigation cancels an
+        // in-flight request with net::ERR_ABORTED) — only surface this for the two budgeted
+        // systems, or for errors that actually look like a connection-level block/reset (as
+        // opposed to a routine cancel), to avoid drowning the throttle signal in noise.
+        const looksLikeConnectionBlock = /ERR_CONNECTION|ERR_HTTP2|ERR_EMPTY_RESPONSE|ERR_TIMED_OUT|ERR_NETWORK_CHANGED|ERR_FAILED/.test(
+            errorText,
+        );
+        if (domainKey !== 'eds' && domainKey !== 'odin' && !looksLikeConnectionBlock) return;
+
+        const workerId = process.env.TEST_WORKER_INDEX ?? process.env.TEST_PARALLEL_INDEX ?? '?';
+        console.warn(
+            `[NALA] REQUEST FAILED (no HTTP response — possible connection-level block, e.g. a WAF/CDN ` +
+                `resetting the connection instead of returning 429/503/529 — this is diagnostic-only, ` +
+                `no Retry-After is available so no pause is triggered from this alone)\n` +
+                `  time:        ${new Date().toISOString()}\n` +
+                `  worker:      ${workerId}\n` +
+                `  domain key:  ${domainKey}\n` +
+                `  method/url:  ${request.method()} ${request.url()}\n` +
+                `  error:       ${errorText}\n`,
+        );
     });
 }
 

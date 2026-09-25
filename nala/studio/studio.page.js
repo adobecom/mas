@@ -2,6 +2,7 @@ import { expect } from '@playwright/test';
 import { getTitle } from '../utils/fragment-tracker.js';
 import OSTPage from './ost.page';
 import EditorPage from './editor.page';
+import { isOdinHost } from '../libs/network-guard.js';
 
 export default class StudioPage {
     constructor(page) {
@@ -381,6 +382,17 @@ export default class StudioPage {
         const consoleListener = this.#setupConsoleListener(consoleErrors);
         this.page.on('console', consoleListener);
 
+        // Progress/success toast can be slow to appear under heavy concurrent ODIN write load —
+        // ODIN's AEM "author" instance is a single write-path bottleneck (unlike EDS's CDN-backed
+        // read path), so with 3 studio shards + docs running simultaneously (~11-12 workers all
+        // capable of saving concurrently, vs. ~3-4 when run unsharded on one machine), save
+        // latency can legitimately exceed a short fixed timeout even when nothing is actually
+        // broken. Configurable via NALA_SAVE_TOAST_TIMEOUT_MS (default bumped from a prior 10s).
+        const saveToastTimeoutMs = (() => {
+            const v = Number.parseInt(process.env.NALA_SAVE_TOAST_TIMEOUT_MS ?? '', 10);
+            return Number.isFinite(v) && v > 0 ? v : 20000;
+        })();
+
         try {
             await this.#retryOperation(async (attempt) => {
                 await this.saveCardButton.scrollIntoViewIfNeeded();
@@ -397,21 +409,51 @@ export default class StudioPage {
                     throw new Error('[BUTTON_DISABLED] Save button is not enabled');
                 }
 
-                await this.saveCardButton.click({ force: true });
+                // Track ODIN (AEM author) network activity around the click so a timed-out toast
+                // wait can distinguish "click didn't register at all" from "ODIN responded, just
+                // too slowly for the toast to render in time" — the two look identical from the
+                // UI alone but need very different follow-up (retry vs. investigate ODIN load).
+                const odinActivity = [];
+                const clickedAt = Date.now();
+                const odinListener = (response) => {
+                    if (!isOdinHost(response.url())) return;
+                    odinActivity.push({
+                        method: response.request().method(),
+                        url: response.url(),
+                        status: response.status(),
+                        elapsedMs: Date.now() - clickedAt,
+                    });
+                };
+                this.page.on('response', odinListener);
 
-                // Wait for progress toast or success toast (save may complete before progress is visible)
-                await Promise.race([
-                    this.toastProgress.waitFor({ state: 'visible', timeout: 10000 }),
-                    this.toastPositive.waitFor({ state: 'visible', timeout: 10000 }),
-                ]).catch(() => {
-                    throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
-                });
+                try {
+                    await this.saveCardButton.click({ force: true });
 
-                // Wait for any toast (excluding progress toast)
+                    // Wait for progress toast or success toast (save may complete before progress is visible)
+                    await Promise.race([
+                        this.toastProgress.waitFor({ state: 'visible', timeout: saveToastTimeoutMs }),
+                        this.toastPositive.waitFor({ state: 'visible', timeout: saveToastTimeoutMs }),
+                    ]).catch(() => {
+                        const diagnostic = odinActivity.length
+                            ? `ODIN activity observed during the wait:\n${odinActivity
+                                  .map((a) => `  +${a.elapsedMs}ms  ${a.method} ${a.status}  ${a.url}`)
+                                  .join('\n')}`
+                            : 'No ODIN (AEM author) response observed at all during the wait — the click ' +
+                              'itself likely did not register, rather than ODIN simply being slow.';
+                        throw new Error(
+                            `[CLICK_FAILED] Save button click did not trigger progress circle within ${saveToastTimeoutMs}ms.\n${diagnostic}`,
+                        );
+                    });
+                } finally {
+                    this.page.removeListener('response', odinListener);
+                }
+
+                // Wait for any toast (excluding progress toast) — same load-sensitive save-path
+                // latency rationale as the progress-toast wait above, so use the same timeout.
                 await this.page
                     .waitForSelector('mas-toast >> sp-toast:not([variant="info"])', {
                         state: 'visible',
-                        timeout: 15000,
+                        timeout: saveToastTimeoutMs,
                     })
                     .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
 
@@ -428,7 +470,7 @@ export default class StudioPage {
                 }
 
                 // Wait for success toast
-                await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
+                await this.toastPositive.waitFor({ timeout: saveToastTimeoutMs }).catch(() => {
                     throw new Error('[NO_RESPONSE] Save operation failed - no success toast shown');
                 });
             });

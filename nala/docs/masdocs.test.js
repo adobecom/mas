@@ -1,14 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { features } from './masdocs.spec.js';
 import { constructTestUrl } from '../utils/commerce.js';
+import { installNetworkGuard, attachResponseWatcher } from '../libs/network-guard.js';
 
 test.describe('MAS Docs feature test suite', () => {
-    test.beforeEach(async ({ page, browserName }) => {
+    test.beforeEach(async ({ page, context, browserName }) => {
         test.skip(browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
         if (browserName === 'chromium') {
             await page.setExtraHTTPHeaders({ 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' });
         }
+        await installNetworkGuard(context);
+        attachResponseWatcher(page); // page already exists — context.on('page') won't cover it
     });
 
     // *** Checkout Link Page: ***

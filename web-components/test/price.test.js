@@ -361,6 +361,42 @@ describe('class "InlinePrice"', () => {
             const srOnlyLabels = p.querySelectorAll('sr-only');
             expect(srOnlyLabels.length).to.equal(2);
         });
+
+        it('alternativePrice survives a legal-template sibling and a forced re-render (MWPW-198041)', async () => {
+            await initMasCommerceService();
+            const p = document.createElement('p');
+            document.body.append(p);
+            const inlinePrice = mockInlinePrice('roundBStrike', 'puf');
+            const strikeWrapper = inlinePrice.parentElement;
+            Object.assign(inlinePrice.dataset, { template: 'strikethrough' });
+            const inlinePrice2 = mockInlinePrice('roundBMain', 'abm');
+            const mainWrapper = inlinePrice2.parentElement;
+            p.append(inlinePrice, inlinePrice2);
+            strikeWrapper.remove();
+            mainWrapper.remove();
+            await inlinePrice.onceSettled();
+            await inlinePrice2.onceSettled();
+
+            const legal = inlinePrice2.cloneNode(true);
+            legal.setAttribute('data-template', 'legal');
+            inlinePrice2.parentNode.insertBefore(
+                legal,
+                inlinePrice2.nextSibling,
+            );
+            await legal.onceSettled();
+
+            inlinePrice2.requestUpdate(true);
+            await inlinePrice2.onceSettled();
+
+            expect(
+                inlinePrice2.querySelectorAll('.alt-aria-label').length,
+            ).to.equal(1);
+            const priceIntegerEl = inlinePrice2.querySelector('.price-integer');
+            expect(priceIntegerEl).to.exist;
+            expect(priceIntegerEl.textContent).to.equal('54');
+
+            p.remove();
+        });
     });
 
     describe('method "requestUpdate"', () => {

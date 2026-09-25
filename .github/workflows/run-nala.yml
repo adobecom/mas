@@ -7,12 +7,21 @@ on:
         types: [opened, synchronize, labeled, unlabeled]
 
 # PER-PR cancel-on-repush: scoped to github.ref, so a re-push to THIS PR cancels only this PR's
-# own previous run. Different PRs are in different groups here, so they never cancel each other —
-# instead, each of the two jobs below (run-nala-studio-tests, run-nala-docs-tests) applies its OWN
-# repo-wide job-level concurrency group (see their `concurrency:` blocks), which queues (rather
-# than cancels) a different PR's job behind whichever job currently holds that lock. Job-level and
-# workflow-level concurrency groups are independent and both apply simultaneously — this is what
-# lets us have both behaviors (cancel-on-repush AND cross-PR queuing) in one workflow file.
+# own previous run. Different PRs are in different groups here, so they never cancel each other.
+#
+# Cross-PR queuing (a different PR's Nala run doesn't run traffic alongside this one) is
+# deliberately NOT enforced by any explicit lock/gate — it falls out for free from each shard
+# being pinned to one exclusive self-hosted runner label bound to a single physical VM (see
+# `runs-on:` below): GitHub can only ever run one job at a time per runner label, so PR B's
+# `or`-shard job automatically queues ("waiting for a runner") behind PR A's `or`-shard job, and
+# starts as soon as THAT specific shard frees up — independent of whether PR A's other
+# shards/docs are still running. This means shard queuing is per-shard, not "wait for the other
+# PR's ENTIRE run" — a stricter whole-run lock was tried (via both a job-level `concurrency:`
+# group, which incorrectly also serialized SIBLING jobs of the same run against each other, and
+# a custom polling step) and rejected as unnecessary complexity: since each shard has a fixed,
+# capped worker count (see run-nala-studio-tests below), the only residual risk is a brief,
+# partial worker-count overlap at shard-boundary transitions between two different PRs — already
+# tolerated by the reactive local-pause/429-retry handling in nala/libs/network-guard.js.
 #
 # Jobs are defined directly here (not in a separate reusable `workflow_call` file) so that
 # GitHub's native "re-run failed jobs" / "re-run this job" granularity works per shard. Calling a
@@ -54,17 +63,6 @@ jobs:
             contains(github.event.pull_request.labels.*.name, 'run nala')
         runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
         timeout-minutes: 30
-        # Serialize this job repo-wide (NOT scoped by github.ref/PR) so at most one PR's
-        # studio-shard/docs traffic is ever active — this is what makes the static EDS 200 rps /
-        # ODIN 20 rps budget (divided by NALA_TOTAL_WORKERS below) always valid, regardless of
-        # whether a different PR's run could otherwise start concurrently. This queues (never
-        # cancels) a different PR's job behind whichever job currently holds the lock — distinct
-        # from the workflow-level concurrency at the top of this file, which only cancels THIS
-        # PR's own stale run on a real re-push (see that block's comment for why). Job-level and
-        # workflow-level concurrency groups are independent and both apply simultaneously.
-        concurrency:
-            group: nala-tests
-            cancel-in-progress: false
         # Each shard is pinned to its runner via matrix.runner (unique label per machine). All
         # shards + docs share ONE User-Agent (playwright.config.js) and ONE 200 rps EDS / 20 rps
         # ODIN budget — see NALA_TOTAL_WORKERS below. Working hypothesis: EDS/ODIN enforce these
@@ -77,10 +75,9 @@ jobs:
         # would become directly relevant (they'd need to share a sub-pool together regardless of
         # tenant), while sj/or (if on distinct IPs) could each get independent pools — see the
         # per-IP-vs-tenant discussion; this has not been confirmed either way.
-        # This job's own `concurrency:` block above (repo-wide, not per-PR) is what keeps this
-        # fixed 12-worker pool valid regardless of which hypothesis is true: it guarantees only one
-        # PR's studio/docs jobs are ever active at once, so no other PR's shards/docs can be
-        # sending traffic concurrently.
+        # This fixed 12-worker pool is per-PR, not a hard repo-wide guarantee — see the top-level
+        # comment above on why cross-PR overlap is deliberately left to the natural per-shard
+        # runner queuing instead of an explicit lock, and why the residual risk is acceptable.
         #
         # The 'saves' shard is deliberately SEPARATE from the directory-based split above, and
         # pinned to nala-studio-sj with a deliberately LOW worker count (2). This is not about
@@ -272,17 +269,11 @@ jobs:
             contains(github.event.pull_request.labels.*.name, 'run nala')
         runs-on: [self-hosted, Linux, X64, nala-docs]
         timeout-minutes: 20 # Prevent hanging jobs
-        # Serialize this job repo-wide (NOT scoped by github.ref/PR) so at most one PR's
-        # studio-shard/docs traffic is ever active — this is what makes the static EDS 200 rps /
-        # ODIN 20 rps budget (divided by NALA_TOTAL_WORKERS below) always valid, regardless of
-        # whether a different PR's run could otherwise start concurrently. This queues (never
-        # cancels) a different PR's job behind whichever job currently holds the lock — distinct
-        # from the workflow-level concurrency at the top of this file, which only cancels THIS
-        # PR's own stale run on a real re-push (see that block's comment for why). Job-level and
-        # workflow-level concurrency groups are independent and both apply simultaneously.
-        concurrency:
-            group: nala-tests
-            cancel-in-progress: false
+        # Cross-PR overlap for this job is left to natural per-runner queuing (see top-level
+        # comment above) rather than an explicit lock/gate — a job-level `concurrency:` group was
+        # tried here first and was wrong: it serialized this job against its OWN siblings (the 3
+        # studio shards) too, since concurrency matches by group-name equality with no "same run"
+        # exception.
         strategy:
             matrix:
                 node-version: [20.x]
@@ -375,8 +366,8 @@ jobs:
                   # public IP, but that's not why it shares a budget with it — see the tenant-wide
                   # rationale in run-nala-studio-tests's matrix comment above. This job tests the
                   # exact same PR preview hostname as all 3 studio shards, so it shares ONE pool
-                  # with all of them, not just with the no shard. This job's own `concurrency:`
-                  # block above keeps that pool valid across concurrent PRs.
+                  # with all of them, not just with the no shard. Cross-PR overlap is left to
+                  # natural per-runner queuing — see the top-level comment at the top of this file.
                   NALA_PLAYWRIGHT_WORKERS: 1
                   # Single shared tenant-wide budget pool: sj-saves(4) + or(4) + no(3) + docs(1).
                   # Keep in sync with the studio job's NALA_TOTAL_WORKERS.

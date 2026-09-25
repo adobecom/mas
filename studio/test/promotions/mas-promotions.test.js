@@ -328,26 +328,6 @@ describe('MasPromotions', () => {
             expect(el.ensureRepository()).to.equal(repo);
         });
 
-        it('derives promotionsData filtered by status and environment', async () => {
-            const active = makePromotion({
-                id: 'promo-1',
-                title: 'Active',
-                status: 'PUBLISHED',
-                surfaces: ['acom'],
-                startDate: '2020-01-01T00:00:00.000Z',
-                endDate: '2099-12-31T00:00:00.000Z',
-            });
-            const draftTest = makePromotion({ id: 'promo-2', title: 'Draft test', status: 'DRAFT', surfaces: ['sandbox'] });
-            const { el } = await mountWithRepo(active);
-            Store.promotions.list.data.set([new FragmentStore(active), new FragmentStore(draftTest)]);
-            el.filter = 'active';
-            el.environmentFilter = ['production'];
-            await el.updateComplete;
-
-            expect(el.promotionsData).to.have.lengthOf(1);
-            expect(el.promotionsData[0].value.title).to.equal('Active');
-        });
-
         it('closes the duplicate dialog when the dialog is cancelled', async () => {
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const { el } = await mountWithRepo(promotion);

@@ -136,17 +136,6 @@ class MasPromotions extends LitElement {
         Store.promotions.list.loading.set(value);
     }
 
-    get promotionsData() {
-        let data = Store.promotions.list.data.get() || [];
-        if (this.filter !== 'all') {
-            data = data.filter((promotion) => promotion.value?.promotionListFilterKey === this.filter);
-        }
-        if (this.environmentFilter.length) {
-            data = data.filter((promotion) => this.environmentFilter.includes(promotion.value?.promotionEnvironment));
-        }
-        return data;
-    }
-
     async loadPromotions() {
         await this.repository.loadPromotions();
     }
@@ -260,7 +249,6 @@ class MasPromotions extends LitElement {
 
     willUpdate() {
         this.canEdit = canEditPromotions();
-        this.#handleFilterPromotions(this.filter);
     }
 
     render() {

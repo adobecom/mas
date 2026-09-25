@@ -279,4 +279,66 @@ export const promotionsItemsTableStyles = css`
     sp-dialog-wrapper {
         z-index: 11;
     }
+
+    .grouped-tables {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .group-section {
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .group-section + .group-section {
+        margin-block-start: var(--spectrum-spacing-300);
+    }
+
+    .group-header-row {
+        display: flex;
+        align-items: center;
+        gap: var(--spectrum-spacing-100);
+        width: 100%;
+        box-sizing: border-box;
+        padding: var(--spectrum-spacing-200) var(--spectrum-spacing-300);
+        background: none;
+        border: 0;
+        font: inherit;
+        font-weight: 700;
+        color: var(--spectrum-gray-900);
+        cursor: pointer;
+        text-align: start;
+    }
+
+    .group-section:has(.group-header-row[aria-expanded='true']) .group-header-row {
+        border-bottom: 1px solid var(--spectrum-gray-200);
+    }
+
+    .group-section:has(.group-header-row[aria-expanded='true']) mas-select-items-table {
+        display: block;
+        box-sizing: border-box;
+        width: calc(100% - 40px);
+        margin: 20px;
+        overflow-x: auto;
+    }
+
+    .group-header-row sp-icon-chevron-down {
+        transition: transform 0.2s;
+    }
+
+    .group-header-row sp-icon-chevron-down.expanded {
+        transform: rotate(180deg);
+    }
+
+    .grouping-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spectrum-spacing-500);
+    }
 `;

@@ -49,6 +49,10 @@ import {
     buildDuplicatePromotionToastArgs,
     getPromotionTitles,
     buildPromotionDuplicatePayload,
+    GROUP_BY,
+    groupPromotionFragments,
+    getPromotionFragmentTemplateLabel,
+    getPromotionFragmentOfferLabel,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 
@@ -1376,6 +1380,68 @@ describe('promotion-editor-utils', () => {
             ]);
             const payload = buildPromotionDuplicatePayload(source, 'Original copy');
             expect(payload.fields.find((f) => f.name === 'promoCode').values).to.deep.equal(['CODE']);
+        });
+    });
+
+    describe('promotion fragment grouping', () => {
+        const cardWithVariant = (variant) => ({ fields: variant ? [{ name: 'variant', values: [variant] }] : [] });
+        const cardWithOfferTag = (title) => ({ tags: title ? [{ id: 'mas:product_code/photoshop', title }] : [] });
+
+        it('resolves a known variant to its registry label', () => {
+            expect(getPromotionFragmentTemplateLabel(cardWithVariant('catalog'))).to.equal('Catalog');
+        });
+
+        it('falls back to the raw variant value for an unknown template', () => {
+            expect(getPromotionFragmentTemplateLabel(cardWithVariant('made-up-variant'))).to.equal('made-up-variant');
+        });
+
+        it('returns Other for a fragment with no variant', () => {
+            expect(getPromotionFragmentTemplateLabel(cardWithVariant())).to.equal('Other');
+        });
+
+        it('resolves the offer label from the product-code tag title', () => {
+            expect(getPromotionFragmentOfferLabel(cardWithOfferTag('Photoshop'))).to.equal('Photoshop');
+        });
+
+        it('falls back to the offer id when there is no product-code tag', () => {
+            expect(getPromotionFragmentOfferLabel({ tags: [], offerData: { offerId: 'osi-1' } })).to.equal('osi-1');
+        });
+
+        it('returns a single implicit group for GROUP_BY.NONE', () => {
+            const items = [cardWithVariant('catalog'), cardWithVariant('plans')];
+            const groups = groupPromotionFragments(items, GROUP_BY.NONE);
+            expect(groups).to.have.length(1);
+            expect(groups[0].items).to.equal(items);
+        });
+
+        it('buckets fragments by template label', () => {
+            const groups = groupPromotionFragments(
+                [cardWithVariant('catalog'), cardWithVariant('plans'), cardWithVariant('catalog')],
+                GROUP_BY.TEMPLATE,
+            );
+            expect(groups.map((group) => group.label)).to.deep.equal(['Catalog', 'Plans']);
+            expect(groups[0].items).to.have.length(2);
+            expect(groups[1].items).to.have.length(1);
+        });
+
+        it('buckets fragments by offer product-code title', () => {
+            const groups = groupPromotionFragments(
+                [cardWithOfferTag('Photoshop'), cardWithOfferTag('Illustrator'), cardWithOfferTag('Photoshop')],
+                GROUP_BY.OFFER,
+            );
+            expect(groups.map((group) => group.label)).to.deep.equal(['Photoshop', 'Illustrator']);
+            expect(groups[0].items).to.have.length(2);
+        });
+
+        it('buckets fragments with unknown variant into Other', () => {
+            const groups = groupPromotionFragments([cardWithVariant()], GROUP_BY.TEMPLATE);
+            expect(groups[0].label).to.equal('Other');
+        });
+
+        it('preserves first-seen order and counts on a partial list', () => {
+            const groups = groupPromotionFragments([cardWithVariant('plans'), cardWithVariant('catalog')], GROUP_BY.TEMPLATE);
+            expect(groups.map((group) => group.label)).to.deep.equal(['Plans', 'Catalog']);
+            expect(groups.reduce((sum, group) => sum + group.items.length, 0)).to.equal(2);
         });
     });
 });

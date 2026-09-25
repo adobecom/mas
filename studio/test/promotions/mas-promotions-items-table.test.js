@@ -210,6 +210,28 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.viewOnlyFragments.length).to.equal(60);
             el.remove();
         });
+
+        it('eagerly loads every remaining window for cards type without a load-more event', async () => {
+            const paths = Array.from({ length: 60 }, (_, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+            Store.promotions.selectedCards.set(paths);
+            const getFragmentByPath = sandbox
+                .stub()
+                .callsFake((path) =>
+                    Promise.resolve({ path, id: path, title: path, model: { path: CARD_MODEL_PATH }, fields: [], tags: [] }),
+                );
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await waitUntil(
+                () => el.viewOnlyFragments.length === 60,
+                'all windows should load without a manual load-more event',
+                { timeout: 2000 },
+            );
+            expect(getFragmentByPath.callCount).to.equal(60);
+            el.remove();
+        });
     });
 
     it('typeUppercased returns capitalized type string', async () => {
@@ -2121,6 +2143,107 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promoB));
             await el.updateComplete;
             await waitUntil(() => search.callCount > callsBeforeSwitch, 'search should re-probe promo variations for promo-b');
+        });
+    });
+
+    describe('group-by sections', () => {
+        const cardItem = (path, variant, productTitle) => ({
+            path,
+            id: `${path}-id`,
+            title: path,
+            studioPath: path,
+            status: 'DRAFT',
+            model: { path: CARD_MODEL_PATH },
+            fields: variant ? [{ name: 'variant', values: [variant] }] : [],
+            tags: productTitle ? [{ id: 'mas:product_code/photoshop', title: productTitle }] : [],
+        });
+
+        it('renders one flat table with no group headers by default', async () => {
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [cardItem('/a', 'catalog'), cardItem('/b', 'plans')];
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('.group-header-row').length).to.equal(0);
+            expect(el.shadowRoot.querySelectorAll('mas-select-items-table').length).to.equal(1);
+        });
+
+        it('renders one section header per template when grouping by template', async () => {
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [cardItem('/a', 'catalog'), cardItem('/b', 'catalog'), cardItem('/c', 'plans')];
+            el.groupBy = 'template';
+            await el.updateComplete;
+            const headers = el.shadowRoot.querySelectorAll('.group-header-row');
+            expect(headers.length).to.equal(2);
+            expect(headers[0].textContent).to.include('Catalog');
+            expect(headers[1].textContent).to.include('Plans');
+        });
+
+        it('renders sections collapsed by default and expands one when its chevron is clicked', async () => {
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [cardItem('/a', 'catalog')];
+            el.groupBy = 'template';
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('mas-select-items-table').length).to.equal(0);
+            el.shadowRoot.querySelector('.group-header-row').click();
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('mas-select-items-table').length).to.equal(1);
+        });
+
+        it('groups by offer product-code title', async () => {
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [cardItem('/a', 'catalog', 'Photoshop'), cardItem('/b', 'plans', 'Photoshop')];
+            el.groupBy = 'offer';
+            await el.updateComplete;
+            const headers = el.shadowRoot.querySelectorAll('.group-header-row');
+            expect(headers.length).to.equal(1);
+            expect(headers[0].textContent).to.include('Photoshop');
+        });
+
+        it('collapses an expanded group section on a second chevron click', async () => {
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [cardItem('/a', 'catalog')];
+            el.groupBy = 'template';
+            await el.updateComplete;
+            const header = el.shadowRoot.querySelector('.group-header-row');
+            header.click();
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('mas-select-items-table').length).to.equal(1);
+
+            header.click();
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('mas-select-items-table').length).to.equal(0);
+        });
+
+        it('shows a loading indicator while more windows are still loading with grouping enabled', async () => {
+            const paths = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+            Store.promotions.selectedCards.set(paths);
+            const getFragmentByPath = sandbox.stub().callsFake(
+                (path) =>
+                    new Promise((resolve) =>
+                        setTimeout(
+                            () =>
+                                resolve({
+                                    path,
+                                    id: path,
+                                    title: path,
+                                    model: { path: CARD_MODEL_PATH },
+                                    fields: [],
+                                    tags: [],
+                                }),
+                            20,
+                        ),
+                    ),
+            );
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            el.groupBy = 'template';
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            await waitUntil(
+                () => el.shadowRoot.querySelector('.grouping-loading') !== null,
+                'shows a loading indicator while grouping is active and more windows remain',
+            );
+            await waitUntil(() => el.viewOnlyFragments.length === 30, 'all windows should finish loading', { timeout: 2000 });
+            el.remove();
         });
     });
 });

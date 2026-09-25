@@ -201,7 +201,9 @@ function createCardItem(card) {
     const iconBg = variantColor(card);
     const iconSvg = window.MASIcons ? window.MASIcons.get(variantIcon(card), 'M') : '';
 
-    const isBareElement = card.elementType === 'price' || card.elementType === 'cta';
+    // Only an element traced back to a real fragment can be opened in Studio; a
+    // standalone price has just an OSI, and every non-card id here is synthetic.
+    const canEdit = !!card.sourceFragmentId;
     const cardName = card.cardName || card.fragmentId;
     const hint = [card.variant, card.osi, card.size, promotionHint(card.promotion)].filter(Boolean).join(' · ');
 
@@ -212,7 +214,7 @@ function createCardItem(card) {
       <div class="card-row-hint">${escapeHtml(hint)}</div>
     </div>
     ${
-        isBareElement
+        !canEdit
             ? ''
             : `
     <button class="card-row-edit" aria-label="Edit in Studio" title="Edit in Studio">
@@ -222,8 +224,8 @@ function createCardItem(card) {
   `;
 
     item.addEventListener('click', (e) => {
-        if (!isBareElement && e.target.closest('.card-row-edit')) {
-            openInStudio(card.fragmentId, card.variant, card.locale);
+        if (canEdit && e.target.closest('.card-row-edit')) {
+            openInStudio(card.sourceFragmentId, card.variant, card.locale);
             return;
         }
         highlightCardInPage(card.fragmentId);

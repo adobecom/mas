@@ -39,7 +39,7 @@ test.describe('Product gallery feature test suite', () => {
             await expect(card).toBeVisible();
             await expect(card).toHaveAttribute('variant', data.variant);
             await expect(card.locator('h3')).toContainText(data.title);
-            await expect(card.locator('div.badge')).toContainText(data.badge);
+            await expect(card.locator('merch-badge')).toContainText(data.badge);
             await expect(card.locator('div[slot="body-xs"]')).toContainText(data.description);
             await expect(card.locator('div[slot="footer"] :is(a, button)')).toHaveText(data.cta);
         });

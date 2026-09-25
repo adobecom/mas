@@ -66,48 +66,116 @@ jobs:
         # is what keeps this fixed 12-worker pool valid regardless of which hypothesis is true: it
         # guarantees only one PR's full Nala run is ever active, so no other PR's shards/docs can
         # be sending traffic concurrently.
+        #
+        # The 'saves' shard is deliberately SEPARATE from the directory-based split above, and
+        # pinned to nala-studio-sj with a deliberately LOW worker count (2). This is not about
+        # EDS/ODIN's RPS budget (still divided the same way via NALA_TOTAL_WORKERS below) — it's
+        # about ODIN's AEM *author* instance being a single, non-horizontally-scaled write-path
+        # bottleneck (unlike EDS's CDN-backed read path). Every *_save.test.js suite does a
+        # save-then-publish round trip against that one author instance; scattering them across
+        # every shard/worker (as before) meant up to ~8 concurrent ODIN writes at once, which was
+        # enough to blow past studio.page.js's saveCard() toast-wait timeout under load even
+        # without ever getting a 429 (see NALA_SAVE_TOAST_TIMEOUT_MS in studio.page.js). Grouping
+        # every save suite onto one shard with only 2 workers caps peak concurrent ODIN writes at
+        # 2, while the other two (now save-free) shards can run their lighter CSS/edit-only
+        # traffic at higher worker counts without contributing to that specific bottleneck.
         strategy:
             fail-fast: false
             matrix:
                 include:
-                    - shard: acom-ahome
+                    - shard: saves
                       node-version: 20.x
-                      dirs: nala/studio/acom nala/studio/ahome
-                      runner: nala-studio-sj # San Jose
+                      runner: nala-studio-sj # San Jose — dedicated to *_save.test.js, see above
+                      # sj has 4 CPUs / 16GB RAM. Save files alone (8 files) can't fill 4 workers
+                      # densely enough to matter, so ost/sandbox (plain CSS/edit tests, no
+                      # save/publish calls) are folded into this same shard/invocation to use the
+                      # rest of the machine — see "Resolve shard directories" below. Worst case,
+                      # Playwright schedules up to 4 save files concurrently (vs. the 2-worker cap
+                      # used previously); still far below the ~8 that caused the original
+                      # saveCard() timeout issue, and studio.page.js's toast wait is now
+                      # configurable/longer to absorb it either way.
                       workers: 4
-                    - shard: ccd-commerce
+                      extra_dirs: nala/studio/ost nala/studio/sandbox
+                    - shard: acom-ahome-ccd-commerce
                       node-version: 20.x
-                      dirs: nala/studio/ccd nala/studio/commerce
+                      dirs: nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce
                       runner: nala-studio-or # Oregon
+                      # Confirmed: every VM has 4 CPUs / 16GB RAM. Using all 4 (matches sj, which
+                      # runs 4 workers too) — no cores held back. If the "Report runner capacity"
+                      # step shows load/swap issues under this, drop to 3 on the affected VM only.
                       workers: 4
+                      # Save-suite files under these dirs are excluded (they run on the 'saves'
+                      # shard instead) — see "Resolve shard directories" below.
                     - shard: rest
                       node-version: 20.x
-                      runner: nala-studio-no # Noida
+                      runner: nala-studio-no # Noida — slower VM, deliberately given fewer files
+                      # (see above) AND kept at 3 workers (not bumped to 4 like or) — only or was
+                      # raised to use its full core count; no stays at cores-1 for headroom, per
+                      # explicit instruction. Total pool: sj-saves(4) + or(4) + no(3) + docs(1) = 12.
                       workers: 3
-                      # dirs intentionally omitted — auto-discovered at runtime
+                      # dirs intentionally omitted — auto-discovered at runtime. Save-suite files
+                      # (none live here today) would be excluded the same way, defensively. ost
+                      # and sandbox are claimed by the 'saves' shard's extra_dirs above, not here.
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
                   fetch-depth: 2
 
+            # Answers "how many workers can this VM actually handle?" — Playwright's own guidance
+            # is workers <= CPU cores (often cores-1, since headless Chromium is CPU-bound and the
+            # OS/runner agent need headroom), with enough free RAM to avoid swapping. This step
+            # prints that data straight into each shard's job log so it can be compared against
+            # the `workers:` value set in the matrix above for that specific runner. If a shard
+            # here shows nproc < workers, that shard is oversubscribed and should be lowered.
+            - name: Report runner capacity (CPU/RAM) for this VM
+              run: |
+                  echo "Runner: ${{ matrix.runner }} (shard: ${{ matrix.shard }}, configured workers: ${{ matrix.workers }})"
+                  echo "CPU cores (nproc): $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo unknown)"
+                  echo "Memory:"; free -h 2>/dev/null || vm_stat 2>/dev/null || echo "  (free/vm_stat unavailable)"
+                  echo "Load average:"; uptime
+
             - name: Resolve shard directories
               run: |
-                  if [ -n "${{ matrix.dirs }}" ]; then
-                    echo "SHARD_DIRS=${{ matrix.dirs }}" >> $GITHUB_ENV
+                  # Every shard excludes *_save.test.js files from its own selection — they
+                  # always run on the dedicated 'saves' shard (nala-studio-sj) instead, regardless
+                  # of which directory they physically live in. See the matrix comment above for
+                  # why (capping concurrent ODIN author writes, not an EDS/ODIN RPS concern).
+                  if [ "${{ matrix.shard }}" == "saves" ]; then
+                    DIRS=$(find nala/studio -name '*_save.test.js' | sort | xargs)
+                    for d in ${{ matrix.extra_dirs }}; do
+                      for f in $(find "$d" -name '*.test.js' | grep -v '_save\.test\.js' | sort); do
+                        DIRS="$DIRS $f"
+                      done
+                    done
+                    echo "SHARD_DIRS=$(echo $DIRS | xargs)" >> $GITHUB_ENV
+                  elif [ -n "${{ matrix.dirs }}" ]; then
+                    FILES=""
+                    for d in ${{ matrix.dirs }}; do
+                      for f in $(find "$d" -name '*.test.js' | grep -v '_save\.test\.js' | sort); do
+                        FILES="$FILES $f"
+                      done
+                    done
+                    echo "SHARD_DIRS=$(echo $FILES | xargs)" >> $GITHUB_ENV
                   else
-                    # Shard 3 catch-all: every studio dir/file not claimed by shards 1-2.
+                    # Shard catch-all: every studio dir/file not claimed by the other shards.
                     # New directories are automatically included here — no workflow change needed.
-                    CLAIMED="nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce"
+                    CLAIMED="nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce nala/studio/ost nala/studio/sandbox"
                     DIRS=""
                     for path in nala/studio/*/; do
                       dir="${path%/}"
                       echo "$CLAIMED" | grep -qw "$dir" || DIRS="$DIRS $dir"
                     done
-                    for f in nala/studio/*.test.js; do
-                      [ -f "$f" ] && DIRS="$DIRS $f"
+                    FILES=""
+                    for d in $DIRS; do
+                      for f in $(find "$d" -name '*.test.js' | grep -v '_save\.test\.js' | sort); do
+                        FILES="$FILES $f"
+                      done
                     done
-                    echo "SHARD_DIRS=$(echo $DIRS | xargs)" >> $GITHUB_ENV
+                    for f in nala/studio/*.test.js; do
+                      [ -f "$f" ] && case "$f" in *_save.test.js) ;; *) FILES="$FILES $f" ;; esac
+                    done
+                    echo "SHARD_DIRS=$(echo $FILES | xargs)" >> $GITHUB_ENV
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}
@@ -157,7 +225,7 @@ jobs:
                   FORCE_COLOR: 3 # Force color output
                   # Workers per shard declared in matrix (see above).
                   NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
-                  # Single shared tenant-wide budget pool: sj(4) + or(4) + no(3) + docs(1).
+                  # Single shared tenant-wide budget pool: sj-saves(4) + or(4) + no(3) + docs(1).
                   # Keep in sync with the `workers:` values above and the docs job below.
                   NALA_TOTAL_WORKERS: 12
                   # Label only (log/display), no longer used to vary the UA — one shared UA is
@@ -284,7 +352,7 @@ jobs:
                   # with all of them, not just with the no shard. The repo-wide `concurrency:`
                   # block at the top of this file keeps that pool valid across concurrent PRs.
                   NALA_PLAYWRIGHT_WORKERS: 1
-                  # Single shared tenant-wide budget pool: sj(4) + or(4) + no(3) + docs(1).
+                  # Single shared tenant-wide budget pool: sj-saves(4) + or(4) + no(3) + docs(1).
                   # Keep in sync with the studio job's NALA_TOTAL_WORKERS.
                   NALA_TOTAL_WORKERS: 12
                   # Label only (log/display), no longer used to vary the UA — one shared UA is

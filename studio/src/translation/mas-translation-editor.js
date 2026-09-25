@@ -10,11 +10,24 @@ import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
-import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
+import { normalizeKey, showToast, getCreateProjectErrorMessage, extractLocaleFromPath } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
+
+export const TRANSLATION_IMPORT_LOCALE_ERROR = 'Only en_US fragments can be added to a translation project.';
+
+/**
+ * Restricts the translation project's "Import via URL" picker to en_US source
+ * fragments, since the odin loc v2 backend rejects submissions containing
+ * non-en_US source fragments.
+ * @param {{ path?: string }} fragment
+ * @returns {true | string} true when the fragment's locale is en_US, otherwise a rejection message
+ */
+export function validateTranslationImportFragment(fragment) {
+    return extractLocaleFromPath(fragment?.path) === 'en_US' ? true : TRANSLATION_IMPORT_LOCALE_ERROR;
+}
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -582,6 +595,7 @@ class MasTranslationEditor extends LitElement {
                     .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
                     .hidePromoVariations=${true}
                     .restrictImportSurface=${Store.surface()}
+                    .validateImportFragment=${validateTranslationImportFragment}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;

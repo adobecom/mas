@@ -182,51 +182,6 @@ export const styles = [
             color: var(--spectrum-gray-900);
         }
 
-        .promotion-codes-by-country {
-            border: 1px solid var(--spectrum-gray-200);
-            border-radius: 8px;
-            padding: 16px;
-            background: var(--spectrum-white);
-            box-sizing: border-box;
-            min-width: 0;
-            height: 100%;
-        }
-
-        .promotion-codes-title {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 400;
-            margin-bottom: 12px;
-            color: var(--spectrum-gray-700);
-        }
-
-        .promo-codes-summary-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .promo-codes-summary-table th,
-        .promo-codes-summary-table td {
-            border: 1px solid var(--spectrum-gray-200);
-            padding: 8px 12px;
-            text-align: left;
-            vertical-align: top;
-        }
-
-        .promo-codes-summary-table th {
-            background: var(--spectrum-gray-75);
-            font-weight: 600;
-            color: var(--spectrum-gray-800);
-        }
-
-        .promo-codes-summary-table td:first-child {
-            font-family: var(--spectrum-code-font-family, monospace);
-            white-space: nowrap;
-        }
-
         .promotion-items-empty {
             display: flex;
             flex-direction: column;

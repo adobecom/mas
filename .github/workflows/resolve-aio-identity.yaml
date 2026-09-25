@@ -23,10 +23,8 @@ on:
                 value: ${{ jobs.resolve.outputs.secret_suffix }}
             vault_login:
                 description: >
-                    Path segment for merch-at-scale/aio-studio/<login>, lowercased, with a
-                    trailing [bot] stripped so App logins yield a legal path. This does NOT
-                    map to QA: that Vault path holds only odin_bucket, no env/aio, so each
-                    bot needs its own seeded path, like any developer.
+                    Path segment for merch-at-scale/aio-studio/<login>, minus any trailing
+                    [bot]. Never QA: that Vault path holds only odin_bucket, no env/aio.
                 value: ${{ jobs.resolve.outputs.vault_login }}
 
 jobs:
@@ -48,8 +46,7 @@ jobs:
                       *) secret_suffix="$LOGIN" ;;
                   esac
 
-                  # Strip a trailing [bot] so App logins yield a legal Vault path segment.
-                  vault_login=$(printf '%s' "$LOGIN" | tr '[:upper:]' '[:lower:]' | sed 's/\[bot\]$//')
+                  vault_login=$(printf '%s' "$LOGIN" | sed 's/\[bot\]$//')
 
                   echo "Resolved '$LOGIN' to secret suffix '$secret_suffix', vault login '$vault_login'"
                   echo "secret_suffix=$secret_suffix" >> "$GITHUB_OUTPUT"

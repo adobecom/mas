@@ -128,14 +128,19 @@ jobs:
     run-nala-studio-tests:
         name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
         needs: [nala-gate, nala-auth]
-        # `always()` + explicit nala-gate check (instead of the default "all needs succeeded")
+        # `!cancelled()` + explicit nala-gate check (instead of the default "all needs succeeded")
         # so a nala-auth FAILURE doesn't block every shard — nala-auth is a perf/load
         # optimization, not a hard requirement; each shard falls back to its own full login if the
         # shared auth state didn't download (see "Download shared auth state" step below and
         # SKIP_AUTH_SETUP's file-existence check in nala/libs/auth.setup.cjs). A nala-gate failure
         # (missing label) should still block, same as before.
+        # IMPORTANT: use `!cancelled()`, NOT `always()`, here. `always()` evaluates to true even
+        # when the workflow run has been cancelled, which defeats "Cancel workflow" — a
+        # not-yet-started job gated by `always()` still gets scheduled/run after cancellation is
+        # requested. `!cancelled()` still tolerates a nala-auth *failure* (only skips on an actual
+        # cancellation), so it preserves the fallback behavior while keeping cancel working.
         if: |
-            always() &&
+            !cancelled() &&
             needs.nala-gate.result == 'success' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))

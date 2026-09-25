@@ -504,11 +504,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.placeholdersButton).toBeVisible();
         });
 
-        await test.step('step-3: Validate commerce service uses brand-concierge checkout client id', async () => {
-            await expect(page.locator('mas-commerce-service')).toHaveAttribute('checkout-client-id', data.checkoutClientId);
-        });
-
-        await test.step('step-4: Validate ACOM locales are available on brand-concierge', async () => {
+        await test.step('step-3: Validate ACOM locales are available on brand-concierge', async () => {
             await expect(await studio.localePicker).toBeVisible();
             await studio.localePicker.click();
             await page.waitForTimeout(500);

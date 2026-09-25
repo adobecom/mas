@@ -146,7 +146,6 @@ export default {
             path: '/studio.html',
             data: {
                 surface: 'brand-concierge',
-                checkoutClientId: 'acom_bc',
                 localePicker: 'French (FR)',
                 query: 'nala',
             },

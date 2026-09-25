@@ -238,7 +238,6 @@ export const SURFACES = {
     BRAND_CONCIERGE: {
         label: 'Brand Concierge',
         name: 'brand-concierge',
-        checkoutClientId: 'acom_bc',
     },
     CCD: {
         label: 'CCD',

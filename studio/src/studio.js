@@ -15,7 +15,7 @@ import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, SURFACES, WCS_ENV_PROD } from './constants.js';
+import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import Events from './events.js';
 import './utils/price-error-handler.js';
 
@@ -243,11 +243,7 @@ class MasStudio extends LitElement {
 
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
-        const surfaceEntry = Object.values(SURFACES).find((s) => s.name === Store.surface());
-        const checkoutClientIdAttribute = surfaceEntry?.checkoutClientId
-            ? ` checkout-client-id="${surfaceEntry.checkoutClientId}"`
-            : '';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"${checkoutClientIdAttribute} preview="true"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {

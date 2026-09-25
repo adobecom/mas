@@ -8,14 +8,6 @@ describe('surfaces', () => {
             expect(SURFACES.BRAND_CONCIERGE.name).to.equal('brand-concierge');
             expect(SURFACES.BRAND_CONCIERGE.label).to.equal('Brand Concierge');
         });
-
-        it('carries the UCv3 checkout client id acom_bc', () => {
-            expect(SURFACES.BRAND_CONCIERGE.checkoutClientId).to.equal('acom_bc');
-        });
-
-        it('is a distinct surface from ACOM', () => {
-            expect(SURFACES.BRAND_CONCIERGE.name).to.not.equal(SURFACES.ACOM.name);
-        });
     });
 
     it('is included in PLACEHOLDER_CTA_SURFACES like ACOM', () => {

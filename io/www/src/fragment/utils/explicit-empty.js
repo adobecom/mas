@@ -5,7 +5,7 @@
 export const EXPLICIT_EMPTY_SENTINEL = '<explicit_empty/>';
 
 /** Fields that may store the explicit_empty sentinel as a persisted override. */
-const EXPLICIT_EMPTY_ALLOWED_FIELDS = ['badge'];
+const EXPLICIT_EMPTY_ALLOWED_FIELDS = ['badge', 'backgrounds', 'image'];
 
 /** Whether a field is allowed to store the explicit_empty sentinel. */
 export function isExplicitEmptyField(fieldName) {

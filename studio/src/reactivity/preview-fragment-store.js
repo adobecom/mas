@@ -65,6 +65,7 @@ export class PreviewFragmentStore extends FragmentStore {
     placeholderUnsubscribe = null;
     previewLocaleOverride = null;
     #resolving = false;
+    #resolvePending = false;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
@@ -151,6 +152,8 @@ export class PreviewFragmentStore extends FragmentStore {
 
     #doResolveFragment() {
         if (this.#resolving) {
+            // A change arrived mid-resolve; re-run once the in-flight resolve settles so it isn't lost.
+            this.#resolvePending = true;
             return;
         }
 
@@ -214,6 +217,10 @@ export class PreviewFragmentStore extends FragmentStore {
                     this.resolved = true;
                     this.refreshAemFragment(true);
                     this.notify();
+                }
+                if (this.#resolvePending) {
+                    this.#resolvePending = false;
+                    this.#doResolveFragment();
                 }
             });
     }

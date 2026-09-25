@@ -10,8 +10,10 @@ import {
     previewValue,
     previewFragmentOnPage,
     getFragmentMapping,
+    extractImageUrl,
 } from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
+import { parseBackgroundsUrls } from './editors/backgrounds-url.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -316,6 +318,9 @@ class MasSideNav extends LitElement {
         'callout',
         'subtitle',
         'ctas',
+        'image',
+        'backgroundImage',
+        'backgrounds',
     ]);
 
     #getPreviewCard() {
@@ -553,7 +558,33 @@ class MasSideNav extends LitElement {
         });
     }
 
+    /** Returns an array of one or more copyable rows for this field. Most fields
+     *  produce a single row; "backgrounds" splits into one row per breakpoint so
+     *  each can be copy-linked independently (per-breakpoint art direction). */
     #buildCopyableField(field, sourceFragment, resolvedInlinePrices) {
+        if (field.name === 'image') {
+            return [
+                {
+                    name: field.name,
+                    displayName: this.#getFieldDisplayName(field.name, sourceFragment),
+                    preview: extractImageUrl(field.values?.[0] ?? ''),
+                    sourceFragment,
+                },
+            ];
+        }
+        if (field.name === 'backgrounds') {
+            const { desktop, tablet, mobile } = parseBackgroundsUrls(field.values?.[0] ?? '');
+            return [
+                { key: 'desktop', label: 'Desktop', preview: desktop },
+                { key: 'tablet', label: 'Tablet', preview: tablet },
+                { key: 'mobile', label: 'Mobile', preview: mobile },
+            ].map(({ key, label, preview }) => ({
+                name: `backgrounds[${key}]`,
+                displayName: `Background ${label}`,
+                preview,
+                sourceFragment,
+            }));
+        }
         const displayValues = this.#getDisplayValues(field);
         // If the previewStore resolved inline-prices to text, fall back to the original
         // field values which preserve data-template attributes for strikethrough detection.
@@ -563,12 +594,14 @@ class MasSideNav extends LitElement {
         const resolvedValues = this.#resolveInlinePricesInValues(resolveSource, resolvedInlinePrices);
         const preview = field.name === 'ctas' ? this.#previewCtas(resolvedValues) : previewValue(resolvedValues);
 
-        return {
-            name: field.name,
-            displayName: this.#getFieldDisplayName(field.name, sourceFragment),
-            preview,
-            sourceFragment,
-        };
+        return [
+            {
+                name: field.name,
+                displayName: this.#getFieldDisplayName(field.name, sourceFragment),
+                preview,
+                sourceFragment,
+            },
+        ];
     }
 
     /**
@@ -583,7 +616,7 @@ class MasSideNav extends LitElement {
         return this.#sortFieldsByVariantOrder(
             fragment.fields
                 .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name))
-                .map((f) => this.#buildCopyableField(f, fragment, resolvedInlinePrices)),
+                .flatMap((f) => this.#buildCopyableField(f, fragment, resolvedInlinePrices)),
             fragment,
         );
     }
@@ -633,7 +666,7 @@ class MasSideNav extends LitElement {
         const currentCustomFields = this.copyableCustomFields;
         const hasCustomFields = currentCustomFields.length;
         const renderRow = ({ name, displayName, preview, sourceFragment }) => html`
-            <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
+            <sp-menu-item @click=${() => this.copyField(name, sourceFragment, displayName)}>
                 <div class="field-entry ${preview ? 'field-entry-filled' : ''}">
                     <span class="field-label">${displayName}</span>
                     ${preview
@@ -733,12 +766,14 @@ class MasSideNav extends LitElement {
         `;
     }
 
-    /** Copies a rich link for the given field to the clipboard. */
-    async copyField(fieldName, sourceFragment = this.fragmentEditor?.fragment) {
+    /** Copies a rich link for the given field to the clipboard. displayNameOverride
+     *  is used for rows that don't map to a plain field name (e.g. "backgrounds[desktop]"),
+     *  where #getFieldDisplayName can't produce a sensible label on its own. */
+    async copyField(fieldName, sourceFragment = this.fragmentEditor?.fragment, displayNameOverride) {
         const fragment = sourceFragment;
         if (!fragment) return;
         const path = Store.search.get().path;
-        const displayName = this.#getFieldDisplayName(fieldName, fragment);
+        const displayName = displayNameOverride ?? this.#getFieldDisplayName(fieldName, fragment);
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, displayName);
         if (!link) return;
         try {

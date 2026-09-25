@@ -91,7 +91,29 @@
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
             import Store from '../../src/store.js';
             import { COMPAT_VERSION, PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+            import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
             import { delay } from '../utils.js';
+
+            // Background URL edits measure the image before committing; test URLs don't resolve,
+            // so fake a successful load with fixed natural dimensions.
+            const stubImageLoading = () => {
+                const OriginalImage = window.Image;
+                window.Image = class {
+                    naturalWidth = 1600;
+                    naturalHeight = 900;
+                    set src(value) {
+                        setTimeout(() => this.onload?.());
+                    }
+                };
+                return () => {
+                    window.Image = OriginalImage;
+                };
+            };
+
+            const waitFor = async (check, timeout = 1000) => {
+                const start = Date.now();
+                while (!check() && Date.now() - start < timeout) await delay(10);
+            };
 
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
@@ -1100,6 +1122,165 @@
                         expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
                             '<merch-addon background="#dadada">addon1</merch-addon>',
                         );
+                    });
+
+                    it('typing a backgrounds breakpoint value that matches the shared fallback still activates save', async () => {
+                        await setupTestEnvironment({ isVariation: false, variant: ['marquee'] }, 'backgrounds-dup');
+
+                        const MOBILE_URL = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
+                        fragmentStore.updateField('backgrounds', [`<img loading="lazy" alt="" src="${MOBILE_URL}">`]);
+                        fragmentStore.get().hasChanges = false;
+                        fragmentStore.notify();
+                        await editor.updateComplete;
+                        await sideNav.updateComplete;
+                        expect(saveNavItem.disabled).to.be.true;
+
+                        const tabletField = editor.querySelector('sp-textfield#background-tablet');
+                        expect(tabletField).to.exist;
+                        const restoreImage = stubImageLoading();
+                        try {
+                            tabletField.value = MOBILE_URL;
+                            tabletField.dispatchEvent(new Event('change', { bubbles: true }));
+                            await waitFor(() => Store.editor.hasChanges);
+
+                            await editor.updateComplete;
+                            await sideNav.updateComplete;
+
+                            expect(Store.editor.hasChanges).to.be.true;
+                            expect(saveNavItem.disabled).to.be.false;
+                        } finally {
+                            restoreImage();
+                        }
+                    });
+
+                    it('does not clear the textfield mid-edit when the in-progress value is not yet a valid URL', async () => {
+                        await setupTestEnvironment({ isVariation: false, variant: ['marquee'] }, 'backgrounds-mid-edit');
+
+                        const VALID_DESKTOP_URL = 'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+                        fragmentStore.updateField('backgrounds', [buildBackgroundsHtml({ desktop: VALID_DESKTOP_URL })]);
+                        fragmentStore.get().hasChanges = false;
+                        fragmentStore.notify();
+                        await editor.updateComplete;
+
+                        const desktopField = editor.querySelector('sp-textfield#background-desktop');
+                        expect(desktopField).to.exist;
+                        expect(desktopField.value).to.equal(VALID_DESKTOP_URL);
+
+                        const midEditValue = VALID_DESKTOP_URL.replace('.aem.page', '.aem.pag');
+                        desktopField.value = midEditValue;
+                        desktopField.dispatchEvent(new Event('input', { bubbles: true }));
+                        await editor.updateComplete;
+
+                        expect(desktopField.value).to.equal(midEditValue);
+                    });
+
+                    it('editing one breakpoint on an inheriting variation preserves the other inherited breakpoints', async () => {
+                        await setupTestEnvironment({ isVariation: true, variant: ['marquee'] }, 'backgrounds-inherit-preserve');
+
+                        const PARENT_DESKTOP = 'https://main--mas-test--adobecom.aem.page/media_desktop-parent.png';
+                        const PARENT_TABLET = 'https://main--mas-test--adobecom.aem.page/media_tablet-parent.png';
+                        const PARENT_MOBILE = 'https://main--mas-test--adobecom.aem.page/media_mobile-parent.png';
+                        editor.localeDefaultFragment.updateField('backgrounds', [
+                            buildBackgroundsHtml({ desktop: PARENT_DESKTOP, tablet: PARENT_TABLET, mobile: PARENT_MOBILE }),
+                        ]);
+                        editor.requestUpdate();
+                        await editor.updateComplete;
+
+                        const desktopField = editor.querySelector('sp-textfield#background-desktop');
+                        expect(desktopField.value).to.equal(PARENT_DESKTOP);
+
+                        const NEW_DESKTOP = 'https://main--mas-test--adobecom.aem.page/media_desktop-override.png';
+                        const restoreImage = stubImageLoading();
+                        try {
+                            desktopField.value = NEW_DESKTOP;
+                            desktopField.dispatchEvent(new Event('change', { bubbles: true }));
+                            await waitFor(() => fragmentStore.get().getFieldValue('backgrounds', 0)?.includes(NEW_DESKTOP));
+                            await editor.updateComplete;
+                        } finally {
+                            restoreImage();
+                        }
+
+                        const ownBackgroundsHtml = fragmentStore.get().getFieldValue('backgrounds', 0);
+                        expect(parseBackgroundsUrls(ownBackgroundsHtml)).to.deep.equal({
+                            desktop: NEW_DESKTOP,
+                            tablet: PARENT_TABLET,
+                            mobile: PARENT_MOBILE,
+                        });
+                    });
+
+                    it('reports overridden, not inherited, for an empty breakpoint on an owned backgrounds field that differs from the parent', async () => {
+                        await setupTestEnvironment(
+                            { isVariation: true, variant: ['marquee'] },
+                            'backgrounds-owned-empty-breakpoint',
+                        );
+
+                        const PARENT_DESKTOP = 'https://main--mas-test--adobecom.aem.page/media_desktop-parent.png';
+                        const PARENT_TABLET = 'https://main--mas-test--adobecom.aem.page/media_tablet-parent.png';
+                        editor.localeDefaultFragment.updateField('backgrounds', [
+                            buildBackgroundsHtml({ desktop: PARENT_DESKTOP, tablet: PARENT_TABLET }),
+                        ]);
+                        editor.requestUpdate();
+                        await editor.updateComplete;
+
+                        const OWN_DESKTOP = 'https://main--mas-test--adobecom.aem.page/media_desktop-own.png';
+                        fragmentStore.updateField('backgrounds', [buildBackgroundsHtml({ desktop: OWN_DESKTOP })]);
+                        await editor.updateComplete;
+
+                        const tabletField = editor.querySelector('sp-textfield#background-tablet');
+                        expect(tabletField.getAttribute('data-field-state')).to.equal('overridden');
+                    });
+
+                    it('shows invalid state and help text for a background breakpoint URL that is not a supported *.aem.page URL', async () => {
+                        await setupTestEnvironment({ isVariation: false, variant: ['marquee'] }, 'backgrounds-invalid-url');
+
+                        const desktopField = editor.querySelector('sp-textfield#background-desktop');
+                        desktopField.value = 'https://example.com/not-aem-page.png';
+                        desktopField.dispatchEvent(new Event('change', { bubbles: true }));
+                        await editor.updateComplete;
+
+                        expect(desktopField.hasAttribute('invalid')).to.be.true;
+                        expect(desktopField.querySelector('sp-help-text[slot="negative-help-text"]')).to.exist;
+                        expect(fragmentStore.get().getFieldValue('backgrounds', 0)).to.not.exist;
+                    });
+
+                    it('does not render the backgrounds field group for a variant without a backgrounds mapping', async () => {
+                        await setupTestEnvironment(
+                            { isVariation: false, variant: ['plans'] },
+                            'backgrounds-unsupported-variant',
+                        );
+
+                        expect(editor.querySelector('sp-field-group#backgrounds')).to.not.exist;
+                    });
+
+                    it('resets imageUrlInvalid and backgroundsUrlInvalid when switching to a different fragment', async () => {
+                        await setupTestEnvironment({ isVariation: false, variant: ['marquee'] }, 'invalid-reset');
+
+                        const imageField = editor.querySelector('sp-textfield#image-url');
+                        imageField.value = 'https://example.com/not-aem-page.png';
+                        imageField.dispatchEvent(new Event('change', { bubbles: true }));
+                        await editor.updateComplete;
+                        expect(editor.imageUrlInvalid).to.be.true;
+
+                        const desktopField = editor.querySelector('sp-textfield#background-desktop');
+                        desktopField.value = 'https://example.com/not-aem-page.png';
+                        desktopField.dispatchEvent(new Event('change', { bubbles: true }));
+                        await editor.updateComplete;
+                        expect(editor.backgroundsUrlInvalid.desktop).to.be.true;
+
+                        const otherFragmentData = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_US/test-invalid-reset-other',
+                            id: 'test-invalid-reset-other',
+                            fields: baseMockData.fields.map((field) =>
+                                field.name === 'variant' ? { ...field, values: ['marquee'] } : { ...field, values: [] },
+                            ),
+                        };
+                        const otherStore = generateFragmentStore(new Fragment(structuredClone(otherFragmentData)));
+                        editor.fragmentStore = otherStore;
+                        await editor.updateComplete;
+
+                        expect(editor.imageUrlInvalid).to.be.false;
+                        expect(editor.backgroundsUrlInvalid).to.deep.equal({ desktop: false, tablet: false, mobile: false });
                     });
 
                     it('update variation addon value and then rollback to the settings value', async () => {

@@ -699,6 +699,36 @@ class CardOverlay {
                 this.positionPanel(overlayData.panel, overlayData.cardData.element);
             }
         });
+        this.separateBadges();
+    }
+
+    separateBadges() {
+        if (!window.MASBadgeLayout) return;
+
+        const entries = [];
+        this.overlays.forEach((overlayData) => {
+            const badge = overlayData.badge;
+            if (!badge || badge.style.display === 'none') return;
+            const rect = badge.getBoundingClientRect();
+            entries.push({
+                badge,
+                top: parseFloat(badge.style.top) || 8,
+                left: parseFloat(badge.style.left) || 8,
+                w: rect.width || 90,
+                h: rect.height || 24,
+            });
+        });
+
+        if (entries.length < 2) return;
+
+        const positions = window.MASBadgeLayout.resolveBadgeLayout(
+            entries.map(({ top, left, w, h }) => ({ top, left, w, h })),
+            window.innerWidth,
+        );
+        entries.forEach((entry, index) => {
+            entry.badge.style.top = `${positions[index].top}px`;
+            entry.badge.style.left = `${positions[index].left}px`;
+        });
     }
 
     destroy() {

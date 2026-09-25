@@ -487,6 +487,7 @@ const DEFAULT_LOCALES = {
     'acom-dc': ACOM,
     nala: ACOM,
     sandbox: ACOM,
+    'brand-concierge': ACOM,
     ccd: CCD,
     express: EXPRESS,
     'adobe-home': ADOBE_HOME,

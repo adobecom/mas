@@ -106,30 +106,38 @@ export function canPublishPromotionNow(promotionFragment, options = {}) {
 
 export const UNPUBLISHED_PROMO_VARIATIONS_DIALOG = {
     title: 'Unpublished promo variations',
-    confirmText: 'Publish together',
+    confirmText: 'Publish',
     cancelText: 'Cancel',
     variant: 'confirmation',
+    question: 'Publish them together with the project?',
+    checkboxLabel: 'Publish promo variations',
+    checkboxDefault: false,
 };
 
 export function unpublishedPromoVariationsPublishMessage(count) {
-    return `This project has ${count} attached promo variation(s) that are not published. Publish them together with the project?`;
+    return `This project has ${count} attached promo variation(s) that are not published.`;
 }
 
 export const PUBLISHED_PROMO_VARIATIONS_DIALOG = {
     title: 'Published promo variations',
-    confirmText: 'Unpublish together',
+    confirmText: 'Unpublish',
     cancelText: 'Cancel',
     variant: 'confirmation',
+    question: 'Unpublish them together with the project?',
+    checkboxLabel: 'Unpublish promo variations',
+    checkboxDefault: false,
 };
 
 export function publishedPromoVariationsUnpublishMessage(count) {
-    return `This project has ${count} attached promo variation(s) that are published. Unpublish them together with the project?`;
+    return `This project has ${count} attached promo variation(s) that are published.`;
 }
 
 /**
+ * `dialogConfig.checkboxLabel` is always set for the two callers below, so `showDialog`
+ * (backed by `showConfirmDialog`) always resolves `{ confirmed, checked }`, never a bare boolean.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {object} promotionFragment
- * @param {(title: string, message: string, options: object) => Promise<boolean>} showDialog
+ * @param {(title: string, message: string, options: object) => Promise<{ confirmed: boolean, checked: boolean }>} showDialog
  * @param {{ getVariations: Function, dialogConfig: object, buildMessage: (count: number) => string }} config
  * @returns {Promise<{ confirmed: boolean, variationPaths: string[] }>}
  */
@@ -144,21 +152,24 @@ async function confirmActionAgainstPromoVariations(
         return { confirmed: true, variationPaths: [] };
     }
     const message = buildMessage(variations.length);
-    const confirmed = await showDialog(dialogConfig.title, message, {
+    const { confirmed, checked } = await showDialog(dialogConfig.title, message, {
         confirmText: dialogConfig.confirmText,
         cancelText: dialogConfig.cancelText,
         variant: dialogConfig.variant,
+        question: dialogConfig.question,
+        checkboxLabel: dialogConfig.checkboxLabel,
+        checkboxDefault: dialogConfig.checkboxDefault,
     });
     return {
         confirmed: !!confirmed,
-        variationPaths: confirmed ? variations.map((variation) => variation.path) : [],
+        variationPaths: confirmed && checked ? variations.map((variation) => variation.path) : [],
     };
 }
 
 /**
  * @param {import('../aem/aem.js').AEM} aem
  * @param {object} promotionFragment
- * @param {(title: string, message: string, options: object) => Promise<boolean>} showDialog
+ * @param {(title: string, message: string, options: object) => Promise<{ confirmed: boolean, checked: boolean }>} showDialog
  * @returns {Promise<{ confirmed: boolean, variationPaths: string[] }>}
  */
 export async function confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog) {
@@ -172,7 +183,7 @@ export async function confirmPublishDespiteUnpublishedPromoVariations(aem, promo
 /**
  * @param {import('../aem/aem.js').AEM} aem
  * @param {object} promotionFragment
- * @param {(title: string, message: string, options: object) => Promise<boolean>} showDialog
+ * @param {(title: string, message: string, options: object) => Promise<{ confirmed: boolean, checked: boolean }>} showDialog
  * @returns {Promise<{ confirmed: boolean, variationPaths: string[] }>}
  */
 export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog) {
@@ -181,6 +192,16 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
         dialogConfig: PUBLISHED_PROMO_VARIATIONS_DIALOG,
         buildMessage: publishedPromoVariationsUnpublishMessage,
     });
+}
+
+/**
+ * Promos with unresolved validation errors are blocked from AEM activation upfront.
+ * The workflow fails silently otherwise, so we skip it early instead of trusting the publish response.
+ * @param {{ validationStatus?: Array<unknown> }} fragment
+ * @returns {boolean}
+ */
+function hasValidationErrors(fragment) {
+    return Array.isArray(fragment?.validationStatus) && fragment.validationStatus.length > 0;
 }
 
 /**
@@ -206,13 +227,21 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
                 if (!variation?.id) continue;
                 const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id);
-                if (variationWithEtag) fragments.push(variationWithEtag);
+                if (!variationWithEtag || hasValidationErrors(variationWithEtag)) continue;
+                fragments.push(variationWithEtag);
             }
-            await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            try {
+                await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            } catch (error) {
+                console.error('Failed to publish promo variations alongside promotion project', error);
+                await repository.aem.sites.cf.fragments.publish(promotionWithEtag, publishReferencesWithStatus);
+                showToast(promotionPublishShortfallMessage(promoVariationPaths.length), 'warning');
+                return true;
+            }
             const expectedFragmentCount = promoVariationPaths.length + 1;
             const shortfall = expectedFragmentCount - fragments.length;
             if (shortfall > 0) {
-                showToast(promotionPublishShortfallMessage(shortfall), 'info');
+                showToast(promotionPublishShortfallMessage(shortfall), 'warning');
             } else {
                 showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
             }
@@ -265,7 +294,7 @@ export async function unpublishPromotionProject(repository, promotionFragment, p
         }
 
         if (shortfall > 0) {
-            showToast(promotionUnpublishShortfallMessage(shortfall), 'info');
+            showToast(promotionUnpublishShortfallMessage(shortfall), 'warning');
         } else {
             showToast(PROMOTION_UNPUBLISH_SUCCESS_MESSAGE, 'positive');
         }

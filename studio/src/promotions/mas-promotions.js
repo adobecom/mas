@@ -26,6 +26,7 @@ import {
 import { duplicatePromotionProject, getAllAttachedPromoVariations } from './promotions-repository.js';
 import { buildDuplicatePromotionToastArgs, getPromotionTitles } from './promotion-editor-utils.js';
 import { handleSearchInput } from '../common/utils/selectable-list.js';
+import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 
 const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'production', label: 'Production' },
@@ -47,6 +48,7 @@ class MasPromotions extends LitElement {
         promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        dialogCheckboxChecked: { type: Boolean, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
     };
@@ -65,6 +67,7 @@ class MasPromotions extends LitElement {
         this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.dialogCheckboxChecked = false;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.reactiveController = new ReactiveController(this, [
@@ -153,38 +156,6 @@ class MasPromotions extends LitElement {
         await this.repository.loadPromotions();
         this.promotionsData = Store.promotions.list.data.get() || [];
         this.promotionsLoading = Store.promotions.list.loading.get() || false;
-    }
-
-    /**
-     * Display a dialog for confirmation
-     * @param {string} title - Dialog title
-     * @param {string} message - Dialog message
-     * @param {Object} options - Additional options
-     * @returns {Promise<boolean>} - True if confirmed, false if canceled
-     */
-    async #showDialog(title, message, options = {}) {
-        if (this.isDialogOpen) {
-            return false;
-        }
-
-        this.isDialogOpen = true;
-        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
-
-        return new Promise((resolve) => {
-            this.confirmDialogConfig = {
-                title,
-                message,
-                confirmText,
-                cancelText,
-                variant,
-                onConfirm: () => {
-                    resolve(true);
-                },
-                onCancel: () => {
-                    resolve(false);
-                },
-            };
-        });
     }
 
     renderPromotionsContent() {
@@ -300,7 +271,7 @@ class MasPromotions extends LitElement {
 
                 <div class="promotions-divider"></div>
 
-                ${this.renderConfirmDialog()}
+                ${renderConfirmDialog(this, 'promotion-delete-confirm-dialog')}
                 ${this.duplicating
                     ? html`<div class="duplicating-overlay">
                           <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
@@ -475,42 +446,6 @@ class MasPromotions extends LitElement {
         `;
     }
 
-    /**
-     * Renders a confirmation dialog
-     * @returns {TemplateResult} - HTML template
-     */
-    renderConfirmDialog() {
-        if (!this.confirmDialogConfig) return nothing;
-
-        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
-
-        return html`
-            <div class="confirm-dialog-overlay">
-                <sp-dialog-wrapper
-                    open
-                    underlay
-                    id="promotion-delete-confirm-dialog"
-                    .headline=${title}
-                    .variant=${variant || 'negative'}
-                    .confirmLabel=${confirmText}
-                    .cancelLabel=${cancelText}
-                    @confirm=${() => {
-                        this.confirmDialogConfig = null;
-                        this.isDialogOpen = false;
-                        onConfirm && onConfirm();
-                    }}
-                    @cancel=${() => {
-                        this.confirmDialogConfig = null;
-                        this.isDialogOpen = false;
-                        onCancel && onCancel();
-                    }}
-                >
-                    <div>${message}</div>
-                </sp-dialog-wrapper>
-            </div>
-        `;
-    }
-
     #handleAddPromotion() {
         Store.promotions.inEdit.set(null);
         Store.promotions.promotionId.set('');
@@ -539,7 +474,7 @@ class MasPromotions extends LitElement {
         const fragment = promotion.get();
         const stagedConfirmed =
             !fragment.isStaged ||
-            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
+            (await showConfirmDialog(this, STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
                 confirmText: 'Publish',
                 cancelText: 'Cancel',
                 variant: 'confirmation',
@@ -555,7 +490,7 @@ class MasPromotions extends LitElement {
         const { confirmed, variationPaths } = await confirmPublishDespiteUnpublishedPromoVariations(
             this.repository.aem,
             fragment,
-            (title, message, options) => this.#showDialog(title, message, options),
+            (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
         try {
@@ -576,7 +511,7 @@ class MasPromotions extends LitElement {
         const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
             this.repository.aem,
             fragment,
-            (title, message, options) => this.#showDialog(title, message, options),
+            (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
         try {
@@ -594,7 +529,8 @@ class MasPromotions extends LitElement {
         }
         const fragment = promotion.get();
         const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, fragment);
-        const confirmed = await this.#showDialog(
+        const confirmed = await showConfirmDialog(
+            this,
             'Confirm Delete',
             promotionDeleteConfirmMessage(fragment.title, attachedVariations.length),
             {

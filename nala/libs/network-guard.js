@@ -1,30 +1,33 @@
 /**
  * Single network guard for all Nala browser traffic: proactive RPS pacing for the two named,
  * budgeted systems (EDS/Helix preview hosts, ODIN AEM author/preview hosts) PLUS generic reactive
- * 429 (Too Many Requests) handling for ANY host any test talks to.
+ * throttle-response (429, and by default 503/529) handling for ANY host any test talks to.
  *
  * All shards/jobs now use ONE shared User-Agent (see playwright.config.js) — there is no more
  * per-shard/per-run UA differentiation. That means the "20 rps per UA" ODIN budget and the
  * "200 rps" EDS budget are both genuinely GLOBAL, single pools shared by every worker, every
  * shard, and (best-effort, see shared-pause-state.js) every concurrent PR run — not per-runner
  * pools. Static pacing below divides the budget by NALA_TOTAL_WORKERS (see playwright.config.js /
- * run-nala.yml), which assumes a KNOWN, fixed total worker count. That assumption only holds if
- * at most one full Nala workflow run is active repo-wide at a time — see the docs-job mutex step
- * in run-nala.yml, which enforces this for the docs job specifically. If multiple full runs (from
- * different PRs) can truly run their studio shards fully concurrently, the static division alone
- * is not sufficient — the reactive 429 handling below (with cross-run pause propagation) is the
- * real safety net for that case, not the static caps.
+ * nala-execution.yml), which assumes a KNOWN, fixed total worker count. That assumption only
+ * holds if at most one full Nala workflow run is active repo-wide at a time — see the repo-wide
+ * `concurrency:` block at the top of nala-execution.yml, which enforces exactly that (queues,
+ * rather than runs concurrently, any other PR's full run). If that queue were ever bypassed or
+ * misconfigured, the static division alone would not be sufficient — the reactive throttle
+ * handling below (with cross-run pause propagation) is the real safety net for that case, not the
+ * static caps.
  *
- * Static pacing keeps normal-case traffic under budget proactively. Reactive 429 handling is the
- * safety net for whatever the static pacing didn't account for (bursts, another run, a lower
- * limit than assumed, etc.) — on any 429, ALL further calls to that domain (from this process,
- * and best-effort every other concurrent run) pause for Retry-After (or 60s default).
+ * Static pacing keeps normal-case traffic under budget proactively. Reactive throttle handling is
+ * the safety net for whatever the static pacing didn't account for (bursts, another run, a lower
+ * limit than assumed, etc.) — on any throttle-like response, ALL further calls to that domain
+ * (from this process, and best-effort every other concurrent run) pause for Retry-After (or 60s
+ * default).
  *
  * Override env vars:
  *   NALA_EDS_THROTTLE_DISABLED=1     disable EDS proactive pacing
  *   NALA_EDS_MAX_RPS=<n>             force a specific per-worker EDS cap
  *   NALA_ODIN_MAX_RPS=<n>            force a specific TOTAL (not per-worker) ODIN cap (default 20)
  *   NALA_429_DEFAULT_PAUSE_MS=<n>    default pause when a 429 has no Retry-After (default 60000)
+ *   NALA_THROTTLE_STATUS_CODES=<csv> status codes treated as throttle-like (default "429,503,529")
  *   NALA_SHARED_PAUSE_DISABLED=1     disable cross-run pause propagation (local-only pausing)
  */
 
@@ -194,7 +197,17 @@ export async function waitIfPaused(domainKey) {
  * @param {string} url the request URL that got the 429 (for logging)
  * @param {string|null} retryAfterHeader
  */
-export async function reportThrottled(domainKey, url, retryAfterHeader) {
+/**
+ * Handle a throttle-like response (429, and by default also 503/529 — some CDN/edge stacks use
+ * non-standard codes like 529 "site is overloaded" for the same underlying condition) for a
+ * domain: parse Retry-After, log it, pause this process's further calls to that domain, and
+ * best-effort broadcast the pause to every other concurrent Nala run.
+ * @param {string} domainKey
+ * @param {string} url the request URL that got the throttle-like response (for logging)
+ * @param {string|null} retryAfterHeader
+ * @param {number} status the actual HTTP status code observed (for logging only)
+ */
+export async function reportThrottled(domainKey, url, retryAfterHeader, status = 429) {
     const delayMs = parseRetryAfterMs(retryAfterHeader);
     const pauseUntil = Date.now() + delayMs;
     const existingLocal = localPauseUntil.get(domainKey) ?? 0;
@@ -202,7 +215,7 @@ export async function reportThrottled(domainKey, url, retryAfterHeader) {
 
     const source = retryAfterHeader ? `Retry-After=${retryAfterHeader}` : 'no Retry-After header, using default';
     console.warn(
-        `[NALA] 429 Too Many Requests from "${domainKey}" (${url}). Pausing ALL calls to "${domainKey}" for ` +
+        `[NALA] ${status} response from "${domainKey}" (${url}). Pausing ALL calls to "${domainKey}" for ` +
             `~${Math.round(delayMs / 1000)}s (${source}). Broadcasting pause to other concurrent Nala runs.\n`,
     );
 
@@ -210,9 +223,62 @@ export async function reportThrottled(domainKey, url, retryAfterHeader) {
     await reportSharedPause(domainKey, pauseUntil).catch(() => {});
 }
 
+/** Status codes treated as "throttle-like" — i.e. worth pausing the domain over, not just
+ * logging. Configurable via NALA_THROTTLE_STATUS_CODES (comma-separated), default 429/503/529. */
+const DEFAULT_THROTTLE_STATUS_CODES = [429, 503, 529];
+function resolveThrottleStatusCodes() {
+    const raw = process.env.NALA_THROTTLE_STATUS_CODES;
+    if (!raw) return DEFAULT_THROTTLE_STATUS_CODES;
+    const codes = raw
+        .split(',')
+        .map((s) => Number.parseInt(s.trim(), 10))
+        .filter(Number.isFinite);
+    return codes.length ? codes : DEFAULT_THROTTLE_STATUS_CODES;
+}
+
+/** Truncate a response body for logging so a huge HTML error page doesn't flood CI logs. */
+const BODY_LOG_LIMIT = 500;
+
+/**
+ * Log full diagnostic detail for a throttle-like response: timestamp, worker id, method, url,
+ * status, key headers, and a truncated body snippet (best-effort — reading the body can itself
+ * fail for some response types, which is caught and noted rather than thrown).
+ * @param {import('@playwright/test').Response} response
+ */
+async function logResponseDetails(response) {
+    const request = response.request();
+    const headers = response.headers();
+    const workerId = process.env.TEST_WORKER_INDEX ?? process.env.TEST_PARALLEL_INDEX ?? '?';
+    let bodySnippet = '<unavailable>';
+    try {
+        const body = await response.text();
+        bodySnippet = body.length > BODY_LOG_LIMIT ? `${body.slice(0, BODY_LOG_LIMIT)}… (truncated)` : body;
+    } catch (error) {
+        bodySnippet = `<failed to read body: ${error.message}>`;
+    }
+    console.warn(
+        `[NALA] THROTTLE RESPONSE DETECTED\n` +
+            `  time:        ${new Date().toISOString()}\n` +
+            `  worker:      ${workerId}\n` +
+            `  method/url:  ${request.method()} ${response.url()}\n` +
+            `  status:      ${response.status()} ${response.statusText()}\n` +
+            `  retry-after: ${headers['retry-after'] ?? '<none>'}\n` +
+            `  server:      ${headers.server ?? '<none>'}\n` +
+            `  cf-ray:      ${headers['cf-ray'] ?? '<none>'}\n` +
+            `  content-type:${headers['content-type'] ?? '<none>'}\n` +
+            `  body:        ${bodySnippet}\n`,
+    );
+}
+
+/** Log the pacing-active summary once per WORKER PROCESS, not once per browser context/test — a
+ * job with N workers otherwise reprints this N× per test, which reads as noisy duplication even
+ * though it's really "N independent processes each announcing their own pacing once". Gate on
+ * worker index 0 so a job's console output shows exactly one line per domain, not one per worker. */
 function logThrottleStartOnce(domainKey, maxRps, budgetLabel) {
     const key = `${domainKey}:${maxRps}`;
     if (maxRps <= 0 || loggedThrottleStart.has(key)) return;
+    const workerIndex = process.env.TEST_WORKER_INDEX;
+    if (workerIndex !== undefined && workerIndex !== '0') return;
     loggedThrottleStart.add(key);
     const localWorkers = process.env.NALA_WORKER_COUNT ?? '?';
     const totalWorkers = process.env.NALA_TOTAL_WORKERS ?? localWorkers;
@@ -253,18 +319,23 @@ export async function installNetworkGuard(context) {
 }
 
 /**
- * Watch a page's responses for 429s on ANY host and trigger reportThrottled(). Call this
- * explicitly for pages that exist before installNetworkGuard(context) runs (context.on('page')
- * only covers pages created after that call).
+ * Watch a page's responses for throttle-like statuses (429/503/529 by default, see
+ * NALA_THROTTLE_STATUS_CODES) on ANY host: always logs full diagnostic detail, and triggers
+ * reportThrottled() to pause + broadcast. Call this explicitly for pages that exist before
+ * installNetworkGuard(context) runs (context.on('page') only covers pages created after that
+ * call).
  * @param {import('@playwright/test').Page} page
  */
 export function attachResponseWatcher(page) {
     page.on('response', (response) => {
-        if (response.status() !== 429) return;
+        const status = response.status();
+        if (!resolveThrottleStatusCodes().includes(status)) return;
         const domainKey = domainKeyFor(response.url());
         const retryAfter = response.headers()['retry-after'] ?? null;
-        reportThrottled(domainKey, response.url(), retryAfter).catch((error) => {
-            console.warn(`[NALA] Error while handling 429 for "${domainKey}": ${error.message}\n`);
+        logResponseDetails(response).catch(() => {});
+        reportThrottled(domainKey, response.url(), retryAfter, status).catch((error) => {
+            console.warn(`[NALA] Error while handling ${status} for "${domainKey}": ${error.message}\n`);
         });
     });
 }
+

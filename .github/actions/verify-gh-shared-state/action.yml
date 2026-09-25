@@ -1,0 +1,59 @@
+name: Verify gh CLI shared pause-state wiring
+description: >
+    Fails loudly, instead of silently degrading, if this runner cannot read/write GitHub repository
+    variables via the gh CLI. nala/libs/shared-pause-state.js relies on this for cross-run 429
+    pause propagation (see network-guard.js); without it, that mechanism is a silent no-op and
+    every 429 pause is scoped to a single worker process only (which is discarded on retry —
+    see Playwright's retry semantics — so retries would have zero memory of a recent 429).
+
+inputs:
+    run-id:
+        description: Unique id to scope the self-test variable name (avoids collisions across runs)
+        required: true
+
+runs:
+    using: composite
+    steps:
+        - name: gh variable set/get round-trip self-test
+          shell: bash
+          run: |
+              if ! command -v gh >/dev/null 2>&1; then
+                echo "::error::gh CLI is not installed on this runner. nala/libs/shared-pause-state.js" \
+                     "requires it for cross-run 429 pause propagation. See the gh CLI install steps" \
+                     "for self-hosted Linux runners (apt-based) and re-run this job once installed."
+                exit 1
+              fi
+
+              TEST_VAR="NALA_GH_SELFTEST_${{ inputs.run-id }}"
+              TEST_VALUE="ok-$(date +%s)"
+
+              echo "Testing gh variable set/get round-trip (var: $TEST_VAR)..."
+              if ! gh variable set "$TEST_VAR" --body "$TEST_VALUE" 2>gh-set-error.log; then
+                echo "::error::'gh variable set' failed. Check: (1) the job has" \
+                     "'permissions: actions: write', (2) GH_TOKEN is exported in this step's env," \
+                     "(3) org/repo settings don't cap default token permissions below what the" \
+                     "workflow requests, (4) this is not a fork-PR run (forks get a read-only token" \
+                     "regardless of the permissions block)."
+                cat gh-set-error.log
+                rm -f gh-set-error.log
+                exit 1
+              fi
+              rm -f gh-set-error.log
+
+              READBACK=$(gh variable get "$TEST_VAR" 2>gh-get-error.log) || {
+                echo "::error::'gh variable set' succeeded but 'gh variable get' failed right after it."
+                cat gh-get-error.log
+                rm -f gh-get-error.log
+                exit 1
+              }
+              rm -f gh-get-error.log
+
+              if [ "$READBACK" != "$TEST_VALUE" ]; then
+                echo "::error::'gh variable get' returned '$READBACK', expected '$TEST_VALUE'."
+                exit 1
+              fi
+
+              gh variable delete "$TEST_VAR" 2>/dev/null || \
+                echo "::warning::Could not clean up self-test variable $TEST_VAR (non-fatal, safe to ignore/delete manually)."
+
+              echo "gh CLI shared pause-state wiring OK — cross-run 429 pause propagation is functional on this runner."

@@ -96,6 +96,13 @@ jobs:
               with:
                   fetch-depth: 2
 
+            - name: Verify gh CLI shared pause-state wiring
+              uses: ./.github/actions/verify-gh-shared-state
+              with:
+                  run-id: ${{ github.run_id }}
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Resolve shard directories
               run: |
                   if [ -n "${{ matrix.dirs }}" ]; then
@@ -213,6 +220,13 @@ jobs:
               with:
                   fetch-depth: 0
 
+            - name: Verify gh CLI shared pause-state wiring
+              uses: ./.github/actions/verify-gh-shared-state
+              with:
+                  run-id: ${{ github.run_id }}
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Fetch base branch for diff
               run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
@@ -250,11 +264,14 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            # Docs tests run on GitHub-hosted runners (ubuntu-latest) — no unattended-upgrades
-            # lock contention, so the prep-apt composite action is not needed here.
+            # This job actually runs on the self-hosted nala-docs VM (not GitHub-hosted
+            # ubuntu-latest, despite what an earlier version of this comment claimed) — it can hit
+            # the same unattended-upgrades apt-lock contention as the studio shards, so it needs
+            # the same prep-apt composite action (stop background apt services, wait out/clear
+            # locks, retry install-deps).
             - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: npx playwright install-deps
+              uses: ./.github/actions/prep-apt
 
             - name: Install/verify Playwright browsers
               run: |

@@ -18,6 +18,7 @@ import {
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../locales.js';
+import { findPromotionProjectIdByTag, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
 
 /**
  * Verified cap for the GET-by-id `referencedBy` endpoint. `limit=99` is rejected with a 400;
@@ -99,13 +100,15 @@ export function isCrossSurfaceReference(path, surface) {
 
 /**
  * Runs all four exclusion predicates against a single `referencedBy` item, relative to the
- * fragment currently open in the editor.
+ * fragment currently open in the editor. Promotion projects skip them: they are stored globally
+ * under `/content/dam/mas/promotions`, so every surface-based check would drop them.
  *
  * @param {Object} reference raw `referencedBy` item
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
  * @returns {boolean}
  */
 export function isExcludedReference(reference, openFragmentTokens) {
+    if (reference.model?.path === PROMOTION_MODEL_PATH) return false;
     if (isGroupedVariationReference(reference.path)) return true;
     if (isCrossSurfaceReference(reference.path, openFragmentTokens.surface)) return true;
     const tokens = parsePathTokens(reference.path);
@@ -310,17 +313,35 @@ export async function fetchAllReferencingItems(aem, fragmentId, { signal } = {})
 }
 
 /**
+ * Finds the promotion project a promo variation belongs to. `referencedBy` never returns it: the
+ * project's `fragments` field holds the default card, not the variation, so the variation's
+ * `mas:promotion/` tag is the only link.
+ *
+ * @param {Object} fragment the fragment currently open in the editor
+ * @param {() => Promise<Array<Object>>} [loadPromotionProjects]
+ * @returns {Promise<Object|null>}
+ */
+async function findPromotionProjectForVariation(fragment, loadPromotionProjects) {
+    const promotionTagId = getPromotionTagFromFragment(fragment);
+    if (!promotionTagId || !loadPromotionProjects) return null;
+    const projects = await loadPromotionProjects();
+    const projectId = findPromotionProjectIdByTag(promotionTagId, projects);
+    return projects.find((project) => project.id === projectId) ?? null;
+}
+
+/**
  * Resolves the "referenced by" list for the details panel: fetches every page of the GET-by-id
  * `referencedBy` endpoint, drops false positives (grouped/pzn variations, promo variations,
  * self-locale variations, cross-surface clones), then buckets what remains by reference type
  * (collections, cards, promo/bulk-publish/localization projects, other) in display order.
+ * A promo variation also lists its own promotion project, resolved from its tag.
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragment the fragment currently open in the editor
- * @param {{ signal?: AbortSignal }} [options]
+ * @param {{ signal?: AbortSignal, loadPromotionProjects?: () => Promise<Array<Object>> }} [options]
  * @returns {Promise<Array<{ key: string, label: string, rows: Array<Object> }>>} ordered, non-empty type buckets
  */
-export async function getReferencingFragments(aem, fragment, { signal } = {}) {
+export async function getReferencingFragments(aem, fragment, { signal, loadPromotionProjects } = {}) {
     // The open fragment is normally a card/collection whose path parses cleanly. If it does not
     // (e.g. a promo-type path that fails PATH_TOKENS), `surface` is null and the cross-surface and
     // self-locale exclusions become no-ops for this session — references are still listed, just
@@ -339,6 +360,8 @@ export async function getReferencingFragments(aem, fragment, { signal } = {}) {
     for (const item of kept) {
         itemsByType.get(classifyReference(item)).push(item);
     }
+    const promotionProject = await findPromotionProjectForVariation(fragment, loadPromotionProjects);
+    if (promotionProject) itemsByType.get('promoProjects').push(promotionProject);
 
     const buckets = [];
     for (const type of REFERENCE_TYPES) {

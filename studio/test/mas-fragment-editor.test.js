@@ -2152,6 +2152,32 @@ describe('MasFragmentEditor', () => {
             expect(collections.rows).to.have.lengthOf(1);
             expect(collections.rows[0].representative.id).to.equal('b1');
         });
+
+        it('lists the promotion project of an open promo variation', async () => {
+            const originalPromotions = Store.promotions.list.data.get();
+            const project = {
+                id: 'aug-id',
+                path: '/content/dam/mas/promotions/augdemo',
+                title: 'AugDemo',
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            };
+            Store.promotions.list.data.value = [{ get: () => project }];
+            const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
+            const { editor } = createEditor({ aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } } });
+            sandbox.stub(editor, 'fragment').get(() => ({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_US/promotions/augdemo/marquee',
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            }));
+
+            editor.willUpdate(new Map());
+            await new Promise((r) => setTimeout(r, 10));
+            Store.promotions.list.data.value = originalPromotions;
+
+            const promoProjects = editor.referencingFragments.find((b) => b.key === 'promoProjects');
+            expect(promoProjects.rows[0].representative.id).to.equal('aug-id');
+        });
     });
 });
 

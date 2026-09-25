@@ -177,6 +177,11 @@ describe('references-repository', () => {
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
 
+        it('keeps a promotion project, which is stored outside every surface folder', () => {
+            const reference = { path: '/content/dam/mas/promotions/summer-sale', model: { path: PROMOTION_MODEL_PATH } };
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
+        });
+
         it('keeps an unparseable path rather than excluding it', () => {
             const reference = { path: '/content/dam/mas/acom/weird-path' };
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
@@ -380,7 +385,7 @@ describe('references-repository', () => {
                     model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
                 },
                 {
-                    path: '/content/dam/mas/acom/en_US/summer-sale',
+                    path: '/content/dam/mas/promotions/summer-sale',
                     id: 'promo-proj',
                     title: 'Summer',
                     model: { path: PROMOTION_MODEL_PATH },
@@ -416,6 +421,43 @@ describe('references-repository', () => {
             expect(bucket(result, 'localizationProjects').rows[0].representative.link).to.include(
                 'translationProjectId=loc-proj',
             );
+        });
+
+        describe('promo variations', () => {
+            const promoVariation = {
+                id: 'variation-id',
+                path: `/content/dam/mas/sandbox/en_US/${PROMOTIONS_PATH_PREFIX}augdemo/marquee`,
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            };
+            const project = (id, promoName) => ({
+                id,
+                path: `/content/dam/mas/promotions/${promoName}`,
+                title: promoName,
+                tags: [{ id: `mas:promotion/${promoName}` }],
+            });
+            const noReferences = () => ({
+                sites: { cf: { fragments: { getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }) } } },
+            });
+
+            it('lists the project a promo variation belongs to, which referencedBy never returns', async () => {
+                const loadPromotionProjects = sandbox
+                    .stub()
+                    .resolves([project('other-id', 'springsale'), project('aug-id', 'augdemo')]);
+
+                const result = await getReferencingFragments(noReferences(), promoVariation, { loadPromotionProjects });
+
+                const [row] = bucket(result, 'promoProjects').rows;
+                expect(row.representative.id).to.equal('aug-id');
+                expect(row.representative.link).to.include('promotionId=aug-id');
+            });
+
+            it('does not load promotion projects for a fragment without a promotion tag', async () => {
+                const loadPromotionProjects = sandbox.stub().resolves([]);
+
+                await getReferencingFragments(noReferences(), fragment, { loadPromotionProjects });
+
+                expect(loadPromotionProjects.called).to.be.false;
+            });
         });
 
         it('returns an empty array when there are no references', async () => {

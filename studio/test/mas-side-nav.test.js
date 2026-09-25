@@ -84,6 +84,7 @@ describe('MasSideNav – Copy Field', () => {
                 { name: 'callout', values: ['Limited time'] },
                 { name: 'subtitle', values: ['For teams'] },
                 { name: 'ctas', values: ['<a>Buy</a>'] },
+                { name: 'badge', values: ['<merch-badge>Popular</merch-badge>'] },
                 { name: 'cta', values: ['Buy now'] },
                 { name: 'quantitySelect', values: ['true'] },
                 { name: 'perUnitLabel', values: ['{perUnit, select, LICENSE {per lic} other {}}'] },
@@ -91,7 +92,8 @@ describe('MasSideNav – Copy Field', () => {
                 { name: 'osi', values: ['K79yhO4'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            const names = el.copyableFields.map((f) => f.name);
+            const fields = el.copyableFields;
+            const names = fields.map((f) => f.name);
             expect(names).to.include('prices');
             expect(names).to.include('cardTitle');
             expect(names).to.include('title');
@@ -101,6 +103,8 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.include('callout');
             expect(names).to.include('subtitle');
             expect(names).to.include('ctas');
+            expect(names).to.include('badge');
+            expect(fields.find((f) => f.name === 'badge').displayName).to.equal('Badge');
             expect(names).to.not.include('cta');
             expect(names).to.not.include('quantitySelect');
             expect(names).to.not.include('perUnitLabel');

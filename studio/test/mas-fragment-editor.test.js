@@ -2134,6 +2134,32 @@ describe('MasFragmentEditor', () => {
             expect(editor.artifactsDialogOpen).to.equal(true);
         });
 
+        describe('Related pages box', () => {
+            const renderUsage = () => {
+                const editor = withCard();
+                editor.externalUsage = {
+                    available: true,
+                    pages: [
+                        { url: 'https://www.adobe.com/', locale: 'en_US', requests: 5, countries: ['US'], region: 'Global' },
+                    ],
+                };
+                const host = document.createElement('div');
+                render(editor.externalUsageSection, host);
+                return { editor, host };
+            };
+
+            it('renders View pages as a button so keyboard users can reach it', () => {
+                const { host } = renderUsage();
+                expect(host.querySelector('.artifacts-view-link').tagName).to.equal('SP-ACTION-BUTTON');
+            });
+
+            it('opens the page list when View pages is clicked', () => {
+                const { editor, host } = renderUsage();
+                host.querySelector('.artifacts-view-link').click();
+                expect(editor.usageDialogOpen).to.equal(true);
+            });
+        });
+
         it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
             let resolveA;
             let resolveB;

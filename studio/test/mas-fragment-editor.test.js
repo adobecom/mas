@@ -2168,6 +2168,47 @@ describe('MasFragmentEditor', () => {
             expect(collections.rows[0].representative.id).to.equal('b1');
         });
 
+        describe('after a failed load', () => {
+            const collection = {
+                id: 'coll-id',
+                path: '/content/dam/mas/acom/en_US/coll',
+                model: { path: COLLECTION_MODEL_PATH },
+            };
+            let editor;
+            let repository;
+            let getReferencedByFragmentId;
+
+            beforeEach(async () => {
+                getReferencedByFragmentId = sandbox.stub();
+                getReferencedByFragmentId.onCall(0).rejects(new Error('503 Service Unavailable'));
+                getReferencedByFragmentId.resolves({ items: [] });
+                ({ editor, repository } = createEditor({
+                    aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } },
+                }));
+                repository.saveFragment = sandbox.stub().resolves({});
+                sandbox.stub(editor, 'fragment').get(() => collection);
+                sandbox.stub(console, 'error');
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+            });
+
+            it('does not request the references again on every render', async () => {
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+
+                expect(getReferencedByFragmentId.callCount).to.equal(1);
+            });
+
+            it('loads the references again once the fragment is saved', async () => {
+                await editor.saveFragment();
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+
+                expect(getReferencedByFragmentId.callCount).to.equal(2);
+                expect(editor.referencingFragmentsError).to.equal(false);
+            });
+        });
+
         it('lists the promotion project of an open promo variation', async () => {
             const originalPromotions = Store.promotions.list.data.get();
             const project = {

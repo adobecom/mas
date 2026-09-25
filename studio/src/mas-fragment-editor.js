@@ -728,15 +728,18 @@ export default class MasFragmentEditor extends LitElement {
             });
             if (token !== this.#referencingLoadToken) return;
             this.referencingFragments = result;
-            this.#referencingLoadedForId = fragment.id;
         } catch (error) {
             if (token !== this.#referencingLoadToken) return;
             if (error?.name === 'AbortError') return;
             console.error('Failed to load referencing fragments:', error);
             this.referencingFragmentsError = true;
         } finally {
+            // A failed load also counts as loaded, so re-renders do not hammer a failing endpoint;
+            // saving the fragment clears it and loads again.
             if (token === this.#referencingLoadToken) {
                 this.isLoadingReferencingFragments = false;
+                this.#referencingLoadingForId = null;
+                this.#referencingLoadedForId = fragment.id;
             }
         }
     }
@@ -1756,6 +1759,7 @@ export default class MasFragmentEditor extends LitElement {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });
+            if (savedFragment) this.#referencingLoadedForId = null;
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');
             }

@@ -5,22 +5,23 @@
  *
  * All shards/jobs now use ONE shared User-Agent (see playwright.config.js) — there is no more
  * per-shard/per-run UA differentiation. That means the "20 rps per UA" ODIN budget and the
- * "200 rps" EDS budget are both genuinely GLOBAL, single pools shared by every worker, every
- * shard, and (best-effort, see shared-pause-state.js) every concurrent PR run — not per-runner
- * pools. Static pacing below divides the budget by NALA_TOTAL_WORKERS (see playwright.config.js /
- * nala-execution.yml), which assumes a KNOWN, fixed total worker count. That assumption only
- * holds if at most one full Nala workflow run is active repo-wide at a time — see the repo-wide
- * `concurrency:` block at the top of nala-execution.yml, which enforces exactly that (queues,
- * rather than runs concurrently, any other PR's full run). If that queue were ever bypassed or
- * misconfigured, the static division alone would not be sufficient — the reactive throttle
- * handling below (with cross-run pause propagation) is the real safety net for that case, not the
- * static caps.
+ * "200 rps" EDS budget are both genuinely GLOBAL, single pools shared by every worker and every
+ * shard — not per-runner pools. Static pacing below divides the budget by NALA_TOTAL_WORKERS (see
+ * playwright.config.js / nala-execution.yml), which assumes a KNOWN, fixed total worker count.
+ * That assumption only holds if at most one full Nala workflow run is active repo-wide at a time
+ * — see the repo-wide `concurrency:` block at the top of nala-execution.yml, which enforces
+ * exactly that (queues, rather than runs concurrently, any other PR's full run).
  *
  * Static pacing keeps normal-case traffic under budget proactively. Reactive throttle handling is
- * the safety net for whatever the static pacing didn't account for (bursts, another run, a lower
- * limit than assumed, etc.) — on any throttle-like response, ALL further calls to that domain
- * (from this process, and best-effort every other concurrent run) pause for Retry-After (or 60s
- * default).
+ * a LOCAL (in-process only) safety net for whatever the static pacing didn't account for (bursts,
+ * a lower limit than assumed, etc.) — on any throttle-like response, this worker process pauses
+ * ITS OWN further calls to that domain for Retry-After (or 60s default). There is deliberately no
+ * cross-worker/cross-job/cross-run coordination (e.g. via `gh` CLI + repo variables) — that
+ * required a PAT with elevated repo permissions (GITHUB_TOKEN cannot write repo Variables, ever,
+ * regardless of settings) and was judged not worth the ongoing maintenance burden for the
+ * marginal benefit, given static pacing is already conservative and only one run is ever active
+ * at a time. A sibling worker or job not immediately learning about another's 429 is an accepted
+ * trade-off: an isolated 429 is far more likely transient burstiness than sustained overage.
  *
  * Override env vars:
  *   NALA_EDS_THROTTLE_DISABLED=1     disable EDS proactive pacing
@@ -28,10 +29,7 @@
  *   NALA_ODIN_MAX_RPS=<n>            force a specific TOTAL (not per-worker) ODIN cap (default 20)
  *   NALA_429_DEFAULT_PAUSE_MS=<n>    default pause when a 429 has no Retry-After (default 60000)
  *   NALA_THROTTLE_STATUS_CODES=<csv> status codes treated as throttle-like (default "429,503,529")
- *   NALA_SHARED_PAUSE_DISABLED=1     disable cross-run pause propagation (local-only pausing)
  */
-
-import { getSharedPauseUntil, reportSharedPause } from './shared-pause-state.js';
 
 /** Combined RPS budget with headroom under the 200 rps/hostname tenant limit. */
 const EDS_SAFE_TOTAL_RPS = 180;
@@ -172,16 +170,13 @@ export function parseRetryAfterMs(headerValue) {
 }
 
 /**
- * Wait out any active pause (local to this process, or reported by another run) for a domain.
- * Re-checks periodically in case the pause is extended while waiting.
+ * Wait out any active local pause for a domain (set by a prior 429/503/529 in this same worker
+ * process). Re-checks periodically in case the pause is extended while waiting.
  * @param {string} domainKey
  */
 export async function waitIfPaused(domainKey) {
     for (;;) {
-        const local = localPauseUntil.get(domainKey) ?? 0;
-        // eslint-disable-next-line no-await-in-loop
-        const shared = await getSharedPauseUntil(domainKey);
-        const pauseUntil = Math.max(local, shared);
+        const pauseUntil = localPauseUntil.get(domainKey) ?? 0;
         const remaining = pauseUntil - Date.now();
         if (remaining <= 0) return;
         console.info(`[NALA] Waiting ${Math.ceil(remaining / 1000)}s — "${domainKey}" is paused after a 429.\n`);
@@ -191,17 +186,9 @@ export async function waitIfPaused(domainKey) {
 }
 
 /**
- * Handle a 429 response for a domain: parse Retry-After, log it, pause this process's further
- * calls to that domain, and best-effort broadcast the pause to every other concurrent Nala run.
- * @param {string} domainKey
- * @param {string} url the request URL that got the 429 (for logging)
- * @param {string|null} retryAfterHeader
- */
-/**
  * Handle a throttle-like response (429, and by default also 503/529 — some CDN/edge stacks use
  * non-standard codes like 529 "site is overloaded" for the same underlying condition) for a
- * domain: parse Retry-After, log it, pause this process's further calls to that domain, and
- * best-effort broadcast the pause to every other concurrent Nala run.
+ * domain: parse Retry-After, log it, and pause this process's further calls to that domain.
  * @param {string} domainKey
  * @param {string} url the request URL that got the throttle-like response (for logging)
  * @param {string|null} retryAfterHeader
@@ -215,12 +202,9 @@ export async function reportThrottled(domainKey, url, retryAfterHeader, status =
 
     const source = retryAfterHeader ? `Retry-After=${retryAfterHeader}` : 'no Retry-After header, using default';
     console.warn(
-        `[NALA] ${status} response from "${domainKey}" (${url}). Pausing ALL calls to "${domainKey}" for ` +
-            `~${Math.round(delayMs / 1000)}s (${source}). Broadcasting pause to other concurrent Nala runs.\n`,
+        `[NALA] ${status} response from "${domainKey}" (${url}). Pausing this worker's calls to "${domainKey}" for ` +
+            `~${Math.round(delayMs / 1000)}s (${source}).\n`,
     );
-
-    // Best-effort; never let a broken coordination channel fail/hang the test.
-    await reportSharedPause(domainKey, pauseUntil).catch(() => {});
 }
 
 /** Status codes treated as "throttle-like" — i.e. worth pausing the domain over, not just

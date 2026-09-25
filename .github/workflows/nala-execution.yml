@@ -48,11 +48,6 @@ jobs:
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        # gh CLI needs `actions: write` to read/write the shared NALA_PAUSE_* repository
-        # variables used for cross-run 429 pause propagation (nala/libs/shared-pause-state.js).
-        permissions:
-            actions: write
-            contents: read
         runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
         timeout-minutes: 30
         # Each shard is pinned to its runner via matrix.runner (unique label per machine). All
@@ -95,13 +90,6 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 2
-
-            - name: Verify gh CLI shared pause-state wiring
-              uses: ./.github/actions/verify-gh-shared-state
-              with:
-                  run-id: ${{ github.run_id }}
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Resolve shard directories
               run: |
@@ -176,9 +164,6 @@ jobs:
                   # used everywhere (playwright.config.js), so ODIN's 20 rps/UA cap is a single
                   # global pool too.
                   NALA_SHARD_ID: ${{ matrix.shard }}-${{ github.run_id }}
-                  # `gh` (used by nala/libs/shared-pause-state.js for cross-run 429 propagation)
-                  # authenticates via GH_TOKEN.
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Cleanup cloned cards
               if: always()
@@ -202,13 +187,6 @@ jobs:
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        # `actions: write` lets gh CLI read/write the shared NALA_PAUSE_* repo variables used for
-        # cross-run 429 pause propagation (see nala/libs/shared-pause-state.js). The repo-wide
-        # `concurrency:` block at the top of this file (not a custom step here) is what guarantees
-        # only one PR's full Nala run — this job included — is ever active at a time.
-        permissions:
-            actions: write
-            contents: read
         runs-on: [self-hosted, Linux, X64, nala-docs]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
@@ -219,13 +197,6 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-
-            - name: Verify gh CLI shared pause-state wiring
-              uses: ./.github/actions/verify-gh-shared-state
-              with:
-                  run-id: ${{ github.run_id }}
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Fetch base branch for diff
               run: git fetch origin ${{ github.event.pull_request.base.ref }}
@@ -319,6 +290,3 @@ jobs:
                   # Label only (log/display), no longer used to vary the UA — one shared UA is
                   # used everywhere (playwright.config.js).
                   NALA_SHARD_ID: docs-${{ github.run_id }}
-                  # `gh` (used by nala/libs/shared-pause-state.js for cross-run 429 propagation)
-                  # authenticates via GH_TOKEN.
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

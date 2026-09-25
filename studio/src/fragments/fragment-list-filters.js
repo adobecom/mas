@@ -1,6 +1,7 @@
 import { PAGE_NAMES } from '../constants.js';
 import { fragmentIsPromoVariation } from '../promotions/promotion-model.js';
 import { fragmentHasPersonalizationTag } from '../common/utils/personalization-utils.js';
+import { filterStoresByVariationPresence } from './variation-presence-filter.js';
 
 /**
  * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
@@ -18,16 +19,20 @@ export function filterStoresByPersonalizationEnabled(fragmentStores, personaliza
 }
 
 /**
- * Applies content-list filters (personalization + hide promo variations on CONTENT page).
+ * Applies content-list filters (personalization + hide promo variations on CONTENT page + "Has variation?").
  * @param {import('../reactivity/fragment-store.js').FragmentStore[]} fragmentStores
- * @param {{ page: string, personalizationFilterEnabled: boolean }} options
+ * @param {{ page: string, personalizationFilterEnabled: boolean, variationPresence?: string }} options
  * @returns {import('../reactivity/fragment-store.js').FragmentStore[]}
  */
-export function applyFragmentListFilters(fragmentStores, { page, personalizationFilterEnabled }) {
+export function applyFragmentListFilters(fragmentStores, { page, personalizationFilterEnabled, variationPresence }) {
     const filteredByPersonalization = filterStoresByPersonalizationEnabled(fragmentStores, personalizationFilterEnabled);
-    if (page !== PAGE_NAMES.CONTENT) return filteredByPersonalization;
-    return filteredByPersonalization.filter((fs) => {
-        const fragment = fs.get?.() ?? fs.value;
-        return !fragmentIsPromoVariation(fragment);
-    });
+    // Resolve "Has variation?" before excluding promo-variation fragments below: promo presence for
+    // a default card is inferred from sibling promo-variation fragments still in the list at this point.
+    const narrowedByVariationPresence = filterStoresByVariationPresence(filteredByPersonalization, variationPresence);
+    return page !== PAGE_NAMES.CONTENT
+        ? narrowedByVariationPresence
+        : narrowedByVariationPresence.filter((fs) => {
+              const fragment = fs.get?.() ?? fs.value;
+              return !fragmentIsPromoVariation(fragment);
+          });
 }

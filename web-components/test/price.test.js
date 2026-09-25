@@ -14,6 +14,14 @@ import { mockLana, unmockLana } from './mocks/lana.js';
 import * as snapshots from './price/__snapshots__/price.snapshots.js';
 import { withWcs } from './mocks/wcs.js';
 import {
+    preformattedTrees,
+    distinctTrees,
+    segmentTrees,
+    segmentGrossAmount,
+    segmentNetAmount,
+    taxInclusiveGrossTree,
+} from './mocks/priceInfo.js';
+import {
     initMasCommerceService,
     expect,
     removeMasCommerceService,
@@ -21,6 +29,7 @@ import {
 import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
+import { sumOffers, selectOffers } from '../src/utilities.js';
 
 /**
  * @param {string} wcsOsi
@@ -261,6 +270,57 @@ describe('class "InlinePrice"', () => {
         inlinePrice.dataset.displayOldPrice = 'false';
         await inlinePrice.onceSettled();
         expect(inlinePrice.outerHTML).to.be.html(snapshots.taxExclusive);
+    });
+
+    // The test above resolves an already TAX_EXCLUSIVE offer, so
+    // forceTaxExclusive leaves the amount untouched. tax-exclusive-mult is
+    // TAX_INCLUSIVE_DETAILS with distinct gross/net amounts, so forcing it
+    // must change the digits under both WCS response formats.
+    ['legacy', 'preformatted'].forEach((format) => {
+        it(`forces tax exclusivity on a tax-inclusive offer (${format} WCS format)`, async () => {
+            if (format === 'preformatted') {
+                await mockFetch((f) =>
+                    withWcs(f, { priceInfo: taxInclusiveGrossTree }),
+                );
+            }
+            await initMasCommerceService({ country: 'DE', language: 'de' });
+            const amountOf = (el) =>
+                ['integer', 'decimals']
+                    .map(
+                        (c) =>
+                            el.querySelector(`.price-${c}`)?.textContent ?? '',
+                    )
+                    .join(',');
+
+            const gross = mockInlinePrice(`taxIncl-${format}`, 'tax-exclusive');
+            gross.dataset.displayTax = 'true';
+            gross.dataset.forceTaxExclusive = 'false';
+            await gross.onceSettled();
+            expect(amountOf(gross)).to.equal('49,98');
+            expect(
+                gross.querySelector('.price-tax-inclusivity').textContent,
+            ).to.equal('inkl. MwSt.');
+
+            const net = mockInlinePrice(`taxExcl-${format}`, 'tax-exclusive');
+            net.dataset.displayTax = 'true';
+            net.dataset.forceTaxExclusive = 'true';
+            await net.onceSettled();
+            // Net 41.65, not the gross 49.98 leaf WCS sent.
+            expect(amountOf(net)).to.equal('41,65');
+            expect(
+                net.querySelector('.price-tax-inclusivity').textContent,
+            ).to.equal('exkl. MwSt.');
+
+            const strikethrough = mockInlinePrice(
+                `taxExclSt-${format}`,
+                'tax-exclusive',
+            );
+            strikethrough.dataset.template = 'strikethrough';
+            strikethrough.dataset.forceTaxExclusive = 'true';
+            await strikethrough.onceSettled();
+            // Net without discount 52.06, not the gross 62.47 leaf.
+            expect(amountOf(strikethrough)).to.equal('52,06');
+        });
     });
 
     it('renders discount percentage', async () => {
@@ -1150,44 +1210,80 @@ describe('class "InlinePrice"', () => {
 
         const SEGMENTS = ['individual', 'business', 'student', 'university'];
 
+        // The segment offers are 1.99 gross / 1.59 net, so a forced row must
+        // switch the amount as well as the label. Running the matrix on the
+        // pre-split tree too would multiply 344 cases, so a representative
+        // subset carries the new format: one locale per tax outcome.
+        //   AT_de: tax label, forced for business/university only
+        //   MU_en: forced for every segment
+        //   JP_ja: tax label, never forced
+        //   US_en: no tax label
+        const PREFORMATTED_LOCALES = ['AT_de', 'MU_en', 'JP_ja', 'US_en'];
+
         TESTS.forEach((test) => {
             SEGMENTS.forEach((segment, index) => {
-                it(`renders price with tax info for "${test.locale}" and "${segment}"`, async () => {
-                    const localeArray = test.locale.split('_');
-                    const country = localeArray[0];
-                    const language = localeArray[1];
-                    await initMasCommerceService({ country, language });
-                    const literals = await getPriceLiterals(
-                        {
-                            language,
-                        },
-                        priceLiteralsJson.data,
-                    );
+                const [displaysTax, forcesTaxExclusive] = test.expected[index];
+                const formats = PREFORMATTED_LOCALES.includes(test.locale)
+                    ? ['legacy', 'preformatted']
+                    : ['legacy'];
 
-                    const inlinePrice = mockInlinePrice(segment, segment);
-                    inlinePrice.removeAttribute('data-display-tax');
-                    inlinePrice.removeAttribute('data-force-tax-exclusive');
-                    await inlinePrice.onceSettled();
-                    const priceTaxElement = inlinePrice.querySelector(
-                        '.price-tax-inclusivity',
-                    );
-                    if (test.expected[index][0]) {
-                        expect(priceTaxElement.classList.contains('disabled'))
-                            .to.be.false;
-                        let taxInclExclLabel;
-                        if (test.expected[index][1]) {
-                            // forceTaxExclusive: true
-                            taxInclExclLabel = literals.taxExclusiveLabel;
-                        } else {
-                            taxInclExclLabel = literals.taxInclusiveLabel;
+                formats.forEach((format) => {
+                    it(`renders price with tax info for "${test.locale}" and "${segment}" (${format} WCS format)`, async () => {
+                        const localeArray = test.locale.split('_');
+                        const country = localeArray[0];
+                        const language = localeArray[1];
+                        if (format === 'preformatted') {
+                            await mockFetch((f) =>
+                                withWcs(f, { priceInfo: segmentTrees }),
+                            );
                         }
-                        const taxLabel =
-                            taxInclExclLabel.match(/TAX \{(.*?)\}/)[1];
-                        expect(priceTaxElement.textContent).to.equal(taxLabel);
-                    } else {
-                        expect(priceTaxElement.classList.contains('disabled'))
-                            .to.be.true;
-                    }
+                        await initMasCommerceService({ country, language });
+                        const literals = await getPriceLiterals(
+                            {
+                                language,
+                            },
+                            priceLiteralsJson.data,
+                        );
+
+                        const inlinePrice = mockInlinePrice(segment, segment);
+                        inlinePrice.removeAttribute('data-display-tax');
+                        inlinePrice.removeAttribute('data-force-tax-exclusive');
+                        await inlinePrice.onceSettled();
+                        const priceTaxElement = inlinePrice.querySelector(
+                            '.price-tax-inclusivity',
+                        );
+                        if (displaysTax) {
+                            expect(
+                                priceTaxElement.classList.contains('disabled'),
+                            ).to.be.false;
+                            const taxInclExclLabel = forcesTaxExclusive
+                                ? literals.taxExclusiveLabel
+                                : literals.taxInclusiveLabel;
+                            const taxLabel =
+                                taxInclExclLabel.match(/TAX \{(.*?)\}/)[1];
+                            expect(priceTaxElement.textContent).to.equal(
+                                taxLabel,
+                            );
+                        } else {
+                            expect(
+                                priceTaxElement.classList.contains('disabled'),
+                            ).to.be.true;
+                        }
+                        // The label alone would not catch a gross amount shown
+                        // next to an excluding-tax label, so assert the digits.
+                        const amount = ['integer', 'decimals']
+                            .map(
+                                (c) =>
+                                    inlinePrice.querySelector(`.price-${c}`)
+                                        ?.textContent ?? '',
+                            )
+                            .join('.');
+                        expect(amount).to.equal(
+                            forcesTaxExclusive
+                                ? segmentNetAmount
+                                : segmentGrossAmount,
+                        );
+                    });
                 });
             });
         });
@@ -1340,6 +1436,1081 @@ describe('commerce service', () => {
             }
             expect(inlinePrice.classList.contains('placeholder-failed')).to.be
                 .true;
+        });
+    });
+});
+
+// Real WCS stage payloads (wcs-stage.adobe.io, landscape=ALL). Each case is the
+// priceDetails/priceInfo pair for one country, so the tree the client indexes is
+// the tree WCS actually sends.
+describe('priceInfo (WCS pre-split tree)', () => {
+    const opts = { country: 'US', language: 'en', template: 'price' };
+    const withInfo = (offer, priceInfo) => ({ ...offer, priceInfo });
+
+    const abm = {
+        US: {
+            priceDetails: {
+                price: 109,
+                annualized: { annualizedPrice: 1308 },
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                taxDisplay: 'TAX_EXCLUSIVE',
+                taxTerm: 'TAX',
+            },
+            priceInfo: {
+                format: {
+                    currencySymbol: 'US$',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '109',
+                            decimals: '00',
+                            full: 'US$109.00',
+                        },
+                    },
+                },
+                annualized: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '1,308',
+                            decimals: '00',
+                            full: 'US$1,308.00',
+                        },
+                    },
+                },
+            },
+            shows: '109',
+            annualShows: '1,308',
+        },
+        // No-precision locale: WCS omits `decimals` entirely on the leaf.
+        JP: {
+            priceDetails: {
+                price: 11990,
+                annualized: { annualizedPrice: 143880 },
+                usePrecision: false,
+                formatString: "#,##0 '&#20870;'",
+                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                taxTerm: 'TAX',
+            },
+            priceInfo: {
+                format: {
+                    currencySymbol: '&#20870;',
+                    usePrecision: false,
+                    isCurrencyFirst: false,
+                    hasCurrencySpace: true,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '11,990',
+                            full: '11,990 &#20870;',
+                        },
+                    },
+                },
+                annualized: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '143,880',
+                            full: '143,880 &#20870;',
+                        },
+                    },
+                },
+            },
+            shows: '11,990',
+            annualShows: '143,880',
+        },
+        // India: WCS groups lakh/crore itself, so no client re-grouping.
+        IN: {
+            priceDetails: {
+                price: 9312,
+                annualized: { annualizedPrice: 111744 },
+                usePrecision: true,
+                formatString: "'&#8377;'#,##,##0.00",
+                taxDisplay: 'TAX_EXCLUSIVE',
+                taxTerm: 'GST',
+            },
+            priceInfo: {
+                format: {
+                    currencySymbol: '&#8377;',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '9,312',
+                            decimals: '00',
+                            full: '&#8377;9,312.00',
+                        },
+                    },
+                },
+                annualized: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '1,11,744',
+                            decimals: '00',
+                            full: '&#8377;1,11,744.00',
+                        },
+                    },
+                },
+            },
+            shows: '9,312',
+            annualShows: '1,11,744',
+        },
+        // Currency-last with a space, dot grouping, comma decimal.
+        DE: {
+            priceDetails: {
+                price: 86.55,
+                annualized: { annualizedPrice: 1038.6 },
+                usePrecision: true,
+                formatString: "#.##0,00 '&euro;'",
+                taxDisplay: 'TAX_EXCLUSIVE',
+                taxTerm: 'VAT',
+            },
+            priceInfo: {
+                format: {
+                    currencySymbol: '&euro;',
+                    decimalsDelimiter: ',',
+                    usePrecision: true,
+                    isCurrencyFirst: false,
+                    hasCurrencySpace: true,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '86',
+                            decimals: '55',
+                            full: '86,55 &euro;',
+                        },
+                    },
+                },
+                annualized: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '1.038',
+                            decimals: '60',
+                            full: '1.038,60 &euro;',
+                        },
+                    },
+                },
+            },
+            shows: '86',
+            annualShows: '1.038',
+        },
+    };
+
+    const offerFor = (country) => ({
+        offerSelectorIds: ['pi'],
+        commitment: 'YEAR',
+        term: 'MONTHLY',
+        planType: 'ABM',
+        priceDetails: abm[country].priceDetails,
+    });
+
+    describe('renders WCS parts verbatim', () => {
+        let buildPriceHTML;
+        beforeEach(async () => {
+            ({ buildPriceHTML } = await initMasCommerceService());
+        });
+
+        const partsOf = (html) => {
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            return ['integer', 'decimals-delimiter', 'decimals']
+                .map((c) => el.querySelector(`.price-${c}`)?.textContent ?? '')
+                .join('');
+        };
+
+        Object.keys(abm).forEach((country) => {
+            const c = abm[country];
+            const countryOpts = { ...opts, country };
+
+            it(`${country}: price matches the numeric path and shows WCS digits`, () => {
+                const offer = offerFor(country);
+                const numeric = buildPriceHTML([offer], countryOpts);
+                const info = buildPriceHTML(
+                    [withInfo(offer, c.priceInfo)],
+                    countryOpts,
+                );
+                expect(info).to.equal(numeric);
+                expect(partsOf(info)).to.contain(c.shows);
+            });
+
+            it(`${country}: annualized indexes the annualized timescale`, () => {
+                const offer = offerFor(country);
+                const annualOpts = { ...countryOpts, template: 'annual' };
+                const numeric = buildPriceHTML([offer], annualOpts);
+                const info = buildPriceHTML(
+                    [withInfo(offer, c.priceInfo)],
+                    annualOpts,
+                );
+                expect(info).to.equal(numeric);
+                expect(partsOf(info)).to.contain(c.annualShows);
+            });
+        });
+
+        // WCS reports hasCurrencySpace:true for JPY (MWPW-205707), and the client
+        // trusts priceInfo.format directly. Guards the space from disappearing.
+        it('JP keeps the space before a trailing currency symbol', () => {
+            const offer = offerFor('JP');
+            const info = buildPriceHTML([withInfo(offer, abm.JP.priceInfo)], {
+                ...opts,
+                country: 'JP',
+            });
+            const el = document.createElement('div');
+            el.innerHTML = info;
+            expect(
+                el.querySelector('.price-currency-space')?.innerHTML,
+            ).to.equal('&nbsp;');
+        });
+
+        // PUF: per-month equivalent now comes from WCS's optical block, which
+        // matches opticalPriceRoundingRules (verified on stage across JP/TW/CO/GB/IN).
+        it('PUF optical indexes the optical timescale', () => {
+            const pufOffer = {
+                offerSelectorIds: ['pi-puf'],
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                planType: 'PUF',
+                priceDetails: {
+                    price: 263.88,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+            };
+            const pufInfo = {
+                format: {
+                    currencySymbol: 'US$',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'ANNUAL' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '263',
+                            decimals: '88',
+                            full: 'US$263.88',
+                        },
+                    },
+                },
+                optical: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '21',
+                            decimals: '99',
+                            full: 'US$21.99',
+                        },
+                    },
+                },
+            };
+            const opticalOpts = { ...opts, template: 'optical' };
+            const numeric = buildPriceHTML([pufOffer], opticalOpts);
+            const info = buildPriceHTML(
+                [withInfo(pufOffer, pufInfo)],
+                opticalOpts,
+            );
+            expect(info).to.equal(numeric);
+            expect(partsOf(info)).to.contain('21');
+        });
+
+        // Optical divides by term months (12/24/36). The WCS optical leaf must
+        // win over client rounding for every term, not just annual, so a WCS
+        // vs client rounding mismatch always renders WCS. Distinct leaf digits
+        // prove the override.
+        [
+            {
+                name: 'ANNUAL',
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                price: 263.88,
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                leaf: { integer: '22', decimals: '00', full: 'US$22.00' },
+            },
+            {
+                name: 'TWO_YEARS',
+                commitment: 'TWO_YEARS',
+                term: 'TWO_YEARS',
+                price: 480,
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                leaf: { integer: '19', decimals: '99', full: 'US$19.99' },
+            },
+            {
+                name: 'THREE_YEARS',
+                commitment: 'THREE_YEARS',
+                term: 'THREE_YEARS',
+                price: 719.64,
+                usePrecision: true,
+                formatString: "'US$'#,##0.00",
+                leaf: { integer: '21', decimals: '11', full: 'US$21.11' },
+            },
+            {
+                // no-precision locale: leaf omits decimals
+                name: 'ANNUAL no precision',
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                price: 143880,
+                usePrecision: false,
+                formatString: "#,##0 '&#20870;'",
+                leaf: { integer: '12,000', full: '12,000 &#20870;' },
+            },
+        ].forEach((c) => {
+            it(`optical indexes the ${c.name} leaf over client rounding`, () => {
+                const offer = {
+                    offerSelectorIds: ['pi-opt'],
+                    commitment: c.commitment,
+                    term: c.term,
+                    planType: 'PUF',
+                    priceDetails: {
+                        price: c.price,
+                        usePrecision: c.usePrecision,
+                        formatString: c.formatString,
+                        taxDisplay: 'TAX_EXCLUSIVE',
+                        taxTerm: 'TAX',
+                    },
+                };
+                const info = {
+                    format: {
+                        currencySymbol: c.formatString.match(/'(.*)'/)[1],
+                        decimalsDelimiter: '.',
+                        usePrecision: c.usePrecision,
+                        isCurrencyFirst: c.formatString.startsWith("'"),
+                        hasCurrencySpace: false,
+                    },
+                    recurrence: { term: c.term },
+                    optical: { withDiscount: { withTax: c.leaf } },
+                };
+                const opticalOpts = { ...opts, template: 'optical' };
+                const numeric = partsOf(buildPriceHTML([offer], opticalOpts));
+                const shown = partsOf(
+                    buildPriceHTML([withInfo(offer, info)], opticalOpts),
+                );
+                const expected = c.leaf.decimals
+                    ? `${c.leaf.integer}.${c.leaf.decimals}`
+                    : c.leaf.integer;
+                expect(shown).to.equal(expected);
+                // leaf digits differ from the client division: override proven
+                expect(shown).to.not.equal(numeric);
+            });
+        });
+
+        // `template="annual"` has no planType gate (price.js), while
+        // `formatAnnualPrice` only annualizes YEAR/MONTHLY. On an M2M offer the
+        // annualized leaf must be ignored, or annual digits would render with a
+        // /mo label. WCS sends no annualized block for M2M today, so this pins
+        // the contract rather than a live bug.
+        it('ignores the annualized leaf on a non-YEAR/MONTHLY offer', () => {
+            const offer = {
+                offerSelectorIds: ['pi-m2m'],
+                commitment: 'MONTH',
+                term: 'MONTHLY',
+                planType: 'M2M',
+                priceDetails: {
+                    price: 9.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+            };
+            const info = {
+                format: {
+                    currencySymbol: 'US$',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '9',
+                            decimals: '99',
+                            full: 'US$9.99',
+                        },
+                    },
+                },
+                // WCS would not send this for MONTH/MONTHLY; if it ever did,
+                // rendering it beside a /mo label is a 12x error.
+                annualized: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '119',
+                            decimals: '88',
+                            full: 'US$119.88',
+                        },
+                    },
+                },
+            };
+            const html = buildPriceHTML([withInfo(offer, info)], {
+                ...opts,
+                template: 'annual',
+            });
+            expect(partsOf(html)).to.equal('9.99');
+        });
+
+        // A natively tax-exclusive offer (not forced) keeps its priceInfo and
+        // renders the .withTax leaf next to the excl-tax label.
+        it('native tax-exclusive renders the leaf with the excl-tax label', () => {
+            const offer = {
+                offerSelectorIds: ['pi-te'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                planType: 'ABM',
+                priceDetails: {
+                    price: 89.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+            };
+            const info = {
+                format: {
+                    currencySymbol: 'US$',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        // Digits deliberately differ from the offer's 89.99, so
+                        // the assertion fails if the numeric path renders
+                        // instead of the leaf. A fixture echoing the net price
+                        // would pass either way.
+                        withTax: {
+                            integer: '77',
+                            decimals: '11',
+                            full: 'US$77.11',
+                        },
+                    },
+                },
+            };
+            const html = buildPriceHTML([withInfo(offer, info)], {
+                ...opts,
+                displayTax: true,
+            });
+            expect(partsOf(html)).to.equal('77.11');
+            expect(partsOf(buildPriceHTML([offer], opts))).to.equal('89.99');
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            expect(
+                el.querySelector('.price-tax-inclusivity').textContent,
+            ).to.equal('excl. tax');
+        });
+
+        // Regression: taxDisplay selects the legal line, never a different number.
+        // WCS sends a 0 without-tax leaf on offers with no separate net amount
+        // (trials), so keying the displayed value off taxDisplay renders 0.00.
+        // Real payloads: OSI FWEdmk_LYpoGnCR0gQMaS5Rbq9a5vFbVFoNaRT0m7NU.
+        [
+            {
+                name: 'US TAX_EXCLUSIVE',
+                country: 'US',
+                price: 263.88,
+                taxDisplay: 'TAX_EXCLUSIVE',
+                formatString: "'US$'#,##0.00",
+                symbol: 'US$',
+                first: true,
+                space: false,
+                integer: '263',
+                decimals: '88',
+                full: 'US$263.88',
+                shows: '263',
+            },
+            {
+                name: 'EG TAX_INCLUSIVE_DETAILS',
+                country: 'EG',
+                price: 8194.32,
+                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                formatString: "'LE' #,##0.00",
+                symbol: 'LE',
+                first: true,
+                space: true,
+                integer: '8,194',
+                decimals: '32',
+                full: 'LE 8,194.32',
+                shows: '8,194',
+            },
+        ].forEach((c) => {
+            it(`renders the charged price, not the 0 without-tax leaf (${c.name})`, () => {
+                const trialOffer = {
+                    offerSelectorIds: ['pi-trial'],
+                    commitment: 'YEAR',
+                    term: 'ANNUAL',
+                    planType: 'PUF',
+                    priceDetails: {
+                        price: c.price,
+                        priceWithoutTax: 0,
+                        usePrecision: true,
+                        formatString: c.formatString,
+                        taxDisplay: c.taxDisplay,
+                        taxTerm: 'VAT',
+                    },
+                };
+                const trialOpts = { ...opts, country: c.country };
+                const zeroLeaf = {
+                    integer: '0',
+                    decimals: '00',
+                    full: `${c.symbol}0.00`,
+                };
+                const numeric = buildPriceHTML([trialOffer], trialOpts);
+                const info = buildPriceHTML(
+                    [
+                        withInfo(trialOffer, {
+                            format: {
+                                currencySymbol: c.symbol,
+                                decimalsDelimiter: '.',
+                                usePrecision: true,
+                                isCurrencyFirst: c.first,
+                                hasCurrencySpace: c.space,
+                            },
+                            recurrence: { term: 'ANNUAL' },
+                            asIs: {
+                                withDiscount: {
+                                    withTax: {
+                                        integer: c.integer,
+                                        decimals: c.decimals,
+                                        full: c.full,
+                                    },
+                                    withoutTax: zeroLeaf,
+                                },
+                            },
+                        }),
+                    ],
+                    trialOpts,
+                );
+                expect(info).to.equal(numeric);
+                expect(partsOf(info)).to.contain(c.shows);
+                expect(partsOf(info)).to.not.equal('0');
+            });
+        });
+
+        it('strikethrough indexes withoutDiscount', () => {
+            const discounted = {
+                offerSelectorIds: ['pi-st'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                planType: 'ABM',
+                priceDetails: {
+                    price: 43.99,
+                    priceWithoutDiscount: 54.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                },
+            };
+            const stOpts = { ...opts, template: 'strikethrough' };
+            const numeric = buildPriceHTML([discounted], stOpts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(discounted, {
+                        format: {
+                            currencySymbol: 'US$',
+                            decimalsDelimiter: '.',
+                            usePrecision: true,
+                            isCurrencyFirst: true,
+                            hasCurrencySpace: false,
+                        },
+                        recurrence: { term: 'MONTHLY' },
+                        asIs: {
+                            withDiscount: {
+                                withTax: {
+                                    integer: '43',
+                                    decimals: '99',
+                                    full: 'US$43.99',
+                                },
+                            },
+                            withoutDiscount: {
+                                withTax: {
+                                    integer: '54',
+                                    decimals: '99',
+                                    full: 'US$54.99',
+                                },
+                            },
+                        },
+                    }),
+                ],
+                stOpts,
+            );
+            expect(info).to.equal(numeric);
+            expect(partsOf(info)).to.contain('54');
+        });
+
+        // WCS omits absent blocks rather than nulling them (agreed with the WCS
+        // team), and omits withoutDiscount.withTax entirely today, so a missing
+        // leaf must fall back to numeric instead of throwing or rendering blank.
+        it('falls back to numeric when the indexed leaf is absent', () => {
+            const discounted = {
+                offerSelectorIds: ['pi-missing'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                planType: 'ABM',
+                priceDetails: {
+                    price: 43.99,
+                    priceWithoutDiscount: 54.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                },
+            };
+            const stOpts = { ...opts, template: 'strikethrough' };
+            const numeric = buildPriceHTML([discounted], stOpts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(discounted, {
+                        format: {
+                            currencySymbol: 'US$',
+                            decimalsDelimiter: '.',
+                            usePrecision: true,
+                            isCurrencyFirst: true,
+                            hasCurrencySpace: false,
+                        },
+                        recurrence: { term: 'MONTHLY' },
+                        asIs: {
+                            withDiscount: {
+                                withTax: {
+                                    integer: '43',
+                                    decimals: '99',
+                                    full: 'US$43.99',
+                                },
+                            },
+                            // withoutDiscount omitted, as WCS does today
+                        },
+                    }),
+                ],
+                stOpts,
+            );
+            expect(info).to.equal(numeric);
+            expect(partsOf(info)).to.contain('54');
+        });
+
+        it('promo annualized stays on the client-summed numeric path', () => {
+            const promoOffer = {
+                offerSelectorIds: ['pi-promo'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                planType: 'ABM',
+                priceDetails: {
+                    price: 43.99,
+                    priceWithoutDiscount: 54.99,
+                    usePrecision: true,
+                    formatString: "'US$'#,##0.00",
+                },
+                promotion: {
+                    start: '2020-01-01T00:00:00Z',
+                    end: '2100-01-01T00:00:00Z',
+                    displaySummary: {
+                        amount: 20,
+                        duration: 'P3M',
+                        outcomeType: 'PERCENTAGE_DISCOUNT',
+                    },
+                },
+            };
+            // displayAnnual + promotionCode + the offer's own promotion routes to
+            // pricePromoWithAnnual, the template that sums the weighted year.
+            const annualOpts = {
+                ...opts,
+                displayAnnual: true,
+                promotionCode: 'promo',
+            };
+            const numeric = buildPriceHTML([promoOffer], annualOpts);
+            const info = buildPriceHTML(
+                [
+                    withInfo(promoOffer, {
+                        format: {
+                            currencySymbol: 'US$',
+                            decimalsDelimiter: '.',
+                            usePrecision: true,
+                            isCurrencyFirst: true,
+                            hasCurrencySpace: false,
+                        },
+                        recurrence: { term: 'MONTHLY' },
+                        asIs: {
+                            withDiscount: {
+                                withTax: {
+                                    integer: '43',
+                                    decimals: '99',
+                                    full: 'US$43.99',
+                                },
+                            },
+                        },
+                        // A wrong annualized leaf that must be ignored for promos.
+                        annualized: {
+                            withDiscount: {
+                                withTax: {
+                                    integer: '0',
+                                    decimals: '00',
+                                    full: 'US$0.00',
+                                },
+                            },
+                        },
+                    }),
+                ],
+                annualOpts,
+            );
+            expect(info).to.equal(numeric);
+            expect(partsOf(info)).to.not.equal('0');
+        });
+
+        // JP PUF + STG_MASTESTPROMO (Drew's stage promo code, works on any offer
+        // and country). 50% off, tax-inclusive, so the strikethrough needs
+        // withoutDiscount.withTax and optical must stay on the discounted leaf.
+        describe('discounted offer (stage promo)', () => {
+            const promoOffer = {
+                offerSelectorIds: ['pi-drew'],
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                planType: 'PUF',
+                priceDetails: {
+                    price: 17340,
+                    priceWithoutDiscount: 34680,
+                    priceWithoutDiscountAndTax: 31528,
+                    usePrecision: false,
+                    formatString: "#,##0 '&#20870;'",
+                    taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                    taxTerm: 'TAX',
+                },
+                promotion: {
+                    id: '065a0819-0e29-4a14-a638-ac031808fa1d',
+                    promotionCode: 'STG_MASTESTPROMO',
+                    start: '2026-09-10T16:03:05.000Z',
+                    end: '2099-09-10T15:56:00.000Z',
+                    displaySummary: {
+                        outcomeType: 'PERCENTAGE_DISCOUNT',
+                        duration: 'P1Y',
+                        amount: 50,
+                        minProductQuantity: 1,
+                    },
+                },
+            };
+            const leaf = (integer) => ({
+                integer,
+                full: `${integer} &#20870;`,
+            });
+            const promoInfo = {
+                format: {
+                    currencySymbol: '&#20870;',
+                    usePrecision: false,
+                    isCurrencyFirst: false,
+                    hasCurrencySpace: true,
+                },
+                tax: { display: 'TAX_INCLUSIVE_DETAILS', term: 'TAX' },
+                recurrence: { term: 'ANNUAL' },
+                asIs: {
+                    withDiscount: {
+                        withTax: leaf('17,340'),
+                        withoutTax: leaf('0'),
+                    },
+                    withoutDiscount: {
+                        withTax: leaf('34,680'),
+                        withoutTax: leaf('31,528'),
+                    },
+                },
+                optical: {
+                    withDiscount: {
+                        withTax: leaf('1,445'),
+                        withoutTax: leaf('0'),
+                    },
+                    withoutDiscount: {
+                        withTax: leaf('2,890'),
+                        withoutTax: leaf('2,628'),
+                    },
+                },
+            };
+            const jpOpts = { ...opts, country: 'JP', language: 'ja' };
+
+            [
+                // No promotionCode in scope: promo not applied, regular price shows.
+                {
+                    name: 'price, promo not applied',
+                    extra: {},
+                    shows: '34,680',
+                },
+                {
+                    name: 'strikethrough',
+                    extra: { template: 'strikethrough' },
+                    shows: '34,680',
+                },
+                // Optical always divides `price`, so it stays on the discounted
+                // leaf even when the context wants the pre-discount number.
+                {
+                    name: 'optical per-month',
+                    extra: { template: 'optical' },
+                    shows: '1,445',
+                },
+                // Promo applied renders both prices (struck regular + discounted),
+                // so assert on the whole markup rather than the first span.
+                {
+                    name: 'promo applied',
+                    extra: { promotionCode: 'STG_MASTESTPROMO' },
+                    shows: '17,340',
+                    whole: true,
+                },
+            ].forEach((c) => {
+                it(`${c.name}: tree === numeric`, () => {
+                    const o = { ...jpOpts, ...c.extra };
+                    const numeric = buildPriceHTML([promoOffer], o);
+                    const info = buildPriceHTML(
+                        [withInfo(promoOffer, promoInfo)],
+                        o,
+                    );
+                    expect(info).to.equal(numeric);
+                    expect(c.whole ? info : partsOf(info)).to.contain(c.shows);
+                });
+            });
+
+            it('never renders the 0 without-tax leaf', () => {
+                ['price', 'strikethrough', 'optical'].forEach((template) => {
+                    const info = buildPriceHTML(
+                        [withInfo(promoOffer, promoInfo)],
+                        { ...jpOpts, template },
+                    );
+                    expect(partsOf(info), template).to.not.equal('0');
+                });
+            });
+        });
+
+        it('ignores priceInfo when displayFormatted is false', () => {
+            const offer = offerFor('US');
+            const dfOpts = { ...opts, displayFormatted: false };
+            const numeric = buildPriceHTML([offer], dfOpts);
+            const info = buildPriceHTML(
+                [withInfo(offer, abm.US.priceInfo)],
+                dfOpts,
+            );
+            expect(info).to.equal(numeric);
+        });
+    });
+});
+
+describe('priceDetails-only paths (priceInfo dropped)', () => {
+    it('sumOffers (soft bundle) drops priceInfo so the sum renders numerically', () => {
+        const base = {
+            offerSelectorIds: ['sb-1'],
+            priceDetails: { price: 19.99, usePrecision: true },
+            // A stale WCS string that must not survive summation.
+            priceInfo: { price: 'US$19.99', usePrecision: true },
+        };
+        const summed = sumOffers([
+            base,
+            {
+                ...base,
+                offerSelectorIds: ['sb-2'],
+                priceDetails: { price: 24.99, usePrecision: true },
+                priceInfo: { price: 'US$24.99', usePrecision: true },
+            },
+        ]);
+        expect(summed.priceInfo).to.equal(undefined);
+        expect(summed.priceDetails.price).to.equal(44.98);
+    });
+
+    it('forceTaxExclusive drops gross priceInfo so the net amount renders', async () => {
+        // priceInfo carries the gross tree; forcing tax exclusive must render
+        // the net price, not the gross leaf.
+        const grossOffer = {
+            offerSelectorIds: ['fte'],
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+            planType: 'ABM',
+            priceDetails: {
+                price: 120,
+                priceWithoutTax: 100,
+                priceWithoutDiscount: 240,
+                priceWithoutDiscountAndTax: 200,
+                usePrecision: true,
+                formatString: "'\u00a3'#,##0.00",
+                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                taxTerm: 'VAT',
+            },
+            priceInfo: {
+                format: {
+                    currencySymbol: '\u00a3',
+                    decimalsDelimiter: '.',
+                    usePrecision: true,
+                    isCurrencyFirst: true,
+                    hasCurrencySpace: false,
+                },
+                recurrence: { term: 'MONTHLY' },
+                asIs: {
+                    withDiscount: {
+                        withTax: {
+                            integer: '120',
+                            decimals: '00',
+                            full: '\u00a3120.00',
+                        },
+                    },
+                    withoutDiscount: {
+                        withTax: {
+                            integer: '240',
+                            decimals: '00',
+                            full: '\u00a3240.00',
+                        },
+                    },
+                },
+            },
+        };
+        const { buildPriceHTML } = await initMasCommerceService();
+        const opts = { country: 'GB', language: 'en', displayTax: true };
+        const partsOf = (html) => {
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            return el.querySelector('.price-integer')?.textContent ?? '';
+        };
+
+        const [selected] = selectOffers([grossOffer], {
+            country: 'GB',
+            forceTaxExclusive: true,
+        });
+        expect(selected.priceInfo).to.equal(undefined);
+
+        // net 100 / net 200, not gross 120 / 240
+        expect(
+            partsOf(buildPriceHTML([selected], { ...opts, template: 'price' })),
+        ).to.equal('100');
+        expect(
+            partsOf(
+                buildPriceHTML([selected], {
+                    ...opts,
+                    template: 'strikethrough',
+                }),
+            ),
+        ).to.equal('200');
+    });
+
+    it('dual-OSI discount computes from priceDetails and ignores priceInfo', async () => {
+        // Inject a bogus priceInfo on every resolved offer; the cross-offer
+        // discount must still compute 20% from priceDetails (43.99 vs 54.99).
+        const withBogusPriceInfo = async (originalFetch) => {
+            const inner = await withWcs(originalFetch);
+            return async (req) => {
+                const res = await inner(req);
+                if (res === false || !res.ok) return res;
+                const body = await res.json();
+                body.resolvedOffers = body.resolvedOffers.map((o) => ({
+                    ...o,
+                    priceInfo: { price: 'US$0.00', usePrecision: true },
+                }));
+                return { ...res, json: async () => body };
+            };
+        };
+        await mockFetch(withBogusPriceInfo);
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('crossDiscount', 'abm-promo,abm');
+        inlinePrice.dataset.template = 'discount';
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.querySelector('.discount').textContent).to.equal(
+            '20%',
+        );
+    });
+});
+
+// offers.json has no priceInfo, so the existing suites never hit the pre-split
+// path. These re-run representative scenarios on the new format.
+describe('WCS preformatted response format', () => {
+    const partsOf = (el) =>
+        ['integer', 'decimals-delimiter', 'decimals']
+            .map((c) => el.querySelector(`.price-${c}`)?.textContent ?? '')
+            .join('');
+
+    describe('parity: new format matches the legacy snapshot', () => {
+        // [name, osi, dataset, snapshot]
+        const scenarios = [
+            ['regular', 'puf', {}, snapshots.price],
+            [
+                'strikethrough',
+                'puf',
+                { template: 'strikethrough' },
+                snapshots.strikethrough,
+            ],
+            [
+                'optical',
+                'puf',
+                {
+                    template: 'optical',
+                    displayPerUnit: 'true',
+                    displayTax: 'true',
+                },
+                snapshots.optical,
+            ],
+            ['annual', 'puf', { template: 'annual' }, snapshots.annual],
+            [
+                'promo-strikethrough',
+                'abm-promo',
+                { promotionCode: 'nicopromo', displayOldPrice: 'true' },
+                snapshots.promoStrikethrough,
+            ],
+        ];
+
+        scenarios.forEach(([name, osi, dataset, snapshot]) => {
+            it(`${name}: renders identically to the numeric path`, async () => {
+                await mockFetch((f) =>
+                    withWcs(f, { priceInfo: preformattedTrees }),
+                );
+                await initMasCommerceService();
+                const inlinePrice = mockInlinePrice(`pre-${name}`, osi);
+                Object.assign(inlinePrice.dataset, dataset);
+                await inlinePrice.onceSettled();
+                expect(inlinePrice.outerHTML).to.be.html(snapshot);
+            });
+        });
+    });
+
+    describe('precedence: WCS leaf wins over client formatting', () => {
+        beforeEach(async () => {
+            await mockFetch((f) => withWcs(f, { priceInfo: distinctTrees }));
+            await initMasCommerceService();
+        });
+
+        it('regular uses the WCS integer/decimals, not the offer price', async () => {
+            const inlinePrice = mockInlinePrice('prec-regular', 'puf');
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('777.11');
+        });
+
+        it('annual indexes the annualized WCS leaf', async () => {
+            const inlinePrice = mockInlinePrice('prec-annual', 'puf');
+            inlinePrice.dataset.template = 'annual';
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('777.11');
+        });
+
+        it('annualized monthly subscription indexes the annualized leaf, not asIs or price * 12', async () => {
+            const inlinePrice = mockInlinePrice('prec-annual-abm', 'abm');
+            inlinePrice.dataset.template = 'annual';
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('911.33');
+        });
+
+        it('annualized monthly subscription without the annual template shows asIs', async () => {
+            const inlinePrice = mockInlinePrice('prec-asis-abm', 'abm');
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('88.22');
+        });
+
+        it('optical indexes the optical WCS leaf', async () => {
+            const inlinePrice = mockInlinePrice('prec-optical', 'puf');
+            inlinePrice.dataset.template = 'optical';
+            await inlinePrice.onceSettled();
+            expect(partsOf(inlinePrice)).to.equal('64.77');
         });
     });
 });

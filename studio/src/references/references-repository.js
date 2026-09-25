@@ -26,6 +26,12 @@ import { findPromotionProjectIdByTag, getPromotionTagFromFragment } from '../pro
  */
 export const REFERENCED_BY_PAGE_LIMIT = 50;
 
+/**
+ * Most pages followed for one fragment (1,000 references). Guards against a server that keeps
+ * returning a cursor, which would otherwise loop forever.
+ */
+export const REFERENCED_BY_MAX_PAGES = 20;
+
 const MAS_CONTENT_ROOT = '/content/dam/mas';
 
 /**
@@ -261,26 +267,27 @@ export function classifyReference(reference) {
  *
  * `aem.sites.cf.fragments.getReferencedByFragmentId` is expected to resolve a single page as
  * `{ items, cursor }`; this function owns the pagination loop so the aem layer stays a thin,
- * single-request client.
+ * single-request client. It stops after `REFERENCED_BY_MAX_PAGES`, or when the server hands back
+ * the cursor it was just given.
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} fragmentId
- * @param {{ signal?: AbortSignal }} [options]
+ * @param {{ abortController?: AbortController }} [options]
  * @returns {Promise<Array<Object>>}
  */
-export async function fetchAllReferencingItems(aem, fragmentId, { signal } = {}) {
-    const abortController = signal ? { signal } : undefined;
+export async function fetchAllReferencingItems(aem, fragmentId, { abortController } = {}) {
     const items = [];
     let cursor;
-    do {
+    for (let pageIndex = 0; pageIndex < REFERENCED_BY_MAX_PAGES; pageIndex += 1) {
         const page = await aem.sites.cf.fragments.getReferencedByFragmentId(fragmentId, {
             cursor,
             limit: REFERENCED_BY_PAGE_LIMIT,
             abortController,
         });
         items.push(...(page?.items ?? []));
-        cursor = page?.cursor;
-    } while (cursor);
+        if (!page?.cursor || page.cursor === cursor) break;
+        cursor = page.cursor;
+    }
     return items;
 }
 
@@ -310,10 +317,10 @@ async function findPromotionProjectForVariation(fragment, loadPromotionProjects)
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragment the fragment currently open in the editor
- * @param {{ signal?: AbortSignal, loadPromotionProjects?: () => Promise<Array<Object>> }} [options]
+ * @param {{ abortController?: AbortController, loadPromotionProjects?: () => Promise<Array<Object>> }} [options]
  * @returns {Promise<Array<{ key: string, label: string, rows: Array<Object> }>>} ordered, non-empty type buckets
  */
-export async function getReferencingFragments(aem, fragment, { signal, loadPromotionProjects } = {}) {
+export async function getReferencingFragments(aem, fragment, { abortController, loadPromotionProjects } = {}) {
     // The open fragment is normally a card/collection whose path parses cleanly. If it does not
     // (e.g. a promo-type path that fails PATH_TOKENS), `surface` is null and the cross-surface and
     // self-locale exclusions become no-ops for this session — references are still listed, just
@@ -325,7 +332,7 @@ export async function getReferencingFragments(aem, fragment, { signal, loadPromo
     };
     const openLocale = fragment?.locale ?? openFragmentTokens.parsedLocale;
 
-    const items = await fetchAllReferencingItems(aem, fragment.id, { signal });
+    const items = await fetchAllReferencingItems(aem, fragment.id, { abortController });
     const kept = items.filter((item) => !isExcludedReference(item, openFragmentTokens));
 
     const itemsByType = new Map(REFERENCE_TYPES.map((type) => [type.key, []]));

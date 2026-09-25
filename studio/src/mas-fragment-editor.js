@@ -722,7 +722,7 @@ export default class MasFragmentEditor extends LitElement {
         this.isLoadingReferencingFragments = true;
         try {
             const result = await getReferencingFragments(this.repository.aem, fragment, {
-                signal: abortController.signal,
+                abortController,
                 loadPromotionProjects: () =>
                     promotionsRepository.getPromotionProjectsForProbe(() => this.repository.loadPromotions()),
             });

@@ -11,6 +11,7 @@ import {
 } from '../../src/constants.js';
 import {
     ARTIFACT_TYPE_KEYS,
+    REFERENCED_BY_MAX_PAGES,
     REFERENCED_BY_PAGE_LIMIT,
     REFERENCE_TYPES,
     chooseRepresentative,
@@ -311,14 +312,38 @@ describe('references-repository', () => {
             expect(getReferencedByFragmentId.calledOnce).to.be.true;
         });
 
-        it('wraps a provided abort signal for the aem layer', async () => {
+        it('passes the abort controller through to the aem layer', async () => {
             const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
-            const signal = {};
+            const abortController = { signal: {} };
 
-            await fetchAllReferencingItems(aem, 'fragment-id', { signal });
+            await fetchAllReferencingItems(aem, 'fragment-id', { abortController });
 
-            expect(getReferencedByFragmentId.firstCall.args[1].abortController).to.deep.equal({ signal });
+            expect(getReferencedByFragmentId.firstCall.args[1].abortController).to.equal(abortController);
+        });
+
+        it(`stops after ${REFERENCED_BY_MAX_PAGES} pages even when the server keeps returning a cursor`, async () => {
+            const getReferencedByFragmentId = sandbox.stub().callsFake(async (id, { cursor }) => {
+                if (getReferencedByFragmentId.callCount > REFERENCED_BY_MAX_PAGES) throw new Error('pagination is unbounded');
+                return { items: [{ id: `ref-${cursor}` }], cursor: `${cursor ?? 0}+` };
+            });
+            const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
+
+            await fetchAllReferencingItems(aem, 'fragment-id');
+
+            expect(getReferencedByFragmentId.callCount).to.equal(REFERENCED_BY_MAX_PAGES);
+        });
+
+        it('stops when the server returns the cursor it was just given', async () => {
+            const getReferencedByFragmentId = sandbox.stub().callsFake(async () => {
+                if (getReferencedByFragmentId.callCount > 2) throw new Error('a repeated cursor is followed');
+                return { items: [{ id: 'ref' }], cursor: 'stuck' };
+            });
+            const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
+
+            await fetchAllReferencingItems(aem, 'fragment-id');
+
+            expect(getReferencedByFragmentId.callCount).to.equal(2);
         });
     });
 

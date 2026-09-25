@@ -281,6 +281,11 @@
                         await el.updateComplete;
                         expect(el.effectiveValue).to.include('expanded-groups="1"');
 
+                        const statusEl = el.shadowRoot.querySelector(
+                            '.compchart-section .compchart-general-info mas-fragment-status',
+                        );
+                        expect(statusEl.getAttribute('variant')).to.equal('published');
+
                         el.shadowRoot.querySelector('.editor-view-toggle button[role="tab"]:last-child').click();
                         await el.updateComplete;
                         let chart;

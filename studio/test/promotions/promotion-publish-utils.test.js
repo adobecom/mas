@@ -266,6 +266,7 @@ describe('promotion-publish-utils', () => {
                 operation: { set: sinon.stub() },
                 aem: { sites: { cf: { fragments: { publish } } } },
                 processError: sinon.stub(),
+                clearStagedTag: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
 
@@ -285,6 +286,7 @@ describe('promotion-publish-utils', () => {
                 operation: { set: sinon.stub() },
                 aem: { sites: { cf: { fragments: { publish } } } },
                 processError,
+                clearStagedTag: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
 
@@ -317,6 +319,7 @@ describe('promotion-publish-utils', () => {
                     },
                 },
                 processError: sinon.stub(),
+                clearStagedTag: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
 
@@ -358,6 +361,7 @@ describe('promotion-publish-utils', () => {
                     },
                 },
                 processError: sinon.stub(),
+                clearStagedTag: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
 

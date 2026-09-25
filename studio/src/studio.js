@@ -9,6 +9,7 @@ import './fields/user-picker.js';
 import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
+import { renderChatPages, renderChatOverlay, handleChatDrawerToggle } from './mas-chat/chat-router.js';
 import { initUsers } from './users.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
@@ -328,11 +329,15 @@ class MasStudio extends LitElement {
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav} ${this.masJsReady ? html`<div class="main-container">${this.currentPage}</div>` : nothing}
+                ${this.sideNav}
+                ${this.masJsReady
+                    ? html`<div class="main-container">${this.currentPage}${renderChatPages(this.page.value)}</div>`
+                    : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>
+            ${renderChatOverlay((e) => handleChatDrawerToggle(e, this))}
         `;
     }
 }

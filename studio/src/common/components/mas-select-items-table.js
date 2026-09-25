@@ -40,6 +40,13 @@ class MasSelectItemsTable extends LitElement {
         groupedVariationsManageOnly: { type: Boolean },
         hideGroupedVariations: { type: Boolean },
         viewOnlyHasMore: { type: Boolean },
+        columnsOverride: { type: Array },
+        cellsOverride: { type: Array },
+        variationCells: { type: Array },
+        variationColumns: { type: Array },
+        hideVariationExpand: { type: Boolean },
+        sortBy: { type: String, state: true },
+        sortDirection: { type: String, state: true },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -73,6 +80,13 @@ class MasSelectItemsTable extends LitElement {
         this.groupedVariationsManageOnly = false;
         this.hideGroupedVariations = false;
         this.viewOnlyHasMore = false;
+        this.columnsOverride = null;
+        this.cellsOverride = null;
+        this.variationCells = null;
+        this.variationColumns = null;
+        this.hideVariationExpand = false;
+        this.sortBy = null;
+        this.sortDirection = 'asc';
     }
 
     // Lazy "load more" for the viewOnly (already-selected) list: observe a sentinel and
@@ -253,7 +267,23 @@ class MasSelectItemsTable extends LitElement {
         const store = this.itemsSelection.value;
         if (!store) return [];
         const items = this.viewOnly ? this.viewOnlyFragments : store[`display${this.typeUppercased}`].value;
-        return this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
+        const visible = this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
+        return this.#sortItems(visible);
+    }
+
+    #offerName(item) {
+        return item?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title ?? '';
+    }
+
+    #sortItems(items) {
+        if (this.sortBy !== 'offer') return items;
+        const direction = this.sortDirection === 'desc' ? -1 : 1;
+        return [...items].sort((a, b) => this.#offerName(a).localeCompare(this.#offerName(b)) * direction);
+    }
+
+    #onSorted({ detail: { sortKey, sortDirection } }) {
+        this.sortBy = sortKey;
+        this.sortDirection = sortDirection;
     }
 
     get selectedInTable() {
@@ -297,6 +327,8 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get tableColumns() {
+        if (this.columnsOverride?.length) return this.columnsOverride;
+
         const TABLE_COLUMNS = {
             cards: {
                 selectable: [
@@ -390,6 +422,10 @@ class MasSelectItemsTable extends LitElement {
                             .renderPreviewCell=${this.renderPreviewCell}
                             .promoVariationsFetchedByParent=${this.promoVariationsFetchedByParent}
                             .groupedVariationsManageOnly=${this.groupedVariationsManageOnly}
+                            .cellsOverride=${this.cellsOverride}
+                            .variationCells=${this.variationCells}
+                            .variationColumns=${this.variationColumns}
+                            .hideVariationExpand=${this.hideVariationExpand}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -515,7 +551,13 @@ class MasSelectItemsTable extends LitElement {
                                                 aria-label="Select all loaded items"
                                             ></sp-checkbox>
                                         </sp-table-head-cell>`
-                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
+                                      : html`<sp-table-head-cell
+                                            class=${column.class ?? ''}
+                                            .sortable=${!!column.sortable}
+                                            sort-key=${column.key}
+                                            sort-direction=${this.sortBy === column.key ? this.sortDirection : nothing}
+                                            @sorted=${(e) => this.#onSorted(e)}
+                                        >
                                             ${column.label}
                                         </sp-table-head-cell>`,
                           )}

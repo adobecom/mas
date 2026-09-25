@@ -4,9 +4,8 @@ import { styles as tableStyles } from '../common/components/mas-select-items-tab
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
+import { PAGE_NAMES, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
-import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
@@ -58,6 +57,46 @@ const offersTableColumns = [
     { label: 'Actions', key: 'actions' },
 ];
 
+const cardsTableColumns = [
+    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
+    { label: 'Offer', key: 'offer', sortable: true },
+    { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle' },
+    { label: 'Path', key: 'path' },
+    { label: 'Related pages', key: 'relatedPages' },
+    { label: 'Offer ID', key: 'offerId' },
+    { label: 'OSI', key: 'osi' },
+    { label: 'Status', key: 'status' },
+];
+
+const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
+
+const promoVariationColumns = [
+    { label: 'Offer', key: 'offer' },
+    { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle' },
+    { label: 'Path', key: 'path' },
+    { label: 'Related pages', key: 'relatedPages' },
+    { label: 'Country', key: 'country' },
+    { label: 'Offer ID', key: 'offerId' },
+    { label: 'OSI', key: 'osi' },
+    { label: 'Applies to', key: 'applies-to' },
+    { label: 'Status', key: 'status' },
+];
+
+const promoVariationCells = [
+    'OfferName',
+    'Actions',
+    'Title',
+    'StudioPath',
+    'RelatedPages',
+    'Country',
+    'OfferId',
+    'Osi',
+    'AppliesTo',
+    'Status',
+];
+
 class MasPromotionsItemsTable extends LitElement {
     static styles = [tableStyles, promotionsItemsTableStyles];
 
@@ -81,6 +120,7 @@ class MasPromotionsItemsTable extends LitElement {
         promoVariationSelectedGeos: { type: Array, state: true },
         promoVariationDisabledGeos: { type: Array, state: true },
         fragmentHasEmptyGeosVariation: { type: Boolean, state: true },
+        relatedPagesDialogOpen: { type: Boolean, state: true },
     };
 
     #loadedPathsKey = null;
@@ -106,6 +146,7 @@ class MasPromotionsItemsTable extends LitElement {
         this.promoVariationSelectedGeos = [];
         this.promoVariationDisabledGeos = [];
         this.fragmentHasEmptyGeosVariation = false;
+        this.relatedPagesDialogOpen = false;
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
@@ -710,6 +751,24 @@ class MasPromotionsItemsTable extends LitElement {
         `;
     }
 
+    get relatedPagesDialogTemplate() {
+        if (!this.relatedPagesDialogOpen) return nothing;
+        return html`
+            <sp-dialog-wrapper
+                class="related-pages-dialog"
+                open
+                underlay
+                dismissable
+                headline="Related pages"
+                @close=${() => {
+                    this.relatedPagesDialogOpen = false;
+                }}
+            >
+                <div>To be implemented</div>
+            </sp-dialog-wrapper>
+        `;
+    }
+
     get promoVariationGeosDialogTemplate() {
         if (!this.promoVariationGeosDialogItem) return nothing;
         return html`
@@ -738,6 +797,19 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderActionsCell(item) {
+        if (this.type === TABLE_TYPE.CARDS && isPromoVariationPath(item?.path)) {
+            return html`<sp-table-cell class="actions-cell">
+                <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
+                    <sp-icon-more slot="icon"></sp-icon-more>
+                    <sp-menu-item>
+                        <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                        <sp-link quiet variant="secondary" href=${this.#getSearchUrl(item)} target="_blank" rel="noopener">
+                            View variation
+                        </sp-link>
+                    </sp-menu-item>
+                </sp-action-menu>
+            </sp-table-cell>`;
+        }
         const showCreatePromo = this.type === TABLE_TYPE.CARDS && this.#canCreatePromoVariation(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
@@ -910,20 +982,6 @@ class MasPromotionsItemsTable extends LitElement {
         </sp-table-row>`;
     }
 
-    #renderPreviewCell(item) {
-        const canPreview = item?.model?.path === CARD_MODEL_PATH && item?.id;
-        if (!canPreview) {
-            return html`<sp-table-cell class="preview-cell"></sp-table-cell>`;
-        }
-        return html`<sp-table-cell
-            class="preview-cell"
-            @mouseover=${() => openPreview(item.id, { left: '50' })}
-            @mouseout=${closePreview}
-        >
-            <sp-icon-preview label="Preview card"></sp-icon-preview>
-        </sp-table-cell>`;
-    }
-
     #renderOfferRow(item) {
         return html`<sp-table-row class="offer-row" value=${item.path} @click=${(e) => this.#onOfferRowClick(e, item.path)}>
             ${this.#renderExpandCell(item)} ${this.#renderOfferCell(item)} ${this.#renderProductArrangementCell(item)}
@@ -1001,14 +1059,23 @@ class MasPromotionsItemsTable extends LitElement {
             .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
             .selectableTabs=${[]}
             .groupedVariationsManageOnly=${true}
+            .columnsOverride=${cardsTableColumns}
+            .cellsOverride=${cardsTableCells}
+            .variationColumns=${promoVariationColumns}
+            .variationCells=${promoVariationCells}
+            .hideVariationExpand=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
-            .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
             .viewOnlyHasMore=${this.#hasMoreSelected}
             @view-only-load-more=${() => this.#loadMore()}
+            @view-related-pages=${() => this.#openRelatedPagesDialog()}
             @show-toast=${this.#showToast}
         >
         </mas-select-items-table>`;
+    }
+
+    #openRelatedPagesDialog() {
+        this.relatedPagesDialogOpen = true;
     }
 
     #renderCollectionsTable() {
@@ -1050,7 +1117,8 @@ class MasPromotionsItemsTable extends LitElement {
                       <sp-progress-circle size="l" indeterminate label="Creating promo variation"></sp-progress-circle>
                   </div>`
                 : nothing}
-            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender}
+            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${this.relatedPagesDialogTemplate}
+            ${tableToRender}
         `;
     }
 }

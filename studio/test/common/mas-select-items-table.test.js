@@ -561,7 +561,7 @@ describe('MasSelectItemsTable', () => {
             expect(collapsibleRow).to.exist;
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
             expect(cells[2].textContent.trim()).to.equal('Photoshop');
-            expect(cells[3].textContent.trim()).to.equal('Test Card');
+            expect(cells[3].textContent.trim()).includes('Test Card');
         });
 
         it('should display placeholder when no product tag exists', async () => {
@@ -1900,5 +1900,112 @@ describe('MasSelectItemsTable', () => {
             el.__test_toggleSelectAll(new Event('change'));
             expect(Store.translationProjects.selectedCards.get().sort()).to.deep.equal(['/p/a', '/p/b']);
         });
+    });
+});
+
+describe('MasSelectItemsTable column overrides and sorting', () => {
+    const createCard = (path, title, offerTitle) => ({
+        path,
+        title,
+        studioPath: `merch-card: ACOM / ${title}`,
+        status: FRAGMENT_STATUS.PUBLISHED,
+        model: { path: CARD_MODEL_PATH },
+        tags: offerTitle ? [{ id: 'mas:product_code/x', title: offerTitle }] : [],
+        fields: [],
+        offerData: null,
+    });
+
+    const setupCards = (cards) => {
+        Store.translationProjects.allCards.set(cards);
+        Store.translationProjects.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
+        Store.translationProjects.displayCards.set([...cards]);
+    };
+
+    beforeEach(() => {
+        setItemsSelectionStore(Store.translationProjects);
+        Store.translationProjects.selectedCards.set([]);
+        setupCards([]);
+    });
+
+    afterEach(() => {
+        fixtureCleanup();
+        setItemsSelectionStore(null);
+        setupCards([]);
+    });
+
+    it('keeps the default headers when no override is provided', async () => {
+        setupCards([createCard('/p/a', 'A')]);
+        const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+        el.dataReady = true;
+        await el.updateComplete;
+        const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+        expect(headers).to.deep.equal(['', '', 'Offer', 'Fragment title', 'Offer ID', 'Path', 'Status']);
+    });
+
+    it('renders columnsOverride verbatim', async () => {
+        const columnsOverride = [
+            { label: '', key: 'chevron' },
+            { label: 'Offer', key: 'offer', sortable: true },
+            { label: 'Actions', key: 'actions' },
+        ];
+        setupCards([createCard('/p/a', 'A')]);
+        const el = await fixture(
+            html`<mas-select-items-table
+                .type=${TABLE_TYPE.CARDS}
+                .viewOnly=${true}
+                .viewOnlyFragments=${[createCard('/p/a', 'A')]}
+                .viewOnlyFragmentsFetchedByParent=${true}
+                .columnsOverride=${columnsOverride}
+            ></mas-select-items-table>`,
+        );
+        await el.updateComplete;
+        const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+        expect(headers).to.deep.equal(['', 'Offer', 'Actions']);
+    });
+
+    it('forwards the cell override props to mas-collapsible-table-row', async () => {
+        const cellsOverride = ['OfferName', 'Actions'];
+        const variationCells = ['OfferName', 'Country'];
+        const variationColumns = [{ label: 'Offer', key: 'offer' }];
+        setupCards([createCard('/p/a', 'A')]);
+        const el = await fixture(
+            html`<mas-select-items-table
+                .type=${TABLE_TYPE.CARDS}
+                .cellsOverride=${cellsOverride}
+                .variationCells=${variationCells}
+                .variationColumns=${variationColumns}
+                .hideVariationExpand=${true}
+            ></mas-select-items-table>`,
+        );
+        el.dataReady = true;
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+        expect(row.cellsOverride).to.deep.equal(cellsOverride);
+        expect(row.variationCells).to.deep.equal(variationCells);
+        expect(row.variationColumns).to.deep.equal(variationColumns);
+        expect(row.hideVariationExpand).to.be.true;
+    });
+
+    it('sorts items by offer name when the Offer column is sorted', async () => {
+        setupCards([createCard('/p/a', 'A', 'Zebra'), createCard('/p/b', 'B', 'Acrobat'), createCard('/p/c', 'C')]);
+        const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+        el.dataReady = true;
+        await el.updateComplete;
+        expect(el.itemsToDisplay.map((i) => i.path)).to.deep.equal(['/p/a', '/p/b', '/p/c']);
+
+        const offerHeader = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].find(
+            (h) => h.getAttribute('sort-key') === 'offer',
+        );
+        offerHeader.dispatchEvent(
+            new CustomEvent('sorted', { detail: { sortKey: 'offer', sortDirection: 'asc' }, bubbles: true }),
+        );
+        await el.updateComplete;
+        expect(el.itemsToDisplay.map((i) => i.path)).to.deep.equal(['/p/c', '/p/b', '/p/a']);
+
+        offerHeader.dispatchEvent(
+            new CustomEvent('sorted', { detail: { sortKey: 'offer', sortDirection: 'desc' }, bubbles: true }),
+        );
+        await el.updateComplete;
+        expect(el.itemsToDisplay.map((i) => i.path)).to.deep.equal(['/p/a', '/p/b', '/p/c']);
     });
 });

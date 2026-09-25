@@ -259,11 +259,10 @@ class MasPromotionsItemsTable extends LitElement {
         this.#allSelectedPaths = paths;
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
-        // Probe every selected card's promo variations in a single recursive folder search
-        // (one request per surface root) rather than once per windowed item; windows then read
-        // from this shared result.
-        this.#promoVariationProbe =
-            this.type === TABLE_TYPE.CARDS && paths.length ? this.#probeAllPromoVariations(paths) : null;
+        // Probe every selected card's/collection's promo variations in a single recursive folder
+        // search (one request per surface root) rather than once per windowed item; windows then
+        // read from this shared result.
+        this.#promoVariationProbe = this.#supportsPromoVariations && paths.length ? this.#probeAllPromoVariations(paths) : null;
         if (!paths.length) {
             this.viewOnlyLoading = false;
             return;
@@ -301,7 +300,7 @@ class MasPromotionsItemsTable extends LitElement {
                 if (signal.aborted) return;
                 this.viewOnlyFragments = start === 0 ? items : [...this.viewOnlyFragments, ...items];
                 this.#visibleCount = end;
-                if (this.type === TABLE_TYPE.CARDS) {
+                if (this.#supportsPromoVariations) {
                     this.#syncExistingPromoVariations(items, signal);
                 }
             },
@@ -737,8 +736,12 @@ class MasPromotionsItemsTable extends LitElement {
         `;
     }
 
+    get #supportsPromoVariations() {
+        return this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS;
+    }
+
     #renderActionsCell(item) {
-        const showCreatePromo = this.type === TABLE_TYPE.CARDS && this.#canCreatePromoVariation(item);
+        const showCreatePromo = this.#supportsPromoVariations && this.#canCreatePromoVariation(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
                 <sp-icon-more slot="icon"></sp-icon-more>

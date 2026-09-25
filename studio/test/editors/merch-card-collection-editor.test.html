@@ -426,6 +426,153 @@
                         updateInternalSpy.restore();
                     });
                 });
+
+                describe('promo variation collection editing', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let promoHost;
+
+                    const cardA = {
+                        id: 'card-a-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a',
+                        title: 'Card A',
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+                    const cardB = {
+                        id: 'card-b-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b',
+                        title: 'Card B',
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+
+                    function promoVariationCollectionData(overrides = {}) {
+                        return {
+                            id: 'promo-variation-collection-id',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Promo Collection Variation',
+                            tags: [{ id: 'mas:promotion/black-friday' }],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['Label'] },
+                                { name: 'queryLabel', type: 'text', multiple: false, values: [''] },
+                                { name: 'icon', type: 'text', multiple: false, values: [''] },
+                                { name: 'iconLight', type: 'text', multiple: false, values: [''] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [cardA.path, cardB.path] },
+                                { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                            ],
+                            references: [cardA, cardB],
+                            ...overrides,
+                        };
+                    }
+
+                    beforeEach(() => {
+                        promoHost = document.createElement('div');
+                        spTheme().appendChild(promoHost);
+                    });
+
+                    afterEach(() => {
+                        promoHost?.remove();
+                        promoHost = null;
+                    });
+
+                    // A promo variation is a full clone (own `cards` field already has real values), but
+                    // editorContextStore.isVariation() reports promo variations as `isVariation: true` just
+                    // like locale variations. getEffectiveFieldValues only reads the parent when the
+                    // variation's own values are empty, so this pins the non-empty case: the variation's
+                    // own cards must render, not the parent's, even with isVariation true.
+                    it("renders a promo variation collection's own cards, not the locale-default parent's, even though isVariation is true", async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.isVariation = true;
+                        const parentOnlyCardPath = '/content/dam/mas/sandbox/en_US/parent-only-card';
+                        editor.localeDefaultFragment = new Fragment({
+                            id: 'default-collection-id',
+                            path: '/content/dam/mas/sandbox/en_US/my-collection',
+                            model: { path: COLLECTION_MODEL_PATH },
+                            fields: [
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [parentOnlyCardPath] },
+                            ],
+                            references: [
+                                {
+                                    id: 'parent-only-card-id',
+                                    path: parentOnlyCardPath,
+                                    title: 'Parent-only card',
+                                    model: { path: CARD_MODEL_PATH },
+                                    fields: [],
+                                },
+                            ],
+                        });
+                        editor.fragmentStore = new FragmentStore(new Fragment(promoVariationCollectionData()));
+                        promoHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await editor.updateComplete;
+
+                        const subtexts = Array.from(editor.shadowRoot.querySelectorAll('.item-subtext')).map((el) =>
+                            el.textContent.trim(),
+                        );
+                        expect(subtexts).to.deep.equal(['Card A', 'Card B']);
+                    });
+
+                    it('removeItem on a promo variation collection updates only its own cards field', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        const updateSpy = spy();
+                        editor.updateFragment = updateSpy;
+                        editor.isVariation = true;
+                        editor.fragmentStore = new FragmentStore(new Fragment(promoVariationCollectionData()));
+                        promoHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await editor.updateComplete;
+
+                        editor.removeItem(cardA.path);
+                        await editor.updateComplete;
+
+                        expect(updateSpy.called).to.be.true;
+                        const cardsCall = updateSpy.getCalls().find((c) => c.args[0]?.target?.dataset?.field === 'cards');
+                        expect(cardsCall).to.exist;
+                        expect(cardsCall.args[0].values).to.deep.equal([cardB.path]);
+                    });
+
+                    it('reorders cards on a promo variation collection via internal drag-and-drop', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        const updateSpy = spy();
+                        editor.updateFragment = updateSpy;
+                        editor.isVariation = true;
+                        editor.fragmentStore = new FragmentStore(new Fragment(promoVariationCollectionData()));
+                        promoHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await editor.updateComplete;
+
+                        // Mirrors what #dragStart puts on the DataTransfer for item 0 (card-a), then
+                        // drives the same public entry point the real @drop listener calls (#drop is
+                        // private, but it just forwards to this).
+                        editor.draggingIndex = 0;
+                        editor.draggingFieldName = 'cards';
+                        const dragData = {
+                            isInternalDrag: true,
+                            sourceIndex: 0,
+                            fieldName: 'cards',
+                            id: cardA.id,
+                            path: cardA.path,
+                            model: cardA.model,
+                            title: cardA.title,
+                        };
+                        const dropEvent = {
+                            preventDefault: () => {},
+                            stopPropagation: () => {},
+                            dataTransfer: { getData: () => JSON.stringify(dragData) },
+                        };
+                        editor.handleDropOperation(dropEvent, 'cards', 1, true);
+                        await editor.updateComplete;
+
+                        expect(updateSpy.called).to.be.true;
+                        const cardsCall = updateSpy.getCalls().find((c) => c.args[0]?.target?.dataset?.field === 'cards');
+                        expect(cardsCall).to.exist;
+                        expect(cardsCall.args[0].values).to.deep.equal([cardB.path, cardA.path]);
+                    });
+                });
             });
         </script>
         <main>

@@ -1019,6 +1019,69 @@ sp-progress-circle.preview {
     text-decoration: none;
 }
 
+/* "Related studio artifacts" summary box: a neutral gray card (matching the sibling variation
+   sections and the Figma) at the same 600px width. The full per-type list opens in a modal. */
+.references-container {
+    box-sizing: border-box;
+    width: 600px;
+    max-width: 100%;
+    margin-top: 16px;
+    background: var(--spectrum-gray-50, #f8f8f8);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.references-title {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--spectrum-gray-900, #292929);
+}
+
+.artifacts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.artifacts-header .references-title {
+    margin-bottom: 0;
+}
+
+.artifacts-view-link {
+    --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
+    --mod-actionbutton-content-color-hover: var(--spectrum-blue-900);
+    --mod-actionbutton-content-color-down: var(--spectrum-blue-900);
+    --mod-actionbutton-content-color-focus: var(--spectrum-blue-900);
+    --mod-actionbutton-font-size: 14px;
+}
+
+.artifacts-view-link sp-icon-open-in {
+    margin-inline-start: 6px;
+    vertical-align: middle;
+}
+
+.artifacts-counts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 8px;
+}
+
+.artifacts-count-line {
+    font-size: 14px;
+    color: var(--spectrum-gray-800, #464646);
+}
+
+.referencing-message {
+    color: var(--spectrum-neutral-subdued-content-color-default);
+    font-size: 14px;
+}
+
+.references-error .referencing-message {
+    color: var(--spectrum-global-color-gray-900);
+}
+
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;

@@ -10,6 +10,7 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
+    PAGE_NAMES,
     PZN_FOLDER,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
@@ -298,6 +299,46 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
     if (!webComponentName || !fragment?.id) return null;
     return buildStudioFragmentHref({ webComponentName, fragmentId: fragment.id, page, path });
+}
+
+/**
+ * Deep link to a bulk-publish project in the Bulk Publish editor. Projects are not merch cards, so
+ * they have no `content-type` deep link; they open by project id (which is the project fragment id).
+ * @param {string} id bulk-publish project fragment id
+ * @returns {string | null}
+ */
+export function buildBulkPublishProjectDeepLink(id) {
+    if (!id) return null;
+    const params = new URLSearchParams();
+    params.set('page', PAGE_NAMES.BULK_PUBLISH_EDITOR);
+    params.set('bulkPublishProjectId', id);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
+ * Deep link to a promo project in the Promotions editor.
+ * @param {string} id promotion project fragment id
+ * @returns {string | null}
+ */
+export function buildPromoProjectDeepLink(id) {
+    if (!id) return null;
+    const params = new URLSearchParams();
+    params.set('page', PAGE_NAMES.PROMOTIONS_EDITOR);
+    params.set('promotionId', id);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
+ * Deep link to a localization (translation) project in the Translation editor.
+ * @param {string} id translation project fragment id
+ * @returns {string | null}
+ */
+export function buildTranslationProjectDeepLink(id) {
+    if (!id) return null;
+    const params = new URLSearchParams();
+    params.set('page', PAGE_NAMES.TRANSLATION_EDITOR);
+    params.set('translationProjectId', id);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
 }
 
 /**

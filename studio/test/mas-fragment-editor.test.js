@@ -34,7 +34,9 @@ describe('MasFragmentEditor', () => {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
-            aem: aem || { sites: { cf: { fragments: {} } } },
+            aem: aem || {
+                sites: { cf: { fragments: { getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }) } } },
+            },
             loadPromotions: sandbox.stub().resolves(),
         };
 
@@ -76,6 +78,7 @@ describe('MasFragmentEditor', () => {
                                     tags: [{ id: 'mas:promotion/back-to-school' }],
                                 }),
                                 getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -350,6 +353,7 @@ describe('MasFragmentEditor', () => {
                             fragments: {
                                 getById: sandbox.stub(),
                                 getTranslations: sandbox.stub().resolves({ languageCopies: [] }),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -1610,6 +1614,7 @@ describe('MasFragmentEditor', () => {
                 ],
             });
             const mockRepo = {
+                loadPromotions: sandbox.stub().resolves(),
                 aem: {
                     sites: {
                         cf: {
@@ -1619,6 +1624,7 @@ describe('MasFragmentEditor', () => {
                                     fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
                                 }),
                                 search,
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -1662,7 +1668,16 @@ describe('MasFragmentEditor', () => {
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;
             Store.fragmentEditor.fragmentId.value = fragment.id;
             sandbox.stub(el, 'repository').get(() => ({
-                aem: { sites: { cf: { fragments: { search: makeSearchStub(sandbox, {}) } } } },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub(sandbox, {}),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
+                            },
+                        },
+                    },
+                },
                 loadPromotions: sandbox.stub().resolves(),
             }));
 
@@ -2011,6 +2026,220 @@ describe('MasFragmentEditor', () => {
             });
             expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.be.null;
             expect(Store.search.get().region).to.be.undefined;
+        });
+    });
+
+    describe('Related studio artifacts section', () => {
+        const collRow = (over = {}) => ({
+            groupKey: 'acom/plans-all',
+            title: 'Plans All',
+            modelPath: COLLECTION_MODEL_PATH,
+            representative: {
+                id: 'coll-1',
+                path: '/content/dam/mas/acom/en_US/plans-all',
+                status: 'PUBLISHED',
+                link: 'https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=coll-1',
+            },
+            locales: ['en_US', 'fr_FR'],
+            localeCount: 2,
+            ...over,
+        });
+
+        const renderSection = (editor) => {
+            const host = document.createElement('div');
+            render(editor.relatedArtifactsSection, host);
+            return host;
+        };
+
+        const withCard = () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            return editor;
+        };
+
+        it('titles the box "Related studio artifacts:" and renders a loading state', () => {
+            const editor = withCard();
+            editor.isLoadingReferencingFragments = true;
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Related studio artifacts:');
+            expect(host.textContent).to.include('Loading');
+        });
+
+        it('renders a distinct error state on failure', () => {
+            const editor = withCard();
+            editor.referencingFragmentsError = true;
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Related studio artifacts unavailable');
+            expect(host.querySelector('.references-error')).to.not.equal(null);
+        });
+
+        it('hides the box entirely when there are no references', () => {
+            const editor = withCard();
+            editor.referencingFragments = [];
+            expect(renderSection(editor).textContent.trim()).to.equal('');
+        });
+
+        it('shows one count line per type plus a View artifacts link, with no inline rows', () => {
+            const editor = withCard();
+            editor.referencingFragments = [
+                { key: 'collections', label: 'Collections', rows: [collRow(), collRow({ groupKey: 'c2' })] },
+                { key: 'bulkPublishProjects', label: 'Bulk Publish Project', rows: [collRow({ groupKey: 'b' })] },
+            ];
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('2 Collections');
+            expect(host.textContent).to.include('1 Bulk Publish Project');
+            expect(host.textContent).to.include('View artifacts');
+            // the full list lives in the modal, not inline in the box
+            expect(host.querySelector('a.referencing-row')).to.equal(null);
+        });
+
+        it('renders the dialog (outside the sticky box) bound to the open flag and buckets', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            editor.artifactsDialogOpen = true;
+            const host = document.createElement('div');
+            render(editor.relatedArtifactsDialog, host);
+            const dialog = host.querySelector('mas-related-artifacts-dialog');
+            expect(dialog).to.not.equal(null);
+            expect(dialog.open).to.equal(true);
+            expect(dialog.buckets).to.deep.equal(editor.referencingFragments);
+        });
+
+        it('excludes the cards and other buckets from the box', () => {
+            const editor = withCard();
+            editor.referencingFragments = [
+                { key: 'collections', label: 'Collections', rows: [collRow()] },
+                { key: 'cards', label: 'Cards', rows: [collRow({ groupKey: 'card-x' })] },
+                { key: 'other', label: 'Other', rows: [collRow({ groupKey: 'o' })] },
+            ];
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('1 Collections');
+            expect(host.textContent).to.not.include('Cards');
+            expect(host.textContent).to.not.include('Other');
+        });
+
+        it('renders View artifacts as a button so keyboard users can reach it', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            const host = renderSection(editor);
+            expect(host.querySelector('.artifacts-view-link').tagName).to.equal('SP-ACTION-BUTTON');
+        });
+
+        it('opens the dialog when the View artifacts link is clicked', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            const host = renderSection(editor);
+            expect(editor.artifactsDialogOpen).to.equal(false);
+            host.querySelector('.artifacts-view-link').click();
+            expect(editor.artifactsDialogOpen).to.equal(true);
+        });
+
+        it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
+            let resolveA;
+            let resolveB;
+            const cf = (id, name) => ({
+                type: 'content-fragment',
+                path: `/content/dam/mas/acom/en_US/${name}`,
+                id,
+                status: 'PUBLISHED',
+                model: { path: COLLECTION_MODEL_PATH },
+            });
+            const getReferencedByFragmentId = sandbox.stub();
+            getReferencedByFragmentId.onCall(0).returns(
+                new Promise((r) => {
+                    resolveA = () => r({ items: [cf('a1', 'coll-a')] });
+                }),
+            );
+            getReferencedByFragmentId.onCall(1).returns(
+                new Promise((r) => {
+                    resolveB = () => r({ items: [cf('b1', 'coll-b')] });
+                }),
+            );
+            const { editor } = createEditor({ aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } } });
+
+            let current = { id: 'frag-A', path: '/content/dam/mas/acom/en_US/card-a', model: { path: CARD_MODEL_PATH } };
+            sandbox.stub(editor, 'fragment').get(() => current);
+
+            editor.willUpdate(new Map()); // load A (token 1)
+            current = { id: 'frag-B', path: '/content/dam/mas/acom/en_US/card-b', model: { path: CARD_MODEL_PATH } };
+            editor.willUpdate(new Map()); // load B (token 2) — aborts A
+
+            resolveB();
+            await new Promise((r) => setTimeout(r, 10));
+            resolveA(); // stale — must not overwrite B
+            await new Promise((r) => setTimeout(r, 10));
+
+            expect(getReferencedByFragmentId.calledTwice).to.be.true;
+            const collections = editor.referencingFragments.find((b) => b.key === 'collections');
+            expect(collections.rows).to.have.lengthOf(1);
+            expect(collections.rows[0].representative.id).to.equal('b1');
+        });
+
+        describe('after a failed load', () => {
+            const collection = {
+                id: 'coll-id',
+                path: '/content/dam/mas/acom/en_US/coll',
+                model: { path: COLLECTION_MODEL_PATH },
+            };
+            let editor;
+            let repository;
+            let getReferencedByFragmentId;
+
+            beforeEach(async () => {
+                getReferencedByFragmentId = sandbox.stub();
+                getReferencedByFragmentId.onCall(0).rejects(new Error('503 Service Unavailable'));
+                getReferencedByFragmentId.resolves({ items: [] });
+                ({ editor, repository } = createEditor({
+                    aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } },
+                }));
+                repository.saveFragment = sandbox.stub().resolves({});
+                sandbox.stub(editor, 'fragment').get(() => collection);
+                sandbox.stub(console, 'error');
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+            });
+
+            it('does not request the references again on every render', async () => {
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+
+                expect(getReferencedByFragmentId.callCount).to.equal(1);
+            });
+
+            it('loads the references again once the fragment is saved', async () => {
+                await editor.saveFragment();
+                editor.willUpdate(new Map());
+                await new Promise((r) => setTimeout(r, 10));
+
+                expect(getReferencedByFragmentId.callCount).to.equal(2);
+                expect(editor.referencingFragmentsError).to.equal(false);
+            });
+        });
+
+        it('lists the promotion project of an open promo variation', async () => {
+            const originalPromotions = Store.promotions.list.data.get();
+            const project = {
+                id: 'aug-id',
+                path: '/content/dam/mas/promotions/augdemo',
+                title: 'AugDemo',
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            };
+            Store.promotions.list.data.value = [{ get: () => project }];
+            const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
+            const { editor } = createEditor({ aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } } });
+            sandbox.stub(editor, 'fragment').get(() => ({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_US/promotions/augdemo/marquee',
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/augdemo' }],
+            }));
+
+            editor.willUpdate(new Map());
+            await new Promise((r) => setTimeout(r, 10));
+            Store.promotions.list.data.value = originalPromotions;
+
+            const promoProjects = editor.referencingFragments.find((b) => b.key === 'promoProjects');
+            expect(promoProjects.rows[0].representative.id).to.equal('aug-id');
         });
     });
 });

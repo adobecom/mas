@@ -77,10 +77,6 @@ describe('references-repository', () => {
         it('keeps a fragmentPath that is not a promo variation', () => {
             expect(isPromoVariationReference('plans-two-wide-reflow-all')).to.be.false;
         });
-
-        it('is false for non-string input', () => {
-            expect(isPromoVariationReference(undefined)).to.be.false;
-        });
     });
 
     describe('isSelfLocaleVariationReference (self-locale-variation predicate)', () => {
@@ -121,7 +117,7 @@ describe('references-repository', () => {
             expect(parsePathTokens('/content/dam/mas/promotions/campaign-card')).to.equal(null);
         });
 
-        it('returns null for non-string input', () => {
+        it('returns null for a missing path', () => {
             expect(parsePathTokens(undefined)).to.equal(null);
         });
 

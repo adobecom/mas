@@ -42,7 +42,6 @@ const MAS_CONTENT_ROOT = '/content/dam/mas';
  * @returns {{ surface: string, parsedLocale: string|null, fragmentPath: string }|null}
  */
 export function parsePathTokens(path) {
-    if (typeof path !== 'string') return null;
     const match = PATH_TOKENS.exec(path);
     if (!match?.groups) return null;
     const rawLocale = match.groups.parsedLocale;
@@ -68,7 +67,7 @@ export function isGroupedVariationReference(path) {
  * @returns {boolean}
  */
 export function isPromoVariationReference(fragmentPath) {
-    return typeof fragmentPath === 'string' && fragmentPath.startsWith(PROMOTIONS_PATH_PREFIX);
+    return fragmentPath.startsWith(PROMOTIONS_PATH_PREFIX);
 }
 
 /**

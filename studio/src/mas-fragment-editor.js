@@ -707,7 +707,6 @@ export default class MasFragmentEditor extends LitElement {
         if (!fragment?.id) return;
         const modelPath = fragment.model?.path;
         if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return;
-        if (typeof this.repository?.aem?.sites?.cf?.fragments?.getReferencedByFragmentId !== 'function') return;
         if (fragment.id === this.#referencingLoadedForId || fragment.id === this.#referencingLoadingForId) return;
         void this.#loadReferencingFragmentsFor(fragment);
     }

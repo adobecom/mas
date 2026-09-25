@@ -34,7 +34,9 @@ describe('MasFragmentEditor', () => {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
-            aem: aem || { sites: { cf: { fragments: {} } } },
+            aem: aem || {
+                sites: { cf: { fragments: { getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }) } } },
+            },
             loadPromotions: sandbox.stub().resolves(),
         };
 
@@ -76,6 +78,7 @@ describe('MasFragmentEditor', () => {
                                     tags: [{ id: 'mas:promotion/back-to-school' }],
                                 }),
                                 getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -350,6 +353,7 @@ describe('MasFragmentEditor', () => {
                             fragments: {
                                 getById: sandbox.stub(),
                                 getTranslations: sandbox.stub().resolves({ languageCopies: [] }),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -1610,6 +1614,7 @@ describe('MasFragmentEditor', () => {
                 ],
             });
             const mockRepo = {
+                loadPromotions: sandbox.stub().resolves(),
                 aem: {
                     sites: {
                         cf: {
@@ -1619,6 +1624,7 @@ describe('MasFragmentEditor', () => {
                                     fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
                                 }),
                                 search,
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -1662,7 +1668,16 @@ describe('MasFragmentEditor', () => {
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;
             Store.fragmentEditor.fragmentId.value = fragment.id;
             sandbox.stub(el, 'repository').get(() => ({
-                aem: { sites: { cf: { fragments: { search: makeSearchStub(sandbox, {}) } } } },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub(sandbox, {}),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
+                            },
+                        },
+                    },
+                },
                 loadPromotions: sandbox.stub().resolves(),
             }));
 

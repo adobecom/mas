@@ -1405,9 +1405,7 @@ class AEM {
      * @returns {Promise<{ items: Array<Object>, cursor?: string }>} Content-fragment parents + next cursor
      */
     async getReferencedByFragmentId(id, { cursor, limit = 50, abortController } = {}) {
-        if (!id || typeof id !== 'string' || !id.trim()) {
-            throw new Error('Fragment id is required and must be a non-empty string');
-        }
+        if (!id) throw new Error('Fragment id is required');
 
         const params = new URLSearchParams({ limit: String(limit) });
         if (cursor) params.set('cursor', cursor);

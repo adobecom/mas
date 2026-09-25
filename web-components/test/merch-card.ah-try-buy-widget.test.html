@@ -82,9 +82,13 @@
                                 '[slot="badge"] merch-badge',
                             );
                             expect(badge).to.exist;
-                            const badgeText = badge.shadowRoot
-                                .querySelector('.badge')
-                                .textContent.trim();
+                            const slot =
+                                badge.shadowRoot.querySelector('.badge slot');
+                            const badgeText = slot
+                                .assignedNodes()
+                                .map((node) => node.textContent)
+                                .join('')
+                                .trim();
                             expect(badgeText).to.equal('Best value');
                         });
 

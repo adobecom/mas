@@ -97,7 +97,8 @@ function buildKeptParamsSql() {
  * fewer pages than it does today.
  *
  * The country arrays are sorted by request count and sliced, so a page reached from a long tail of
- * countries keeps the ones that actually characterise it.
+ * countries keeps the ones that actually characterise it. The page total is summed separately,
+ * before the slice, so that tail still counts towards it.
  *
  * @param {number} fromSec window start, epoch seconds, inclusive
  * @param {number} toSec window end, epoch seconds, exclusive
@@ -106,10 +107,11 @@ function buildKeptParamsSql() {
 function buildPagesQuery(fromSec, toSec) {
     const kept = buildKeptParamsSql();
     return (
-        'SELECT bucket, fragmentId, page, locale, countries, counts FROM (' +
+        'SELECT bucket, fragmentId, page, locale, countries, counts, requests FROM (' +
         'SELECT bucket, fragmentId, page, locale, ' +
         `arraySlice(arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits)), 1, ${MAX_COUNTRIES_PER_PAGE}) AS countries, ` +
         `arraySlice(arrayReverseSort(groupArray(hits)), 1, ${MAX_COUNTRIES_PER_PAGE}) AS counts, ` +
+        'sum(hits) AS requests, ' +
         'row_number() OVER (PARTITION BY bucket, fragmentId ORDER BY sum(hits) DESC) AS rn FROM (' +
         'SELECT toUnixTimestamp(toStartOfHour(reqTimeSec)) AS bucket, ' +
         "NULLIF(extractURLParameter(concat('?', queryStr), 'id'), '') AS fragmentId, " +
@@ -185,7 +187,15 @@ async function runQuery(rawSql, fromMs, toMs, { token, url }) {
  * @param {object} byFragment accumulator, mutated
  */
 function collectPages(values, byFragment) {
-    const [bucketSeconds = [], fragmentIds = [], pageUrls = [], locales = [], countryNames = [], countryCounts = []] = values;
+    const [
+        bucketSeconds = [],
+        fragmentIds = [],
+        pageUrls = [],
+        locales = [],
+        countryNames = [],
+        countryCounts = [],
+        pageRequests = [],
+    ] = values;
     for (let index = 0; index < fragmentIds.length; index += 1) {
         const fragmentId = fragmentIds[index];
         const page = pageUrls[index];
@@ -194,17 +204,14 @@ function collectPages(values, byFragment) {
         const names = countryNames[index] ?? [];
         const counts = countryCounts[index] ?? [];
         const countries = {};
-        let requests = 0;
         for (let position = 0; position < names.length; position += 1) {
-            const hits = Number(counts[position]) || 0;
-            countries[names[position]] = hits;
-            requests += hits;
+            countries[names[position]] = Number(counts[position]) || 0;
         }
 
         const epochHour = Math.floor(bucketSeconds[index] / 3600);
         if (!byFragment[fragmentId]) byFragment[fragmentId] = {};
         if (!byFragment[fragmentId][epochHour]) byFragment[fragmentId][epochHour] = {};
-        addPage(byFragment[fragmentId][epochHour], page, locales[index], requests, countries);
+        addPage(byFragment[fragmentId][epochHour], page, locales[index], pageRequests[index], countries);
     }
 }
 

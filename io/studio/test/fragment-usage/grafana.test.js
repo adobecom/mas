@@ -78,6 +78,13 @@ describe('fragment-usage grafana', () => {
             expect(sql).to.contain(') GROUP BY bucket, fragmentId, page, locale');
         });
 
+        it('returns each page total across every country, not only the kept ones', () => {
+            // The country arrays are sliced, so a total derived from them would undercount any page
+            // served in more countries than are kept.
+            expect(sql).to.contain('sum(hits) AS requests');
+            expect(sql).to.match(/^SELECT bucket, fragmentId, page, locale, countries, counts, requests FROM/);
+        });
+
         it('keeps the busiest countries rather than an arbitrary slice of them', () => {
             // groupArray does not promise an order, so the arrays are sorted by request count
             // before they are sliced.
@@ -98,10 +105,21 @@ describe('fragment-usage grafana', () => {
         let fetchStub;
         let realFetch;
 
-        // `locales` is appended rather than placed next to `pages` so a test that does not care
-        // about locale stays readable; an empty locale keys the row on the url alone.
-        const frame = (buckets, fragmentIds, pages, countries, counts, locales = pages.map(() => '')) => ({
-            results: { A: { frames: [{ data: { values: [buckets, fragmentIds, pages, locales, countries, counts] } }] } },
+        // `locales` and `requests` are appended rather than placed next to `pages` so a test that
+        // does not care about them stays readable; an empty locale keys the row on the url alone,
+        // and the default total is what the kept countries add up to.
+        const frame = (
+            buckets,
+            fragmentIds,
+            pages,
+            countries,
+            counts,
+            locales = pages.map(() => ''),
+            requests = counts.map((row) => row.reduce((sum, count) => sum + count, 0)),
+        ) => ({
+            results: {
+                A: { frames: [{ data: { values: [buckets, fragmentIds, pages, locales, countries, counts, requests] } }] },
+            },
         });
 
         afterEach(() => {
@@ -145,12 +163,14 @@ describe('fragment-usage grafana', () => {
             });
         });
 
-        it('derives a page total from its country counts so the two cannot disagree', async () => {
-            stubFetch(frame([1700000000], ['frag-a'], ['https://a.com'], [['US', 'GB', 'DE']], [[10, 4, 1]]));
+        it('takes a page total from the query rather than from its kept countries', async () => {
+            // The query keeps only the busiest countries, so their counts can add up to less than
+            // the page actually served.
+            stubFetch(frame([1700000000], ['frag-a'], ['https://a.com'], [['US', 'GB', 'DE']], [[10, 4, 1]], [''], [20]));
 
             const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
 
-            expect(result['frag-a'][472222]['https://a.com'].requests).to.equal(15);
+            expect(result['frag-a'][472222]['https://a.com'].requests).to.equal(20);
         });
 
         it('splits the window into chunks rather than asking for it all at once', async () => {

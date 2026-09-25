@@ -1,9 +1,9 @@
 import { getJsonFromState, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log } from './log.js';
-const getRequestMetadataKey = ({ id, locale, country, pzn }) => {
+const getRequestMetadataKey = ({ id, locale, country, pzn, mask }) => {
     const geo = geoCacheKey(locale, country);
-    return `req-${id}-${geo.locale}${geo.country ? `-${geo.country}` : ''}${pzn ? `-${pzn}` : ''}`;
+    return `req-${id}-${geo.locale}${geo.country ? `-${geo.country}` : ''}${pzn ? `-p_${pzn}` : ''}${mask ? `-m_${mask}` : ''}`;
 };
 
 async function getRequestMetadata(context) {
@@ -11,9 +11,9 @@ async function getRequestMetadata(context) {
     const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
     if (cachedMetadata) {
         log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
-        return cachedMetadata;
+        return { requestKey, cachedMetadata };
     }
-    return null;
+    return { requestKey, cachedMetadata: null };
 }
 
 function extractContextFromMetadata(cachedMetadata) {
@@ -29,9 +29,7 @@ function extractContextFromMetadata(cachedMetadata) {
     };
 }
 
-async function storeRequestMetadata(context, metadata, hash) {
-    // Calculate hash of response body
-    const requestKey = getRequestMetadataKey(context);
+async function storeRequestMetadata(context, requestKey, metadata, hash) {
     const updated = !metadata?.hash || metadata.hash !== hash;
     let lastModified = new Date(Date.now());
     if (updated || !metadata?.fragmentPath) {

@@ -1,7 +1,15 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import {
+    PAGE_NAMES,
+    SORT_COLUMNS,
+    WCS_LANDSCAPE_DRAFT,
+    WCS_LANDSCAPE_PUBLISHED,
+    FRAGMENT_STATUS_OPTIONS,
+} from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
+import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
+import { MasksStore } from './masks/masks-store.js';
 
 let editorContextInstance = null;
 
@@ -21,6 +29,8 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
+        highlightedVariationId: new ReactiveStore(null), // Variation ID to highlight after UUID variation search
+        variationSearchTab: new ReactiveStore(null), // 'locale' | 'promotion' | 'grouped' tab to open in variations panel
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
@@ -32,17 +42,29 @@ const Store = {
             }
             return editorContextInstance;
         },
+        itemsSelection: {
+            groupedVariationsByParent: new ReactiveStore(new Map()),
+            groupedVariationsData: new ReactiveStore(new Map()),
+            offerDataCache: new Map(),
+            cardsByPaths: new ReactiveStore(new Map()),
+        },
     },
     operation: new ReactiveStore(),
     editor: {
+        referencedFragmentStoresHaveChanges: new ReactiveStore(false),
         resetChanges() {
             const fragmentData = Store.fragments.inEdit.get()?.get();
             if (fragmentData) {
                 fragmentData.hasChanges = false;
             }
+            Store.editor.referencedFragmentStoresHaveChanges.set(false);
         },
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
+            return (
+                Store.fragments.inEdit.get()?.get()?.hasChanges ||
+                Store.editor.referencedFragmentStoresHaveChanges.get() ||
+                false
+            );
         },
     },
     folders: {
@@ -74,6 +96,8 @@ const Store = {
         previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
+    offerMapping: new OfferMappingStore(),
+    masks: new MasksStore(),
     profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
@@ -87,7 +111,9 @@ const Store = {
         list: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            filter: new ReactiveStore('scheduled'),
+            filter: new ReactiveStore('active'),
+            // Kept independent of `filter` so switching status filters never clears a typed search term.
+            search: new ReactiveStore(''),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
                 { value: 'draft', label: 'Draft' },
@@ -100,11 +126,24 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
 
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
+        selectedOffers: new ReactiveStore([]),
+        // Raw WCS offer objects keyed by OSI, shared with cards/variations enrichment (see loadOfferData).
         offerDataCache: new Map(),
+        // Offers-table display records ({ path, id, offerData, tags, fields, getTagTitle }) keyed by offer selector id.
+        // Kept separate from offerDataCache so the two shapes never collide under the same OSI key.
+        offerRecordsCache: new Map(),
+        // Bumped whenever offerRecordsCache is (re)hydrated; offer-derived UI subscribes to
+        // this so it can refresh once records land, since the cache itself is a plain Map.
+        offerRecordsHydrated: new ReactiveStore(0),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),
 
@@ -126,13 +165,12 @@ const Store = {
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
     },
-    previewDictionary: function () {
-        const locale = Store.localeOrRegion();
+    previewDictionary: function (locale = Store.localeOrRegion()) {
         return Store.placeholders.previewByLocale.value[locale];
     },
-    /** True when the active locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
-    previewDictionaryReady: function () {
-        const d = Store.previewDictionary();
+    /** True when the given locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
+    previewDictionaryReady: function (locale = Store.localeOrRegion()) {
+        const d = Store.previewDictionary(locale);
         return d != null && Object.keys(d).length > 0;
     },
     removeRegionOverride: function () {
@@ -151,6 +189,11 @@ const Store = {
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
         prefill: new ReactiveStore(null),
+
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
 
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
@@ -182,6 +225,10 @@ const Store = {
         inEdit: new ReactiveStore(null),
         projectId: new ReactiveStore(null),
         publishing: new ReactiveStore({}),
+        // Local search/filters for the add-items picker, kept off the router hash
+        // so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
@@ -200,6 +247,29 @@ const Store = {
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
+    },
+    compareChart: {
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+        inEdit: new ReactiveStore(null),
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
     },
 };
 
@@ -225,6 +295,17 @@ function filtersValidator(value) {
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
     }
+
+    // Ensure status is always a comma-joined, uppercase, validated string
+    const validStatuses = new Set(FRAGMENT_STATUS_OPTIONS.map((option) => option.id));
+    const rawStatus = value.status;
+    if (!rawStatus) {
+        value.status = undefined;
+    } else {
+        const list = Array.isArray(rawStatus) ? rawStatus : String(rawStatus).split(',');
+        const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
+        value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
+    }
     return value;
 }
 
@@ -248,6 +329,9 @@ function pageValidator(value) {
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
         PAGE_NAMES.ADVANCED_TOOLS,
+        PAGE_NAMES.MASKS,
+        PAGE_NAMES.MASKS_EDITOR,
+        PAGE_NAMES.OFFER_MAPPING,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

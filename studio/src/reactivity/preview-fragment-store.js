@@ -1,8 +1,9 @@
 import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
-import { previewStudioFragment } from 'fragment-client';
+import { previewStudioFragment } from '../../libs/fragment-client.js';
 import { Fragment } from '../aem/fragment.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
+import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
 
@@ -66,6 +67,7 @@ export class PreviewFragmentStore extends FragmentStore {
     #resolving = false;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
+    #resolvedDictionarySig = null;
 
     /**
      * @param {Fragment} initialValue
@@ -77,9 +79,11 @@ export class PreviewFragmentStore extends FragmentStore {
         this.lazy = lazy;
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
-            if (!this.lazy && !this.resolved && Store.previewDictionaryReady()) {
-                this.resolveFragment(true);
-            }
+            if (this.lazy || !Store.previewDictionaryReady(this.previewLocale)) return;
+            const sig = this.previewLocale;
+            if (this.resolved && sig === this.#resolvedDictionarySig) return;
+            this.resolved = false;
+            this.resolveFragment(true);
         });
 
         if (!this.lazy) {
@@ -119,23 +123,8 @@ export class PreviewFragmentStore extends FragmentStore {
         this.resolveFragment();
     }
 
-    updateFieldWithParentValue(fieldName, parentValues) {
-        const field = this.value.getField(fieldName);
-        if (field) {
-            field.values = parentValues;
-        } else if (parentValues.length > 0) {
-            const existingField = this.value.fields.find((f) => f.name === fieldName);
-            if (existingField) {
-                existingField.values = parentValues;
-            } else {
-                this.value.fields.push({
-                    name: fieldName,
-                    values: parentValues,
-                    multiple: parentValues.length > 1,
-                });
-            }
-        }
-        this.resolveFragment();
+    get previewLocale() {
+        return this.previewLocaleOverride || Store.localeOrRegion();
     }
 
     setPreviewLocaleOverride(value) {
@@ -184,8 +173,16 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (this.isCollection || !Store.previewDictionaryReady()) {
+        if (this.isCollection) {
             this.resolved = true;
+            this.refreshAemFragment(true);
+            this.notify();
+            return;
+        }
+
+        if (!Store.previewDictionaryReady(this.previewLocale)) {
+            // Leave resolved=false so the placeholderUnsubscribe callback
+            // re-runs resolution once the dictionary for this locale arrives.
             this.refreshAemFragment(true);
             this.notify();
             return;
@@ -199,9 +196,11 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         this.#resolving = true;
+        const dictionarySig = this.previewLocale;
         this.getResolvedFragment()
             .then((result) => {
                 if (result) {
+                    this.#resolvedDictionarySig = dictionarySig;
                     this.replaceFrom(result);
                     this.refreshAemFragment(true);
                 }
@@ -226,15 +225,17 @@ export class PreviewFragmentStore extends FragmentStore {
         body.fields = serializePreviewFields(originalFields);
 
         const context = {
-            locale: this.previewLocaleOverride || Store.localeOrRegion(),
+            locale: this.previewLocale,
             surface: Store.surface(),
-            dictionary: Store.previewDictionary(),
+            dictionary: Store.previewDictionary(this.previewLocale),
             preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
         };
         const result = await previewStudioFragment(body, context);
 
         /* Transform fields back to author */
-        result.fields = mergeResolvedPreviewFields(originalFields, result.fields, result.settings);
+        result.fields = normalizeExplicitEmptyInFields(
+            mergeResolvedPreviewFields(originalFields, result.fields, result.settings),
+        );
 
         const essentialProps = [
             'path',

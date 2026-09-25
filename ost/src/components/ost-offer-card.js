@@ -92,6 +92,15 @@ export class OstOfferCard extends LitElement {
             color: var(--spectrum-gray-800);
         }
 
+        .cell sp-badge {
+            display: inline-flex;
+            vertical-align: middle;
+        }
+
+        .cell sp-badge + sp-badge {
+            margin-left: 4px;
+        }
+
         :host([selected]) .cell {
             border-bottom-color: var(--spectrum-blue-200, rgba(20, 115, 230, 0.2));
         }
@@ -253,6 +262,16 @@ export class OstOfferCard extends LitElement {
         }
     }
 
+    updated(changed) {
+        // When a deep-linked offer auto-selects, the offer list may have
+        // scrolled past it — bring the selected card into view so the user sees
+        // which offer was pre-chosen. Runs on first render (selected from the
+        // start) and whenever `selected` flips on.
+        if (changed.has('selected') && this.selected) {
+            this.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
     async handleClick() {
         if (!this.offer || this.resolving) return;
         if (store.authoringFlow === 'consult') {
@@ -330,10 +349,7 @@ export class OstOfferCard extends LitElement {
                               : ''}`
                     : ''}
                 ${offer.landscapeSource
-                    ? html`<sp-badge
-                          size="s"
-                          variant="${offer.landscapeSource === 'DRAFT' ? 'yellow' : 'informative'}"
-                          style="margin-left:4px;"
+                    ? html`<sp-badge size="s" variant="${offer.landscapeSource === 'DRAFT' ? 'yellow' : 'informative'}"
                           >${offer.landscapeSource}</sp-badge
                       >`
                     : ''}

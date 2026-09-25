@@ -12,6 +12,7 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/upt-link.html">UPT Link</a>
       <a href="/web-components/docs/inline-price.html">Inline Price</a>
       <a href="/web-components/docs/aem-fragment.html">AEM Fragment</a>
+      <a href="/web-components/docs/masks.html">Masks</a>
       <a href="/web-components/docs/merch-card.html">Merch Card</a>
       <a href="/web-components/docs/ccd.html">CCD Gallery</a>
       <a href="/web-components/docs/ccd-mini.html">CCD Mini</a>
@@ -24,6 +25,7 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/minicompare.html">Mini Compare Gallery</a>
       <a href="/web-components/docs/minicomparemweb.html">Mini Compare MWeb Gallery</a>
       <a href="/web-components/docs/product.html">Product Gallery</a>
+      <a href="/web-components/docs/brand-concierge.html">Brand Concierge Gallery</a>
       <a href="/web-components/docs/segment.html">Segment Gallery</a>
       <a href="/web-components/docs/specialoffer.html">Special Offer Gallery</a>
       <a href="/web-components/docs/image.html">Image Gallery</a>

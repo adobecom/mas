@@ -1,0 +1,910 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/ilyas-test-compare-chart-uuoa",
+    "name": "ilyas-test-compare-chart-uuoa",
+    "title": "Ilyas Test Compare Chart",
+    "id": "c481dd2a-a079-47d7-9383-3dbeda5b0575",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
+    "fields": {
+        "cards": [
+            "6b9b9e9b-b71e-4943-88e2-540129295614",
+            "0385f7e9-888c-4eda-936d-9e870c994c59",
+            "e7563f87-7cf6-4126-b395-e4dc78b9099e"
+        ],
+        "collections": [],
+        "variations": ["8efdf6ca-1561-4ee3-8e1f-a70e847f10e0"],
+        "tagFilters": [],
+        "pznTags": [],
+        "compareChart": {
+            "value": "<mas-compare-chart expanded-groups=\"1\"><span slot=\"compare-features\">Compare Features</span><div name=\"adobe-apps\"><h4>Adobe apps</h4><p name=\"seamless-integration-across-adobe-apps\"><strong>Seamless integration across Adobe apps like Photoshop, Illustrator, InDesign, Firefly, Acrobat and Lightroom</strong></p><p name=\"boost-your-creativity-with-photoshop\"><strong>Boost your creativity with Photoshop:</strong>In addition to the Adobe Express Premium plan, get full access to Adobe Photoshop on web and mobile.</p><p name=\"adobe-firefly-pro\"><strong>Adobe Firefly Pro</strong>Create images, video, audio, and vector graphics. Ideate, create, and collaborate with Firefly Boards. And work with the latest commercially safe Firefly generative AI models.</p><p name=\"integration-with-adobe-experience-manager-workfront-and-genstudio\"><strong>Integration with Adobe Experience Manager, Workfront, and GenStudio for performance marketing</strong></p></div><div name=\"templates-and-design-assets\"><h4>Templates and design assets</h4><p name=\"professionally-designed-templates\">Professionally designed templates <a href=\"#\" class=\"secondary-link\" title=\"Static, motion, and video templates\">ℹ️</a></p><p name=\"template-recommendations\">Template recommendations <a href=\"#\" class=\"secondary-link\" title=\"Preview your photo in editable templates that match the photo context\">ℹ️</a></p><p name=\"adobe-stock-photos\">Adobe Stock photos</p><p name=\"adobe-stock-videos\">Adobe Stock videos</p><p name=\"adobe-stock-audiomusic\">Adobe Stock audio/music</p><p name=\"adobe-stock-sound-effects\">Adobe Stock sound effects</p><p name=\"adobe-stock-backgrounds\">Adobe Stock backgrounds</p><p name=\"adobe-stock-design-assets\">Adobe Stock design assets <a href=\"#\" class=\"secondary-link\" title=\"Illustrations, brushes, textures, frames, and more\">ℹ️</a></p><p name=\"adobe-stock-icons\">Adobe Stock icons</p><p name=\"basic-shapes\">Basic Shapes</p></div><div name=\"generative-ai\"><h4>Generative AI</h4><p name=\"ai-assistant-beta\">AI Assistant Beta <a href=\"#\" class=\"secondary-link\" title=\"Prompt-anything, edit-everything\">ℹ️</a></p><p name=\"generate-presentations\">Generate Presentations <a href=\"#\" class=\"secondary-link\" title=\"Turn documents into presentations in minutes\">ℹ️</a></p><p name=\"generative-credits\">Generative credits</p><p name=\"generate-images-text-effects-templates--more\">Generate images, text effects, templates &amp; more</p><p name=\"insert--remove-objects\">Insert &amp; Remove Objects</p><p name=\"commercial-use\">Commercial Use <a href=\"#\" class=\"secondary-link\" title=\"Features designed to be commercially safe, powered by Adobe Firefly generative AI\">ℹ️</a></p><p name=\"partner-generative-ai-models\">Partner generative AI models <a href=\"#\" class=\"secondary-link\" title=\"Access partner models in Firefly such as Google, OpenAI, Flux, and more\">ℹ️</a></p><p name=\"generate-5-second-videos\">Generate 5-second videos</p><p name=\"adobe-firefly-boards\">Adobe Firefly Boards</p></div><div name=\"photo-and-design\"><h4>Photo and design</h4><p name=\"erase\">Erase</p><p name=\"photo-adjustments-and-effects\">Photo Adjustments and Effects <a href=\"#\" class=\"secondary-link\" title=\"Adjust contrast, shadows, saturation, effects, and blend modes, powered by Photoshop\">ℹ️</a></p><p name=\"start-from-photos\">Start from photos <a href=\"#\" class=\"secondary-link\" title=\"Start from JPG, PNG, PSD, and more\">ℹ️</a></p><p name=\"adobe-fonts\">Adobe Fonts</p><p name=\"font-recommendations\">Font recommendations <a href=\"#\" class=\"secondary-link\" title=\"Recommendations for fonts that match your design\">ℹ️</a></p><p name=\"add-and-sync-psd-and-ai-files\">Add and sync .psd and .ai files <a href=\"#\" class=\"secondary-link\" title=\"Edits made in Photoshop or Illustrator sync without reimporting\">ℹ️</a></p><p name=\"export-in-jpeg-png-pdf-gif-ppt\">Export in JPEG, PNG, PDF, GIF, PPT</p><p name=\"export-as-png-with-transparent-background\">Export as PNG with transparent background</p><p name=\"draw-and-paint-with-85-brushes-and-coloring-pages\">Draw and paint with 85+ brushes and coloring pages</p></div><div name=\"video-and-motion\"><h4>Video and motion</h4><p name=\"drag-and-drop-video-creation\">Drag-and-drop video creation</p><p name=\"remove-video-background\">Remove video background</p><p name=\"animate-all\">Animate All <a href=\"#\" class=\"secondary-link\" title=\"Automatically apply motion to your entire design\">ℹ️</a></p><p name=\"dynamic-animations\">Dynamic Animations <a href=\"#\" class=\"secondary-link\" title=\"Add physics-based animation to photos, videos, text, shapes, and icons\">ℹ️</a></p><p name=\"record-voiceover-and-video-directly-in-app\">Record voiceover and video directly in-app</p><p name=\"video-transitions\">Video transitions</p><p name=\"video-length\">Video length</p><p name=\"export-in-4k\">Export in 4K</p><p name=\"enhance-speech\">Enhance Speech</p><p name=\"tiktok-symphony-assistant-add-on\">TikTok Symphony Assistant Add-on <a href=\"#\" class=\"secondary-link\" title=\"1M+ songs and sounds from TikTok’s Commercial Music Library\">ℹ️</a></p></div><div name=\"quick-actions\"><h4>Quick Actions</h4><p name=\"remove-image-background\">Remove Image Background</p><p name=\"resize-image\">Resize Image</p><p name=\"crop-image\">Crop Image</p><p name=\"generate-qr-code\">Generate QR Code</p><p name=\"pdf-quick-actions\">PDF Quick Actions <a href=\"#\" class=\"secondary-link\" title=\"Edit, combine, organize, import/enhance PDF\">ℹ️</a></p><p name=\"convert-to-gif\">Convert to GIF</p><p name=\"convert-to-jpgpngsvgmp4\">Convert to JPG/PNG/SVG/MP4</p><p name=\"caption-video\">Caption Video</p><p name=\"resize-video\">Resize Video</p><p name=\"clip-maker\">Clip Maker <a href=\"#\" class=\"secondary-link\" title=\"Turn video podcasts, educational videos, and product reviews into social clips with captions\">ℹ️</a></p><p name=\"merge-crop-and-trim-video\">Merge, Crop, and Trim Video</p><p name=\"animate-characters\">Animate Characters</p></div><div name=\"brand-management-and-collaboration\"><h4>Brand management and collaboration</h4><p name=\"brand-kits\">Brand Kits <a href=\"#\" class=\"secondary-link\" title=\"Keep colors, fonts, logos, and graphics in one brand kit\">ℹ️</a></p><p name=\"extract-brand-colors-fonts-logos-from-image\">Extract brand colors, fonts, logos from image <a href=\"#\" class=\"secondary-link\" title=\"One-click extraction\">ℹ️</a></p><p name=\"libraries\">Libraries <a href=\"#\" class=\"secondary-link\" title=\"Store Adobe Express and Creative Cloud assets in one place\">ℹ️</a></p><p name=\"branded-templates\">Branded templates <a href=\"#\" class=\"secondary-link\" title=\"Create brand-specific templates for teams\">ℹ️</a></p><p name=\"brand-controls\">Brand controls <a href=\"#\" class=\"secondary-link\" title=\"Specify which brand colors and fonts can be used in shared templates\">ℹ️</a></p><p name=\"custom-home\">Custom Home <a href=\"#\" class=\"secondary-link\" title=\"Branded banner and access to approved templates\">ℹ️</a></p><p name=\"adobe-experience-manager-integration\">Adobe Experience Manager integration <a href=\"#\" class=\"secondary-link\" title=\"Access, edit, and save assets back to AEM\">ℹ️</a></p><p name=\"custom-models\">Custom Models <a href=\"#\" class=\"secondary-link\" title=\"Generate on-brand content with Firefly Custom Models\">ℹ️</a></p><p name=\"protect-your-brand\">Protect your brand <a href=\"#\" class=\"secondary-link\" title=\"IP indemnification for Adobe Firefly generated content\">ℹ️</a></p><p name=\"real-time-co-editing-and-commenting\">Real-time co-editing and commenting</p><p name=\"share-templates-across-teams\">Share templates across teams</p></div><div name=\"campaigns-and-publishing\"><h4>Campaigns and publishing</h4><p name=\"resize\">Resize <a href=\"#\" class=\"secondary-link\" title=\"Resize for multiple formats at one time in the same file\">ℹ️</a></p><p name=\"translate\">Translate <a href=\"#\" class=\"secondary-link\" title=\"Automatically translate text into 45+ languages\">ℹ️</a></p><p name=\"safe-zones\">Safe Zones <a href=\"#\" class=\"secondary-link\" title=\"Format-aware guides to keep text, visuals, and logos visible\">ℹ️</a></p><p name=\"caption-writer\">Caption Writer <a href=\"#\" class=\"secondary-link\" title=\"AI-generated social captions tailored to your design\">ℹ️</a></p><p name=\"social-mentions\">Social Mentions <a href=\"#\" class=\"secondary-link\" title=\"Add mentions directly in captions when scheduling posts\">ℹ️</a></p><p name=\"content-scheduler\">Content Scheduler <a href=\"#\" class=\"secondary-link\" title=\"Plan, publish, and schedule direct to social channels\">ℹ️</a></p><p name=\"shared-social-calendars\">Shared social calendars</p><p name=\"publish-paid-ads-directly\">Publish paid ads directly</p><p name=\"publish-to-multiple-channels-simultaneously\">Publish to multiple channels simultaneously</p><p name=\"metricool-add-on\">Metricool Add-On <a href=\"#\" class=\"secondary-link\" title=\"Track social metrics, competitive insights, and download custom reports\">ℹ️</a></p></div><div name=\"support-and-storage\"><h4>Support and Storage</h4><p name=\"cloud-storage\">Cloud storage</p><p name=\"version-history\">Version history</p><p name=\"admin-console\">Admin Console <a href=\"#\" class=\"secondary-link\" title=\"License/user management\">ℹ️</a></p><p name=\"flexible-license-management\">Flexible license management <a href=\"#\" class=\"secondary-link\" title=\"Reassign licenses when team changes occur\">ℹ️</a></p><p name=\"admin-roles\">Admin roles <a href=\"#\" class=\"secondary-link\" title=\"Assign total access to select staff\">ℹ️</a></p><p name=\"asset-reclamation\">Asset reclamation <a href=\"#\" class=\"secondary-link\" title=\"Retrieve assets when users leave the org\">ℹ️</a></p><p name=\"asset-sharing-restrictions\">Asset sharing restrictions <a href=\"#\" class=\"secondary-link\" title=\"Limit who can see specific assets\">ℹ️</a></p><p name=\"consolidated-billing\">Consolidated billing</p><p name=\"24x7-technical-support\">24x7 technical support <a href=\"#\" class=\"secondary-link\" title=\"Multilingual customer care, dedicated line for admins\">ℹ️</a></p><p name=\"11-sessions-with-product-experts\">1:1 sessions with product experts <a href=\"#\" class=\"secondary-link\" title=\"Accessible from Admin Console\">ℹ️</a></p><p name=\"single-sign-on\">Single sign-on</p><p name=\"encryption-key-support\">Encryption key support <a href=\"#\" class=\"secondary-link\" title=\"Assets can be encrypted for additional security\">ℹ️</a></p><p name=\"user-directory-sync\">User directory sync <a href=\"#\" class=\"secondary-link\" title=\"Sync with Microsoft Azure or Google Admin Console\">ℹ️</a></p><p name=\"firefly-output-indemnification\">Firefly output indemnification <a href=\"#\" class=\"secondary-link\" title=\"Select plans eligible for IP indemnification for Firefly generated images\">ℹ️</a></p><p name=\"flexible-purchasing-options\">Flexible purchasing options <a href=\"#\" class=\"secondary-link\" title=\"Purchasing, deploying, and managing Adobe licenses for organizations\">ℹ️</a></p></div></mas-compare-chart>",
+            "mimeType": "text/plain"
+        }
+    },
+    "references": {
+        "6b9b9e9b-b71e-4943-88e2-540129295614": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/adobe-express-free",
+                "name": "adobe-express-free",
+                "title": "Adobe Express Free",
+                "id": "6b9b9e9b-b71e-4943-88e2-540129295614",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "compare-chart-column",
+                    "osi": "Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/cc-express.svg"
+                    ],
+                    "mnemonicAlt": [""],
+                    "mnemonicLink": [""],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "cardTitle": "Adobe Express Free",
+                    "prices": {
+                        "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ\"></span></p>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": {
+                        "value": "<p>Legal disclaimer</p>",
+                        "mimeType": "text/html"
+                    },
+                    "description": {
+                        "value": "<p>Some description</p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><a class=\"primary\" data-checkout-workflow=\"UCv3\" data-wcs-osi=\"Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Get Adobe Express Free</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": ["868a081e-8fb9-4c4e-ab3f-0e683ba087da"],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/m2m",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ccfm",
+                        "mas:market_segments/edu"
+                    ],
+                    "pznTags": [],
+                    "compatVersion": 1,
+                    "features": {
+                        "value": [
+                            "<p name=\"adobe-apps@seamless-integration-across-adobe-apps\">✅</p>",
+                            "<p name=\"adobe-apps@boost-your-creativity-with-photoshop\">—</p>",
+                            "<p name=\"adobe-apps@adobe-firefly-pro\">—</p>",
+                            "<p name=\"adobe-apps@integration-with-adobe-experience-manager-workfront-and-genstudio\">—</p>",
+                            "<p name=\"templates-and-design-assets@professionally-designed-templates\">✓<small>268,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@template-recommendations\">✓</p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-photos\">✓<small>500,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-videos\">✓<small>90,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-audiomusic\">✓<small>2,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-sound-effects\">✓<small>11,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-backgrounds\">✓<small>40,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-design-assets\">✓<small>153,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-icons\">✓<small>305,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@basic-shapes\">✓<small>133</small></p>",
+                            "<p name=\"generative-ai@ai-assistant-beta\">In development</p>",
+                            "<p name=\"generative-ai@generate-presentations\">Limited: 5 free lifetime uses</p>",
+                            "<p name=\"generative-ai@generative-credits\">✓</p>",
+                            "<p name=\"generative-ai@generate-images-text-effects-templates--more\">✓<small>Free daily generations</small></p>",
+                            "<p name=\"generative-ai@insert--remove-objects\">✓<small>Free daily generations</small></p>",
+                            "<p name=\"generative-ai@commercial-use\">✓</p>",
+                            "<p name=\"generative-ai@partner-generative-ai-models\">—</p>",
+                            "<p name=\"generative-ai@generate-5-second-videos\">Limited: 2 free lifetime uses</p>",
+                            "<p name=\"generative-ai@adobe-firefly-boards\">—</p>",
+                            "<p name=\"photo-and-design@erase\">—</p>",
+                            "<p name=\"photo-and-design@photo-adjustments-and-effects\">✓</p>",
+                            "<p name=\"photo-and-design@start-from-photos\">✓</p>",
+                            "<p name=\"photo-and-design@adobe-fonts\">✓<small>4,000+ fonts</small></p>",
+                            "<p name=\"photo-and-design@font-recommendations\">✓</p>",
+                            "<p name=\"photo-and-design@add-and-sync-psd-and-ai-files\">—</p>",
+                            "<p name=\"photo-and-design@export-in-jpeg-png-pdf-gif-ppt\">✓</p>",
+                            "<p name=\"photo-and-design@export-as-png-with-transparent-background\">✓</p>",
+                            "<p name=\"photo-and-design@draw-and-paint-with-85-brushes-and-coloring-pages\">✓</p>",
+                            "<p name=\"video-and-motion@drag-and-drop-video-creation\">✓</p>",
+                            "<p name=\"video-and-motion@remove-video-background\">—</p>",
+                            "<p name=\"video-and-motion@animate-all\">✓</p>",
+                            "<p name=\"video-and-motion@dynamic-animations\">✓</p>",
+                            "<p name=\"video-and-motion@record-voiceover-and-video-directly-in-app\">✓</p>",
+                            "<p name=\"video-and-motion@video-transitions\">✓</p>",
+                            "<p name=\"video-and-motion@video-length\">✓<small>Up to 30 min</small></p>",
+                            "<p name=\"video-and-motion@export-in-4k\">—</p>",
+                            "<p name=\"video-and-motion@enhance-speech\">—</p>",
+                            "<p name=\"video-and-motion@tiktok-symphony-assistant-add-on\">✓</p>",
+                            "<p name=\"quick-actions@remove-image-background\">✓</p>",
+                            "<p name=\"quick-actions@resize-image\">✓</p>",
+                            "<p name=\"quick-actions@crop-image\">✓</p>",
+                            "<p name=\"quick-actions@generate-qr-code\">✓</p>",
+                            "<p name=\"quick-actions@pdf-quick-actions\">✓<small>Import PDF free; 10 PDF Quick Actions/month</small></p>",
+                            "<p name=\"quick-actions@convert-to-gif\">✓</p>",
+                            "<p name=\"quick-actions@convert-to-jpgpngsvgmp4\">✓</p>",
+                            "<p name=\"quick-actions@caption-video\">✓</p>",
+                            "<p name=\"quick-actions@resize-video\">✓</p>",
+                            "<p name=\"quick-actions@clip-maker\">✓</p>",
+                            "<p name=\"quick-actions@merge-crop-and-trim-video\">✓</p>",
+                            "<p name=\"quick-actions@animate-characters\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@brand-kits\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@extract-brand-colors-fonts-logos-from-image\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@libraries\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@branded-templates\">✓<small>Use only</small></p>",
+                            "<p name=\"brand-management-and-collaboration@brand-controls\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@custom-home\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@adobe-experience-manager-integration\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@custom-models\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@protect-your-brand\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@real-time-co-editing-and-commenting\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@share-templates-across-teams\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@resize\">—</p>",
+                            "<p name=\"campaigns-and-publishing@translate\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@safe-zones\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@caption-writer\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@social-mentions\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@content-scheduler\">✓<small>1 account/social network</small></p>",
+                            "<p name=\"campaigns-and-publishing@shared-social-calendars\">✓<small>1 shared calendar</small></p>",
+                            "<p name=\"campaigns-and-publishing@publish-paid-ads-directly\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@publish-to-multiple-channels-simultaneously\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@metricool-add-on\">✓</p>",
+                            "<p name=\"support-and-storage@cloud-storage\">✓<small>5GB</small></p>",
+                            "<p name=\"support-and-storage@version-history\">✓<small>10 days</small></p>",
+                            "<p name=\"support-and-storage@admin-console\">—</p>",
+                            "<p name=\"support-and-storage@flexible-license-management\">—</p>",
+                            "<p name=\"support-and-storage@admin-roles\">—</p>",
+                            "<p name=\"support-and-storage@asset-reclamation\">—</p>",
+                            "<p name=\"support-and-storage@asset-sharing-restrictions\">—</p>",
+                            "<p name=\"support-and-storage@consolidated-billing\">—</p>",
+                            "<p name=\"support-and-storage@24x7-technical-support\">—</p>",
+                            "<p name=\"support-and-storage@11-sessions-with-product-experts\">—</p>",
+                            "<p name=\"support-and-storage@single-sign-on\">—</p>",
+                            "<p name=\"support-and-storage@encryption-key-support\">—</p>",
+                            "<p name=\"support-and-storage@user-directory-sync\">—</p>",
+                            "<p name=\"support-and-storage@firefly-output-indemnification\">—</p>",
+                            "<p name=\"support-and-storage@flexible-purchasing-options\">—</p>"
+                        ],
+                        "mimeType": "text/plain"
+                    }
+                }
+            }
+        },
+        "868a081e-8fb9-4c4e-ab3f-0e683ba087da": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_IE/adobe-express-free",
+                "name": "adobe-express-free",
+                "title": "Adobe Express Free",
+                "id": "868a081e-8fb9-4c4e-ab3f-0e683ba087da",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "mnemonicIcon": [],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "prices": { "mimeType": "text/html" },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": { "mimeType": "text/html" },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><a class=\"accent\" data-checkout-workflow=\"UCv3\" data-wcs-osi=\"Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">{{buy-now}}</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [],
+                    "pznTags": [],
+                    "compatVersion": 1,
+                    "features": {
+                        "value": [
+                            "<p name=\"adobe-apps@seamless-integration-across-adobe-apps\">✓<small>This is a variation</small></p>"
+                        ],
+                        "mimeType": "text/plain"
+                    }
+                }
+            }
+        },
+        "mas:offer_type/base": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/offer_type/base",
+                "name": "base",
+                "title": "Base",
+                "id": "mas:offer_type/base",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Offer type / Base",
+                "description": null
+            }
+        },
+        "mas:plan_type/m2m": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/plan_type/m2m",
+                "name": "m2m",
+                "title": "M2M",
+                "id": "mas:plan_type/m2m",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Plan type / M2M",
+                "description": ""
+            }
+        },
+        "mas:customer_segment/individual": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/customer_segment/individual",
+                "name": "individual",
+                "title": "Individual",
+                "id": "mas:customer_segment/individual",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Customer segment / Individual",
+                "description": null
+            }
+        },
+        "mas:market_segments/edu": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/market_segments/edu",
+                "name": "edu",
+                "title": "EDU",
+                "id": "mas:market_segments/edu",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Market segments / EDU",
+                "description": ""
+            }
+        },
+        "0385f7e9-888c-4eda-936d-9e870c994c59": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/adobe-express-premium-90hs",
+                "name": "adobe-express-premium-90hs",
+                "title": "Adobe Express Premium",
+                "id": "0385f7e9-888c-4eda-936d-9e870c994c59",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "compare-chart-column",
+                    "osi": "ffr4mpgRgMO3gEGiULe2iSHN61Rt5lVkKE0tihE9RjM",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/cc-express.svg"
+                    ],
+                    "mnemonicAlt": [""],
+                    "mnemonicLink": [""],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "cardTitle": "Adobe Express Premium",
+                    "prices": {
+                        "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"ffr4mpgRgMO3gEGiULe2iSHN61Rt5lVkKE0tihE9RjM\"></span></p>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": { "mimeType": "text/html" },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><a class=\"accent\" data-checkout-workflow=\"UCv3\" data-wcs-osi=\"ffr4mpgRgMO3gEGiULe2iSHN61Rt5lVkKE0tihE9RjM\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Start 30-day free trial</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/trial",
+                        "mas:plan_type/m2m",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ccex",
+                        "mas:market_segments/com"
+                    ],
+                    "pznTags": [],
+                    "compatVersion": 1,
+                    "features": {
+                        "value": [
+                            "<p name=\"adobe-apps@seamless-integration-across-adobe-apps\">✓</p>",
+                            "<p name=\"adobe-apps@boost-your-creativity-with-photoshop\">—</p>",
+                            "<p name=\"adobe-apps@adobe-firefly-pro\">—</p>",
+                            "<p name=\"adobe-apps@integration-with-adobe-experience-manager-workfront-and-genstudio\">—</p>",
+                            "<p name=\"templates-and-design-assets@professionally-designed-templates\">✓<small>519,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@template-recommendations\">✓</p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-photos\">✓<small>350M+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-videos\">✓<small>100,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-audiomusic\">✓<small>2,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-sound-effects\">✓<small>15,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-backgrounds\">✓<small>73,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-design-assets\">✓<small>319,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-icons\">✓<small>305,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@basic-shapes\">✓<small>133</small></p>",
+                            "<p name=\"generative-ai@ai-assistant-beta\">✓</p>",
+                            "<p name=\"generative-ai@generate-presentations\">✓</p>",
+                            "<p name=\"generative-ai@generative-credits\">✓<small>250/month</small></p>",
+                            "<p name=\"generative-ai@generate-images-text-effects-templates--more\">✓</p>",
+                            "<p name=\"generative-ai@insert--remove-objects\">✓</p>",
+                            "<p name=\"generative-ai@commercial-use\">✓</p>",
+                            "<p name=\"generative-ai@partner-generative-ai-models\">✓</p>",
+                            "<p name=\"generative-ai@generate-5-second-videos\">✓</p>",
+                            "<p name=\"generative-ai@adobe-firefly-boards\">✓</p>",
+                            "<p name=\"photo-and-design@erase\">✓</p>",
+                            "<p name=\"photo-and-design@photo-adjustments-and-effects\">✓</p>",
+                            "<p name=\"photo-and-design@start-from-photos\">✓</p>",
+                            "<p name=\"photo-and-design@adobe-fonts\">✓<small>30,000+ fonts</small></p>",
+                            "<p name=\"photo-and-design@font-recommendations\">✓</p>",
+                            "<p name=\"photo-and-design@add-and-sync-psd-and-ai-files\">✓</p>",
+                            "<p name=\"photo-and-design@export-in-jpeg-png-pdf-gif-ppt\">✓</p>",
+                            "<p name=\"photo-and-design@export-as-png-with-transparent-background\">✓</p>",
+                            "<p name=\"photo-and-design@draw-and-paint-with-85-brushes-and-coloring-pages\">✓</p>",
+                            "<p name=\"video-and-motion@drag-and-drop-video-creation\">✓</p>",
+                            "<p name=\"video-and-motion@remove-video-background\">✓</p>",
+                            "<p name=\"video-and-motion@animate-all\">✓</p>",
+                            "<p name=\"video-and-motion@dynamic-animations\">✓</p>",
+                            "<p name=\"video-and-motion@record-voiceover-and-video-directly-in-app\">✓</p>",
+                            "<p name=\"video-and-motion@video-transitions\">✓</p>",
+                            "<p name=\"video-and-motion@video-length\">✓<small>Up to 2 hours</small></p>",
+                            "<p name=\"video-and-motion@export-in-4k\">✓</p>",
+                            "<p name=\"video-and-motion@enhance-speech\">✓</p>",
+                            "<p name=\"video-and-motion@tiktok-symphony-assistant-add-on\">✓</p>",
+                            "<p name=\"quick-actions@remove-image-background\">✓</p>",
+                            "<p name=\"quick-actions@resize-image\">✓</p>",
+                            "<p name=\"quick-actions@crop-image\">✓</p>",
+                            "<p name=\"quick-actions@generate-qr-code\">✓</p>",
+                            "<p name=\"quick-actions@pdf-quick-actions\">✓<small>Unlimited</small></p>",
+                            "<p name=\"quick-actions@convert-to-gif\">✓</p>",
+                            "<p name=\"quick-actions@convert-to-jpgpngsvgmp4\">✓</p>",
+                            "<p name=\"quick-actions@caption-video\">✓</p>",
+                            "<p name=\"quick-actions@resize-video\">✓</p>",
+                            "<p name=\"quick-actions@clip-maker\">✓</p>",
+                            "<p name=\"quick-actions@merge-crop-and-trim-video\">✓</p>",
+                            "<p name=\"quick-actions@animate-characters\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@brand-kits\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@extract-brand-colors-fonts-logos-from-image\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@libraries\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@branded-templates\">✓<small>Create and use</small></p>",
+                            "<p name=\"brand-management-and-collaboration@brand-controls\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@custom-home\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@adobe-experience-manager-integration\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@custom-models\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@protect-your-brand\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@real-time-co-editing-and-commenting\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@share-templates-across-teams\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@resize\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@translate\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@safe-zones\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@caption-writer\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@social-mentions\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@content-scheduler\">✓<small>3 accounts/social network</small></p>",
+                            "<p name=\"campaigns-and-publishing@shared-social-calendars\">✓<small>3 shared calendars</small></p>",
+                            "<p name=\"campaigns-and-publishing@publish-paid-ads-directly\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@publish-to-multiple-channels-simultaneously\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@metricool-add-on\">✓</p>",
+                            "<p name=\"support-and-storage@cloud-storage\">✓<small>10GB</small></p>",
+                            "<p name=\"support-and-storage@version-history\">✓<small>30 days</small></p>",
+                            "<p name=\"support-and-storage@admin-console\">—</p>",
+                            "<p name=\"support-and-storage@flexible-license-management\">—</p>",
+                            "<p name=\"support-and-storage@admin-roles\">—</p>",
+                            "<p name=\"support-and-storage@asset-reclamation\">—</p>",
+                            "<p name=\"support-and-storage@asset-sharing-restrictions\">—</p>",
+                            "<p name=\"support-and-storage@consolidated-billing\">—</p>",
+                            "<p name=\"support-and-storage@24x7-technical-support\">—</p>",
+                            "<p name=\"support-and-storage@11-sessions-with-product-experts\">—</p>",
+                            "<p name=\"support-and-storage@single-sign-on\">—</p>",
+                            "<p name=\"support-and-storage@encryption-key-support\">—</p>",
+                            "<p name=\"support-and-storage@user-directory-sync\">—</p>",
+                            "<p name=\"support-and-storage@firefly-output-indemnification\">—</p>",
+                            "<p name=\"support-and-storage@flexible-purchasing-options\">—</p>",
+                            "<p name=\"top-features@new-feature\">No</p>",
+                            "<p name=\"top-features@new-feature-2\">✓</p>",
+                            "<p name=\"new-group@new-feature-8\"><a class=\"primary-outline\" href=\"https://www.liquorificiodellosmeraldo.com/\" target=\"_self\">cello</a></p>"
+                        ],
+                        "mimeType": "text/plain"
+                    }
+                }
+            }
+        },
+        "mas:offer_type/trial": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/offer_type/trial",
+                "name": "trial",
+                "title": "Trial",
+                "id": "mas:offer_type/trial",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Offer type / Trial",
+                "description": null
+            }
+        },
+        "mas:product_code/ccex": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product_code/ccex",
+                "name": "ccex",
+                "title": "Adobe Express",
+                "id": "mas:product_code/ccex",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product code / Adobe Express",
+                "description": ""
+            }
+        },
+        "mas:market_segments/com": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/market_segments/com",
+                "name": "com",
+                "title": "com",
+                "id": "mas:market_segments/com",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Market segments / com",
+                "description": ""
+            }
+        },
+        "e7563f87-7cf6-4126-b395-e4dc78b9099e": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/adobe-firefly-pro",
+                "name": "adobe-firefly-pro",
+                "title": "Adobe Firefly Pro",
+                "id": "e7563f87-7cf6-4126-b395-e4dc78b9099e",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "compare-chart-column",
+                    "osi": "F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/firefly.svg"
+                    ],
+                    "mnemonicAlt": [""],
+                    "mnemonicLink": [""],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "cardTitle": "Adobe Firefly Pro",
+                    "prices": {
+                        "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY\"></span></p>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p>legal disclaimer</p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><a class=\"accent\" data-checkout-workflow=\"UCv3\" data-wcs-osi=\"F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Start 7-day free trial</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/trial",
+                        "mas:plan_type/m2m",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ffpo",
+                        "mas:market_segments/com"
+                    ],
+                    "pznTags": [],
+                    "compatVersion": 1,
+                    "features": {
+                        "value": [
+                            "<p name=\"adobe-apps@seamless-integration-across-adobe-apps\">✓</p>",
+                            "<p name=\"adobe-apps@boost-your-creativity-with-photoshop\">✓</p>",
+                            "<p name=\"adobe-apps@adobe-firefly-pro\">✓</p>",
+                            "<p name=\"adobe-apps@integration-with-adobe-experience-manager-workfront-and-genstudio\">—</p>",
+                            "<p name=\"templates-and-design-assets@professionally-designed-templates\">✓<small>519,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@template-recommendations\">✓</p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-photos\">✓<small>350M+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-videos\">✓<small>100,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-audiomusic\">✓<small>2,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-sound-effects\">✓<small>15,000</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-backgrounds\">✓<small>73,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-design-assets\">✓<small>319,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@adobe-stock-icons\">✓<small>305,000+</small></p>",
+                            "<p name=\"templates-and-design-assets@basic-shapes\">✓<small>133</small></p>",
+                            "<p name=\"generative-ai@ai-assistant-beta\">✓</p>",
+                            "<p name=\"generative-ai@generate-presentations\">✓</p>",
+                            "<p name=\"generative-ai@generative-credits\">✓<small>4,000/month</small></p>",
+                            "<p name=\"generative-ai@generate-images-text-effects-templates--more\">✓</p>",
+                            "<p name=\"generative-ai@insert--remove-objects\">✓</p>",
+                            "<p name=\"generative-ai@commercial-use\">✓</p>",
+                            "<p name=\"generative-ai@partner-generative-ai-models\">✓</p>",
+                            "<p name=\"generative-ai@generate-5-second-videos\">✓</p>",
+                            "<p name=\"generative-ai@adobe-firefly-boards\">✓</p>",
+                            "<p name=\"photo-and-design@erase\">✓</p>",
+                            "<p name=\"photo-and-design@photo-adjustments-and-effects\">✓</p>",
+                            "<p name=\"photo-and-design@start-from-photos\">✓</p>",
+                            "<p name=\"photo-and-design@adobe-fonts\">✓<small>30,000+ fonts</small></p>",
+                            "<p name=\"photo-and-design@font-recommendations\">✓</p>",
+                            "<p name=\"photo-and-design@add-and-sync-psd-and-ai-files\">✓</p>",
+                            "<p name=\"photo-and-design@export-in-jpeg-png-pdf-gif-ppt\">✓</p>",
+                            "<p name=\"photo-and-design@export-as-png-with-transparent-background\">✓</p>",
+                            "<p name=\"photo-and-design@draw-and-paint-with-85-brushes-and-coloring-pages\">✓</p>",
+                            "<p name=\"video-and-motion@drag-and-drop-video-creation\">✓</p>",
+                            "<p name=\"video-and-motion@remove-video-background\">✓</p>",
+                            "<p name=\"video-and-motion@animate-all\">✓</p>",
+                            "<p name=\"video-and-motion@dynamic-animations\">✓</p>",
+                            "<p name=\"video-and-motion@record-voiceover-and-video-directly-in-app\">✓</p>",
+                            "<p name=\"video-and-motion@video-transitions\">✓</p>",
+                            "<p name=\"video-and-motion@video-length\">✓<small>Up to 2 hours</small></p>",
+                            "<p name=\"video-and-motion@export-in-4k\">✓</p>",
+                            "<p name=\"video-and-motion@enhance-speech\">✓</p>",
+                            "<p name=\"video-and-motion@tiktok-symphony-assistant-add-on\">✓</p>",
+                            "<p name=\"quick-actions@remove-image-background\">✓</p>",
+                            "<p name=\"quick-actions@resize-image\">✓</p>",
+                            "<p name=\"quick-actions@crop-image\">✓</p>",
+                            "<p name=\"quick-actions@generate-qr-code\">✓</p>",
+                            "<p name=\"quick-actions@pdf-quick-actions\">✓<small>Unlimited</small></p>",
+                            "<p name=\"quick-actions@convert-to-gif\">✓</p>",
+                            "<p name=\"quick-actions@convert-to-jpgpngsvgmp4\">✓</p>",
+                            "<p name=\"quick-actions@caption-video\">✓</p>",
+                            "<p name=\"quick-actions@resize-video\">✓</p>",
+                            "<p name=\"quick-actions@clip-maker\">✓</p>",
+                            "<p name=\"quick-actions@merge-crop-and-trim-video\">✓</p>",
+                            "<p name=\"quick-actions@animate-characters\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@brand-kits\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@extract-brand-colors-fonts-logos-from-image\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@libraries\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@branded-templates\">✓<small>Create and use</small></p>",
+                            "<p name=\"brand-management-and-collaboration@brand-controls\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@custom-home\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@adobe-experience-manager-integration\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@custom-models\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@protect-your-brand\">—</p>",
+                            "<p name=\"brand-management-and-collaboration@real-time-co-editing-and-commenting\">✓</p>",
+                            "<p name=\"brand-management-and-collaboration@share-templates-across-teams\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@resize\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@translate\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@safe-zones\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@caption-writer\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@social-mentions\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@content-scheduler\">✓<small>3 accounts/social network</small></p>",
+                            "<p name=\"campaigns-and-publishing@shared-social-calendars\">✓<small>3 shared calendars</small></p>",
+                            "<p name=\"campaigns-and-publishing@publish-paid-ads-directly\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@publish-to-multiple-channels-simultaneously\">✓</p>",
+                            "<p name=\"campaigns-and-publishing@metricool-add-on\">✓</p>",
+                            "<p name=\"support-and-storage@cloud-storage\">✓<small>100GB</small></p>",
+                            "<p name=\"support-and-storage@version-history\">✓<small>30 days</small></p>",
+                            "<p name=\"support-and-storage@admin-console\">—</p>",
+                            "<p name=\"support-and-storage@flexible-license-management\">—</p>",
+                            "<p name=\"support-and-storage@admin-roles\">—</p>",
+                            "<p name=\"support-and-storage@asset-reclamation\">—</p>",
+                            "<p name=\"support-and-storage@asset-sharing-restrictions\">—</p>",
+                            "<p name=\"support-and-storage@consolidated-billing\">—</p>",
+                            "<p name=\"support-and-storage@24x7-technical-support\">—</p>",
+                            "<p name=\"support-and-storage@11-sessions-with-product-experts\">—</p>",
+                            "<p name=\"support-and-storage@single-sign-on\">—</p>",
+                            "<p name=\"support-and-storage@encryption-key-support\">—</p>",
+                            "<p name=\"support-and-storage@user-directory-sync\">—</p>",
+                            "<p name=\"support-and-storage@firefly-output-indemnification\">—</p>",
+                            "<p name=\"support-and-storage@flexible-purchasing-options\">—</p>",
+                            "<p name=\"top-features@new-feature\">Yes</p>",
+                            "<p name=\"top-features@new-feature-2\">❌</p>",
+                            "<p name=\"new-group@new-feature-8\"><strong>meringue?</strong></p>"
+                        ],
+                        "mimeType": "text/plain"
+                    }
+                }
+            }
+        },
+        "mas:product_code/ffpo": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product_code/ffpo",
+                "name": "ffpo",
+                "title": "Firefly Pro",
+                "id": "mas:product_code/ffpo",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product code / Firefly Pro",
+                "description": ""
+            }
+        },
+        "8efdf6ca-1561-4ee3-8e1f-a70e847f10e0": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/merch-card-collection/pzn/ilyas-test-compare-chart-mas-pzn-country-fr",
+                "name": "ilyas-test-compare-chart-mas-pzn-country-fr",
+                "title": "Ilyas Test Compare Chart",
+                "id": "8efdf6ca-1561-4ee3-8e1f-a70e847f10e0",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+                },
+                "fields": {
+                    "cards": [
+                        "6b9b9e9b-b71e-4943-88e2-540129295614",
+                        "0385f7e9-888c-4eda-936d-9e870c994c59",
+                        "e7563f87-7cf6-4126-b395-e4dc78b9099e"
+                    ],
+                    "collections": [],
+                    "variations": [],
+                    "tagFilters": [],
+                    "pznTags": ["mas:pzn/country/fr"],
+                    "compareChart": { "mimeType": "text/plain" }
+                }
+            }
+        },
+        "mas:pzn/country/fr": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/pzn/country/fr",
+                "name": "fr",
+                "title": "France",
+                "id": "mas:pzn/country/fr",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Personalization / country / France",
+                "description": null
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "cards",
+            "identifier": "6b9b9e9b-b71e-4943-88e2-540129295614",
+            "referencesTree": [
+                {
+                    "fieldName": "variations",
+                    "identifier": "868a081e-8fb9-4c4e-ab3f-0e683ba087da",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:offer_type/base",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:plan_type/m2m",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:customer_segment/individual",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:market_segments/edu",
+                    "referencesTree": []
+                }
+            ]
+        },
+        {
+            "fieldName": "cards",
+            "identifier": "0385f7e9-888c-4eda-936d-9e870c994c59",
+            "referencesTree": [
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:offer_type/trial",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:plan_type/m2m",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:customer_segment/individual",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:product_code/ccex",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:market_segments/com",
+                    "referencesTree": []
+                }
+            ]
+        },
+        {
+            "fieldName": "cards",
+            "identifier": "e7563f87-7cf6-4126-b395-e4dc78b9099e",
+            "referencesTree": [
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:offer_type/trial",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:plan_type/m2m",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:customer_segment/individual",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:product_code/ffpo",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:market_segments/com",
+                    "referencesTree": []
+                }
+            ]
+        },
+        {
+            "fieldName": "variations",
+            "identifier": "8efdf6ca-1561-4ee3-8e1f-a70e847f10e0",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "6b9b9e9b-b71e-4943-88e2-540129295614",
+                    "referencesTree": [
+                        {
+                            "fieldName": "variations",
+                            "identifier": "868a081e-8fb9-4c4e-ab3f-0e683ba087da",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/m2m",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/edu",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "0385f7e9-888c-4eda-936d-9e870c994c59",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/trial",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/m2m",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product_code/ccex",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "e7563f87-7cf6-4126-b395-e4dc78b9099e",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/trial",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/m2m",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product_code/ffpo",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "pznTags",
+                    "identifier": "mas:pzn/country/fr",
+                    "referencesTree": []
+                }
+            ]
+        }
+    ],
+    "modelReferences": {
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24",
+            "path": "/conf/mas/settings/dam/cfm/models/collection",
+            "title": "Collection",
+            "fields": {
+                "label": { "type": "text" },
+                "navigationLabel": { "type": "text" },
+                "queryLabel": { "type": "text" },
+                "icon": { "type": "text" },
+                "iconLight": { "type": "text" },
+                "cards": { "type": "content-fragment" },
+                "collections": { "type": "content-fragment" },
+                "originalId": { "type": "text" },
+                "defaultchild": { "type": "text" },
+                "variations": { "type": "content-fragment" },
+                "searchText": { "type": "text" },
+                "tagFiltersTitle": { "type": "text" },
+                "tagFilters": { "type": "tag" },
+                "pznTags": { "type": "tag" },
+                "linksTitle": { "type": "text" },
+                "link": { "type": "text" },
+                "linkText": { "type": "text" },
+                "linkIcon": { "type": "text" },
+                "pageSize": { "type": "text" },
+                "compareChart": { "type": "long-text" },
+                "locReady": { "type": "boolean" }
+            }
+        },
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+            "path": "/conf/mas/settings/dam/cfm/models/card",
+            "title": "Card",
+            "fields": {
+                "variant": { "type": "text" },
+                "osi": { "type": "text" },
+                "size": { "type": "text" },
+                "mnemonicIcon": { "type": "text" },
+                "mnemonicAlt": { "type": "text" },
+                "mnemonicLink": { "type": "text" },
+                "badge": { "type": "long-text" },
+                "trialBadge": { "type": "long-text" },
+                "backgroundColor": { "type": "text" },
+                "borderColor": { "type": "text" },
+                "backgroundImage": { "type": "text" },
+                "backgroundImageAltText": { "type": "text" },
+                "cardTitle": { "type": "text" },
+                "cardName": { "type": "text" },
+                "cardTitleLink": { "type": "text" },
+                "subtitle": { "type": "text" },
+                "prices": { "type": "long-text" },
+                "shortDescription": { "type": "long-text" },
+                "promoText": { "type": "text" },
+                "promoCode": { "type": "text" },
+                "description": { "type": "long-text" },
+                "callout": { "type": "long-text" },
+                "showSecureLabel": { "type": "boolean" },
+                "showPlanType": { "type": "boolean" },
+                "quantitySelect": { "type": "text" },
+                "addon": { "type": "text" },
+                "addonConfirmation": { "type": "text" },
+                "ctas": { "type": "long-text" },
+                "variations": { "type": "content-fragment" },
+                "product": { "type": "content-reference" },
+                "whatsIncluded": { "type": "text" },
+                "tags": { "type": "tag" },
+                "pznTags": { "type": "tag" },
+                "perUnitLabel": { "type": "text" },
+                "originalId": { "type": "text" },
+                "compatVersion": { "type": "number" },
+                "locReady": { "type": "boolean" },
+                "features": { "type": "long-text" }
+            }
+        }
+    }
+}

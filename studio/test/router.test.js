@@ -1,8 +1,8 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { Router, promoHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
+import { Router, promoHashIsSearchSync, translationHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
 import Store from '../src/store.js';
-import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import { PAGE_NAMES, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { ReactiveStore } from '../src/reactivity/reactive-store.js';
 import { Fragment } from '../src/aem/fragment.js';
@@ -14,6 +14,7 @@ describe('Router', () => {
     let mockLocation;
     let originalPageValue;
     let originalFragmentsInEdit;
+    let originalFragmentsList;
     let originalTranslationProjectsInEdit;
     let originalSelectedCards;
     let originalSelectedCollections;
@@ -90,6 +91,7 @@ describe('Router', () => {
         router = new Router(mockLocation);
         originalPageValue = Store.page.value;
         originalFragmentsInEdit = Store.fragments.inEdit.get();
+        originalFragmentsList = Store.fragments.list.data.get();
         originalTranslationProjectsInEdit = Store.translationProjects.inEdit.get();
         originalSelectedCards = Store.translationProjects.selectedCards.value;
         originalSelectedCollections = Store.translationProjects.selectedCollections.value;
@@ -118,6 +120,7 @@ describe('Router', () => {
         sandbox.restore();
         Store.page.value = originalPageValue;
         Store.fragments.inEdit.set(originalFragmentsInEdit);
+        Store.fragments.list.data.set(originalFragmentsList);
         Store.translationProjects.inEdit.set(originalTranslationProjectsInEdit);
         Store.translationProjects.selectedCards.set(originalSelectedCards);
         Store.translationProjects.selectedCollections.set(originalSelectedCollections);
@@ -448,6 +451,13 @@ describe('Router', () => {
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
 
+        it('should clear the status filter when navigating away from the content page', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            Store.filters.set({ locale: 'en_US', status: 'MODIFIED' });
+            await router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
+            expect(Store.filters.value.status).to.be.undefined;
+        });
+
         it('should check for unsaved changes when on fragment editor', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
@@ -696,18 +706,33 @@ describe('Router', () => {
         });
     });
 
-    describe('navigateToVariationsTable', () => {
-        it('should navigate to variations table', async () => {
-            await router.navigateToVariationsTable('test-id');
-            expect(Store.fragments.expandedId.get()).to.equal('test-id');
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-            expect(Store.renderMode.get()).to.equal('table');
+    describe('status filter hash param', () => {
+        it('should sync status from hash to store on start', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,PUBLISHED';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT,PUBLISHED');
         });
 
-        it('should error if no fragmentId provided', async () => {
-            const consoleSpy = sandbox.stub(console, 'error');
-            await router.navigateToVariationsTable(null);
-            expect(consoleSpy.calledWith('Fragment ID is required for navigation')).to.be.true;
+        it('should drop unknown statuses coming from the hash', () => {
+            mockLocation.hash = '#page=content&status=DRAFT,BOGUS';
+            router.start();
+            expect(Store.filters.value.status).to.equal('DRAFT');
+        });
+
+        it('should sync status from store to hash', async () => {
+            mockLocation.hash = '#page=content';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: 'DRAFT' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('status=DRAFT');
+        });
+
+        it('should remove status from hash when the filter is cleared', async () => {
+            mockLocation.hash = '#page=content&status=DRAFT';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, status: undefined }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('status=');
         });
     });
 
@@ -723,6 +748,43 @@ describe('Router', () => {
             Store.filters.value = { locale: 'en_US' };
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
             expect(Store.search.get().region).to.equal('fr_FR');
+        });
+
+        it('should navigate compare chart collections to the full-page fragment editor', async () => {
+            const fragment = new Fragment({
+                id: 'compare-chart-id',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] }],
+            });
+            Store.fragments.list.data.set([new FragmentStore(fragment)]);
+
+            await router.navigateToFragmentEditor('compare-chart-id');
+
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('compare-chart-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.viewMode.get()).to.equal('editing');
+        });
+
+        it('should use editor-panel for a collection with an empty compareChart field', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'empty-compare-chart-collection-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [{ name: COMPARE_CHART_FIELD, values: [''] }],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('empty-compare-chart-collection-id', {
+                fragmentStore: collectionStore,
+            });
+
+            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
         });
 
         it('should use editor-panel for a provided collection fragment store', async () => {
@@ -902,6 +964,101 @@ describe('Router', () => {
         });
     });
 
+    describe('masks route and editor branches', () => {
+        let originalMasksCreating;
+        let originalMasksFragmentId;
+
+        beforeEach(() => {
+            originalMasksCreating = Store.masks.creating.get();
+            originalMasksFragmentId = Store.masks.fragmentId.get();
+            // Masks is now access-gated on direct hash too; authorize so the normalize-route cases
+            // reach masks. The "block unauthorized" case sets its own empty user to test denial.
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+        });
+
+        afterEach(() => {
+            Store.masks.creating.set(originalMasksCreating);
+            Store.masks.fragmentId.set(originalMasksFragmentId);
+        });
+
+        it('normalizes masks-editor to masks on start when no maskName and not creating', async () => {
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('page=masks');
+            expect(mockLocation.hash).to.not.include('page=masks-editor');
+        });
+
+        it('keeps masks-editor on start when maskName is present', () => {
+            mockLocation.hash = '#page=masks-editor&path=acom&maskName=promo';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('keeps masks-editor on start when creating is true', () => {
+            Store.masks.creating.set(true);
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('should block unauthorized masks page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+            Store.masks.creating.set(true);
+            Store.masks.fragmentId.set('mask-id');
+
+            await router.navigateToPage(PAGE_NAMES.MASKS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.masks.creating.get()).to.equal(false);
+            expect(Store.masks.fragmentId.get()).to.equal(null);
+        });
+
+        it('redirects an unauthorized direct hash to masks back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=masks&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=masks');
+        });
+    });
+
+    describe('offer mapping route access', () => {
+        it('should block unauthorized offer-mapping page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        });
+
+        it('redirects an unauthorized direct hash to offer-mapping back to welcome', async () => {
+            Store.profile.set({});
+            Store.users.set([]);
+            mockLocation.hash = '#page=offer-mapping&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('page=offer-mapping');
+        });
+
+        it('allows an authorized user to reach offer-mapping', async () => {
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
+            Store.page.set(PAGE_NAMES.WELCOME);
+
+            await router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.OFFER_MAPPING);
+        });
+    });
+
     describe('promoHashIsSearchSync', () => {
         it('returns true when only query is added on promotions-editor', () => {
             const prev = '#page=promotions-editor&path=sandbox';
@@ -926,30 +1083,63 @@ describe('Router', () => {
             const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
             expect(promoHashIsSearchSync(prev, next)).to.be.false;
         });
+
+        it('returns true when only tags change on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when tags are removed after closing the promotion item picker', () => {
+            const prev = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
+            const next = '#page=promotions-editor&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when the status filter changes on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&status=DRAFT';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+    });
+
+    describe('translationHashIsSearchSync', () => {
+        it('returns true when item-picker search params change on translation-editor', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=translation-editor&translationProjectId=p1&path=nala&query=uuid&region=de_DE';
+            expect(translationHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns false when leaving the translation editor', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=content&path=sandbox';
+            expect(translationHashIsSearchSync(prev, next)).to.be.false;
+        });
+
+        it('returns false when translationProjectId changes', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=translation-editor&translationProjectId=p2&path=sandbox&query=x';
+            expect(translationHashIsSearchSync(prev, next)).to.be.false;
+        });
     });
 
     describe('promotionsEditorHasUnsavedChanges', () => {
         let originalPromotionsInEdit;
         let originalPromotionsSelectedCards;
         let originalPromotionsSelectedCollections;
-        let originalItemHydrateUnreachablePaths;
-
         beforeEach(() => {
             originalPromotionsInEdit = Store.promotions.inEdit.get();
             originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
             originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
-            originalItemHydrateUnreachablePaths = [...(Store.promotions.itemHydrateUnreachablePaths.value || [])];
             Store.promotions.inEdit.set(null);
             Store.promotions.selectedCards.set([]);
             Store.promotions.selectedCollections.set([]);
-            Store.promotions.itemHydrateUnreachablePaths.set([]);
         });
 
         afterEach(() => {
             Store.promotions.inEdit.set(originalPromotionsInEdit);
             Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
             Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
-            Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         });
 
         it('returns false when there is no promotion in edit', () => {
@@ -988,14 +1178,13 @@ describe('Router', () => {
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
 
-        it('returns false when saved paths missing from selection are hydrate-unreachable', () => {
+        it('returns false when store includes failed-fetch fallback paths from saved fragments', () => {
             const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
             const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
 
             Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: [resolved, fetchFailed], hasChanges: false }));
-            Store.promotions.selectedCards.set([resolved]);
+            Store.promotions.selectedCards.set([resolved, fetchFailed]);
             Store.promotions.selectedCollections.set([]);
-            Store.promotions.itemHydrateUnreachablePaths.set([fetchFailed]);
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });

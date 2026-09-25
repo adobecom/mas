@@ -1,4 +1,4 @@
-import { PZN_COUNTRY_TAG_PATH_PREFIX, PZN_FOLDER } from '../../constants.js';
+import { PZN_COUNTRY_TAG_PATH_PREFIX, PZN_FOLDER, TAG_LOCALE_PREFIX } from '../../constants.js';
 
 /**
  * @param {string} [cqPath] - AEM tag path e.g. /content/cq:tags/mas/pzn/country/fr_FR
@@ -15,6 +15,14 @@ export function isPznCountryTagId(tagId) {
     if (!tagId) return false;
     const prefix = `mas:${PZN_FOLDER}/country`;
     return tagId === prefix || tagId.startsWith(`${prefix}/`);
+}
+
+/**
+ * @param {string} [tagId] - AEM tag id e.g. mas:locale/fr_FR
+ */
+export function isLocaleTagId(tagId) {
+    if (!tagId) return false;
+    return tagId.startsWith(TAG_LOCALE_PREFIX);
 }
 
 /** AEM tag id prefix for the pzn namespace (excluding country — see isPznCountryTagId). */

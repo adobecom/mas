@@ -11,6 +11,10 @@ export const fieldStatusStyles = css`
         color: var(--spectrum-accent-content-color-default, #3b63fb);
     }
 
+    .field-status-indicator--error {
+        color: var(--spectrum-red-800, #d31510);
+    }
+
     .field-status-icon {
         color: inherit;
         flex: none;

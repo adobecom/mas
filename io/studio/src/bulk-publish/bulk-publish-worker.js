@@ -1,0 +1,273 @@
+const { Core } = require('@adobe/aio-sdk');
+const { publishResolved, publishDictionaryIndexes } = require('./publish-core.js');
+const { resolvePaths } = require('./resolver.js');
+const { buildResult } = require('./summary.js');
+const { createSnapshot, recordSnapshot } = require('./snapshot.js');
+const {
+    PROJECT_STATUS,
+    readProjectFragment,
+    updateProjectFragment,
+    getProjectPaths,
+    getProjectLocales,
+    getProjectTitle,
+    getProjectSnapshots,
+    hasPendingSnapshot,
+    addPendingMarker,
+    removePendingMarker,
+} = require('./project.js');
+
+function relabelNotLocalized(details) {
+    for (const detail of details) {
+        if (detail.status === 'failed' && detail.reason === 'not-found') detail.reason = 'not-localized';
+    }
+}
+
+function hasValidPreRecordedSnapshot(entries) {
+    if (!entries.length) return false;
+    try {
+        return entries.every((e) => {
+            const parsed = JSON.parse(e);
+            return 'versionId' in parsed && parsed.publishComplete === undefined;
+        });
+    } catch {
+        return false;
+    }
+}
+
+// Merge primary (pre-recorded/green) entries with cascaded entries from createSnapshot.
+// Primary entries take precedence; secondary entries whose fragmentId is not already covered are appended.
+//
+// useSecondaryVersionId=false (pre-recorded path): primary versionId wins for all entries.
+//   Exception: if primary has versionId:null and wasPublished:false, fill from secondary so
+//   revert can restore instead of only unpublishing.
+//
+// useSecondaryVersionId=true (fresh/fallback path): always use the secondary (createSnapshot)
+//   Pre-bulk-publish versionId for every entry that has a secondary match. This ensures the
+//   parent fragment is reverted to the state that includes any variations added since the last
+//   explicit version — restoring the parent to an older version would drop the variation
+//   reference from its `variations` field and cause AEM to delete the orphaned variation.
+function mergeCascadedEntries(primaryEntries, secondaryEntries, { useSecondaryVersionId = false } = {}) {
+    if (!secondaryEntries.length) return primaryEntries;
+    if (!primaryEntries.length) return secondaryEntries;
+    const secondaryById = new Map(
+        secondaryEntries.map((e) => {
+            const p = JSON.parse(e);
+            return [p.fragmentId, p];
+        }),
+    );
+    const primaryIds = new Set();
+    const merged = primaryEntries.map((e) => {
+        const parsed = JSON.parse(e);
+        primaryIds.add(parsed.fragmentId);
+        const secondary = secondaryById.get(parsed.fragmentId);
+        if (secondary && (useSecondaryVersionId || (!parsed.versionId && !parsed.wasPublished))) {
+            return JSON.stringify({ ...parsed, versionId: secondary.versionId });
+        }
+        return e;
+    });
+    const cascaded = secondaryEntries.filter((e) => !primaryIds.has(JSON.parse(e).fragmentId));
+    return [...merged, ...cascaded];
+}
+
+function formatSnapshotError(prefix, failures) {
+    return failures.length > 0 ? `${prefix}:\n${failures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+}
+
+function terminalStatus(result) {
+    if (result.total === 0) return PROJECT_STATUS.PUBLISHED;
+    if (result.published === 0) return PROJECT_STATUS.FAILED;
+    if (result.failed === 0) return PROJECT_STATUS.PUBLISHED;
+    return PROJECT_STATUS.PARTIALLY_PUBLISHED;
+}
+
+async function runWorker(input, deps = {}) {
+    const logger = deps.logger || Core.Logger('bulk-publish-worker', { level: 'info' });
+    const readProject = deps.readProjectFragment || readProjectFragment;
+    const projPaths = deps.getProjectPaths || getProjectPaths;
+    const projLocales = deps.getProjectLocales || getProjectLocales;
+    const projTitle = deps.getProjectTitle || getProjectTitle;
+    const projSnapshots = deps.getProjectSnapshots || getProjectSnapshots;
+    const publish = deps.publishResolved || publishResolved;
+    const publishIndexes = deps.publishDictionaryIndexes || publishDictionaryIndexes;
+    const snapshot = deps.createSnapshot || createSnapshot;
+    const record = deps.recordSnapshot || recordSnapshot;
+    const updateProject = deps.updateProjectFragment || updateProjectFragment;
+    const resolve = deps.resolvePaths || resolvePaths;
+    const now = deps.now || (() => new Date());
+
+    const { projectId, odinEndpoint, authToken, publishedBy = '', includeCards = false, includeVariations = false } = input;
+    const startedAt = now().toISOString();
+
+    const { fragment } = await readProject(odinEndpoint, projectId, authToken);
+    const paths = projPaths(fragment);
+    const locales = projLocales(fragment);
+    const title = projTitle(fragment);
+    const existingSnapshots = projSnapshots(fragment);
+
+    if (paths.length === 0 && !hasPendingSnapshot(existingSnapshots)) {
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.FAILED,
+            lastError: 'No fragments found in project',
+        });
+        logger.error(JSON.stringify({ event: 'worker-no-paths', projectId }));
+        return {
+            total: 0,
+            published: 0,
+            failed: 0,
+            startedAt,
+            finishedAt: now().toISOString(),
+            reasons: {},
+            failures: [],
+            failuresTruncated: false,
+        };
+    }
+
+    let snapshotEntries;
+    let expandedPaths = null;
+    let snapshotError = '';
+    if (hasPendingSnapshot(existingSnapshots)) {
+        snapshotEntries = existingSnapshots;
+        expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
+        await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
+    } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
+        const {
+            expandedPaths: snapExpanded,
+            entries: snapEntries,
+            failures: snapFailures,
+        } = await snapshot({
+            paths,
+            projectId,
+            projectTitle: title,
+            odinEndpoint,
+            authToken,
+            includeCards,
+            includeVariations,
+        });
+        expandedPaths = snapExpanded;
+        // Pre-recorded entries hold green (pre-publish) versionIds for top-level fragments.
+        // Cascaded fragments discovered by createSnapshot are not in the pre-recorded set,
+        // so append them (using their freshly created Pre-bulk-publish versionIds) as revert targets.
+        snapshotEntries = mergeCascadedEntries(existingSnapshots, snapEntries);
+        snapshotError = formatSnapshotError('CREATE_SNAPSHOT', snapFailures);
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.PUBLISHING,
+            snapshots: addPendingMarker(snapshotEntries),
+            lastError: snapshotError,
+        });
+    } else {
+        const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
+        const {
+            expandedPaths: snapExpanded,
+            entries: snapEntries,
+            failures: snapFailures,
+        } = await snapshot({
+            paths,
+            projectId,
+            projectTitle: title,
+            odinEndpoint,
+            authToken,
+            includeCards,
+            includeVariations,
+        });
+        expandedPaths = snapExpanded;
+        // Fresh path: use the Pre-bulk-publish versionId (from createSnapshot) for every entry so
+        // the parent is reverted to the state that includes any variations added since the last
+        // explicit version. wasPublished and other fields are preserved from recordSnapshot.
+        // Cascaded entries (only in snapEntries) are appended as before.
+        snapshotEntries = mergeCascadedEntries(fresh, snapEntries, { useSecondaryVersionId: true });
+        snapshotError = [
+            formatSnapshotError('SAVE_SNAPSHOT', recordFailures),
+            formatSnapshotError('CREATE_SNAPSHOT', snapFailures),
+        ]
+            .filter(Boolean)
+            .join('\n');
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.PUBLISHING,
+            snapshots: addPendingMarker(snapshotEntries),
+            lastError: snapshotError,
+        });
+    }
+
+    const publishPaths = (includeCards || includeVariations) && expandedPaths ? expandedPaths : paths;
+    const resolved = resolve(publishPaths, locales);
+    const details = await publish(resolved, odinEndpoint, authToken, logger);
+    relabelNotLocalized(details);
+    details.push(...(await publishIndexes(details, odinEndpoint, authToken, logger)));
+
+    const result = buildResult({ details, startedAt, finishedAt: now().toISOString() });
+    const status = terminalStatus(result);
+    const finalSnapshots = removePendingMarker(snapshotEntries);
+
+    try {
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status,
+            snapshots: finalSnapshots,
+            publishedAt: result.finishedAt,
+            publishedBy,
+            lastResult: JSON.stringify(result),
+            lastError: snapshotError,
+        });
+    } catch (error) {
+        throw Object.assign(error, { publishSucceeded: true, result, finalSnapshots, publishedBy });
+    }
+
+    logger.info(
+        JSON.stringify({ event: 'worker-complete', projectId, status, published: result.published, failed: result.failed }),
+    );
+    return result;
+}
+
+// A crash between the Publishing write and the terminal write would strand the project in Publishing
+// forever, so recover it here. When publish itself succeeded and only the status write failed, the
+// cards are live: report the real outcome rather than a Failed that would invite a needless revert.
+async function recoverStuckProject(error, input, deps, logger) {
+    const updateProject = deps.updateProjectFragment || updateProjectFragment;
+    const { projectId, odinEndpoint, authToken } = input;
+    const message = error.message || String(error);
+
+    const fields = error.publishSucceeded
+        ? {
+              status: terminalStatus(error.result),
+              snapshots: error.finalSnapshots,
+              publishedAt: error.result.finishedAt,
+              publishedBy: error.publishedBy,
+              lastResult: JSON.stringify(error.result),
+              lastError: `Publish succeeded but the status write failed: ${message}`,
+          }
+        : { status: PROJECT_STATUS.FAILED, lastError: message };
+
+    try {
+        await updateProject(odinEndpoint, projectId, authToken, fields);
+    } catch (writeError) {
+        logger.error(
+            JSON.stringify({
+                event: 'worker-recovery-failed',
+                projectId,
+                error: writeError.message || String(writeError),
+            }),
+        );
+    }
+}
+
+async function main(params, deps = {}) {
+    const logger = deps.logger || Core.Logger('bulk-publish-worker', { level: 'info' });
+    const doRunWorker = deps.runWorker || runWorker;
+    const input = {
+        projectId: params.projectId,
+        odinEndpoint: params.aemOdinEndpoint || params.odinEndpoint,
+        authToken: params.authToken,
+        publishedBy: params.publishedBy || '',
+        includeCards: params.includeCards || false,
+        includeVariations: params.includeVariations || false,
+    };
+    try {
+        const result = await doRunWorker(input, deps);
+        return { statusCode: 200, body: result };
+    } catch (error) {
+        logger.error(JSON.stringify({ event: 'worker-error', error: error.message || String(error) }));
+        await recoverStuckProject(error, input, deps, logger);
+        return { statusCode: 500, body: { error: error.message } };
+    }
+}
+
+module.exports = { runWorker, terminalStatus, main };

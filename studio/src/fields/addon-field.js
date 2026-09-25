@@ -81,7 +81,12 @@ export class AddonField extends LitElement {
     }
 
     set value(value) {
-        this.placeholderKey = value?.replace(/{{|}}/g, '') ?? '';
+        if (value?.startsWith('<merch-addon ')) {
+            const doc = new DOMParser().parseFromString(value, 'text/html');
+            this.placeholderKey = doc.querySelector('merch-addon').textContent?.replace(/{{|}}/g, '') ?? '';
+        } else {
+            this.placeholderKey = value?.replace(/{{|}}/g, '') ?? '';
+        }
     }
 
     get value() {

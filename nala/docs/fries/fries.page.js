@@ -4,12 +4,8 @@ export default class FriesGalleryPage {
     }
 
     getCard(fragmentId) {
-        return this.page
-            .locator('merch-card')
-            .filter({
-                has: this.page.locator(
-                    `aem-fragment[fragment="${fragmentId}"]`,
-                ),
-            });
+        return this.page.locator('merch-card').filter({
+            has: this.page.locator(`aem-fragment[fragment="${fragmentId}"]`),
+        });
     }
 }

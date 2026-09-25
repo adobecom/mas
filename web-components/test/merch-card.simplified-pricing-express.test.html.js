@@ -6,9 +6,10 @@ import sinon from 'sinon';
 import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
 
-import { appendMiloStyles, delay } from './utils.js';
+import { appendMiloStyles, delay, oneEvent } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
+import { EVENT_MAS_ERROR } from '../src/constants.js';
 
 const skipTests = sessionStorage.getItem('skipTests');
 
@@ -94,6 +95,32 @@ runTests(async () => {
             expect(price.getAttribute('is')).to.equal('inline-price');
         });
 
+        it('should fail unresolved inline prices without an aem-fragment', async () => {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'simplified-pricing-express');
+            card.innerHTML = `
+                <h2 slot="heading-xs">Express Premium</h2>
+                <span
+                    is="inline-price"
+                    slot="price"
+                    data-wcs-osi="unresolved-osi"
+                ></span>
+            `;
+            document.body.append(card);
+
+            try {
+                const masError = oneEvent(card, EVENT_MAS_ERROR);
+                await card.checkReady();
+                const { detail } = await masError;
+
+                expect(card.aemFragment).to.be.null;
+                expect(detail.message).to.equal('Contains unresolved offers');
+                expect(card.failed).to.be.true;
+            } finally {
+                card.remove();
+            }
+        });
+
         it('should support custom border color', async () => {
             const cardWithBorder = document.querySelector(
                 'merch-card[border-color="#E91E63"]',
@@ -135,6 +162,14 @@ runTests(async () => {
             const shadowRoot = cardNoBadgeBg.shadowRoot;
             const badge = shadowRoot.querySelector('.badge');
             expect(badge).to.not.exist; // No badge should render without text
+        });
+
+        it('should NOT render slotted badge when no badge slot child is present', async () => {
+            const card = document.querySelector(
+                'merch-card[variant="simplified-pricing-express"]',
+            );
+            expect(card.querySelector('[slot="badge"]')).to.not.exist;
+            await delay(100);
         });
 
         it('should work in dark theme', async () => {

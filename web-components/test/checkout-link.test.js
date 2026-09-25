@@ -87,16 +87,23 @@ describe('class "CheckoutLink"', () => {
         );
     });
 
-    it('renders link with ims country', async () => {
-        mockIms('CH');
-        const service = initMasCommerceService();
-        const checkoutLink = mockCheckoutLink('abm');
-        await service.imsCountryPromise;
-        await delay(1);
-        await checkoutLink.onceSettled();
-        expect(checkoutLink.href).to.equal(
-            'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=CH&lang=en',
-        );
+    it('renders link with ims country from cookie', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            get: () => 'ims_country_code=CH',
+        });
+        try {
+            const service = initMasCommerceService();
+            const checkoutLink = mockCheckoutLink('abm');
+            await service.imsCountryPromise;
+            await delay(1);
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.href).to.equal(
+                'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=CH&lang=en',
+            );
+        } finally {
+            delete document.cookie;
+        }
     });
 
     it('renders link with promo from dataset', async () => {
@@ -356,6 +363,20 @@ describe('class "CheckoutLink"', () => {
             expect(checkoutLink.textContent.trim()).to.equal('Upgrade');
             sinon.assert.calledOnce(handler);
             expect(checkoutLink.getAttribute('href')).to.equal('#');
+        });
+
+        it('keeps the real checkout url for a 3-in-1 modal handler', async () => {
+            mockIms('US');
+            const handler = sinon.stub();
+            await initMasCommerceService({}, () => ({ handler }));
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'crm' });
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.isOpen3in1Modal).to.be.true;
+            const href = checkoutLink.getAttribute('href');
+            expect(href).to.not.equal('#');
+            expect(href).to.include('commerce.adobe.com/store');
+            checkoutLink.click();
+            sinon.assert.calledOnce(handler);
         });
 
         it('skips entitlements check', async () => {

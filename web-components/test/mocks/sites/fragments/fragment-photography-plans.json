@@ -39,7 +39,7 @@
         },
         "showStockCheckbox": true,
         "ctas": {
-            "value": "<p><a is=\"checkout-link\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a></p>",
+            "value": "<p><a is=\"checkout-link\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" data-modal=\"crm\" data-analytics-id=\"buy-now\">Buy now</a></p>",
             "mimeType": "text/html"
         },
         "tags": [],
@@ -49,6 +49,7 @@
     "referencesTree": [],
     "settings": {
         "displayPlanType": true,
+        "additionalModalTriggers": true,
         "secureLabel": "Secure transaction"
     }
 }

@@ -5,6 +5,8 @@ import sinon from 'sinon';
 import '../src/mas-selection-panel.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
+import { STAGED } from '../src/constants.js';
+import { delay } from './utils.js';
 
 const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 
@@ -65,10 +67,46 @@ describe('MasSelectionPanel', () => {
         Store.fragments.list.data.value = [];
     });
 
-    async function createPanel(items = []) {
+    async function createPanel(items = [], repository) {
         const selectionStore = makeSelectionStore(items);
-        return fixture(html`<mas-selection-panel open .selectionStore=${selectionStore}></mas-selection-panel>`);
+        return fixture(
+            html`<mas-selection-panel open .repository=${repository} .selectionStore=${selectionStore}></mas-selection-panel>`,
+        );
     }
+
+    describe('handleMarkStaged', () => {
+        let repository;
+        let getByIdStub;
+        let saveStub;
+
+        async function makeHydratedFragment(id, { variations = [], cards = [], collections = [] } = {}) {
+            const frag = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
+            return frag;
+        }
+
+        beforeEach(() => {
+            getByIdStub = sandbox.stub().callsFake((id) => Promise.resolve(makeHydratedFragment(id)));
+            saveStub = sandbox.stub().callsFake((fragment) => fragment);
+            repository = {
+                bulkPublishFragments: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getById: getByIdStub, save: saveStub } } } },
+            };
+        });
+
+        it('mark fragment as staged', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const el = await createPanel([makeFragmentStore(makeCardFragment('cc-all-apps'))], repository);
+            await el.handleMarkStaged();
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive' }))).to.be.true;
+        });
+
+        it('mark fragment as staged with no repository', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const el = await createPanel([makeFragmentStore(makeCardFragment('cc-all-apps'))]);
+            await el.handleMarkStaged();
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive' }))).to.be.false;
+        });
+    });
 
     describe('handleCopyFragmentUrls', () => {
         let clipboardStub;
@@ -132,8 +170,7 @@ describe('MasSelectionPanel', () => {
             expect(urls).to.have.length(2);
             expect(urls[0]).to.include('query=uuid-1');
             expect(urls[1]).to.include('query=uuid-2');
-            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 code snippets') }))).to.be
-                .true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 links') }))).to.be.true;
         });
 
         it('joins multiple html entries with <br>', async () => {
@@ -160,6 +197,24 @@ describe('MasSelectionPanel', () => {
             const plainText = await item.data['text/plain'].text();
             expect(plainText).to.include('query=uuid-plain');
             expect(plainText).to.include('content-type=merch-card');
+        });
+
+        it('looks up variation fragment from parent references when item is a string ID', async () => {
+            const variation = makeCardFragment('variation-1');
+            Store.fragments.list.data.set([
+                makeFragmentStore({
+                    id: 'parent-1',
+                    references: [variation],
+                }),
+            ]);
+            sandbox.stub(Events.toast, 'emit');
+
+            const el = await createPanel(['variation-1']);
+            await el.handleCopyFragmentUrls();
+
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            expect(plainText).to.include('query=variation-1');
         });
 
         it('looks up fragment from Store when item is a string ID', async () => {
@@ -219,14 +274,166 @@ describe('MasSelectionPanel', () => {
         });
     });
 
+    describe('handlePublish', () => {
+        let repository;
+        let getByIdStub;
+
+        function makeHydratedFragment(id, { variations = [], cards = [], collections = [] } = {}) {
+            const fields = [];
+            if (variations.length) fields.push({ name: 'variations', values: variations.map((r) => r.path) });
+            if (cards.length) fields.push({ name: 'cards', values: cards.map((r) => r.path) });
+            if (collections.length) fields.push({ name: 'collections', values: collections.map((r) => r.path) });
+            const references = [...variations, ...cards, ...collections];
+            return { id, fields, references };
+        }
+
+        beforeEach(() => {
+            getByIdStub = sandbox.stub().callsFake((id) => Promise.resolve(makeHydratedFragment(id)));
+            repository = {
+                bulkPublishFragments: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getById: getByIdStub } } } },
+            };
+        });
+
+        it('calls bulkPublishFragments with fragment IDs from selection', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.calledOnce).to.be.true;
+            expect(repository.bulkPublishFragments.firstCall.args[0]).to.deep.equal(['frag-1']);
+        });
+
+        it('clears selection after successful publish', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const selectionStore = makeSelectionStore([makeFragmentStore(frag)]);
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${selectionStore}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(selectionStore.get()).to.deep.equal([]);
+        });
+
+        it('does not call bulkPublishFragments when selection is empty', async () => {
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.called).to.be.false;
+        });
+
+        it('fetches hydrated fragments via getById to collect references', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(getByIdStub.calledWith('frag-1')).to.be.true;
+        });
+    });
+
+    describe('publish staged cards', () => {
+        let repository;
+        let getByIdStub;
+
+        function makeHydratedFragment(id, { variations = [], cards = [], collections = [] } = {}) {
+            const fields = [];
+            if (variations.length) fields.push({ name: 'variations', values: variations.map((r) => r.path) });
+            if (cards.length) fields.push({ name: 'cards', values: cards.map((r) => r.path) });
+            if (collections.length) fields.push({ name: 'collections', values: collections.map((r) => r.path) });
+            const references = [...variations, ...cards, ...collections];
+            fields.push({ name: 'tags', values: [STAGED.TAG] });
+            return { id, fields, references };
+        }
+
+        beforeEach(() => {
+            getByIdStub = sandbox.stub().callsFake((id) => Promise.resolve(makeHydratedFragment(id)));
+            repository = {
+                bulkPublishFragments: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getById: getByIdStub } } } },
+            };
+        });
+
+        it('publish staged card and confirm dialog', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            el.handlePublish();
+            await delay(100);
+            const dialog = document.body.querySelector('mas-publish-staged-dialog');
+            dialog.confirm();
+            await delay(50);
+            expect(repository.bulkPublishFragments.calledOnce).to.be.true;
+            expect(repository.bulkPublishFragments.firstCall.args[0]).to.deep.equal(['frag-1']);
+        });
+
+        it('publish staged card and cancel the dialog', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            el.handlePublish();
+            await delay(100);
+            const dialog = document.body.querySelector('mas-publish-staged-dialog');
+            dialog.cancel();
+            await delay(50);
+            expect(repository.bulkPublishFragments.called).to.be.false;
+        });
+    });
+
     describe('render', () => {
-        it('shows Copy URLs button when items are selected', async () => {
+        it('does not show Copy URLs button without a repository', async () => {
             const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
             const el = await createPanel([makeFragmentStore(fragment)]);
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.true;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.false;
+        });
+
+        it('shows Copy URLs button when items and a repository are present', async () => {
+            const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
+            const el = await createPanel([makeFragmentStore(fragment)], {});
+            await el.updateComplete;
+
+            const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.true;
         });
 
         it('does not show Copy URLs button when nothing is selected', async () => {
@@ -234,17 +441,26 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.false;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.false;
         });
 
         it('shows Copy URLs button for multi-selection', async () => {
             const f1 = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
             const f2 = { id: 'uuid-2', model: { path: CARD_MODEL_PATH } };
-            const el = await createPanel([makeFragmentStore(f1), makeFragmentStore(f2)]);
+            const el = await createPanel([makeFragmentStore(f1), makeFragmentStore(f2)], {});
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.true;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.true;
+        });
+
+        it('shows Staged button when items are selected', async () => {
+            const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
+            const el = await createPanel([makeFragmentStore(fragment)]);
+            await el.updateComplete;
+
+            const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
+            expect(buttons.some((b) => b.getAttribute('label') === 'Mark as Staged')).to.be.true;
         });
     });
 });

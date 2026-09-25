@@ -1,8 +1,10 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
+import { STAGED } from '../constants.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
+    staged: 'Staged',
 };
 
 function emit(target, type, detail) {
@@ -31,7 +33,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     get errorCount() {
-        return this.items.filter((i) => i.status === 'error').length;
+        return this.items.filter((i) => i.status === 'error' && i.reason !== STAGED.NAME).length;
     }
 
     get urlLines() {
@@ -42,7 +44,9 @@ class MasBulkPublishItems extends LitElement {
     }
 
     get rows() {
-        if (this.items.length > 0) return this.items;
+        if (this.items.length > 0) {
+            return this.items;
+        }
         return this.urlLines.map((url) => ({ url }));
     }
 
@@ -70,6 +74,16 @@ class MasBulkPublishItems extends LitElement {
         this.collapsed = !this.collapsed;
     }
 
+    itemLabel(item) {
+        if (!item.authorPath) return item.url;
+        return item.locale ? `[${item.locale}] ${item.authorPath}` : item.authorPath;
+    }
+
+    itemHref(item) {
+        const target = item.href ?? item.url;
+        return /^https?:\/\//.test(target) ? target : null;
+    }
+
     renderStatusCell(item) {
         if (!item.status || item.status === 'pending') {
             return html`<span class="status-cell status-pending">Pending…</span>`;
@@ -80,7 +94,14 @@ class MasBulkPublishItems extends LitElement {
                 Validated
             </span>`;
         }
+
         const label = ERROR_LABELS[item.reason] ?? 'Invalid URL';
+        if (item.reason === STAGED.NAME) {
+            return html`<span class="status-cell">
+                <span class="status-staged">${label}</span>
+            </span>`;
+        }
+
         return html`<span class="status-cell status-error">
             <sp-icon-alert></sp-icon-alert>
             ${label}
@@ -121,9 +142,11 @@ class MasBulkPublishItems extends LitElement {
                           ${rows.map(
                               (item) => html`
                                   <li data-testid="item-row">
-                                      <a href=${item.href ?? item.url} target="_blank" rel="noopener"
-                                          >${item.authorPath ?? item.url}</a
-                                      >
+                                      ${this.itemHref(item)
+                                          ? html`<a href=${this.itemHref(item)} target="_blank" rel="noopener"
+                                                >${this.itemLabel(item)}</a
+                                            >`
+                                          : html`<span class="item-label">${this.itemLabel(item)}</span>`}
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
                                       ${this.isPublished

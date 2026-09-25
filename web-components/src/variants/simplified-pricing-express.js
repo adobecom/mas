@@ -1,4 +1,4 @@
-import { html, css } from 'lit';
+import { html, css, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './simplified-pricing-express.css.js';
 import Media, { isDesktop, MOBILE_LANDSCAPE } from '../media.js';
@@ -75,7 +75,13 @@ export class SimplifiedPricingExpress extends VariantLayout {
     }
 
     get badge() {
-        return this.card.querySelector('[slot="badge"]');
+        const badgeElement = this.card.querySelector('[slot="badge"]');
+        return html`<div
+            class="badge-wrapper"
+            style="${badgeElement ? '' : 'visibility: hidden'}"
+        >
+            <slot name="badge"></slot>
+        </div>`;
     }
 
     syncHeights() {
@@ -238,12 +244,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            <div
-                class="badge-wrapper"
-                style="${this.badge ? '' : 'visibility: hidden'}"
-            >
-                <slot name="badge"></slot>
-            </div>
+            ${this.badge}
             <div class="card-content" @click=${(e) => this.handleCardClick(e)}>
                 <div class="header">
                     <slot name="heading-xs"></slot>
@@ -422,47 +423,47 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
         :host([variant='simplified-pricing-express'][gradient-border='true'])
             .card-content {
-            border: none;
+            border: 1px solid transparent;
             padding: calc(
-                var(--merch-card-simplified-pricing-express-padding) + 2px
+                var(--merch-card-simplified-pricing-express-padding) + 1px
             );
             border-radius: 8px;
-        }
-
-        :host([variant='simplified-pricing-express'][gradient-border='true'])
-            .card-content::before {
-            content: '';
-            position: absolute;
-            top: 1px;
-            left: 1px;
-            right: 1px;
-            bottom: 1px;
-            background: var(--spectrum-gray-50);
-            border-radius: 7px;
-            z-index: 0;
-            pointer-events: none;
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
         }
 
         :host(
                 [variant='simplified-pricing-express'][border-color='gradient-purple-blue']
             )
-            .badge-wrapper,
-        :host(
-                [variant='simplified-pricing-express'][border-color='gradient-purple-blue']
-            )
-            .card-content {
+            .badge-wrapper {
             background: var(--gradient-purple-blue);
         }
+        :host(
+                [variant='simplified-pricing-express'][border-color='gradient-purple-blue']
+            )
+            .card-content {
+            background-image: linear-gradient(
+                    var(--spectrum-gray-50),
+                    var(--spectrum-gray-50)
+                ),
+                var(--gradient-purple-blue);
+        }
 
         :host(
                 [variant='simplified-pricing-express'][border-color='gradient-firefly-spectrum']
             )
-            .badge-wrapper,
+            .badge-wrapper {
+            background: var(--gradient-firefly-spectrum);
+        }
         :host(
                 [variant='simplified-pricing-express'][border-color='gradient-firefly-spectrum']
             )
             .card-content {
-            background: var(--gradient-firefly-spectrum);
+            background-image: linear-gradient(
+                    var(--spectrum-gray-50),
+                    var(--spectrum-gray-50)
+                ),
+                var(--gradient-firefly-spectrum);
         }
 
         :host(
@@ -473,16 +474,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
             .card-content {
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
-        }
-
-        :host(
-                [variant='simplified-pricing-express'][gradient-border='true']:has(
-                        [slot='badge']:not(:empty)
-                    )
-            )
-            .card-content::before {
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
         }
 
         :host([variant='simplified-pricing-express']) .header {

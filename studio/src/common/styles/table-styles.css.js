@@ -85,6 +85,21 @@ export const tableCellBaseStyles = css`
     }
 `;
 
+export const textWithTooltipStyles = css`
+    .text-with-tooltip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 12px;
+        background-color: var(--spectrum-orange-200);
+        border-radius: var(--spectrum-corner-radius-200, 8px);
+
+        div[slot='trigger'] {
+            display: flex;
+        }
+    }
+`;
+
 export const tableSelectedRowStyles = css`
     sp-table-row[selected] {
         --mod-table-row-background-color: var(--spectrum-blue-200);

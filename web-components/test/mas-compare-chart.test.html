@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>mas-compare-chart tests</title>
+        <script>
+            window.process = { env: {} };
+        </script>
+        <script type="module" src="../src/mas.js"></script>
+        <script type="module" src="../src/mas-compare-chart.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/libs/styles/styles.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/libs/blocks/section-metadata/section-metadata.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/express/code/styles/styles.css"
+        />
+        <style>
+            .mas-compare-chart-container mas-compare-chart {
+                display: block;
+                width: 100%;
+                margin-inline: auto;
+            }
+
+            .compare-chart-scroll-spacer {
+                min-height: 150vh;
+            }
+        </style>
+    </head>
+    <body>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+
+        <!-- Inert until cloned in describe before() so aem-fragment / fetch
+             never run until mocks and mas.js are fully ready. -->
+        <template id="compare-chart-shared-fixture">
+            <div class="section mas-compare-chart-container">
+                <mas-compare-chart consonant>
+                    <aem-fragment
+                        fragment="compare-chart-express"
+                    ></aem-fragment>
+                </mas-compare-chart>
+            </div>
+            <div
+                class="section compare-chart-scroll-spacer"
+                aria-hidden="true"
+            ></div>
+        </template>
+
+        <main>
+            <header>
+                <h1>Compare chart sticky header test</h1>
+            </header>
+        </main>
+
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { mockIms } from './mocks/ims.js';
+            import { mockLana } from './mocks/lana.js';
+            import { mockFetch } from './mocks/fetch.js';
+            import { withAem } from './mocks/aem.js';
+            import { withWcs } from './mocks/wcs.js';
+            import { EVENT_AEM_LOAD } from '../src/constants.js';
+
+            runTests(async () => {
+                const main = document.querySelector('main');
+
+                describe('mas-compare-chart', () => {
+                    let chart;
+
+                    before(async () => {
+                        mockIms();
+                        mockLana();
+                        await mockFetch(withWcs, withAem);
+
+                        const fixture = document.getElementById(
+                            'compare-chart-shared-fixture',
+                        );
+                        main.append(fixture.content.cloneNode(true));
+                        chart = main.querySelector('mas-compare-chart');
+                    });
+
+                    it('renders', async () => {
+                        await customElements.whenDefined('mas-compare-chart');
+                        expect(await chart.checkReady()).to.be.true;
+                        expect(
+                            chart.shadowRoot.querySelector('.table-container'),
+                        ).to.exist;
+                    });
+
+                    it('uses the last duplicate feature row and cell', async () => {
+                        const duplicateChart =
+                            document.createElement('mas-compare-chart');
+                        duplicateChart.expandedGroups = 'all';
+                        duplicateChart.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Plan</h3>
+                                <div slot="features">
+                                    <p name="group@feature">Parent cell</p>
+                                    <p name="group@feature">Variation cell</p>
+                                </div>
+                            </merch-card>
+                            <div name="group">
+                                <h4>Group</h4>
+                                <p name="feature">Parent row</p>
+                                <p name="feature">Variation row</p>
+                            </div>
+                        `;
+                        main.append(duplicateChart);
+                        await duplicateChart.updateComplete;
+                        await duplicateChart.updateComplete;
+
+                        const rows =
+                            duplicateChart.shadowRoot.querySelectorAll(
+                                '.table-row',
+                            );
+                        expect(rows).to.have.length(1);
+                        expect(
+                            rows[0].querySelector('.row-label').textContent,
+                        ).to.equal('Variation row');
+                        expect(
+                            rows[0].querySelector('[role="cell"]').textContent,
+                        ).to.contain('Variation cell');
+
+                        duplicateChart.remove();
+                    });
+
+                    it('copies attributes from compareChart fragment markup on aem:load', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        const aemFragment =
+                            document.createElement('aem-fragment');
+                        local.append(aemFragment);
+                        main.append(local);
+                        await customElements.whenDefined('mas-compare-chart');
+
+                        aemFragment.dispatchEvent(
+                            new CustomEvent(EVENT_AEM_LOAD, {
+                                bubbles: true,
+                                detail: {
+                                    fields: {
+                                        compareChart: {
+                                            value: '<mas-compare-chart expanded-groups="1" included-text="{{included}}" not-included-text="{{not-included}}"><div name="g"><h4>G</h4></div></mas-compare-chart>',
+                                        },
+                                        cards: [],
+                                    },
+                                },
+                            }),
+                        );
+                        await local.updateComplete;
+
+                        expect(local.getAttribute('expanded-groups')).to.equal(
+                            '1',
+                        );
+                        expect(local.getAttribute('included-text')).to.equal(
+                            '{{included}}',
+                        );
+                        expect(
+                            local.getAttribute('not-included-text'),
+                        ).to.equal('{{not-included}}');
+                        local.remove();
+                    });
+
+                    it('reflects expanded-groups attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.setAttribute('expanded-groups', '1,2');
+                        local.innerHTML = `
+                            <div name="g1"><h4>G1</h4><p name="r1">R1</p></div>
+                            <div name="g2"><h4>G2</h4><p name="r2">R2</p></div>
+                        `;
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+                        const expandedButtons =
+                            local.shadowRoot.querySelectorAll(
+                                '.table-column-header[aria-expanded="true"]',
+                            );
+                        expect(expandedButtons).to.have.length(2);
+                        local.remove();
+                    });
+
+                    it('defaults sticky-offset to 64px', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.maxWidth = 'none';
+                        local.style.width = '1000px';
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('64px');
+                        local.remove();
+                    });
+
+                    it('honors sticky-offset attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.maxWidth = 'none';
+                        local.style.width = '1000px';
+                        local.setAttribute('sticky-offset', '48');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('48px');
+                        local.remove();
+                    });
+
+                    it('honors legacy sticky-top attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.maxWidth = 'none';
+                        local.style.width = '1000px';
+                        local.setAttribute('sticky-top', '40');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('40px');
+                        local.remove();
+                    });
+
+                    it('defaults mobile sticky-offset to 40px', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.width = '375px';
+                        local.setAttribute('sticky-offset', '48');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('40px');
+                        local.remove();
+                    });
+
+                    it('honors mobile-sticky-offset attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.width = '375px';
+                        local.setAttribute('mobile-sticky-offset', '24');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('24px');
+                        local.remove();
+                    });
+
+                    it('uses non-sticky header styling for studio preview charts', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.classList.add('compchart-preview-chart');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+
+                        const header =
+                            local.shadowRoot.querySelector('.header-content');
+                        const firstTable = local.shadowRoot.querySelector(
+                            '.accessibility-header-row + .table-container',
+                        );
+                        expect(getComputedStyle(header).position).to.equal(
+                            'static',
+                        );
+                        expect(getComputedStyle(header).paddingTop).to.equal(
+                            '24px',
+                        );
+                        expect(getComputedStyle(firstTable).marginTop).to.equal(
+                            '16px',
+                        );
+                        local.remove();
+                    });
+
+                    it('sets data-child-count from rendered cards', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart"><h3 slot="header">A</h3></merch-card>
+                            <merch-card slot="cards" variant="compare-chart"><h3 slot="header">B</h3></merch-card>
+                        `;
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+                        expect(local.getAttribute('data-child-count')).to.equal(
+                            '2',
+                        );
+                        local.remove();
+                    });
+
+                    it('disconnects sticky observers on disconnect', async () => {
+                        const counter = disconnectCounter();
+                        try {
+                            const local =
+                                document.createElement('mas-compare-chart');
+                            local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                            main.append(local);
+                            await local.updateComplete;
+                            await local.updateComplete;
+                            const before = counter.count;
+                            local.remove();
+                            expect(counter.count).to.be.greaterThan(before);
+                        } finally {
+                            counter.restore();
+                        }
+                    });
+
+                    it('skips sticky observers when non-sticky', async () => {
+                        const counter = constructCounter();
+                        try {
+                            const local =
+                                document.createElement('mas-compare-chart');
+                            local.setAttribute('non-sticky', '');
+                            local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                            main.append(local);
+                            await local.updateComplete;
+                            await local.updateComplete;
+                            expect(counter.count).to.equal(0);
+                            expect(
+                                getComputedStyle(
+                                    local.shadowRoot.querySelector(
+                                        '.header-content',
+                                    ),
+                                ).position,
+                            ).to.equal('static');
+                            local.remove();
+                        } finally {
+                            counter.restore();
+                        }
+                    });
+                });
+
+                function disconnectCounter() {
+                    // Counts IntersectionObserver.prototype.disconnect calls.
+                    const orig = IntersectionObserver.prototype.disconnect;
+                    const state = {
+                        count: 0,
+                        restore: () => {
+                            IntersectionObserver.prototype.disconnect = orig;
+                        },
+                    };
+                    IntersectionObserver.prototype.disconnect = function (
+                        ...args
+                    ) {
+                        state.count += 1;
+                        return orig.apply(this, args);
+                    };
+                    return state;
+                }
+
+                function constructCounter() {
+                    // Counts IntersectionObserver constructions.
+                    const Orig = window.IntersectionObserver;
+                    const state = {
+                        count: 0,
+                        restore: () => {
+                            window.IntersectionObserver = Orig;
+                        },
+                    };
+                    window.IntersectionObserver = function (...args) {
+                        state.count += 1;
+                        return new Orig(...args);
+                    };
+                    window.IntersectionObserver.prototype = Orig.prototype;
+                    return state;
+                }
+            });
+        </script>
+    </body>
+</html>

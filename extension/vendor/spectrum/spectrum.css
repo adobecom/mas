@@ -1,0 +1,34 @@
+/* Spectrum 2 / Express CSS aggregator. Loads in cascade order:
+   1. Base tokens (global + scale + light mode default)
+   2. Express overrides
+   3. Component CSS
+
+   Dark mode is applied by JS toggling `spectrum--dark` on the wrapper element,
+   which causes the dark-vars.css cascade to take effect via the prefers-color-scheme
+   listener in popup.js and content.js.
+*/
+
+/* Base Spectrum 2 tokens */
+@import url('./tokens/global-vars.css');
+@import url('./tokens/medium-vars.css');
+@import url('./tokens/light-vars.css');
+@import url('./tokens/dark-vars.css');
+
+/* Express theme overrides (these come AFTER base so they win in the cascade) */
+@import url('./tokens/express-global.css');
+@import url('./tokens/express-medium.css');
+@import url('./tokens/express-light.css');
+@import url('./tokens/express-dark.css');
+
+/* Components */
+@import url('./components/typography.css');
+@import url('./components/icon.css');
+@import url('./components/button.css');
+@import url('./components/actionbutton.css');
+@import url('./components/textfield.css');
+@import url('./components/switch.css');
+@import url('./components/tag.css');
+@import url('./components/divider.css');
+@import url('./components/statuslight.css');
+@import url('./components/progresscircle.css');
+@import url('./components/link.css');

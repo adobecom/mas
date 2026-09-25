@@ -338,7 +338,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
-            await studio.tableViewFragmentTable(data.cardid).locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.cardid);
             await expect(studio.tableViewFragmentTable(data.variationid)).toBeVisible();
             await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).toBeVisible();
             expect(

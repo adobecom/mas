@@ -58,6 +58,19 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     style: 'consonant',
 };
 
+export function keepInHeadingPriceForAnnual(
+    card,
+    headingPrice,
+    legalPrice,
+    optionParam,
+) {
+    if (card.settings?.displayAnnual && headingPrice?.options[optionParam]) {
+        legalPrice.dataset[optionParam] = 'false';
+    } else if (headingPrice?.options[optionParam]) {
+        headingPrice.dataset[optionParam] = 'false';
+    }
+}
+
 export class MiniCompareChart extends VariantLayout {
     constructor(card) {
         super(card);
@@ -69,6 +82,30 @@ export class MiniCompareChart extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+
+        if (this.legalAdjusted && !this.legalObserver) {
+            const legal = this.card.querySelector(
+                '[is="inline-price"][data-template="legal"]',
+            );
+            if (legal) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+                this.legalElement = legal;
+                this.legalObserver = new MutationObserver(() =>
+                    this.adjustShortDescription(),
+                );
+                this.legalObserver.observe(legal, {
+                    childList: true,
+                    subtree: true,
+                });
+                this.adjustShortDescription();
+            } else {
+                this.legalAdjusted = false;
+            }
+        }
 
         this.visibilityObserver = new IntersectionObserver(([entry]) => {
             if (entry.boundingClientRect.height === 0) return;
@@ -96,6 +133,8 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
         this.visibilityObserver?.disconnect();
+        this.legalObserver?.disconnect();
+        this.legalObserver = null;
         if (this.legalElement && this.legalResolvedHandler) {
             this.legalElement.removeEventListener(
                 EVENT_TYPE_RESOLVED,
@@ -132,6 +171,10 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     priceOptionsProvider(element, options) {
+        const mainPriceSlot =
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING.prices.slot;
+        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+
         if (!this.isNewVariant) return;
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
@@ -142,7 +185,8 @@ export class MiniCompareChart extends VariantLayout {
         // Disable perUnit display - it will be shown in legal price only
         if (
             element.dataset.template === 'strikethrough' ||
-            element.dataset.template === 'price'
+            (element.dataset.template === 'price' &&
+                !element.closest?.('merch-card')?.settings?.displayAnnual)
         ) {
             options.displayPerUnit = false;
         }
@@ -182,6 +226,7 @@ export class MiniCompareChart extends VariantLayout {
 
         const slots = [
             'heading-m',
+            'heading-xs',
             'subtitle',
             'body-m',
             'heading-m-price',
@@ -391,7 +436,7 @@ export class MiniCompareChart extends VariantLayout {
 
     get headingMPriceSlot() {
         return this.card.shadowRoot
-            .querySelector('slot[name="heading-m-price"]')
+            ?.querySelector('slot[name="heading-m-price"]')
             ?.assignedElements()[0];
     }
 
@@ -553,34 +598,40 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async adjustLegal() {
-        if (this.legalAdjusted) return;
+        if (this.legalAdjusted || this.legalAdjusting) return;
+        this.legalAdjusting = true;
 
+        let legal;
         try {
-            this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
 
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
 
-            const legal = headingPrice.cloneNode(true);
             await headingPrice.onceSettled();
 
             if (!headingPrice?.options) return;
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
-            if (headingPrice.options.displayTax)
-                headingPrice.dataset.displayTax = 'false';
+            legal = headingPrice.cloneNode(true);
+
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
-            legal.setAttribute('data-template', 'legal');
-            headingPrice.parentNode.insertBefore(
+            keepInHeadingPriceForAnnual(
+                this.card,
+                headingPrice,
                 legal,
-                headingPrice.nextSibling,
+                'displayTax',
             );
-            await legal.onceSettled();
+            keepInHeadingPriceForAnnual(
+                this.card,
+                headingPrice,
+                legal,
+                'displayPerUnit',
+            );
+
+            legal.setAttribute('data-template', 'legal');
 
             if (!this.legalResolvedHandler) {
                 this.legalResolvedHandler = () => this.adjustShortDescription();
@@ -590,28 +641,101 @@ export class MiniCompareChart extends VariantLayout {
                 );
                 this.legalElement = legal;
             }
+
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            this.legalAdjusted = true;
+
+            await legal.onceSettled();
+
+            this.legalObserver = new MutationObserver(() =>
+                this.adjustShortDescription(),
+            );
+            this.legalObserver.observe(legal, {
+                childList: true,
+                subtree: true,
+            });
         } catch {
-            // Proceed with other adjustments
+            if (legal?.parentNode) {
+                legal.parentNode.removeChild(legal);
+                this.legalAdjusted = false;
+                this.legalResolvedHandler = null;
+                this.legalElement = null;
+            }
+        } finally {
+            this.legalAdjusting = false;
         }
     }
 
-    adjustShortDescription() {
-        if (!this.shortDescriptionSource) {
-            const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-            if (!bodyXxs) return;
-            this.shortDescriptionSource = bodyXxs;
-            bodyXxs.remove();
-        }
-        const text = this.shortDescriptionSource.textContent?.trim();
-        if (!text) return;
-        const legalPrice = this.card.querySelector(
-            '[slot="heading-m-price"] [data-template="legal"]',
+    // When there's no resolved legal price to carry the plan-type span
+    // (e.g. price failed to resolve, or there's no price at all), build a
+    // minimal stand-in with the same classes so the short description
+    // still renders in the usual plan-type/legal position and styling.
+    getOrCreateFallbackPlanType() {
+        const headingMPriceSlot = this.headingMPriceSlot;
+        if (!headingMPriceSlot) return null;
+        let fallbackLegal = headingMPriceSlot.querySelector(
+            '.price-legal[data-fallback]',
         );
-        const planType = legalPrice?.querySelector('.price-plan-type');
+        if (!fallbackLegal) {
+            fallbackLegal = document.createElement('span');
+            fallbackLegal.className = 'price price-legal';
+            fallbackLegal.dataset.fallback = 'true';
+            const planType = document.createElement('span');
+            planType.className = 'price-plan-type disabled';
+            fallbackLegal.appendChild(planType);
+            headingMPriceSlot.appendChild(fallbackLegal);
+        }
+        return fallbackLegal.querySelector('.price-plan-type');
+    }
+
+    adjustShortDescription() {
+        const legalPrice = this.card.querySelector(
+            '[is="inline-price"][data-template="legal"]',
+        );
+        const realPlanType = legalPrice?.querySelector('.price-plan-type');
+        const fallbackLegal = this.headingMPriceSlot?.querySelector(
+            '.price-legal[data-fallback]',
+        );
+        const fallbackPlanType =
+            fallbackLegal?.querySelector('.price-plan-type');
+
+        // A real legal price is now available — migrate any content
+        // already parked on the fallback stand-in over to it (bodyXxs is
+        // already gone by this point), then discard the fallback.
+        if (realPlanType && fallbackPlanType) {
+            const fallbackEm = fallbackPlanType.querySelector('em');
+            if (fallbackEm && !realPlanType.querySelector('em')) {
+                realPlanType.appendChild(fallbackEm);
+            }
+            fallbackLegal.remove();
+        }
+
+        // Query fresh each time rather than only relying on a cached node:
+        // the card can re-render body-xxs (e.g. once the price resolves and
+        // the legal price is (re)cloned). The extracted HTML is cached
+        // separately (see below) since adjustLegal() can race and produce a
+        // second legal price clone after body-xxs has already been removed —
+        // without the cache, that second clone would never get populated.
+        const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
+        if (bodyXxs) {
+            const text = bodyXxs.textContent?.trim();
+            const hasIconButton = !!bodyXxs.querySelector('.icon-button');
+            if (text || hasIconButton) {
+                this.shortDescriptionHTML = bodyXxs.innerHTML;
+                bodyXxs.remove();
+            }
+        }
+        if (!this.shortDescriptionHTML) return;
+
+        const planType = realPlanType ?? this.getOrCreateFallbackPlanType();
         if (!planType) return;
         if (planType.querySelector('em')) return;
+
         const em = document.createElement('em');
-        em.textContent = ` ${text}`;
+        em.innerHTML = ` ${this.shortDescriptionHTML}`;
         planType.appendChild(em);
     }
 
@@ -827,6 +951,11 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart']) slot[name='heading-m'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-heading-m-height
+            );
+        }
+        :host([variant='mini-compare-chart']) slot[name='heading-xs'] {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-heading-xs-height
             );
         }
         :host([variant='mini-compare-chart']) slot[name='subtitle'] {

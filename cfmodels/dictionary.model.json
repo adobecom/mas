@@ -1,0 +1,14 @@
+{
+    "parent": {
+        "fieldLabel": "Parent dictionary",
+        "type": "content-fragment"
+    },
+    "entries": {
+        "fieldLabel": "entries",
+        "type": "content-fragment[]"
+    },
+    "locReady": {
+        "fieldLabel": "Loc Ready",
+        "type": "boolean"
+    }
+}

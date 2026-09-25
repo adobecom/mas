@@ -339,6 +339,15 @@
                         expect(triggerButton.hasAttribute('quiet')).to.be.false;
                     });
 
+                    it('quiet attribute takes precedence over checkbox-tags mode', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9Quiet', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(triggerButton.hasAttribute('quiet')).to.be.true;
+                    });
+
                     it('renders selected tags with sp-tags and no trigger count', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
                         await aemTagPicker.loadTags();
@@ -393,6 +402,35 @@
                         expect(expressCheckbox).to.not.be.null;
                         expect(expressCheckbox.textContent).to.include('adobe-express');
                         expect(expressCheckbox.textContent).to.not.include('Adobe Express');
+                    });
+
+                    it('renders variant values for the given surface', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker12', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const nmbOptions = aemTagPicker.shadowRoot.querySelectorAll('sp-checkbox').length;
+                        expect(nmbOptions).to.equal(3);
+                    });
+
+                    it('renders variant values for the given surface and search', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker13', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
+                        spSearch.value = 'plans';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+
+                        const nmbOptions = aemTagPicker.shadowRoot.querySelectorAll('sp-checkbox').length;
+                        expect(nmbOptions).to.equal(5);
                     });
 
                     it('filters checkbox list while typing in search', async function () {
@@ -563,6 +601,29 @@
                         aemTagPicker.resetSelection();
                         expect(aemTagPicker.value).to.deep.equal(beforeValue);
                         expect(aemTagPicker.tempValue).to.deep.equal(beforeTempValue);
+                    });
+
+                    it('keeps existing selection when value seeded via attribute and a tag is added', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        aemTagPicker.setAttribute('value', 'mas:status/archived');
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+                        const overlayTrigger = aemTagPicker.shadowRoot.querySelector('overlay-trigger');
+
+                        const draftPath = '/content/cq:tags/mas/status/draft';
+                        const draftCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${draftPath}"]`);
+                        draftCheckbox.checked = true;
+                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const applyOnCloseListener = oneEvent(aemTagPicker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await applyOnCloseListener;
+
+                        expect(aemTagPicker.value).to.include('mas:status/archived');
+                        expect(aemTagPicker.value).to.include('mas:status/draft');
                     });
 
                     it('becomes interactive again when disabled flips back to false', async function () {
@@ -855,6 +916,14 @@
                 selection="checkbox-tags"
             ></aem-tag-picker-field>
         </template>
+        <template id="tagPicker9Quiet">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="status"
+                selection="checkbox-tags"
+                quiet
+            ></aem-tag-picker-field>
+        </template>
         <template id="tagPicker10">
             <aem-tag-picker-field
                 namespace="/content/cq:tags/mas"
@@ -870,6 +939,24 @@
                 label="Select a product"
                 selection="checkbox-tags"
                 display-value
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker12">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="variant"
+                surface="express"
+                label="Select a template"
+                selection="checkbox-tags"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker13">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="variant"
+                surface="sandbox"
+                label="Select a template"
+                selection="checkbox-tags"
             ></aem-tag-picker-field>
         </template>
         <template id="tagPickerProductCode">

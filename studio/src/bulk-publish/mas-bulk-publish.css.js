@@ -124,6 +124,14 @@ export const styles = [
             --status-color: var(--spectrum-purple-700, #7030a0);
         }
 
+        .status-light.partial {
+            --status-color: var(--spectrum-orange-700, #e68619);
+        }
+
+        .status-light.failed {
+            --status-color: var(--spectrum-red-700, #d7373f);
+        }
+
         .actions-cell {
             text-align: center;
         }

@@ -18,6 +18,7 @@ import {
     getFieldVisible,
     getFieldHidden,
 } from './utils/version-transformer.js';
+import { normalizeVariantName, VARIANT_NAMES } from './editors/variant-picker.js';
 
 class VersionPage extends LitElement {
     static properties = {
@@ -835,10 +836,11 @@ class VersionPage extends LitElement {
             let settings = cachedFragment?.settings || fragmentData.settings || {};
             const priceLiterals = cachedFragment?.priceLiterals || fragmentData.priceLiterals || {};
 
-            // Fallback: if no cached settings and variant is a plans* (or bizpro) variant, apply known settings
+            // Fallback: if no cached settings and variant is a plans* or pro variant, apply known settings
             if (
                 !cachedFragment?.settings &&
-                (normalizedFields.variant?.startsWith('plans') || normalizedFields.variant === 'bizpro')
+                (normalizedFields.variant?.startsWith('plans') ||
+                    normalizeVariantName(normalizedFields.variant) === VARIANT_NAMES.PRO)
             ) {
                 settings = { ...settings };
                 if (normalizedFields.showSecureLabel !== false) {

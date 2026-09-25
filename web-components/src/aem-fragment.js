@@ -2,18 +2,23 @@ import { getParameter } from '@dexter/tacocat-core';
 import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
+    EVENT_TYPE_READY,
     MARK_START_SUFFIX,
     MARK_DURATION_SUFFIX,
 } from './constants.js';
 import { MasError } from './mas-error.js';
+import { getImsCountryCookie } from './ims.js';
 import { getLogHeaders } from './utilities.js';
-import { getService, printMeasure } from './utils.js';
+import { getService, getValidatedMasLibsUrl, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
+import { normalizeExplicitEmptyInFields } from '../../io/www/src/fragment/utils/explicit-empty.js';
 
 const ATTRIBUTE_FRAGMENT = 'fragment';
 const ATTRIBUTE_AUTHOR = 'author';
 const ATTRIBUTE_PREVIEW = 'preview';
 const ATTRIBUTE_LOADING = 'loading';
+const ATTRIBUTE_MASK = 'mask';
+const ATTRIBUTE_PZN = 'pzn';
 const ATTRIBUTE_TIMEOUT = 'timeout';
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
@@ -111,8 +116,8 @@ class FragmentCache {
         return promise;
     }
 
-    getFetchInfo(fragmentId) {
-        let fetchInfo = this.#fetchInfos.get(fragmentId);
+    getFetchInfo(cacheKey) {
+        let fetchInfo = this.#fetchInfos.get(cacheKey);
         if (!fetchInfo) {
             fetchInfo = {
                 url: null,
@@ -121,9 +126,17 @@ class FragmentCache {
                 measure: null,
                 status: null,
             };
-            this.#fetchInfos.set(fragmentId, fetchInfo);
+            this.#fetchInfos.set(cacheKey, fetchInfo);
         }
         return fetchInfo;
+    }
+
+    set(key, fragment) {
+        this.#fragmentCache.set(key, fragment);
+        if (this.#promises.has(key)) {
+            const [, resolve] = this.#promises.get(key);
+            resolve();
+        }
     }
 
     remove(fragmentId) {
@@ -134,6 +147,19 @@ class FragmentCache {
 }
 
 const cache = new FragmentCache();
+
+const AEM_FRAGMENT_STYLES = `
+${AEM_FRAGMENT_TAG_NAME} {
+    display: contents;
+}
+`;
+
+if (!document.querySelector('style[data-aem-fragment]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-aem-fragment', '');
+    style.textContent = AEM_FRAGMENT_STYLES;
+    document.head.append(style);
+}
 
 /**
  * Custom element representing an aem fragment.
@@ -156,6 +182,8 @@ export class AemFragment extends HTMLElement {
     #fragmentId;
     #fetchInfo;
     #loading = LOADING_EAGER;
+    #mask;
+    #pzn;
     #timeout = 5000;
 
     /**
@@ -175,13 +203,25 @@ export class AemFragment extends HTMLElement {
             ATTRIBUTE_TIMEOUT,
             ATTRIBUTE_AUTHOR,
             ATTRIBUTE_PREVIEW,
+            ATTRIBUTE_MASK,
+            ATTRIBUTE_PZN,
         ];
+    }
+
+    cacheKey() {
+        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === ATTRIBUTE_FRAGMENT) {
             this.#fragmentId = newValue;
-            this.#fetchInfo = cache.getFetchInfo(newValue);
+            this.#fetchInfo = cache.getFetchInfo(this.cacheKey());
+        }
+        if (name === ATTRIBUTE_MASK) {
+            this.#mask = newValue;
+        }
+        if (name === ATTRIBUTE_PZN) {
+            this.#pzn = newValue;
         }
         if (name === ATTRIBUTE_LOADING && LOADING_VALUES.includes(newValue)) {
             this.#loading = newValue;
@@ -199,7 +239,15 @@ export class AemFragment extends HTMLElement {
 
     connectedCallback() {
         if (this.#fetchPromise) return;
-        this.#service ??= getService(this);
+        this.#service = getService(this);
+        if (!this.#service?.settings) {
+            document.addEventListener(
+                EVENT_TYPE_READY,
+                () => this.isConnected && this.connectedCallback(),
+                { once: true },
+            );
+            return;
+        }
         this.#preview = this.#service.settings?.preview;
         this.#log ??= this.#service.log.module(
             `${AEM_FRAGMENT_TAG_NAME}[${this.#fragmentId}]`,
@@ -222,15 +270,13 @@ export class AemFragment extends HTMLElement {
     }
 
     /**
-     * Get fragment by ID
+     * Get fragment
      * @param {string} endpoint url to fetch fragment from
-     * @param {string} id fragment id
-     * @param {string} startMark performance mark to measure duration
      * @returns {Promise<Object>} the raw fragment item
      */
-    async #getFragmentById(endpoint) {
+    async #getFragment(endpoint) {
         this.#fetchCount++;
-        const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${this.#fragmentId}:${this.#fetchCount}`;
+        const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${this.cacheKey()}:${this.#fetchCount}`;
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
@@ -251,7 +297,7 @@ export class AemFragment extends HTMLElement {
             this.#fetchInfo.url = endpoint;
             response = await masFetch(endpoint, {
                 cache: 'default',
-                credentials: 'omit',
+                credentials: 'same-origin',
             });
             this.#applyHeaders(response);
             this.#fetchInfo.status = response?.status;
@@ -294,11 +340,11 @@ export class AemFragment extends HTMLElement {
             if (!ready) return; // already fetching data
         }
         if (flushCache) {
-            cache.remove(this.#fragmentId);
+            cache.remove(this.cacheKey());
         }
         if (this.#loading === LOADING_CACHE) {
             await Promise.race([
-                cache.getAsPromise(this.#fragmentId),
+                cache.getAsPromise(this.cacheKey()),
                 new Promise((resolve) => setTimeout(resolve, this.#timeout)),
             ]);
         }
@@ -353,20 +399,46 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.#fragmentId);
+        let fragment = cache.get(this.cacheKey());
         if (fragment) {
             this.#rawData = fragment;
             return true;
         }
-        const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
+        const {
+            masIOUrl,
+            wcsApiKey,
+            country: configuredCountry,
+            hasExplicitCountry,
+            locale,
+            instant,
+        } = this.#service.settings;
+        const country = hasExplicitCountry
+            ? configuredCountry
+            : (getImsCountryCookie() ?? configuredCountry);
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
 
-        fragment = await this.#getFragmentById(endpoint);
+        if (instant) {
+            endpoint += `&instant=${instant}`;
+        }
+
+        if (this.#mask) {
+            endpoint += `&mask=${this.#mask}`;
+        }
+
+        if (this.#pzn) {
+            endpoint += `&pzn=${this.#pzn}`;
+        }
+
+        fragment = await this.#getFragment(endpoint);
         fragment.fields.originalId ??= this.#fragmentId;
-        cache.add(fragment);
+        if (this.#mask || this.#pzn) {
+            cache.set(this.cacheKey(), fragment);
+        } else {
+            cache.add(fragment);
+        }
         this.#rawData = fragment;
         return true;
     }
@@ -396,14 +468,18 @@ export class AemFragment extends HTMLElement {
         const {
             fields,
             id,
+            maskId,
             tags,
             variationId,
+            promoProject,
+            promoVariationProject,
             settings = {},
             priceLiterals = {},
             dictionary = {},
             placeholders = {},
         } = this.#rawData;
-        this.#data = fields.reduce(
+        const normalizedFields = normalizeExplicitEmptyInFields(fields);
+        this.#data = normalizedFields.reduce(
             (acc, { name, multiple, values }) => {
                 acc.fields[name] = multiple ? values : values[0];
                 return acc;
@@ -415,8 +491,11 @@ export class AemFragment extends HTMLElement {
                 settings,
                 priceLiterals,
                 dictionary,
+                maskId,
                 placeholders,
                 variationId,
+                promoProject,
+                promoVariationProject,
             },
         );
     }
@@ -430,8 +509,11 @@ export class AemFragment extends HTMLElement {
             settings = {},
             priceLiterals = {},
             dictionary = {},
+            maskId,
             placeholders = {},
             variationId,
+            promoProject,
+            promoVariationProject,
         } = this.#rawData;
         this.#data = Object.entries(fields).reduce(
             (acc, [key, value]) => {
@@ -445,8 +527,11 @@ export class AemFragment extends HTMLElement {
                 settings,
                 priceLiterals,
                 dictionary,
+                maskId,
                 placeholders,
                 variationId,
+                promoProject,
+                promoVariationProject,
             },
         );
     }
@@ -457,30 +542,19 @@ export class AemFragment extends HTMLElement {
      */
     getFragmentClientUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        const masLibs = urlParams.get('maslibs');
-
-        if (!masLibs || masLibs.trim() === '') {
-            return 'https://mas.adobe.com/studio/libs/fragment-client.js';
-        }
-        const sanitizedMasLibs = masLibs.trim().toLowerCase();
-
-        if (sanitizedMasLibs === 'local') {
-            return 'http://localhost:3000/studio/libs/fragment-client.js';
-        }
-
         // Detect current domain extension (.page or .live)
         const { hostname } = window.location;
         const extension = hostname.endsWith('.page') ? 'page' : 'live';
-        if (sanitizedMasLibs.includes('--')) {
-            return `https://${sanitizedMasLibs}.aem.${extension}/studio/libs/fragment-client.js`;
-        }
-        return `https://${sanitizedMasLibs}--mas--adobecom.aem.${extension}/studio/libs/fragment-client.js`;
+        const baseUrl =
+            getValidatedMasLibsUrl(urlParams.get('maslibs'), extension) ??
+            'https://mas.adobe.com';
+        return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
     async generatePreview() {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const { previewFragment } = await import(fragmentClientUrl);
-        const options = {
+        const defaultOptions = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
@@ -488,9 +562,12 @@ export class AemFragment extends HTMLElement {
         const instant =
             new URLSearchParams(window.location.search).get('instant') ??
             this.#service.settings.instant;
-        if (instant) {
-            options.instant = instant;
-        }
+        const options = {
+            ...defaultOptions,
+            ...(instant != null ? { instant } : {}),
+            ...(this.#mask != null ? { mask: this.#mask } : {}),
+            ...(this.#pzn != null ? { pzn: this.#pzn } : {}),
+        };
         const data = await previewFragment(this.#fragmentId, options);
         return data;
     }

@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class BulkActionsPage {
     constructor(page) {
         this.page = page;
@@ -6,7 +8,7 @@ export default class BulkActionsPage {
         this.bulkPublishEditor = page.locator('mas-bulk-publish-editor');
         this.addBySearchButton = this.bulkPublishEditor.locator('[data-testid="add-by-search-btn"]');
         this.addItemsDialog = page.locator('mas-add-items-dialog');
-        this.searchInput = this.addItemsDialog.locator('sp-search');
+        this.searchInput = this.addItemsDialog.locator('.search-row sp-search');
         this.fragmentsTab = this.addItemsDialog.locator('sp-tab[value="cards"]');
         this.collectionsTab = this.addItemsDialog.locator('sp-tab[value="collections"]');
         this.placeholdersTab = this.addItemsDialog.locator('sp-tab[value="placeholders"]');
@@ -14,7 +16,7 @@ export default class BulkActionsPage {
             'mas-select-items-table:not([hidden]) sp-checkbox[aria-label="Select all loaded items"]',
         );
         this.tableRowCheckboxes = this.addItemsDialog.locator('mas-select-items-table:not([hidden]) sp-table-body sp-checkbox');
-        this.addSelectedButton = this.addItemsDialog.locator('sp-button[variant="accent"]');
+        this.addSelectedButton = this.addItemsDialog.getByRole('button', { name: 'Add selected items' });
     }
 
     async navigateToBulkPublishList(baseURL, miloLibs) {
@@ -41,6 +43,12 @@ export default class BulkActionsPage {
             placeholders: this.placeholdersTab,
         };
         await tabMap[tabName].click();
+        if (tabName === 'cards') {
+            await this.addItemsDialog.locator('.filter-row mas-search-and-filters').waitFor({ state: 'visible' });
+        } else {
+            await this.addItemsDialog.locator('mas-search-and-filters[search-only]').waitFor({ state: 'attached' });
+            await expect(this.addItemsDialog.locator('.filter-row')).toHaveCount(0);
+        }
     }
 
     async searchFor(query) {

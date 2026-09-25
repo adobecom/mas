@@ -77,6 +77,19 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'VN_vi',
     'VN_en',
     'TW_zh',
+    'KE_en',
+    'GH_en',
+    'TZ_en',
+    'AM_en',
+    'AZ_en',
+    'GE_en',
+    'MD_en',
+    'KZ_en',
+    'KG_en',
+    'TJ_en',
+    'UZ_en',
+    'OM_en',
+    'BH_en',
 ];
 
 // countries where tax is displayed by default for some segments only
@@ -472,7 +485,7 @@ export class InlinePrice extends HTMLSpanElement {
                 )
                     return true;
                 const inlinePrices = parentEl?.querySelectorAll(
-                    'span[is="inline-price"]',
+                    'span[is="inline-price"]:not([data-template="legal"])',
                 );
                 if (
                     inlinePrices.length > 1 &&

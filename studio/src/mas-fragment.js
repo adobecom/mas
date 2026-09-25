@@ -50,19 +50,7 @@ class MasFragment extends LitElement {
         this.expanded = true;
 
         const fragment = this.fragmentStore.value;
-        // Fetch references if not yet loaded
-        if (this.repository && !fragment.references?.length) {
-            this.loadingReferences = true;
-
-            try {
-                await this.repository.refreshFragment(this.fragmentStore);
-            } catch (error) {
-                console.error('Failed to load references:', error);
-                showToast('Failed to load references', 'negative');
-            } finally {
-                this.loadingReferences = false;
-            }
-        }
+        await this.refreshReferences(fragment);
 
         // Wait for Lit to finish rendering
         await this.updateComplete;
@@ -91,19 +79,9 @@ class MasFragment extends LitElement {
         );
     }
 
-    async toggleExpand(e) {
-        e?.stopPropagation();
-        const newExpandedState = !this.expanded;
-        this.expanded = newExpandedState;
-
-        // Clear expandedId if collapsing the auto-expanded fragment
-        if (!newExpandedState && Store.fragments.expandedId.get() === this.fragmentStore?.value?.id) {
-            Store.fragments.expandedId.set(null);
-        }
-
-        const fragment = this.fragmentStore.value;
-        // Fetch references only when expanding and references are not yet loaded
-        if (newExpandedState && this.repository && !fragment.references?.length) {
+    async refreshReferences(fragment) {
+        if (!fragment || !this.repository) return;
+        if (!fragment.references?.length || !fragment.promoVariationProbeNotNeeded) {
             this.loadingReferences = true;
 
             try {
@@ -115,6 +93,29 @@ class MasFragment extends LitElement {
             } finally {
                 this.loadingReferences = false;
             }
+        }
+    }
+
+    async toggleExpand(e) {
+        e?.stopPropagation();
+        const newExpandedState = !this.expanded;
+        this.expanded = newExpandedState;
+
+        if (!newExpandedState) {
+            if (Store.fragments.expandedId.get() === this.fragmentStore?.value?.id) {
+                Store.fragments.expandedId.set(null);
+            }
+            Store.fragments.highlightedVariationId.set(null);
+            Store.fragments.variationSearchTab.set(null);
+        }
+
+        const fragment = this.fragmentStore.value;
+        if (newExpandedState) {
+            await this.refreshReferences(fragment);
+        }
+
+        if (Store.selecting.get()) {
+            this.dispatchEvent(new CustomEvent('table-selection-refresh', { bubbles: true, composed: true }));
         }
     }
 

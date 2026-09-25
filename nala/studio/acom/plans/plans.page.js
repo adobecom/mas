@@ -26,6 +26,10 @@ export default class ACOMPlansCardPage {
         this.cardWhatsIncludedLabel = page.locator('merch-whats-included div[slot="heading"]');
         this.cardWhatsIncludedIcon = page.locator('merch-whats-included div[slot="content"] merch-icon');
         this.cardWhatsIncludedIconLabel = page.locator('merch-whats-included p[slot="description"]');
+        this.cardWhatsIncludedBullet = page.locator('merch-whats-included div[slot="contentBullets"] .sp-icon');
+        this.cardWhatsIncludedBulletUpload = page.locator(
+            'merch-whats-included div[slot="contentBullets"] sp-icon-upload-to-cloud',
+        );
         this.cardUptLink = page.locator('a[is="upt-link"]');
 
         // Plans individual card properties:

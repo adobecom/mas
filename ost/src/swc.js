@@ -34,6 +34,8 @@ import('@spectrum-web-components/textfield/sp-textfield.js');
 import('@spectrum-web-components/icons-ui/icons/sp-icon-chevron100.js');
 import('@spectrum-web-components/icons-workflow/icons/sp-icon-copy.js');
 import('@spectrum-web-components/icons-workflow/icons/sp-icon-info.js');
+import('@spectrum-web-components/icons-workflow/icons/sp-icon-cancel.js');
+import('@spectrum-web-components/icons-workflow/icons/sp-icon-undo.js');
 
 // Do NOT restore originalDefine — Studio's swc.js also registers SWC elements
 // (sp-theme, sp-button, etc.) that ost's own components like ost-checkout-options

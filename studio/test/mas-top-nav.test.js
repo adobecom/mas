@@ -4,10 +4,12 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../src/store.js';
 import router from '../src/router.js';
-import { PAGE_NAMES, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from '../src/constants.js';
+import { PAGE_NAMES, PICKERS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from '../src/constants.js';
 import { delay } from './utils.js';
 import '../src/swc.js';
 import '../src/mas-top-nav.js';
+
+const ALL_PICKERS = [PICKERS.FOLDER, PICKERS.LOCALE, PICKERS.LANDSCAPE];
 
 describe('MasTopNav', () => {
     let sandbox;
@@ -19,6 +21,8 @@ describe('MasTopNav', () => {
     let originalPromotionId;
     let originalTranslationProjectId;
     let originalTranslationInEdit;
+    let originalMasksFragmentId;
+    let originalMasksCreating;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -30,6 +34,8 @@ describe('MasTopNav', () => {
         originalPromotionId = Store.promotions.promotionId.value;
         originalTranslationProjectId = Store.translationProjects.translationProjectId.value;
         originalTranslationInEdit = Store.translationProjects.inEdit.value;
+        originalMasksFragmentId = Store.masks.fragmentId.value;
+        originalMasksCreating = Store.masks.creating.value;
         window.adobeIMS = {
             getAccessToken: () => ({ token: 'mock-token' }),
             getProfile: () => Promise.resolve({ displayName: 'Test User', email: 'test@example.com' }),
@@ -52,6 +58,8 @@ describe('MasTopNav', () => {
         Store.promotions.promotionId.value = originalPromotionId;
         Store.translationProjects.translationProjectId.value = originalTranslationProjectId;
         Store.translationProjects.inEdit.value = originalTranslationInEdit;
+        Store.masks.fragmentId.value = originalMasksFragmentId;
+        Store.masks.creating.value = originalMasksCreating;
         delete window.adobeIMS;
     });
 
@@ -310,19 +318,50 @@ describe('MasTopNav', () => {
     });
 
     describe('history navigation visuals', () => {
-        it('should render history navigation buttons with forward disabled', async () => {
+        it('should render history navigation buttons with neither disabled', async () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const buttons = el.querySelectorAll('.history-navigation .history-nav-button');
             expect(buttons.length).to.equal(2);
             expect(buttons[0].hasAttribute('disabled')).to.be.false;
-            expect(buttons[1].hasAttribute('disabled')).to.be.true;
+            expect(buttons[1].hasAttribute('disabled')).to.be.false;
+        });
+    });
+
+    describe('masks editor breadcrumbs', () => {
+        it('shows Masks > Editor breadcrumbs on MASKS_EDITOR page', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(items.map((i) => i.textContent.trim())).to.deep.equal(['Masks', 'Editor']);
+        });
+
+        it('shows New mask label when creating is true', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = true;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(items[1].textContent.trim()).to.equal('New mask');
+        });
+
+        it('Masks crumb navigates to MASKS page on click', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const firstItem = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            firstItem.click();
+            expect(navigateStub.calledWith(PAGE_NAMES.MASKS)).to.be.true;
         });
     });
 
     describe('picker disabled states', () => {
         it('should disable folder picker on fragment editor page', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -331,7 +370,7 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on translation editor page', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -340,7 +379,7 @@ describe('MasTopNav', () => {
 
         it('should not disable folder picker on content page', async () => {
             Store.page.value = PAGE_NAMES.CONTENT;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -349,7 +388,7 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on bulk publish editor page', async () => {
             Store.page.value = PAGE_NAMES.BULK_PUBLISH_EDITOR;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -358,7 +397,7 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on promotions list page', async () => {
             Store.page.value = PAGE_NAMES.PROMOTIONS;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -367,7 +406,7 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on promotions editor page', async () => {
             Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -376,7 +415,7 @@ describe('MasTopNav', () => {
 
         it('should not disable folder picker on bulk publish list page', async () => {
             Store.page.value = PAGE_NAMES.BULK_PUBLISH;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
             expect(folderPicker).to.exist;
@@ -385,7 +424,7 @@ describe('MasTopNav', () => {
 
         it('should enable locale picker on fragment editor page', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker).to.exist;
@@ -394,7 +433,7 @@ describe('MasTopNav', () => {
 
         it('should disable locale picker on translation editor page', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker).to.exist;
@@ -403,7 +442,7 @@ describe('MasTopNav', () => {
 
         it('should disable locale picker on translations page', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATIONS;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker).to.exist;
@@ -412,7 +451,7 @@ describe('MasTopNav', () => {
 
         it('should not disable locale picker on content page', async () => {
             Store.page.value = PAGE_NAMES.CONTENT;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker).to.exist;
@@ -420,16 +459,19 @@ describe('MasTopNav', () => {
         });
     });
 
-    describe('shouldShowPickers getter', () => {
-        it('should return true when showPickers is true', async () => {
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
-            expect(el.shouldShowPickers).to.be.true;
+    describe('pickersToHide', () => {
+        it('should render all pickers by default when pickersToHide is empty', async () => {
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            expect(el.querySelector('mas-nav-folder-picker')).to.exist;
+            expect(el.querySelector('mas-locale-picker')).to.exist;
         });
 
-        it('should return false when showPickers is false', async () => {
-            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            el.showPickers = false;
-            expect(el.shouldShowPickers).to.be.false;
+        it('should not render pickers listed in pickersToHide', async () => {
+            const el = await fixture(html`<mas-top-nav .pickersToHide=${ALL_PICKERS}></mas-top-nav>`);
+            await el.updateComplete;
+            expect(el.querySelector('mas-nav-folder-picker')).to.not.exist;
+            expect(el.querySelector('mas-locale-picker')).to.not.exist;
         });
     });
 
@@ -453,7 +495,7 @@ describe('MasTopNav', () => {
             Store.search.set((prev) => ({ ...prev, region: null }));
             Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
 
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker.getAttribute('locale')).to.equal('en_US');
@@ -463,7 +505,7 @@ describe('MasTopNav', () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.search.set((prev) => ({ ...prev, region: 'en_GB' }));
 
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker.getAttribute('locale')).to.equal('en_GB');
@@ -479,7 +521,7 @@ describe('MasTopNav', () => {
             editorContext.isVariationByPath = true;
             editorContext.localeDefaultFragment = { path: '/content/dam/mas/sandbox/en_GB/card' };
 
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker.getAttribute('locale')).to.equal('en_GB');
@@ -701,23 +743,21 @@ describe('MasTopNav', () => {
 
     describe('landscape switch', () => {
         it('should render landscape switch when pickers are shown', async () => {
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
             expect(landscapeSwitch).to.exist;
         });
 
-        it('should not render landscape switch when pickers are hidden', async () => {
-            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            el.showPickers = false;
+        it('should not render landscape switch when landscape picker is hidden', async () => {
+            const el = await fixture(html`<mas-top-nav .pickersToHide=${[PICKERS.LANDSCAPE]}></mas-top-nav>`);
             await el.updateComplete;
-            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
-            expect(landscapeSwitch).to.not.exist;
+            expect(el.querySelector('sp-switch.landscape-switch')).to.not.exist;
         });
 
         it('should be checked when landscape is draft', async () => {
             Store.landscape.value = WCS_LANDSCAPE_DRAFT;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
             expect(landscapeSwitch.checked).to.be.true;
@@ -725,7 +765,7 @@ describe('MasTopNav', () => {
 
         it('should be unchecked when landscape is published', async () => {
             Store.landscape.value = WCS_LANDSCAPE_PUBLISHED;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
             expect(landscapeSwitch.checked).to.be.false;
@@ -733,7 +773,7 @@ describe('MasTopNav', () => {
 
         it('should set landscape to DRAFT when switch is checked', async () => {
             Store.landscape.value = WCS_LANDSCAPE_PUBLISHED;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
 
@@ -745,7 +785,7 @@ describe('MasTopNav', () => {
 
         it('should set landscape to PUBLISHED when switch is unchecked', async () => {
             Store.landscape.value = WCS_LANDSCAPE_DRAFT;
-            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
             const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
 

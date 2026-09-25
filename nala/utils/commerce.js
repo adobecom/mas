@@ -10,6 +10,7 @@ const PRICE_PATTERN = {
         // TODO: narrow to /mo and /mes separately when MWPW-197541 is fixed
         promo: /US\$55\.50\/(mo|mes)/,
         regular: /US\$99\.90\/(mo|mes)/,
+        milipromo: /US\$59\.99\/(mo|mes)/,
     },
     US: {
         mo: /US\$\d+\.\d\d\/mo/,
@@ -63,6 +64,7 @@ const DOCS_GALLERY_PATH = {
     CHECKOUT_LINK: '/web-components/docs/checkout-link.html',
     MERCH_CARD: '/web-components/docs/merch-card.html',
     EXPRESS: '/web-components/docs/express.html',
+    BRAND_CONCIERGE: '/web-components/docs/brand-concierge.html',
 };
 
 async function setupMasConsoleListener(consoleErrors) {
@@ -310,6 +312,9 @@ async function setupMasRequestLogger(masRequestErrors) {
  * @param {Object} config.extraHTTPHeaders - HTTP headers to set on the context
  * @param {number} config.loadTimeout - Timeout after networkidle (default: 5000ms)
  * @param {number} config.setupTimeout - Timeout for beforeAll hook setup (default: 60000ms)
+ * @param {number} config.concurrency - Max pages loaded simultaneously (default: Infinity, i.e. all at once)
+ * @param {number} config.retries - Extra attempts per page on navigation/networkidle failure (default: 0)
+ * @param {number} config.retryDelay - Base delay in ms before a retry; grows linearly per attempt (default: 1000ms)
  * @returns {Object} - Setup object with pages, setup/cleanup methods, and error arrays
  */
 function createWorkerPageSetup(config = {}) {
@@ -318,6 +323,9 @@ function createWorkerPageSetup(config = {}) {
         extraHTTPHeaders = { 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' },
         loadTimeout = 5000,
         setupTimeout = 60000, // Default 60 second timeout for worker setup
+        concurrency = Infinity,
+        retries = 0,
+        retryDelay = 1000,
     } = config;
 
     let workerContext;
@@ -343,7 +351,7 @@ function createWorkerPageSetup(config = {}) {
         consoleErrors = [];
         masRequestErrors = [];
 
-        const pagePromises = pages.map(async (pageConfig) => {
+        const loadPage = async (pageConfig) => {
             const { name, url } = pageConfig;
 
             let fullUrl = `${baseURL}${url}`;
@@ -373,9 +381,11 @@ function createWorkerPageSetup(config = {}) {
             console.info(`[Worker Setup]: ${name} page fully loaded:`, await page.url());
 
             return { name, page, url: fullUrl };
-        });
+        };
 
-        await Promise.all(pagePromises);
+        for (let i = 0; i < pages.length; i += concurrency) {
+            await Promise.all(pages.slice(i, i + concurrency).map(loadPage));
+        }
         console.info('[Worker Setup]: All worker-scoped pages ready');
     }
 

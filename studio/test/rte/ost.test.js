@@ -82,6 +82,42 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.deep.equal(expectedAttributes);
     });
 
+    it('should prefer promoOverride over a stale storedPromoOverride option', () => {
+        const options = {
+            storedPromoOverride: 'OLDPROMO',
+        };
+
+        onPlaceholderSelect('test-id', 'price', {}, options, 'NEWPROMO');
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail['data-promotion-code']).to.equal('NEWPROMO');
+    });
+
+    it('should remove data-promotion-code when promoOverride is empty', () => {
+        const options = {
+            storedPromoOverride: 'OLDPROMO',
+        };
+
+        onPlaceholderSelect('test-id', 'price', {}, options, '');
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail).to.not.have.property('data-promotion-code');
+    });
+
+    it('maps a quantity above 1 to data-quantity', () => {
+        onPlaceholderSelect('test-id', 'price', {}, { quantity: 5 }, null);
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail['data-quantity']).to.equal(5);
+    });
+
+    it('omits data-quantity when quantity is the default of 1', () => {
+        onPlaceholderSelect('test-id', 'price', {}, { quantity: 1 }, null);
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail).to.not.have.property('data-quantity');
+    });
+
     it('should dispatch an event with correct attributes for legal', () => {
         const offerSelectorId = 'test-id';
         const type = 'legal';
@@ -180,6 +216,50 @@ describe('onPlaceholderSelect', () => {
     });
 });
 
+describe('onPlaceholderSelect with mas-ff-defaults on', () => {
+    let dispatchEventStub;
+    let onPlaceholderSelect;
+    let masCommerceService;
+    let resolvePriceTaxFlagsStub;
+
+    before(async () => {
+        masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.featureFlags['mas-ff-defaults'] = true;
+        resolvePriceTaxFlagsStub = sinon.stub(masCommerceService, 'resolvePriceTaxFlags').resolves({});
+
+        ({ onPlaceholderSelect } = await import('../../src/rte/ost.js'));
+        dispatchEventStub = document.getElementById('ost').dispatchEvent;
+    });
+
+    after(() => {
+        masCommerceService.featureFlags['mas-ff-defaults'] = false;
+        resolvePriceTaxFlagsStub.restore();
+    });
+
+    beforeEach(() => {
+        dispatchEventStub.reset();
+        resolvePriceTaxFlagsStub.resetHistory();
+        Store.search.set({});
+    });
+
+    it('does not throw when offer.market_segments is undefined', async () => {
+        const offer = { customer_segment: 'INDIVIDUAL' };
+
+        await onPlaceholderSelect('test-id', 'price', offer, {}, null);
+
+        expect(dispatchEventStub.calledOnce).to.be.true;
+        expect(resolvePriceTaxFlagsStub.getCall(0).args[3]).to.equal(undefined);
+    });
+
+    it('passes the first market segment when present', async () => {
+        const offer = { customer_segment: 'TEAM', market_segments: ['COM', 'EDU'] };
+
+        await onPlaceholderSelect('test-id', 'price', offer, {}, null);
+
+        expect(resolvePriceTaxFlagsStub.getCall(0).args[3]).to.equal('COM');
+    });
+});
+
 describe('openOfferSelectorTool deep-link type parameter', () => {
     let openOfferSelectorTool;
     let openOstStub;
@@ -234,5 +314,155 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         openOfferSelectorTool(null, checkoutLinkEl);
         expect(openOstStub.calledOnce).to.be.true;
         expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
+    });
+
+    function elementWith(attrs) {
+        return {
+            isInlinePrice: true,
+            innerText: '',
+            getAttribute: (key) => attrs[key] ?? null,
+            getAttributeNames: () => Object.keys(attrs),
+        };
+    }
+
+    it('opens a multi-OSI non-discount placeholder in bundle mode with all OSIs', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-a,osi-b,osi-c' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.bundleOsis).to.deep.equal(['osi-a', 'osi-b', 'osi-c']);
+        expect(config.authoringFlow).to.equal('bundle');
+        expect(config.searchOfferSelectorId).to.be.undefined;
+    });
+
+    it('treats a multi-OSI discount placeholder as a single offer plus reference, not a bundle', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-base,osi-ref', 'data-template': 'discount' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.bundleOsis).to.be.undefined;
+        expect(config.authoringFlow).to.be.undefined;
+        expect(config.searchOfferSelectorId).to.equal('osi-base');
+        expect(config.initialReferenceOsi).to.equal('osi-ref');
+    });
+
+    it('restores quantity from a data-quantity placeholder into offerSelectorPlaceholderOptions', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-1', 'data-quantity': '5' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.offerSelectorPlaceholderOptions.quantity).to.equal('5');
+    });
+
+    function triggerInsideCardEditorWithOsi(osi) {
+        const editor = document.createElement('merch-card-editor');
+        editor.getEffectiveFieldValue = (field) => (field === 'osi' ? osi : undefined);
+        const trigger = document.createElement('span');
+        editor.appendChild(trigger);
+        document.body.appendChild(editor);
+        return { editor, trigger };
+    }
+
+    it("deep-links a new OST to the card's osi field when there is no offer element", () => {
+        const { editor, trigger } = triggerInsideCardEditorWithOsi('card-osi-1');
+        try {
+            openOfferSelectorTool(trigger, null);
+            const config = openOstStub.getCall(0).args[0];
+            expect(config.searchOfferSelectorId).to.equal('card-osi-1');
+        } finally {
+            editor.remove();
+        }
+    });
+
+    it('opens on the empty plate when the card has no osi field value', () => {
+        const { editor, trigger } = triggerInsideCardEditorWithOsi('');
+        try {
+            openOfferSelectorTool(trigger, null);
+            const config = openOstStub.getCall(0).args[0];
+            expect(config.searchOfferSelectorId).to.be.undefined;
+        } finally {
+            editor.remove();
+        }
+    });
+
+    it("ignores the card's osi field when an offer element supplies its own OSI", () => {
+        const { editor, trigger } = triggerInsideCardEditorWithOsi('card-osi-1');
+        try {
+            openOfferSelectorTool(trigger, elementWith({ 'data-wcs-osi': 'element-osi' }));
+            const config = openOstStub.getCall(0).args[0];
+            expect(config.searchOfferSelectorId).to.equal('element-osi');
+        } finally {
+            editor.remove();
+        }
+    });
+
+    it('passes language and country from authoring locale for en_EG regional variation', () => {
+        const localeOrRegionStub = sinon.stub(Store, 'localeOrRegion').returns('en_EG');
+        const masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.settings.country = 'SA';
+        masCommerceService.settings.language = 'ar';
+
+        openOfferSelectorTool(null, null);
+
+        expect(openOstStub.calledOnce).to.be.true;
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.language).to.equal('en');
+        expect(config.country).to.equal('EG');
+
+        localeOrRegionStub.restore();
+    });
+});
+
+describe('closeOfferSelectorTool', () => {
+    let closeOfferSelectorTool;
+    let openOfferSelectorTool;
+    let masStudio;
+    let renderCommerceServiceStub;
+    let querySelectorStub;
+    let originalWindowOst;
+    let originalLocalStorage;
+
+    before(async () => {
+        ({ closeOfferSelectorTool, openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        renderCommerceServiceStub = sinon.stub();
+        masStudio = { renderCommerceService: renderCommerceServiceStub };
+
+        querySelectorStub = sinon.stub(document, 'querySelector');
+        querySelectorStub.withArgs('mas-studio').returns(masStudio);
+        querySelectorStub.callThrough();
+
+        originalWindowOst = window.ost;
+        window.ost = { openOfferSelectorTool: sinon.stub().returns(() => {}) };
+        originalLocalStorage = localStorage.getItem('masAccessToken');
+        localStorage.setItem('masAccessToken', 'test-token');
+    });
+
+    afterEach(() => {
+        querySelectorStub.restore();
+        window.ost = originalWindowOst;
+        if (originalLocalStorage === null) {
+            localStorage.removeItem('masAccessToken');
+        } else {
+            localStorage.setItem('masAccessToken', originalLocalStorage);
+        }
+    });
+
+    it('calls renderCommerceService when an OST session was open', () => {
+        openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.calledOnce).to.be.true;
+    });
+
+    it('does nothing when no OST session is open', () => {
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
+
+    it('does not call renderCommerceService when mas-studio is not present', () => {
+        querySelectorStub.withArgs('mas-studio').returns(null);
+
+        openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
     });
 });

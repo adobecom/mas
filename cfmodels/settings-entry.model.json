@@ -1,0 +1,43 @@
+{
+    "name": {
+        "fieldLabel": "name",
+        "type": "string",
+        "maxLength": 255
+    },
+    "templates": {
+        "fieldLabel": "templates",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "locales": {
+        "fieldLabel": "locales",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "geos": {
+        "fieldLabel": "Geos",
+        "type": "tag[]"
+    },
+    "tags": {
+        "fieldLabel": "Tags",
+        "type": "tag[]"
+    },
+    "valuetype": {
+        "fieldLabel": "valueType",
+        "type": "string",
+        "maxLength": 255
+    },
+    "textValue": {
+        "fieldLabel": "Text value",
+        "type": "string",
+        "maxLength": 255
+    },
+    "richTextValue": {
+        "fieldLabel": "Rich text value",
+        "type": "long-text"
+    },
+    "booleanValue": {
+        "fieldLabel": "Boolean value",
+        "type": "boolean"
+    }
+}

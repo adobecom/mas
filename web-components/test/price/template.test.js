@@ -211,6 +211,23 @@ describe('function "createPromoPriceTemplate"', () => {
             }),
         );
     });
+    it('separates old/new price with a collapsible space when wrapClauses is set', () => {
+        const template = createPromoPriceTemplate();
+        expect(template(context, valueDiscount, {})).to.include(
+            '&nbsp;<span class="price price-alternative"',
+        );
+        const spaced = template(
+            { ...context, wrapClauses: true },
+            valueDiscount,
+            {},
+        );
+        expect(spaced).to.not.include(
+            '&nbsp;<span class="price price-alternative"',
+        );
+        expect(spaced).to.include(
+            '</span> <span class="price price-alternative"',
+        );
+    });
 });
 
 describe('function "createPriceWithAnnualTemplate"', function () {
@@ -229,6 +246,24 @@ describe('function "createPromoPriceWithAnnualTemplate"', function () {
         renderAndComparePrice(
             'createPromoPriceWithAnnualTemplate1',
             template({ ...context, quantity: 1 }, valueDiscountAbm, {}),
+        );
+    });
+    it('separates old/new price with a collapsible space when wrapClauses is set', () => {
+        const template = createPromoPriceWithAnnualTemplate();
+        const ctx = { ...context, quantity: 1 };
+        expect(template(ctx, valueDiscountAbm, {})).to.include(
+            '&nbsp;<span class="price price-alternative"',
+        );
+        const spaced = template(
+            { ...ctx, wrapClauses: true },
+            valueDiscountAbm,
+            {},
+        );
+        expect(spaced).to.not.include(
+            '&nbsp;<span class="price price-alternative"',
+        );
+        expect(spaced).to.include(
+            '</span> <span class="price price-alternative"',
         );
     });
 });

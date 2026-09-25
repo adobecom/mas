@@ -4,9 +4,15 @@ import {
     MasElement,
 } from './mas-element.js';
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
 import { selectOffers, getService } from './utilities.js';
 import { isPromotionActive } from './price/utilities.js';
-import { MODAL_TYPE_3_IN_1 } from '../src/constants.js';
+import {
+    EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+    MODAL_TYPE_3_IN_1,
+    STATE_RESOLVED,
+} from '../src/constants.js';
+import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core';
 
 export const CLASS_NAME_DOWNLOAD = 'download';
 export const CLASS_NAME_UPGRADE = 'upgrade';
@@ -14,9 +20,34 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
     e: 'EDU',
     t: 'TEAM',
 };
+let aupCheckoutPending = false;
+
+/**
+ * @typedef {'open' | 'close'} AupHandlerType
+ */
+
+/**
+ * @typedef {Object} AupHandlerContext
+ * @property {AupHandlerType} type
+ * @property {HTMLAnchorElement | HTMLButtonElement} element
+ */
+
+/**
+ * @callback AupHandler
+ * @param {AupHandlerContext} context
+ * @returns {void}
+ */
+
+/**
+ * @typedef {Object} CheckoutAction
+ * @property {string} [url]
+ * @property {string} [text]
+ * @property {string} [className]
+ * @property {(event: MouseEvent) => unknown} [handler]
+ * @property {AupHandler} [aupHandler]
+ */
 
 export function createCheckoutElement(Class, options = {}, innerHTML = '') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const service = getService();
     if (!service) return null;
     const {
@@ -42,7 +73,10 @@ export function createCheckoutElement(Class, options = {}, innerHTML = '') {
         upgrade,
         modal,
         perpetual,
-        promotionCode,
+        promotionCode:
+            options.promotionCode === PROMO_CONTEXT_CANCEL_VALUE
+                ? PROMO_CONTEXT_CANCEL_VALUE
+                : promotionCode,
         quantity,
         wcsOsi,
         extraOptions,
@@ -58,6 +92,9 @@ export function CheckoutMixin(Base) {
         /* c8 ignore next 1 */
         checkoutActionHandler;
 
+        /** @type {AupHandler | undefined} */
+        aupHandler;
+
         masElement = new MasElement(this);
 
         attributeChangedCallback(name, oldValue, value) {
@@ -67,11 +104,14 @@ export function CheckoutMixin(Base) {
         connectedCallback() {
             this.masElement.connectedCallback();
             this.addEventListener('click', this.clickHandler);
+            this.addEventListener('auxclick', this.handleAupModifiedClick);
+            this.updateCheckoutUrl();
         }
 
         disconnectedCallback() {
             this.masElement.disconnectedCallback();
             this.removeEventListener('click', this.clickHandler);
+            this.removeEventListener('auxclick', this.handleAupModifiedClick);
         }
 
         onceSettled() {
@@ -88,7 +128,7 @@ export function CheckoutMixin(Base) {
 
         get marketSegment() {
             const value =
-                this.options?.ms ?? this.value?.[0].marketSegments?.[0];
+                this.options?.ms ?? this.value?.[0]?.marketSegments?.[0];
             return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
         }
 
@@ -132,7 +172,6 @@ export function CheckoutMixin(Base) {
         }
 
         async render(overrides = {}) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             if (!this.dataset.imsCountry) {
@@ -190,7 +229,7 @@ export function CheckoutMixin(Base) {
          * @param {Commerce.Wcs.Offer[]} offers
          * @param {Commerce.Checkout.Options} options
          * @param {Commerce.Checkout.AnyOptions} overrides
-         * @param {Commerce.Checkout.CheckoutAction} checkoutAction
+         * @param {CheckoutAction} checkoutAction
          * @param {number} version
          */
         renderOffers(
@@ -200,7 +239,6 @@ export function CheckoutMixin(Base) {
             checkoutAction = undefined,
             version = undefined,
         ) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
@@ -210,19 +248,31 @@ export function CheckoutMixin(Base) {
                 /* c8 ignore next 2 */
                 this.checkoutActionHandler = undefined;
             }
+            this.aupHandler = undefined;
+            this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
             if (checkoutAction) {
-                this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
                 this.masElement.toggleResolved(version, offers, options);
-                const { url, text, className, handler } = checkoutAction;
+                const { url, text, className, handler, aupHandler } =
+                    checkoutAction;
                 if (url) {
                     this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
                 }
                 if (text) this.firstElementChild.innerHTML = text;
                 if (className) this.classList.add(...className.split(' '));
                 if (handler) {
-                    this.setCheckoutUrl('#');
+                    // A 3-in-1 modal builds its iframe from href, so keep the
+                    // real checkout URL here instead of '#'.
+                    this.setCheckoutUrl(
+                        this.isOpen3in1Modal
+                            ? service.buildCheckoutURL(offers, options)
+                            : '#',
+                    );
                     this.checkoutActionHandler = handler.bind(this);
                 }
+                if (typeof aupHandler === 'function') {
+                    this.aupHandler = aupHandler.bind(this);
+                }
+                this.updateCheckoutUrl();
             }
             if (offers.length) {
                 if (this.masElement.toggleResolved(version, offers, options)) {
@@ -248,8 +298,200 @@ export function CheckoutMixin(Base) {
             }
         }
 
-        setCheckoutUrl() {
-            // to be implemented in the subclass
+        setCheckoutUrl(value) {
+            this.checkoutUrl = value;
+            this.updateCheckoutUrl();
+        }
+
+        updateCheckoutUrl(aupSelect = getService()?.settings?.aupSelect) {
+            if (this.checkoutUrl === undefined) return;
+            const useAup =
+                aupSelect &&
+                this.checkoutUrl &&
+                this.masElement.state === STATE_RESOLVED &&
+                !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
+                !this.hasAttribute('download') &&
+                (!this.target || this.target === '_self') &&
+                isAupCheckoutSupported(
+                    this.value,
+                    this.options,
+                    this.classList.contains(CLASS_NAME_UPGRADE),
+                );
+            this.setAttribute(
+                this.isCheckoutLink ? 'href' : 'data-href',
+                useAup ? '#' : this.checkoutUrl,
+            );
+            return useAup;
+        }
+
+        handleAupModifiedClick(e) {
+            if (
+                (e.metaKey ||
+                    e.ctrlKey ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.button !== 0) &&
+                this.updateCheckoutUrl()
+            ) {
+                e.preventDefault();
+                return true;
+            }
+            return false;
+        }
+
+        handleAupCheckout(e) {
+            if (this.handleAupModifiedClick(e)) return true;
+            this.updateCheckoutUrl(false);
+            // Native checkout needs its destination until the click's default action runs.
+            setTimeout(() => this.updateCheckoutUrl(), 0);
+            if (
+                e.defaultPrevented ||
+                e.button !== 0 ||
+                e.metaKey ||
+                e.ctrlKey ||
+                e.shiftKey ||
+                e.altKey ||
+                this.classList.contains(CLASS_NAME_DOWNLOAD) ||
+                this.hasAttribute('download') ||
+                (this.target && this.target !== '_self')
+            ) {
+                return false;
+            }
+            const sdk = window.aupsdk;
+            if (
+                this.masElement.state !== STATE_RESOLVED ||
+                !getService()?.settings.aupSelect ||
+                typeof sdk?.getOrchestratorContext !== 'function'
+            ) {
+                return false;
+            }
+            const { aupHandler, checkoutActionHandler, href, value } = this;
+            const card = this.closest('merch-card');
+            const id = this.getAttribute('data-modal-id');
+            const options = {
+                ...this.options,
+                cs: this.customerSegment,
+                ms: this.marketSegment,
+            };
+            const hasUpgradeAction =
+                this.classList.contains(CLASS_NAME_UPGRADE);
+            if (!isAupCheckoutSupported(value, options, hasUpgradeAction))
+                return false;
+            this.updateCheckoutUrl();
+            e.preventDefault();
+            if (aupCheckoutPending) return true;
+            const fallback = () => {
+                if (checkoutActionHandler) return checkoutActionHandler(e);
+                if (href) window.location.href = href;
+            };
+            const notifyAupHandler = (type) => {
+                if (!aupHandler) return;
+                try {
+                    aupHandler({
+                        type,
+                        element: this,
+                    });
+                } catch (error) {
+                    this.masElement.log?.error(
+                        `AUP checkout ${type} handler failed`,
+                        error,
+                    );
+                }
+            };
+            let cartItems;
+            aupCheckoutPending = true;
+            notifyAupHandler('open');
+            this.aupCheckoutPromise = launchAupCheckout(
+                sdk,
+                value,
+                options,
+                card && id
+                    ? (items) => {
+                          cartItems = items;
+                      }
+                    : undefined,
+                undefined,
+                hasUpgradeAction,
+            )
+                .catch((error) => {
+                    this.masElement.log?.error(
+                        'AUP checkout launch failed',
+                        error,
+                    );
+                    return false;
+                })
+                .then(async (handled) => {
+                    notifyAupHandler('close');
+                    if (!handled) {
+                        try {
+                            return await fallback();
+                        } catch (error) {
+                            this.masElement.log?.error(
+                                'AUP checkout fallback failed',
+                                error,
+                            );
+                            return;
+                        }
+                    }
+                    if (!cartItems) return;
+                    try {
+                        const pa = value[0].productArrangementCode;
+                        if (
+                            this.masElement.state !== STATE_RESOLVED ||
+                            this.value[0]?.productArrangementCode !== pa
+                        )
+                            return;
+                        const addonPrices = [
+                            ...card.querySelectorAll(
+                                'merch-addon [is="inline-price"]',
+                            ),
+                        ];
+                        if (
+                            card.addonCheckbox &&
+                            (!addonPrices.length ||
+                                addonPrices.some(
+                                    (price) =>
+                                        price.masElement.state !==
+                                            STATE_RESOLVED ||
+                                        !price.value?.length,
+                                ))
+                        )
+                            return;
+                        const addonOffers = addonPrices.flatMap(
+                            (price) => price.value,
+                        );
+                        const items = cartItems.filter(
+                            (item) =>
+                                item.productArrangementCode === pa ||
+                                addonOffers.some(
+                                    (offer) =>
+                                        offer.productArrangementCode ===
+                                        item.productArrangementCode,
+                                ),
+                        );
+                        card.dispatchEvent(
+                            new CustomEvent(
+                                EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+                                {
+                                    detail: {
+                                        id,
+                                        items,
+                                        productArrangementCode: pa,
+                                    },
+                                },
+                            ),
+                        );
+                    } catch (error) {
+                        this.masElement.log?.warn(
+                            'AUP checkout cart synchronization failed',
+                            error,
+                        );
+                    }
+                })
+                .finally(() => {
+                    aupCheckoutPending = false;
+                });
+            return true;
         }
 
         clickHandler(e) {
@@ -257,7 +499,6 @@ export function CheckoutMixin(Base) {
         }
 
         updateOptions(options = {}) {
-            // eslint-disable-next-line react-hooks/rules-of-hooks
             const service = getService();
             if (!service) return false;
             const {

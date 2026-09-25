@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { toRelativeAssetUrl } from './utils.js';
 
 // Self-contained tooltip detection for MAS
 function hasSpectrumTooltip() {
@@ -80,16 +81,17 @@ export default class MerchIcon extends LitElement {
 
     render() {
         const { href } = this;
+        const src = toRelativeAssetUrl(this.src);
         return href
             ? html`<a href="${href}">
                   <img
-                      src="${this.src}"
+                      src="${src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
               </a>`
             : html` <img
-                  src="${this.src}"
+                  src="${src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
               />`;

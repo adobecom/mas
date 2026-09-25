@@ -37,5 +37,5 @@ export const features = [
             calloutPriceText: 'Regularly at US$34.49/mo Alternatively at US$17.24/moper licenseexcl. tax',
         },
         tags: '@mas-docs @mas-segment @commerce @smoke @regression @milo',
-    },    
+    },
 ];

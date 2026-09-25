@@ -20,13 +20,42 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="pric
   font-weight: 700;
 }
 
+merch-card[variant="special-offers"] [slot="legal"],
+merch-card[variant="special-offers"] span[is="inline-price"][data-template="legal"] {
+  display: block;
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+  font-weight: 400;
+  margin-bottom: calc(-1 * var(--consonant-merch-spacing-xxs));
+}
+
+merch-card[variant="special-offers"] span[is="inline-price"][data-template="legal"] .price-tax-inclusivity {
+  display: none;
+}
+
+merch-card[variant="special-offers"] .price-plan-type {
+  font-style: italic;
+}
+
 
 /* grid style for special-offers */
 .one-merch-card.special-offers,
 .two-merch-cards.special-offers,
 .three-merch-cards.special-offers,
-.four-merch-cards.special-offers {
+.four-merch-cards.special-offers,
+.one-merch-card:has(merch-card[variant="special-offers"]),
+.two-merch-cards:has(merch-card[variant="special-offers"]),
+.three-merch-cards:has(merch-card[variant="special-offers"]),
+.four-merch-cards:has(merch-card[variant="special-offers"]) {
   grid-template-columns: minmax(302px, var(--consonant-merch-card-special-offers-width));
+}
+
+/* Sections inside tabs/fragments that don't receive the .special-offers class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="special-offers"]) .content,
+.two-merch-cards:has(merch-card[variant="special-offers"]) .content,
+.three-merch-cards:has(merch-card[variant="special-offers"]) .content,
+.four-merch-cards:has(merch-card[variant="special-offers"]) .content {
+  display: contents;
 }
 
 @media screen and ${MOBILE_LANDSCAPE} {
@@ -42,7 +71,10 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="pric
 
   .two-merch-cards.special-offers,
   .three-merch-cards.special-offers,
-  .four-merch-cards.special-offers {
+  .four-merch-cards.special-offers,
+  .two-merch-cards:has(merch-card[variant="special-offers"]),
+  .three-merch-cards:has(merch-card[variant="special-offers"]),
+  .four-merch-cards:has(merch-card[variant="special-offers"]) {
       grid-template-columns: repeat(2, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
@@ -50,13 +82,16 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="pric
 /* desktop */
 @media screen and ${DESKTOP_UP} {
   .three-merch-cards.special-offers,
-  .four-merch-cards.special-offers {
+  .four-merch-cards.special-offers,
+  .three-merch-cards:has(merch-card[variant="special-offers"]),
+  .four-merch-cards:has(merch-card[variant="special-offers"]) {
     grid-template-columns: repeat(3, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
 @media screen and ${LARGE_DESKTOP} {
-  .four-merch-cards.special-offers {
+  .four-merch-cards.special-offers,
+  .four-merch-cards:has(merch-card[variant="special-offers"]) {
     grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }

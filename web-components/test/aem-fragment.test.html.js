@@ -16,6 +16,7 @@ import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
 } from '../src/constants.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../io/www/src/fragment/utils/explicit-empty.js';
 
 chai.use(chaiAsPromised);
 
@@ -89,6 +90,38 @@ runTests(async () => {
         });
 
         describe('aem-fragment core functionality', () => {
+            it('normalizes explicit_empty sentinel to empty string in author mode', async () => {
+                const fragmentId = 'sentinel-badge-test';
+                cache.add({
+                    id: fragmentId,
+                    fields: [
+                        {
+                            name: 'badge',
+                            values: [EXPLICIT_EMPTY_SENTINEL],
+                            multiple: false,
+                        },
+                        { name: 'title', values: ['Keep me'], multiple: false },
+                    ],
+                    tags: [],
+                    settings: {},
+                    priceLiterals: {},
+                    dictionary: {},
+                    placeholders: {},
+                });
+
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', fragmentId);
+                aemFragment.setAttribute('author', '');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+
+                expect(aemFragment.data.fields.badge).to.equal('');
+                expect(aemFragment.data.fields.title).to.equal('Keep me');
+
+                aemFragment.remove();
+                cache.clear();
+            });
+
             it('has fragment cache', async () => {
                 expect(cache).to.exist;
                 expect(cache.has('id123')).to.false;
@@ -176,6 +209,37 @@ runTests(async () => {
                 const slotElements = ccCard.querySelectorAll('[slot]');
 
                 expect(slotElements).to.have.length(4);
+            });
+
+            it('passes promoProject and promoVariationProject through to the merch-card', async () => {
+                const promoFragment = {
+                    ...cc,
+                    id: 'fragment-cc-all-apps-promo',
+                    promoProject: 'GlobalIntroPricing',
+                    promoVariationProject: 'GlobalIntroPricing',
+                };
+                cache.add(promoFragment);
+
+                const promoCard = document.createElement('merch-card');
+                const promoAemFragment = document.createElement('aem-fragment');
+                promoAemFragment.setAttribute(
+                    'fragment',
+                    'fragment-cc-all-apps-promo',
+                );
+                promoCard.append(promoAemFragment);
+                spTheme.append(promoCard);
+
+                await promoAemFragment.updateComplete;
+                await promoCard.updateComplete;
+
+                expect(
+                    promoCard.getAttribute('data-promotion-project'),
+                ).to.equal('GlobalIntroPricing');
+                expect(
+                    promoCard.getAttribute('data-promotion-variation-project'),
+                ).to.equal('GlobalIntroPricing');
+
+                promoCard.remove();
             });
 
             it('re-renders a card after clearing the cache', async () => {
@@ -497,6 +561,65 @@ runTests(async () => {
                 );
             });
 
+            it('does not wait for IMS before using the platform country cookie', async () => {
+                cache.clear();
+                Object.defineProperty(document, 'cookie', {
+                    configurable: true,
+                    get: () => 'ims_country_code=kr',
+                });
+                const existing = document.querySelector('mas-commerce-service');
+                const publishService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    publishService.setAttribute(attr.name, attr.value);
+                }
+                publishService.removeAttribute('country');
+                publishService.removeAttribute('locale');
+                document.body.insertBefore(publishService, existing);
+                publishService.imsCountryPromise = new Promise(() => undefined);
+
+                try {
+                    const aemFragment = addFragment('fragment-cc-all-apps');
+                    await aemFragment.updateComplete;
+                    expect(fetch.lastCall.firstArg).to.equal(
+                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                    );
+                } finally {
+                    publishService.remove();
+                    delete document.cookie;
+                }
+            });
+
+            it('ignores the platform country cookie when the page locale has an explicit country (MWPW-207865)', async () => {
+                cache.clear();
+                Object.defineProperty(document, 'cookie', {
+                    configurable: true,
+                    get: () => 'ims_country_code=us',
+                });
+                const existing = document.querySelector('mas-commerce-service');
+                const publishService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    publishService.setAttribute(attr.name, attr.value);
+                }
+                publishService.removeAttribute('country');
+                publishService.setAttribute('locale', 'es_ES');
+                document.body.insertBefore(publishService, existing);
+
+                try {
+                    const aemFragment = addFragment('fragment-cc-all-apps');
+                    await aemFragment.updateComplete;
+                    expect(fetch.lastCall.firstArg).to.equal(
+                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
+                    );
+                } finally {
+                    publishService.remove();
+                    delete document.cookie;
+                }
+            });
+
             it('dispatches aem:error when preview mode returns non-200', async () => {
                 cache.clear();
                 const existing = document.querySelector('mas-commerce-service');
@@ -631,6 +754,186 @@ runTests(async () => {
                     'instant',
                     'attr-instant-xyz',
                 );
+            });
+            it('does not serve cached unmasked fragment to a masked aem-fragment', async () => {
+                cache.clear();
+                const count = aemMock.count;
+
+                // Load without mask — gets cached under plain id
+                const frag1 = document.createElement('aem-fragment');
+                frag1.setAttribute('fragment', 'fragment-cc-all-apps');
+                document.body.appendChild(frag1);
+                await oneEvent(frag1, 'aem:load');
+
+                // Load same id with mask — must NOT hit the unmasked cache entry
+                const frag2 = document.createElement('aem-fragment');
+                frag2.setAttribute('fragment', 'fragment-cc-all-apps');
+                frag2.setAttribute('mask', 'story');
+                document.body.appendChild(frag2);
+                await oneEvent(frag2, 'aem:load');
+
+                // Two distinct fetches are required: one plain, one with &mask=story
+                expect(aemMock.count).to.equal(count + 2);
+
+                frag1.remove();
+                frag2.remove();
+            });
+
+            it('does not serve cached masked fragment to an unmasked aem-fragment', async () => {
+                cache.clear();
+                const count = aemMock.count;
+
+                // Load with mask first
+                const frag1 = document.createElement('aem-fragment');
+                frag1.setAttribute('fragment', 'fragment-cc-all-apps');
+                frag1.setAttribute('mask', 'story');
+                document.body.appendChild(frag1);
+                await oneEvent(frag1, 'aem:load');
+
+                // Load same id without mask — must NOT hit the masked cache entry
+                const frag2 = document.createElement('aem-fragment');
+                frag2.setAttribute('fragment', 'fragment-cc-all-apps');
+                document.body.appendChild(frag2);
+                await oneEvent(frag2, 'aem:load');
+
+                // Two distinct fetches required
+                expect(aemMock.count).to.equal(count + 2);
+
+                frag1.remove();
+                frag2.remove();
+            });
+
+            it('does not serve cached unmasked fragment to a pzn aem-fragment', async () => {
+                cache.clear();
+                const count = aemMock.count;
+
+                const frag1 = document.createElement('aem-fragment');
+                frag1.setAttribute('fragment', 'fragment-cc-all-apps');
+                document.body.appendChild(frag1);
+                await oneEvent(frag1, 'aem:load');
+
+                const frag2 = document.createElement('aem-fragment');
+                frag2.setAttribute('fragment', 'fragment-cc-all-apps');
+                frag2.setAttribute('pzn', 'segment1');
+                document.body.appendChild(frag2);
+                await oneEvent(frag2, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 2);
+
+                frag1.remove();
+                frag2.remove();
+            });
+
+            it('appends mask param to endpoint URL', async () => {
+                cache.clear();
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('mask', 'story');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include('&mask=story');
+                aemFragment.remove();
+            });
+
+            it('appends pzn param to endpoint URL', async () => {
+                cache.clear();
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include('&pzn=segment1');
+                aemFragment.remove();
+            });
+
+            it('appends instant param to endpoint URL on published (non-preview) fetch', async () => {
+                cache.clear();
+                const masCommerceService = document.querySelector(
+                    'mas-commerce-service',
+                );
+                masCommerceService.setAttribute(
+                    'instant',
+                    '2026-08-19T00:00:00.000Z',
+                );
+                masCommerceService.activate();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include(
+                    '&instant=2026-08-19T00:00:00.000Z',
+                );
+            });
+
+            it('includes mask and pzn in cacheKey', () => {
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'frag-id');
+                expect(aemFragment.cacheKey()).to.equal('frag-id');
+                aemFragment.setAttribute('mask', 'story');
+                expect(aemFragment.cacheKey()).to.equal('frag-id-m_story');
+                aemFragment.setAttribute('pzn', 'seg1');
+                expect(aemFragment.cacheKey()).to.equal(
+                    'frag-id-p_seg1-m_story',
+                );
+            });
+        });
+
+        describe('getFragmentClientUrl', () => {
+            const AemFragment = customElements.get('aem-fragment');
+            const { href: originalUrl } = window.location;
+            const callUrl = () =>
+                AemFragment.prototype.getFragmentClientUrl.call({});
+
+            afterEach(() => {
+                history.replaceState(null, '', originalUrl);
+            });
+
+            const withSearch = (search) => {
+                const url = new URL(originalUrl);
+                url.search = search;
+                history.replaceState(null, '', url.toString());
+            };
+
+            it('returns the default client url when maslibs is absent', () => {
+                withSearch('');
+                expect(callUrl()).to.equal(
+                    'https://mas.adobe.com/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves maslibs=local', () => {
+                withSearch('?maslibs=local');
+                expect(callUrl()).to.equal(
+                    'http://localhost:3000/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves a branch against mas--adobecom', () => {
+                withSearch('?maslibs=mwpw-202151');
+                expect(callUrl()).to.equal(
+                    'https://mwpw-202151--mas--adobecom.aem.live/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves a full branch--repo--owner triple', () => {
+                withSearch('?maslibs=feature--other--repo');
+                expect(callUrl()).to.equal(
+                    'https://feature--other--repo.aem.live/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('falls back to the default for hostile maslibs values', () => {
+                const hostile = [
+                    'cdn.jsdelivr.net/gh/u/r@main--mas--aem',
+                    'evil.com%23',
+                    'a--b@evil.com',
+                    'evil.com:8080/x--y',
+                    'javascript:alert(1)',
+                ];
+                for (const payload of hostile) {
+                    withSearch(`?maslibs=${payload}`);
+                    expect(callUrl(), payload).to.equal(
+                        'https://mas.adobe.com/studio/libs/fragment-client.js',
+                    );
+                }
             });
         });
 

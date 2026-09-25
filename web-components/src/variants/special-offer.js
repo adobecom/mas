@@ -1,6 +1,7 @@
 import { html, css } from 'lit';
 import { VariantLayout } from './variant-layout';
 import { CSS } from './special-offer.css.js';
+import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';
 
 export const SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -10,6 +11,7 @@ export const SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'heading-xs-price' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'l' },
+    planType: true,
     badgeIcon: true,
     badge: {
         tag: 'div',
@@ -30,6 +32,8 @@ export const SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class SpecialOffer extends VariantLayout {
+    legal = undefined;
+
     constructor(card) {
         super(card);
     }
@@ -42,12 +46,37 @@ export class SpecialOffer extends VariantLayout {
         return CSS;
     }
 
+    priceOptionsProvider(element, options) {
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    }
+
+    async postCardUpdateHook() {
+        await super.postCardUpdateHook();
+        this.adjustLegal();
+    }
+
+    adjustLegal() {
+        if (this.legal !== undefined) return;
+        const price = this.card.querySelector(
+            `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+        if (!price) return;
+        const legal = price.cloneNode(true);
+        this.legal = legal;
+        price.dataset.displayPlanType = 'false';
+        legal.dataset.template = 'legal';
+        legal.dataset.displayPerUnit = 'false';
+        legal.setAttribute('slot', 'legal');
+        this.card.appendChild(legal);
+    }
+
     renderLayout() {
         return html`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="heading-xs-price"></slot>
+                <slot name="legal"></slot>
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>

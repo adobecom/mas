@@ -1,10 +1,22 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { COMPAT_VERSION, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
+import {
+    COMPARE_CHART_CREATE_TYPE,
+    COMPARE_CHART_FIELD,
+    COMPAT_VERSION,
+    EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
+    TAG_COMPARE_CHART,
+    TAG_MERCH_CARD,
+    TAG_MERCH_CARD_COLLECTION,
+    TAG_MODEL_ID_MAPPING,
+} from './constants.js';
 import router from './router.js';
 import Store from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
+import { showToast } from './utils.js';
+import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {
@@ -165,6 +177,9 @@ export class MasCreateDialog extends LitElement {
 
     async createFragment(masRepository, fragmentData) {
         const fragment = await masRepository.createFragment(fragmentData);
+        if (!fragment?.id) {
+            throw new Error('Fragment was not created.');
+        }
         const sourceStore = generateFragmentStore(fragment);
         sourceStore.new = true;
         const currentList = Store.fragments.list.data.get() ?? [];
@@ -178,8 +193,11 @@ export class MasCreateDialog extends LitElement {
             await this.createFragment(masRepository, fragmentData);
             return true;
         } catch (error) {
-            console.error(`${error.message} Will try to create again`, error.stack);
-            return false;
+            if (error.message?.includes(': 409')) {
+                console.error(`${error.message} Will try to create again`, error.stack);
+                return false;
+            }
+            throw error;
         }
     }
 
@@ -211,9 +229,7 @@ export class MasCreateDialog extends LitElement {
         this.loading = true;
 
         const modelId =
-            this.type === 'merch-card'
-                ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
-                : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
+            this.type === 'merch-card' ? TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD] : TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION];
 
         const fragmentData = {
             modelId,
@@ -226,14 +242,32 @@ export class MasCreateDialog extends LitElement {
                 tags: this.tags,
                 compatVersion: COMPAT_VERSION,
             };
+        } else {
+            fragmentData.data = { label: this.title };
+            if (this.type === COMPARE_CHART_CREATE_TYPE) {
+                fragmentData.data[COMPARE_CHART_FIELD] = DEFAULT_COMPARE_CHART_HTML;
+                fragmentData.tags = [TAG_COMPARE_CHART];
+            }
         }
 
         const masRepository = document.querySelector('mas-repository');
         const firstName = fragmentData.name;
         let nmbOfTries = 0;
-        while (!(await this.tryToCreateFragment(masRepository, fragmentData)) && nmbOfTries < 10) {
-            nmbOfTries += 1;
-            fragmentData.name = `${firstName}-${this.getSuffix(nmbOfTries)}`;
+        let created = false;
+        try {
+            while (!created && nmbOfTries <= 10) {
+                created = await this.tryToCreateFragment(masRepository, fragmentData);
+                if (created) break;
+                nmbOfTries += 1;
+                fragmentData.name = `${firstName}-${this.getSuffix(nmbOfTries)}`;
+            }
+            if (!created) this.loading = false;
+        } catch (error) {
+            if (error.message !== 'Fragment was not created.') {
+                console.error(error.message, error.stack);
+                showToast(`Failed to create fragment: ${error.message}`, 'negative');
+            }
+            this.loading = false;
         }
     }
 
@@ -245,7 +279,12 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabel = this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
+        const typeLabel =
+            this.type === 'merch-card'
+                ? 'Merch Card'
+                : this.type === COMPARE_CHART_CREATE_TYPE
+                  ? 'Compare Chart'
+                  : 'Merch Card Collection';
         return `Create New ${typeLabel}`;
     }
 

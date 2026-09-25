@@ -7,7 +7,7 @@ const {
     getValue,
     getValues,
     getVariationParent,
-    postToOdinWithRetry,
+    postToOdin,
     processBatchWithConcurrency,
     putToOdin,
     patchToOdin,
@@ -18,6 +18,7 @@ const logger = Core.Logger('translation', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 2;
 const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
+const ROLLOUT_PROJECT_TYPE = 'rollout';
 
 function getOdinLocTaskNameValidationError(value) {
     const title = (value ?? '').trim();
@@ -63,7 +64,7 @@ async function prepareProjectStart(params, options = {}) {
     }
 
     const projectType = getValue(projectCF, 'projectType')?.value;
-    const responseMessage = projectType === 'rollout' ? 'Rollout project started' : 'Translation project started';
+    const responseMessage = projectType === ROLLOUT_PROJECT_TYPE ? 'Rollout project started' : 'Translation project started';
 
     return {
         params,
@@ -91,7 +92,7 @@ async function runSyncAndLocStage(context) {
     }
 
     logger.info(`Project type: ${context.projectType}`);
-    if (context.projectType === 'rollout') {
+    if (context.projectType === ROLLOUT_PROJECT_TYPE) {
         const rolloutOnlyProject = await startRolloutOnlyProject(context.translationData, context.authToken, context.params);
         if (!rolloutOnlyProject) {
             throw createProjectStartError(500, 'Failed to start rollout only project');
@@ -267,16 +268,10 @@ function getPznVariations(projectCF) {
 
 async function sendLocRequestWithRetry(config) {
     try {
-        const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+        const { authToken, odinEndpoint, locPayload } = config;
         logger.info('Sending loc request');
-        const success = await postToOdinWithRetry(
-            odinEndpoint,
-            '/bin/sendToLocalisationAsync',
-            authToken,
-            locPayload,
-            maxRetries,
-        );
-        return { success };
+        await postToOdin(odinEndpoint, '/bin/sendToLocalisationAsync', authToken, locPayload);
+        return { success: true };
     } catch (error) {
         const lastError = error.message || error.toString();
         logger.error(`Failed to send loc request after retries: ${lastError}`);
@@ -387,7 +382,6 @@ async function startTranslationProject(translationData = {}, authToken, params =
         authToken,
         odinEndpoint: params.odinEndpoint,
         locPayload,
-        maxRetries: 3,
     };
 
     const result = await sendLocRequestWithRetry(config);
@@ -420,7 +414,6 @@ async function startRolloutOnlyProject(translationData, authToken, params = {}) 
         authToken,
         odinEndpoint: params.odinEndpoint,
         locPayload,
-        maxRetries: 3,
     };
 
     const result = await sendRolloutRequestWithRetry(config);
@@ -435,10 +428,10 @@ async function startRolloutOnlyProject(translationData, authToken, params = {}) 
 
 async function sendRolloutRequestWithRetry(config) {
     try {
-        const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+        const { authToken, odinEndpoint, locPayload } = config;
         logger.info('Sending rollout request');
-        const success = await postToOdinWithRetry(odinEndpoint, '/bin/localeSync', authToken, locPayload, maxRetries);
-        return { success };
+        await postToOdin(odinEndpoint, '/bin/localeSync', authToken, locPayload);
+        return { success: true };
     } catch (error) {
         const lastError = error.message || error.toString();
         logger.error(`Failed to send rollout request after retries: ${lastError}`);
@@ -498,4 +491,5 @@ module.exports = {
     createProjectStartError,
     isProjectStartError,
     updateProjectStatus,
+    ROLLOUT_PROJECT_TYPE,
 };

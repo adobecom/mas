@@ -78,6 +78,13 @@
             ]
         },
         {
+            "name": "addon",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "backgroundImage",
             "type": "text",
             "multiple": false,

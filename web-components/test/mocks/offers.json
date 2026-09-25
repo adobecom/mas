@@ -1,4 +1,73 @@
 {
+    "Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ": [
+        {
+            "offerId": "EXPRESS-TEAMS-MOCK-0001",
+            "priceDetails": {
+                "price": 9.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "express_teams",
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "ffr4mpgRgMO3gEGiULe2iSHN61Rt5lVkKE0tihE9RjM": [
+        {
+            "offerId": "EXPRESS-PREMIUM-MOCK-0002",
+            "priceDetails": {
+                "price": 9.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "express_individual",
+            "buyingProgram": "RETAIL",
+            "commitment": "MONTH",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY": [
+        {
+            "offerId": "EXPRESS-ENTERPRISE-MOCK-0003",
+            "priceDetails": {
+                "price": 0,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "express_enterprise",
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "ENTERPRISE",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
     "abm-mult": [
         {
             "offerId": "632B3ADD940A7FBB7864AA5AD19B8D28",

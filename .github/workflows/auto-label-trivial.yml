@@ -1,0 +1,43 @@
+name: Auto-label trivial PRs
+
+on:
+    pull_request:
+        branches:
+            - main
+        types: [opened, synchronize]
+
+permissions:
+    pull-requests: write
+    contents: read
+
+jobs:
+    label-trivial:
+        name: Detect trivial changes
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Check if PR only changes trivial paths
+              id: check
+              uses: ./.github/actions/detect-trivial
+              with:
+                  base-ref: ${{ github.event.pull_request.base.ref }}
+
+            - name: Add trivial label
+              if: steps.check.outputs.trivial == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+              run: |
+                  gh label create "trivial" --color "#e4e669" --description "PR only contains trivial changes (docs, config, workflows)" --force
+                  gh pr edit "$PR_NUMBER" --add-label "trivial"
+
+            - name: Remove trivial label if PR is no longer trivial
+              if: steps.check.outputs.trivial == 'false'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+              run: gh pr edit "$PR_NUMBER" --remove-label "trivial" || true

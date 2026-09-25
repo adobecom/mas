@@ -1,278 +1,115 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
+import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
+import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { loadSelectedFragments } from '../common/utils/items-loader.js';
-import { TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
-import { getItemTypeLabel } from '../common/utils/render-utils.js';
+import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
+import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath, showToast } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
+import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
-import { buildPromoVariationPathForTag, getFragmentByPathOrNull, isPromoVariationPath } from './promotion-model.js';
-import { createPromoVariation } from './promotions-repository.js';
+import { Fragment } from '../aem/fragment.js';
+import {
+    splitPromotionTagsFieldValues,
+    parsePromoCodeExceptions,
+    parseOfferSubstitutions,
+    parseCountriesFromGeos,
+    countDistinctPromoCodesForOffer,
+    groupCountriesByPromoCodeForOffer,
+    groupOfferSubstitutionsForOffer,
+    applyPromotionOfferProductTagsToSearch,
+    buildRemoveOfferConfirmationMessage,
+    getPromotionItemsRemovedByOfferRemoval,
+    pruneOrphanedPromotionSelectionAfterOfferRemoval,
+    pruneOrphanedGroupedVariationSelection,
+} from './promotion-editor-utils.js';
+import { isPromoVariationPath } from './promotion-model.js';
+import { getUsedGeoTags } from './promotion-variations.js';
+import {
+    createPromoVariation,
+    probePromoVariationsForFragment,
+    probePromoVariationsForFragments,
+} from './promotions-repository.js';
+import './mas-promo-variation-geos.js';
+import { openOfferSelectorTool } from '../rte/ost.js';
+import '../common/components/mas-select-items-table.js';
 
-const localStyles = css`
-    :host {
-        width: 100%;
-        display: flex;
-        min-height: 0;
-    }
-
-    .promotions-view-only .offer-cell {
-        display: flex;
-        align-items: center;
-        gap: var(--spectrum-spacing-100);
-        min-width: 0;
-    }
-
-    .promotions-view-only .mnemonic-icon {
-        width: 24px;
-        height: 24px;
-        flex-shrink: 0;
-    }
-
-    .promotions-view-only sp-table-cell,
-    .promotions-view-only sp-table-head-cell {
-        word-break: normal;
-        overflow-wrap: anywhere;
-    }
-
-    .promotions-view-only .path {
-        min-width: 0;
-        overflow: hidden;
-    }
-
-    .promotions-view-only .path span {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
-        overflow-wrap: anywhere;
-        white-space: normal;
-    }
-
-    .promotions-view-only .offer-id {
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        gap: var(--spectrum-spacing-75);
-        color: var(--spectrum-blue-900);
-    }
-
-    .promotions-view-only .offer-id overlay-trigger {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .promotions-view-only .offer-id div[slot='trigger'] {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
-        overflow-wrap: anywhere;
-        white-space: normal;
-    }
-
-    .promotions-view-only .offer-id sp-action-button {
-        flex-shrink: 0;
-        --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
-    }
-
-    .promotions-view-only .preview-cell {
-        justify-content: flex-start;
-        text-align: start;
-    }
-
-    .promotions-view-only .preview-cell sp-icon-preview {
-        cursor: default;
-    }
-
-    .promotions-view-only .actions-cell {
-        justify-content: flex-start;
-        align-items: center;
-    }
-
-    .promotions-view-only .actions-cell sp-action-menu {
-        flex: 0 0 auto;
-    }
-
-    .promotions-view-only sp-action-menu {
-        --mod-actionbutton-edge-to-text: 6px;
-    }
-
-    .promotions-view-only {
-        width: 100%;
-        min-width: 100%;
-        box-sizing: border-box;
-    }
-
-    .promotions-view-only sp-table-head,
-    .promotions-view-only sp-table-body {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .promotions-view-only sp-table-head {
-        display: flex;
-        min-width: 0;
-    }
-
-    .promotions-view-only sp-table-row {
-        min-width: 0;
-    }
-
-    .promotions-view-only sp-table-head-cell {
-        display: flex;
-        align-items: center;
-    }
-
-    .promotions-cards-layout sp-table-head-cell,
-    .promotions-cards-layout sp-table-cell,
-    .promotions-collections-layout sp-table-head-cell,
-    .promotions-collections-layout sp-table-cell {
-        justify-content: flex-start;
-        text-align: start;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(1),
-    .promotions-cards-layout sp-table-cell:nth-child(1) {
-        flex: 1.05 1 0;
-        min-width: 0;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(2),
-    .promotions-cards-layout sp-table-cell:nth-child(2) {
-        flex: 0.95 1 0;
-        min-width: 0;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(3),
-    .promotions-cards-layout sp-table-cell:nth-child(3) {
-        flex: 1.15 1 0;
-        min-width: 0;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(4),
-    .promotions-cards-layout sp-table-cell:nth-child(4) {
-        flex: 1.45 1 0;
-        min-width: 0;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(5),
-    .promotions-cards-layout sp-table-cell:nth-child(5) {
-        flex: 0.65 1 0;
-        min-width: 6rem;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(6),
-    .promotions-cards-layout sp-table-cell:nth-child(6) {
-        flex: 0.8 1 0;
-        min-width: 7.25rem;
-    }
-
-    .promotions-cards-layout sp-table-cell:nth-child(5),
-    .promotions-cards-layout sp-table-cell:nth-child(6) {
-        white-space: nowrap;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(7),
-    .promotions-cards-layout sp-table-cell:nth-child(7) {
-        flex: 0 0 6.5rem;
-        width: 6.5rem;
-        min-width: 6.5rem;
-        max-width: 6.5rem;
-        white-space: nowrap;
-    }
-
-    .promotions-cards-layout sp-table-head-cell:nth-child(8),
-    .promotions-cards-layout sp-table-cell:nth-child(8) {
-        flex: 0 0 6rem;
-        width: 6rem;
-        min-width: 6rem;
-        max-width: 6rem;
-        white-space: nowrap;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(1),
-    .promotions-collections-layout sp-table-cell:nth-child(1) {
-        flex: 1 1 0;
-        min-width: 0;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(2),
-    .promotions-collections-layout sp-table-cell:nth-child(2) {
-        flex: 1.55 1 0;
-        min-width: 0;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(3),
-    .promotions-collections-layout sp-table-cell:nth-child(3) {
-        flex: 0.85 1 0;
-        min-width: 7.25rem;
-    }
-
-    .promotions-collections-layout sp-table-cell:nth-child(3) {
-        white-space: nowrap;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(4),
-    .promotions-collections-layout sp-table-cell:nth-child(4) {
-        flex: 0 0 6.5rem;
-        width: 6.5rem;
-        min-width: 6.5rem;
-        max-width: 6.5rem;
-        white-space: nowrap;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(5),
-    .promotions-collections-layout sp-table-cell:nth-child(5) {
-        flex: 0 0 6rem;
-        width: 6rem;
-        min-width: 6rem;
-        max-width: 6rem;
-        white-space: nowrap;
-    }
-
-    sp-dialog-wrapper {
-        z-index: 11;
-    }
-`;
-
-const PROMO_VARIATION_EXISTS_MESSAGE =
-    'A promo variation already exists for this fragment in this promotion project. Use View promo variation to open it.';
-const PROMO_VARIATION_MISSING_MESSAGE =
-    'The promo variation for this fragment could not be found. It may have been removed. Use Create promo variation to add it again.';
 const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variation. Check your connection and try again.';
 
+// How many already-selected items to fetch+render per window in the viewOnly tables,
+// so large promotions don't fetch every attached fragment at once.
+const SELECTED_ITEMS_WINDOW = 25;
+
+const offersTableColumns = [
+    { label: '', key: 'expand' },
+    { label: 'Offer', key: 'offer', sortable: true },
+    { label: 'Product arrangement', key: 'productArrangement' },
+    { label: 'Offer type', key: 'offerType' },
+    { label: 'Plan type', key: 'planType' },
+    { label: 'Customer segment', key: 'customerSegment' },
+    { label: 'Market segment', key: 'marketSegment' },
+    { label: 'Promo code', key: 'promoCode', class: 'promo-code-head-cell' },
+    { label: 'Actions', key: 'actions' },
+];
+
 class MasPromotionsItemsTable extends LitElement {
-    static styles = [tableStyles, localStyles];
+    static styles = [tableStyles, promotionsItemsTableStyles];
 
     static properties = {
         type: { type: String },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        promoCodeExceptions: { type: Array },
+        defaultPromoCode: { type: String },
+        geos: { type: Array },
+        expandedPaths: { type: Object, state: true },
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        offerRemovalDialogOpen: { type: Boolean, state: true },
         createPromoVariationLoading: { type: Boolean, state: true },
-        existingPromoVariationDefaultPaths: { type: Object, state: true },
+        existingPromoVariationGeosByPath: { type: Object, state: true },
+        existingPromoVariationsByPath: { type: Object, state: true },
+        existingPromoVariationEmptyGeoPaths: { type: Object, state: true },
+        promoVariationGeosDialogItem: { type: Object, state: true },
+        promoVariationSelectedGeos: { type: Array, state: true },
+        promoVariationDisabledGeos: { type: Array, state: true },
+        fragmentHasEmptyGeosVariation: { type: Boolean, state: true },
     };
 
     #loadedPathsKey = null;
     #processAbortController = null;
     #selectionController = null;
+    itemsSelection = new ItemsSelectionController(this);
+    #allSelectedPaths = [];
+    #visibleCount = 0;
+    #offerRecordsHydratedSeen = 0;
+    #promoVariationProbe = null;
 
     constructor() {
         super();
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.confirmDialogConfig = null;
+        this.offerRemovalDialogOpen = false;
         this.createPromoVariationLoading = false;
-        this.existingPromoVariationDefaultPaths = new Set();
+        this.existingPromoVariationGeosByPath = new Map();
+        this.existingPromoVariationsByPath = new Map();
+        this.existingPromoVariationEmptyGeoPaths = new Set();
+        this.promoVariationGeosDialogItem = null;
+        this.promoVariationSelectedGeos = [];
+        this.promoVariationDisabledGeos = [];
+        this.fragmentHasEmptyGeosVariation = false;
+        this.promoCodeExceptions = [];
+        this.defaultPromoCode = '';
+        this.geos = [];
+        this.expandedPaths = new Set();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }
@@ -289,11 +126,18 @@ class MasPromotionsItemsTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         if (this.#selectionController) return;
-        const upper = this.typeUppercased;
-        this.#selectionController = new ReactiveController(this, [
-            getItemsSelectionStore()[`selected${upper}`],
-            Store.promotions.inEdit,
-        ]);
+        const store = this.itemsSelection.value;
+        const selectionStore =
+            this.type === TABLE_TYPE.OFFERS
+                ? store.selectedOffers
+                : this.type === TABLE_TYPE.CARDS
+                  ? store.selectedCards
+                  : store.selectedCollections;
+        const controllerStores = [selectionStore, Store.promotions.inEdit];
+        // Offers render from offerRecordsCache, which is hydrated after first paint; refresh
+        // when it lands.
+        if (this.type === TABLE_TYPE.OFFERS) controllerStores.push(Store.promotions.offerRecordsHydrated);
+        this.#selectionController = new ReactiveController(this, controllerStores);
     }
 
     disconnectedCallback() {
@@ -301,6 +145,9 @@ class MasPromotionsItemsTable extends LitElement {
         this.#processAbortController?.abort();
         this.#processAbortController = null;
         this.viewOnlyLoading = false;
+        this.confirmDialogConfig?.onCancel?.();
+        this.confirmDialogConfig = null;
+        this.offerRemovalDialogOpen = false;
     }
 
     get repository() {
@@ -312,60 +159,154 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     get selectedPaths() {
-        return getItemsSelectionStore()[`selected${this.typeUppercased}`].value;
+        const store = this.itemsSelection.value;
+        if (!store) return [];
+        if (this.type === TABLE_TYPE.OFFERS) return store.selectedOffers.value;
+        const paths = store[`selected${this.typeUppercased}`].value;
+        return this.type === TABLE_TYPE.CARDS ? paths.filter((path) => !Fragment.isGroupedVariationPath(path)) : paths;
     }
 
-    get tableColumns() {
-        if (this.type === TABLE_TYPE.CARDS) {
-            return [
-                { label: 'Offer', key: 'offer', sortable: true },
-                { label: 'Fragment title', key: 'fragmentTitle' },
-                { label: 'Offer ID', key: 'offerId' },
-                { label: 'Path', key: 'path' },
-                { label: 'Item type', key: 'itemType' },
-                { label: 'Status', key: 'status' },
-                { label: 'Actions', key: 'actions' },
-                { label: 'Preview', key: 'preview' },
-            ];
-        }
-        return [
-            { label: 'Collection title', key: 'collectionTitle' },
-            { label: 'Path', key: 'path' },
-            { label: 'Status', key: 'status' },
-            { label: 'Actions', key: 'actions' },
-            { label: 'Preview', key: 'preview' },
-        ];
+    get #promoCodeExceptionValues() {
+        if (this.promoCodeExceptions?.length) return this.promoCodeExceptions;
+        return Store.promotions.inEdit.get()?.get?.()?.getFieldValues('offers') ?? [];
+    }
+
+    get #defaultPromoCodeValue() {
+        if (this.defaultPromoCode) return this.defaultPromoCode;
+        return Store.promotions.inEdit.get()?.get?.()?.getFieldValues('promoCode')?.[0] ?? '';
+    }
+
+    get #geoValues() {
+        if (this.geos?.length) return this.geos;
+        return Store.promotions.inEdit.get()?.get?.()?.getFieldValues('geos') ?? [];
+    }
+
+    get #countries() {
+        return parseCountriesFromGeos(this.#geoValues);
+    }
+
+    get #exceptionsMap() {
+        return parsePromoCodeExceptions(this.#promoCodeExceptionValues);
+    }
+
+    get #offerSubstitutionsMap() {
+        return parseOfferSubstitutions(this.#promoCodeExceptionValues);
+    }
+
+    #promoCodeCountForOffer(offerId) {
+        return countDistinctPromoCodesForOffer(this.#exceptionsMap, offerId, this.#countries, this.#defaultPromoCodeValue);
     }
 
     updated(changed) {
         super.updated(changed);
+        if (!this.isConnected) return;
+        if (
+            changed.has('promoVariationGeosDialogItem') ||
+            changed.has('promoVariationSelectedGeos') ||
+            changed.has('fragmentHasEmptyGeosVariation')
+        ) {
+            this.#syncPromoVariationConfirmButtonDisabled();
+        }
         if (!this.type) return;
+        if (this.type === TABLE_TYPE.OFFERS) {
+            // Force a rebuild from the cache when offer records finish hydrating, otherwise
+            // the same-ids key guard would keep the placeholder rows.
+            const hydratedVersion = Store.promotions.offerRecordsHydrated.get();
+            if (hydratedVersion !== this.#offerRecordsHydratedSeen) {
+                this.#offerRecordsHydratedSeen = hydratedVersion;
+                this.#loadedPathsKey = null;
+            }
+            this.#loadSelectedOffers(this.selectedPaths);
+            return;
+        }
         const paths = this.selectedPaths;
-        const key = paths.slice().sort().join('|');
+        const keySource = this.type === TABLE_TYPE.CARDS ? getItemsSelectionStore().selectedCards.value : paths;
+        const key = `${this.#promotionTagId ?? ''}|${keySource.slice().sort().join('|')}`;
         if (key === this.#loadedPathsKey) return;
         this.#loadedPathsKey = key;
         this.#loadSelected(paths);
     }
 
-    async #loadSelected(paths) {
-        this.#processAbortController?.abort();
-        if (!paths.length) {
+    #loadSelectedOffers(offerIds) {
+        const key = offerIds.slice().sort().join('|');
+        if (key === this.#loadedPathsKey) return;
+        this.#loadedPathsKey = key;
+        if (!offerIds.length) {
             this.viewOnlyFragments = [];
             this.viewOnlyLoading = false;
             return;
         }
-        this.viewOnlyLoading = true;
+        this.viewOnlyFragments = offerIds.map((offerId) => {
+            const cached = Store.promotions.offerRecordsCache.get(offerId);
+            if (cached) return cached;
+            return {
+                path: offerId,
+                id: offerId,
+                offerData: { offerId },
+                tags: [],
+                fields: [],
+            };
+        });
+        this.viewOnlyLoading = false;
+    }
+
+    get #hasMoreSelected() {
+        return this.#visibleCount < this.#allSelectedPaths.length;
+    }
+
+    async #loadSelected(paths) {
+        this.#processAbortController?.abort();
+        this.#allSelectedPaths = paths;
+        this.#visibleCount = 0;
+        this.viewOnlyFragments = [];
+        // Probe every selected card's promo variations in a single recursive folder search
+        // (one request per surface root) rather than once per windowed item; windows then read
+        // from this shared result.
+        this.#promoVariationProbe =
+            this.type === TABLE_TYPE.CARDS && paths.length ? this.#probeAllPromoVariations(paths) : null;
+        if (!paths.length) {
+            this.viewOnlyLoading = false;
+            return;
+        }
+        await this.#loadNextSelectedWindow();
+    }
+
+    async #probeAllPromoVariations(paths) {
+        const promoTag = this.#promotionTagId;
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
+        try {
+            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
+        } catch {
+            return new Map();
+        }
+    }
+
+    #loadMore() {
+        if (this.viewOnlyLoading || !this.#hasMoreSelected) return;
+        void this.#loadNextSelectedWindow();
+    }
+
+    async #loadNextSelectedWindow() {
+        const start = this.#visibleCount;
+        const end = Math.min(start + SELECTED_ITEMS_WINDOW, this.#allSelectedPaths.length);
+        if (start >= end) return;
+        const slice = this.#allSelectedPaths.slice(start, end);
+        this.#processAbortController?.abort();
         this.#processAbortController = new AbortController();
         const signal = this.#processAbortController.signal;
-        await loadSelectedFragments(paths, this.type, this.repository, {
+        this.viewOnlyLoading = true;
+        await loadSelectedFragments(slice, this.type, this.repository, {
             signal,
             onItems: (items) => {
-                if (!signal.aborted) {
-                    this.viewOnlyFragments = items;
+                if (signal.aborted) return;
+                this.viewOnlyFragments = start === 0 ? items : [...this.viewOnlyFragments, ...items];
+                this.#visibleCount = end;
+                if (this.type === TABLE_TYPE.CARDS) {
                     this.#syncExistingPromoVariations(items, signal);
                 }
             },
             getDisplayName: this.getDisplayName,
+            store: this.itemsSelection.value,
         }).finally(() => {
             if (!signal.aborted) this.viewOnlyLoading = false;
         });
@@ -374,31 +315,81 @@ class MasPromotionsItemsTable extends LitElement {
     async #syncExistingPromoVariations(items, signal) {
         if (signal.aborted) return;
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) {
             if (signal.aborted) return;
-            this.existingPromoVariationDefaultPaths = new Set();
+            this.existingPromoVariationGeosByPath = new Map();
+            this.existingPromoVariationsByPath = new Map();
+            this.existingPromoVariationEmptyGeoPaths = new Set();
             return;
         }
-        const previous = this.existingPromoVariationDefaultPaths;
-        const existing = new Set();
+        const previousGeos = this.existingPromoVariationGeosByPath;
+        const previousVariations = this.existingPromoVariationsByPath;
+        const previousEmptyGeoPaths = this.existingPromoVariationEmptyGeoPaths;
+        // Seed from prior results scoped to the current selection: keeps earlier windows'
+        // lookups (windowed loads only probe their new slice) and retains a path's known
+        // variation when its re-probe fails transiently, while dropping paths that are no
+        // longer selected.
+        const selectedSet = new Set(this.#allSelectedPaths);
+        const scopedEntries = (map) => [...map].filter(([path]) => selectedSet.has(path));
+        const geosByPath = new Map(scopedEntries(previousGeos));
+        const variationsByPath = new Map(scopedEntries(previousVariations));
+        const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
+        const probedByPath = (await this.#promoVariationProbe) ?? new Map();
+        const selectedGroupedVariationPaths = new Set(getItemsSelectionStore().selectedCards.value);
+        const preservePrevious = (path) => {
+            if (previousGeos.has(path)) {
+                geosByPath.set(path, previousGeos.get(path) || []);
+                variationsByPath.set(path, previousVariations.get(path) || []);
+                if (previousEmptyGeoPaths.has(path)) emptyGeoPaths.add(path);
+            }
+        };
+        if (signal.aborted) return;
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
-                const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
-                if (!targetPath) return;
+                const groupedVariationPaths = new Fragment(item)
+                    .getVariations()
+                    .filter((path) => Fragment.isGroupedVariationPath(path) && selectedGroupedVariationPaths.has(path));
+                let allVariations = [];
+                let missingPaths = [];
                 try {
-                    const variation = await getFragmentByPathOrNull(this.repository.aem.sites.cf.fragments, targetPath);
-                    if (variation?.id) {
-                        existing.add(item.path);
-                        return;
+                    missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
+                    if (missingPaths.length) {
+                        const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
+                        for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
+                    allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);
                 } catch {
-                    if (previous.has(item.path)) existing.add(item.path);
+                    preservePrevious(item.path);
+                    return;
+                }
+                if (signal.aborted) return;
+                if (!allVariations.length) {
+                    // Trust an empty result only if this item's own path was actually probed.
+                    if (!probedByPath.has(item.path)) {
+                        preservePrevious(item.path);
+                    } else {
+                        geosByPath.delete(item.path);
+                        variationsByPath.delete(item.path);
+                        emptyGeoPaths.delete(item.path);
+                    }
+                    return;
+                }
+                const enrichedVariations = await enrichPromoVariations(allVariations, item, {
+                    getDisplayName: this.getDisplayName,
+                });
+                if (signal.aborted) return;
+                geosByPath.set(item.path, getUsedGeoTags(allVariations));
+                variationsByPath.set(item.path, enrichedVariations);
+                if (allVariations.some((variation) => !variation.pznTags?.length)) {
+                    emptyGeoPaths.add(item.path);
                 }
             }),
         );
         if (signal.aborted) return;
-        this.existingPromoVariationDefaultPaths = existing;
+        this.existingPromoVariationEmptyGeoPaths = emptyGeoPaths;
+        this.existingPromoVariationGeosByPath = geosByPath;
+        this.existingPromoVariationsByPath = variationsByPath;
     }
 
     #showToast(text, variant) {
@@ -411,23 +402,6 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
-    async #copyOfferId(e, offerId) {
-        e.stopPropagation();
-        if (!offerId) return;
-        try {
-            await navigator.clipboard.writeText(offerId);
-            this.#showToast('Offer ID copied to clipboard', 'positive');
-        } catch (err) {
-            console.error('Failed to copy offer ID:', err);
-            this.#showToast('Failed to copy Offer ID', 'negative');
-        }
-    }
-
-    #openCardPreview(fragmentId) {
-        if (!fragmentId) return;
-        openPreview(fragmentId, { left: 'min(300px, 15%)' });
-    }
-
     #getPromotionProjectId() {
         return Store.promotions.inEdit.get()?.get?.()?.id || Store.promotions.promotionId.get() || null;
     }
@@ -437,6 +411,7 @@ class MasPromotionsItemsTable extends LitElement {
         if (promotionId) {
             Store.promotions.promotionId.set(promotionId);
         }
+        applySearchSurfaceFromPath(path);
         const locale = extractLocaleFromPath(path);
         await router.navigateToFragmentEditor(fragmentId, { locale });
         if (promotionId) {
@@ -444,50 +419,82 @@ class MasPromotionsItemsTable extends LitElement {
         }
     }
 
-    async #editFragment(e, item) {
-        e.stopPropagation();
-        if (!item?.id || !item?.path) return;
-        Store.promotions.promotionId.set(null);
+    #getSearchUrl(item) {
+        if (!item?.id || !item?.path) return '';
+        const surface = extractSurfaceFromPath(item.path);
         const locale = extractLocaleFromPath(item.path);
-        await router.navigateToFragmentEditor(item.id, { locale });
+        const catalogLocale = (surface && getDefaultLocaleCode(surface, locale)) || locale;
+        const params = new URLSearchParams({ page: PAGE_NAMES.CONTENT, query: item.id });
+        if (surface) params.set('path', surface);
+        if (catalogLocale) params.set('locale', catalogLocale);
+        if (locale && locale !== catalogLocale) params.set('region', locale);
+        return `${window.location.pathname}${window.location.search}#${params.toString()}`;
     }
 
     #canCreatePromoVariation(item) {
         if (!item?.id || !item?.path || !this.#promotionTagId) return false;
         if (isPromoVariationPath(item.path)) return false;
-        if (this.existingPromoVariationDefaultPaths.has(item.path)) return false;
-        return true;
+        if (!this.existingPromoVariationGeosByPath.has(item.path)) return true;
+        const usedGeos = this.existingPromoVariationGeosByPath.get(item.path);
+        const hasUnusedGeo = this.#geoValues.some((geo) => !usedGeos.includes(geo));
+        const hasEmptyGeoSlotOpen = !this.existingPromoVariationEmptyGeoPaths.has(item.path);
+        return hasUnusedGeo || hasEmptyGeoSlotOpen;
     }
 
-    #hasPromoVariationForItem(item) {
-        if (!item?.path || !this.#promotionTagId) return false;
-        if (isPromoVariationPath(item.path)) return false;
-        return this.existingPromoVariationDefaultPaths.has(item.path);
+    #closeConfirmDialog() {
+        this.confirmDialogConfig = null;
     }
 
-    async #viewPromoVariation(e, item) {
+    get #promoVariationDialogWrapper() {
+        return this.shadowRoot?.querySelector('sp-dialog-wrapper.promo-variation-geos-dialog');
+    }
+
+    async #syncPromoVariationConfirmButtonDisabled() {
+        if (!this.promoVariationGeosDialogItem) return;
+        await this.#promoVariationDialogWrapper?.updateComplete;
+        const confirmButton = this.#promoVariationDialogWrapper?.shadowRoot?.querySelector(
+            'sp-button[variant="accent"][slot="button"]',
+        );
+        if (!confirmButton) return;
+        confirmButton.disabled = !this.promoVariationSelectedGeos.length && this.fragmentHasEmptyGeosVariation;
+    }
+
+    #closePromoVariationGeosDialog() {
+        this.promoVariationGeosDialogItem = null;
+        this.promoVariationSelectedGeos = [];
+        this.promoVariationDisabledGeos = [];
+        this.fragmentHasEmptyGeosVariation = false;
+    }
+
+    #handlePromoVariationGeosChange(e) {
+        this.promoVariationSelectedGeos = e.detail.value;
+    }
+
+    async #createPromoVariation(e, item) {
         e.stopPropagation();
         const promoTag = this.#promotionTagId;
-        const targetPath = promoTag ? buildPromoVariationPathForTag(item.path, promoTag) : null;
-        if (!targetPath) return;
+        if (!promoTag || !item?.id || !this.repository) return;
 
-        const fragmentsApi = this.repository?.aem?.sites?.cf?.fragments;
-        let variation;
+        this.promoVariationSelectedGeos = [];
+        this.promoVariationDisabledGeos = [];
+        this.fragmentHasEmptyGeosVariation = false;
+        this.createPromoVariationLoading = true;
+
         try {
-            variation = fragmentsApi ? await getFragmentByPathOrNull(fragmentsApi, targetPath) : null;
+            const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
+            this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
+            this.fragmentHasEmptyGeosVariation = existingVariations.some((variation) => !variation.pznTags?.length);
+            if (Fragment.isGroupedVariationPath(item.path)) {
+                this.createPromoVariationLoading = false;
+                await this.#createPromoVariationForItem(item, [], this.fragmentHasEmptyGeosVariation);
+                return;
+            }
+            this.promoVariationGeosDialogItem = item;
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
-            return;
+        } finally {
+            this.createPromoVariationLoading = false;
         }
-        if (!variation?.id) {
-            showToast(PROMO_VARIATION_MISSING_MESSAGE, 'negative');
-            this.existingPromoVariationDefaultPaths = new Set(
-                [...this.existingPromoVariationDefaultPaths].filter((path) => path !== item.path),
-            );
-            return;
-        }
-
-        await this.#navigateToFragmentEditorFromProject(variation.id, variation.path);
     }
 
     #confirmCreatePromoVariation() {
@@ -505,27 +512,16 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    #closeConfirmDialog() {
-        this.confirmDialogConfig = null;
-    }
-
-    async #createPromoVariation(e, item) {
-        e.stopPropagation();
+    async #createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation) {
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !item?.id || !this.repository) return;
-
-        const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
-        if (targetPath) {
-            try {
-                const existing = await getFragmentByPathOrNull(this.repository.aem.sites.cf.fragments, targetPath);
-                if (existing) {
-                    showToast(PROMO_VARIATION_EXISTS_MESSAGE, 'negative');
-                    return;
-                }
-            } catch {
-                showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
-                return;
-            }
+        if (!geoTags.length && hasEmptyGeosVariation) {
+            showToast(
+                Fragment.isGroupedVariationPath(item.path)
+                    ? 'A promo variation for this grouped variation fragment already exists.'
+                    : 'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
+                'negative',
+            );
+            return;
         }
 
         const confirmed = await this.#confirmCreatePromoVariation();
@@ -534,11 +530,23 @@ class MasPromotionsItemsTable extends LitElement {
         try {
             this.createPromoVariationLoading = true;
             showToast('Creating promo variation...');
-            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, (store) =>
-                this.repository.refreshFragment(store),
+            const created = await createPromoVariation(
+                this.repository.aem,
+                item.id,
+                promoTag,
+                geoTags,
+                (store) => this.repository.refreshFragment(store),
+                () => this.repository.loadPromotions(),
             );
             showToast('Promo variation created', 'positive');
-            this.existingPromoVariationDefaultPaths = new Set([...this.existingPromoVariationDefaultPaths, item.path]);
+            const previousGeos = this.existingPromoVariationGeosByPath.get(item.path) || [];
+            this.existingPromoVariationGeosByPath = new Map(this.existingPromoVariationGeosByPath).set(item.path, [
+                ...previousGeos,
+                ...geoTags,
+            ]);
+            if (!geoTags.length) {
+                this.existingPromoVariationEmptyGeoPaths = new Set([...this.existingPromoVariationEmptyGeoPaths, item.path]);
+            }
             await this.#navigateToFragmentEditorFromProject(created.id, created.path);
         } catch (err) {
             showToast(err.message || 'Failed to create promo variation', 'negative');
@@ -547,16 +555,124 @@ class MasPromotionsItemsTable extends LitElement {
         }
     }
 
-    #removeFromList(e, item) {
+    async #handlePromoVariationGeosConfirm() {
+        const item = this.promoVariationGeosDialogItem;
+        const promoTag = this.#promotionTagId;
+        const geoTags = this.promoVariationSelectedGeos;
+        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
+        this.#closePromoVariationGeosDialog();
+        if (!promoTag || !item?.id || !this.repository) return;
+        await this.#createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation);
+    }
+
+    #getOfferRemovalContext(selectorId) {
+        const store = this.itemsSelection.value;
+        return {
+            store,
+            removed: getPromotionItemsRemovedByOfferRemoval({
+                offerSelectorId: selectorId,
+                selectedOffers: store.selectedOffers.value,
+                selectedCards: store.selectedCards.value,
+                selectedCollections: store.selectedCollections.value,
+                offerDataCache: Store.promotions.offerRecordsCache,
+                cardsByPaths: store.cardsByPaths.value,
+                collectionsByPaths: store.collectionsByPaths.value,
+                groupedVariationsByParent: store.groupedVariationsByParent.value,
+                groupedVariationsData: store.groupedVariationsData.value,
+            }),
+        };
+    }
+
+    #confirmRemoveOffer(fragmentCount, collectionCount) {
+        return new Promise((resolve) => {
+            this.confirmDialogConfig = {
+                title: 'Remove offer',
+                message: buildRemoveOfferConfirmationMessage(fragmentCount, collectionCount),
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+                onConfirm: () => resolve(true),
+                onCancel: () => resolve(false),
+            };
+        });
+    }
+
+    async #pruneOrphanedGroupedVariations() {
+        const store = this.itemsSelection.value;
+        const aem = this.repository?.aem;
+        if (!aem) return;
+        const pruned = await pruneOrphanedGroupedVariationSelection(store.selectedCards.value, (path) =>
+            resolveHydratedParentFragment(aem, path).then((parent) => parent?.path ?? null),
+        );
+        if (pruned !== store.selectedCards.value) store.selectedCards.set(pruned);
+    }
+
+    async #applyOfferRemoval(selectorId) {
+        const store = this.itemsSelection.value;
+        const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
+        store.selectedOffers.set(remainingOffers);
+        Store.promotions.offerRecordsCache.delete(selectorId);
+        if (!remainingOffers.length) {
+            store.selectedCards.set([]);
+            store.selectedCollections.set([]);
+        } else {
+            const pruned = pruneOrphanedPromotionSelectionAfterOfferRemoval({
+                selectedCards: store.selectedCards.value,
+                selectedCollections: store.selectedCollections.value,
+                remainingSelectedOfferIds: remainingOffers,
+                offerDataCache: Store.promotions.offerRecordsCache,
+                cardsByPaths: store.cardsByPaths.value,
+                collectionsByPaths: store.collectionsByPaths.value,
+                groupedVariationsByParent: store.groupedVariationsByParent.value,
+                groupedVariationsData: store.groupedVariationsData.value,
+            });
+            store.selectedCards.set(pruned.selectedCards);
+            store.selectedCollections.set(pruned.selectedCollections);
+            await this.#pruneOrphanedGroupedVariations();
+        }
+        applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers, store.filters);
+        this.dispatchEvent(
+            new CustomEvent('promotion-offer-removed', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    async #removeFromList(e, item) {
         e.stopPropagation();
         const path = item?.path;
         if (!path) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
+        if (this.type === TABLE_TYPE.OFFERS) {
+            if (this.offerRemovalDialogOpen) return;
+            const selectorId = item.path || item.id;
+            const { removed } = this.#getOfferRemovalContext(selectorId);
+            const fragmentCount = removed.removedCards.length;
+            const collectionCount = removed.removedCollections.length;
+            if (fragmentCount + collectionCount > 0) {
+                this.offerRemovalDialogOpen = true;
+                let confirmed = false;
+                try {
+                    confirmed = await this.#confirmRemoveOffer(fragmentCount, collectionCount);
+                } finally {
+                    this.offerRemovalDialogOpen = false;
+                }
+                if (!confirmed) return;
+            }
+            await this.#applyOfferRemoval(selectorId);
+            return;
+        }
         if (this.type === TABLE_TYPE.CARDS) {
             store.selectedCards.set(store.selectedCards.value.filter((p) => p !== path));
+            await this.#pruneOrphanedGroupedVariations();
         } else {
             store.selectedCollections.set(store.selectedCollections.value.filter((p) => p !== path));
         }
+    }
+
+    #openOst() {
+        openOfferSelectorTool(document.createElement('osi-field'), null);
     }
 
     #renderOfferCell(item) {
@@ -566,26 +682,6 @@ class MasPromotionsItemsTable extends LitElement {
         return html`<sp-table-cell class="offer-cell">
             ${iconSrc ? html`<img class="mnemonic-icon" src=${iconSrc} alt="" />` : nothing}
             <span>${offerName}</span>
-        </sp-table-cell>`;
-    }
-
-    #renderOfferIdCell(item) {
-        const { offerId } = item?.offerData || {};
-        return html`<sp-table-cell class="offer-id">
-            ${offerId
-                ? html`<overlay-trigger triggered-by="hover">
-                          <div slot="trigger">${offerId}</div>
-                          <sp-tooltip slot="hover-content" placement="bottom">${offerId}</sp-tooltip>
-                      </overlay-trigger>
-                      <sp-action-button
-                          icon-only
-                          quiet
-                          aria-label="Copy Offer ID to clipboard"
-                          @click=${(e) => this.#copyOfferId(e, offerId)}
-                      >
-                          <sp-icon-copy slot="icon"></sp-icon-copy>
-                      </sp-action-button>`
-                : html`<span>no offer data</span>`}
         </sp-table-cell>`;
     }
 
@@ -614,9 +710,35 @@ class MasPromotionsItemsTable extends LitElement {
         `;
     }
 
+    get promoVariationGeosDialogTemplate() {
+        if (!this.promoVariationGeosDialogItem) return nothing;
+        return html`
+            <sp-dialog-wrapper
+                class="promo-variation-geos-dialog"
+                open
+                underlay
+                mode="modal"
+                size="l"
+                headline="Select geos"
+                cancel-label="Cancel"
+                confirm-label="Continue"
+                @confirm=${() => this.#handlePromoVariationGeosConfirm()}
+                @cancel=${() => this.#closePromoVariationGeosDialog()}
+                @close=${() => this.#closePromoVariationGeosDialog()}
+            >
+                <mas-promo-variation-geos
+                    .geos=${this.#geoValues}
+                    .disabledGeos=${this.promoVariationDisabledGeos}
+                    .hasEmptyGeosVariation=${this.fragmentHasEmptyGeosVariation}
+                    .value=${this.promoVariationSelectedGeos}
+                    @change=${(e) => this.#handlePromoVariationGeosChange(e)}
+                ></mas-promo-variation-geos>
+            </sp-dialog-wrapper>
+        `;
+    }
+
     #renderActionsCell(item) {
-        const showCreatePromo = this.#canCreatePromoVariation(item);
-        const showViewPromo = this.#hasPromoVariationForItem(item);
+        const showCreatePromo = this.type === TABLE_TYPE.CARDS && this.#canCreatePromoVariation(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
                 <sp-icon-more slot="icon"></sp-icon-more>
@@ -629,22 +751,163 @@ class MasPromotionsItemsTable extends LitElement {
                           Create promo variation
                       </sp-menu-item>`
                     : nothing}
-                ${showViewPromo
-                    ? html`<sp-menu-item @click=${(e) => this.#viewPromoVariation(e, item)}>
-                          <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                          View promo variation
+                ${this.type === TABLE_TYPE.OFFERS
+                    ? html`<sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                          <sp-icon-delete slot="icon"></sp-icon-delete>
+                          Remove from list
                       </sp-menu-item>`
-                    : nothing}
-                <sp-menu-item @click=${(e) => this.#editFragment(e, item)}>
-                    <sp-icon-edit slot="icon"></sp-icon-edit>
-                    ${this.type === TABLE_TYPE.COLLECTIONS ? 'Edit collection' : 'Edit fragment'}
-                </sp-menu-item>
-                <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
-                    <sp-icon-delete slot="icon"></sp-icon-delete>
-                    Remove from list
-                </sp-menu-item>
+                    : html`<sp-menu-item>
+                              <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                              <sp-link
+                                  quiet
+                                  variant="secondary"
+                                  href=${this.#getSearchUrl(item)}
+                                  target="_blank"
+                                  rel="noopener"
+                              >
+                                  ${this.type === TABLE_TYPE.COLLECTIONS ? 'View default collection' : 'View default fragment'}
+                              </sp-link>
+                          </sp-menu-item>
+                          <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                              <sp-icon-delete slot="icon"></sp-icon-delete>
+                              Remove from list
+                          </sp-menu-item>`}
             </sp-action-menu>
         </sp-table-cell>`;
+    }
+
+    #toggleExpand(path) {
+        const next = new Set(this.expandedPaths);
+        if (next.has(path)) {
+            next.delete(path);
+        } else {
+            next.add(path);
+        }
+        this.expandedPaths = next;
+    }
+
+    #onOfferRowClick(e, path) {
+        if (shouldIgnoreRowClickForSelection(e)) return;
+        this.#toggleExpand(path);
+    }
+
+    #renderExpandCell(item) {
+        const expanded = this.expandedPaths.has(item.path);
+        return html`<sp-table-cell class="expand-cell">
+            <sp-action-button
+                quiet
+                size="s"
+                aria-label=${expanded ? 'Collapse row' : 'Expand row'}
+                @click=${(e) => {
+                    e.stopPropagation();
+                    this.#toggleExpand(item.path);
+                }}
+            >
+                <sp-icon-chevron-down slot="icon" class=${expanded ? 'expanded' : ''}></sp-icon-chevron-down>
+            </sp-action-button>
+        </sp-table-cell>`;
+    }
+
+    #renderTagCell(item, tagKey) {
+        const title = item?.getTagTitle?.(tagKey) || '-';
+        return html`<sp-table-cell>${title}</sp-table-cell>`;
+    }
+
+    #renderProductArrangementCell(item) {
+        const arrangement = item?.getTagTitle?.('product_arrangement') || item?.offerData?.product_arrangement_code || '-';
+        return html`<sp-table-cell>${arrangement}</sp-table-cell>`;
+    }
+
+    #renderPromoCodeCell(item) {
+        const offerId = item?.offerData?.offerId;
+        const count = this.#promoCodeCountForOffer(offerId);
+        return html`<sp-table-cell class="promo-code-cell">${count || '-'}</sp-table-cell>`;
+    }
+
+    #getOfferPromoCodeGroups(item) {
+        const offerKeys = [item?.path, item?.offerData?.offerId].filter(Boolean);
+        return groupCountriesByPromoCodeForOffer(this.#exceptionsMap, offerKeys, this.#countries, this.#defaultPromoCodeValue);
+    }
+
+    #getOfferSubstitutionGroups(item) {
+        const offerKeys = [item?.path, item?.offerData?.offerId].filter(Boolean);
+        const offersBySelectorId = new Map(
+            (this.viewOnlyFragments ?? [])
+                .map((offer) => {
+                    const selectorId = offer?.path ?? offer?.id;
+                    if (!selectorId) return null;
+                    const label =
+                        offer?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title ||
+                        offer?.offerData?.offerId ||
+                        selectorId;
+                    return [selectorId, label];
+                })
+                .filter(Boolean),
+        );
+        return groupOfferSubstitutionsForOffer(
+            this.#offerSubstitutionsMap,
+            offerKeys,
+            this.#countries,
+            (selectorId) => offersBySelectorId.get(selectorId) ?? selectorId,
+        );
+    }
+
+    #renderExpandedDetailRow(item) {
+        if (!this.expandedPaths.has(item.path)) return nothing;
+        const offerId = item?.offerData?.offerId ?? '-';
+        const promoCodeGroups = this.#getOfferPromoCodeGroups(item);
+        const offerSubstitutionGroups = this.#getOfferSubstitutionGroups(item);
+        return html`<sp-table-row class="detail-row">
+            <sp-table-cell class="detail-cell-full">
+                <div class="offer-detail-content">
+                    <div class="detail-offer-id"><strong>Offer ID:</strong><span>${offerId}</span></div>
+                    <table class="offer-promo-codes-table">
+                        <thead>
+                            <tr>
+                                <th>Promo codes</th>
+                                <th>Countries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${promoCodeGroups.length
+                                ? repeat(
+                                      promoCodeGroups,
+                                      (group) => group.promoCode,
+                                      (group) =>
+                                          html`<tr>
+                                              <td>${group.promoCode}</td>
+                                              <td>${group.countriesLabel}</td>
+                                          </tr>`,
+                                  )
+                                : html`<tr>
+                                      <td colspan="2">-</td>
+                                  </tr>`}
+                        </tbody>
+                    </table>
+                    ${offerSubstitutionGroups.length
+                        ? html`<table class="offer-promo-codes-table">
+                              <thead>
+                                  <tr>
+                                      <th>Substitute offers</th>
+                                      <th>Countries</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  ${repeat(
+                                      offerSubstitutionGroups,
+                                      (group) => group.offerLabel,
+                                      (group) =>
+                                          html`<tr>
+                                              <td>${group.offerLabel}</td>
+                                              <td>${group.countriesLabel}</td>
+                                          </tr>`,
+                                  )}
+                              </tbody>
+                          </table>`
+                        : nothing}
+                </div>
+            </sp-table-cell>
+        </sp-table-row>`;
     }
 
     #renderPreviewCell(item) {
@@ -654,30 +917,28 @@ class MasPromotionsItemsTable extends LitElement {
         }
         return html`<sp-table-cell
             class="preview-cell"
-            @mouseover=${() => this.#openCardPreview(item.id)}
+            @mouseover=${() => openPreview(item.id, { left: '50' })}
             @mouseout=${closePreview}
         >
             <sp-icon-preview label="Preview card"></sp-icon-preview>
         </sp-table-cell>`;
     }
 
-    #renderCardRow(item) {
-        return html`<sp-table-row value=${item.path}>
-            ${this.#renderOfferCell(item)}
-            <sp-table-cell>${item.title || 'no title'}</sp-table-cell>
-            ${this.#renderOfferIdCell(item)}
-            <sp-table-cell class="path"><span>${item?.studioPath || 'no path'}</span></sp-table-cell>
-            <sp-table-cell>${getItemTypeLabel(item)}</sp-table-cell>
-            ${this.renderFragmentStatusCell(item?.status)} ${this.#renderActionsCell(item)} ${this.#renderPreviewCell(item)}
+    #renderOfferRow(item) {
+        return html`<sp-table-row class="offer-row" value=${item.path} @click=${(e) => this.#onOfferRowClick(e, item.path)}>
+            ${this.#renderExpandCell(item)} ${this.#renderOfferCell(item)} ${this.#renderProductArrangementCell(item)}
+            ${this.#renderTagCell(item, 'offer_type')} ${this.#renderTagCell(item, 'plan_type')}
+            ${this.#renderTagCell(item, 'customer_segment')} ${this.#renderTagCell(item, 'market_segment')}
+            ${this.#renderPromoCodeCell(item)} ${this.#renderActionsCell(item)}
         </sp-table-row>`;
     }
 
-    #renderCollectionRow(item) {
-        return html`<sp-table-row value=${item.path}>
-            <sp-table-cell>${item.title || '-'}</sp-table-cell>
-            <sp-table-cell class="path"><span>${item.studioPath || '-'}</span></sp-table-cell>
-            ${this.renderFragmentStatusCell(item?.status)} ${this.#renderActionsCell(item)} ${this.#renderPreviewCell(item)}
-        </sp-table-row>`;
+    #renderOfferRows(items) {
+        return repeat(
+            items,
+            (item) => item.path,
+            (item) => html`${this.#renderOfferRow(item)}${this.#renderExpandedDetailRow(item)}`,
+        );
     }
 
     #renderSkeletonRows() {
@@ -685,8 +946,8 @@ class MasPromotionsItemsTable extends LitElement {
             { length: 6 },
             (_, i) =>
                 html`<sp-table-row class="skeleton-row" key=${i}>
-                    ${this.tableColumns.map(
-                        (column) =>
+                    ${offersTableColumns.map(
+                        () =>
                             html`<sp-table-cell>
                                 <div class="skeleton-element skeleton-table-cell"></div>
                             </sp-table-cell>`,
@@ -695,41 +956,101 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
-    render() {
-        const showSkeleton = this.viewOnlyLoading;
-        const items = this.viewOnlyFragments;
-        const showEmpty = !showSkeleton && items.length === 0;
-        const showTable = showSkeleton || items.length > 0;
-        const layoutClass = this.type === TABLE_TYPE.CARDS ? 'promotions-cards-layout' : 'promotions-collections-layout';
+    get #offersEmptyStateTemplate() {
+        return html`<div class="offers-empty-state">
+            <div class="icon">
+                <sp-button variant="secondary" @click=${this.#openOst}>
+                    <sp-icon-add size="xxl"></sp-icon-add>
+                </sp-button>
+            </div>
+            <div class="label">
+                <strong>Add product offers</strong><br />
+                Choose offers for selected countries.
+            </div>
+        </div>`;
+    }
 
+    #renderOffersTable() {
+        if (!this.viewOnlyLoading && this.selectedPaths.length === 0) {
+            return html`${this.confirmDialogTemplate}${this.#offersEmptyStateTemplate}`;
+        }
+        return html`<sp-table class="fragments-table item-table promotions-view-only promotions-offers-layout" emphasized>
+            <sp-table-head>
+                ${repeat(
+                    offersTableColumns,
+                    (column) => column.key,
+                    (column) => html`<sp-table-head-cell class=${column.class || ''}>${column.label}</sp-table-head-cell>`,
+                )}
+            </sp-table-head>
+            <sp-table-body>
+                ${this.viewOnlyLoading ? this.#renderSkeletonRows() : this.#renderOfferRows(this.viewOnlyFragments)}
+            </sp-table-body>
+        </sp-table>`;
+    }
+
+    #renderCardsTable() {
+        return html`<mas-select-items-table
+            .viewOnly=${true}
+            .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragmentsFetchedByParent=${true}
+            .viewOnlyLoading=${this.viewOnlyLoading}
+            .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .type=${TABLE_TYPE.CARDS}
+            .getDisplayName=${this.getDisplayName}
+            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+            .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+            .selectableTabs=${[]}
+            .groupedVariationsManageOnly=${true}
+            .renderActionsCell=${(item) => this.#renderActionsCell(item)}
+            .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
+            .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            .viewOnlyHasMore=${this.#hasMoreSelected}
+            @view-only-load-more=${() => this.#loadMore()}
+            @show-toast=${this.#showToast}
+        >
+        </mas-select-items-table>`;
+    }
+
+    #renderCollectionsTable() {
+        return html`<mas-select-items-table
+            .viewOnly=${true}
+            .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragmentsFetchedByParent=${true}
+            .viewOnlyLoading=${this.viewOnlyLoading}
+            .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .type=${TABLE_TYPE.COLLECTIONS}
+            .getDisplayName=${this.getDisplayName}
+            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+            .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .selectableTabs=${[]}
+            .renderActionsCell=${(item) => this.#renderActionsCell(item)}
+            .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            .viewOnlyHasMore=${this.#hasMoreSelected}
+            @view-only-load-more=${() => this.#loadMore()}
+            @show-toast=${this.#showToast}
+        ></mas-select-items-table>`;
+    }
+
+    render() {
+        let tableToRender = nothing;
+        switch (this.type) {
+            case TABLE_TYPE.OFFERS:
+                tableToRender = this.#renderOffersTable(this.viewOnlyFragments, this.viewOnlyLoading);
+                break;
+            case TABLE_TYPE.CARDS:
+                tableToRender = this.#renderCardsTable();
+                break;
+            case TABLE_TYPE.COLLECTIONS:
+                tableToRender = this.#renderCollectionsTable();
+                break;
+        }
         return html`
-            ${this.confirmDialogTemplate} ${showEmpty ? html`<p>No items found.</p>` : nothing}
-            ${showTable
-                ? html`<sp-table class="fragments-table item-table promotions-view-only ${layoutClass}" emphasized>
-                      <sp-table-head>
-                          ${repeat(
-                              this.tableColumns,
-                              (column) => column.key,
-                              (column) => html`<sp-table-head-cell>${column.label}</sp-table-head-cell>`,
-                          )}
-                      </sp-table-head>
-                      <sp-table-body>
-                          ${showSkeleton
-                              ? this.#renderSkeletonRows()
-                              : this.type === TABLE_TYPE.CARDS
-                                ? repeat(
-                                      items,
-                                      (f) => f.path,
-                                      (f) => this.#renderCardRow(f),
-                                  )
-                                : repeat(
-                                      items,
-                                      (f) => f.path,
-                                      (f) => this.#renderCollectionRow(f),
-                                  )}
-                      </sp-table-body>
-                  </sp-table>`
+            ${this.createPromoVariationLoading
+                ? html`<div class="loading-overlay">
+                      <sp-progress-circle size="l" indeterminate label="Creating promo variation"></sp-progress-circle>
+                  </div>`
                 : nothing}
+            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender}
         `;
     }
 }

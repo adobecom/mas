@@ -71,11 +71,7 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST: load the legacy tacocat bundle by default (from main's deployed copy).
-             ?ost=new or #ost=new opts into the new Spectrum 2 Lit build at studio/ost/ost-new.js.
-             Cross-branch load for the default is intentional: it pins to main's known-good legacy build,
-             so the new bundle on this branch can ship alongside it without touching studio/ost/index.js.
-             CORS on the AEM-Live CDN is *, so the cross-origin script + link work without crossorigin attrs. -->
+        <!-- OST: legacy tacocat bundle by default; ?ost=new (or #ost=new) loads the new Lit OST from the same deployment. -->
         <script>
             (function () {
                 const search = new URLSearchParams(location.search).get('ost');
@@ -83,8 +79,8 @@
                 const useNew = (search || hash) === 'new';
                 const newJs = 'studio/ost/ost-new.js';
                 const newCss = './studio/ost/index.css';
-                const legacyJs = 'https://main--mas--adobecom.aem.live/studio/ost/index.js';
-                const legacyCss = 'https://main--mas--adobecom.aem.live/studio/ost/index.css';
+                const legacyJs = 'studio/ost/index.js';
+                const legacyCss = 'studio/ost/index.css';
                 const js = useNew ? newJs : legacyJs;
                 const css = useNew ? newCss : legacyCss;
                 document.write(`<script src="${js}" defer><\/script>`);

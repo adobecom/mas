@@ -1,6 +1,6 @@
 import { html } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { VARIANT_NAMES } from '../editors/variant-picker.js';
+import { normalizeVariantName, VARIANT_NAMES } from '../editors/variant-picker.js';
 
 export const ICON_LIBRARY = [
     { id: 'sp-icon-star', name: 'Star' },
@@ -23,7 +23,7 @@ const VARIANT_SPECTRUM = {
     [VARIANT_NAMES.PLANS_EDUCATION]: 'spectrum',
     [VARIANT_NAMES.PLANS_STUDENTS]: 'spectrum',
     [VARIANT_NAMES.PLANS_V2]: 'spectrum',
-    [VARIANT_NAMES.BIZPRO]: 'spectrum',
+    [VARIANT_NAMES.PRO]: 'spectrum',
     [VARIANT_NAMES.SPECIAL_OFFERS]: 'spectrum',
     [VARIANT_NAMES.SEGMENT]: 'spectrum',
     [VARIANT_NAMES.CATALOG]: 'spectrum',
@@ -34,7 +34,7 @@ const VARIANT_SPECTRUM = {
     [VARIANT_NAMES.FULL_PRICING_EXPRESS]: 'express',
 };
 
-export const getSpectrumVersion = (variant) => VARIANT_SPECTRUM[variant] || 'spectrum-two';
+export const getSpectrumVersion = (variant) => VARIANT_SPECTRUM[normalizeVariantName(variant)] || 'spectrum-two';
 
 export const renderSpIcon = (iconName, variant) => {
     return html`<sp-theme color="light" scale="medium" system="${getSpectrumVersion(variant)}"

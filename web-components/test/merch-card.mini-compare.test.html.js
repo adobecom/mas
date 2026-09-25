@@ -237,8 +237,12 @@ runTests(async () => {
             await card.checkReady();
             const variantLayout = card.variantLayout;
 
+            const parent = document.createElement('div');
             // Test legal template branch
-            const legalElement = { dataset: { template: 'legal' } };
+            const legalElement = {
+                dataset: { template: 'legal' },
+                closest: () => parent,
+            };
             const legalOptions = {};
             variantLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
@@ -246,6 +250,7 @@ runTests(async () => {
             // Test strikethrough template branch
             const strikethroughElement = {
                 dataset: { template: 'strikethrough' },
+                closest: () => parent,
             };
             const strikethroughOptions = {};
             variantLayout.priceOptionsProvider(
@@ -255,10 +260,13 @@ runTests(async () => {
             expect(strikethroughOptions.displayPerUnit).to.equal(false);
 
             // Test price template branch
-            const priceElement = { dataset: { template: 'price' } };
+            const priceElement = {
+                dataset: { template: 'price' },
+                closest: () => parent,
+            };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.equal(false);
+            expect(priceOptions.displayPerUnit).to.be.false;
         });
     });
 
@@ -286,32 +294,44 @@ runTests(async () => {
             return wi;
         }
 
+        // mini-compare-chart projects whats-included through the
+        // "footer-rows" slot; plans exposes its own "whats-included" slot.
+        const WHATS_INCLUDED_SLOT_BY_VARIANT = {
+            'mini-compare-chart': 'footer-rows',
+            plans: 'whats-included',
+        };
+
         async function mountCard(variant, whatsIncluded) {
             const mount = document.createElement('div');
             mount.style.cssText =
                 'position:absolute;left:-9999px;top:0;width:520px;';
             const card = document.createElement('merch-card');
             card.setAttribute('variant', variant);
-            whatsIncluded.setAttribute('slot', 'whats-included');
+            whatsIncluded.setAttribute(
+                'slot',
+                variant === 'mini-compare-chart'
+                    ? 'footer-rows'
+                    : 'whats-included',
+            );
             card.appendChild(whatsIncluded);
             mount.appendChild(card);
             document.body.appendChild(mount);
             await customElements.whenDefined('merch-card');
             await card.updateComplete;
-            await delay(50);
+            await card.checkReady();
             return { card, mount };
         }
 
         function iconDisplay(card, rowIndex) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }
 
         function bulletIconDisplay(card, rowIndex = 0) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }
@@ -435,6 +455,227 @@ runTests(async () => {
             } finally {
                 mount.remove();
             }
+        });
+    });
+
+    describe('ETF text (adjustLegal / adjustShortDescription)', () => {
+        let keepInHeadingPriceForAnnual;
+        before(async () => {
+            ({ keepInHeadingPriceForAnnual } = await import(
+                '../src/variants/mini-compare-chart.js'
+            ));
+        });
+
+        async function mountCardWithEtf(etfText = 'Fee applies') {
+            const mount = document.createElement('div');
+            mount.style.cssText =
+                'position:absolute;left:-9999px;top:0;width:520px;';
+            // Use innerHTML so the HTML parser properly upgrades
+            // <span is="inline-price"> as a customized built-in element.
+            mount.innerHTML = `
+                <merch-card variant="mini-compare-chart">
+                    <h5 slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-wcs-osi="abm-mult"
+                            data-template="price"
+                            data-display-per-unit="false"
+                            data-display-tax="true"
+                            data-display-plan-type="true"
+                        ></span>
+                    </h5>
+                    <p slot="body-xxs">${etfText}</p>
+                    <merch-whats-included slot="whats-included"></merch-whats-included>
+                </merch-card>
+            `;
+            document.body.appendChild(mount);
+            const card = mount.querySelector('merch-card');
+            await card.checkReady();
+            const vl = card.variantLayout;
+            if (vl && !vl.legalAdjusted) {
+                await vl.adjustLegal();
+            }
+            await card.checkReady();
+            return { card, mount };
+        }
+
+        it('adjustLegal creates a legal inline-price and sets legalAdjusted', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalAdjusted).to.be.true;
+                const legal = card.querySelector(
+                    '[is="inline-price"][data-template="legal"]',
+                );
+                expect(legal).to.exist;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustLegal sets up MutationObserver on the legal element', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalObserver).to.not.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustLegal in-flight guard prevents concurrent execution', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                variantLayout.legalAdjusted = false;
+                variantLayout.legalAdjusting = true;
+                const countBefore = card.querySelectorAll(
+                    '[data-template="legal"]',
+                ).length;
+                await variantLayout.adjustLegal();
+                const countAfter = card.querySelectorAll(
+                    '[data-template="legal"]',
+                ).length;
+                expect(countAfter).to.equal(countBefore);
+                variantLayout.legalAdjusting = false;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustShortDescription injects ETF text into .price-plan-type', async () => {
+            const { card, mount } = await mountCardWithEtf('Fee applies');
+            try {
+                const planType = card.querySelector(
+                    '[is="inline-price"][data-template="legal"] .price-plan-type',
+                );
+                expect(planType).to.exist;
+                expect(planType.querySelector('em')).to.exist;
+                expect(
+                    planType.querySelector('em').textContent.trim(),
+                ).to.include('Fee applies');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustShortDescription is idempotent — does not duplicate ETF text', async () => {
+            const { card, mount } = await mountCardWithEtf('Fee applies');
+            try {
+                const variantLayout = card.variantLayout;
+                variantLayout.adjustShortDescription();
+                variantLayout.adjustShortDescription();
+                const planType = card.querySelector(
+                    '[is="inline-price"][data-template="legal"] .price-plan-type',
+                );
+                const ems = planType?.querySelectorAll('em') ?? [];
+                expect(ems.length).to.be.at.most(1);
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('disconnectedCallbackHook disconnects and nulls legalObserver', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalObserver).to.not.be.null;
+
+                variantLayout.disconnectedCallbackHook();
+
+                expect(variantLayout.legalObserver).to.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('connectedCallbackHook recovery restores legalObserver after card re-insertion', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalAdjusted).to.be.true;
+
+                mount.removeChild(card);
+                await card.updateComplete;
+
+                expect(variantLayout.legalObserver).to.be.null;
+                expect(variantLayout.legalAdjusted).to.be.true;
+
+                mount.appendChild(card);
+                await card.checkReady();
+
+                expect(variantLayout.legalObserver).to.not.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('connectedCallbackHook resets legalAdjusted when legal element is gone after re-insertion', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                const legal = card.querySelector('[data-template="legal"]');
+                legal?.remove();
+
+                mount.removeChild(card);
+                await card.updateComplete;
+
+                mount.appendChild(card);
+                await card.checkReady();
+
+                expect(variantLayout.legalAdjusted).to.be.false;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price enabled', async () => {
+            const card = {
+                settings: {
+                    displayAnnual: true,
+                },
+            };
+            const headingPrice = {
+                options: {
+                    displayTax: true,
+                },
+            };
+            const legalPrice = {
+                dataset: {
+                    displayTax: true,
+                },
+            };
+            keepInHeadingPriceForAnnual(
+                card,
+                headingPrice,
+                legalPrice,
+                'displayTax',
+            );
+            expect(legalPrice.dataset.displayTax).to.equal('false');
+        });
+
+        it('keepInHeadingPriceForAnnual with annual price disabled', async () => {
+            const card = {
+                settings: {
+                    displayAnnual: false,
+                },
+            };
+            const headingPrice = {
+                options: {
+                    displayTax: true,
+                },
+                dataset: {
+                    displayTax: true,
+                },
+            };
+            const legalPrice = {};
+            keepInHeadingPriceForAnnual(
+                card,
+                headingPrice,
+                legalPrice,
+                'displayTax',
+            );
+            expect(headingPrice.dataset.displayTax).to.equal('false');
         });
     });
 });

@@ -28,6 +28,39 @@ describe('mas-bulk-publish (overview)', () => {
         expect(rows).to.have.lengthOf(2);
     });
 
+    it('counts items from the fragments field when items metadata is absent', async () => {
+        Store.bulkPublishProjects.list.data.set([
+            makeProjectStore({
+                items: undefined,
+                fragments: ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/dictionary/ph1'],
+            }),
+        ]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('[data-testid="project-row"] sp-table-cell.center');
+        expect(cells[0].textContent.trim()).to.equal('1');
+        expect(cells[1].textContent.trim()).to.equal('0');
+        expect(cells[2].textContent.trim()).to.equal('1');
+    });
+
+    it('prefers items metadata over fragments paths for counts', async () => {
+        Store.bulkPublishProjects.list.data.set([
+            makeProjectStore({
+                items: JSON.stringify([
+                    { path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'valid' },
+                    { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'valid' },
+                ]),
+                fragments: ['/content/dam/mas/acom/en_US/col1', '/content/dam/mas/acom/en_US/card1'],
+            }),
+        ]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('[data-testid="project-row"] sp-table-cell.center');
+        expect(cells[0].textContent.trim()).to.equal('1');
+        expect(cells[1].textContent.trim()).to.equal('1');
+        expect(cells[2].textContent.trim()).to.equal('0');
+    });
+
     it('dispatches create-project when CTA clicked', async () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
@@ -42,7 +75,7 @@ function makeProjectStore(data = {}) {
         id: 'proj-1',
         title: 'Test Project',
         status: BULK_PUBLISH_STATUS.DRAFT,
-        items: '[]',
+        fragments: [],
         locales: [],
         created: { fullName: 'Jane Doe' },
         publishedAt: null,
@@ -68,6 +101,10 @@ describe('mas-bulk-publish (methods)', () => {
         sandbox.stub(router, 'navigateToPage').callsFake(navigateStub);
 
         repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('base-url', 'http://localhost:3000');
+        repositoryEl.getBulkPublishParentPath = sandbox
+            .stub()
+            .callsFake((surface) => `/content/dam/mas/${surface}/bulk-publish-projects`);
         document.body.appendChild(repositoryEl);
     });
 
@@ -119,7 +156,7 @@ describe('mas-bulk-publish (methods)', () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
-        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: [] });
+        const ps = makeProjectStore({ title: 'Original', fragments: [], locales: [] });
         el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
 
         const rawFragment = { id: 'new-id', path: '/content/dam/mas/new', fields: [], status: 'Draft' };
@@ -141,7 +178,7 @@ describe('mas-bulk-publish (methods)', () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
-        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: ['en_US', 'fr_FR'] });
+        const ps = makeProjectStore({ title: 'Original', fragments: [], locales: ['en_US', 'fr_FR'] });
         el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
 
         const rawFragment = { id: 'new-id', path: '/content/dam/mas/new', fields: [], status: 'Draft' };
@@ -153,6 +190,25 @@ describe('mas-bulk-publish (methods)', () => {
         const [payload] = repositoryEl.createFragment.firstCall.args;
         const localesField = payload.fields.find((f) => f.name === 'locales');
         expect(localesField.values).to.deep.equal(['en_US', 'fr_FR']);
+    });
+
+    it('handleDuplicateConfirmed copies the fragments field to the new project', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+
+        const fragments = ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/dictionary/ph1'];
+        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: [], fragments });
+        el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
+
+        repositoryEl.createFragment = sandbox.stub().resolves({ id: 'new-id', path: '/x', fields: [], status: 'Draft' });
+        Store.search.set({ path: 'sandbox' });
+
+        await el.handleDuplicateConfirmed({ detail: { title: 'My Copy' } });
+
+        const [payload] = repositoryEl.createFragment.firstCall.args;
+        const fragmentsField = payload.fields.find((f) => f.name === 'fragments');
+        expect(fragmentsField.values).to.deep.equal(fragments);
+        expect(fragmentsField.multiple).to.equal(true);
     });
 
     it('handleDeleteConfirmed removes project from list', async () => {
@@ -213,46 +269,6 @@ describe('mas-bulk-publish (pure methods)', () => {
     before(async () => {
         el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
-    });
-
-    describe('parseItems', () => {
-        it('returns [] for null', () => {
-            expect(el.parseItems(null)).to.deep.equal([]);
-        });
-
-        it('returns [] for invalid JSON', () => {
-            expect(el.parseItems('not-json')).to.deep.equal([]);
-        });
-
-        it('returns parsed array for valid JSON', () => {
-            const items = [{ url: 'a', status: 'valid', type: 'fragment' }];
-            expect(el.parseItems(JSON.stringify(items))).to.deep.equal(items);
-        });
-    });
-
-    describe('countByType', () => {
-        it('counts valid items by type', () => {
-            const items = [
-                { status: 'valid', type: 'fragment' },
-                { status: 'valid', type: 'collection' },
-                { status: 'valid', type: 'placeholder' },
-                { status: 'valid', type: 'fragment' },
-            ];
-            expect(el.countByType(items)).to.deep.equal({ fragment: 2, collection: 1, placeholder: 1 });
-        });
-
-        it('skips items that are not valid', () => {
-            const items = [
-                { status: 'error', type: 'fragment' },
-                { status: 'valid', type: 'fragment' },
-            ];
-            expect(el.countByType(items)).to.deep.equal({ fragment: 1, collection: 0, placeholder: 0 });
-        });
-
-        it('falls back to fragment for unknown type', () => {
-            const items = [{ status: 'valid', type: 'unknown' }];
-            expect(el.countByType(items)).to.deep.equal({ fragment: 1, collection: 0, placeholder: 0 });
-        });
     });
 
     describe('formatDate', () => {
@@ -378,5 +394,25 @@ describe('mas-bulk-publish (render)', () => {
         await el.updateComplete;
         const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
         expect(row.querySelector('sp-action-button')).to.exist;
+    });
+
+    async function resetItemFor(status) {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        return [...row.querySelectorAll('sp-menu-item')].find((i) => i.textContent.includes('Reset to Draft'));
+    }
+
+    it('offers Reset to Draft for a project stuck in Publishing', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.PUBLISHING)).to.exist;
+    });
+
+    it('offers Reset to Draft for a failed project', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.FAILED)).to.exist;
+    });
+
+    it('hides Reset to Draft for a published project', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.PUBLISHED)).to.not.exist;
     });
 });

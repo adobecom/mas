@@ -2,6 +2,19 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
 
+describe('project.js — PROJECT_STATUS', () => {
+    const { PROJECT_STATUS } = require('../../src/bulk-publish/project.js');
+
+    it('carries the terminal statuses the worker writes', () => {
+        expect(PROJECT_STATUS.FAILED).to.equal('Failed');
+        expect(PROJECT_STATUS.PARTIALLY_PUBLISHED).to.equal('Partially published');
+    });
+
+    it('omits Locked, which only the UI writes', () => {
+        expect(PROJECT_STATUS).to.not.have.property('LOCKED');
+    });
+});
+
 describe('project.js', () => {
     let mod;
     let getFragmentWithEtagStub;
@@ -21,6 +34,7 @@ describe('project.js', () => {
                 putToOdin: putToOdinStub,
                 getValue: require('../../src/common.js').getValue,
                 getValues: require('../../src/common.js').getValues,
+                parseOdinHttpStatus: require('../../src/common.js').parseOdinHttpStatus,
             },
         });
     });
@@ -148,6 +162,52 @@ describe('project.js', () => {
             expect(snapshotsField.values).to.deep.equal(['entry1', 'entry2']);
             const publishedAtField = fields.find((f) => f.name === 'publishedAt');
             expect(publishedAtField.values).to.deep.equal(['2025-01-01T00:00:00.000Z']);
+        });
+
+        it('retries on 412 with fresh ETag and succeeds', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
+            const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
+            err412.status = 412;
+            putToOdinStub.onFirstCall().rejects(err412);
+            putToOdinStub.onSecondCall().resolves({ success: true });
+
+            await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+
+            expect(putToOdinStub.calledTwice).to.be.true;
+            expect(getFragmentWithEtagStub.calledTwice).to.be.true;
+        });
+
+        it('retries on 412 when error has no .status property but message contains the status code', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
+            const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
+            // No .status property — matches what fetchOdin actually throws
+            putToOdinStub.onFirstCall().rejects(err412);
+            putToOdinStub.onSecondCall().resolves({ success: true });
+
+            await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+
+            expect(putToOdinStub.calledTwice).to.be.true;
+            expect(getFragmentWithEtagStub.calledTwice).to.be.true;
+        });
+
+        it('throws immediately on non-412/500 errors without retry', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"e"' });
+            const err400 = new Error('PUT /fragments/proj-1 failed with status 400: Bad Request');
+            err400.status = 400;
+            putToOdinStub.rejects(err400);
+
+            let threw = false;
+            try {
+                await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+            } catch (err) {
+                threw = true;
+                expect(err.message).to.include('400');
+            }
+            expect(threw).to.be.true;
+            expect(putToOdinStub.calledOnce).to.be.true;
         });
     });
 });

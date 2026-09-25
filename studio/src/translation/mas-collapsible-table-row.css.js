@@ -4,6 +4,7 @@ import {
     tableCellBaseStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
+    textWithTooltipStyles,
 } from '../common/styles/table-styles.css.js';
 
 export const styles = [
@@ -11,6 +12,7 @@ export const styles = [
     tableCellBaseStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
+    textWithTooltipStyles,
     css`
         :host {
             display: block;
@@ -78,11 +80,15 @@ export const styles = [
             }
         }
 
-        .tags-cell {
+        .details-cell {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 4px;
+            gap: 6px;
+        }
+
+        .details-label {
+            color: var(--spectrum-gray-700);
         }
 
         .tags-label {
@@ -170,6 +176,24 @@ export const styles = [
             height: 32px;
             object-fit: contain;
             flex-shrink: 0;
+        }
+
+        .preview-cell {
+            justify-content: flex-start;
+            text-align: start;
+        }
+
+        .preview-cell sp-icon-preview {
+            cursor: default;
+        }
+
+        .actions-cell {
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .actions-cell sp-action-menu {
+            flex: 0 0 auto;
         }
 
         .variation-details-row {

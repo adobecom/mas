@@ -18,6 +18,7 @@ import { expect } from './utilities.js';
 
 const mockService = {
     featureFlags: { [FF_DEFAULTS]: true },
+    getAttribute: () => null,
 };
 
 describe('getSettings', () => {
@@ -40,9 +41,11 @@ describe('getSettings', () => {
     it('returns default settings, if called without arguments', () => {
         expect(getSettings(undefined, mockService)).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             locale: `${Defaults.language}_${Defaults.country}`,
             masIOUrl: 'https://www.adobe.com/mas/io',
             quantity: [Defaults.quantity],
+            hasExplicitCountry: false,
         });
     });
 
@@ -66,12 +69,16 @@ describe('getSettings', () => {
         url.searchParams.set('commerce.env', 'STAGE');
         url.searchParams.set('quantity', '2');
         url.searchParams.set('wcsApiKey', 'testapikey');
-        url.searchParams.set('mas-io-url', 'https://mycustomurl');
+        url.searchParams.set(
+            'mas-io-url',
+            'https://custom.adobeioruntime.net/mas/io',
+        );
         window.history.replaceState({}, '', url.toString());
 
         const config = { commerce: { allowOverride: '' } };
         expect(getSettings(config, mockService)).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             checkoutClientId,
             checkoutWorkflowStep,
             promotionCode,
@@ -86,10 +93,19 @@ describe('getSettings', () => {
             quantity: [2],
             wcsApiKey: 'testapikey',
             locale: 'en_US',
-            masIOUrl: 'https://mycustomurl',
+            masIOUrl: 'https://custom.adobeioruntime.net/mas/io',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
+            hasExplicitCountry: false,
         });
+    });
+
+    it('falls back to the default when mas-io-url is not allowlisted', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mas-io-url', 'https://mycustomurl');
+        window.history.replaceState({}, '', url.toString());
+        const settings = getSettings({}, mockService);
+        expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
     });
 
     it('uses document metadata and storage', () => {
@@ -116,6 +132,7 @@ describe('getSettings', () => {
             ),
         ).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             forceTaxExclusive: true,
             promotionCode: 'promo1',
             country: 'NO',
@@ -127,6 +144,7 @@ describe('getSettings', () => {
             wcsApiKey,
             wcsURL: WCS_STAGE_URL,
             landscape: Landscape.DRAFT,
+            hasExplicitCountry: true,
         });
         window.sessionStorage.removeItem(PARAM_ENV);
     });
@@ -212,6 +230,7 @@ describe('getLocaleSettings', () => {
             locale: `${Defaults.language}_${Defaults.country}`,
             language: Defaults.language,
             country: Defaults.country,
+            hasExplicitCountry: false,
         });
     });
 
@@ -221,6 +240,7 @@ describe('getLocaleSettings', () => {
             locale: `${Defaults.language}_${Defaults.country}`,
             language: Defaults.language,
             country: Defaults.country,
+            hasExplicitCountry: false,
         });
     });
 
@@ -230,6 +250,7 @@ describe('getLocaleSettings', () => {
             locale: 'fr_FR',
             language: 'fr',
             country: 'FR',
+            hasExplicitCountry: true,
         });
     });
 
@@ -239,6 +260,7 @@ describe('getLocaleSettings', () => {
             locale: 'ja_JP',
             language: 'ja',
             country: 'JP',
+            hasExplicitCountry: true,
         });
     });
 
@@ -248,6 +270,7 @@ describe('getLocaleSettings', () => {
             locale: 'de_DE',
             language: 'de',
             country: 'DE',
+            hasExplicitCountry: true,
         });
     });
 
@@ -257,6 +280,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'en',
             country: 'GB',
+            hasExplicitCountry: true,
         });
     });
 
@@ -266,6 +290,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'fr',
             country: 'US',
+            hasExplicitCountry: true,
         });
     });
 
@@ -279,6 +304,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'de',
             country: 'AT',
+            hasExplicitCountry: true,
         });
     });
 
@@ -288,6 +314,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'en',
             country: Defaults.country,
+            hasExplicitCountry: false,
         });
     });
 
@@ -297,6 +324,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_FR',
             language: Defaults.language,
             country: 'FR',
+            hasExplicitCountry: true,
         });
     });
 
@@ -306,6 +334,27 @@ describe('getLocaleSettings', () => {
             locale: 'en_GB',
             language: Defaults.language,
             country: 'GB',
+            hasExplicitCountry: true,
+        });
+    });
+
+    it('maps Puerto Rico to US country while keeping es_PR locale (MWPW-203596)', () => {
+        const result = getLocaleSettings({ locale: 'es_PR' });
+        expect(result).to.deep.equal({
+            locale: 'es_PR',
+            language: 'es',
+            country: 'US',
+            hasExplicitCountry: true,
+        });
+    });
+
+    it('maps explicit PR country to US', () => {
+        const result = getLocaleSettings({ locale: 'es_PR', country: 'PR' });
+        expect(result).to.deep.equal({
+            locale: 'es_PR',
+            language: 'es',
+            country: 'US',
+            hasExplicitCountry: true,
         });
     });
 });

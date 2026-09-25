@@ -1,0 +1,36 @@
+{
+    "path": "/content/dam/mas/test/brand-concierge-product",
+    "name": "",
+    "title": "Brand Concierge Product Card",
+    "id": "brand-concierge-product",
+    "description": "Brand Concierge Product Card",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+    },
+    "fields": {
+        "variant": "brand-concierge-product",
+        "mnemonicIcon": [
+            "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg",
+            "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/lightroom.svg"
+        ],
+        "mnemonicAlt": ["Photoshop", "Lightroom"],
+        "mnemonicLink": ["", ""],
+        "cardTitle": "Photoshop",
+        "cardName": "Photoshop",
+        "prices": {
+            "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\"></span></p>",
+            "mimeType": "text/html"
+        },
+        "promoText": "Get Photoshop and Lightroom for one low price. <a href=\"https://adobe.com/plans\">See all plans &amp; pricing details</a>",
+        "description": {
+            "value": "<p>Get 20+ apps, including Photoshop, Illustrator, and Premiere. <a href=\"https://adobe.com/learn-more\">Learn more</a></p>",
+            "mimeType": "text/html"
+        },
+        "ctas": {
+            "value": "<p><a data-checkout-workflow=\"UCv3\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a></p>",
+            "mimeType": "text/html"
+        },
+        "tags": [],
+        "pznTags": []
+    }
+}

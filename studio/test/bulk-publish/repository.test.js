@@ -37,3 +37,33 @@ describe('MasRepository bulk-publish helpers', () => {
         expect(repo.aem.sites.cf.fragments.getById.calledWith('x')).to.equal(true);
     });
 });
+
+describe('MasRepository.getBulkPublishProjectsPath', () => {
+    let repo;
+    beforeEach(() => {
+        repo = new MasRepository();
+    });
+
+    it('returns subtenant-scoped path when surface is set', () => {
+        repo.search = { value: { path: 'acom-cc' } };
+        expect(repo.getBulkPublishProjectsPath()).to.equal('/content/dam/mas/acom-cc/bulk-publish-projects');
+    });
+
+    it('lowercases the surface segment', () => {
+        repo.search = { value: { path: 'ACOM-DC' } };
+        expect(repo.getBulkPublishProjectsPath()).to.equal('/content/dam/mas/acom-dc/bulk-publish-projects');
+    });
+
+    it('falls back to sandbox when no path is set', () => {
+        repo.search = { value: {} };
+        expect(repo.getBulkPublishProjectsPath()).to.equal('/content/dam/mas/sandbox/bulk-publish-projects');
+    });
+
+    it('exposes the parent path via getBulkPublishParentPath helper', () => {
+        expect(repo.getBulkPublishParentPath('ccd')).to.equal('/content/dam/mas/ccd/bulk-publish-projects');
+    });
+
+    it('getBulkPublishParentPath lowercases the surface', () => {
+        expect(repo.getBulkPublishParentPath('ACOM-CC')).to.equal('/content/dam/mas/acom-cc/bulk-publish-projects');
+    });
+});

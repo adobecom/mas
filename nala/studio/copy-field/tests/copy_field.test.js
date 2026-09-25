@@ -36,6 +36,7 @@ test.describe('M@S Studio Copy Field test suite', () => {
 
         await test.step('step-4: Open Copy Field popover from the side nav', async () => {
             await expect(studio.copyFieldButton).toBeVisible();
+            await studio.copyFieldButton.scrollIntoViewIfNeeded();
             await studio.copyFieldButton.click();
             await expect(studio.copyFieldPopover).toBeVisible({ timeout: 5000 });
         });

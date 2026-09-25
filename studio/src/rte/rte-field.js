@@ -10,11 +10,22 @@ import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
+import { getCtaKeyIssues } from '../editors/variation-utils.js';
+import {
+    getMarkNameForHeadlessVariant,
+    getHeadlessVariantForMarkName,
+    resolveHeadlessDisplayVariant,
+} from './link-variant-utils.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
+import './rte-link-editor.js';
+import './rte-icon-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
+const LINK_KEY_ATTR = 'data-key';
+
+const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
@@ -37,6 +48,7 @@ const CUSTOM_MARKS_DATA = [
     [],
     ['text-s', 'Text S'],
     ['text-l', 'Text L'],
+    ['small', 'Small'],
     [],
     ['promo-text', 'Promo text'],
     ['promo-duration-text', 'Promo duration text'],
@@ -60,14 +72,28 @@ class LinkNodeView {
         }
 
         this.dom.textContent = this.node.textContent || '';
+        this.#applyEmphasis(node);
 
         this.dom.addEventListener('click', (e) => e.preventDefault());
+    }
+
+    /** Reflects a real strong/em mark wrapping this link node (see rte-field.js's
+     *  #marksForHeadlessVariant) as bold/italic on the atom's own text. */
+    #applyEmphasis(node) {
+        const isBold = node.marks?.some((mark) => mark.type.name === 'strong');
+        const isItalic = node.marks?.some((mark) => mark.type.name === 'em');
+        this.dom.style.fontWeight = isBold ? '700' : '';
+        this.dom.style.fontStyle = isItalic ? 'italic' : '';
     }
 
     update(node) {
         if (node.type !== this.node.type) {
             return false;
         }
+        // Preserve the existing key when a transaction drops it, but let an
+        // explicitly authored key (from the link editor) replace it.
+        const oldKey = this.dom.getAttribute(LINK_KEY_ATTR);
+        if (oldKey && node.attrs[LINK_KEY_ATTR] == null) node.attrs[LINK_KEY_ATTR] = oldKey;
         this.node = node;
 
         // Update attributes (excluding 'text')
@@ -81,6 +107,7 @@ class LinkNodeView {
 
         // Update text content
         this.dom.textContent = this.node.textContent || '';
+        this.#applyEmphasis(node);
 
         return true;
     }
@@ -176,6 +203,7 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         divider: { type: Boolean, attribute: 'divider' },
+        emoji: { type: Boolean, attribute: 'emoji' },
         marks: {
             type: Array,
             attribute: 'marks',
@@ -183,8 +211,17 @@ class RteField extends LitElement {
                 fromAttribute: (value) => value.split(','),
             },
         },
+        /** Restricts which basic format buttons (strong/em/strikethrough/underline/superscript) render. Unset (default) shows all, preserving existing behavior for every other rte-field usage. */
+        formatMarks: {
+            type: Array,
+            attribute: 'format-marks',
+            converter: {
+                fromAttribute: (value) => value.split(','),
+            },
+        },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
+        smallActive: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
@@ -195,8 +232,12 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
+        floatingToolbar: { type: Boolean, attribute: 'floating-toolbar' },
         osi: { type: String },
         value: { type: String },
+        isVariation: { type: Boolean, attribute: 'is-variation' },
+        parentCtas: { type: Array },
+        isHeadlessCta: { type: Boolean, attribute: 'is-headless-cta' },
     };
 
     static get styles() {
@@ -230,9 +271,12 @@ class RteField extends LitElement {
                 :host([hide-format-buttons]) #editor {
                     height: 32px;
                     min-height: 32px;
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
+                    /* Vertically center the single line via line-height, NOT flex:
+                       Firefox cannot map a click to a caret position inside a
+                       vertically-centered flex contenteditable, collapsing the caret
+                       to the start of the text. Block layout keeps click-to-caret correct. */
+                    padding: 0 4px;
+                    line-height: 28px;
                     font-size: var(--spectrum-font-size-100);
                 }
 
@@ -256,6 +300,80 @@ class RteField extends LitElement {
                     display: flex;
                     align-items: center;
                     gap: 8px;
+                }
+
+                :host([floating-toolbar]) {
+                    display: block;
+                    gap: 0;
+                }
+
+                :host([floating-toolbar]) sp-action-group[aria-label='RTE toolbar actions'] {
+                    position: fixed;
+                    top: var(--rte-toolbar-top, 8px);
+                    left: var(--rte-toolbar-left, 8px);
+                    z-index: 1000;
+                    box-sizing: border-box;
+                    max-width: calc(100vw - 16px);
+                    padding: 4px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
+                    background: var(--spectrum-white);
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+                }
+
+                :host([floating-toolbar]) #editor-row {
+                    align-items: stretch;
+                    gap: 0;
+                }
+
+                :host([floating-toolbar]) #editor {
+                    align-items: center;
+                    box-sizing: border-box;
+                    display: flex;
+                    line-height: inherit;
+                    min-height: inherit;
+                    padding: 0;
+                    border: 0;
+                    border-radius: 0;
+                    background: transparent;
+                    color: inherit;
+                    outline: none;
+                    outline-offset: 0;
+                }
+
+                :host([floating-toolbar]) .ProseMirror {
+                    box-sizing: border-box;
+                    display: block;
+                    line-height: inherit;
+                    min-height: inherit;
+                    min-width: 0;
+                    overflow-wrap: anywhere;
+                    padding: 4px;
+                    transform: translate(-4px, 1px);
+                    width: 100%;
+                    word-break: break-word;
+                }
+
+                :host([floating-toolbar]) .ProseMirror p {
+                    max-width: 100%;
+                    min-height: 1em;
+                    min-width: 1px;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+
+                :host([floating-toolbar]) .ProseMirror:empty::before,
+                :host([floating-toolbar]) .ProseMirror:has(> br.ProseMirror-trailingBreak)::before {
+                    content: '\\200b';
+                }
+
+                :host([floating-toolbar][focused]) #editor {
+                    outline: none;
+                    outline-offset: 0;
+                }
+
+                :host([floating-toolbar]) #counter {
+                    display: none;
                 }
 
                 #editor-row #editor {
@@ -422,6 +540,7 @@ class RteField extends LitElement {
                     display: block;
                 }
 
+                div.ProseMirror-focused .icon-button.ProseMirror-selectednode,
                 div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
@@ -624,6 +743,12 @@ class RteField extends LitElement {
                     font-size: 14px;
                     font-weight: bold;
                 }
+
+                .small-icon {
+                    font-family: sans-serif;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -641,6 +766,7 @@ class RteField extends LitElement {
         super();
         this.readOnly = false;
         this.isLinkSelected = false;
+        this.smallActive = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
         this.showIconEditor = false;
@@ -652,16 +778,21 @@ class RteField extends LitElement {
         this.uptLink = false;
         this.mnemonic = false;
         this.divider = false;
+        this.emoji = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.floatingToolbar = false;
         this.osi = '';
+        this.isVariation = false;
+        this.parentCtas = [];
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
             addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
+            fixCtaKeys: this.#handleFixCtaKeys.bind(this),
             iconSave: this.#handleIconSave.bind(this),
             mnemonicSave: this.#handleMnemonicSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
@@ -709,6 +840,16 @@ class RteField extends LitElement {
     }
 
     getStylingMark(stylingType, ariaLevel) {
+        if (stylingType === 'small') {
+            return {
+                small: {
+                    group: 'styling',
+                    parseDOM: [{ tag: 'small' }],
+                    toDOM: () => ['small', 0],
+                },
+            };
+        }
+
         return {
             [stylingType]: {
                 attrs: {
@@ -753,8 +894,10 @@ class RteField extends LitElement {
                 'data-perpetual': { default: null },
                 'data-promotion-code': { default: null },
                 'data-force-tax-exclusive': { default: null },
+                'data-quantity': { default: null },
                 'data-template': { default: null },
                 'data-wcs-osi': { default: null },
+                'data-locked-osi': { default: null },
             },
             parseDOM: [
                 {
@@ -813,7 +956,7 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                mnemonicText: domNode.getAttribute('mnemonic-text'),
+                                mnemonicText: domNode.textContent?.trim() || domNode.getAttribute('mnemonic-text'),
                                 mnemonicPlacement: domNode.getAttribute('mnemonic-placement') || 'top',
                             };
                         },
@@ -915,8 +1058,8 @@ class RteField extends LitElement {
                     };
                     if (alt) attrs.alt = alt;
                     if (mnemonicText && mnemonicText.trim() !== '') {
-                        attrs['mnemonic-text'] = mnemonicText.trim();
                         attrs['mnemonic-placement'] = mnemonicPlacement || 'top';
+                        return ['mas-mnemonic', attrs, mnemonicText.trim()];
                     }
                     return ['mas-mnemonic', attrs];
                 },
@@ -932,12 +1075,14 @@ class RteField extends LitElement {
                 attrs: {
                     class: { default: null },
                     href: { default: '' },
+                    'data-key': { default: null },
                     'data-checkout-workflow': { default: null },
                     'data-checkout-workflow-step': { default: null },
                     'data-extra-options': { default: null },
                     'data-perpetual': { default: null },
                     'data-promotion-code': { default: null },
                     'data-wcs-osi': { default: null },
+                    'data-quantity': { default: null },
                     'data-template': { default: null },
                     title: { default: null },
                     target: { default: null },
@@ -947,6 +1092,7 @@ class RteField extends LitElement {
                     'data-entitlement': { default: null },
                     'data-upgrade': { default: null },
                     'data-cta-toggle-text': { default: null },
+                    'data-locked-osi': { default: null },
                 },
                 // Disallow styling marks inside links (they can still wrap them)
                 marks: 'em strong strikethrough underline superscript',
@@ -1017,8 +1163,8 @@ class RteField extends LitElement {
         const plugins = [
             history(),
             keymap({
-                'Mod-b': toggleMark(this.#editorSchema.marks.strong),
-                'Mod-i': toggleMark(this.#editorSchema.marks.em),
+                'Mod-b': (state, dispatch) => this.#ctaAwareToggleMark('strong', state, dispatch),
+                'Mod-i': (state, dispatch) => this.#ctaAwareToggleMark('em', state, dispatch),
                 'Mod-k': () => this.openLinkEditor(),
                 'Mod-s': toggleMark(this.#editorSchema.marks.strikethrough),
                 'Mod-u': toggleMark(this.#editorSchema.marks.underline),
@@ -1081,6 +1227,16 @@ class RteField extends LitElement {
         return element;
     }
 
+    #generateLinkKey() {
+        let suffix = '';
+        const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        for (let i = 0; i < 10; i++) {
+            suffix += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return suffix;
+    }
+
     #createLinkElement(node) {
         const element = document.createElement('a');
 
@@ -1090,6 +1246,11 @@ class RteField extends LitElement {
                 element.setAttribute(key, value);
             }
         }
+
+        if (this.id === 'ctas' && !element.getAttribute(LINK_KEY_ATTR)) {
+            element.setAttribute(LINK_KEY_ATTR, this.#generateLinkKey());
+        }
+
         if (!element.title) element.removeAttribute('title');
         // Serialize and append child nodes (content)
         const fragment = this.#serializer.serializeFragment(node.content);
@@ -1129,9 +1290,14 @@ class RteField extends LitElement {
             container.querySelectorAll('div').forEach((div) => {
                 div.replaceWith(...div.childNodes);
             });
-            container.querySelectorAll('strong > a').forEach((a) => {
-                a.parentElement.replaceWith(a);
-            });
+            // Headless CTAs store bold/italic as a real <strong>/<em> wrapper around the anchor
+            // (see LinkNodeView/#handleLinkSave) so Milo's own block decoration can map it to a
+            // style; every other field keeps the legacy defensive unwrap.
+            if (!this.isHeadlessCta) {
+                container.querySelectorAll('strong > a').forEach((a) => {
+                    a.parentElement.replaceWith(a);
+                });
+            }
             container.querySelectorAll('a').forEach((a) => {
                 if (a.dataset.wcsOsi) {
                     a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
@@ -1175,9 +1341,11 @@ class RteField extends LitElement {
             container.querySelectorAll('div').forEach((div) => {
                 div.replaceWith(...div.childNodes);
             });
-            container.querySelectorAll('strong > a').forEach((a) => {
-                a.parentElement.replaceWith(a);
-            });
+            if (!this.isHeadlessCta) {
+                container.querySelectorAll('strong > a').forEach((a) => {
+                    a.parentElement.replaceWith(a);
+                });
+            }
             container.querySelectorAll('a').forEach((a) => {
                 if (a.dataset.wcsOsi) {
                     a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
@@ -1213,7 +1381,12 @@ class RteField extends LitElement {
             this.#updateSelection(newState);
             this.editorView.updateState(newState);
 
-            if (newState.doc) {
+            // Selection-only transactions (docChanged === false) must not persist: serializing a
+            // ctas field mints missing data-keys (see #createLinkElement), so re-serializing on a
+            // mere CTA selection would silently heal and clear the key-issue warning. Only persist
+            // on real content edits — explicit fixes (fixCtaKeys) and link-editor saves change the
+            // doc and still heal.
+            if (newState.doc && transaction.docChanged) {
                 this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
@@ -1281,11 +1454,12 @@ class RteField extends LitElement {
                 title: selection.node.attrs.title || '',
                 text: selection.node.textContent || '',
                 target: selection.node.attrs.target || '_self',
-                variant: selection.node.attrs.class || '',
+                variant: this.isHeadlessCta ? this.#headlessVariantFromNode(selection.node) : selection.node.attrs.class || '',
                 ariaLabel: selection.node.attrs['aria-label'] || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
                 ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
+                ctaRef: selection.node.attrs[LINK_KEY_ATTR] || '',
             };
         }
 
@@ -1305,6 +1479,7 @@ class RteField extends LitElement {
                 analyticsId: '',
                 checkoutParameters,
                 ctaToggleText: '',
+                ctaRef: '',
             };
         }
 
@@ -1319,23 +1494,30 @@ class RteField extends LitElement {
             analyticsId: '',
             checkoutParameters,
             ctaToggleText: '',
+            ctaRef: '',
         };
     }
 
     #handleIconSave(event) {
+        event.stopPropagation();
         const { tooltip } = event.detail;
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
         const node = state.schema.nodes.icon.create({ title: tooltip || '' });
-        const tr = state.tr.insert(selection.from, node);
-        dispatch(tr);
+        if (selection.node?.type?.name === 'icon') {
+            const tr = state.tr.replaceWith(selection.from, selection.to, node);
+            dispatch(tr);
+        } else {
+            const tr = state.tr.insert(selection.from, node);
+            dispatch(tr);
+        }
 
         this.showIconEditor = false;
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText } = event.detail;
+        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText, ctaRef } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1357,39 +1539,41 @@ class RteField extends LitElement {
             title,
             'aria-label': ariaLabel || null,
             target: target || '_self',
-            class: variant || 'primary-outline',
+            // Headless CTAs never carry a button-style class - Milo maps the real strong/em
+            // wrapper (see #marksForHeadlessVariant) to the context-appropriate style.
+            class: this.isHeadlessCta ? null : variant || 'primary-outline',
             tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
             'data-analytics-id': analyticsId || null,
             'data-cta-toggle-text': ctaToggleText || null,
         };
 
+        if (ctaRef !== undefined) {
+            linkAttrs[LINK_KEY_ATTR] = ctaRef || null;
+        }
+
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
-            const persistedSelectionClasses = ['upt-link'];
-            let classValue = selection.node.attrs.class;
-            if (linkAttrs.class) {
-                let persistedClasses = '';
-                for (const persistedClass of persistedSelectionClasses) {
-                    if (classValue?.includes(persistedClass)) {
-                        persistedClasses += `${persistedClass} `;
-                    }
-                }
-                classValue = `${persistedClasses}${linkAttrs.class}`.trim();
-            }
+            const classValue = this.isHeadlessCta
+                ? this.#mergeLinkVariantClass(selection.node.attrs.class, '')
+                : linkAttrs.class
+                  ? this.#mergeLinkVariantClass(selection.node.attrs.class, linkAttrs.class)
+                  : selection.node.attrs.class;
             const mergedAttributes = {
                 ...selection.node.attrs,
                 ...linkAttrs,
                 class: classValue,
             };
-            const updatedNode = linkNodeType.create(mergedAttributes, content, selection.node?.marks);
+            const nodeMarks = this.isHeadlessCta ? this.#marksForHeadlessVariant(variant) : selection.node?.marks;
+            const updatedNode = linkNodeType.create(mergedAttributes, content, nodeMarks);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
             let marks;
             state.doc.nodesBetween(selection.from, selection.to, (node) => {
                 if (node.type === state.schema.nodes.text) marks = node.marks;
             });
-            const linkNode = linkNodeType.create(linkAttrs, content, marks);
+            const nodeMarks = this.isHeadlessCta ? this.#marksForHeadlessVariant(variant) : marks;
+            const linkNode = linkNodeType.create(linkAttrs, content, nodeMarks);
             tr = selection.empty ? tr.insert(selection.from, linkNode) : tr.replaceWith(selection.from, selection.to, linkNode);
         }
 
@@ -1425,12 +1609,18 @@ class RteField extends LitElement {
             attributes.is === CUSTOM_ELEMENT_INLINE_PRICE ? state.schema.nodes.inlinePrice : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
-            class: selection.node?.attrs.class,
+            class: selection.node?.attrs.class ?? this.ostTargetClass,
             ...attributes,
         };
 
-        const content =
-            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
+        // Preserve the CTA label when editing a checkout link whose text the OST
+        // did not change (e.g. a promo-only edit). The multi-step OST flow collapses
+        // the editor selection before the checkout-link event arrives, so fall back
+        // to the label captured when the CTA was double-clicked.
+        const selectedText =
+            selection.node && selection.node.type === state.schema.nodes.link ? selection.node.textContent : '';
+        const ctaText = attributes.text || selectedText || this.ostTargetText || '';
+        const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && ctaText ? state.schema.text(ctaText) : null;
 
         const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
 
@@ -1455,6 +1645,19 @@ class RteField extends LitElement {
 
         const tr = from === to ? state.tr.insert(from, node) : state.tr.replaceWith(from, to, node);
 
+        // Editing an existing checkout-link via a multi-step OST flow can leave an
+        // empty <a> behind (the host link split on insert). Remove any link node
+        // that ended up with no content and no offer so the editor doesn't keep a
+        // phantom CTA. Walk descending positions so earlier deletes don't shift
+        // the positions of not-yet-removed nodes.
+        const emptyLinkRanges = [];
+        tr.doc.descendants((descNode, pos) => {
+            const isLink = descNode.type === state.schema.nodes.link;
+            const isEmpty = descNode.content.size === 0 && !descNode.attrs?.['data-wcs-osi'];
+            if (isLink && isEmpty) emptyLinkRanges.push({ from: pos, to: pos + descNode.nodeSize });
+        });
+        emptyLinkRanges.sort((a, b) => b.from - a.from).forEach((range) => tr.delete(range.from, range.to));
+
         dispatch(tr);
         this.showOfferSelector = false;
         closeOfferSelectorTool();
@@ -1463,11 +1666,83 @@ class RteField extends LitElement {
     #handleToolbarAction(markType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            const mark = this.#editorSchema.marks[markType];
-            if (mark) {
-                toggleMark(mark)(state, dispatch);
-            }
+            this.#ctaAwareToggleMark(markType, state, dispatch);
         };
+    }
+
+    /**
+     * Bold/Italic on a selected headless CTA link changes its variant instead of toggling a
+     * text mark (the link node is an atom with no mark-aware content), keeping the toolbar's
+     * Mod-b/Mod-i shortcuts and buttons working normally everywhere else.
+     */
+    #ctaAwareToggleMark(markType, state, dispatch) {
+        const isBoldOrItalic = markType === 'strong' || markType === 'em';
+        if (
+            isBoldOrItalic &&
+            this.isHeadlessCta &&
+            state.selection instanceof NodeSelection &&
+            state.selection.node?.type.name === 'link'
+        ) {
+            this.#toggleCtaVariantFromMark(markType);
+            return true;
+        }
+        const mark = this.#editorSchema.marks[markType];
+        return mark ? toggleMark(mark)(state, dispatch) : false;
+    }
+
+    #toggleCtaVariantFromMark(markType) {
+        const { selection } = this.editorView.state;
+        const currentVariant = this.#headlessVariantFromNode(selection.node);
+        const targetVariant = markType === 'strong' ? 'primary' : 'secondary';
+        this.#applyLinkVariant(currentVariant === targetVariant ? 'secondary-link' : targetVariant);
+    }
+
+    /** A headless CTA's current variant, derived from its own strong/em node-mark (see
+     *  #marksForHeadlessVariant), falling back to its stored class for CTAs authored before
+     *  real marks existed. */
+    #headlessVariantFromNode(node) {
+        if (!node) return 'secondary-link';
+        const markName = node.marks?.find((mark) => mark.type.name === 'strong' || mark.type.name === 'em')?.type.name;
+        return markName ? getHeadlessVariantForMarkName(markName) : resolveHeadlessDisplayVariant(node.attrs.class);
+    }
+
+    /** The strong/em node-mark (see the link NodeSpec's "marks" - node-level, not content) that
+     *  represents a headless CTA variant, so Milo can map bold/italic to the context-appropriate
+     *  button style without MAS ever setting a style/class itself. */
+    #marksForHeadlessVariant(variant) {
+        const markName = getMarkNameForHeadlessVariant(variant);
+        const markType = markName && this.#editorSchema.marks[markName];
+        return markType ? [markType.create()] : [];
+    }
+
+    /** Preserves the 'upt-link' persisted class while swapping in a new variant class. */
+    #mergeLinkVariantClass(existingClass, newClass) {
+        const persistedSelectionClasses = ['upt-link'];
+        let persistedClasses = '';
+        for (const persistedClass of persistedSelectionClasses) {
+            if (existingClass?.includes(persistedClass)) {
+                persistedClasses += `${persistedClass} `;
+            }
+        }
+        return `${persistedClasses}${newClass}`.trim();
+    }
+
+    /** Applies a new headless CTA variant to the selected link node as a real strong/em mark
+     *  (no class), e.g. from the toolbar Bold/Italic sync. */
+    #applyLinkVariant(newVariant) {
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+        if (selection.node?.type.name !== 'link') return;
+        const mergedAttributes = {
+            ...selection.node.attrs,
+            class: this.#mergeLinkVariantClass(selection.node.attrs.class, ''),
+        };
+        const updatedNode = state.schema.nodes.link.create(
+            mergedAttributes,
+            selection.node.content,
+            this.#marksForHeadlessVariant(newVariant),
+        );
+        dispatch(state.tr.replaceWith(selection.from, selection.to, updatedNode));
     }
 
     #handleStylingMenuOpen(event) {
@@ -1548,11 +1823,23 @@ class RteField extends LitElement {
     #updateSelection(state) {
         const { selection } = state;
         this.isLinkSelected = selection.node?.type.name === 'link' && !selection.node.attrs['data-wcs-osi'];
+        this.smallActive = this.#isMarkActive(state, 'small');
+    }
+
+    #isMarkActive(state, markName) {
+        const markType = state.schema.marks[markName];
+        if (!markType) return false;
+
+        const { empty, from, to, $from } = state.selection;
+        if (empty) {
+            return Boolean((state.storedMarks || $from.marks()).some((mark) => mark.type === markType));
+        }
+        return state.doc.rangeHasMark(from, to, markType);
     }
 
     #updateLength() {
         if (this.editorView && this.editorView.dom) {
-            this.length = this.editorView.dom.innerText.length;
+            this.length = this.editorView.dom.innerText.replace(/\n/g, '').length;
         }
     }
 
@@ -1581,20 +1868,96 @@ class RteField extends LitElement {
 
     async openLinkEditor() {
         const attrs = this.#getLinkAttrs();
+        const node = this.editorView?.state?.selection?.node;
+        const showCtaReference = this.id === 'ctas' || !!node?.attrs?.[LINK_KEY_ATTR];
+        // The reference key is generated on creation and shown read-only, so mint it
+        // now when a CTA link has none yet rather than waiting for serialization.
+        if (showCtaReference && !attrs.ctaRef) attrs.ctaRef = this.#generateLinkKey();
+        // On a variation the reference targets the parent's CTAs; on a baseline it targets this
+        // field's own CTAs. Either set may carry legacy (missing) or duplicated keys to flag.
+        let ctaKeyIssues = { missingCount: 0, duplicateKeys: [], hasIssues: false };
+        if (this.id === 'ctas') {
+            ctaKeyIssues = getCtaKeyIssues(this.isVariation ? this.parentCtas : this.#collectCtaKeys());
+        }
         this.showLinkEditor = true;
         await this.updateComplete;
-        Object.assign(this.linkEditorElement, { ...attrs, open: true });
+        Object.assign(this.linkEditorElement, {
+            ...attrs,
+            showCtaReference,
+            isVariation: this.isVariation,
+            parentCtas: this.parentCtas,
+            ctaKeyIssues,
+            isHeadlessCta: this.isHeadlessCta,
+            open: true,
+        });
+    }
+
+    /** Reference keys of every link in the current editor content, in document order. */
+    #collectCtaKeys() {
+        const ctas = [];
+        this.editorView?.state.doc.descendants((node) => {
+            if (node.type.name === 'link') ctas.push({ key: node.attrs[LINK_KEY_ATTR] });
+        });
+        return ctas;
+    }
+
+    /** Assigns a fresh unique key to every link missing one or sharing a key with an earlier link,
+     *  leaving already-unique keys untouched so existing references keep resolving. Public so both
+     *  the link editor and the field-level indicator can trigger the same normalization. */
+    fixCtaKeys() {
+        const { state, dispatch } = this.editorView;
+        let tr = state.tr;
+        const seen = new Set();
+        state.doc.descendants((node, pos) => {
+            if (node.type.name !== 'link') return;
+            let key = node.attrs[LINK_KEY_ATTR];
+            if (!key || seen.has(key)) {
+                do {
+                    key = this.#generateLinkKey();
+                } while (seen.has(key));
+                tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, [LINK_KEY_ATTR]: key });
+            }
+            seen.add(key);
+        });
+        if (tr.docChanged) dispatch(tr);
+    }
+
+    #handleFixCtaKeys() {
+        this.fixCtaKeys();
+        // Refresh the open link editor with the current link's (possibly new) key and cleared issues.
+        Object.assign(this.linkEditorElement, {
+            ctaRef: this.editorView.state.selection.node?.attrs?.[LINK_KEY_ATTR] ?? this.linkEditorElement.ctaRef,
+            ctaKeyIssues: getCtaKeyIssues(this.#collectCtaKeys()),
+        });
     }
 
     async openIconEditor() {
         this.showIconEditor = true;
         await this.updateComplete;
-        Object.assign(this.iconEditorElement, { open: true });
+
+        const { state } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+
+        let tooltip = '';
+        state.doc.nodesBetween(from, to, (node) => {
+            if (node.type?.name === 'icon') {
+                tooltip = node.attrs?.title;
+            }
+        });
+        Object.assign(this.iconEditorElement, { open: true, tooltip });
     }
 
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        // A toolbar/button open (real event) is a fresh insert, not an edit of a
+        // double-clicked CTA — forget any remembered label and class.
+        if (event) {
+            this.ostTargetText = null;
+            this.ostTargetClass = null;
+        }
         if (!element && this.osi) {
             element = this.selectedMerchLink;
             if (!element) {
@@ -1674,8 +2037,14 @@ class RteField extends LitElement {
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
             if (prosemirrorNodeAtClick && prosemirrorNodeAtClick.attrs['data-wcs-osi']) {
-                ostRteFieldSource = this;
-                this.showOfferSelector = true;
+                const selection = NodeSelection.create(view.state.doc, nodePos);
+                view.dispatch(view.state.tr.setSelection(selection));
+                // Remember the CTA label so a promo-only OST edit can restore it
+                // (the multi-step flow collapses the selection before "Use").
+                // handleOpenOfferSelector(null, …) sets ostRteFieldSource and
+                // showOfferSelector; passing null preserves the label above.
+                this.ostTargetText = prosemirrorNodeAtClick.textContent || '';
+                this.ostTargetClass = prosemirrorNodeAtClick.attrs.class || '';
                 this.handleOpenOfferSelector(null, osiDomTarget);
                 return true;
             }
@@ -1689,6 +2058,13 @@ class RteField extends LitElement {
             // --- Restore selection and modal opening ---
             this.selectMnemonic(nodePos);
             this.openMnemonicEditorForExisting(node);
+            return true;
+        }
+
+        if (node?.type.name === 'icon') {
+            event.stopPropagation();
+            event.preventDefault();
+            this.openIconEditor();
             return true;
         }
 
@@ -1725,6 +2101,7 @@ class RteField extends LitElement {
             dialog
             .linkAttrs=${attributes}
             @save="${this.#boundHandlers.linkSave}"
+            @fix-cta-keys="${this.#boundHandlers.fixCtaKeys}"
         ></rte-link-editor>`;
     }
 
@@ -1756,6 +2133,10 @@ class RteField extends LitElement {
         return this.shadowRoot.querySelector('rte-mnemonic-editor');
     }
 
+    get iconEditorButtonElement() {
+        return this.shadowRoot.querySelector('#addIconButton');
+    }
+
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
@@ -1764,7 +2145,7 @@ class RteField extends LitElement {
                 : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                       ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                       ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
-                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#emojiButton}
                   </sp-action-group>`}
             <div id="editor-row">
                 <div id="editor"></div>
@@ -1803,6 +2184,16 @@ class RteField extends LitElement {
             <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
                 <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
+        `;
+    }
+
+    get #emojiButton() {
+        if (!this.emoji) return nothing;
+        return html`
+            <sp-action-menu id="emojiMenu" title="Insert Emoji" placement="bottom">
+                <span slot="icon">ℹ️</span>
+                ${DEFAULT_EMOJIS.map((e) => html`<sp-menu-item @click=${() => this.#insertEmoji(e)}>${e}</sp-menu-item>`)}
+            </sp-action-menu>
         `;
     }
 
@@ -1852,42 +2243,65 @@ class RteField extends LitElement {
 
     get #formatButtons() {
         if (this.hideFormatButtons) return nothing;
+        const showMark = (mark) => !this.formatMarks || this.formatMarks.includes(mark);
         return html`
-            <sp-action-button
-                @click=${this.#handleToolbarAction('strong')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Bold (Command+B)"
-            >
-                <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('em')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Italic (Command+I)"
-            >
-                <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('strikethrough')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Strikethrough (Command+S)"
-            >
-                <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('underline')}
-                title="Underline (Command+U)"
-                @mousedown=${(e) => e.preventDefault()}
-            >
-                <sp-icon-underline slot="icon"></sp-icon-underline>
-            </sp-action-button>
-            <sp-action-button
-                @click=${this.#handleToolbarAction('superscript')}
-                @mousedown=${(e) => e.preventDefault()}
-                title="Superscript (Command+Shift+.)"
-            >
-                <span slot="icon" class="superscript-icon">x²</span>
-            </sp-action-button>
+            ${showMark('strong')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('strong')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Bold (Command+B)"
+                  >
+                      <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('em')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('em')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Italic (Command+I)"
+                  >
+                      <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('strikethrough')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('strikethrough')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Strikethrough (Command+S)"
+                  >
+                      <sp-icon-text-strikethrough slot="icon"></sp-icon-text-strikethrough>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('underline')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('underline')}
+                      title="Underline (Command+U)"
+                      @mousedown=${(e) => e.preventDefault()}
+                  >
+                      <sp-icon-underline slot="icon"></sp-icon-underline>
+                  </sp-action-button>`
+                : nothing}
+            ${showMark('superscript')
+                ? html`<sp-action-button
+                      @click=${this.#handleToolbarAction('superscript')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Superscript (Command+Shift+.)"
+                  >
+                      <span slot="icon" class="superscript-icon">x²</span>
+                  </sp-action-button>`
+                : nothing}
+            ${this.marks?.includes('small')
+                ? html`<sp-action-button
+                      id="smallButton"
+                      ?selected=${this.smallActive}
+                      aria-pressed=${this.smallActive ? 'true' : 'false'}
+                      @click=${() => this.handleStylingAction('small')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Small"
+                  >
+                      <span slot="icon" class="small-icon">S</span>
+                  </sp-action-button>`
+                : nothing}
         `;
     }
 
@@ -1959,6 +2373,14 @@ class RteField extends LitElement {
             mnemonicText: '', // Ensure mnemonic fields are reset too
             mnemonicPlacement: 'top',
         });
+    }
+
+    #insertEmoji(emoji) {
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+        const tr = state.tr.insertText(emoji, selection.from, selection.to);
+        dispatch(tr);
+        this.editorView.focus();
     }
 
     addDivider() {

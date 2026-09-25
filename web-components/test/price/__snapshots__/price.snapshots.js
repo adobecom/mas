@@ -31,7 +31,7 @@ export const taxExclusive =
 export const discount =
     '<span is="inline-price" data-quantity="1" data-wcs-osi="abm-promo" data-template="discount" class="placeholder-resolved"><span class="discount">20%</span></span>';
 export const noDiscount =
-    '<span is="inline-price" data-quantity="1" data-wcs-osi="abm" data-template="discount" class="placeholder-resolved"><span class="no-discount"></span></span>';
+    '<span is="inline-price" data-quantity="1" data-wcs-osi="abm" data-template="discount" class="placeholder-resolved"><span class="discount">0%</span></span>';
 export const abm1 =
     '<span is="inline-price" data-quantity="1" data-wcs-osi="abm" class="placeholder-resolved"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-currency-space disabled"></span><span class="price-integer">54</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">99</span><span class="price-recurrence">/mo</span><span class="price-unit-type">per license</span><span class="price-tax-inclusivity disabled"></span></span></span>';
 export const abm2 =

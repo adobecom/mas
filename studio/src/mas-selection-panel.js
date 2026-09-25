@@ -1,9 +1,12 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES, STAGED } from './constants.js';
+import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
-import { generateCodeToUse } from './utils.js';
+import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
+import { generateLinkToUse, showToast } from './utils.js';
+import { privacyServicesIcon } from './icons.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -12,6 +15,11 @@ class MasSelectionPanel extends LitElement {
             left: 50%;
             transform: translateX(-50%);
             z-index: 9999;
+        }
+
+        .button-staged svg {
+            position: relative;
+            top: 5px;
         }
     `;
 
@@ -83,15 +91,19 @@ class MasSelectionPanel extends LitElement {
             return this.onCopyToFolder(firstSelection.get());
         }
 
-        const fragmentStore = Store.fragments.list.data
-            .get()
-            .find((store) => store.get().id === firstSelection || store.get().id === firstSelection?.id);
+        const fragment =
+            firstSelection?.id && typeof firstSelection !== 'string'
+                ? firstSelection
+                : findFragmentDataById(
+                      typeof firstSelection === 'string' ? firstSelection : firstSelection?.id,
+                      Store.fragments.list.data.get(),
+                  );
 
-        const fragment = fragmentStore?.get() || firstSelection;
+        if (!fragment) return;
         this.onCopyToFolder(fragment);
     }
 
-    async handlePublish(event) {
+    async handlePublish() {
         if (!this.repository) {
             console.error('Repository not found');
             return;
@@ -100,7 +112,6 @@ class MasSelectionPanel extends LitElement {
         const selection = this.selection;
         if (!selection || selection.length === 0) return;
 
-        // Extract fragment IDs from selection (selection can be IDs or fragment objects)
         const fragmentIds = selection
             .map((item) => {
                 if (typeof item === 'string') return item;
@@ -112,11 +123,99 @@ class MasSelectionPanel extends LitElement {
 
         if (fragmentIds.length === 0) return;
 
+        const allVariations = [];
+        const allCards = [];
+        const seen = new Set();
+
+        const hydratedFragments = await Promise.all(
+            fragmentIds.map((id) => this.repository.aem.sites.cf.fragments.getById(id).catch(() => null)),
+        );
+
+        for (const fragmentData of hydratedFragments) {
+            if (!fragmentData) continue;
+            const variationPaths = new Set(fragmentData.fields?.find((f) => f.name === 'variations')?.values ?? []);
+            const cardPaths = new Set([
+                ...(fragmentData.fields?.find((f) => f.name === 'cards')?.values ?? []),
+                ...(fragmentData.fields?.find((f) => f.name === 'collections')?.values ?? []),
+            ]);
+            for (const ref of fragmentData.references || []) {
+                if (!ref?.id || seen.has(ref.id)) continue;
+                if (variationPaths.has(ref.path)) {
+                    seen.add(ref.id);
+                    allVariations.push(ref);
+                } else if (cardPaths.has(ref.path)) {
+                    seen.add(ref.id);
+                    allCards.push(ref);
+                }
+            }
+        }
+
+        if (allVariations.length || allCards.length) {
+            const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
+            const result = await MasPublishDialog.show({ variations: allVariations, cards: allCards });
+            if (!result.confirmed) return;
+            for (const id of result.selectedIds) {
+                if (!fragmentIds.includes(id)) fragmentIds.push(id);
+            }
+        }
+
+        const anyStaged = [...hydratedFragments, ...allCards, ...allVariations].some((fragment) => {
+            let staged = false;
+            if (!staged && fragmentIds.includes(fragment.id)) {
+                const fragmentObj = new Fragment(fragment);
+                if (fragmentObj.isStaged) staged = true;
+            }
+            return staged;
+        });
+        if (anyStaged) {
+            const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+            const result = await MasPublishStagedDialog.show(true);
+            if (!result.confirmed) return;
+        }
+
         const success = await this.repository.bulkPublishFragments(fragmentIds);
         if (success) {
-            // Clear selection after successful publish
             this.selectionStore.set([]);
         }
+    }
+
+    async handleMarkStaged() {
+        if (!this.repository) {
+            console.error('Repository not found');
+            return;
+        }
+
+        const savedIds = [];
+        const savedFragments = [];
+        await Promise.all(
+            this.selection.map(async (id) => {
+                const data = await this.repository.aem.sites.cf.fragments.getById(id);
+                const fragment = new Fragment(data);
+                if (fragment.isStaged) return;
+                const oldTags = fragment.getFieldValues('tags') || [];
+                const tags = [...oldTags];
+                tags.push(STAGED.TAG);
+                fragment.updateField('tags', tags);
+                savedFragments[id] = await this.repository.aem.sites.cf.fragments.save(fragment);
+                savedIds.push(id);
+            }),
+        );
+
+        Store.fragments.list.data.set((prev) => {
+            return [...prev].map((fragmentStore) => {
+                const fragment = fragmentStore.get();
+                if (savedIds.includes(fragment?.id)) {
+                    const tags = fragment.getFieldValues('tags') || [];
+                    tags.push(STAGED.TAG);
+                    fragment.updateField('tags', tags);
+                    fragment.tags = savedFragments[fragment.id]?.tags || fragment.tags;
+                }
+                return fragmentStore;
+            });
+        });
+
+        this.selectionStore.set([]);
+        showToast('Fragments marked as Staged.', 'positive');
     }
 
     handleUnpublish(event) {
@@ -132,22 +231,10 @@ class MasSelectionPanel extends LitElement {
         if (!selection || selection.length === 0) return;
 
         const path = Store.search.get().path;
-        const fragments = selection
-            .map((item) => {
-                if (item?.get) return item.get();
-                if (item?.id) return item;
-                const id = typeof item === 'string' ? item : null;
-                return (
-                    Store.fragments.list.data
-                        .get()
-                        .find((s) => s.get().id === id)
-                        ?.get() ?? null
-                );
-            })
-            .filter(Boolean);
+        const fragments = resolveFragmentsFromSelection(selection, Store.fragments.list.data.get());
 
         const results = fragments
-            .map((fragment) => generateCodeToUse(fragment, path, PAGE_NAMES.CONTENT))
+            .map((fragment) => generateLinkToUse(fragment, path, PAGE_NAMES.CONTENT))
             .filter((result) => result?.code && result?.richText && result?.href);
 
         if (results.length === 0) return;
@@ -164,10 +251,10 @@ class MasSelectionPanel extends LitElement {
             ]);
             Events.toast.emit({
                 variant: 'positive',
-                content: `Copied ${results.length} code snippet${results.length > 1 ? 's' : ''} to clipboard`,
+                content: `Copied ${results.length} link${results.length > 1 ? 's' : ''} to clipboard`,
             });
         } catch {
-            Events.toast.emit({ variant: 'negative', content: 'Failed to copy code to clipboard' });
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy link to clipboard' });
         }
     }
 
@@ -198,15 +285,26 @@ class MasSelectionPanel extends LitElement {
                       </sp-action-button>`
                 : nothing}
             ${count > 0
+                ? html`<sp-action-button
+                      slot="buttons"
+                      class="button-staged"
+                      label="Mark as Staged"
+                      @click=${this.handleMarkStaged}
+                  >
+                      ${privacyServicesIcon}
+                      <sp-tooltip self-managed placement="top">Mark as Staged</sp-tooltip>
+                  </sp-action-button>`
+                : nothing}
+            ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>
                       <sp-icon-delete slot="icon"></sp-icon-delete>
                       <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0 && this.onCopyStudioLinks
-                ? html`<sp-action-button slot="buttons" label="Copy cards links" @click=${this.handleCopyStudioLinks}>
+                ? html`<sp-action-button slot="buttons" label="Copy Studio Link(s)" @click=${this.handleCopyStudioLinks}>
                       <sp-icon-copy slot="icon"></sp-icon-copy>
-                      <sp-tooltip self-managed placement="top">Copy links</sp-tooltip>
+                      <sp-tooltip self-managed placement="top">Copy link(s) to open in Studio editor</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0
@@ -231,10 +329,10 @@ class MasSelectionPanel extends LitElement {
                       <sp-tooltip self-managed placement="top">Unpublish</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
-            ${count > 0
-                ? html`<sp-action-button slot="buttons" label="Copy Code" @click=${this.handleCopyFragmentUrls}>
-                      <sp-icon-code slot="icon"></sp-icon-code>
-                      <sp-tooltip self-managed placement="top">Copy Code</sp-tooltip>
+            ${count > 0 && this.repository
+                ? html`<sp-action-button slot="buttons" label="Copy Content Link(s)" @click=${this.handleCopyFragmentUrls}>
+                      <sp-icon-link slot="icon"></sp-icon-link>
+                      <sp-tooltip self-managed placement="top">Copy link(s) to paste into authored documents</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
         </sp-action-bar>`;

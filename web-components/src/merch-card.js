@@ -11,7 +11,6 @@ import {
 } from './variants/variants.js';
 
 import './global.css.js';
-import './aem-fragment.js';
 import './merch-badge.js';
 import './merch-mnemonic-list.js';
 import './merch-whats-included.js';
@@ -35,8 +34,21 @@ import {
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
-import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
-import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import {
+    getService,
+    printMeasure,
+    setForegroundTimeout,
+    clearForegroundTimeout,
+} from './utils.js';
+import { toPromotionCodes } from './utilities.js';
+import { hostOsi } from './plan-type-text.js';
+import {
+    applyContextPromotionCode,
+    applyDisplayAnnualDefault,
+    applyHideStPriceLabels,
+    mergePriceLiterals,
+    registerContextOptionsProviders,
+} from './mas-context.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -47,27 +59,19 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
     'simplified-pricing-express',
 ];
 
-const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment', 'product'];
+const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
+    'segment',
+    'product',
+    'plans-education',
+    'mini-compare-chart-mweb',
+];
 
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
-    if (card.priceLiterals) {
-        options.literals ??= {};
-        Object.assign(options.literals, card.priceLiterals);
-    }
-
-    if (shouldHideStPriceLabels(element)) {
-        options.displayPerUnit = false;
-        options.displayTax = false;
-    }
-
-    if (
-        !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
-    ) {
-        options.promotionCode = card.contextPromotionCode;
-    }
+    mergePriceLiterals(card.priceLiterals, options);
+    applyHideStPriceLabels(element, options);
+    applyContextPromotionCode(card, options);
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }
@@ -75,26 +79,21 @@ function priceOptionsProvider(element, options) {
     if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
         options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
     }
+    applyDisplayAnnualDefault(card, options);
 }
 
 function checkoutOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
-    if (
-        !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
-    ) {
-        options.promotionCode = card.contextPromotionCode;
-    }
+    applyContextPromotionCode(card, options);
 }
 
 function registerOptionsProviders(masCommerceService) {
-    if (!masCommerceService.providers.has(priceOptionsProvider)) {
-        masCommerceService.providers.price(priceOptionsProvider);
-    }
-    if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
-        masCommerceService.providers.checkout(checkoutOptionsProvider);
-    }
+    registerContextOptionsProviders(
+        masCommerceService,
+        priceOptionsProvider,
+        checkoutOptionsProvider,
+    );
 }
 
 const intersectionObserver = new IntersectionObserver((entries) => {
@@ -109,7 +108,9 @@ const intersectionObserver = new IntersectionObserver((entries) => {
         if (VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(card.variant)) {
             if (entry.boundingClientRect.width === 0) return;
             if (
-                card.variant === 'product' &&
+                (card.variant === 'product' ||
+                    card.variant === 'mini-compare-chart-mweb' ||
+                    card.variant === 'plans-education') &&
                 card.querySelector('merch-icon[slot="icons"]')
             ) {
                 intersectionObserver.unobserve(card);
@@ -117,9 +118,9 @@ const intersectionObserver = new IntersectionObserver((entries) => {
             }
 
             const cardWidth = card.getBoundingClientRect().width;
-            const badgeEl = card.querySelector('[slot="badge"]');
+            const badgeEl = card.querySelector('[slot="badge"] > merch-badge');
             const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
-            if (cardWidth === 0 || badgeWidth === 0) {
+            if (cardWidth === 0 || !badgeEl) {
                 intersectionObserver.unobserve(card);
                 return;
             }
@@ -239,7 +240,21 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    contextPromotionCode;
+    #contextPromotionCode;
+
+    get contextPromotionCode() {
+        return this.#contextPromotionCode;
+    }
+
+    set contextPromotionCode(value) {
+        this.#contextPromotionCode = value;
+        if (value) {
+            this.setAttribute('data-promotion-code', value);
+        } else {
+            this.removeAttribute('data-promotion-code');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -273,6 +288,7 @@ export class MerchCard extends LitElement {
         this.spectrum = 'css';
         this.loading = 'lazy';
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
+        this.handleMasReady = this.handleMasReady.bind(this);
         this.handleMerchOfferSelectReady =
             this.handleMerchOfferSelectReady.bind(this);
     }
@@ -567,6 +583,19 @@ export class MerchCard extends LitElement {
         }
     }
 
+    additionalModalTriggers() {
+        if (!this.settings?.additionalModalTriggers) return;
+
+        const mapping = this.variantLayout.aemFragmentMapping.title;
+        this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
+        this.makeElementModalTrigger('merch-icon', 'icons');
+    }
+
+    handleMasReady() {
+        this.handleInfoIconEvents();
+        this.additionalModalTriggers();
+    }
+
     /* c8 ignore next 3 */
     includes(text) {
         return this.textContent.match(new RegExp(text, 'i')) !== null;
@@ -608,7 +637,7 @@ export class MerchCard extends LitElement {
         // aem-fragment logic
         this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.addEventListener(EVENT_MAS_READY, this.handleInfoIconEvents);
+        this.addEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.addEventListener('change', this.changeHandler);
 
         if (this.variantLayout) {
@@ -617,6 +646,33 @@ export class MerchCard extends LitElement {
 
         if (!this.aemFragment) {
             setTimeout(() => this.checkReady(), 0);
+        }
+    }
+
+    makeElementModalTrigger(tag, slot) {
+        const isIcon = tag === 'merch-icon';
+        const trigger = this.querySelector(
+            `${tag}[slot="${slot}"]:not(.modal-trigger)`,
+        );
+        if (!trigger) return;
+        const cta = this.querySelector(
+            'a.button.placeholder-resolved[data-modal]',
+        );
+        if (!cta) return;
+        trigger.setAttribute('tabindex', '0');
+        trigger.addEventListener('click', (e) => {
+            cta.checkoutActionHandler?.(e);
+        });
+        trigger.addEventListener('keypress', (e) => {
+            if (e.code === 'Enter') cta.checkoutActionHandler?.(e);
+        });
+        trigger.classList.add('modal-trigger');
+        const titleDaaLL = this.title.replace(/\s+/g, '-').toLowerCase();
+        const daaLL = `${titleDaaLL}${isIcon ? '-icon' : ''}--${this.analyticsId}--card`;
+        trigger.setAttribute('daa-ll', daaLL);
+        trigger.setAttribute('role', 'link');
+        if (isIcon) {
+            trigger.setAttribute('alt', this.title);
         }
     }
 
@@ -630,7 +686,7 @@ export class MerchCard extends LitElement {
         );
         this.removeEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.removeEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.removeEventListener(EVENT_MAS_READY, this.handleInfoIconEvents);
+        this.removeEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.removeEventListener('change', this.changeHandler);
         this.removeEventListener(
             EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
@@ -654,7 +710,7 @@ export class MerchCard extends LitElement {
                             this.#resolveHydration = resolve;
                         });
                     }
-                    hydrate(fragment, this);
+                    await hydrate(fragment, this);
                 } catch (e) {
                     this.#fail(`hydration has failed: ${e.message}`);
                 } finally {
@@ -672,7 +728,7 @@ export class MerchCard extends LitElement {
         let fragmentId = aemFragment?.getAttribute('fragment');
         fragmentId = `[${fragmentId}]`;
         const detail = {
-            ...this.aemFragment.fetchInfo,
+            ...aemFragment?.fetchInfo,
             ...this.#service.duration,
             ...details,
             message: error,
@@ -709,9 +765,13 @@ export class MerchCard extends LitElement {
             await this.variantLayoutPromise;
             this.variantLayoutPromise = undefined;
         }
-        const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve('timeout'), MERCH_CARD_LOAD_TIMEOUT),
-        );
+        let timeoutId;
+        const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setForegroundTimeout(
+                () => resolve('timeout'),
+                MERCH_CARD_LOAD_TIMEOUT,
+            );
+        });
         if (this.aemFragment) {
             const result = await Promise.race([
                 this.aemFragment.updateComplete,
@@ -722,23 +782,40 @@ export class MerchCard extends LitElement {
                     result === 'timeout'
                         ? `AEM fragment was not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout`
                         : 'AEM fragment cannot be loaded';
+                clearForegroundTimeout(timeoutId);
                 this.#fail(errorMessage, {}, false);
                 return;
             }
         }
         const masElements = [...this.querySelectorAll(SELECTOR_MAS_ELEMENT)];
         const successPromise = Promise.all(
-            masElements.map((element) =>
-                element.onceSettled().catch(() => element),
-            ),
-        ).then((elements) =>
-            elements.every((el) =>
-                el.classList.contains('placeholder-resolved'),
-            ),
-        );
+            masElements.map((element) => {
+                const settled = element.onceSettled?.();
+                if (!settled) return Promise.resolve(element);
+                return settled.catch(() => element);
+            }),
+        ).then((elements) => {
+            const active = elements.filter((el) => el.isConnected);
+            return (
+                active.length === 0 ||
+                active.every((el) =>
+                    el.classList.contains('placeholder-resolved'),
+                )
+            );
+        });
         const result = await Promise.race([successPromise, timeoutPromise]);
+        clearForegroundTimeout(timeoutId);
 
-        if (result === true) {
+        if (!this.isConnected) return;
+
+        const connectedMasElements = masElements.filter((el) => el.isConnected);
+        const allResolved =
+            connectedMasElements.length === 0 ||
+            connectedMasElements.every((el) =>
+                el.classList.contains('placeholder-resolved'),
+            );
+
+        if (allResolved) {
             this.measure = performance.measure(
                 this.#durationMarkName,
                 this.#startMarkName,
@@ -771,7 +848,7 @@ export class MerchCard extends LitElement {
                     details,
                 );
             } else {
-                const ctaFailed = masElements.some(
+                const ctaFailed = connectedMasElements.some(
                     (el) =>
                         el.matches(SELECTOR_MAS_CHECKOUT_LINK) &&
                         el.classList.contains('placeholder-failed'),
@@ -827,7 +904,9 @@ export class MerchCard extends LitElement {
         return this.querySelector('[slot="price"]');
     }
 
-    handleAddonAndQuantityUpdate({ detail: { id, items } }) {
+    handleAddonAndQuantityUpdate({
+        detail: { id, items, productArrangementCode },
+    }) {
         if (!id || !items?.length) return;
         const parentTab = this.closest('[role="tabpanel"][hidden="true"]');
         if (parentTab) return;
@@ -836,8 +915,9 @@ export class MerchCard extends LitElement {
             (link) => link.getAttribute('data-modal-id') === id,
         );
         if (!cta) return;
-        const url = new URL(cta.getAttribute('href'));
-        const pa = url.searchParams.get('pa');
+        const pa =
+            productArrangementCode ?? cta.value?.[0]?.productArrangementCode;
+        if (!pa) return;
         const mainProductQuantity = items.find(
             (item) => item.productArrangementCode === pa,
         )?.quantity;
@@ -873,6 +953,10 @@ export class MerchCard extends LitElement {
 
     get prices() {
         return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
+    }
+
+    get osi() {
+        return hostOsi(this);
     }
 
     get promoPrice() {
@@ -913,10 +997,10 @@ export class MerchCard extends LitElement {
                 `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`,
             ),
         ]
-            .map((el) => el.dataset.promotionCode)
+            .map((el) => toPromotionCodes(el.dataset.promotionCode)[0])
             .filter(
                 (promotionCode) =>
-                    ![undefined, 'cancel-context'].includes(promotionCode),
+                    ![undefined, '', 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
             return this.contextPromotionCode;

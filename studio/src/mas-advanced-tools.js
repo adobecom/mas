@@ -3,7 +3,7 @@ import router from './router.js';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import { PAGE_NAMES } from './constants.js';
-import { canAccessSettings } from './groups.js';
+import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 
 class MasAdvancedTools extends LitElement {
     static styles = css`
@@ -107,7 +107,9 @@ class MasAdvancedTools extends LitElement {
         }
 
         .tool-card-icon sp-icon-publish,
-        .tool-card-icon sp-icon-settings {
+        .tool-card-icon sp-icon-settings,
+        .tool-card-icon sp-icon-copy,
+        .tool-card-icon sp-icon-shopping-cart {
             width: 100%;
             height: 100%;
         }
@@ -158,6 +160,14 @@ class MasAdvancedTools extends LitElement {
 
     openSettings = () => {
         router.navigateToPage(PAGE_NAMES.SETTINGS)();
+    };
+
+    openMasks = () => {
+        router.navigateToPage(PAGE_NAMES.MASKS)();
+    };
+
+    openOfferMapping = () => {
+        router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
     };
 
     handleKeyActivate(handler) {
@@ -233,6 +243,52 @@ class MasAdvancedTools extends LitElement {
         `;
     }
 
+    get masksCard() {
+        if (!canAccessMasks(Store.surface())) return nothing;
+        return html`
+            <a
+                class="tool-card"
+                role="button"
+                tabindex="0"
+                @click=${this.openMasks}
+                @keydown=${this.handleKeyActivate(this.openMasks)}
+            >
+                <span class="tool-card-icon" aria-hidden="true">
+                    <sp-icon-copy size="xxl"></sp-icon-copy>
+                </span>
+                <div class="tool-card-text">
+                    <span class="tool-card-title">Masks</span>
+                    <span class="tool-card-description">Author reusable card overlays applied at delivery time.</span>
+                </div>
+                ${this.arrowIcon}
+            </a>
+        `;
+    }
+
+    get offerMappingCard() {
+        if (!canAccessOfferMapping(Store.surface())) return nothing;
+        return html`
+            <a
+                class="tool-card"
+                role="button"
+                tabindex="0"
+                @click=${this.openOfferMapping}
+                @keydown=${this.handleKeyActivate(this.openOfferMapping)}
+            >
+                <span class="tool-card-icon" aria-hidden="true">
+                    <sp-icon-shopping-cart size="xxl"></sp-icon-shopping-cart>
+                </span>
+                <div class="tool-card-text">
+                    <span class="tool-card-title">Offer mapping</span>
+                    <span class="tool-card-description"
+                        >Substitute offers by geo at delivery time, as a fallback to promo mappings.</span
+                    >
+                </div>
+                ${this.arrowIcon}
+            </a>
+        `;
+    }
+
     render() {
         return html`
             <div class="container">
@@ -241,7 +297,9 @@ class MasAdvancedTools extends LitElement {
                     <h1 class="title">Advanced tools</h1>
                     <p class="subtitle">Access professional tools to speed up your workflow.</p>
                 </div>
-                <div class="tool-list">${this.bulkPublishCard} ${this.settingsCard}</div>
+                <div class="tool-list">
+                    ${this.bulkPublishCard} ${this.settingsCard} ${this.masksCard} ${this.offerMappingCard}
+                </div>
             </div>
         `;
     }

@@ -11,16 +11,17 @@ import { transformer as defaultLanguage } from './transformers/defaultLanguage.j
 import { transformer as corrector } from './transformers/corrector.js';
 import { transformer as replace } from './transformers/replace.js';
 import { transformer as promotions } from './transformers/promotions.js';
+import { transformer as mask } from './transformers/mask.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
-import { isKnownLocale } from './locales.js';
+import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, wcs, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -126,7 +127,23 @@ async function mainProcess(context) {
             body: JSON.stringify({ message: `unknown locale '${context.locale}'` }),
         };
     }
-    const cachedMetadata = await getRequestMetadata(context);
+    // MWPW-204652: split content vs commerce country at ingress, before the metadata
+    // read and the parallel init fan-out (promotions.init reads context.country).
+    const territory = resolveTerritoryCountries(context.locale, context.country);
+    context.country = territory.country;
+    // MWPW-207865: fetchFragment's init, once `surface` is known, restricts `context.country` itself
+    // to the locale's market family (see restrictCountryToLocaleMarket) — a request country outside
+    // that family (e.g. fr_FR + country=DE, DE not being a registered region of fr_FR) is replaced
+    // by the locale's own country everywhere downstream: promo/grouped-variation matching in
+    // customize, geo-tag settings overrides, and WCS pricing all end up keyed on the same restricted
+    // country. promotions.init's own project listing runs earlier (in the init fan-out, before
+    // fetchFragment resolves) and still sees the raw country — see pipeline-e2e's "per-offer promo
+    // ... for one country" tests.
+    //
+    // The request cache key is captured once, here — before that restriction happens — so the read
+    // and the write below always agree on the same key, regardless of how context.country changes
+    // mid-pipeline.
+    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
     // Initialize all transformers that have an init function
@@ -137,7 +154,8 @@ async function mainProcess(context) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
             const initContext = {
-                ...structuredClone(context),
+                ...structuredClone({ ...context, state: undefined }),
+                state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
             };
@@ -169,7 +187,7 @@ async function mainProcess(context) {
         responseBody = JSON.stringify(context.body, null, 0);
         logDebug(() => `response body: ${responseBody}`, context);
         const hash = calculateHash(responseBody);
-        const { lastModified } = await storeRequestMetadata(context, cachedMetadata, hash);
+        const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash);
         // Check If-Modified-Since header
         const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
         if (ifModifiedSince) {

@@ -17,6 +17,8 @@ The `aem-fragment` element is headless and does not render any content on its ow
 | `author`   | Enables author mode, which affects data transformation.                                                                                                       | `false`       | `false`  |
 | `preview`  | Enables preview mode, fetching data from the preview service.                                                                                                 | `false`       | `false`  |
 | `title`    | An informative title for the fragment.                                                                                                                        |               | `false`  |
+| `mask`     | Name of a mask to overlay onto the fragment. The pipeline resolves the mask card fragment from `<surface>/<locale>/masks/<name>` and deep-merges it on top of card fragments. Included in the cache key. | | `false` |
+| `pzn`      | Personalization identifier forwarded to the pipeline as the `pzn` query parameter. Included in the cache key.                                                 |               | `false`  |
 
 ## Properties
 

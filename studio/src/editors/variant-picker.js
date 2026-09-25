@@ -6,10 +6,12 @@ export const VARIANT_NAMES = {
     CATALOG: 'catalog',
     PLANS: 'plans',
     PLANS_V2: 'plans-v2',
-    BIZPRO: 'bizpro',
+    PRO: 'pro',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
+    BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
+    PRODUCT_PRICING: 'product-pricing',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -25,115 +27,163 @@ export const VARIANT_NAMES = {
     FULL_PRICING_EXPRESS: 'full-pricing-express',
     HEADLESS: 'headless',
     MEDIA: 'media',
+    COMPARE_CHART_COLUMN: 'compare-chart-column',
+    MARQUEE: 'marquee',
+    FAQ: 'faq',
+    BANNER_BLADE: 'banner-blade',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
 export const VARIANTS = [
-    { label: 'All', value: VARIANT_NAMES.ALL, surface: 'all' },
-    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: SURFACES.ACOM.name },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: SURFACES.ACOM.name },
+    { label: 'All', value: VARIANT_NAMES.ALL, surfaces: ['all'] },
+    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surfaces: [SURFACES.ACOM] },
+    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM] },
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
-        label: 'BizPro',
-        value: VARIANT_NAMES.BIZPRO,
-        surface: SURFACES.ACOM.name,
+        label: 'Pro',
+        value: VARIANT_NAMES.PRO,
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Plans Students',
         value: VARIANT_NAMES.PLANS_STUDENTS,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'Plans Education',
         value: VARIANT_NAMES.PLANS_EDUCATION,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
-    { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM_CC.name },
-    { label: 'Media', value: VARIANT_NAMES.MEDIA, surface: SURFACES.ACOM.name },
-    { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD.name },
+    {
+        label: 'Brand Concierge Product',
+        value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
+        surfaces: [SURFACES.SANDBOX],
+    },
+    {
+        label: 'Product Pricing',
+        value: VARIANT_NAMES.PRODUCT_PRICING,
+        surfaces: [SURFACES.ACOM],
+    },
+    {
+        label: 'Segment',
+        value: VARIANT_NAMES.SEGMENT,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+    },
+    { label: 'Media', value: VARIANT_NAMES.MEDIA, surfaces: [SURFACES.ACOM] },
+    { label: 'Slice', value: VARIANT_NAMES.SLICES, surfaces: [SURFACES.CCD] },
     {
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC],
     },
-    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: SURFACES.CCD.name },
+    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surfaces: [SURFACES.CCD] },
     {
         label: 'Try Buy Widget',
         value: VARIANT_NAMES.TRY_BUY_WIDGET,
-        surface: SURFACES.ADOBE_HOME.name,
+        surfaces: [SURFACES.ADOBE_HOME],
     },
     {
         label: 'Promoted Plans',
         value: VARIANT_NAMES.PROMOTED_PLANS,
-        surface: SURFACES.ADOBE_HOME.name,
+        surfaces: [SURFACES.ADOBE_HOME],
     },
     {
         label: 'Fries',
         value: VARIANT_NAMES.FRIES,
-        surface: SURFACES.COMMERCE.name,
+        surfaces: [SURFACES.COMMERCE],
     },
     {
         label: 'Simplified pricing Express',
         value: VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS,
-        surface: SURFACES.EXPRESS.name,
+        surfaces: [SURFACES.EXPRESS],
     },
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surface: SURFACES.CCD.name,
+        surfaces: [SURFACES.CCD],
     },
     {
         label: 'Image',
         value: VARIANT_NAMES.IMAGE,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
-        surface: SURFACES.EXPRESS.name,
+        surfaces: [SURFACES.EXPRESS],
     },
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surface: SURFACES.SANDBOX.name,
+        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
     },
     {
         label: 'Mini Compare Chart',
         value: VARIANT_NAMES.MINI_COMPARE_CHART,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC],
+    },
+    {
+        label: 'Compare Chart Column',
+        value: VARIANT_NAMES.COMPARE_CHART_COLUMN,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
+    },
+    {
+        label: 'Marquee',
+        value: VARIANT_NAMES.MARQUEE,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'FAQ',
+        value: VARIANT_NAMES.FAQ,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+    },
+    {
+        label: 'Banner/Blade',
+        value: VARIANT_NAMES.BANNER_BLADE,
+        surfaces: [SURFACES.NALA, SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
     },
 ];
 
-const ACOM_CC_TEMPLATES = new Set([
-    VARIANT_NAMES.PRODUCT,
-    VARIANT_NAMES.SEGMENT,
-    VARIANT_NAMES.MINI_COMPARE_CHART,
-    VARIANT_NAMES.IMAGE,
-    VARIANT_NAMES.SPECIAL_OFFERS,
-    VARIANT_NAMES.BIZPRO,
-]);
+// TODO(MWPW-200587): remove after content migration
+/** Stored variant aliases accepted while existing fragments are migrated. */
+export const LEGACY_VARIANTS = new Map([['bizpro', VARIANT_NAMES.PRO]]);
 
-const ACOM_DC_TEMPLATES = new Set([
-    VARIANT_NAMES.PRODUCT,
-    VARIANT_NAMES.SEGMENT,
-    VARIANT_NAMES.MINI_COMPARE_CHART,
-    VARIANT_NAMES.IMAGE,
-    VARIANT_NAMES.BIZPRO,
-]);
+/** All variant values that Studio can display, including stored aliases. */
+export const RECOGNIZED_VARIANT_NAMES = new Set([...VARIANTS.map((variant) => variant.value), ...LEGACY_VARIANTS.keys()]);
+
+/** Resolves a stored variant alias to its authorable variant name. */
+export const normalizeVariantName = (variant) => LEGACY_VARIANTS.get(variant) ?? variant;
+
+/** Returns whether an authorable variant has stored aliases. */
+export const hasLegacyVariantAlias = (variant) =>
+    [...LEGACY_VARIANTS.values()].some((authorableVariant) => authorableVariant === normalizeVariantName(variant));
+
+// TODO(MWPW-200587): remove after content migration
+/** Rewrites a stored variant alias before a fragment is saved. */
+export const migrateLegacyVariant = (fragmentStore) => {
+    const variant = fragmentStore.get()?.getFieldValue('variant');
+    const normalizedVariant = normalizeVariantName(variant);
+    if (variant === normalizedVariant) return;
+    fragmentStore.updateField('variant', [normalizedVariant]);
+};
+
+/** Returns whether a stored variant matches any selected authorable variant. */
+export const isVariantMatch = (variants, variant) =>
+    variants.some((selectedVariant) => normalizeVariantName(selectedVariant) === normalizeVariantName(variant));
 
 /** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */
 export const getVariantTreeData = (surface) =>
@@ -141,13 +191,13 @@ export const getVariantTreeData = (surface) =>
         if (v.value === VARIANT_NAMES.ALL) return false;
         if (!surface) return true;
         if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
-        if (surface === SURFACES.ACOM_CC.name) return ACOM_CC_TEMPLATES.has(v.value);
-        if (surface === SURFACES.ACOM_DC.name) return ACOM_DC_TEMPLATES.has(v.value);
-        return v.surface === surface;
-    }).map((v) => ({
-        name: v.value,
-        label: v.label,
-    }));
+        return v.surfaces.some((s) => s.name === surface);
+    })
+        .map((v) => ({
+            name: v.value,
+            label: v.label,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 
 class VariantPicker extends LitElement {
     static styles = css`
@@ -175,12 +225,18 @@ class VariantPicker extends LitElement {
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
+        surface: { type: String },
     };
 
+    #surfaceVariantNames() {
+        return new Set(getVariantTreeData(this.surface).map((v) => v.name));
+    }
+
     get variants() {
-        return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
-            (variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`,
-        );
+        const allowed = this.#surfaceVariantNames();
+        return VARIANTS.filter((variant) => this.showAll || (variant.value != 'all' && allowed.has(variant.value)))
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map((variant) => html`<sp-menu-item value="${variant.value}">${variant.label}</sp-menu-item>`);
     }
 
     #handleChange(e) {

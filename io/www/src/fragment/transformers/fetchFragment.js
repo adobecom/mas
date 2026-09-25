@@ -1,6 +1,7 @@
 import { fetch } from '../utils/common.js';
 import { getErrorContext } from '../utils/log.js';
-import { PATH_TOKENS, odinReferences } from '../utils/paths.js';
+import { PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
+import { resolveTerritoryCountries, restrictCountryToLocaleMarket } from '../locales.js';
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
@@ -8,11 +9,17 @@ const TRANSFORMER_NAME = 'fetchFragment';
  * First fragment fetch + path parse only. Resolves as soon as surface / parsedLocale / fragmentPath / body are known,
  * without waiting on default-locale variation fetch. Shared via `promises.requestInfos` so dictionary/settings inits
  * can proceed in parallel with that work.
+ *
+ * Also resolves `country` (restricted to the locale's market family) and `wcsCountry` here: this
+ * is the earliest point in the pipeline where `surface` is known, which
+ * `restrictCountryToLocaleMarket` needs to scope its market lookup (MWPW-207865).
+ * @example
+ * // locale es_PR, country: PR -> country: PR, wcsCountry: US
  */
-async function fetchRequestInfosPhase1(initContext) {
-    const { id, locale, fragmentsIds, preview } = initContext;
+async function resolveRequestInfos(initContext) {
+    const { id, locale, country, fragmentsIds, preview } = initContext;
     const toFetchId = fragmentsIds?.['default-locale-id'] || id;
-    const path = odinReferences(toFetchId, true, preview);
+    const path = odinReferences(toFetchId, preview, REFERENCES.ALL);
     const response = await fetch(path, initContext, 'fragment');
     if (response?.status != 200) {
         return await getErrorContext(response);
@@ -25,26 +32,30 @@ async function fetchRequestInfosPhase1(initContext) {
         };
     }
     const { parsedLocale, surface, fragmentPath } = match.groups;
+    const fixedCountry = restrictCountryToLocaleMarket(surface, locale, country);
+    const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
     return {
         status: 200,
         body: response.body,
         parsedLocale,
         surface,
         fragmentPath,
+        country: fixedCountry,
+        wcsCountry,
     };
 }
 
 /**
- * Phase 1 only: first fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
+ * First fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
  * Default-language variation + region locale run in the `defaultLanguage` transformer (before promotions).
  */
 function init(initContext) {
     const { promises } = initContext;
-    const phase1Promise = fetchRequestInfosPhase1(initContext);
+    const requestInfosPromise = resolveRequestInfos(initContext);
     if (promises) {
-        promises.requestInfos = phase1Promise;
+        promises.requestInfos = requestInfosPromise;
     }
-    return phase1Promise;
+    return requestInfosPromise;
 }
 
 async function fetchFragment(context) {
@@ -58,6 +69,8 @@ async function fetchFragment(context) {
         parsedLocale: response.parsedLocale,
         surface: response.surface,
         fragmentPath: response.fragmentPath,
+        country: response.country,
+        wcsCountry: response.wcsCountry,
     };
 }
 

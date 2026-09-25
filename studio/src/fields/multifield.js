@@ -11,6 +11,8 @@ class MasMultifield extends LitElement {
             buttonLabel: { type: String, attribute: 'button-label' },
             fieldState: { type: String, attribute: 'data-field-state', reflect: true },
             variant: { type: String, reflect: true },
+            osi: { type: String, attribute: 'osi' },
+            dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
         };
     }
 
@@ -79,6 +81,7 @@ class MasMultifield extends LitElement {
     }
 
     #initialized = false;
+    #internalUpdate = false;
 
     shouldUpdate(changedProperties) {
         // Always allow render until fully initialized
@@ -86,6 +89,11 @@ class MasMultifield extends LitElement {
         // Always re-render when field state changes (to update child field styling)
         if (changedProperties.has('fieldState')) return true;
         if (changedProperties.has('value')) {
+            // Internal mutations (add/delete) must always re-render.
+            // External value updates from the parent should be skipped while a child
+            // has focus — renderField clones fresh DOM from the template each time,
+            // which would destroy the focused element mid-typing.
+            if (!this.#internalUpdate && this.shadowRoot?.activeElement) return false;
             const oldValue = changedProperties.get('value');
             const newValue = this.value;
             // Skip render if value content is the same (prevents blinking on unrelated updates)
@@ -137,9 +145,40 @@ class MasMultifield extends LitElement {
         }
     }
 
+    // Read the current value from a rendered field element (mirrors renderField's attribute logic).
+    #readFieldValue(wrapper) {
+        const fieldEl = wrapper.querySelector('.field') ?? wrapper.firstElementChild;
+        let val = fieldEl?.value;
+        if (typeof val === 'string') val = { value: val };
+        return val && typeof val === 'object' && Object.keys(val).length > 0 ? val : {};
+    }
+
     async addField() {
-        this.value = [...this.value, {}];
+        this.#internalUpdate = true;
+        const wrappers = Array.from(this.shadowRoot.querySelectorAll('.field-wrapper'));
+        const domCount = wrappers.length;
+        const targetLength = domCount + 1;
+        // DOM is source of truth — this.value may have been silently reduced by a
+        // parent re-render while the user had focus (focus guard skips render but
+        // still applies the property). Recover actual values from DOM elements.
+        if (this.value.length < domCount) {
+            const recovered = wrappers.map((wrapper, i) =>
+                i < this.value.length ? this.value[i] : this.#readFieldValue(wrapper),
+            );
+            this.value = [...recovered, {}];
+        } else {
+            this.value = [...this.value, {}];
+        }
         await this.updateComplete;
+        // A concurrent parent re-render can overwrite this.value during the await.
+        if (this.value.length < targetLength) {
+            this.value = [...this.value, {}];
+            await this.updateComplete;
+        }
+        this.#internalUpdate = false;
+        if (this.dispatchOnAdd) {
+            this.#dispatchEvent();
+        }
         const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
         const newItem = fields[fields.length - 1]?.firstElementChild;
         if (newItem?.openModal) {
@@ -153,8 +192,15 @@ class MasMultifield extends LitElement {
 
     // Remove a field by its index
     removeField(index) {
+        this.#internalUpdate = true;
         this.value = this.value.filter((_, i) => i !== index);
+        // Dispatch synchronously so listeners awaiting a *different* element's
+        // updateComplete (e.g. the parent editor's) observe the change; only the
+        // focus-guard bookkeeping needs to wait for this element's own render.
         this.#dispatchEvent();
+        this.updateComplete.then(() => {
+            this.#internalUpdate = false;
+        });
     }
 
     #dispatchEvent(eventType = EVENT_CHANGE) {
@@ -174,6 +220,13 @@ class MasMultifield extends LitElement {
             newValue = { value: newValue };
         }
         const index = this.getFieldIndex(e.target);
+        if (index === -1) return;
+        // If parent silently reduced this.value while user had focus, extend it
+        if (index >= this.value.length) {
+            const padded = [...this.value];
+            while (padded.length <= index) padded.push({});
+            this.value = padded;
+        }
         const value = this.value[index];
         if (!value) return;
         Object.assign(value, newValue);
@@ -189,6 +242,13 @@ class MasMultifield extends LitElement {
             newValue = { value: newValue };
         }
         const index = this.getFieldIndex(e.target);
+        if (index === -1) return;
+        // If parent silently reduced this.value while user had focus, extend it
+        if (index >= this.value.length) {
+            const padded = [...this.value];
+            while (padded.length <= index) padded.push({});
+            this.value = padded;
+        }
         const value = this.value[index];
         if (!value) return;
         Object.assign(value, newValue);
@@ -267,6 +327,9 @@ class MasMultifield extends LitElement {
         }
         if (this.variant) {
             fieldEl.setAttribute('variant', this.variant);
+        }
+        if (this.osi) {
+            fieldEl.setAttribute('osi', this.osi);
         }
 
         return html`

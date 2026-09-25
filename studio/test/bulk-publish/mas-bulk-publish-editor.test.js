@@ -1,7 +1,9 @@
 import { fixture, html, expect } from '@open-wc/testing';
 import Store from '../../src/store.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
-import { BULK_PUBLISH_STATUS, QUICK_ACTION } from '../../src/constants.js';
+import { BULK_PUBLISH_STATUS, QUICK_ACTION, STAGED } from '../../src/constants.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 
 function seedInEdit(el, data = {}, { id = null } = {}) {
     const inner = {
@@ -24,7 +26,7 @@ describe('mas-bulk-publish-editor', () => {
     it('renders empty state (textarea visible, PUBLISH disabled)', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
         await el.updateComplete;
-        seedInEdit(el, { title: '', urls: '', items: '[]', locales: [], status: BULK_PUBLISH_STATUS.DRAFT });
+        seedInEdit(el, { title: '', urls: '', locales: [], status: BULK_PUBLISH_STATUS.DRAFT });
         await el.updateComplete;
         const quick = el.shadowRoot.querySelector('mas-quick-actions');
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);
@@ -38,12 +40,12 @@ describe('mas-bulk-publish-editor', () => {
             {
                 title: 'x',
                 urls: '',
-                items: JSON.stringify([{ url: 'a', path: '/x', status: 'valid' }]),
                 locales: [],
                 status: BULK_PUBLISH_STATUS.DRAFT,
             },
             { id: 'existing-frag-id' },
         );
+        el.localItems = [{ url: 'a', path: '/x', status: 'valid' }];
         await el.updateComplete;
         const quick = el.shadowRoot.querySelector('mas-quick-actions');
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(false);
@@ -96,7 +98,6 @@ describe('mas-bulk-publish-editor', () => {
         seedInEdit(el, {
             title: 'x',
             urls: '',
-            items: '[]',
             locales: [],
             status: BULK_PUBLISH_STATUS.PUBLISHED,
             publishedAt: '2026-04-23',
@@ -104,6 +105,38 @@ describe('mas-bulk-publish-editor', () => {
         });
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner')).to.exist;
+    });
+
+    it('re-renders the publishing banner when the project store updates during polling', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        const store = new FragmentStore(
+            new Fragment({
+                id: 'frag-1',
+                path: '/content/dam/mas/bulk-publish-projects/acom/p1',
+                fields: [
+                    { name: 'title', type: 'text', values: ['x'] },
+                    { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
+                    { name: 'urls', type: 'text', values: [''] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: ['/x'] },
+                    { name: 'locales', type: 'text', multiple: true, values: [] },
+                ],
+                references: [
+                    {
+                        path: '/x',
+                        fields: [{ name: 'tags', type: 'text', values: [STAGED.TAG] }],
+                    },
+                ],
+            }),
+        );
+        Store.bulkPublishProjects.inEdit.set(store);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner[variant="publishing"]')).to.not.exist;
+        store.updateField('status', [BULK_PUBLISH_STATUS.PUBLISHING]);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner[variant="publishing"]')).to.exist;
+        expect(el.items[0].status).to.equal('error');
+        expect(el.items[0].reason).to.equal('staged');
     });
 
     it('does not update inEdit after disconnecting during async init', async () => {
@@ -123,7 +156,6 @@ describe('mas-bulk-publish-editor', () => {
             seedInEdit(el, {
                 title: 'x',
                 urls: '',
-                items: '[]',
                 locales: [],
                 status: BULK_PUBLISH_STATUS.PUBLISHED,
                 publishedAt: '2026-04-23',
@@ -141,7 +173,6 @@ describe('mas-bulk-publish-editor', () => {
             seedInEdit(el, {
                 title: 'x',
                 urls: '',
-                items: '[]',
                 locales: [],
                 status: BULK_PUBLISH_STATUS.PUBLISHED,
                 publishedAt: '2026-04-23',
@@ -161,7 +192,6 @@ describe('mas-bulk-publish-editor', () => {
                 {
                     title: 'x',
                     urls: '',
-                    items: JSON.stringify([{ url: 'a', path: '/x', status: 'valid' }]),
                     locales: [],
                     status: BULK_PUBLISH_STATUS.PUBLISHED,
                     publishedAt: '2026-04-23',
@@ -169,10 +199,44 @@ describe('mas-bulk-publish-editor', () => {
                 },
                 { id: 'existing-frag-id' },
             );
+            el.localItems = [{ url: 'a', path: '/x', status: 'valid' }];
             await el.updateComplete;
             const quick = el.shadowRoot.querySelector('mas-quick-actions');
             expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);
         });
+    });
+
+    it('passes parsed lastResult to the banner for PARTIALLY_PUBLISHED', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        const result = { published: 3, failed: 2, failures: [], failuresTruncated: false };
+        seedInEdit(el, {
+            status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+            lastResult: JSON.stringify(result),
+        });
+        await el.updateComplete;
+        const banner = el.shadowRoot.querySelector('mas-bulk-publish-success-banner');
+        expect(banner).to.exist;
+        expect(banner.result).to.deep.equal(result);
+    });
+
+    it('REVERT not disabled when status is PARTIALLY_PUBLISHED', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        seedInEdit(
+            el,
+            {
+                title: 'x',
+                urls: '',
+                items: '[]',
+                locales: [],
+                status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+            },
+            { id: 'existing-frag-id' },
+        );
+        await el.updateComplete;
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        expect(quick.disabled.has(QUICK_ACTION.REVERT)).to.equal(false);
     });
 
     describe('Check for modifications', () => {
@@ -189,13 +253,13 @@ describe('mas-bulk-publish-editor', () => {
                 {
                     title: 'x',
                     urls: '',
-                    items: JSON.stringify([{ url: 'a', path: '/p1', status: 'valid' }]),
                     locales: [],
                     status: BULK_PUBLISH_STATUS.PUBLISHED,
                     snapshot: JSON.stringify(snapshot),
                 },
                 { id: 'existing-frag-id' },
             );
+            el.localItems = [{ url: 'a', path: '/p1', status: 'valid' }];
             await el.updateComplete;
 
             // Track calls to handleCheckModifications via a flag on the instance
@@ -221,6 +285,29 @@ describe('mas-bulk-publish-editor', () => {
             expect(el._checkModCallCount).to.equal(1);
         });
 
+        it('resets localItems to null when inEdit switches to a different project', async () => {
+            const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+            await el.updateComplete;
+
+            seedInEdit(
+                el,
+                { title: 'Project A', urls: '', locales: [], status: BULK_PUBLISH_STATUS.DRAFT },
+                { id: 'project-a-id' },
+            );
+            el.localItems = [{ url: 'a', path: '/x', status: 'valid' }];
+            await el.updateComplete;
+
+            // Switch to a different project
+            seedInEdit(
+                el,
+                { title: 'Project B', urls: '', locales: [], status: BULK_PUBLISH_STATUS.DRAFT },
+                { id: 'project-b-id' },
+            );
+            await el.updateComplete;
+
+            expect(el.localItems).to.be.null;
+        });
+
         it('Modification results are passed to mas-bulk-publish-items as .modifications prop', async () => {
             const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
             await el.updateComplete;
@@ -229,7 +316,6 @@ describe('mas-bulk-publish-editor', () => {
                 {
                     title: 'x',
                     urls: '',
-                    items: '[]',
                     locales: [],
                     status: BULK_PUBLISH_STATUS.PUBLISHED,
                 },

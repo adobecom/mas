@@ -10,10 +10,10 @@ import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
-import { normalizeKey, showToast } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
-import { getFragmentName, renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
+import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
+import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
 
 class MasTranslationEditor extends LitElement {
@@ -37,7 +37,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     #itemsConfirmed = false;
 
     constructor() {
@@ -66,8 +66,7 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.translationProjects);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
             this.repository.searchFragments();
@@ -76,7 +75,7 @@ class MasTranslationEditor extends LitElement {
             this.repository.loadPlaceholders();
         }
         if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+            this.repository.loadAllCollections(Store.translationProjects);
         }
 
         // reset locale to default
@@ -116,8 +115,8 @@ class MasTranslationEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
-        this.#itemsSelectionStoreSnapshot = null;
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     /** @type {MasRepository} */
@@ -329,7 +328,7 @@ class MasTranslationEditor extends LitElement {
             }
         } catch (error) {
             console.error('Error creating translation project', error);
-            showToast('Failed to create translation project.', 'negative');
+            showToast(getCreateProjectErrorMessage(error), 'negative');
         }
     }
 
@@ -346,14 +345,19 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
         this.translationProject.updateField('projectType', [Store.translationProjects.projectType.value]);
         showToast('Updating the project...');
+        let saved;
         try {
-            await this.repository.saveFragment(this.translationProjectStore, false);
-            this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+            saved = await this.repository.saveFragment(this.translationProjectStore, {
+                withToast: false,
+                refetchEtag: false,
+            });
         } catch (error) {
             console.error('Error updating translation project', error);
             showToast('Failed to update translation project.', 'negative');
             return;
         }
+        if (!saved) return;
+        this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         showToast('Translation project updated successfully.', 'positive');
     }
 
@@ -524,11 +528,9 @@ class MasTranslationEditor extends LitElement {
                 searchAndFilters.productFilter = [];
             }
         }
-        Store.translationProjects.allCards.set([]);
-        Store.translationProjects.displayCards.set([]);
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
-        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
     }
 
     #openAddLanguagesOverlay() {
@@ -561,44 +563,29 @@ class MasTranslationEditor extends LitElement {
     };
 
     renderAddItemsDialog() {
-        const footerContent = html`
-            <sp-button-group>
-                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
-                    >Cancel</sp-button
-                >
-                <sp-button variant="accent" @click=${() => this.#dispatchDialogEvent('confirm')}>Add selected items</sp-button>
-            </sp-button-group>
-        `;
         return html`
             <sp-dialog-wrapper
                 class="add-items-dialog"
                 slot="click-content"
                 headline="Select items"
                 headline-visibility="none"
-                .footer=${footerContent}
+                confirm-label="Add selected items"
+                cancel-label="Cancel"
                 underlay
-                dismissable
                 no-divider
-                @sp-opened=${this.#alignItemsDialogFooter}
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
                 @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector
-                    .getDisplayName=${getFragmentName}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
+                    .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                    .hidePromoVariations=${true}
+                    .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
-
-    #alignItemsDialogFooter = ({ target }) => {
-        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
-        if (!slotDiv) return;
-        slotDiv.style.width = '100%';
-        slotDiv.style.display = 'flex';
-        slotDiv.style.justifyContent = 'flex-end';
-    };
 
     // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
     // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
@@ -608,11 +595,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
-    };
-
-    #dispatchDialogEvent = (name) => {
-        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
-        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
     };
 
     renderAddLanguagesDialog() {
@@ -869,7 +851,6 @@ class MasTranslationEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-items-selector
                                         .viewOnly=${true}
-                                        .getDisplayName=${getFragmentName}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-items-selector>`
                                   : nothing}

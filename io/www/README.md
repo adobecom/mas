@@ -72,3 +72,5 @@ To deploy specific action
 ### `app.config.yaml`
 
 Main configuration file that defines an application's implementation.
+
+<!-- MWPW-201374: temporary marker to trigger io/www Docs NALA for namespace verification (to be reverted) -->

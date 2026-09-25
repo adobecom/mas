@@ -24,6 +24,75 @@ describe('mas-bulk-publish-items', () => {
         expect(list.querySelectorAll('[data-testid="item-row"]')).to.have.lengthOf(2);
     });
 
+    it('prefixes the locale to the Studio path when item has locale and authorPath', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', authorPath: 'merch-card: SANDBOX / default', locale: 'en_US', status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link.textContent.trim()).to.equal('[en_US] merch-card: SANDBOX / default');
+    });
+
+    it('renders the Studio path without brackets when locale is missing', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', authorPath: 'merch-card: SANDBOX / default', locale: '', status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link.textContent.trim()).to.equal('merch-card: SANDBOX / default');
+    });
+
+    it('renders a link with the resolved href when one is present', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[
+                    {
+                        url: '/content/dam/mas/x',
+                        href: 'https://mas.adobe.com/studio.html#query=1',
+                        authorPath: 'merch-card: SANDBOX',
+                        status: 'valid',
+                    },
+                ]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link).to.exist;
+        expect(link.getAttribute('href')).to.equal('https://mas.adobe.com/studio.html#query=1');
+    });
+
+    it('renders plain text instead of a broken link when no resolved href exists', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: '/content/dam/mas/x', path: '/content/dam/mas/x', authorPath: null, status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="item-row"]');
+        expect(row.querySelector('a')).to.be.null;
+        expect(row.textContent).to.include('/content/dam/mas/x');
+    });
+
+    it('falls back to the url label when authorPath is absent', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', href: 'https://a', status: 'error', reason: 'not-found' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link.textContent.trim()).to.equal('https://a');
+    });
+
     it('footer row shows error count when errors exist', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items

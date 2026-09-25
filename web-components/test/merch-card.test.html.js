@@ -8,6 +8,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
+import { getService } from '../src/utilities.js';
 
 const skipTests = sessionStorage.getItem('skipTests');
 
@@ -80,6 +81,38 @@ runTests(async () => {
             expect(quantitySelect.selectedValue).to.equal(1);
             const button = plansCard.querySelector('.con-button');
             expect(button.getAttribute('data-quantity')).to.equal('1');
+        });
+    });
+
+    describe('promotion project promo code bypass', () => {
+        let card, priceEl, originalCompatVersion, originalContextCode;
+
+        beforeEach(() => {
+            card = document.querySelector('merch-card[variant="plans"]');
+            priceEl = card.price;
+            originalCompatVersion = card.compatVersion;
+            originalContextCode = card.contextPromotionCode;
+        });
+
+        afterEach(() => {
+            card.compatVersion = originalCompatVersion;
+            card.contextPromotionCode = originalContextCode;
+            card.removeAttribute('data-promotion-project');
+        });
+
+        it('forwards contextPromotionCode when data-promotion-project is set, even without compatVersion', () => {
+            card.compatVersion = undefined;
+            card.contextPromotionCode = 'TESTPROMO';
+            card.setAttribute('data-promotion-project', 'TestProject');
+            const options = getService().collectPriceOptions({}, priceEl);
+            expect(options.promotionCode).to.equal('TESTPROMO');
+        });
+
+        it('does not forward contextPromotionCode without compatVersion nor a promotion project', () => {
+            card.compatVersion = undefined;
+            card.contextPromotionCode = 'TESTPROMO';
+            const options = getService().collectPriceOptions({}, priceEl);
+            expect(options.promotionCode).to.not.equal('TESTPROMO');
         });
     });
 

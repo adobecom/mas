@@ -14,6 +14,8 @@ describe('MasContent table + personalization grouping', () => {
         const list = Store.fragments.list.data;
         snapshot = {
             renderMode: Store.renderMode.get(),
+            selecting: Store.selecting.get(),
+            selection: Store.selection.get(),
             filters: {
                 locale: f.locale,
                 tags: f.tags,
@@ -31,6 +33,8 @@ describe('MasContent table + personalization grouping', () => {
 
     afterEach(() => {
         Store.renderMode.set(snapshot.renderMode);
+        Store.selecting.set(snapshot.selecting);
+        Store.selection.set(snapshot.selection);
         Store.filters.set(snapshot.filters);
         Store.search.set(snapshot.search);
         /** Bypass `.set()` so structuredClone is not applied to FragmentStore-like mocks. */
@@ -152,6 +156,101 @@ describe('MasContent table + personalization grouping', () => {
         expect(text).to.include('All other fragments (0)');
     });
 
+    it('parentRowSelection includes only top-level fragment ids', async () => {
+        const parent = makeFragment({ id: 'parent-1', path: '/content/dam/mas/acom/en_US/cards/parent-1' });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(parent)];
+        Store.filters.set({ locale: 'en_US', personalizationFilterEnabled: false, tags: '' });
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        Store.selection.set(['parent-1', 'variation-1']);
+        await el.updateComplete;
+
+        expect(el.parentRowSelection).to.deep.equal(['parent-1']);
+
+        Store.selection.set([]);
+    });
+
+    it('preserves variation selection when parent table selection changes', async () => {
+        const parent = makeFragment({ id: 'parent-1', path: '/content/dam/mas/acom/en_US/cards/parent-1' });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(parent)];
+        Store.filters.set({ locale: 'en_US', personalizationFilterEnabled: false, tags: '' });
+        Store.selection.set(['parent-1', 'variation-1']);
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        const mainTable = document.createElement('sp-table');
+        mainTable.selectedSet = new Set(['parent-1']);
+
+        el.updateTableSelection({
+            target: mainTable,
+            currentTarget: mainTable,
+        });
+
+        expect(Store.selection.get()).to.deep.equal(['parent-1', 'variation-1']);
+        Store.selection.set([]);
+    });
+
+    it('ignores bubbled sp-table change events from nested variation tables', async () => {
+        Store.selection.set(['parent-1']);
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        const nestedTable = document.createElement('sp-table');
+        nestedTable.selectedSet = new Set(['variation-1']);
+        const mainTable = document.createElement('sp-table');
+
+        el.updateTableSelection({
+            target: nestedTable,
+            currentTarget: mainTable,
+        });
+
+        expect(Store.selection.get()).to.deep.equal(['parent-1']);
+
+        Store.selection.set([]);
+    });
+
+    it('refreshTableSelection toggles tableSelects off then back to multiple', async () => {
+        const frag = makeFragment({ id: 'sel-1', path: '/content/dam/mas/acom/en_US/cards/sel-1' });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(frag)];
+        Store.filters.set({ locale: 'en_US', personalizationFilterEnabled: false, tags: '' });
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        Store.selecting.set(true);
+        await el.updateComplete;
+        expect(el.tableSelects).to.equal('multiple');
+
+        const refreshPromise = el.refreshTableSelection();
+        expect(el.tableSelects).to.equal(undefined);
+        await refreshPromise;
+        await el.updateComplete;
+
+        expect(el.tableSelects).to.equal('multiple');
+
+        Store.selecting.set(false);
+        Store.selection.set([]);
+    });
+
+    it('refreshTableSelection no-ops while the fragment list is loading', async () => {
+        const frag = makeFragment({ id: 'sel-1', path: '/content/dam/mas/acom/en_US/cards/sel-1' });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(frag)];
+        Store.filters.set({ locale: 'en_US', personalizationFilterEnabled: false, tags: '' });
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        Store.selecting.set(true);
+        await el.updateComplete;
+
+        Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(false);
+        await el.refreshTableSelection();
+
+        expect(el.tableSelects).to.equal('multiple');
+
+        Store.selecting.set(false);
+        Store.selection.set([]);
+    });
+
     it('narrows personalization group using pznTags field when metadata tags are empty', async () => {
         const withGeneralOnField = makeFragment({
             id: 'pf',
@@ -179,5 +278,27 @@ describe('MasContent table + personalization grouping', () => {
         const text = el.textContent ?? '';
         expect(text).to.include('Personalization fragments (1)');
         expect(text).to.include('All other fragments (0)');
+    });
+
+    it('keeps stored bizpro fragments visible in the content grid', async () => {
+        const legacy = makeFragment({
+            id: 'legacy-pro',
+            path: '/content/dam/mas/acom/en_US/cards/legacy-pro',
+            fields: [{ name: 'variant', values: ['bizpro'] }],
+        });
+        const unknown = makeFragment({
+            id: 'unknown',
+            path: '/content/dam/mas/acom/en_US/cards/unknown',
+            fields: [{ name: 'variant', values: ['unknown'] }],
+        });
+        Store.renderMode.set('render');
+        Store.fragments.list.data.value = [makeStore(legacy), makeStore(unknown)];
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        await el.updateComplete;
+
+        const fragments = el.querySelectorAll('mas-fragment');
+        expect(fragments).to.have.lengthOf(1);
+        expect(fragments[0].fragmentStore.get().id).to.equal('legacy-pro');
     });
 });

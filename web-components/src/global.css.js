@@ -94,6 +94,7 @@ styles.innerHTML = `
     --merch-color-green-promo: #05834E;
     --merch-color-red-promo: #D31510;
     --merch-color-error: #D73220;
+    --merch-color-red-strikethrough: #ff0000;
     --merch-color-error-background: #ffebe8;
     --merch-color-grey-80: #2c2c2c;
     --consonant-merch-card-body-xs-color: var(--spectrum-gray-800, var(--merch-color-grey-80));
@@ -235,6 +236,7 @@ merch-card-collection-header > div[slot] p {
 .two-merch-cards,
 .three-merch-cards,
 .four-merch-cards,
+.section.one-merch-card > .content,
 .section[class$="merch-cards"] > .content
 {
     --merch-card-collection-card-width: unset;
@@ -247,10 +249,12 @@ merch-card-collection-header > div[slot] p {
     grid-template-columns: var(--merch-card-collection-card-width);
 }
 
+.section.one-merch-card > .content,
 .section[class$="merch-cards"] > .content {
 	padding: 0;
 }
 
+.tab-content [role='tabpanel'] .section.one-merch-card > .content,
 .tab-content [role='tabpanel'] .section[class$="merch-cards"] > .content {
 	width: auto;
 }
@@ -301,23 +305,6 @@ merch-card p, merch-card h3, merch-card h4 {
 
 merch-card span[is='inline-price'] {
     display: inline-block;
-}
-
-.annual-price-new-line > span[is="inline-price"] {
-  line-height: var(--consonant-merch-card-body-m-line-height);
-}
-
-.annual-price-new-line > span[is="inline-price"] > .price-annual-prefix {
-  font-size: 0;
-  line-height: 0;
-}
-
-.annual-price-new-line > span[is="inline-price"] .price:not(.price-annual) {
-  display: block;
-}
-
-.annual-price-new-line > span[is="inline-price"] > .price-annual::before {
-  content: '(';
 }
 
 merch-card [slot^='heading-'],
@@ -617,14 +604,6 @@ merch-card span.price.price-strikethrough {
   color: var(--merch-color-inline-price-strikethrough);
 }
 
-mas-field span.placeholder-resolved[data-template='priceStrikethrough'],
-mas-field span.placeholder-resolved[data-template='strikethrough'],
-mas-field span.price.price-strikethrough,
-mas-field span.price.price-promo-strikethrough {
-  text-decoration: line-through;
-  color: var(--merch-color-inline-price-strikethrough);
-}
-
 merch-card [slot^="body-"] ul {
     margin: 0;
     padding-inline-start: var(--merch-card-ul-padding);
@@ -645,7 +624,7 @@ merch-offer-select[variant="subscription-options"] merch-offer span[is="inline-p
     top: 20px;
 }
 
-merch-addon span[data-wcs-osi][data-offer-type="TRIAL"] {
+merch-addon span[is='inline-price'][data-wcs-osi][data-offer-type="TRIAL"] {
     display: none;
 }
 
@@ -713,16 +692,9 @@ sr-only {
   border: 0;
 }
 
-aem-fragment {
-  display: contents;
-}
-
-mas-field {
-  display: inline;
-}
-
 merch-card [slot='callout-content'] .icon-button {
-  position: absolute;
+  position: relative;
+  top: 4px;
   text-decoration: none;
   border-bottom: none;
   min-width: 18px;
@@ -784,6 +756,177 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
 
 merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
     margin-right: 10px;
+}
+
+merch-card merch-mnemonic-list [slot="description"] .icon-button {
+  position: relative;
+  text-decoration: none;
+  border-bottom: none;
+  min-width: 18px;
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+  background-size: 18px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+merch-card merch-mnemonic-list [slot="description"] .icon-button::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 100%;
+  margin-left: 8px;
+  max-width: 140px;
+  padding: 10px;
+  border-radius: 5px;
+  background: #0469E3;
+  color: #fff;
+  text-align: left;
+  display: none;
+  z-index: 10;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  width: max-content;
+}
+
+merch-card merch-mnemonic-list [slot="description"] .icon-button::after {
+  content: "";
+  position: absolute;
+  left: 102%;
+  margin-left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid #0469E3;
+  border-color: transparent #0469E3 transparent transparent;
+  display: none;
+  z-index: 10;
+}
+
+merch-card merch-mnemonic-list [slot="description"] .icon-button:hover::before,
+merch-card merch-mnemonic-list [slot="description"] .icon-button:focus::before,
+merch-card merch-mnemonic-list [slot="description"] .icon-button.tooltip-visible::before {
+  display: block;
+}
+
+merch-card merch-mnemonic-list [slot="description"] .icon-button:hover::after,
+merch-card merch-mnemonic-list [slot="description"] .icon-button:focus::after,
+merch-card merch-mnemonic-list [slot="description"] .icon-button.tooltip-visible::after {
+  display: block;
+}
+
+merch-card [slot="short-description"] .icon-button,
+merch-card [slot="body-xxs"] .icon-button,
+merch-card [slot="body-m"] .icon-button,
+merch-card [slot="legal-text"] .icon-button,
+merch-card [slot="action-menu-content"] .icon-button,
+merch-card .price-plan-type .icon-button {
+  position: relative;
+  text-decoration: none;
+  border-bottom: none;
+  min-width: 18px;
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+  background-size: 18px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+merch-card [slot="short-description"] .icon-button::before,
+merch-card [slot="body-xxs"] .icon-button::before,
+merch-card [slot="body-m"] .icon-button::before,
+merch-card [slot="legal-text"] .icon-button::before,
+merch-card [slot="action-menu-content"] .icon-button::before,
+merch-card .price-plan-type .icon-button::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 100%;
+  margin-left: 8px;
+  max-width: 140px;
+  padding: 10px;
+  border-radius: 5px;
+  background: #0469E3;
+  color: #fff;
+  text-align: left;
+  display: none;
+  z-index: 10;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  width: max-content;
+}
+
+merch-card [slot="short-description"] .icon-button::after,
+merch-card [slot="body-xxs"] .icon-button::after,
+merch-card [slot="body-m"] .icon-button::after,
+merch-card [slot="legal-text"] .icon-button::after,
+merch-card [slot="action-menu-content"] .icon-button::after,
+merch-card .price-plan-type .icon-button::after {
+  content: "";
+  position: absolute;
+  left: 102%;
+  margin-left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid #0469E3;
+  border-color: transparent #0469E3 transparent transparent;
+  display: none;
+  z-index: 10;
+}
+
+merch-card [slot="short-description"] .icon-button:hover::before,
+merch-card [slot="short-description"] .icon-button:focus::before,
+merch-card [slot="short-description"] .icon-button.tooltip-visible::before,
+merch-card [slot="body-xxs"] .icon-button:hover::before,
+merch-card [slot="body-xxs"] .icon-button:focus::before,
+merch-card [slot="body-xxs"] .icon-button.tooltip-visible::before,
+merch-card [slot="body-m"] .icon-button:hover::before,
+merch-card [slot="body-m"] .icon-button:focus::before,
+merch-card [slot="body-m"] .icon-button.tooltip-visible::before,
+merch-card [slot="legal-text"] .icon-button:hover::before,
+merch-card [slot="legal-text"] .icon-button:focus::before,
+merch-card [slot="legal-text"] .icon-button.tooltip-visible::before,
+merch-card [slot="action-menu-content"] .icon-button:hover::before,
+merch-card [slot="action-menu-content"] .icon-button:focus::before,
+merch-card [slot="action-menu-content"] .icon-button.tooltip-visible::before,
+merch-card .price-plan-type .icon-button:hover::before,
+merch-card .price-plan-type .icon-button:focus::before,
+merch-card .price-plan-type .icon-button.tooltip-visible::before {
+  display: block;
+}
+
+merch-card [slot="short-description"] .icon-button:hover::after,
+merch-card [slot="short-description"] .icon-button:focus::after,
+merch-card [slot="short-description"] .icon-button.tooltip-visible::after,
+merch-card [slot="body-xxs"] .icon-button:hover::after,
+merch-card [slot="body-xxs"] .icon-button:focus::after,
+merch-card [slot="body-xxs"] .icon-button.tooltip-visible::after,
+merch-card [slot="body-m"] .icon-button:hover::after,
+merch-card [slot="body-m"] .icon-button:focus::after,
+merch-card [slot="body-m"] .icon-button.tooltip-visible::after,
+merch-card [slot="legal-text"] .icon-button:hover::after,
+merch-card [slot="legal-text"] .icon-button:focus::after,
+merch-card [slot="legal-text"] .icon-button.tooltip-visible::after,
+merch-card [slot="action-menu-content"] .icon-button:hover::after,
+merch-card [slot="action-menu-content"] .icon-button:focus::after,
+merch-card [slot="action-menu-content"] .icon-button.tooltip-visible::after,
+merch-card .price-plan-type .icon-button:hover::after,
+merch-card .price-plan-type .icon-button:focus::after,
+merch-card .price-plan-type .icon-button.tooltip-visible::after {
+  display: block;
 }
 
 /* Collapse the icon column only when no row in this block uses an icon */
@@ -848,7 +991,37 @@ merch-card[border-color="spectrum-red-700-plans"] {
         left: unset;
         margin-left: unset;
         border-color: #0469E3 transparent transparent transparent;
-    }  
+    }
+
+    merch-card merch-mnemonic-list [slot="description"] .icon-button::before,
+    merch-card [slot="short-description"] .icon-button::before,
+    merch-card [slot="body-xxs"] .icon-button::before,
+    merch-card [slot="body-m"] .icon-button::before,
+    merch-card [slot="legal-text"] .icon-button::before,
+    merch-card [slot="action-menu-content"] .icon-button::before,
+    merch-card .price-plan-type .icon-button::before {
+        top: unset;
+        left: calc(50% - 120px);
+        transform: none;
+        margin-left: 0;
+        bottom: 100%;
+        margin-bottom: 8px;
+    }
+
+    merch-card merch-mnemonic-list [slot="description"] .icon-button::after,
+    merch-card [slot="short-description"] .icon-button::after,
+    merch-card [slot="body-xxs"] .icon-button::after,
+    merch-card [slot="body-m"] .icon-button::after,
+    merch-card [slot="legal-text"] .icon-button::after,
+    merch-card [slot="action-menu-content"] .icon-button::after,
+    merch-card .price-plan-type .icon-button::after {
+        top: unset;
+        left: 50%;
+        margin-left: -8px;
+        transform: none;
+        bottom: calc(100% - 8px);
+        border-color: #0469E3 transparent transparent transparent;
+    }
 }
 
 /* RTL support for collection header - Mobile */
@@ -904,5 +1077,104 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }
 }
 
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-s-font-size);
+  line-height: var(--consonant-merch-card-body-s-font-size);
+  font-weight: 400;
+}
+
+merch-card[annualized][variant="mini-compare-chart"] [slot="heading-m-price"] {
+  display: flex;
+  flex-direction: column;
+}
+
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-s-font-size);
+  line-height: var(--consonant-merch-card-body-s-font-size);
+  font-weight: 400;
+}
+
+merch-card[annualized] span[is='inline-price'],
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"][data-template="price"] {
+  display: inline;
+}
+
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough span {
+  color: var(--merch-color-red-strikethrough);
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[annualized]:is([variant="simplified-pricing-express"], [variant="full-pricing-express"]) [slot='price'] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant^="plans"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] p {
+  font-size: var(--consonant-merch-card-body-xxl-font-size);
+  line-height: var(--consonant-merch-card-body-l-line-height);
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] p:has([data-template="strikethrough"]) {
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price.price-annual span,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    letter-spacing: 0;
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price.price-annual span,
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-suffix,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+  font-weight: 400;
+}
+
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual span,
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual span,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-m-font-size);
+  font-weight: 400;
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] span.price.price-annual:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal),
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+  line-height: var(--consonant-merch-card-body-xs-line-height);
+  position: relative;
+  top: calc(-1 * var(--consonant-merch-spacing-xxxs));
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child,
+merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:first-child {
+  display: inline;
+}
 `;
 document.head.appendChild(styles);

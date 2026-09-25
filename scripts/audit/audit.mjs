@@ -6,6 +6,7 @@ import {
     formatRegularPrice,
     selectPreformattedPrice,
 } from '../../web-components/src/price/utilities.js';
+import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
 
 const AUDIT_TARGET = {
     ost: 'ost',
@@ -21,6 +22,7 @@ const PARAMETER_REGEXP = '(?<left>\\w+)=(?<right>[^&]+)';
 const DOMAIN_REGEXP = '^https://[^/]+';
 // Constants for preventing hanging
 const MAX_FETCH_TIMEOUT = 5000; // 5 seconds timeout for fetch requests
+const USER_AGENT = 'adobecom-mas-audit-script';
 const MAX_RETRY_ATTEMPTS = 3; // Maximum number of retry attempts
 const MAX_RECURSION_DEPTH = 10; // Maximum recursion depth for fragment processing
 
@@ -233,6 +235,7 @@ let file = '/tmp/audit.csv';
 let auditTarget = AUDIT_TARGET.ost;
 let defaultBufferSize = BUFFER_SIZE;
 let isDebug = false;
+const surfaces = [];
 
 // Add this global cache for manifests
 const manifestCache = new Map();
@@ -292,6 +295,7 @@ const fetchDocument = async (url, timeout = MAX_FETCH_TIMEOUT) => {
     try {
         const response = await fetch(url, {
             signal: controller.signal,
+            headers: { 'User-Agent': USER_AGENT },
         });
         clearTimeout(timeoutId);
         return response;
@@ -690,7 +694,7 @@ function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
 function extractMasUsage(ctx, hash, collection) {
     const params = new URLSearchParams(hash.replaceAll('&#x26;', '&').replaceAll('&amp;', '&'));
     const fragmentId = params.get('fragment') ?? params.get('query');
-    if (fragmentId) collection.push({ ...ctx, fragmentId, masKey: `${fragmentId}|${ctx.localeRewrite ?? ''}` });
+    if (fragmentId) collection.push(masUsage(ctx, fragmentId, masLocaleSettings(ctx.localeRewrite ?? undefined)));
 }
 
 async function extractUrlsFromSiteMap(sitemapUrl) {
@@ -987,12 +991,11 @@ const collectOsiData = async () => {
 // its `wcs.prod` section: the resolved offers the fragment pipeline prefetched
 // (offer mappings and promo codes applied) and the browser renders from.
 const fetchMasOffers = async (masKey) => {
-    const [fragmentId, locale] = masKey.split('|');
-    const localeSettings = masLocaleSettings(locale || undefined);
+    const [fragmentId, locale, country] = masKey.split('|');
     try {
-        const response = await fetchDocument(masUrl(fragmentId, localeSettings), MAS_FETCH_TIMEOUT);
+        const response = await fetchDocument(masUrl(fragmentId, { locale, country }), MAS_FETCH_TIMEOUT);
         if (!response.ok) {
-            console.log(`no fragment ${fragmentId} (${localeSettings.locale}): ${response.status}`);
+            console.log(`no fragment ${fragmentId} (${locale}): ${response.status}`);
             return [masKey, []];
         }
         const { wcs } = await response.json();
@@ -1001,13 +1004,43 @@ const fetchMasOffers = async (masKey) => {
             .map(([masCacheKey, [offer]]) => ({
                 masCacheKey,
                 osi: offer.offerSelectorIds?.[0],
-                data: offerData(offer, localeSettings.country),
+                data: offerData(offer, country),
             }));
         return [masKey, offers];
     } catch (error) {
-        console.log(`error fetching fragment ${fragmentId} (${localeSettings.locale}): ${error.message}`);
+        console.log(`error fetching fragment ${fragmentId} (${locale}): ${error.message}`);
         return [masKey, []];
     }
+};
+
+const masUsage = (usage, fragmentId, { locale, country }) => ({
+    ...usage,
+    fragmentId,
+    masLocale: locale,
+    masKey: `${fragmentId}|${locale}|${country}`,
+});
+
+// Surfaces with no crawlable pages (CCD, Adobe Home) or whose pages live in
+// another repo (Express): every published en_US card, in every locale the
+// fragment pipeline serves for that surface.
+const ODIN_CARD_MODEL = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
+const listSurfaceCards = async (surface) => {
+    const ids = [];
+    let cursor;
+    do {
+        const url = `https://odin.adobe.com/adobe/contentFragments?path=/content/dam/mas/${surface}/en_US&limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+        const body = await (await fetchDocument(url, MAS_FETCH_TIMEOUT)).json();
+        (body.items ?? []).filter(({ model }) => (model?.id ?? model) === ODIN_CARD_MODEL).forEach(({ id }) => ids.push(id));
+        cursor = body.cursor;
+    } while (cursor);
+    return ids;
+};
+
+const addSurfaceUsages = async (surface) => {
+    const ids = await listSurfaceCards(surface);
+    const locales = getSurfaceLocales(surface).map(({ lang, country }) => ({ locale: `${lang}_${country}`, country }));
+    console.log(`${surface}: ${ids.length} cards x ${locales.length} locales`);
+    ids.forEach((id) => locales.forEach((locale) => masUsages.push(masUsage({ origin: `mas:${surface}` }, id, locale))));
 };
 
 const collectMasData = async () => {
@@ -1025,7 +1058,7 @@ const collectMasData = async () => {
     masUsages.forEach(({ masKey, ...usage }) => {
         masOffers[masKey].forEach(({ masCacheKey, osi, data }) => {
             const wcsKey = `mas|${masKey}|${masCacheKey}`;
-            mapWcs[wcsKey] ??= { osi, locale: usage.localeRewrite, fragmentId: usage.fragmentId, ...data };
+            mapWcs[wcsKey] ??= { osi, locale: usage.localeRewrite ?? usage.masLocale, fragmentId: usage.fragmentId, ...data };
             ostUsages.push({ ...usage, osi, masCacheKey, wcsKey });
         });
     });
@@ -1068,6 +1101,7 @@ const processArgs = async () => {
     const SEARCH_ARG = '-s';
     const DEBUG_ARG = '-d';
     const TARGET_ARG = '-t';
+    const SURFACE_ARG = '-S';
     let args = process.argv.slice(2);
     if (!args.length) {
         console.log('you should provide at least one URL to audit');
@@ -1111,6 +1145,10 @@ const processArgs = async () => {
                 isDebug = true;
                 break;
             }
+            case SURFACE_ARG: {
+                surfaces.push(args.splice(0, 1)[0]);
+                break;
+            }
             default: {
                 if (arg.endsWith('sitemap.xml')) {
                     console.log('looks like a sitemap, will use urls listed there...');
@@ -1140,6 +1178,7 @@ async function main() {
                 break;
             case AUDIT_TARGET.ost:
                 await collectOsiData();
+                for (const surface of surfaces) await addSurfaceUsages(surface);
                 await collectMasData();
                 writeOstUsagesToFile();
                 break;

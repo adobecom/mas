@@ -10,6 +10,8 @@ for one page or two or more
 for a sitemap or more
 `node audit.mjs https://www.adobe.com/cc-shared/assets/sitemap.xml`
 
+MAS card and collection links (`mas.adobe.com/studio.html#...`) are followed too: each fragment is fetched from `/mas/io/fragment` per locale and every offer in its `wcs.prod` section is compared, promo codes and offer mappings included.
+
 either case output will be entered as csv in /tmp/audit.csv, you can set a different output file with -f parameter
 
 for a full configured set of URLs and/or sitemap you can use -m parameter with a manifest composed of URLs/Sitemap separated by new lines character

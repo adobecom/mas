@@ -66,7 +66,7 @@ export const VARIANTS = [
     {
         label: 'Brand Concierge Product',
         value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
-        surfaces: [SURFACES.BRAND_CONCIERGE],
+        surfaces: [SURFACES.BRAND_CONCIERGE, SURFACES.SANDBOX],
     },
     {
         label: 'Product Pricing',

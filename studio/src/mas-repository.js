@@ -1170,23 +1170,25 @@ export class MasRepository extends LitElement {
     }
 
     async loadPromotions({ rethrow = false } = {}) {
+        let abortController;
         try {
             const promotionsPath = this.getPromotionsPath();
 
             const searchOptions = {
                 path: promotionsPath,
-                sort: [{ on: 'created', order: 'ASC' }],
+                sort: [{ on: 'created', order: 'DESC' }],
             };
 
             if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
-            this.#abortControllers.promotions = new AbortController();
+            abortController = new AbortController();
+            this.#abortControllers.promotions = abortController;
 
             Store.promotions.list.loading.set(true);
 
-            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+            const fragments = await this.searchFragmentList(searchOptions, 50, abortController);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
-            const signal = this.#abortControllers.promotions.signal;
+            const signal = abortController.signal;
             const expiredPublished = promotions.filter((store) => {
                 const p = store.get();
                 return p?.promotionStatus === 'expired' && p.isPromotionPublished;
@@ -1203,7 +1205,10 @@ export class MasRepository extends LitElement {
             this.processError(error, 'Could not load promotions.');
             if (rethrow) throw error;
         } finally {
-            Store.promotions.list.loading.set(false);
+            // A superseded call's `finally` must not clear `loading` behind the newer call's back.
+            if (this.#abortControllers.promotions === abortController) {
+                Store.promotions.list.loading.set(false);
+            }
         }
     }
 

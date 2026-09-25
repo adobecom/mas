@@ -355,6 +355,14 @@
                         expect(ctas.getAttribute('default-link-style')).to.equal('primary');
                     });
 
+                    it('renders card status on top of the editor', async () => {
+                        await setupTestEnvironment();
+                        const statusEl = editor.querySelector(
+                            '.editor-form-container .section-title-status .section-staged-status mas-fragment-status',
+                        );
+                        expect(statusEl.getAttribute('variant')).to.equal('draft');
+                    });
+
                     it('removes inherited badge values and restores it via override indicator', async () => {
                         await setupTestEnvironment();
                         expect(editor.getFieldState('badge')).to.equal('inherited');

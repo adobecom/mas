@@ -87,6 +87,22 @@
 
                         editor.remove();
                     });
+                    it('should display collection status', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const collectionFragment = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then(
+                            (res) => res.json(),
+                        );
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionFragment));
+                        document.querySelector('main sp-theme').appendChild(editor);
+                        await editor.updateComplete;
+                        expect(editor).to.exist;
+
+                        const statusEl = editor.shadowRoot.querySelector(
+                            '.editor-container .section-staged-status mas-fragment-status',
+                        );
+                        expect(statusEl.getAttribute('variant')).to.equal('draft');
+                    });
                 });
 
                 describe('grouped variation tags', () => {

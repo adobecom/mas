@@ -112,6 +112,8 @@ export function getItemTypeLabel(item) {
 export function shouldIgnoreRowClickForSelection(event) {
     return event.composedPath().some((node) => {
         if (!(node instanceof Element)) return false;
+        if (node.tagName === 'A' || node.tagName === 'BUTTON' || node.tagName === 'FOOTER') return true;
+        if (node.hasAttribute('href')) return true;
         if (node.tagName === 'SP-CHECKBOX') return true;
         if (node.classList?.contains('expand-button')) return true;
         if (node.classList?.contains('copy-icon-button')) return true;

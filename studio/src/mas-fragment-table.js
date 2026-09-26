@@ -86,9 +86,9 @@ class MasFragmentTable extends LitElement {
 
     update(changedProperties) {
         if (changedProperties.has('fragmentStore') || changedProperties.has('nested')) {
-            const stores = [this.fragmentStore];
+            const stores = [this.fragmentStore, Store.selection];
             if (this.nested) {
-                stores.push(Store.selecting, Store.selection);
+                stores.push(Store.selecting);
             }
             this.#reactiveController.updateStores(stores);
         }
@@ -192,7 +192,8 @@ class MasFragmentTable extends LitElement {
     }
 
     handleNestedRowClick(event) {
-        if (!this.nested || !Store.selecting.get()) return;
+        if (!this.nested) return;
+        if (event.detail !== 1) return; // 0 = keyboard, 2 = second click of a double click
         if (shouldIgnoreRowClickForSelection(event)) return;
         toggleSelection(this.fragmentStore.value.id);
     }
@@ -232,6 +233,7 @@ class MasFragmentTable extends LitElement {
                 : ''}
             <sp-table-row
                 value="${this.nested ? '' : data.id}"
+                ?selected=${this.isVariationSelected}
                 class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''} ${this.nested &&
                 Store.selecting.get()
                     ? 'selectable-row'

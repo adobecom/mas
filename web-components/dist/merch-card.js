@@ -9501,6 +9501,20 @@ merch-card[variant="mini"] span.renewal-text {
         margin: 0 !important;
     }
 
+    merch-card[variant='compare-chart-column'] [slot='badge'],
+    mas-compare-chart [data-compare-chart-slot][slot$='-badge'] {
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    merch-card[variant='compare-chart-column'] [slot='badge'] merch-badge,
+    mas-compare-chart [data-compare-chart-slot][slot$='-badge'] merch-badge {
+        --merch-badge-border-radius: 4px !important;
+        inset-inline-start: 0 !important;
+        max-width: 100% !important;
+        text-align: center !important;
+    }
+
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'],
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'] p {
         color: var(--C1-Text-text, #2C2C2C) !important;
@@ -9516,7 +9530,7 @@ merch-card[variant="mini"] span.renewal-text {
         min-height: auto !important;
         padding-block: 0 !important;
     }
-`;var zr={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},Yn=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],Wt,li,Ge=class extends v{constructor(e){super(e);f(this,Wt);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return si}get aemFragmentMapping(){return zr}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,C(this,Wt,li).call(this))}renderLayout(){return Vn`
+`;var zr={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},Yn=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],Wt,li,Ge=class extends v{constructor(e){super(e);f(this,Wt);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return si}get aemFragmentMapping(){return zr}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,C(this,Wt,li).call(this))}renderLayout(){return Vn`
             <div class="card">
                 <div class="seg seg-header">
                     <slot name="icons"></slot>
@@ -11491,8 +11505,8 @@ merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] >
 merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:first-child {
   display: inline;
 }
-`;document.head.appendChild(ki);import{LitElement as io,html as Mr,css as no,nothing as oo}from"./lit-all.min.js";import{unsafeHTML as co}from"./lit-all.min.js";var so=a=>a?a.startsWith("sp-icon-")?Mr`${co(`<${a} class="badge-icon"></${a}>`)}`:Mr`<img src="${a}" class="badge-icon" />`:oo,Ze=class extends io{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent,this.icon=""}connectedCallback(){this.borderColor&&this.borderColor!=="transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.backgroundColor.startsWith("gradient-")||this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),(!this.borderColor||this.borderColor==="transparent")&&this.backgroundColor.startsWith("gradient-")?this.style.setProperty("--merch-badge-padding","3px 11px 4px 11px"):this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.querySelector('span[is="inline-price"]')||(this.textContent="");let r=this.closest("merch-card"),e=r?.getAttribute("size"),t=r?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",t),this.style.setProperty("--merch-badge-with-offset",t?1:0),this.style.setProperty("--merch-badge-card-size",e?2:1),super.connectedCallback()}render(){return Mr`<div class="badge">
-            ${so(this.icon)}<slot>${this.text}</slot>
+`;document.head.appendChild(ki);import{LitElement as io,html as Mr,css as no,nothing as oo}from"./lit-all.min.js";import{unsafeHTML as co}from"./lit-all.min.js";var so=a=>a?a.startsWith("sp-icon-")?Mr`${co(`<${a} class="badge-icon"></${a}>`)}`:Mr`<img src="${a}" class="badge-icon" />`:oo,Ze=class extends io{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.icon=""}connectedCallback(){this.borderColor&&this.borderColor!=="transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.backgroundColor.startsWith("gradient-")||this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),(!this.borderColor||this.borderColor==="transparent")&&this.backgroundColor.startsWith("gradient-")?this.style.setProperty("--merch-badge-padding","3px 11px 4px 11px"):this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)");let r=this.closest("merch-card"),e=r?.getAttribute("size"),t=r?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",t),this.style.setProperty("--merch-badge-with-offset",t?1:0),this.style.setProperty("--merch-badge-card-size",e?2:1),super.connectedCallback()}render(){return Mr`<div class="badge">
+            ${so(this.icon)}<slot></slot>
         </div>`}};d(Ze,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"},icon:{type:String}}),d(Ze,"styles",no`
         :host {
             display: block;

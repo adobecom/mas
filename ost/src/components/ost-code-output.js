@@ -7,7 +7,6 @@ export class OstCodeOutput extends LitElement {
         buttonText: { type: String, state: true },
         placeholderType: { type: String },
         referenceOsi: { type: String },
-        isDiscountAmount: { type: Boolean },
         osi: { type: String },
         offer: { type: Object },
     };
@@ -53,10 +52,6 @@ export class OstCodeOutput extends LitElement {
         return this.closest('.placeholder-row')?.querySelector('ost-checkout-options')?.checkout;
     }
 
-    adaptType(type) {
-        return type === 'discount' && this.isDiscountAmount ? 'discount-amount' : type;
-    }
-
     getCodeString() {
         const baseOsi = this.effectiveOsi;
         if (!baseOsi) return '';
@@ -67,11 +62,10 @@ export class OstCodeOutput extends LitElement {
 
         const checkoutCtrl = this.checkoutCtrl;
 
-        const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
+        const osi = (type === 'discount' || type === 'discount-amount') && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
         const parts = [`osi="${osi}"`];
-        const adaptedType = this.adaptType(type);
         if (type !== 'price') {
-            parts.push(`type="${adaptedType}"`);
+            parts.push(`type="${type}"`);
         }
 
         const typeConfig = store.placeholderTypes.find((t) => t.type === type);
@@ -112,14 +106,14 @@ export class OstCodeOutput extends LitElement {
             }
         }
 
-        return `{{${adaptedType} ${parts.join(' ')}}}`;
+        return `{{${type} ${parts.join(' ')}}}`;
     }
 
     async handleUse() {
         const baseOsi = this.effectiveOsi;
         const type = this.placeholderType;
         if (!type) return;
-        const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
+        const osi = (type === 'discount' || type === 'discount-amount') && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
         const options = store.getEffectiveOptions(type);
 
         const checkoutCtrl = this.checkoutCtrl;
@@ -164,11 +158,10 @@ export class OstCodeOutput extends LitElement {
             node = node.host.getRootNode();
         }
         const app = node?.host?.tagName === 'OST-APP' ? node.host : null;
-        const adaptedType = this.adaptType(type);
         if (app) {
             app.select({
                 osi,
-                type: adaptedType,
+                type,
                 offer: this.effectiveOffer,
                 options,
                 promoOverride,

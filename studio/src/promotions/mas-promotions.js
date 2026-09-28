@@ -110,7 +110,6 @@ class MasPromotions extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
-        this.loading = true;
     }
 
     disconnectedCallback() {

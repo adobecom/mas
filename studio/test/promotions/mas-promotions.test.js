@@ -168,6 +168,23 @@ describe('MasPromotions', () => {
             expect(el.shadowRoot.querySelector('.no-promotions-message')).to.exist;
         });
 
+        it('renders the table instead of a spinner when the repository load finished before the element connects', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Preloaded' });
+            const repo = makeRepo();
+            Store.promotions.list.data.set([new FragmentStore(promotion)]);
+            await repo.loadPromotions();
+
+            const el = document.createElement('mas-promotions');
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector('.loading-container--flex')).to.not.exist;
+            expect(el.shadowRoot.querySelector('sp-progress-circle')).to.not.exist;
+            expect(el.shadowRoot.querySelector('sp-table.promotions-table')).to.exist;
+            expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(1);
+        });
+
         it('renders view actions for users without promotion edit access', async () => {
             Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [] }]);
             const promotion = makePromotion({ id: 'promo-1', title: 'View only' });
@@ -652,6 +669,7 @@ describe('MasPromotions', () => {
             });
             const repo = makeRepo({
                 loadPromotions: sandbox.stub().callsFake(async () => {
+                    Store.promotions.list.loading.set(true);
                     await loadPromise;
                     Store.promotions.list.loading.set(false);
                 }),
@@ -661,6 +679,7 @@ describe('MasPromotions', () => {
             document.body.appendChild(el);
             await el.updateComplete;
             const componentLoadPromise = el.loadPromotions();
+            await el.updateComplete;
 
             const search = el.shadowRoot.querySelector('sp-search');
             expect(search.disabled).to.be.true;

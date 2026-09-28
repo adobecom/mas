@@ -305,6 +305,7 @@ class MasSideNav extends LitElement {
         description: 'Product description',
         callout: 'Callout text',
         prices: 'Product price',
+        trialBadge: 'Trial Badge',
     };
     static SHOW_FIELDS = new Set([
         'prices',
@@ -317,6 +318,7 @@ class MasSideNav extends LitElement {
         'subtitle',
         'ctas',
         'badge',
+        'trialBadge',
     ]);
 
     #getPreviewCard() {

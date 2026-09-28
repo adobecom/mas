@@ -2610,7 +2610,6 @@ class MerchCardEditor extends LitElement {
                       .value=${this.getEffectiveFieldValue('badge', 0) || ''}
                       .colors=${this.availableBadgeColors}
                       .borderColors=${this.#removeGradientColors(this.availableBadgeColors)}
-                      .showColors=${this.supportsBadgeColors}
                       .variant=${variant}
                       .osi=${osi}
                       .isVariation=${this.effectiveIsVariation}

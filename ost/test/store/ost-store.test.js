@@ -264,7 +264,7 @@ describe('OstStore', () => {
     });
 
     it('has default placeholder types', () => {
-        expect(store.placeholderTypes).to.have.length(8);
+        expect(store.placeholderTypes).to.have.length(9);
         expect(store.placeholderTypes[0].type).to.equal('price');
         expect(store.placeholderTypes[6].type).to.equal('legal');
         expect(store.placeholderTypes[6].overrides.displayPlanType).to.be.true;

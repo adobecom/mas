@@ -62,7 +62,10 @@ export class OstCodeOutput extends LitElement {
 
         const checkoutCtrl = this.checkoutCtrl;
 
-        const osi = (type === 'discount' || type === 'discount-amount') && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
+        const osi =
+            (type === 'discount' || type === 'discount-amount') && this.referenceOsi
+                ? `${baseOsi},${this.referenceOsi}`
+                : baseOsi;
         const parts = [`osi="${osi}"`];
         if (type !== 'price') {
             parts.push(`type="${type}"`);
@@ -113,7 +116,10 @@ export class OstCodeOutput extends LitElement {
         const baseOsi = this.effectiveOsi;
         const type = this.placeholderType;
         if (!type) return;
-        const osi = (type === 'discount' || type === 'discount-amount') && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
+        const osi =
+            (type === 'discount' || type === 'discount-amount') && this.referenceOsi
+                ? `${baseOsi},${this.referenceOsi}`
+                : baseOsi;
         const options = store.getEffectiveOptions(type);
 
         const checkoutCtrl = this.checkoutCtrl;

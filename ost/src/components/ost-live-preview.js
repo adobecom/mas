@@ -155,7 +155,10 @@ export class OstLivePreview extends LitElement {
 
         // Split joined OSIs (soft bundle) so each resolves individually and
         // the price template sums them.
-        const wcsOsi = (type === 'discount' || type === 'discount-amount') && this.referenceOsi ? [osi, this.referenceOsi] : osi.split(',');
+        const wcsOsi =
+            (type === 'discount' || type === 'discount-amount') && this.referenceOsi
+                ? [osi, this.referenceOsi]
+                : osi.split(',');
 
         const placeholderOptions = {
             ...options,

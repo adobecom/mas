@@ -946,9 +946,7 @@ describe('wcs OSI helpers', function () {
                 id: 'f',
                 fields: {
                     osi: 'OWN',
-                    description:
-                        '<span data-wcs-osi="CROSS_SELL"></span>' +
-                        '<span data-wcs-osi="TEAMS"></span>',
+                    description: '<span data-wcs-osi="CROSS_SELL"></span>' + '<span data-wcs-osi="TEAMS"></span>',
                 },
             },
         );

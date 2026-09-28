@@ -43,7 +43,6 @@
             import { initElementFromTemplate } from '../utils.js';
 
             import '../../src/swc.js';
-            import '../../src/editor-panel.js';
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
@@ -378,7 +377,7 @@
                         fragEditorHost = null;
                     });
 
-                    it('renders fragment-title, fragment-description, and the locReady sp-switch', async () => {
+                    it('renders fragment-title, collection-description, and the locReady sp-switch', async () => {
                         const editor = document.createElement('merch-card-collection-editor');
                         editor.updateFragment = () => {};
                         editor.fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-render')));
@@ -386,7 +385,7 @@
                         await editor.updateComplete;
 
                         expect(editor.shadowRoot.querySelector('#fragment-title')).to.exist;
-                        expect(editor.shadowRoot.querySelector('#fragment-description')).to.exist;
+                        expect(editor.shadowRoot.querySelector('#collection-description')).to.exist;
                         expect(editor.shadowRoot.querySelector('sp-switch:not(#hide-cards)')).to.exist;
                     });
 
@@ -573,6 +572,122 @@
                         expect(cardsCall.args[0].values).to.deep.equal([cardB.path, cardA.path]);
                     });
                 });
+
+                describe('reopened collection with saved cards and categories', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let reopenHost;
+
+                    const savedCard = {
+                        id: 'saved-card-id',
+                        path: '/content/dam/mas/sandbox/en_US/saved-card',
+                        title: 'Saved Card',
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+                    const savedCategory = {
+                        id: 'saved-category-id',
+                        path: '/content/dam/mas/sandbox/en_US/saved-category',
+                        title: 'Saved Category',
+                        model: { path: COLLECTION_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+
+                    function savedCollectionData(overrides = {}) {
+                        return {
+                            id: 'saved-collection-id',
+                            path: '/content/dam/mas/sandbox/en_US/saved-collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Saved Collection',
+                            tags: [],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['Label'] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [savedCard.path] },
+                                {
+                                    name: 'collections',
+                                    type: 'content-reference',
+                                    multiple: true,
+                                    values: [savedCategory.path],
+                                },
+                            ],
+                            references: [savedCard, savedCategory],
+                            ...overrides,
+                        };
+                    }
+
+                    async function mountEditor(fragmentData) {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(fragmentData));
+                        reopenHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                        await editor.updateComplete;
+                        return editor;
+                    }
+
+                    const renderedItemCount = (editor, containerClass) =>
+                        editor.shadowRoot.querySelectorAll(`.${containerClass} .item-wrapper`).length;
+
+                    beforeEach(() => {
+                        reopenHost = document.createElement('div');
+                        spTheme().appendChild(reopenHost);
+                    });
+
+                    afterEach(() => {
+                        reopenHost?.remove();
+                        reopenHost = null;
+                    });
+
+                    // Opening a collection from the fragments list activates the list store, whose search
+                    // result carries no references; the editor's background refresh fills them in later.
+                    it('shows saved cards and categories once references arrive via a later refresh', async () => {
+                        const withoutReferences = savedCollectionData({ references: undefined });
+                        const editor = await mountEditor(withoutReferences);
+                        expect(renderedItemCount(editor, 'cards-container')).to.equal(0);
+
+                        editor.fragmentStore.refreshFrom(savedCollectionData());
+                        await editor.updateComplete;
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                        await editor.updateComplete;
+
+                        expect(renderedItemCount(editor, 'cards-container')).to.equal(1);
+                        expect(renderedItemCount(editor, 'collections-container')).to.equal(1);
+                    });
+
+                    it('seeds the fragments picker with only the saved cards', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        Store.collectionCards.selectedCollections.set([savedCategory.path]);
+
+                        editor.shadowRoot
+                            .querySelector('.collection-cards-selector-dialog')
+                            .dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+
+                        expect(Store.collectionCards.selectedCards.value).to.deep.equal([savedCard.path]);
+                        expect(Store.collectionCards.selectedCollections.value).to.deep.equal([]);
+                        expect(Store.collectionCards.cardsByPaths.value.has(savedCard.path)).to.be.true;
+                    });
+
+                    it('seeds the categories picker with only the saved categories', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        Store.collectionCards.selectedCards.set([savedCard.path]);
+
+                        editor.shadowRoot
+                            .querySelector('.collection-categories-selector-dialog')
+                            .dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+
+                        expect(Store.collectionCards.selectedCollections.value).to.deep.equal([savedCategory.path]);
+                        expect(Store.collectionCards.selectedCards.value).to.deep.equal([]);
+                        expect(Store.collectionCards.collectionsByPaths.value.has(savedCategory.path)).to.be.true;
+                    });
+
+                    it('shows the number of selected categories in the Categories heading', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        const heading = editor.shadowRoot.querySelector('[data-field-name="collections"] h2');
+                        expect(heading.textContent.trim()).to.equal('Categories (1)');
+                    });
+                });
             });
         </script>
         <main>
@@ -581,7 +696,6 @@
         <template id="merch-card-collection-editor">
             <div>
                 <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
-                <editor-panel></editor-panel>
             </div>
         </template>
     </body>

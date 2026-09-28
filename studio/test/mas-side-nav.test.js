@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { render } from 'lit';
 import Store from '../src/store.js';
 import Events from '../src/events.js';
-import { CARD_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-side-nav.js';
 
 function mockFragment(fields = [], overrides = {}) {
@@ -1443,5 +1443,34 @@ describe('MasSideNav - Promotions nav item', () => {
         const promotions = [...items].find((n) => n.label === 'Promotions');
         expect(promotions).to.exist;
         expect(promotions.hasAttribute('disabled')).to.be.false;
+    });
+});
+
+describe('MasSideNav – editNavigation', () => {
+    let sandbox;
+    let el;
+    let editorStub;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        editorStub = sandbox.stub(document, 'querySelector');
+        editorStub.callThrough();
+        el = document.createElement('mas-side-nav');
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    const collection = () => mockFragment([], { model: { path: COLLECTION_MODEL_PATH } });
+
+    it('shows the main navigation for collections, which use the floating quick actions bar', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({ ...mockEditor(collection()), isCompareChart: false });
+        expect(el.editNavigation.strings).to.equal(el.defaultNavigation.strings);
+    });
+
+    it('keeps the editor toolbar for compare charts, which have no quick actions bar', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({ ...mockEditor(collection()), isCompareChart: true });
+        expect(el.editNavigation.strings).to.not.equal(el.defaultNavigation.strings);
     });
 });

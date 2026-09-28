@@ -5,7 +5,7 @@ import { getFragmentName } from './translation/translation-utils.js';
 import Store, { toggleSelection } from './store.js';
 import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from './constants.js';
+import { CARD_MODEL_PATH, STAGED } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
@@ -140,8 +140,7 @@ class MasFragmentTable extends LitElement {
         const { fragment } = event.detail;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            const viewPage = this.data?.model?.path === COLLECTION_MODEL_PATH;
-            router.navigateToFragmentEditor(fragment.id, { locale, viewPage });
+            router.navigateToFragmentEditor(fragment.id, { locale });
         }
     }
 

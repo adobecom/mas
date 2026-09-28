@@ -213,16 +213,22 @@ export const styles = css`
         margin-bottom: 8px;
     }
 
+    .section-box {
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        padding: 16px 20px 20px;
+    }
+
     .section-title {
         display: flex;
         align-items: center;
         gap: 8px;
     }
 
-    .hide-cards-control {
+    .cards-header-actions {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 16px;
     }
 
     .cards-container {
@@ -230,10 +236,6 @@ export const styles = css`
         flex-direction: column;
         gap: 8px;
         min-height: 60px;
-    }
-
-    .hidden {
-        display: none;
     }
 
     .empty-cards-placeholder {
@@ -245,6 +247,18 @@ export const styles = css`
     .empty-cards-placeholder:hover {
         border-color: var(--spectrum-gray-300);
         background-color: var(--spectrum-gray-50);
+    }
+
+    .empty-fragments-placeholder {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        border: 1px dashed var(--spectrum-gray-300);
+        border-radius: 4px;
+        color: var(--spectrum-gray-600);
+        text-align: center;
     }
 
     .items-container {
@@ -374,6 +388,7 @@ export const styles = css`
     .editor-container {
         display: flex;
         flex-direction: column;
+        gap: 16px;
         height: 100%;
         padding: 16px;
         border-radius: 4px;
@@ -498,7 +513,68 @@ export const styles = css`
         }
     }
 
+    .section-box > h2 {
+        margin: 0 0 16px;
+    }
+
+    .section-box .form-container h2 {
+        margin: 0;
+        padding-top: 0;
+    }
+
+    .two-column-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 24px;
+        align-items: start;
+    }
+
+    .grid-column {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+    }
+
+    .two-column-grid .form-row {
+        margin: 0;
+    }
+
+    .two-column-grid .form-row sp-textfield,
+    .two-column-grid .form-row aem-tag-picker-field {
+        width: 100%;
+    }
+
     .form-row {
         margin: 20px 0;
+    }
+
+    .general-info-container {
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        padding: 16px 20px 20px;
+
+        h2 {
+            margin: 0 0 16px;
+        }
+    }
+
+    .general-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 24px;
+    }
+
+    .general-info-grid .form-row {
+        margin: 0;
+    }
+
+    .general-info-grid .form-row sp-textfield,
+    .general-info-grid .form-row aem-tag-picker-field {
+        width: 100%;
+    }
+
+    .general-info-grid .form-row.span-2 {
+        grid-column: 1 / -1;
     }
 `;

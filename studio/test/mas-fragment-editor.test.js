@@ -607,7 +607,7 @@ describe('MasFragmentEditor', () => {
 
             expect(navigateSpy.calledOnce).to.be.true;
             expect(navigateSpy.firstCall.args[0]).to.equal('new-variation-id');
-            expect(navigateSpy.firstCall.args[1]).to.deep.equal({ viewPage: false });
+            expect(navigateSpy.firstCall.args[1]).to.be.undefined;
 
             Store.fragmentEditor.fragmentId.value = 'new-variation-id';
             await el.initFragment();

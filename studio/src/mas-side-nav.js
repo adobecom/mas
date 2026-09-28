@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES } from './constants.js';
+import { PAGE_NAMES, SURFACES, COLLECTION_MODEL_PATH } from './constants.js';
 import Events from './events.js';
 import {
     generateFieldLink,
@@ -963,6 +963,12 @@ class MasSideNav extends LitElement {
     }
 
     get editNavigation() {
+        // Collections use the floating mas-quick-actions bar instead (see merch-card-collection-editor.js);
+        // fall back to the main nav so Home/Fragments/etc. remain visible.
+        if (this.fragmentEditor?.fragment?.model?.path === COLLECTION_MODEL_PATH && !this.fragmentEditor.isCompareChart) {
+            return this.defaultNavigation;
+        }
+
         const fragmentId = this.fragmentEditor?.fragment?.id;
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
         const loading = Store.fragmentEditor.loading.get();

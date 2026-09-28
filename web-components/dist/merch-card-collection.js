@@ -8881,6 +8881,20 @@ merch-card[variant="mini"] span.renewal-text {
         margin: 0 !important;
     }
 
+    merch-card[variant='compare-chart-column'] [slot='badge'],
+    mas-compare-chart [data-compare-chart-slot][slot$='-badge'] {
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    merch-card[variant='compare-chart-column'] [slot='badge'] merch-badge,
+    mas-compare-chart [data-compare-chart-slot][slot$='-badge'] merch-badge {
+        --merch-badge-border-radius: 4px !important;
+        inset-inline-start: 0 !important;
+        max-width: 100% !important;
+        text-align: center !important;
+    }
+
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'],
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'] p {
         color: var(--C1-Text-text, #2C2C2C) !important;
@@ -8896,7 +8910,7 @@ merch-card[variant="mini"] span.renewal-text {
         min-height: auto !important;
         padding-block: 0 !important;
     }
-`;var bi={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},Bl=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],Wr,vo,Pt=class extends w{constructor(t){super(t);A(this,Wr);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return fo}get aemFragmentMapping(){return bi}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,G(this,Wr,vo).call(this))}renderLayout(){return Hl`
+`;var bi={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},Bl=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],Wr,vo,Pt=class extends w{constructor(t){super(t);A(this,Wr);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return fo}get aemFragmentMapping(){return bi}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,G(this,Wr,vo).call(this))}renderLayout(){return Hl`
             <div class="card">
                 <div class="seg seg-header">
                     <slot name="icons"></slot>

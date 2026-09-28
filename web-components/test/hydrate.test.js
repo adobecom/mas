@@ -1917,6 +1917,64 @@ describe('processBadge', () => {
         );
         expect(merchCard.querySelector('[slot="badge"] merch-badge')).to.exist;
     });
+
+    it('wraps plain compare-chart-column badge text into the badge slot', () => {
+        const fields = {
+            badge: 'Save 10%',
+            badgeBackgroundColor: 'spectrum-green-900-plans',
+            variant: 'compare-chart-column',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+        );
+        const badge = merchCard.querySelector('[slot="badge"] merch-badge');
+        expect(badge).to.exist;
+        expect(badge.getAttribute('background-color')).to.equal(
+            'spectrum-green-900-plans',
+        );
+        expect(badge.textContent).to.equal('Save 10%');
+    });
+
+    it('falls back to the compare-chart-column default badge color', () => {
+        const fields = { badge: 'Save 10%', variant: 'compare-chart-column' };
+        processBadge(
+            fields,
+            merchCard,
+            COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+        );
+        const badge = merchCard.querySelector('[slot="badge"] merch-badge');
+        expect(badge.getAttribute('background-color')).to.equal(
+            COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING.badge.default,
+        );
+    });
+});
+
+describe('merch-badge rendering', () => {
+    it('keeps its text when cloned, as mas-compare-chart clones header slots', async () => {
+        const host = document.createElement('div');
+        host.innerHTML =
+            '<merch-badge background-color="spectrum-green-900-plans">Save 10%</merch-badge>';
+        document.body.append(host);
+        const badge = host.querySelector('merch-badge');
+        await badge.updateComplete;
+
+        const clone = badge.cloneNode(true);
+        document.body.append(clone);
+        await clone.updateComplete;
+
+        const assigned = clone.shadowRoot
+            .querySelector('.badge slot')
+            .assignedNodes()
+            .map((node) => node.textContent)
+            .join('')
+            .trim();
+        expect(assigned).to.equal('Save 10%');
+
+        host.remove();
+        clone.remove();
+    });
 });
 
 describe('appendSlot', () => {

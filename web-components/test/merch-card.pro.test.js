@@ -79,16 +79,30 @@ describe('pro add-on grey style', () => {
         expect(getComputedStyle(addOn, '::after').display).to.equal('none');
     });
 
-    it('draws a black-bordered checkbox when background="grey"', async () => {
+    it('draws a 16px, 2px-bordered black checkbox when background="grey"', async () => {
         card = await renderCard(
             '<merch-addon slot="addon" background="grey"><p>Add AI</p></merch-addon>',
         );
         const addon = card.querySelector('merch-addon');
         await addon.updateComplete;
         const checkbox = addon.shadowRoot.querySelector('#custom-checkbox');
-        expect(getComputedStyle(checkbox).borderTopColor).to.equal(
-            'rgb(0, 0, 0)',
+        const cs = getComputedStyle(checkbox);
+        expect(cs.borderTopColor).to.equal('rgb(0, 0, 0)');
+        expect(cs.borderTopWidth).to.equal('2px');
+        expect(cs.width).to.equal('16px');
+        expect(cs.height).to.equal('16px');
+    });
+
+    it('keeps the default checkbox at 20px with no border override when no background is authored', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
         );
+        const addon = card.querySelector('merch-addon');
+        await addon.updateComplete;
+        const checkbox = addon.shadowRoot.querySelector('#custom-checkbox');
+        const cs = getComputedStyle(checkbox);
+        expect(cs.width).to.equal('20px');
+        expect(cs.height).to.equal('20px');
     });
 });
 

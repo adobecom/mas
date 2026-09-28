@@ -56,4 +56,31 @@ export const features = [
         },
         tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
     },
+    {
+        tcid: '4',
+        name: '@MAS-Promotions-Project-Context-Price-And-CTA-Applied',
+        path: DOCS_GALLERY_PATH.PLANS_COLLECTION.US,
+        data: {
+            id: '75019c6c-ca13-4b14-b665-c44f0188638b',
+            promoProject: 'NalaEvergreen',
+            promoCode: 'NICOPROMO',
+            promoPrice: PRICE_PATTERN.FAKE.promo,
+            regularPrice: PRICE_PATTERN.FAKE.regular,
+        },
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
+    },
+    {
+        tcid: '5',
+        name: '@MAS-Promotions-Project-Context-Price-And-CTA-Canceled',
+        path: DOCS_GALLERY_PATH.PLANS_COLLECTION.US,
+        data: {
+            id: '1fae004e-9669-43bd-b55e-d6dc73363f5c',
+            promoProject: 'NalaEvergreen',
+            promoCode: 'NICOPROMO',
+            mainPricePromoCode: 'cancel-context',
+            promoPrice: PRICE_PATTERN.FAKE.promo,
+            regularPrice: PRICE_PATTERN.FAKE.regular,
+        },
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
+    },
 ];

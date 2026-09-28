@@ -2,9 +2,19 @@ import { css } from 'lit';
 
 export const promotionsItemsTableStyles = css`
     :host {
+        position: relative;
         width: 100%;
         display: flex;
         min-height: 0;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
     }
 
     .promotions-view-only .offer-cell {

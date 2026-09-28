@@ -5,6 +5,17 @@ import Store from './store.js';
 import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
 import './aem/aem-tag-picker-field.js';
 
+const INLINE_PRICE_OSI_SELECTOR = '[data-wcs-osi]';
+
+function getOfferSelectorId(fragment) {
+    const fragmentOsi = fragment?.getFieldValue?.('osi');
+    if (fragmentOsi) return fragmentOsi;
+
+    const template = document.createElement('template');
+    template.innerHTML = fragment?.getFieldValue?.('prices') || '';
+    return template.content.querySelector(INLINE_PRICE_OSI_SELECTOR)?.getAttribute('data-wcs-osi') || '';
+}
+
 export class MasVariationDialog extends LitElement {
     static properties = {
         fragment: { type: Object },
@@ -173,7 +184,7 @@ export class MasVariationDialog extends LitElement {
             return offer;
         }
 
-        const wcsOsi = this.fragment?.getFieldValue?.('osi');
+        const wcsOsi = getOfferSelectorId(this.fragment);
         if (!wcsOsi) throw new Error('No OSI value found on the fragment');
 
         const service = getService();

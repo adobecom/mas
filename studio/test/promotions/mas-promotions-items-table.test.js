@@ -1720,7 +1720,44 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.selectedCards.set([]);
         });
 
-        it('includes a promo variation created from a grouped variation in the parent card entry', async () => {
+        it('includes a promo variation created from a grouped variation in the parent card entry when the grouped variation is selected', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoVariationPath }],
+                                }),
+                            },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            const variations = el.existingPromoVariationsByPath.get(defaultPath);
+            expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('excludes a promo variation for a grouped variation that is no longer selected in the project', async () => {
             setupPromotionInEdit();
             const groupedPath = `${defaultPath}/pzn/edu`;
             const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
@@ -1752,7 +1789,50 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
 
             const variations = el.existingPromoVariationsByPath.get(defaultPath);
-            expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+            expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.not.be.true;
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('re-syncs immediately when only a grouped variation is deselected, without needing a page reload', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoVariationPath }],
+                                }),
+                            },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+
+            Store.promotions.selectedCards.set([defaultPath]);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.some((v) => v.id === 'grouped-promo-var-id')).to.not.be
+                .true;
             el.remove();
             Store.promotions.selectedCards.set([]);
         });
@@ -1797,6 +1877,59 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
 
             Store.promotions.selectedCards.set([defaultPath, otherPath]);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('keeps the card own promo variation when the bulk probe fails even though a selected grouped variation gets a fresh (empty) re-probe', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* (query) {
+                if (query?.path !== promoFolder) {
+                    yield [];
+                    return;
+                }
+                searchCallCount += 1;
+                if (searchCallCount === 1) {
+                    yield [{ id: 'existing-var-id', path: promoVariationPath }];
+                    return;
+                }
+                if (searchCallCount === 2) {
+                    throw new Error('bulk probe network blip');
+                }
+                yield [];
+            });
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: { search },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
+
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 80));
             await el.updateComplete;

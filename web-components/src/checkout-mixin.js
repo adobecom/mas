@@ -22,6 +22,31 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
 };
 let aupCheckoutPending = false;
 
+/**
+ * @typedef {'open' | 'close'} AupHandlerType
+ */
+
+/**
+ * @typedef {Object} AupHandlerContext
+ * @property {AupHandlerType} type
+ * @property {HTMLAnchorElement | HTMLButtonElement} element
+ */
+
+/**
+ * @callback AupHandler
+ * @param {AupHandlerContext} context
+ * @returns {void}
+ */
+
+/**
+ * @typedef {Object} CheckoutAction
+ * @property {string} [url]
+ * @property {string} [text]
+ * @property {string} [className]
+ * @property {(event: MouseEvent) => unknown} [handler]
+ * @property {AupHandler} [aupHandler]
+ */
+
 export function createCheckoutElement(Class, options = {}, innerHTML = '') {
     const service = getService();
     if (!service) return null;
@@ -66,6 +91,9 @@ export function CheckoutMixin(Base) {
     return class CheckoutBase extends Base {
         /* c8 ignore next 1 */
         checkoutActionHandler;
+
+        /** @type {AupHandler | undefined} */
+        aupHandler;
 
         masElement = new MasElement(this);
 
@@ -201,7 +229,7 @@ export function CheckoutMixin(Base) {
          * @param {Commerce.Wcs.Offer[]} offers
          * @param {Commerce.Checkout.Options} options
          * @param {Commerce.Checkout.AnyOptions} overrides
-         * @param {Commerce.Checkout.CheckoutAction} checkoutAction
+         * @param {CheckoutAction} checkoutAction
          * @param {number} version
          */
         renderOffers(
@@ -220,10 +248,12 @@ export function CheckoutMixin(Base) {
                 /* c8 ignore next 2 */
                 this.checkoutActionHandler = undefined;
             }
+            this.aupHandler = undefined;
+            this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
             if (checkoutAction) {
-                this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
                 this.masElement.toggleResolved(version, offers, options);
-                const { url, text, className, handler } = checkoutAction;
+                const { url, text, className, handler, aupHandler } =
+                    checkoutAction;
                 if (url) {
                     this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
                 }
@@ -238,6 +268,9 @@ export function CheckoutMixin(Base) {
                             : '#',
                     );
                     this.checkoutActionHandler = handler.bind(this);
+                }
+                if (typeof aupHandler === 'function') {
+                    this.aupHandler = aupHandler.bind(this);
                 }
                 this.updateCheckoutUrl();
             }
@@ -279,7 +312,11 @@ export function CheckoutMixin(Base) {
                 !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
                 !this.hasAttribute('download') &&
                 (!this.target || this.target === '_self') &&
-                isAupCheckoutSupported(this.value, this.options);
+                isAupCheckoutSupported(
+                    this.value,
+                    this.options,
+                    this.classList.contains(CLASS_NAME_UPGRADE),
+                );
             this.setAttribute(
                 this.isCheckoutLink ? 'href' : 'data-href',
                 useAup ? '#' : this.checkoutUrl,
@@ -328,7 +365,7 @@ export function CheckoutMixin(Base) {
             ) {
                 return false;
             }
-            const { checkoutActionHandler, href, value } = this;
+            const { aupHandler, checkoutActionHandler, href, value } = this;
             const card = this.closest('merch-card');
             const id = this.getAttribute('data-modal-id');
             const options = {
@@ -336,7 +373,10 @@ export function CheckoutMixin(Base) {
                 cs: this.customerSegment,
                 ms: this.marketSegment,
             };
-            if (!isAupCheckoutSupported(value, options)) return false;
+            const hasUpgradeAction =
+                this.classList.contains(CLASS_NAME_UPGRADE);
+            if (!isAupCheckoutSupported(value, options, hasUpgradeAction))
+                return false;
             this.updateCheckoutUrl();
             e.preventDefault();
             if (aupCheckoutPending) return true;
@@ -344,8 +384,23 @@ export function CheckoutMixin(Base) {
                 if (checkoutActionHandler) return checkoutActionHandler(e);
                 if (href) window.location.href = href;
             };
+            const notifyAupHandler = (type) => {
+                if (!aupHandler) return;
+                try {
+                    aupHandler({
+                        type,
+                        element: this,
+                    });
+                } catch (error) {
+                    this.masElement.log?.error(
+                        `AUP checkout ${type} handler failed`,
+                        error,
+                    );
+                }
+            };
             let cartItems;
             aupCheckoutPending = true;
+            notifyAupHandler('open');
             this.aupCheckoutPromise = launchAupCheckout(
                 sdk,
                 value,
@@ -355,6 +410,8 @@ export function CheckoutMixin(Base) {
                           cartItems = items;
                       }
                     : undefined,
+                undefined,
+                hasUpgradeAction,
             )
                 .catch((error) => {
                     this.masElement.log?.error(
@@ -364,6 +421,7 @@ export function CheckoutMixin(Base) {
                     return false;
                 })
                 .then(async (handled) => {
+                    notifyAupHandler('close');
                     if (!handled) {
                         try {
                             return await fallback();

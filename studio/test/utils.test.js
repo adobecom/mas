@@ -14,7 +14,9 @@ import {
     createKeyedAsyncLoader,
     getCreateProjectErrorMessage,
     describeVariationsToDelete,
+    extractImageUrl,
 } from '../src/utils.js';
+import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -759,5 +761,34 @@ describe('describeVariationsToDelete', () => {
         expect(describeVariationsToDelete(fragmentWithNoReferences, [localePath1, groupedPath1])).to.equal(
             '1 locale, 1 grouped variation(s)',
         );
+    });
+
+    it('counts a promo variation generated from a grouped variation as promo', () => {
+        const promoFromGroupedPath = '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/smb/my-fragment';
+        expect(describeVariationsToDelete(fragment, [groupedPath1, promoFromGroupedPath])).to.equal(
+            '1 grouped, 1 promo variation(s)',
+        );
+    });
+});
+
+describe('extractImageUrl', () => {
+    const AEM_PAGE_PNG = 'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png';
+    const AEM_PAGE_WITH_QUERY = 'https://main--mas-test--adobecom.aem.page/test-fragments/media_xyz.png?rev=3';
+
+    it('round-trips the base URL out of generated HTML', () => {
+        expect(extractImageUrl(buildPictureInnerMarkup(AEM_PAGE_PNG))).to.equal(AEM_PAGE_PNG);
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(extractImageUrl('')).to.equal('');
+    });
+
+    it('round-trips a URL that already had its own query string', () => {
+        expect(extractImageUrl(buildPictureInnerMarkup(AEM_PAGE_WITH_QUERY))).to.equal(AEM_PAGE_WITH_QUERY);
+    });
+
+    it('returns empty string instead of throwing when the src is not a parseable URL', () => {
+        expect(() => extractImageUrl('<img src="not a valid url">')).to.not.throw();
+        expect(extractImageUrl('<img src="not a valid url">')).to.equal('');
     });
 });

@@ -117,7 +117,6 @@ export class MasCollapsibleTableRow extends LitElement {
                 this.#loadToken++;
                 this.#referencesLoaded = false;
                 this.promoVariationsLoaded = false;
-                this.promoVariations = this.promoVariationsFetchedByParent?.get(this.topLevelCard?.path) || [];
                 this.#promoLoadInProgress = false;
                 this.#groupedActiveLoadCount = 0;
                 this.#promoActiveLoadCount = 0;
@@ -224,6 +223,23 @@ export class MasCollapsibleTableRow extends LitElement {
                     const variation = this.topLevelCardVariationsByPaths.get(variationPath);
                     const isSelected = this.selectedCards.includes(variationPath);
                     const isExpanded = this.expandedVariationsPaths.has(variationPath);
+                    let actionsCell = nothing;
+                    if (!this.cells.includes('Actions')) {
+                        if (this.renderActionsCell) {
+                            actionsCell = this.renderActionsCell(variation);
+                        } else if (manageOnly) {
+                            actionsCell = html`<sp-table-cell class="table-icon-cell">
+                                <sp-action-button
+                                    quiet
+                                    icon-only
+                                    aria-label="Remove grouped variation from this promotion"
+                                    @click=${(e) => this.#toggleSelect(e, variationPath)}
+                                >
+                                    <sp-icon-close slot="icon"></sp-icon-close>
+                                </sp-action-button>
+                            </sp-table-cell>`;
+                        }
+                    }
                     return html` <sp-table-row
                             value=${variationPath}
                             ?selected=${isSelected}
@@ -253,21 +269,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                       ></sp-checkbox>
                                   </sp-table-cell>`
                                 : nothing}
-                            ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
-                            ${this.renderActionsCell
-                                ? this.renderActionsCell(variation)
-                                : manageOnly
-                                  ? html`<sp-table-cell class="table-icon-cell">
-                                        <sp-action-button
-                                            quiet
-                                            icon-only
-                                            aria-label="Remove grouped variation from this promotion"
-                                            @click=${(e) => this.#toggleSelect(e, variationPath)}
-                                        >
-                                            <sp-icon-close slot="icon"></sp-icon-close>
-                                        </sp-action-button>
-                                    </sp-table-cell>`
-                                  : nothing}
+                            ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)} ${actionsCell}
                         </sp-table-row>
 
                         ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;

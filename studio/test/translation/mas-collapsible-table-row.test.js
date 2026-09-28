@@ -941,6 +941,33 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.shadowRoot.querySelector('.mock-actions-cell')).to.exist;
         });
 
+        it('renders one actions cell for a grouped variation when cells already includes Actions', async () => {
+            const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath],
+            });
+            const mockVariation = { path: varPath, title: 'Variation 1' };
+            setupCardVariationsInStore(topLevelCard.path, [mockVariation]);
+            const renderActionsCell = sandbox.stub().returns(html`<sp-table-cell class="mock-actions-cell"></sp-table-cell>`);
+
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .cellsOverride=${['Title', 'Actions']}
+                    .renderActionsCell=${renderActionsCell}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+
+            const variationRow = [...el.shadowRoot.querySelectorAll('sp-table-row[value]')].find(
+                (row) => row.getAttribute('value') === varPath,
+            );
+            expect(variationRow.querySelectorAll('.mock-actions-cell')).to.have.length(1);
+            expect(renderActionsCell.getCalls().filter(({ args }) => args[0] === mockVariation)).to.have.length(1);
+        });
+
         describe('groupedVariationsManageOnly', () => {
             const varPath1 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
             const varPath2 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var2';

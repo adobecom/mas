@@ -324,6 +324,11 @@ function applyCollectionSettings(context, locale, settings, country) {
         noSearchResultsText: '{{coll-no-search-results-text}}',
         noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
         showMoreText: '{{coll-show-more-text}}',
+        allFilters: '{{coll-all-filters-text}}',
+        filtersCategory: '{{coll-filters-category-text}}',
+        filtersApplied: '{{coll-filters-applied-text}}',
+        filtersResults: '{{coll-filters-results-text}}',
+        filtersReset: '{{coll-filters-reset-text}}',
     };
 
     context.dictionary = {

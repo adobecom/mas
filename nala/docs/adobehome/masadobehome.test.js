@@ -280,6 +280,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         webUtil = new WebUtil(page);
 
         await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.ADOBE_HOME.US, expect);
+        const originalUrl = page.url();
 
         try {
             const clicked = await page.evaluate(
@@ -327,6 +328,14 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
             }
         } catch (e) {
             console.log('Error in API validation test:', e.message);
+        } finally {
+            // This test clicks a live buy CTA on the shared 'US' page - the click may navigate the
+            // page away entirely, so page.reload() isn't safe here (it reloads wherever the click
+            // left us, not the original docs page). Explicitly navigate back to the URL confirmed
+            // above instead, so later tests reusing getPage('US') don't inherit whatever the click
+            // triggered, wherever it left the page.
+            await page.goto(originalUrl);
+            await page.waitForLoadState('networkidle');
         }
     });
 
@@ -378,14 +387,8 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
                     const badgeEl = merchCard.querySelector('[slot="badge"] merch-badge');
                     if (!badgeEl) return { error: 'Badge element not found' };
 
-                    // Try to get text from shadow DOM if it exists
-                    let badgeText = '';
-                    if (badgeEl.shadowRoot) {
-                        const textEl = badgeEl.shadowRoot.querySelector('.badge');
-                        badgeText = textEl ? textEl.textContent.trim() : '';
-                    } else {
-                        badgeText = badgeEl.textContent.trim();
-                    }
+                    // Badge text lives in light DOM; the shadow .badge only wraps a slot
+                    const badgeText = badgeEl.textContent.trim();
 
                     return {
                         text: badgeText,

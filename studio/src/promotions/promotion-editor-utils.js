@@ -79,6 +79,8 @@ export const PROMOTION_FIELD_TYPE_MAP = {
     offers: { type: 'text', multiple: true },
     startDate: { type: 'date-time' },
     endDate: { type: 'date-time' },
+    cdtStart: { type: 'date-time' },
+    cdtEnd: { type: 'date-time' },
     tags: { type: 'tag', multiple: true },
     surfaces: { type: 'text', multiple: true },
     geos: { type: 'tag', multiple: true },
@@ -240,6 +242,11 @@ export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEver
     }
     if (itemCount <= 0) {
         return 'Please add at least one fragment or collection.';
+    }
+    const cdtStart = fragment.getFieldValue('cdtStart');
+    const cdtEnd = fragment.getFieldValue('cdtEnd');
+    if (Boolean(cdtStart) !== Boolean(cdtEnd)) {
+        return 'Please set both countdown timer start and end dates, or none.';
     }
     return null;
 }

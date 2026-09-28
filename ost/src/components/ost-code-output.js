@@ -46,6 +46,12 @@ export class OstCodeOutput extends LitElement {
         return this.offer || store.selectedOffer;
     }
 
+    get osis() {
+        return (this.placeholderType === 'discount' || this.placeholderType === 'discount-amount') && this.referenceOsi
+            ? `${this.effectiveOsi},${this.referenceOsi}`
+            : this.effectiveOsi;
+    }
+
     // Scope the checkout controller to this row: tryBuy renders one checkout
     // row per offer, each with its own ost-checkout-options.
     get checkoutCtrl() {
@@ -62,11 +68,7 @@ export class OstCodeOutput extends LitElement {
 
         const checkoutCtrl = this.checkoutCtrl;
 
-        const osi =
-            (type === 'discount' || type === 'discount-amount') && this.referenceOsi
-                ? `${baseOsi},${this.referenceOsi}`
-                : baseOsi;
-        const parts = [`osi="${osi}"`];
+        const parts = [`osi="${this.osis}"`];
         if (type !== 'price') {
             parts.push(`type="${type}"`);
         }
@@ -113,13 +115,8 @@ export class OstCodeOutput extends LitElement {
     }
 
     async handleUse() {
-        const baseOsi = this.effectiveOsi;
         const type = this.placeholderType;
         if (!type) return;
-        const osi =
-            (type === 'discount' || type === 'discount-amount') && this.referenceOsi
-                ? `${baseOsi},${this.referenceOsi}`
-                : baseOsi;
         const options = store.getEffectiveOptions(type);
 
         const checkoutCtrl = this.checkoutCtrl;
@@ -166,7 +163,7 @@ export class OstCodeOutput extends LitElement {
         const app = node?.host?.tagName === 'OST-APP' ? node.host : null;
         if (app) {
             app.select({
-                osi,
+                osi: this.osis,
                 type,
                 offer: this.effectiveOffer,
                 options,

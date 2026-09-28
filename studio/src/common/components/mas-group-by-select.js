@@ -50,6 +50,4 @@ class MasGroupBySelect extends LitElement {
     }
 }
 
-export default MasGroupBySelect;
-export { MasGroupBySelect };
 customElements.define('mas-group-by-select', MasGroupBySelect);

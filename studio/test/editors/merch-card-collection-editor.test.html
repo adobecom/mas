@@ -799,6 +799,82 @@
                         expect(Store.collectionCards.collectionsByPaths.value.has(savedCategory.path)).to.be.true;
                     });
 
+                    describe('confirming a picker on a variation', () => {
+                        async function mountVariation() {
+                            const editor = document.createElement('merch-card-collection-editor');
+                            editor.updateFragment = spy();
+                            editor.isVariation = true;
+                            editor.localeDefaultFragment = new Fragment(savedCollectionData());
+                            editor.fragmentStore = new FragmentStore(
+                                new Fragment(
+                                    savedCollectionData({
+                                        id: 'variation-collection-id',
+                                        path: '/content/dam/mas/sandbox/fr_FR/saved-collection',
+                                        fields: [
+                                            { name: 'cards', type: 'content-reference', multiple: true, values: [] },
+                                            { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                                        ],
+                                        references: [],
+                                    }),
+                                ),
+                            );
+                            reopenHost.appendChild(editor);
+                            await editor.updateComplete;
+                            await new Promise((resolve) => setTimeout(resolve, 0));
+                            await editor.updateComplete;
+                            return editor;
+                        }
+
+                        const openAndConfirm = (editor, dialogClass) => {
+                            const dialog = editor.shadowRoot.querySelector(`.${dialogClass}`);
+                            dialog.dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+                            dialog.close = () => {};
+                            dialog.dispatchEvent(new Event('confirm'));
+                        };
+
+                        it('keeps inherited cards inherited when the selection is unchanged', async () => {
+                            const editor = await mountVariation();
+                            openAndConfirm(editor, 'collection-cards-selector-dialog');
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('keeps inherited categories inherited when the selection is unchanged', async () => {
+                            const editor = await mountVariation();
+                            openAndConfirm(editor, 'collection-categories-selector-dialog');
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('writes a local override once the selection changes', async () => {
+                            const editor = await mountVariation();
+                            const dialog = editor.shadowRoot.querySelector('.collection-cards-selector-dialog');
+                            dialog.dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+                            Store.collectionCards.selectedCards.set([]);
+                            dialog.close = () => {};
+                            dialog.dispatchEvent(new Event('confirm'));
+                            expect(editor.updateFragment.calledOnce).to.be.true;
+                            expect(editor.updateFragment.firstCall.args[0].values).to.deep.equal([]);
+                        });
+                    });
+
+                    it('collapses the selected fragments list with the hide toggle', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        const container = editor.shadowRoot.querySelector('.cards-container');
+                        const toggle = editor.shadowRoot.querySelector('#hide-cards');
+                        expect(getComputedStyle(container).display).to.not.equal('none');
+
+                        toggle.click();
+                        await editor.updateComplete;
+                        expect(getComputedStyle(container).display).to.equal('none');
+                        expect(editor.shadowRoot.querySelector('[data-field-name="cards-section"] h2').textContent).to.include(
+                            'Selected fragments (1)',
+                        );
+                        expect(editor.shadowRoot.querySelector('.cards-header-actions overlay-trigger')).to.exist;
+
+                        toggle.click();
+                        await editor.updateComplete;
+                        expect(getComputedStyle(container).display).to.not.equal('none');
+                    });
+
                     it('shows the number of selected categories in the Categories heading', async () => {
                         const editor = await mountEditor(savedCollectionData());
                         const heading = editor.shadowRoot.querySelector('[data-field-name="collections"] h2');

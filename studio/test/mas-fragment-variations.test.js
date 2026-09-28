@@ -326,7 +326,7 @@ describe('MasFragmentVariations', () => {
     });
 
     describe('editing grouped and locale variations', () => {
-        it('passes editFragmentStore to router when handleEdit is called', async () => {
+        it('navigates to the variation with its locale when handleEdit is called', async () => {
             const el = await fixture(
                 html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
             );
@@ -341,12 +341,7 @@ describe('MasFragmentVariations', () => {
 
             await el.handleEdit(editStore);
 
-            expect(
-                navigateSpy.calledOnceWith('variation-1', {
-                    locale: 'fr_FR',
-                    fragmentStore: editStore,
-                }),
-            ).to.be.true;
+            expect(navigateSpy.calledOnceWith('variation-1', { locale: 'fr_FR' })).to.be.true;
         });
 
         it('builds locale variation rows with a dedicated editFragmentStore', async () => {

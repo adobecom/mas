@@ -231,11 +231,21 @@ export const styles = css`
         gap: 16px;
     }
 
+    .hide-cards-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .cards-container {
         display: flex;
         flex-direction: column;
         gap: 8px;
         min-height: 60px;
+    }
+
+    .cards-container.hidden {
+        display: none;
     }
 
     .empty-cards-placeholder {

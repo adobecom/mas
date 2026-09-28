@@ -150,7 +150,7 @@ class MasFragmentTable extends LitElement {
         const fragment = editorStore?.get?.() || editorStore?.value;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore: editorStore });
+            router.navigateToFragmentEditor(fragment.id, { locale });
         }
     }
 

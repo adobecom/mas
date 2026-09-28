@@ -56,6 +56,7 @@ class MerchCardCollectionEditor extends LitElement {
             updateFragment: { type: Function },
             collectionPasteLinksInput: { type: String, state: true },
             collectionPasteLinksItems: { type: Array, state: true },
+            hideCards: { type: Boolean, state: true },
         };
     }
 
@@ -74,6 +75,7 @@ class MerchCardCollectionEditor extends LitElement {
         this.draggingIndex = -1;
         this.collectionPasteLinksInput = '';
         this.collectionPasteLinksItems = [];
+        this.hideCards = false;
     }
 
     connectedCallback() {
@@ -385,6 +387,14 @@ class MerchCardCollectionEditor extends LitElement {
                     )}
                 </div>
                 <div class="cards-header-actions">
+                    <div class="hide-cards-control">
+                        <sp-field-label for="hide-cards">hide</sp-field-label>
+                        <sp-switch
+                            id="hide-cards"
+                            .checked=${this.hideCards}
+                            @change=${this.#handleHideCardsChange}
+                        ></sp-switch>
+                    </div>
                     <overlay-trigger type="modal" triggered-by="click">
                         ${this.#cardsSelectorDialog}
                         <sp-button slot="trigger" size="s" variant="secondary" treatment="outline">
@@ -396,6 +406,10 @@ class MerchCardCollectionEditor extends LitElement {
             </div>
         `;
     }
+
+    #handleHideCardsChange = (event) => {
+        this.hideCards = event.target.checked;
+    };
 
     /** Seeds the picker's selection scope with the collection's own current cards, mirroring
      * mas-compare-chart-editor's #openItemsSelector. */
@@ -415,18 +429,26 @@ class MerchCardCollectionEditor extends LitElement {
 
     #confirmCardsSelector = ({ target }) => {
         target.close();
+        this.#applyPickerSelection('cards', Store.collectionCards.selectedCards.value, Store.collectionCards.cardsByPaths);
+    };
+
+    /** Writes a picker's selection to `fieldName`. An unchanged selection is a no-op so that a
+     * variation's inherited values aren't turned into a local override by merely confirming. */
+    #applyPickerSelection(fieldName, selectedPaths, byPathsStore) {
         if (!this.fragment) return;
 
-        const paths = Store.collectionCards.selectedCards.value || [];
+        const paths = [...new Set(selectedPaths || [])];
+        const currentPaths =
+            this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation) ?? [];
+        if (paths.length === currentPaths.length && paths.every((path, index) => path === currentPaths[index])) return;
+
         paths.forEach((path) => {
-            const fragmentData =
-                Store.collectionCards.cardsByPaths.value?.get(path) ||
-                Store.collectionCards.groupedVariationsData.value?.get(path);
+            const fragmentData = byPathsStore.value?.get(path) || Store.collectionCards.groupedVariationsData.value?.get(path);
             if (fragmentData) this.#addFragmentReference(fragmentData);
         });
 
-        this.#updateFieldValues('cards', [...new Set(paths)]);
-    };
+        this.#updateFieldValues(fieldName, paths);
+    }
 
     get #cardsSelectorDialog() {
         return html`<sp-dialog-wrapper
@@ -454,7 +476,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         return html`
             ${this.#cardsHeader}
-            <div class="cards-container">
+            <div class="cards-container ${this.hideCards ? 'hidden' : ''}">
                 ${hasCards
                     ? this.getItems({ values: cardsValues }, inherited)
                     : html`<div class="empty-fragments-placeholder">
@@ -694,17 +716,11 @@ class MerchCardCollectionEditor extends LitElement {
 
     #confirmCollectionsSelector = ({ target }) => {
         target.close();
-        if (!this.fragment) return;
-
-        const paths = Store.collectionCards.selectedCollections.value || [];
-        paths.forEach((path) => {
-            const fragmentData =
-                Store.collectionCards.collectionsByPaths.value?.get(path) ||
-                Store.collectionCards.groupedVariationsData.value?.get(path);
-            if (fragmentData) this.#addFragmentReference(fragmentData);
-        });
-
-        this.#updateFieldValues('collections', [...new Set(paths)]);
+        this.#applyPickerSelection(
+            'collections',
+            Store.collectionCards.selectedCollections.value,
+            Store.collectionCards.collectionsByPaths,
+        );
     };
 
     get #collectionsSelectorDialog() {

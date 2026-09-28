@@ -13,6 +13,7 @@ const AUDIT_TARGET = {
     modal: 'modal',
 };
 const BUFFER_SIZE = 100;
+const WCS_INTERVAL = 150; // ms between WCS-bound requests, WCS requires at least 100
 const EXCERPT_SIZE = 30;
 const LOC_REGEXP = '<loc>(?<url>[^<]+)</loc>';
 const PERSO_REGEXP = '<meta name="personalization" content="(?<urls>[^"]+)">';
@@ -212,6 +213,17 @@ const MAS_FETCH_TIMEOUT = 20000; // fragment pipeline main timeout is 15s
 const masUrl = (id, { locale, country }) =>
     `https://www.adobe.com/mas/io/fragment?id=${id}&api_key=wcms-commerce-ims-ro-user-milo&locale=${locale}${locale.endsWith(`_${country}`) ? '' : `&country=${country}`}`;
 const mapWcs = {};
+
+// Start-to-start spacing for requests that reach WCS, directly (wcsUrl) or
+// through the fragment pipeline (masUrl). One slot queue for all batches, so
+// buffer size sets concurrency, not rate.
+let nextWcsSlot = 0;
+const throttleWcs = async () => {
+    const now = Date.now();
+    const slot = Math.max(now, nextWcsSlot);
+    nextWcsSlot = slot + wcsInterval;
+    if (slot > now) await new Promise((resolve) => setTimeout(resolve, slot - now));
+};
 const WCS_KEYS = [
     'offerId',
     'productArrangementCode',
@@ -234,6 +246,7 @@ const foundUsages = [];
 let file = '/tmp/audit.csv';
 let auditTarget = AUDIT_TARGET.ost;
 let defaultBufferSize = BUFFER_SIZE;
+let wcsInterval = WCS_INTERVAL;
 let isDebug = false;
 const surfaces = [];
 
@@ -657,6 +670,7 @@ const offerData = (offer, country) => {
 
 async function setCommerceData(wcsKey, osi, locale) {
     const localeSettings = getLocaleSettings(locale);
+    await throttleWcs();
     const response = await fetchDocument(wcsUrl(osi, localeSettings));
     let data = {};
     if (response.ok) {
@@ -968,22 +982,9 @@ const collectOsiData = async () => {
         const buffer = osisToFetch.slice(0, defaultBufferSize);
         osisToFetch = osisToFetch.length >= defaultBufferSize ? osisToFetch.slice(defaultBufferSize) : [];
 
-        // Add timeout for the entire batch
-        const batchPromise = Promise.allSettled(
-            buffer.map((wcsKey) => setCommerceData(wcsKey, mapWcs[wcsKey].osi, mapWcs[wcsKey].locale)),
-        );
-        // Create a timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-                reject(new Error(`Batch processing timeout after ${MAX_FETCH_TIMEOUT}ms`));
-            }, MAX_FETCH_TIMEOUT * 2); // Double the fetch timeout for the batch
-        });
-        // Race the batch against the timeout
-        try {
-            await Promise.race([batchPromise, timeoutPromise]);
-        } catch (error) {
-            console.error(`Error processing batch: ${error.message}`);
-        }
+        // No batch deadline: spacing alone puts a full batch past any fixed one, and
+        // fetchDocument already times out each request.
+        await Promise.allSettled(buffer.map((wcsKey) => setCommerceData(wcsKey, mapWcs[wcsKey].osi, mapWcs[wcsKey].locale)));
     }
 };
 
@@ -993,6 +994,7 @@ const collectOsiData = async () => {
 const fetchMasOffers = async (masKey) => {
     const [fragmentId, locale, country] = masKey.split('|');
     try {
+        await throttleWcs();
         const response = await fetchDocument(masUrl(fragmentId, { locale, country }), MAS_FETCH_TIMEOUT);
         if (!response.ok) {
             console.log(`no fragment ${fragmentId} (${locale}): ${response.status}`);
@@ -1096,6 +1098,7 @@ const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
 
 const processArgs = async () => {
     const BUFFER_ARG = '-b';
+    const WCS_INTERVAL_ARG = '-w';
     const FILE_ARG = '-f';
     const MF_ARG = '-m';
     const SEARCH_ARG = '-s';
@@ -1114,6 +1117,15 @@ const processArgs = async () => {
             case BUFFER_ARG: {
                 defaultBufferSize = parseInt(args.splice(0, 1)[0]);
                 console.log(`will use bufferSize of ${defaultBufferSize}`);
+                break;
+            }
+            case WCS_INTERVAL_ARG: {
+                wcsInterval = parseInt(args.splice(0, 1)[0]);
+                if (!(wcsInterval >= 100)) {
+                    console.error(`${WCS_INTERVAL_ARG} must be at least 100 (ms), WCS requires it`);
+                    process.exit(2);
+                }
+                console.log(`will space WCS-bound requests ${wcsInterval}ms apart`);
                 break;
             }
             case FILE_ARG: {

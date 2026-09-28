@@ -261,6 +261,14 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect(editor.querySelector('sp-field-group#addonStyle')).to.not.exist;
     });
 
+    it('shows the Add-on style field after toggleFields runs, since it has no fragment mapping key of its own', async () => {
+        const { editor } = makeAppearanceEditor();
+        await editor.updateComplete;
+        await editor.toggleFields();
+        const group = editor.querySelector('sp-field-group#addonStyle');
+        expect(group.style.display).to.equal('block');
+    });
+
     it('persists Grey/Default by writing the background attribute onto the authored addon HTML', async () => {
         const { editor, store } = makeAppearanceEditor();
         store.get().updateField('addon', ['<merch-addon>{{addon-placeholder}}</merch-addon>']);

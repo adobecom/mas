@@ -131,7 +131,7 @@ class MerchCardEditor extends LitElement {
     };
 
     static SECTION_FIELDS = {
-        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground'],
+        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground', 'addonStyle'],
         "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
@@ -1195,6 +1195,12 @@ class MerchCardEditor extends LitElement {
             const dividerField = this.querySelector('sp-field-group.toggle#whats-included-divider-color');
             if (dividerField) dividerField.style.display = 'block';
         }
+        // addonStyle (pro only) is derived from the addon field's HTML, not a
+        // mapping key of its own, so it's never whitelisted by the loop above.
+        if (variant.addon) {
+            const addonStyleField = this.querySelector('sp-field-group.toggle#addonStyle');
+            if (addonStyleField) addonStyleField.style.display = 'block';
+        }
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayBadgeIconField(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
@@ -1696,7 +1702,7 @@ class MerchCardEditor extends LitElement {
                         'backgroundColor',
                     )}
                 </div>
-                ${variantValue === VARIANT_NAMES.PRO ? nothing : this.#renderAddonBackgroundPicker(form)}
+                ${variantValue === VARIANT_NAMES.PRO ? this.#renderAddonStylePicker() : this.#renderAddonBackgroundPicker(form)}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
                     ${this.#renderWhatsIncludedLabel()}
@@ -2080,7 +2086,6 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleAddonChange}"
                         ></mas-addon-field>
                     </sp-field-group>
-                    ${variantValue === VARIANT_NAMES.PRO ? this.#renderAddonStylePicker() : nothing}
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
                             class="settings-toggle-field"

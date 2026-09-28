@@ -15,7 +15,20 @@ import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
-import { getFragmentMapping, showToast } from '../utils.js';
+import { extractImageUrl, getFragmentMapping, showToast } from '../utils.js';
+import {
+    buildPictureInnerMarkup as buildPictureHtml,
+    extractImageDimensions,
+    getImageDimensions,
+    isSupportedAssetHostname as isSupportedImageUrl,
+} from '../../../web-components/src/image-markup.js';
+import {
+    buildBackgroundsHtml,
+    parseBackgroundsUrls,
+    parseBackgroundsDimensions,
+    resolveOwnBackgroundsUrls,
+    resolveBackgroundBreakpointState,
+} from './backgrounds-url.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
@@ -111,6 +124,10 @@ class MerchCardEditor extends LitElement {
         disabledPromoGeoOptions: { type: Array, attribute: false },
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
+        imageUrlInvalid: { type: Boolean, state: true },
+        backgroundsUrlInvalid: { type: Object, state: true },
+        imageDimensionsInvalid: { type: Boolean, state: true },
+        backgroundsDimensionsInvalid: { type: Object, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -131,6 +148,8 @@ class MerchCardEditor extends LitElement {
     availableWhatsIncludedDividerColors = [];
     availableBadgeColors = [];
     availableBackgroundColors = [];
+    imageUpdateId = 0;
+    backgroundsUpdateId = 0;
     quantitySelectorValues = '';
     lastMnemonicState = null;
     reactiveController = null;
@@ -147,6 +166,10 @@ class MerchCardEditor extends LitElement {
         this.lastMnemonicState = null;
         this.fieldsReady = false;
         this.previewLocaleOverride = null;
+        this.imageUrlInvalid = false;
+        this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
+        this.imageDimensionsInvalid = false;
+        this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -893,6 +916,10 @@ class MerchCardEditor extends LitElement {
         }
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
+            this.imageUrlInvalid = false;
+            this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
+            this.imageDimensionsInvalid = false;
+            this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
             this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
@@ -1307,6 +1334,7 @@ class MerchCardEditor extends LitElement {
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         const form = this.getFormWithInheritance();
+        const backgroundsUrls = parseBackgroundsUrls(form.backgrounds?.values?.[0] ?? '');
         const variantValue = this.getEffectiveFieldValue('variant');
         const skeletonDisplay = this.fieldsReady ? 'none' : 'block';
         const formDisplay = this.fieldsReady ? 'block' : 'none';
@@ -1510,6 +1538,10 @@ class MerchCardEditor extends LitElement {
                 .fragment-validation-banner-icon {
                     flex-shrink: 0;
                     color: var(--merch-color-error, #d73220);
+                }
+
+                #backgrounds sp-field-label:not(:first-of-type) {
+                    margin-top: 16px;
                 }
 
                 ${fieldStatusStyles}
@@ -1758,6 +1790,104 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
+                ${this.currentVariantMapping?.backgrounds
+                    ? html`
+                          <sp-field-group class="toggle" id="backgrounds">
+                              <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page background desktop URL"
+                                  id="background-desktop"
+                                  data-field="backgrounds"
+                                  data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
+                                  ?invalid="${this.backgroundsUrlInvalid.desktop || this.backgroundsDimensionsInvalid.desktop}"
+                                  value="${backgroundsUrls.desktop}"
+                                  @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
+                              >
+                                  ${this.backgroundsUrlInvalid.desktop
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page background desktop URL.</sp-help-text
+                                        >`
+                                      : this.backgroundsDimensionsInvalid.desktop
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The background image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
+                              </sp-textfield>
+                              ${this.#renderBackgroundStatusIndicator('desktop')}
+
+                              <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page background tablet URL"
+                                  id="background-tablet"
+                                  data-field="backgrounds"
+                                  data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
+                                  ?invalid="${this.backgroundsUrlInvalid.tablet || this.backgroundsDimensionsInvalid.tablet}"
+                                  value="${backgroundsUrls.tablet}"
+                                  @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
+                              >
+                                  ${this.backgroundsUrlInvalid.tablet
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page background tablet URL.</sp-help-text
+                                        >`
+                                      : this.backgroundsDimensionsInvalid.tablet
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The background image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
+                              </sp-textfield>
+                              ${this.#renderBackgroundStatusIndicator('tablet')}
+
+                              <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page background mobile URL"
+                                  id="background-mobile"
+                                  data-field="backgrounds"
+                                  data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
+                                  ?invalid="${this.backgroundsUrlInvalid.mobile || this.backgroundsDimensionsInvalid.mobile}"
+                                  value="${backgroundsUrls.mobile}"
+                                  @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
+                              >
+                                  ${this.backgroundsUrlInvalid.mobile
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page background mobile URL.</sp-help-text
+                                        >`
+                                      : this.backgroundsDimensionsInvalid.mobile
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The background image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
+                              </sp-textfield>
+                              ${this.#renderBackgroundStatusIndicator('mobile')}
+                          </sp-field-group>
+                      `
+                    : nothing}
+                ${this.currentVariantMapping?.image
+                    ? html`
+                          <sp-field-group class="toggle" id="image">
+                              <sp-field-label for="image-url">Image</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter an *.aem.page image URL"
+                                  id="image-url"
+                                  data-field="image"
+                                  data-field-state="${this.getFieldState('image')}"
+                                  ?invalid="${this.imageUrlInvalid || this.imageDimensionsInvalid}"
+                                  value="${extractImageUrl(form.image?.values?.[0] ?? '')}"
+                                  @change="${this.#handleImageUpdate}"
+                              >
+                                  ${this.imageUrlInvalid
+                                      ? html`<sp-help-text slot="negative-help-text"
+                                            >Enter a valid *.aem.page image URL.</sp-help-text
+                                        >`
+                                      : this.imageDimensionsInvalid
+                                        ? html`<sp-help-text slot="negative-help-text"
+                                              >The image dimensions could not be resolved.</sp-help-text
+                                          >`
+                                        : nothing}
+                              </sp-textfield>
+                              ${this.renderFieldStatusIndicator('image')}
+                          </sp-field-group>
+                      `
+                    : nothing}
                 <div class="section-title">Price and Promo</div>
                 <sp-field-group class="toggle" id="prices">
                     <sp-field-label for="prices">Product price</sp-field-label>
@@ -2679,6 +2809,142 @@ class MerchCardEditor extends LitElement {
 
         this.#handleFragmentUpdate(syntheticEvent);
     };
+
+    #handleImageUpdate = async (event) => {
+        const updateId = ++this.imageUpdateId;
+        const url = event.target.value.trim();
+        this.imageUrlInvalid = Boolean(url) && !isSupportedImageUrl(url);
+        if (this.imageUrlInvalid) return;
+
+        const storedMarkup = this.fragmentStore.get()?.getFieldValue?.('image') ?? '';
+        const storedUrl = extractImageUrl(storedMarkup);
+        let dimensions = url && url === storedUrl ? extractImageDimensions(storedMarkup) : undefined;
+        if (url) {
+            if (!dimensions) {
+                try {
+                    dimensions = await getImageDimensions(url);
+                } catch {
+                    this.imageDimensionsInvalid = true;
+                }
+            }
+        }
+        if (updateId !== this.imageUpdateId) return;
+        if (url && !dimensions) return;
+        this.imageDimensionsInvalid = false;
+
+        const syntheticEvent = {
+            target: {
+                value: url ? buildPictureHtml(url, dimensions) : '',
+                dataset: {
+                    field: 'image',
+                },
+            },
+        };
+
+        this.#handleFragmentUpdate(syntheticEvent);
+    };
+
+    /** Reads the current backgrounds field value straight from the fragment (not the
+     *  effective/inherited value), so a change to one breakpoint can be merged with
+     *  the other two's own values without clobbering them. When the fragment has no
+     *  own backgrounds field (fully inheriting), seeds from the parent's effective
+     *  value instead of empty strings — otherwise editing one breakpoint would drop
+     *  the other two inherited breakpoints. */
+    get #ownBackgroundsHtml() {
+        return this.fragment.getField('backgrounds')?.values?.[0];
+    }
+
+    get #parentBackgroundsHtml() {
+        return this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+    }
+
+    #getOwnBackgroundsUrls() {
+        return resolveOwnBackgroundsUrls(this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
+    }
+
+    #handleBackgroundsPartUpdate = async (key, event) => {
+        const updateId = ++this.backgroundsUpdateId;
+        const url = event.target.value.trim();
+        const invalid = Boolean(url) && !isSupportedImageUrl(url);
+        this.backgroundsUrlInvalid = { ...this.backgroundsUrlInvalid, [key]: invalid };
+        if (invalid) return;
+
+        const current = this.#getOwnBackgroundsUrls();
+        current[key] = url;
+        const dimensions = {};
+        const dimensionsInvalid = {};
+        const storedDimensions = {
+            ...parseBackgroundsDimensions(this.#parentBackgroundsHtml),
+            ...parseBackgroundsDimensions(this.#ownBackgroundsHtml),
+        };
+        await Promise.all(
+            Object.entries(current).map(async ([breakpoint, value]) => {
+                if (!value) return;
+                const previousUrl = this.#getOwnBackgroundsUrls()[breakpoint];
+                if (value === previousUrl && storedDimensions[breakpoint]) {
+                    dimensions[breakpoint] = storedDimensions[breakpoint];
+                    return;
+                }
+                try {
+                    dimensions[breakpoint] = await getImageDimensions(value);
+                } catch {
+                    dimensionsInvalid[breakpoint] = true;
+                }
+            }),
+        );
+        if (updateId !== this.backgroundsUpdateId) return;
+        this.backgroundsDimensionsInvalid = {
+            ...this.backgroundsDimensionsInvalid,
+            desktop: Boolean(dimensionsInvalid.desktop),
+            tablet: Boolean(dimensionsInvalid.tablet),
+            mobile: Boolean(dimensionsInvalid.mobile),
+        };
+        if (Object.keys(dimensionsInvalid).length) return;
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current, dimensions));
+    };
+
+    #commitBackgroundsHtml(html) {
+        const updated = this.fragmentStore.updateField('backgrounds', [html]);
+        if (updated === false) {
+            this.fragment.hasChanges = true;
+            this.fragmentStore.notify();
+        }
+        this.requestUpdate();
+    }
+
+    /** Own value is `['']` (not absent) once all three breakpoints are cleared, and the
+     *  platform resolves that back to the parent — so an empty own value must report
+     *  'inherited', not get compared against the parent as if it were real content. */
+    #getBackgroundBreakpointState(key) {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        return resolveBackgroundBreakpointState(key, this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
+    }
+
+    async #resetBackgroundBreakpointToParent(key) {
+        const current = this.#getOwnBackgroundsUrls();
+        const parentUrls = parseBackgroundsUrls(this.#parentBackgroundsHtml);
+        const parentDimensions = parseBackgroundsDimensions(this.#parentBackgroundsHtml);
+        const dimensions = { ...parentDimensions, ...parseBackgroundsDimensions(this.#ownBackgroundsHtml) };
+        current[key] = parentUrls[key];
+        dimensions[key] = parentDimensions[key];
+        if (current[key] && !dimensions[key]) {
+            try {
+                dimensions[key] = await getImageDimensions(current[key]);
+            } catch {
+                this.backgroundsDimensionsInvalid = { ...this.backgroundsDimensionsInvalid, [key]: true };
+                return;
+            }
+        }
+        this.backgroundsDimensionsInvalid = { ...this.backgroundsDimensionsInvalid, [key]: false };
+        this.#commitBackgroundsHtml(buildBackgroundsHtml(current, dimensions));
+        showToast('Field restored to parent value', 'positive');
+    }
+
+    #renderBackgroundStatusIndicator(key) {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.#getBackgroundBreakpointState(key) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.#resetBackgroundBreakpointToParent(key));
+    }
 
     static #ADDON_DEFAULT = 'transparent';
     static #ADDON_GRADIENT =

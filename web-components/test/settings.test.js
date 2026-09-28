@@ -108,6 +108,49 @@ describe('getSettings', () => {
         expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
     });
 
+    describe('aupSelect', () => {
+        let meta;
+
+        beforeEach(() => {
+            meta = document.createElement('meta');
+            meta.name = 'aup-select';
+        });
+
+        afterEach(() => {
+            meta.remove();
+        });
+
+        for (const value of ['on', 'ucv3_in_iframe']) {
+            it(`is enabled by "${value}" metadata`, () => {
+                meta.content = value;
+                document.head.append(meta);
+                expect(getSettings({}, mockService).aupSelect).to.be.true;
+            });
+
+            it(`is enabled by "${value}" query parameter`, () => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('aup-select', value);
+                window.history.replaceState({}, '', url.toString());
+                expect(getSettings({}, mockService).aupSelect).to.be.true;
+            });
+        }
+
+        for (const value of ['off', 'true', 'ON', 'UCV3_IN_IFRAME', '']) {
+            it(`is disabled by ${JSON.stringify(value)} metadata`, () => {
+                meta.content = value;
+                document.head.append(meta);
+                expect(getSettings({}, mockService).aupSelect).to.be.false;
+            });
+
+            it(`is disabled by ${JSON.stringify(value)} query parameter`, () => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('aup-select', value);
+                window.history.replaceState({}, '', url.toString());
+                expect(getSettings({}, mockService).aupSelect).to.be.false;
+            });
+        }
+    });
+
     it('uses document metadata and storage', () => {
         const wcsApiKey = 'wcs-api-key';
         const meta = document.createElement('meta');

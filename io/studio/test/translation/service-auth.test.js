@@ -9,6 +9,7 @@ const { expect } = chai;
 function createMockStateModule() {
     const store = new Map();
     return {
+        store,
         readValue: sinon.stub().callsFake(async (key) => {
             const entry = store.get(key);
             if (!entry) return null;
@@ -21,6 +22,9 @@ function createMockStateModule() {
         writeValue: sinon.stub().callsFake(async (key, value, ttl) => {
             store.set(key, { value, expiresAt: Date.now() + ttl * 1000 });
             return value;
+        }),
+        deleteValue: sinon.stub().callsFake(async (key) => {
+            store.delete(key);
         }),
     };
 }
@@ -174,6 +178,48 @@ describe('service-auth', () => {
 
         expect(error).to.be.instanceOf(Error);
         expect(fetchStub).to.not.have.been.called;
+    });
+
+    it('validates credentials before reading the cache, so missing creds are never masked by a cached token', async () => {
+        fetchStub.resolves(tokenResponse('token-abc', 3600));
+        await serviceAuth.getServiceToken({ params });
+        mockStateModule.readValue.resetHistory();
+
+        let error;
+        try {
+            await serviceAuth.getServiceToken({ params: { ...params, imsClientSecret: undefined } });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error).to.be.instanceOf(Error);
+        expect(mockStateModule.readValue).to.not.have.been.called;
+    });
+
+    it('keys the cache by client id + scopes, so a different client id gets its own token instead of a stale one', async () => {
+        fetchStub.onCall(0).resolves(tokenResponse('token-for-client-1', 3600));
+        fetchStub.onCall(1).resolves(tokenResponse('token-for-client-2', 3600));
+
+        const first = await serviceAuth.getServiceToken({ params });
+        const second = await serviceAuth.getServiceToken({ params: { ...params, imsClientId: 'client-2' } });
+
+        expect(first).to.equal('token-for-client-1');
+        expect(second).to.equal('token-for-client-2');
+        expect(fetchStub).to.have.been.calledTwice;
+    });
+
+    it('invalidateServiceToken evicts the cached token so the next getServiceToken call fetches a fresh one', async () => {
+        fetchStub.onCall(0).resolves(tokenResponse('token-abc', 3600));
+        fetchStub.onCall(1).resolves(tokenResponse('token-def', 3600));
+
+        const first = await serviceAuth.getServiceToken({ params });
+        await serviceAuth.invalidateServiceToken({ params });
+        const second = await serviceAuth.getServiceToken({ params });
+
+        expect(first).to.equal('token-abc');
+        expect(second).to.equal('token-def');
+        expect(fetchStub).to.have.been.calledTwice;
+        expect(mockStateModule.deleteValue).to.have.been.calledOnce;
     });
 
     it('throws when the IMS response is missing access_token', async () => {

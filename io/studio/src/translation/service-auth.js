@@ -1,32 +1,53 @@
 const { Core } = require('@adobe/aio-sdk');
-const { readValue, writeValue } = require('./state.js');
+const crypto = require('crypto');
+const { readValue, writeValue, deleteValue } = require('./state.js');
 
 const logger = Core.Logger('service-auth', { level: 'info' });
 
 const DEFAULT_IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v3';
-const SERVICE_TOKEN_KEY = 'translation-status.service-token';
+const SERVICE_TOKEN_KEY_PREFIX = 'translation-status.service-token';
 const TOKEN_EXPIRY_SAFETY_MARGIN_SECS = 5 * 60;
 
-async function getCachedToken() {
-    return readValue(SERVICE_TOKEN_KEY);
+/**
+ * Validates the client-credentials inputs and returns the normalized
+ * (comma-joined) scope string. Called before any cache read/write so that
+ * missing creds or scopes are never masked by a still-cached token.
+ */
+function validateCredentialsAndGetScope(params = {}) {
+    const scope = Array.isArray(params.imsScopes) ? params.imsScopes.join(',') : params.imsScopes;
+    if (!params.imsClientId || !params.imsClientSecret || !scope) {
+        throw new Error('getServiceToken requires imsClientId, imsClientSecret and imsScopes');
+    }
+    return scope;
 }
 
-async function cacheToken(accessToken, expiresInSecs) {
+/**
+ * Derives the cache key from the client id + scopes (rather than a single
+ * static key) so that a credential/scope config change starts a fresh cache
+ * entry instead of silently continuing to serve a token cached under the
+ * previous identity.
+ */
+function buildServiceTokenKey(clientId, scope) {
+    const identityHash = crypto.createHash('sha256').update(`${clientId}:${scope}`).digest('hex').slice(0, 16);
+    return `${SERVICE_TOKEN_KEY_PREFIX}.${identityHash}`;
+}
+
+async function getCachedToken(key) {
+    return readValue(key);
+}
+
+async function cacheToken(key, accessToken, expiresInSecs) {
     const ttl = Math.max(1, Math.floor(expiresInSecs) - TOKEN_EXPIRY_SAFETY_MARGIN_SECS);
     if (expiresInSecs <= TOKEN_EXPIRY_SAFETY_MARGIN_SECS) {
         logger.warn(
             `IMS token expires_in (${expiresInSecs}s) is at or below the safety margin (${TOKEN_EXPIRY_SAFETY_MARGIN_SECS}s); caching with a clamped ttl of ${ttl}s, so the cache will barely help`,
         );
     }
-    await writeValue(SERVICE_TOKEN_KEY, { accessToken }, ttl);
+    await writeValue(key, { accessToken }, ttl);
 }
 
-async function fetchNewToken(params = {}) {
+async function fetchNewToken(params, scope, key) {
     const tokenUrl = params.imsTokenUrl || DEFAULT_IMS_TOKEN_URL;
-    const scope = Array.isArray(params.imsScopes) ? params.imsScopes.join(',') : params.imsScopes;
-    if (!params.imsClientId || !params.imsClientSecret || !scope) {
-        throw new Error('getServiceToken requires imsClientId, imsClientSecret and imsScopes');
-    }
 
     const body = new URLSearchParams({
         client_id: params.imsClientId,
@@ -56,27 +77,44 @@ async function fetchNewToken(params = {}) {
         throw new Error(`IMS token response has an invalid expires_in: ${expiresIn}`);
     }
 
-    await cacheToken(accessToken, expiresInSecs);
+    await cacheToken(key, accessToken, expiresInSecs);
     return accessToken;
 }
 
 let pendingFetch = null;
 
 async function getServiceToken({ params } = {}) {
-    const cached = await getCachedToken();
+    const scope = validateCredentialsAndGetScope(params);
+    const key = buildServiceTokenKey(params.imsClientId, scope);
+
+    const cached = await getCachedToken(key);
     if (cached?.accessToken) {
         return cached.accessToken;
     }
     if (!pendingFetch) {
-        pendingFetch = fetchNewToken(params).finally(() => {
+        pendingFetch = fetchNewToken(params, scope, key).finally(() => {
             pendingFetch = null;
         });
     }
     return pendingFetch;
 }
 
+/**
+ * Evicts the cached service token for the given client id/scopes so the next
+ * getServiceToken() call fetches a fresh one from IMS instead of continuing
+ * to serve a token Odin has already rejected (e.g. revoked). Callers (e.g.
+ * the future Hoolihan webhook) should call this on a 401 from Odin and retry
+ * once before giving up.
+ */
+async function invalidateServiceToken({ params } = {}) {
+    const scope = validateCredentialsAndGetScope(params);
+    const key = buildServiceTokenKey(params.imsClientId, scope);
+    await deleteValue(key);
+}
+
 module.exports = {
     getServiceToken,
+    invalidateServiceToken,
     DEFAULT_IMS_TOKEN_URL,
-    SERVICE_TOKEN_KEY,
+    SERVICE_TOKEN_KEY_PREFIX,
 };

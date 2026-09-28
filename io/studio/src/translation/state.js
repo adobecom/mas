@@ -251,6 +251,7 @@ module.exports = {
     PROJECT_SUMMARY_TTL_PARAM,
     readValue,
     writeValue,
+    deleteValue,
     buildJobPayloadKey,
     buildProjectSummaryKey,
     buildTaskIndexKey,

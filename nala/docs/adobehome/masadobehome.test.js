@@ -387,14 +387,8 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
                     const badgeEl = merchCard.querySelector('[slot="badge"] merch-badge');
                     if (!badgeEl) return { error: 'Badge element not found' };
 
-                    // Try to get text from shadow DOM if it exists
-                    let badgeText = '';
-                    if (badgeEl.shadowRoot) {
-                        const textEl = badgeEl.shadowRoot.querySelector('.badge');
-                        badgeText = textEl ? textEl.textContent.trim() : '';
-                    } else {
-                        badgeText = badgeEl.textContent.trim();
-                    }
+                    // Badge text lives in light DOM; the shadow .badge only wraps a slot
+                    const badgeText = badgeEl.textContent.trim();
 
                     return {
                         text: badgeText,

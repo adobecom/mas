@@ -961,6 +961,24 @@ describe('wcs OSI helpers', function () {
         ]);
     });
 
+    it('updateOffers preserves an authored promo code for a rich text osi in the promo project', function () {
+        const { context, elements } = run(
+            { f: { promoMap: { TEAMS: 'PROJECT-CODE' }, substituteMap: {} } },
+            {
+                id: 'f',
+                fields: {
+                    osi: 'OWN',
+                    description: '<span data-wcs-osi="TEAMS" data-promotion-code="AUTHORED-CODE"></span>',
+                },
+            },
+        );
+        expect(context.body.fields.promoCode).to.be.undefined;
+        expect(context.body.fields.description).to.equal(
+            '<span data-wcs-osi="TEAMS" data-promotion-code="AUTHORED-CODE"></span>',
+        );
+        expect(elements).to.deep.equal([{ osi: 'TEAMS', promotionCode: 'AUTHORED-CODE' }]);
+    });
+
     it('updateOffers does not set a promo code (even wildcard) when the fragment has no osi', function () {
         const { context } = run(
             { f: { promoMap: { '*': 'WILDCARD' }, substituteMap: {} } },

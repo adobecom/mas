@@ -5,6 +5,15 @@ import { CSS } from './compare-chart-column.css.js';
 export const COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 'l' },
     title: { tag: 'h3', slot: 'header', maxCount: 100 },
+    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-gray-700-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
     prices: { tag: 'p', slot: 'price' },
     description: { tag: 'div', slot: 'detail', maxCount: 1000 },
     ctas: { slot: 'cta', size: 'M' },

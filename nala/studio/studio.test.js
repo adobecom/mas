@@ -146,7 +146,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).click();
-            await expect(page.locator('sp-tooltip')).toHaveText('Double click the card to start editing.');
+            await expect(page.locator('sp-tooltip')).toHaveText('Click to select, double click to edit.');
         });
 
         await test.step('step-3: Double-click on the card and open editor', async () => {
@@ -480,6 +480,110 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.waitForCardsLoaded(2);
             await expect(studio.createdByTag).toHaveCount(0);
             await expect(studio.renderView.locator('merch-card').nth(1)).toBeVisible();
+        });
+    });
+
+    // @studio-card-single-click-select - Validate single click selects/deselects a card (no editor) and toggles the selection panel
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}`;
+        setTestPage(testPage);
+        const firstCard = studio.renderViewFragments.nth(0);
+        const secondCard = studio.renderViewFragments.nth(1);
+        // Click the card corner so the click never lands on a CTA
+        const clickOptions = { position: { x: 10, y: 10 } };
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.waitForCardsLoaded(2);
+            await expect(studio.selectionPanel).not.toHaveAttribute('open', '');
+        });
+
+        await test.step('step-2: Single click selects the card without opening the editor', async () => {
+            await firstCard.click(clickOptions);
+            await expect(firstCard).toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).toHaveAttribute('open', '');
+            await expect(studio.selectionPanel).toContainText('1 selected');
+            await expect(editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-3: Single click on another card accumulates the selection', async () => {
+            await secondCard.click(clickOptions);
+            await expect(secondCard).toHaveAttribute('selected', '');
+            await expect(firstCard).toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).toContainText('2 selected');
+            await expect(editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-4: Single click on a selected card deselects it', async () => {
+            await firstCard.click(clickOptions);
+            await expect(firstCard).not.toHaveAttribute('selected', '');
+            await expect(secondCard).toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).toContainText('1 selected');
+        });
+
+        await test.step('step-5: Deselecting the last card closes the selection panel', async () => {
+            await secondCard.click(clickOptions);
+            await expect(secondCard).not.toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).not.toHaveAttribute('open', '');
+            await expect(editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-6: Double click still opens the editor', async () => {
+            await firstCard.dblclick(clickOptions);
+            await expect(editor.panel).toBeVisible();
+        });
+    });
+
+    // @studio-table-row-single-click-select - Validate single click selects/deselects a table row (no editor) and toggles the selection panel
+    test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[16].path}${miloLibs}${features[16].browserParams}`;
+        setTestPage(testPage);
+        const firstRow = studio.tableViewRows.nth(0);
+        const secondRow = studio.tableViewRows.nth(1);
+
+        await test.step('step-1: Go to MAS Studio test page and switch to table view', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.waitForCardsLoaded();
+            await studio.switchToTableView();
+            await expect(secondRow).toBeVisible({ timeout: 15000 });
+            await expect(studio.selectionPanel).not.toHaveAttribute('open', '');
+        });
+
+        await test.step('step-2: Single click selects the row without opening the editor', async () => {
+            await studio.tableViewTitleCell(firstRow).click();
+            await expect(firstRow).toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).toHaveAttribute('open', '');
+            await expect(studio.selectionPanel).toContainText('1 selected');
+            await expect(editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-3: Single click on another row accumulates the selection', async () => {
+            await studio.tableViewTitleCell(secondRow).click();
+            await expect(secondRow).toHaveAttribute('selected', '');
+            await expect(firstRow).toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).toContainText('2 selected');
+            await expect(editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-4: Single click on a selected row deselects it', async () => {
+            await studio.tableViewTitleCell(firstRow).click();
+            await expect(firstRow).not.toHaveAttribute('selected', '');
+            await expect(secondRow).toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).toContainText('1 selected');
+        });
+
+        await test.step('step-5: Deselecting the last row closes the selection panel', async () => {
+            await studio.tableViewTitleCell(secondRow).click();
+            await expect(secondRow).not.toHaveAttribute('selected', '');
+            await expect(studio.selectionPanel).not.toHaveAttribute('open', '');
+            await expect(editor.panel).not.toBeVisible();
+        });
+
+        await test.step('step-6: Double click still opens the editor', async () => {
+            await studio.tableViewTitleCell(firstRow).dblclick();
+            await expect(editor.panel).toBeVisible();
         });
     });
 });

@@ -3,12 +3,13 @@ import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import './mas-fragment-variations.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import Store from './store.js';
+import Store, { toggleSelection } from './store.js';
 import router from './router.js';
 import { styles } from './mas-fragment.css.js';
 import { MasRepository } from './mas-repository.js';
 import { showToast } from './utils.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 
 const tooltipTimeout = new ReactiveStore(null);
 
@@ -70,6 +71,11 @@ class MasFragment extends LitElement {
 
     handleClick(event) {
         if (Store.selecting.value) return;
+        if (shouldIgnoreRowClickForSelection(event)) return;
+
+        // Let @dblclick handle the second click.
+        if (event.detail === 1) toggleSelection(this.fragmentStore.value?.id);
+
         clearTimeout(tooltipTimeout.get());
         const currentTarget = event.currentTarget;
         tooltipTimeout.set(
@@ -166,7 +172,7 @@ class MasFragment extends LitElement {
                     @mouseleave=${this.handleMouseLeave}
                     @dblclick=${this.edit}
                 ></mas-fragment-table
-                ><sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
+                ><sp-tooltip slot="hover-content" placement="top">Click to select, double click to edit.</sp-tooltip>
             </overlay-trigger>
             ${this.expanded
                 ? html`<mas-fragment-variations

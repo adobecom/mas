@@ -140,5 +140,19 @@ export default {
             browserParams: '#page=content&path=sandbox',
             tags: '@mas-studio @nopr',
         },
+        {
+            tcid: '15',
+            name: '@studio-card-single-click-select',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            tags: '@mas-studio @selection',
+        },
+        {
+            tcid: '16',
+            name: '@studio-table-row-single-click-select',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            tags: '@mas-studio @selection',
+        },
     ],
 };

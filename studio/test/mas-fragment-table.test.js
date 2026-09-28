@@ -261,10 +261,38 @@ describe('MasFragmentTable', () => {
             await el.updateComplete;
 
             const titleCell = el.querySelector('sp-table-cell.title');
-            el.handleNestedRowClick({ composedPath: () => [titleCell] });
+            el.handleNestedRowClick({ detail: 1, composedPath: () => [titleCell] });
             expect(Store.selection.get()).to.deep.equal(['variation-1']);
 
-            el.handleNestedRowClick({ composedPath: () => [titleCell] });
+            el.handleNestedRowClick({ detail: 1, composedPath: () => [titleCell] });
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('toggles Store.selection when clicking a nested row outside selection mode', async () => {
+            Store.selecting.set(false);
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const titleCell = el.querySelector('sp-table-cell.title');
+            el.handleNestedRowClick({ detail: 1, composedPath: () => [titleCell] });
+            expect(Store.selection.get()).to.deep.equal(['variation-1']);
+
+            await el.updateComplete;
+            expect(el.querySelector('sp-table-row').hasAttribute('selected')).to.be.true;
+        });
+
+        it('ignores the second click of a double click', async () => {
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const titleCell = el.querySelector('sp-table-cell.title');
+            el.handleNestedRowClick({ detail: 2, composedPath: () => [titleCell] });
             expect(Store.selection.get()).to.deep.equal([]);
         });
 
@@ -282,7 +310,7 @@ describe('MasFragmentTable', () => {
             await el.updateComplete;
 
             const expandButton = el.querySelector('.expand-button');
-            el.handleNestedRowClick({ composedPath: () => [expandButton] });
+            el.handleNestedRowClick({ detail: 1, composedPath: () => [expandButton] });
             expect(Store.selection.get()).to.deep.equal([]);
         });
     });
@@ -392,7 +420,7 @@ describe('MasFragmentTable', () => {
             await el.updateComplete;
 
             const titleCell = el.querySelector('sp-table-cell.title');
-            el.handleNestedRowClick({ composedPath: () => [titleCell] });
+            el.handleNestedRowClick({ detail: 1, composedPath: () => [titleCell] });
             expect(Store.selection.get()).to.deep.equal(['grouped-1']);
         });
     });

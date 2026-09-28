@@ -23,6 +23,10 @@ const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
 const DEFAULT_FIELD_PATCH_RETRIES = 3;
 const ROLLOUT_PROJECT_TYPE = 'rollout';
+// Terminal project statuses that completeProjectLocale must never overwrite:
+// a late/redelivered Hoolihan event shouldn't be able to flip a project that
+// already failed or was cancelled back to COMPLETED.
+const TERMINAL_PROJECT_STATUSES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
 
 function getOdinLocTaskNameValidationError(value) {
     const title = (value ?? '').trim();
@@ -626,13 +630,23 @@ async function addCompletedLocale(projectId, locale, token, params = {}, options
  * later call (for the true final locale) can still set it. If `targetLocales`
  * itself is missing, there is nothing to guard against, so the status is
  * written as requested.
+ *
+ * The status write is also skipped if the fragment's current status is
+ * already terminal (see `TERMINAL_PROJECT_STATUSES`): Hoolihan delivery is
+ * at-least-once, so a late/redelivered event for an already-FAILED or
+ * already-CANCELLED project must not flip it back to COMPLETED.
+ *
+ * When the locale is already recorded and nothing would actually change
+ * (targets aren't all covered yet, or the status is already terminal so it
+ * can't be written), this short-circuits with `{success: true, skipped:
+ * true}` instead of sending a no-op PATCH, mirroring `addCompletedLocale`.
  * @param {string} projectId
  * @param {string} locale - the locale being marked completed
  * @param {string} status - the terminal project status (e.g. 'COMPLETED')
  * @param {string} token
  * @param {Object} params
  * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
- * @returns {Promise<{success: boolean, etag?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, skipped?: boolean, etag?: string, error?: string}>}
  */
 async function completeProjectLocale(projectId, locale, status, token, params = {}, options = {}) {
     return retryOnEtagConflict(
@@ -641,20 +655,41 @@ async function completeProjectLocale(projectId, locale, status, token, params = 
         async () => {
             const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
             const { values: existing = [], path: localesPath } = getValues(fragment, 'completedLocales') ?? {};
-            const { path: statusPath } = getValues(fragment, 'status') ?? {};
+            const { values: currentStatusValues, path: statusPath } = getValues(fragment, 'status') ?? {};
             if (!localesPath || !statusPath) {
                 logger.warn(`completedLocales or status field not found on translation project ${projectId}, aborting`);
                 return { success: false, error: 'field-not-found' };
             }
 
-            const mergedLocales = existing.includes(locale) ? existing : [...existing, locale];
+            const localeAlreadyCompleted = existing.includes(locale);
+            const mergedLocales = localeAlreadyCompleted ? existing : [...existing, locale];
             const { values: targetLocales } = getValues(fragment, 'targetLocales') ?? {};
             const allLocalesCompleted =
                 !targetLocales || targetLocales.every((targetLocale) => mergedLocales.includes(targetLocale));
+            const currentStatus = currentStatusValues?.[0];
+            const statusAlreadyTerminal = TERMINAL_PROJECT_STATUSES.has(currentStatus);
+            const shouldWriteStatus = allLocalesCompleted && !statusAlreadyTerminal;
+
+            if (localeAlreadyCompleted && !shouldWriteStatus) {
+                if (statusAlreadyTerminal) {
+                    logger.warn(
+                        `Translation project ${projectId} status is already terminal (${currentStatus}), skipping redundant PATCH for locale ${locale}`,
+                    );
+                } else {
+                    logger.warn(
+                        `Locale ${locale} already recorded and not all target locales completed for translation project ${projectId}, skipping redundant PATCH`,
+                    );
+                }
+                return { success: true, skipped: true };
+            }
 
             const ops = [{ op: 'replace', path: `${localesPath}/values`, value: mergedLocales }];
-            if (allLocalesCompleted) {
+            if (shouldWriteStatus) {
                 ops.push({ op: 'replace', path: `${statusPath}/values`, value: [status] });
+            } else if (statusAlreadyTerminal) {
+                logger.warn(
+                    `Translation project ${projectId} status is already terminal (${currentStatus}), skipping status update to ${status}`,
+                );
             } else {
                 logger.warn(
                     `Not all target locales completed for translation project ${projectId} (${mergedLocales.length}/${targetLocales.length}), skipping status update to ${status}`,

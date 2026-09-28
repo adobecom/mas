@@ -190,6 +190,60 @@ describe('Translation project-start-service — CF mirror helpers', () => {
             expect(patchBody).to.deep.equal([{ op: 'replace', path: '/fields/2/values', value: ['fr_FR', 'de_DE'] }]);
         });
 
+        it('short-circuits without patching when the locale is already recorded and targets are still incomplete', async () => {
+            const fragment = createProjectFragment({
+                targetLocales: ['fr_FR', 'de_DE', 'es_ES'],
+                completedLocales: ['fr_FR'],
+            });
+            let patchCalls = 0;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchCalls += 1;
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'fr_FR', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, skipped: true });
+            expect(patchCalls).to.equal(0);
+        });
+
+        it('does not flip an already-terminal status back when all locales are covered (late/redelivered event)', async () => {
+            const fragment = createProjectFragment({
+                status: ['FAILED'],
+                completedLocales: ['fr_FR', 'de_DE'],
+            });
+            let patchBody;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchBody = JSON.parse(options.body);
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'es_ES', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, etag: 'etag-2' });
+            expect(patchBody).to.deep.equal([{ op: 'replace', path: '/fields/2/values', value: ['fr_FR', 'de_DE', 'es_ES'] }]);
+        });
+
+        it('short-circuits without patching when the locale is already recorded and the status is already terminal', async () => {
+            const fragment = createProjectFragment({
+                status: ['CANCELLED'],
+                completedLocales: ['fr_FR', 'de_DE', 'es_ES'],
+            });
+            let patchCalls = 0;
+            global.fetch = sinon.stub().callsFake(async (url, options = {}) => {
+                if (!options.method || options.method === 'GET') return fragmentResponse(fragment, 'etag-1');
+                patchCalls += 1;
+                return fragmentResponse(fragment, 'etag-2');
+            });
+
+            const result = await projectStartService.completeProjectLocale('proj-1', 'es_ES', 'COMPLETED', 'token', baseParams);
+
+            expect(result).to.deep.equal({ success: true, skipped: true });
+            expect(patchCalls).to.equal(0);
+        });
+
         it('writes the status when targetLocales is missing, since coverage cannot be verified', async () => {
             const fragment = {
                 id: 'proj-1',

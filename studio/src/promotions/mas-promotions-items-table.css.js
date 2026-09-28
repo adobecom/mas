@@ -302,6 +302,7 @@ export const promotionsItemsTableStyles = css`
     .group-header-row {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: var(--spectrum-spacing-100);
         width: 100%;
         box-sizing: border-box;

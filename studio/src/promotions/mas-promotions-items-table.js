@@ -1055,8 +1055,8 @@ class MasPromotionsItemsTable extends LitElement {
                 aria-expanded=${collapsed ? 'false' : 'true'}
                 @click=${() => this.#toggleGroup(group.key)}
             >
-                <sp-icon-chevron-down class=${collapsed ? '' : 'expanded'}></sp-icon-chevron-down>
                 <span class="group-name">${group.label}</span>
+                <sp-icon-chevron-down class=${collapsed ? '' : 'expanded'}></sp-icon-chevron-down>
             </button>
             ${collapsed ? nothing : this.#renderCardsSelectTable(group.items, false)}
         </div>`;

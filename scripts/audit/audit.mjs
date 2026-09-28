@@ -207,8 +207,14 @@ const GeoMap = {
     ec: 'EC_es',
     pr: 'US_es',
 };
-const wcsUrl = (osi, locale) =>
-    `https://wcs.adobe.com/web_commerce_artifact?offer_selector_ids=${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=wcms-commerce-ims-ro-user-milo&landscape=PUBLISHED`;
+// Same endpoints and landscapes as web-components (constants.js, wcs.js).
+const WCS_ENVS = {
+    prod: { url: 'https://wcs.adobe.com/web_commerce_artifact', landscape: 'PUBLISHED' },
+    stage: { url: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+};
+let wcsEnv = 'prod';
+const wcsUrl = (osi, locale, promotionCode) =>
+    `${WCS_ENVS[wcsEnv].url}?offer_selector_ids=${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=wcms-commerce-ims-ro-user-milo&landscape=${WCS_ENVS[wcsEnv].landscape}${promotionCode ? `&promotion_code=${encodeURIComponent(promotionCode)}` : ''}`;
 const MAS_FETCH_TIMEOUT = 20000; // fragment pipeline main timeout is 15s
 const masUrl = (id, { locale, country }) =>
     `https://www.adobe.com/mas/io/fragment?id=${id}&api_key=wcms-commerce-ims-ro-user-milo&locale=${locale}${locale.endsWith(`_${country}`) ? '' : `&country=${country}`}`;
@@ -991,6 +997,28 @@ const collectOsiData = async () => {
 // Fetches each referenced fragment once per locale and compares every offer in
 // its `wcs.prod` section: the resolved offers the fragment pipeline prefetched
 // (offer mappings and promo codes applied) and the browser renders from.
+// /mas/io only prefetches prod WCS, so off prod the browser asks WCS itself for
+// each offer and promo code; do the same. Memoized: offers repeat across
+// fragments. The promo comes from the prod offer, so a code prod did not apply
+// is not retried.
+const envOffers = new Map();
+const fetchEnvOffer = (prodOffer, locale, country) => {
+    const osi = prodOffer.offerSelectorIds?.[0];
+    const promotionCode = prodOffer.promotion?.promotionCode;
+    const key = [osi, locale, country, promotionCode].join('|');
+    if (!envOffers.has(key)) {
+        envOffers.set(
+            key,
+            (async () => {
+                await throttleWcs();
+                const response = await fetchDocument(wcsUrl(osi, { locale, country }, promotionCode));
+                return response.ok ? (await response.json()).resolvedOffers?.[0] : undefined;
+            })().catch((error) => console.log(`no ${wcsEnv} offer ${osi} (${locale}): ${error.message}`)),
+        );
+    }
+    return envOffers.get(key);
+};
+
 const fetchMasOffers = async (masKey) => {
     const [fragmentId, locale, country] = masKey.split('|');
     try {
@@ -1001,14 +1029,14 @@ const fetchMasOffers = async (masKey) => {
             return [masKey, []];
         }
         const { wcs } = await response.json();
-        const offers = Object.entries(wcs?.prod ?? {})
-            .filter(([, resolvedOffers]) => resolvedOffers?.[0])
-            .map(([masCacheKey, [offer]]) => ({
-                masCacheKey,
-                osi: offer.offerSelectorIds?.[0],
-                data: offerData(offer, country),
-            }));
-        return [masKey, offers];
+        const entries = Object.entries(wcs?.prod ?? {}).filter(([, resolvedOffers]) => resolvedOffers?.[0]);
+        const offers = await Promise.all(
+            entries.map(async ([masCacheKey, [prodOffer]]) => {
+                const offer = wcsEnv === 'prod' ? prodOffer : await fetchEnvOffer(prodOffer, locale, country);
+                return offer && { masCacheKey, osi: offer.offerSelectorIds?.[0], data: offerData(offer, country) };
+            }),
+        );
+        return [masKey, offers.filter(Boolean)];
     } catch (error) {
         console.log(`error fetching fragment ${fragmentId} (${locale}): ${error.message}`);
         return [masKey, []];
@@ -1105,6 +1133,7 @@ const processArgs = async () => {
     const DEBUG_ARG = '-d';
     const TARGET_ARG = '-t';
     const SURFACE_ARG = '-S';
+    const ENV_ARG = '-e';
     let args = process.argv.slice(2);
     if (!args.length) {
         console.log('you should provide at least one URL to audit');
@@ -1159,6 +1188,15 @@ const processArgs = async () => {
             }
             case SURFACE_ARG: {
                 surfaces.push(args.splice(0, 1)[0]);
+                break;
+            }
+            case ENV_ARG: {
+                wcsEnv = args.splice(0, 1)[0];
+                if (!WCS_ENVS[wcsEnv]) {
+                    console.error(`${ENV_ARG} must be one of ${Object.keys(WCS_ENVS).join(', ')}`);
+                    process.exit(2);
+                }
+                console.log(`will price against ${wcsEnv} WCS`);
                 break;
             }
             default: {

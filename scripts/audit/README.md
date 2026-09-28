@@ -22,6 +22,8 @@ for faster execution, buffer size (number of parallel page being audited) can be
 
 `-w <ms>` sets the spacing between requests that reach WCS, directly or through `/mas/io/fragment`, whatever the buffer size. Default 150, WCS requires at least 100.
 
+`-e stage` prices against stage WCS (`web_commerce_artifact_stage`, landscape `ALL`), as a page does with `commerce.env=stage`. Fragments still come from prod `/mas/io`, their offers are re-requested from stage WCS. Default `prod`.
+
 to seach for links that open commerce modals (CRM, D2P and TwP) add the `-t modal` to the command.
 
 so typical execution could be

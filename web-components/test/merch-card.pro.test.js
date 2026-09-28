@@ -51,6 +51,61 @@ describe('pro add-on slot', () => {
     });
 });
 
+describe('pro add-on grey style', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('keeps the AI-gradient frame and sparkle when no background is authored', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
+        );
+        const addOn = card.shadowRoot.querySelector('.add-on');
+        expect(addOn.hasAttribute('data-addon-grey')).to.be.false;
+        expect(getComputedStyle(addOn).backgroundImage).to.contain(
+            'linear-gradient',
+        );
+        expect(getComputedStyle(addOn, '::after').display).to.not.equal('none');
+    });
+
+    it('flattens the frame to #e4e4e4 and hides the sparkle when background="grey"', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon" background="grey"><p>Add AI</p></merch-addon>',
+        );
+        const addOn = card.shadowRoot.querySelector('.add-on');
+        expect(addOn.hasAttribute('data-addon-grey')).to.be.true;
+        expect(getComputedStyle(addOn).borderTopColor).to.equal(
+            'rgb(228, 228, 228)',
+        );
+        expect(getComputedStyle(addOn, '::after').display).to.equal('none');
+    });
+
+    it('draws a 16px, 2px-bordered black checkbox when background="grey"', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon" background="grey"><p>Add AI</p></merch-addon>',
+        );
+        const addon = card.querySelector('merch-addon');
+        await addon.updateComplete;
+        const checkbox = addon.shadowRoot.querySelector('#custom-checkbox');
+        const cs = getComputedStyle(checkbox);
+        expect(cs.borderTopColor).to.equal('rgb(0, 0, 0)');
+        expect(cs.borderTopWidth).to.equal('2px');
+        expect(cs.width).to.equal('16px');
+        expect(cs.height).to.equal('16px');
+    });
+
+    it('keeps the default checkbox at 20px with no border override when no background is authored', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
+        );
+        const addon = card.querySelector('merch-addon');
+        await addon.updateComplete;
+        const checkbox = addon.shadowRoot.querySelector('#custom-checkbox');
+        const cs = getComputedStyle(checkbox);
+        expect(cs.width).to.equal('20px');
+        expect(cs.height).to.equal('20px');
+    });
+});
+
 describe('Pro.adjustAddon', () => {
     function makeLayout(cardOverrides = {}) {
         const layout = Object.create(Pro.prototype);

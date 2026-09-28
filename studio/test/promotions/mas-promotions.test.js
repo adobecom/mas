@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import '../../src/promotions/mas-promotions.js';
@@ -269,7 +270,7 @@ describe('MasPromotions', () => {
             const { el } = await mountWithPublishedVariation(promotion);
 
             clickMenuItem(el, 'Unpublish');
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await waitUntil(() => el.isDialogOpen, 'confirm dialog should open');
             await el.updateComplete;
 
             expect(el.confirmDialogConfig.question).to.equal('Unpublish them together with the project?');
@@ -293,16 +294,16 @@ describe('MasPromotions', () => {
             const { el } = await mountWithPublishedVariation(promotion);
 
             clickMenuItem(el, 'Unpublish');
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await waitUntil(() => el.isDialogOpen, 'confirm dialog should open');
             await el.updateComplete;
             expect(el.isDialogOpen).to.be.true;
 
             clickMenuItem(el, 'Unpublish');
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await el.updateComplete;
             expect(el.isDialogOpen).to.be.true;
 
             el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await waitUntil(() => !el.isDialogOpen, 'confirm dialog should close');
             await el.updateComplete;
 
             expect(el.confirmDialogConfig).to.be.null;

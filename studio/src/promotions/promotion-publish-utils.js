@@ -118,6 +118,14 @@ export function unpublishedPromoVariationsPublishMessage(count) {
     return `This project has ${count} attached promo variation(s) that are not published.`;
 }
 
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+export function unpublishedPromoVariationsSkippedMessage(count) {
+    return `Project published, but ${count} attached promo variation(s) remain unpublished.`;
+}
+
 export const PUBLISHED_PROMO_VARIATIONS_DIALOG = {
     title: 'Published promo variations',
     confirmText: 'Unpublish',
@@ -133,19 +141,29 @@ export function publishedPromoVariationsUnpublishMessage(count) {
 }
 
 /**
+ * @param {number} count
+ * @returns {string}
+ */
+export function publishedPromoVariationsSkippedMessage(count) {
+    return `Project unpublished, but ${count} attached promo variation(s) remain published.`;
+}
+
+/**
  * `dialogConfig.checkboxLabel` is always set for the two callers below, so `showDialog`
  * (backed by `showConfirmDialog`) always resolves `{ confirmed, checked }`, never a bare boolean.
+ * When the user confirms without checking the box, the variations are intentionally left as-is;
+ * a toast makes that explicit instead of silently succeeding with no mention of the skipped variations.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {object} promotionFragment
  * @param {(title: string, message: string, options: object) => Promise<{ confirmed: boolean, checked: boolean }>} showDialog
- * @param {{ getVariations: Function, dialogConfig: object, buildMessage: (count: number) => string }} config
+ * @param {{ getVariations: Function, dialogConfig: object, buildMessage: (count: number) => string, buildSkippedMessage: (count: number) => string }} config
  * @returns {Promise<{ confirmed: boolean, variationPaths: string[] }>}
  */
 async function confirmActionAgainstPromoVariations(
     aem,
     promotionFragment,
     showDialog,
-    { getVariations, dialogConfig, buildMessage },
+    { getVariations, dialogConfig, buildMessage, buildSkippedMessage },
 ) {
     const variations = await getVariations(aem, promotionFragment);
     if (!variations.length) {
@@ -160,10 +178,14 @@ async function confirmActionAgainstPromoVariations(
         checkboxLabel: dialogConfig.checkboxLabel,
         checkboxDefault: dialogConfig.checkboxDefault,
     });
-    return {
-        confirmed: !!confirmed,
-        variationPaths: confirmed && checked ? variations.map((variation) => variation.path) : [],
-    };
+    if (!confirmed) {
+        return { confirmed: false, variationPaths: [] };
+    }
+    if (!checked) {
+        showToast(buildSkippedMessage(variations.length), 'warning');
+        return { confirmed: true, variationPaths: [] };
+    }
+    return { confirmed: true, variationPaths: variations.map((variation) => variation.path) };
 }
 
 /**
@@ -177,6 +199,7 @@ export async function confirmPublishDespiteUnpublishedPromoVariations(aem, promo
         getVariations: getUnpublishedAttachedPromoVariations,
         dialogConfig: UNPUBLISHED_PROMO_VARIATIONS_DIALOG,
         buildMessage: unpublishedPromoVariationsPublishMessage,
+        buildSkippedMessage: unpublishedPromoVariationsSkippedMessage,
     });
 }
 
@@ -191,6 +214,7 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
         getVariations: getPublishedAttachedPromoVariations,
         dialogConfig: PUBLISHED_PROMO_VARIATIONS_DIALOG,
         buildMessage: publishedPromoVariationsUnpublishMessage,
+        buildSkippedMessage: publishedPromoVariationsSkippedMessage,
     });
 }
 

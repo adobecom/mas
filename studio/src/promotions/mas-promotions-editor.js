@@ -151,6 +151,7 @@ class MasPromotionsEditor extends LitElement {
         promotionEmptyItemsTab: { type: String, state: true },
         selectedItemsViewTab: { type: String, state: true },
         promotionPublish: { type: Boolean, state: true },
+        promotionPublishAction: { type: String, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
@@ -191,6 +192,7 @@ class MasPromotionsEditor extends LitElement {
         this.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
         this.selectedItemsViewTab = TABLE_TYPE.OFFERS;
         this.promotionPublish = false;
+        this.promotionPublishAction = null;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
@@ -601,11 +603,13 @@ class MasPromotionsEditor extends LitElement {
         const { confirmed, variationPaths } = await this.#confirmPublishWithUnpublishedPromoVariations();
         if (!confirmed) return;
         this.promotionPublish = true;
+        this.promotionPublishAction = 'publish';
         try {
             const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
+            this.promotionPublishAction = null;
         }
     }
 
@@ -635,11 +639,13 @@ class MasPromotionsEditor extends LitElement {
         );
         if (!confirmed) return;
         this.promotionPublish = true;
+        this.promotionPublishAction = 'unpublish';
         try {
             const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
+            this.promotionPublishAction = null;
         }
     };
 
@@ -1654,7 +1660,11 @@ class MasPromotionsEditor extends LitElement {
                 : nothing}
             ${this.promotionPublish
                 ? html`<div class="publishing-overlay">
-                      <sp-progress-circle label="Publishing project" indeterminate size="l"></sp-progress-circle>
+                      <sp-progress-circle
+                          label=${this.promotionPublishAction === 'unpublish' ? 'Unpublishing project' : 'Publishing project'}
+                          indeterminate
+                          size="l"
+                      ></sp-progress-circle>
                   </div>`
                 : nothing}
             <mas-promotion-duplicate-dialog

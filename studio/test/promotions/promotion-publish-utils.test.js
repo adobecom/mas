@@ -20,7 +20,9 @@ import {
     promotionPublishShortfallMessage,
     promotionUnpublishShortfallMessage,
     unpublishedPromoVariationsPublishMessage,
+    unpublishedPromoVariationsSkippedMessage,
     publishedPromoVariationsUnpublishMessage,
+    publishedPromoVariationsSkippedMessage,
     promotionDeleteConfirmMessage,
 } from '../../src/promotions/promotion-publish-utils.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
@@ -177,7 +179,8 @@ describe('promotion-publish-utils', () => {
         expect(showDialog.firstCall.args[1]).to.equal(unpublishedPromoVariationsPublishMessage(2));
     });
 
-    it('excludes variation paths when user confirms but unchecks the publish promo variations checkbox', async () => {
+    it('excludes variation paths and warns when user confirms but unchecks the publish promo variations checkbox', async () => {
+        const toastStub = sandbox.stub(Events.toast, 'emit');
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
         const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
         const promoPath = `${promoFolder}/my-card`;
@@ -195,6 +198,14 @@ describe('promotion-publish-utils', () => {
         const showDialog = sinon.stub().resolves({ confirmed: true, checked: false });
         const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [] });
+        expect(
+            toastStub.calledWith(
+                sinon.match({
+                    variant: 'warning',
+                    content: unpublishedPromoVariationsSkippedMessage(1),
+                }),
+            ),
+        ).to.be.true;
     });
 
     it('exposes shortfall message when some promo variations are omitted from unpublish', () => {
@@ -294,7 +305,8 @@ describe('promotion-publish-utils', () => {
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
     });
 
-    it('excludes variation paths when user confirms unpublish but unchecks the checkbox', async () => {
+    it('excludes variation paths and warns when user confirms unpublish but unchecks the checkbox', async () => {
+        const toastStub = sandbox.stub(Events.toast, 'emit');
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
         const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
         const promoPath = `${promoFolder}/my-card`;
@@ -312,6 +324,14 @@ describe('promotion-publish-utils', () => {
         const showDialog = sinon.stub().resolves({ confirmed: true, checked: false });
         const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [] });
+        expect(
+            toastStub.calledWith(
+                sinon.match({
+                    variant: 'warning',
+                    content: publishedPromoVariationsSkippedMessage(1),
+                }),
+            ),
+        ).to.be.true;
     });
 
     describe('publishPromotionProject', () => {
@@ -477,6 +497,7 @@ describe('promotion-publish-utils', () => {
         });
 
         it('skips a resolved variation that has content validation errors instead of publishing it', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
             const promotionPath = '/content/dam/mas/promotions/project';
             const invalidPath = '/content/dam/mas/acom/en_US/promotions/sale/card-invalid';
             const validPath = '/content/dam/mas/acom/en_US/promotions/sale/card-valid';
@@ -517,6 +538,14 @@ describe('promotion-publish-utils', () => {
             const [fragments] = publishFragments.firstCall.args;
             expect(fragments).to.have.lengthOf(2);
             expect(fragments.map((fragment) => fragment.path)).to.deep.equal([promotionPath, validPath]);
+            expect(
+                toastStub.calledWith(
+                    sinon.match({
+                        variant: 'warning',
+                        content: promotionPublishShortfallMessage(1),
+                    }),
+                ),
+            ).to.be.true;
         });
     });
 

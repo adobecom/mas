@@ -205,6 +205,24 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
         });
+
+        it('labels the progress circle as "Publishing project" for a publish action', async () => {
+            const el = await mountEditor();
+            el.promotionPublish = true;
+            el.promotionPublishAction = 'publish';
+            await el.updateComplete;
+            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
+            expect(progressCircle.getAttribute('label')).to.equal('Publishing project');
+        });
+
+        it('labels the progress circle as "Unpublishing project" for an unpublish action', async () => {
+            const el = await mountEditor();
+            el.promotionPublish = true;
+            el.promotionPublishAction = 'unpublish';
+            await el.updateComplete;
+            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
+            expect(progressCircle.getAttribute('label')).to.equal('Unpublishing project');
+        });
     });
 
     describe('selectedItemsCount', () => {
@@ -1515,6 +1533,12 @@ describe('MasPromotionsEditor', () => {
                 [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'PUBLISHED', title: 'Published variation' }],
             });
             const unpublish = sandbox.stub().resolves();
+            const getWithEtag = sandbox.stub();
+            getWithEtag
+                .withArgs('promo-1')
+                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
+            const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
             const { el } = await mountEditorWithRepo({
                 aem: {
                     getFragmentByPath: sandbox.stub().resolves({
@@ -1525,8 +1549,8 @@ describe('MasPromotionsEditor', () => {
                         cf: {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
-                                getWithEtag: sandbox.stub().resolves(null),
-                                getByPath: sandbox.stub().resolves(null),
+                                getWithEtag,
+                                getByPath,
                                 search,
                                 unpublish,
                             },
@@ -1555,6 +1579,8 @@ describe('MasPromotionsEditor', () => {
 
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isDialogOpen).to.be.false;
+            expect(unpublish.calledTwice).to.be.true;
+            expect(unpublish.calledWith(sinon.match({ id: 'promo-var-id', path: promoVarPath }))).to.be.true;
         });
     });
 

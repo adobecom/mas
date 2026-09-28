@@ -69,11 +69,11 @@ export function renderConfirmDialog(component, dialogId) {
                 .confirmLabel=${confirmText}
                 .cancelLabel=${cancelText}
                 @confirm=${() => {
-                    onConfirm && onConfirm();
+                    onConfirm();
                     close();
                 }}
                 @cancel=${() => {
-                    onCancel && onCancel();
+                    onCancel();
                     close();
                 }}
             >

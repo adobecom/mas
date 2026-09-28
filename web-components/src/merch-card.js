@@ -271,21 +271,6 @@ export class MerchCard extends LitElement {
         }
     }
 
-    #replacedOsi;
-
-    get replacedOsi() {
-        return this.#replacedOsi;
-    }
-
-    set replacedOsi(value) {
-        this.#replacedOsi = value;
-        if (value) {
-            this.setAttribute('data-replaced-osi', value);
-        } else {
-            this.removeAttribute('data-replaced-osi');
-        }
-    }
-
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;

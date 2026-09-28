@@ -57,13 +57,13 @@ const mockMerchCard = () => {
     document.body.appendChild(merchCard);
 
     const originalAppend = merchCard.append;
-    merchCard.append = sinon.spy(function () {
-        return originalAppend.apply(this, arguments);
+    merchCard.append = sinon.spy(function (...args) {
+        return originalAppend.apply(this, args);
     });
 
     const originalShadowAppend = merchCard.shadowRoot.append;
-    merchCard.shadowRoot.append = sinon.spy(function () {
-        return originalShadowAppend.apply(this, arguments);
+    merchCard.shadowRoot.append = sinon.spy(function (...args) {
+        return originalShadowAppend.apply(this, args);
     });
 
     return merchCard;
@@ -1307,57 +1307,6 @@ describe('MerchCard data-card-osi attribute', () => {
         };
         await hydrate(fragment, litCard);
         expect(litCard.getAttribute('data-card-osi')).to.equal('OSI-A,OSI-B');
-        litCard.remove();
-    });
-});
-
-describe('MerchCard data-replaced-osi attribute', () => {
-    let card;
-
-    beforeEach(async () => {
-        await customElements.whenDefined('merch-card');
-        card = document.createElement('merch-card');
-        document.body.appendChild(card);
-    });
-
-    afterEach(() => {
-        card.remove();
-    });
-
-    it('sets data-replaced-osi attribute when replacedOsi is assigned', () => {
-        card.replacedOsi = 'ORIG-OSI-456';
-        expect(card.getAttribute('data-replaced-osi')).to.equal('ORIG-OSI-456');
-    });
-
-    it('does not have data-replaced-osi attribute when replacedOsi is not set', () => {
-        expect(card.hasAttribute('data-replaced-osi')).to.be.false;
-    });
-
-    it('removes data-replaced-osi attribute when replacedOsi is cleared', () => {
-        card.replacedOsi = 'ORIG-OSI-456';
-        card.replacedOsi = undefined;
-        expect(card.hasAttribute('data-replaced-osi')).to.be.false;
-    });
-
-    it('wires fields.replacedOsi to data-replaced-osi via hydrate()', async () => {
-        const litCard = document.createElement('merch-card');
-        document.body.appendChild(litCard);
-        await customElements.whenDefined('merch-card');
-        const fragment = {
-            id: 'replaced-osi-card',
-            fields: {
-                variant: 'ccd-slice',
-                osi: 'SUB-OSI-456',
-                replacedOsi: 'ORIG-OSI-456',
-                mnemonicIcon: [],
-                mnemonicAlt: [],
-                mnemonicLink: [],
-            },
-        };
-        await hydrate(fragment, litCard);
-        expect(litCard.getAttribute('data-replaced-osi')).to.equal(
-            'ORIG-OSI-456',
-        );
         litCard.remove();
     });
 });

@@ -203,7 +203,9 @@ function scanMasElements(fields, substituteMap, context, promoMap = {}) {
             const promotionCode = injectedPromo ?? existingPromo ?? projectPromo;
             elements.push({ osi, rawOsi, promotionCode });
             let updated = element;
-            if (osi !== rawOsi) updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
+            if (osi !== rawOsi) {
+                updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}" data-replaced-osi="${rawOsi}"`);
+            }
             const promoToInject = injectedPromo ?? projectPromo;
             if (promoToInject && promoToInject !== existingPromo) {
                 // Overriding an element's own promo (conditioned match) replaces its attribute in place;
@@ -296,30 +298,7 @@ function updateOffers(context, offerMap = {}) {
             resolvePromoCode(fields, elements.length > 0, scope, context);
         }
         if (fields && hasSubstitutions) {
-            const originalOwnOsi = fields.osi;
             substituteOwnOsi(fields, substituteMap);
-            const replacedSet = new Set();
-            for (const { osi, rawOsi } of elements) {
-                if (osi !== rawOsi) {
-                    const rawParts = rawOsi.split(',');
-                    const osiParts = osi.split(',');
-                    rawParts.forEach((part, i) => {
-                        if (part !== osiParts[i]) replacedSet.add(part);
-                    });
-                }
-            }
-            if (originalOwnOsi != null) {
-                if (Array.isArray(originalOwnOsi)) {
-                    originalOwnOsi.forEach((osi, i) => {
-                        if (osi !== fields.osi[i]) replacedSet.add(osi);
-                    });
-                } else if (fields.osi !== originalOwnOsi) {
-                    replacedSet.add(originalOwnOsi);
-                }
-            }
-            if (replacedSet.size > 0) {
-                fields.replacedOsi = [...replacedSet].join(',');
-            }
         }
         for (const { osi, promotionCode } of elements) masElements.push({ osi, promotionCode });
     }

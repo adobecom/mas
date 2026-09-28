@@ -746,6 +746,7 @@ describe('wcs OSI substitution', function () {
 
         expect(context.body.fields.prices).to.include('data-wcs-osi="BASE-OSI"');
         expect(context.body.fields.prices).to.not.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.fields.prices).to.not.include('data-replaced-osi');
     });
 
     it('caches base OSI (not substituted) for elements with data-locked-osi="true"', async function () {
@@ -817,11 +818,11 @@ describe('wcs OSI substitution', function () {
 
         context = await wcs.process(context);
 
-        expect(context.body.fields.prices).to.include('data-wcs-osi="SUB-A,OSI-B"');
+        expect(context.body.fields.prices).to.include('data-wcs-osi="SUB-A,OSI-B" data-replaced-osi="OSI-A,OSI-B"');
         expect(context.body.wcs.prod).to.have.property('SUB-A,OSI-B-us-mult');
     });
 
-    it('sets fields.replacedOsi when an HTML element OSI is substituted via promo scope', async function () {
+    it('sets data-replaced-osi on a substituted HTML element', async function () {
         context.body = {
             id: 'frag-1',
             fields: { prices: '<span data-wcs-osi="BASE-OSI"></span>' },
@@ -833,13 +834,14 @@ describe('wcs OSI substitution', function () {
 
         context = await wcs.process(context);
 
-        expect(context.body.fields.replacedOsi).to.equal('BASE-OSI');
+        expect(context.body.fields.prices).to.include('data-wcs-osi="SUB-OSI" data-replaced-osi="BASE-OSI"');
+        expect(context.body.fields.replacedOsi).to.be.undefined;
     });
 
-    it('sets fields.replacedOsi when fields.osi is substituted via promo scope', async function () {
+    it('sets the full original OSI on a partially substituted soft bundle', async function () {
         context.body = {
             id: 'frag-1',
-            fields: { osi: 'FIELD-OSI', prices: '<span data-wcs-osi="FIELD-OSI"></span>' },
+            fields: { osi: 'FIELD-OSI', prices: '<span data-wcs-osi="FIELD-OSI,OTHER-OSI"></span>' },
         };
         context.promoScopeById = { 'frag-1': scope({ 'FIELD-OSI': 'SUB-FIELD-OSI' }) };
         fetchStub
@@ -848,10 +850,13 @@ describe('wcs OSI substitution', function () {
 
         context = await wcs.process(context);
 
-        expect(context.body.fields.replacedOsi).to.equal('FIELD-OSI');
+        expect(context.body.fields.prices).to.include(
+            'data-wcs-osi="SUB-FIELD-OSI,OTHER-OSI" data-replaced-osi="FIELD-OSI,OTHER-OSI"',
+        );
+        expect(context.body.fields.replacedOsi).to.be.undefined;
     });
 
-    it('does not set fields.replacedOsi when no substitution occurs', async function () {
+    it('does not set data-replaced-osi when no substitution occurs', async function () {
         context.body = {
             id: 'frag-1',
             fields: { osi: 'ORIG-OSI', prices: '<span data-wcs-osi="ORIG-OSI"></span>' },
@@ -862,10 +867,11 @@ describe('wcs OSI substitution', function () {
 
         context = await wcs.process(context);
 
+        expect(context.body.fields.prices).to.not.include('data-replaced-osi');
         expect(context.body.fields.replacedOsi).to.be.undefined;
     });
 
-    it('deduplicates fields.replacedOsi when same OSI appears in both HTML and fields.osi', async function () {
+    it('does not aggregate replaced OSIs on the card', async function () {
         context.body = {
             id: 'frag-1',
             fields: { osi: 'SAME-OSI', prices: '<span data-wcs-osi="SAME-OSI"></span>' },
@@ -877,7 +883,8 @@ describe('wcs OSI substitution', function () {
 
         context = await wcs.process(context);
 
-        expect(context.body.fields.replacedOsi).to.equal('SAME-OSI');
+        expect(context.body.fields.prices).to.include('data-replaced-osi="SAME-OSI"');
+        expect(context.body.fields.replacedOsi).to.be.undefined;
     });
 });
 
@@ -919,8 +926,8 @@ describe('wcs OSI helpers', function () {
         // debugLogs context exercises the "Substituting OSI ..." debug log path.
         const elements = scanMasElements(fields, { A: { osi: 'SUB-A' }, B: { osi: 'SUB-B' } }, { debugLogs: true });
         expect(elements.map((element) => element.osi)).to.deep.equal(['SUB-A', 'SUB-B,C']);
-        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A"></span>');
-        expect(fields.description.value).to.equal('<span data-wcs-osi="SUB-B,C"></span>');
+        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A" data-replaced-osi="A"></span>');
+        expect(fields.description.value).to.equal('<span data-wcs-osi="SUB-B,C" data-replaced-osi="B,C"></span>');
         expect(fields.description.mimeType).to.equal('text/html');
     });
 
@@ -936,7 +943,7 @@ describe('wcs OSI helpers', function () {
         const elements = scanMasElements(fields, { A: { osi: 'SUB-A' } }, {});
         expect(elements.map((element) => element.osi)).to.deep.equal(['SUB-A', 'B']);
         expect(fields.customFields.value).to.deep.equal([
-            '<span data-wcs-osi="SUB-A"></span>',
+            '<span data-wcs-osi="SUB-A" data-replaced-osi="A"></span>',
             '<p>no markup</p>',
             '<span data-wcs-osi="B"></span>',
         ]);
@@ -969,9 +976,9 @@ describe('wcs OSI helpers', function () {
         // debugLogs exercises the "Substituting OSI ... (promo ...)" log path for both promo/no-promo.
         const elements = scanMasElements(fields, { A: { osi: 'SUB-A', promotionCode: 'BTS26' } }, { debugLogs: true });
         // no authored promo => inject the mapping's promo on the substituted element
-        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A" data-promotion-code="BTS26"></span>');
+        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A" data-promotion-code="BTS26" data-replaced-osi="A"></span>');
         // authored promo preserved, osi still substituted
-        expect(fields.ctas).to.equal('<a data-promotion-code="OWN" data-wcs-osi="SUB-A"></a>');
+        expect(fields.ctas).to.equal('<a data-promotion-code="OWN" data-wcs-osi="SUB-A" data-replaced-osi="A"></a>');
         expect(elements.map((element) => element.promotionCode)).to.deep.equal(['BTS26', 'OWN']);
     });
 
@@ -980,7 +987,9 @@ describe('wcs OSI helpers', function () {
         // half and injects its promo, even though the raw attribute key is the whole pair "A,B".
         const fields = { prices: '<span data-wcs-osi="A,B"></span>' };
         const elements = scanMasElements(fields, { A: { osi: 'SUB-A', promotionCode: 'BTS26' } }, {});
-        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A,B" data-promotion-code="BTS26"></span>');
+        expect(fields.prices).to.equal(
+            '<span data-wcs-osi="SUB-A,B" data-promotion-code="BTS26" data-replaced-osi="A,B"></span>',
+        );
         expect(elements[0].promotionCode).to.equal('BTS26');
     });
 
@@ -1089,12 +1098,13 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.osi).to.deep.equal(['OSI-A', 'SUB-B']);
     });
 
-    it('updateOffers sets replacedOsi only for substituted elements of an array fields.osi', function () {
+    it('updateOffers substitutes array fields.osi without adding card-level provenance', function () {
         const { context } = run(
             { f: { promoMap: {}, substituteMap: { 'OSI-B': 'SUB-B' } } },
             { id: 'f', fields: { osi: ['OSI-A', 'OSI-B'] } },
         );
-        expect(context.body.fields.replacedOsi).to.equal('OSI-B');
+        expect(context.body.fields.osi).to.deep.equal(['OSI-A', 'SUB-B']);
+        expect(context.body.fields.replacedOsi).to.be.undefined;
     });
 
     it('updateOffers leaves out-of-scope fragments and id-less/null references untouched', function () {
@@ -1263,7 +1273,7 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
             }),
         );
         expect(result.body.fields.osi).to.equal('MAPPED');
-        expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
+        expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED" data-replaced-osi="BASE"');
         expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult');
     });
 

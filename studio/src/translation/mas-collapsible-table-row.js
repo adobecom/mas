@@ -104,7 +104,10 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     willUpdate(changedProperties) {
-        if (changedProperties.has('promoVariationsFetchedByParent') && this.promoVariationsFetchedByParent) {
+        if (
+            (changedProperties.has('promoVariationsFetchedByParent') || changedProperties.has('topLevelCard')) &&
+            this.promoVariationsFetchedByParent
+        ) {
             this.promoVariations = this.promoVariationsFetchedByParent.get(this.topLevelCard?.path) || [];
         }
     }

@@ -489,7 +489,7 @@ export class InlinePrice extends HTMLSpanElement {
                 )
                     return true;
                 const inlinePrices = parentEl?.querySelectorAll(
-                    'span[is="inline-price"]',
+                    'span[is="inline-price"]:not([data-template="legal"])',
                 );
                 if (
                     inlinePrices.length > 1 &&

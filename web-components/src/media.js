@@ -5,6 +5,7 @@ export const TABLET_UP = '(min-width: 768px)';
 export const DESKTOP_UP = '(min-width: 1200px)';
 export const LARGE_DESKTOP = '(min-width: 1600px)';
 export const C2_DESKTOP_UP = '(min-width: 1280px)';
+export const XL_DESKTOP_UP = '(min-width: 1440px)';
 
 const Media = {
     matchMobile: window.matchMedia(MOBILE_LANDSCAPE),

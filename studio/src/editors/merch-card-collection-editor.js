@@ -11,13 +11,14 @@ import {
     STAGED,
     TABLE_TYPE,
     QUICK_ACTION,
+    PAGE_NAMES,
 } from '../constants.js';
 import Store from '../store.js';
 import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { parseStudioDeepLinksFromText, showToast } from '../utils.js';
+import { parseStudioDeepLinksFromText, previewFragmentOnPage, showToast } from '../utils.js';
 import { applyCorrectorToFragment } from '../utils/corrector-helper.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
@@ -28,14 +29,21 @@ import '../mas-quick-actions.js';
 const CARDS_SECTION = 'cards-section';
 
 /** Floating quick-actions bar (mas-quick-actions) used for collections instead of the app's
- * global left sidenav toolbar, matching promotions/translation project editors. */
+ * global left sidenav toolbar, matching promotions/translation project editors. Mirrors the
+ * sidenav toolbar's actions plus the former floating editor's Discard. */
 const COLLECTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
+    QUICK_ACTION.DISCARD,
+    QUICK_ACTION.CREATE_VARIATION,
     QUICK_ACTION.DUPLICATE,
+    QUICK_ACTION.PREVIEW,
     QUICK_ACTION.PUBLISH,
     QUICK_ACTION.COPY,
+    QUICK_ACTION.HISTORY,
     QUICK_ACTION.DELETE,
 ];
+// Like the sidenav toolbar, variations can't spawn variations or be duplicated.
+const VARIATION_HIDDEN_QUICK_ACTIONS = [QUICK_ACTION.CREATE_VARIATION, QUICK_ACTION.DUPLICATE];
 
 class MerchCardCollectionEditor extends LitElement {
     static get properties() {
@@ -1748,6 +1756,29 @@ class MerchCardCollectionEditor extends LitElement {
         this.#hostFragmentEditor?.deleteFragment();
     };
 
+    #handleQuickActionDiscard = () => {
+        this.#hostFragmentEditor?.promptDiscardChanges();
+    };
+
+    #handleQuickActionCreateVariation = () => {
+        this.#hostFragmentEditor?.showCreateVariation();
+    };
+
+    #handleQuickActionPreview = () => {
+        previewFragmentOnPage(this.fragment);
+    };
+
+    #handleQuickActionHistory = () => {
+        if (!this.fragment?.id) return;
+        Store.version.fragmentId.set(this.fragment.id);
+        router.navigateToPage(PAGE_NAMES.VERSION)();
+    };
+
+    get #collectionQuickActions() {
+        if (!this.isVariation) return COLLECTION_QUICK_ACTIONS;
+        return COLLECTION_QUICK_ACTIONS.filter((action) => !VARIATION_HIDDEN_QUICK_ACTIONS.includes(action));
+    }
+
     get #quickActionsDisabled() {
         const loading = Store.fragmentEditor.loading.get();
         // Unpublish isn't wired up yet anywhere in the app (parity with the sidenav toolbar).
@@ -1756,7 +1787,10 @@ class MerchCardCollectionEditor extends LitElement {
             COLLECTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
             return disabled;
         }
-        if (!Store.editor.hasChanges) disabled.add(QUICK_ACTION.SAVE);
+        if (!Store.editor.hasChanges) {
+            disabled.add(QUICK_ACTION.SAVE);
+            disabled.add(QUICK_ACTION.DISCARD);
+        }
         return disabled;
     }
 
@@ -1764,12 +1798,16 @@ class MerchCardCollectionEditor extends LitElement {
         return html`
             <mas-quick-actions
                 drag-handle-style="bar"
-                .actions=${COLLECTION_QUICK_ACTIONS}
+                .actions=${this.#collectionQuickActions}
                 .disabled=${this.#quickActionsDisabled}
                 @save=${this.#handleQuickActionSave}
+                @discard=${this.#handleQuickActionDiscard}
+                @create-variation=${this.#handleQuickActionCreateVariation}
                 @duplicate=${this.#handleQuickActionDuplicate}
+                @preview=${this.#handleQuickActionPreview}
                 @publish=${this.#handleQuickActionPublish}
                 @copy=${this.#handleQuickActionCopy}
+                @history=${this.#handleQuickActionHistory}
                 @delete=${this.#handleQuickActionDelete}
             ></mas-quick-actions>
         `;

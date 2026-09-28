@@ -46,8 +46,9 @@
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from '../../src/constants.js';
+            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, QUICK_ACTION, STAGED } from '../../src/constants.js';
             import Store from '../../src/store.js';
+            import router from '../../src/router.js';
 
             runTests(async () => {
                 describe('merch-card-collection-editor custom element', async () => {
@@ -570,6 +571,122 @@
                         const cardsCall = updateSpy.getCalls().find((c) => c.args[0]?.target?.dataset?.field === 'cards');
                         expect(cardsCall).to.exist;
                         expect(cardsCall.args[0].values).to.deep.equal([cardB.path, cardA.path]);
+                    });
+                });
+
+                describe('quick actions bar', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let quickActionsHost;
+                    let hostEditor;
+                    let querySelectorStub;
+
+                    const collectionData = {
+                        id: 'qa-collection-id',
+                        path: '/content/dam/mas/sandbox/en_US/qa-collection',
+                        model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                        title: 'QA Collection',
+                        tags: [],
+                        fields: [{ name: 'label', type: 'text', multiple: false, values: ['Label'] }],
+                    };
+
+                    async function mountEditor({ isVariation = false } = {}) {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.isVariation = isVariation;
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionData));
+                        quickActionsHost.appendChild(editor);
+                        await editor.updateComplete;
+                        return editor;
+                    }
+
+                    const quickActionsOf = (editor) => editor.shadowRoot.querySelector('mas-quick-actions');
+                    const trigger = (editor, action) =>
+                        quickActionsOf(editor).dispatchEvent(new CustomEvent(action, { bubbles: true, composed: true }));
+
+                    beforeEach(() => {
+                        quickActionsHost = document.createElement('div');
+                        spTheme().appendChild(quickActionsHost);
+                        hostEditor = Object.assign(new EventTarget(), {
+                            promptDiscardChanges: spy(),
+                            showCreateVariation: spy(),
+                        });
+                        querySelectorStub = stub(document, 'querySelector');
+                        querySelectorStub.callThrough();
+                        querySelectorStub.withArgs('mas-fragment-editor').returns(hostEditor);
+                    });
+
+                    afterEach(() => {
+                        querySelectorStub.restore();
+                        quickActionsHost?.remove();
+                        quickActionsHost = null;
+                    });
+
+                    it('offers the same actions as the sidenav toolbar plus Discard', async () => {
+                        const editor = await mountEditor();
+                        expect(quickActionsOf(editor).actions).to.deep.equal([
+                            QUICK_ACTION.SAVE,
+                            QUICK_ACTION.DISCARD,
+                            QUICK_ACTION.CREATE_VARIATION,
+                            QUICK_ACTION.DUPLICATE,
+                            QUICK_ACTION.PREVIEW,
+                            QUICK_ACTION.PUBLISH,
+                            QUICK_ACTION.COPY,
+                            QUICK_ACTION.HISTORY,
+                            QUICK_ACTION.DELETE,
+                        ]);
+                    });
+
+                    it('hides Create Variation and Duplicate for variations', async () => {
+                        const editor = await mountEditor({ isVariation: true });
+                        const { actions } = quickActionsOf(editor);
+                        expect(actions).to.not.include(QUICK_ACTION.CREATE_VARIATION);
+                        expect(actions).to.not.include(QUICK_ACTION.DUPLICATE);
+                        expect(actions).to.include(QUICK_ACTION.HISTORY);
+                    });
+
+                    it('disables Save and Discard until there are changes', async () => {
+                        expect(Store.editor.hasChanges).to.be.false;
+                        const editor = await mountEditor();
+                        const { disabled } = quickActionsOf(editor);
+                        expect(disabled.has(QUICK_ACTION.SAVE)).to.be.true;
+                        expect(disabled.has(QUICK_ACTION.DISCARD)).to.be.true;
+                        expect(disabled.has(QUICK_ACTION.HISTORY)).to.be.false;
+                    });
+
+                    it('delegates Discard and Create Variation to the fragment editor', async () => {
+                        const editor = await mountEditor();
+                        trigger(editor, QUICK_ACTION.DISCARD);
+                        trigger(editor, QUICK_ACTION.CREATE_VARIATION);
+                        expect(hostEditor.promptDiscardChanges.calledOnce).to.be.true;
+                        expect(hostEditor.showCreateVariation.calledOnce).to.be.true;
+                    });
+
+                    it('opens the fragment preview in a new tab', async () => {
+                        const openStub = stub(window, 'open');
+                        try {
+                            const editor = await mountEditor();
+                            trigger(editor, QUICK_ACTION.PREVIEW);
+                            expect(openStub.calledOnce).to.be.true;
+                            expect(openStub.firstCall.args[0]).to.include('fragment-id=qa-collection-id');
+                            expect(openStub.firstCall.args[0]).to.include('content-type=merch-card-collection');
+                        } finally {
+                            openStub.restore();
+                        }
+                    });
+
+                    it('navigates to the version history of the collection', async () => {
+                        const navigate = spy();
+                        const navigateStub = stub(router, 'navigateToPage').returns(navigate);
+                        try {
+                            const editor = await mountEditor();
+                            trigger(editor, QUICK_ACTION.HISTORY);
+                            expect(Store.version.fragmentId.get()).to.equal('qa-collection-id');
+                            expect(navigateStub.calledOnceWith(PAGE_NAMES.VERSION)).to.be.true;
+                            expect(navigate.calledOnce).to.be.true;
+                        } finally {
+                            navigateStub.restore();
+                            Store.version.fragmentId.set(null);
+                        }
                     });
                 });
 

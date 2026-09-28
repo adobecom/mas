@@ -121,9 +121,7 @@ export const CSS = `
     padding: 0;
   }
 
-  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-recurrence,
-  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] span[data-template="recurrence"] {
-    text-transform: lowercase;
+  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-recurrence {
     line-height: 1.4;
   }
 

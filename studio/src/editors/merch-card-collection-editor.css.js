@@ -237,6 +237,11 @@ export const styles = css`
         gap: 8px;
     }
 
+    /* sp-field-label reserves a taller box with its text at the top; shrink it so flex centering aligns the text. */
+    .hide-cards-control sp-field-label {
+        min-block-size: 0;
+    }
+
     .cards-container {
         display: flex;
         flex-direction: column;

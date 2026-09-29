@@ -297,16 +297,39 @@ class MasTopNav extends LitElement {
         return this.bulkPublishProjects.projectId.get() ? 'Edit project' : 'Create project';
     }
 
+    /**
+     * Builds the in-app Studio hash URL for a breadcrumb target, using the same
+     * page/path/fragmentId/promotionId values passed to the matching router call.
+     */
+    #breadcrumbHref(params) {
+        const searchParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(params)) {
+            if (value === undefined || value === null || value === '') continue;
+            searchParams.set(key, value);
+        }
+        return `${window.location.origin}${window.location.pathname}#${searchParams.toString()}`;
+    }
+
     get breadcrumbItems() {
+        const editorFragmentId = this.version.fragmentId.get();
+        const hrefs = {
+            content: this.#breadcrumbHref({ page: PAGE_NAMES.CONTENT, path: Store.search.value.path }),
+            settings: this.#breadcrumbHref({ page: PAGE_NAMES.SETTINGS }),
+            promotions: this.#breadcrumbHref({ page: PAGE_NAMES.PROMOTIONS }),
+            translations: this.#breadcrumbHref({ page: PAGE_NAMES.TRANSLATIONS }),
+            advancedTools: this.#breadcrumbHref({ page: PAGE_NAMES.ADVANCED_TOOLS }),
+            masks: this.#breadcrumbHref({ page: PAGE_NAMES.MASKS }),
+            bulkPublish: this.#breadcrumbHref({ page: PAGE_NAMES.BULK_PUBLISH }),
+            editor: this.#breadcrumbHref({ page: PAGE_NAMES.FRAGMENT_EDITOR, fragmentId: editorFragmentId }),
+        };
         const handlers = {
             content: () => router.navigateToPage(PAGE_NAMES.CONTENT)(),
             settings: () => router.navigateToPage(PAGE_NAMES.SETTINGS)(),
             promotions: () => router.navigateToPage(PAGE_NAMES.PROMOTIONS)(),
             translations: () => router.navigateToPage(PAGE_NAMES.TRANSLATIONS)(),
             editor: () => {
-                const fragmentId = this.version.fragmentId.get();
-                if (!fragmentId) return;
-                router.navigateToFragmentEditor(fragmentId);
+                if (!editorFragmentId) return;
+                router.navigateToFragmentEditor(editorFragmentId);
             },
         };
 
@@ -314,9 +337,10 @@ class MasTopNav extends LitElement {
             const promotionId = this.promotions.promotionId.get();
             if (promotionId) {
                 return [
-                    { label: 'Promotions', handler: handlers.promotions },
+                    { label: 'Promotions', href: hrefs.promotions, handler: handlers.promotions },
                     {
                         label: this.promotionsEditorBreadcrumbLabel,
+                        href: this.#breadcrumbHref({ page: PAGE_NAMES.PROMOTIONS_EDITOR, promotionId }),
                         handler: () => {
                             const id = this.promotions.promotionId.get();
                             if (id) Store.promotions.promotionId.set(id);
@@ -326,18 +350,22 @@ class MasTopNav extends LitElement {
                     { label: 'Edit promotion variation' },
                 ];
             }
-            return [{ label: 'Fragments', handler: handlers.content }, { label: 'Editor' }];
+            return [{ label: 'Fragments', href: hrefs.content, handler: handlers.content }, { label: 'Editor' }];
         }
         if (this.page.value === PAGE_NAMES.VERSION) {
             return [
-                { label: 'Fragments', handler: handlers.content },
-                { label: 'Editor', handler: handlers.editor },
+                { label: 'Fragments', href: hrefs.content, handler: handlers.content },
+                { label: 'Editor', href: hrefs.editor, handler: handlers.editor },
                 { label: 'Version history' },
             ];
         }
         if (this.page.value === PAGE_NAMES.SETTINGS) {
             return [
-                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                {
+                    label: 'Advanced tools',
+                    href: hrefs.advancedTools,
+                    handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)(),
+                },
                 { label: 'Global settings' },
             ];
         }
@@ -345,37 +373,64 @@ class MasTopNav extends LitElement {
             if (!this.settings.fragmentId.get() && !this.settings.creating.get()) {
                 return [];
             }
-            return [{ label: 'Global settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
+            return [
+                { label: 'Global settings', href: hrefs.settings, handler: handlers.settings },
+                { label: this.settingEditorBreadcrumbLabel },
+            ];
         }
         if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
-            return [{ label: 'Promotions', handler: handlers.promotions }, { label: this.promotionsEditorBreadcrumbLabel }];
+            return [
+                { label: 'Promotions', href: hrefs.promotions, handler: handlers.promotions },
+                { label: this.promotionsEditorBreadcrumbLabel },
+            ];
         }
         if (this.page.value === PAGE_NAMES.TRANSLATION_EDITOR) {
             return [
-                { label: 'Translations', handler: handlers.translations },
+                { label: 'Translations', href: hrefs.translations, handler: handlers.translations },
                 { label: this.translationEditorBreadcrumbLabel },
             ];
         }
         if (this.page.value === PAGE_NAMES.BULK_PUBLISH) {
             return [
-                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                {
+                    label: 'Advanced tools',
+                    href: hrefs.advancedTools,
+                    handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)(),
+                },
                 { label: 'Bulk publish' },
             ];
         }
         if (this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR) {
             return [
-                { label: 'Bulk publish', handler: () => router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)() },
+                {
+                    label: 'Bulk publish',
+                    href: hrefs.bulkPublish,
+                    handler: () => router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)(),
+                },
                 { label: this.bulkPublishEditorBreadcrumbLabel },
             ];
         }
         if (this.page.value === PAGE_NAMES.MASKS_EDITOR) {
             return [
-                { label: 'Masks', handler: () => router.navigateToPage(PAGE_NAMES.MASKS)() },
+                { label: 'Masks', href: hrefs.masks, handler: () => router.navigateToPage(PAGE_NAMES.MASKS)() },
                 { label: this.masksEditorBreadcrumbLabel },
             ];
         }
 
         return [];
+    }
+
+    /**
+     * Lets the browser handle modified/non-primary clicks (new tab/window) natively;
+     * otherwise prevents the default anchor navigation and runs the SPA router handler.
+     */
+    #handleBreadcrumbClick(event, item) {
+        if (!item.handler) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+            return;
+        }
+        event.preventDefault();
+        item.handler(event);
     }
 
     get breadcrumbsTemplate() {
@@ -389,7 +444,11 @@ class MasTopNav extends LitElement {
                     <sp-breadcrumbs>
                         ${items.map(
                             (item) =>
-                                html`<sp-breadcrumb-item @click=${item.handler || nothing}>${item.label}</sp-breadcrumb-item>`,
+                                html`<sp-breadcrumb-item
+                                    href=${item.href ?? nothing}
+                                    @click=${(e) => this.#handleBreadcrumbClick(e, item)}
+                                    >${item.label}</sp-breadcrumb-item
+                                >`,
                         )}
                     </sp-breadcrumbs>
                 </div>

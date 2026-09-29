@@ -106,18 +106,27 @@ describe('MasTopNav', () => {
     });
 
     describe('breadcrumbs', () => {
+        function clickCrumb(crumb, options = {}) {
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...options });
+            crumb.dispatchEvent(event);
+            return event;
+        }
+
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.promotions.promotionId.value = null;
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
-                item.textContent.trim(),
-            );
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            const items = breadcrumbs.map((item) => item.textContent.trim());
 
             expect(items).to.deep.equal(['Fragments', 'Editor']);
-            el.querySelector('.nav-breadcrumbs sp-breadcrumb-item').click();
+            expect(breadcrumbs[0].getAttribute('href')).to.equal(
+                `${location.origin}${location.pathname}#page=content&path=acom`,
+            );
+            const event = clickCrumb(breadcrumbs[0]);
             expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
+            expect(event.defaultPrevented).to.be.true;
         });
 
         it('should render promotion breadcrumbs on fragment editor when promotionId is set', async () => {
@@ -129,7 +138,10 @@ describe('MasTopNav', () => {
             const items = breadcrumbs.map((item) => item.textContent.trim());
 
             expect(items).to.deep.equal(['Promotions', 'Edit promotion project', 'Edit promotion variation']);
-            breadcrumbs[1].click();
+            expect(breadcrumbs[1].getAttribute('href')).to.equal(
+                `${location.origin}${location.pathname}#page=promotions-editor&promotionId=promo-1`,
+            );
+            clickCrumb(breadcrumbs[1]);
             expect(navigateStub.calledWith(PAGE_NAMES.PROMOTIONS_EDITOR)).to.be.true;
         });
 
@@ -142,7 +154,10 @@ describe('MasTopNav', () => {
             const items = breadcrumbs.map((item) => item.textContent.trim());
 
             expect(items).to.deep.equal(['Fragments', 'Editor', 'Version history']);
-            breadcrumbs[1].click();
+            expect(breadcrumbs[1].getAttribute('href')).to.equal(
+                `${location.origin}${location.pathname}#page=fragment-editor&fragmentId=fragment-1`,
+            );
+            clickCrumb(breadcrumbs[1]);
             expect(navigateSpy.calledWith('fragment-1')).to.be.true;
         });
 
@@ -153,8 +168,32 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
 
-            breadcrumbs[1].click();
+            clickCrumb(breadcrumbs[1]);
             expect(navigateSpy.called).to.be.false;
+        });
+
+        it('does not navigate or preventDefault on modified or non-primary clicks, only on plain click', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const crumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+
+            const ctrlEvent = clickCrumb(crumb, { ctrlKey: true });
+            expect(navigateStub.called).to.be.false;
+            expect(ctrlEvent.defaultPrevented).to.be.false;
+
+            const metaEvent = clickCrumb(crumb, { metaKey: true });
+            expect(navigateStub.called).to.be.false;
+            expect(metaEvent.defaultPrevented).to.be.false;
+
+            const middleClickEvent = clickCrumb(crumb, { button: 1 });
+            expect(navigateStub.called).to.be.false;
+            expect(middleClickEvent.defaultPrevented).to.be.false;
+
+            const plainEvent = clickCrumb(crumb);
+            expect(navigateStub.calledWith(PAGE_NAMES.MASKS)).to.be.true;
+            expect(plainEvent.defaultPrevented).to.be.true;
         });
 
         it('should render setting editor breadcrumbs and label for create flow', async () => {
@@ -213,9 +252,9 @@ describe('MasTopNav', () => {
             Store.promotions.promotionId.value = 'promo-1';
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            const crumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
 
-            firstBreadcrumb.click();
+            clickCrumb(crumb);
             expect(navigateStub.calledWith(PAGE_NAMES.PROMOTIONS)).to.be.true;
         });
 
@@ -265,9 +304,9 @@ describe('MasTopNav', () => {
             Store.translationProjects.translationProjectId.value = 'project-1';
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            const crumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
 
-            firstBreadcrumb.click();
+            clickCrumb(crumb);
             expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
         });
 
@@ -277,8 +316,8 @@ describe('MasTopNav', () => {
             Store.settings.creating.value = true;
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
-            firstBreadcrumb.click();
+            const crumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            clickCrumb(crumb);
             expect(navigateStub.calledWith(PAGE_NAMES.SETTINGS)).to.be.true;
         });
 
@@ -352,8 +391,8 @@ describe('MasTopNav', () => {
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await el.updateComplete;
-            const firstItem = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
-            firstItem.click();
+            const crumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            crumb.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
             expect(navigateStub.calledWith(PAGE_NAMES.MASKS)).to.be.true;
         });
     });

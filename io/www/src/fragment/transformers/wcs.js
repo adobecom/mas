@@ -203,7 +203,9 @@ function scanMasElements(fields, substituteMap, context, promoMap = {}) {
             const promotionCode = injectedPromo ?? existingPromo ?? projectPromo;
             elements.push({ osi, rawOsi, promotionCode });
             let updated = element;
-            if (osi !== rawOsi) updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
+            if (osi !== rawOsi) {
+                updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}" data-replaced-osi="${rawOsi}"`);
+            }
             const promoToInject = injectedPromo ?? projectPromo;
             if (promoToInject && promoToInject !== existingPromo) {
                 // Overriding an element's own promo (conditioned match) replaces its attribute in place;

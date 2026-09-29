@@ -1370,22 +1370,18 @@ class MerchCardCollectionEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [icon]);
     }
 
+    /** Current tag ids including unsaved edits; `Fragment.isStaged` only sees saved tags for collections. */
+    get #currentTagIds() {
+        return this.fragment?.newTags || this.fragment?.tags?.map((tag) => tag.id) || [];
+    }
+
+    get #isStaged() {
+        return this.#currentTagIds.includes(STAGED.TAG);
+    }
+
     #handleStaged() {
-        const fragment = this.fragmentStore.get();
-        if (fragment.isStaged) {
-            const index = fragment.tags.findIndex((tag) => tag.id === STAGED.TAG);
-            if (index !== -1) {
-                fragment.tags.splice(index, 1);
-                this.fragmentStore.updateField('tags', []);
-                fragment.hasChanges = true;
-                this.fragmentStore.notify();
-            }
-        } else {
-            const tags = this.fragment.getField('tags')?.values || [];
-            const newTags = [...tags];
-            newTags.push(STAGED.TAG);
-            this.fragmentStore.updateField('tags', newTags);
-        }
+        const tagIds = this.#currentTagIds.filter((id) => id !== STAGED.TAG);
+        this.fragmentStore.updateField('tags', this.#isStaged ? tagIds : [...tagIds, STAGED.TAG]);
     }
 
     handleDefaultCardDrop(event) {
@@ -1558,7 +1554,7 @@ class MerchCardCollectionEditor extends LitElement {
                             namespace="/content/cq:tags/mas"
                             multiple
                             data-field-state="${this.#getTagsFieldState()}"
-                            value="${(this.fragment.newTags || this.fragment.tags?.map((tag) => tag.id) || []).join(',')}"
+                            value="${this.#currentTagIds.join(',')}"
                             .parentTags="${this.isVariation ? this.localeDefaultFragment?.tags?.map((t) => t.id) || [] : []}"
                             @change=${this.#handleTagsChange}
                         ></aem-tag-picker-field>
@@ -1827,9 +1823,7 @@ class MerchCardCollectionEditor extends LitElement {
     get #status() {
         return html`
             <div class="section-staged-status">
-                <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}"
-                    >Staged</sp-switch
-                >
+                <sp-switch id="markStaged" ?checked="${this.#isStaged}" @change="${this.#handleStaged}">Staged</sp-switch>
                 <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
             </div>
         `;

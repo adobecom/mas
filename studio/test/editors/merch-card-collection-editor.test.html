@@ -891,6 +891,34 @@
                         expect(getComputedStyle(container).display).to.not.equal('none');
                     });
 
+                    it('toggles Staged without duplicating the tag or dropping existing tags', async () => {
+                        const existingTag = { id: 'mas:product_code/phsp', title: 'Photoshop' };
+                        const editor = await mountEditor(savedCollectionData({ tags: [existingTag] }));
+                        const toggle = () => {
+                            editor.shadowRoot
+                                .querySelector('sp-switch#markStaged')
+                                .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        };
+                        const tagIds = () => editor.fragmentStore.get().newTags;
+                        const switchChecked = async () => {
+                            await editor.updateComplete;
+                            return editor.shadowRoot.querySelector('sp-switch#markStaged').checked;
+                        };
+
+                        toggle();
+                        expect(tagIds()).to.deep.equal([existingTag.id, STAGED.TAG]);
+                        expect(await switchChecked()).to.be.true;
+
+                        toggle();
+                        expect(tagIds()).to.deep.equal([existingTag.id]);
+                        expect(await switchChecked()).to.be.false;
+
+                        toggle();
+                        toggle();
+                        toggle();
+                        expect(tagIds()).to.deep.equal([existingTag.id, STAGED.TAG]);
+                    });
+
                     it('shows the number of selected categories in the Categories heading', async () => {
                         const editor = await mountEditor(savedCollectionData());
                         const heading = editor.shadowRoot.querySelector('[data-field-name="collections"] h2');

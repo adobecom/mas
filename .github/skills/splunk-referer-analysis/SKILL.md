@@ -80,6 +80,8 @@ Consequences for every number you report:
 
 7. **Report** in the output format below. Lead with the verdict. Present all volumes
    as sampling-scaled estimates per the "Sampling" section — never bare 1% counts.
+   Whenever a human must fix content, the call to action is a Slack-ready message
+   with human actions, cards to fix and sample pages (see "Whenever a human must act").
 
 ## Studio deep link
 
@@ -194,37 +196,49 @@ Ground truth for the merch-card messages is `web-components/src/hydrate.js`.
 **Do the classification and verification with the full technical picture, but tailor
 the report to the audience of the verdict.**
 
-### When the verdict is AUTHORING
+### Whenever a human must act (AUTHORING verdict, or the content part of a MIXED one)
+
+**Always** deliver the human call to action as a **Slack-ready message** in one fenced
+code block the user can paste as-is. It has three parts: what a person must do, the
+cards to fix, and sample pages where the breakage shows.
 
 The reader is a content author, not an engineer. Strip all technical detail — no code
-paths, field names, etags, cache/status codes, fragment ids, or internal file names.
-Say plainly what is wrong on which page and what a person must do to fix it. Keep it
-short and human.
+paths, field names, etags, cache/status codes, fragment ids in prose, or internal file
+names. Name cards by their Studio **title** (fetch it from the live payload, step 3).
+
+**Slack formatting rules** (Slack mrkdwn, not Markdown): `*bold*` (single asterisks),
+links as `<url|label>`, `•` bullets, `:emoji:` codes. No `##` headings, no tables, no
+`**double**` bold, no `[label](url)` links.
+
+**Sample pages:** for every card, list the referer pages where its failure was seen,
+taken from the export (not guessed). Cross-tab culprit id × referer (strip query
+strings); show up to ~5 pages per card, most frequent first. If several cards share the
+same pages, list the pages once in a shared "pages affected" line instead of repeating
+them.
 
 ```
-## <page URL> — content needs a fix
+:rotating_light: *<Short plain headline — what's broken, for whom>*
 
-Users on this page are seeing broken cards — an estimated <~100·N rounded> times
-over <start>–<end> (measured from a 1% sample, so treat it as a rough scale, not an
-exact count).
+<1–2 plain sentences: what shoppers see and why, e.g. "these cards have no UK
+English version, so those visitors see an empty space instead of the card.">
+Scale: *an estimated ~<100·N rounded> <blank views/broken cards> in <window>* (<date>; rough figure from a 1% sample).
 
-**What's wrong:** <one plain sentence — e.g. "A card on this page was published
-without a card layout chosen, so it can't display.">
+*What to do (per card):* <imperative steps joined with →, e.g. open it in Studio → choose the card layout → *publish*>. <Also check the other cards in the same set, if relevant.>
 
-**What to do:**
-1. <imperative human step — open <page/promo name> in Studio and choose the card layout>
-2. <republish so shoppers see it>
-3. <check the other cards in the same set for the same gap, if relevant>
+*Cards to fix:*
+• *<Card title>* (~<est.> <blank views>) → <https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>|Open in Studio>
+   Pages: <https://www.adobe.com/<path>|/<path>> · <…>
+• <one bullet per culprit card, highest volume first>
 
-**Open the card in Studio:** https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<culprit-id>
-<one line per culprit fragment>
+*Pages affected:* <only when shared across cards — <url|short-name> · <url|short-name> · …>
 
-Owner: <team/person who authors this content, if known>
+*Also worth a look (seen only a handful of times):* <low-count (raw <~10) cases, same format; no scaled number>
+
+<How to check the fix, e.g. reload the page / use ?akamaiLocale=<geo> to see the affected market.> Thanks! :pray:
 ```
 
-No MWPW code ticket for an authoring verdict. Do not mention `hydrate.js`, `variant`,
-etags, or HTTP codes — but **do** include the Studio link(s) above; that is the author's
-one-click path to the card that needs fixing.
+Always include the Studio link for each card: it takes the author straight to the card
+that needs fixing. No MWPW code ticket for a pure authoring verdict.
 
 ### When the verdict is CODE or MIXED
 
@@ -246,3 +260,6 @@ The reader is an engineer. Include the evidence:
 1. <concrete engineering step>
 2. Propose a MWPW ticket (offer to run the `mwpw-ticket` skill).
 ```
+
+For a **MIXED** verdict, follow the engineering report with the Slack-ready author
+message above, covering only the content part of the fix.

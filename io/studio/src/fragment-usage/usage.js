@@ -8,34 +8,27 @@
  * from, so the caller can group them by region.
  */
 
-const { Ims } = require('@adobe/aio-lib-ims');
+const { Core } = require('@adobe/aio-sdk');
 
-const { topPages } = require('./pages');
+const { getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
+const { FRAGMENT_ID_PATTERN, prunePages, toEpochHour, topPages } = require('./pages');
 const { readUsage } = require('./state');
-
-/** Fragment ids are UUIDs. Anything else is rejected rather than sanitised. */
-const FRAGMENT_ID_PATTERN = /^[\w-]+$/;
-
-const authorize = async (headers = {}) => {
-    const authHeader = headers['authorization'];
-    if (!authHeader?.startsWith('Bearer ')) return false;
-    const token = authHeader.slice(7);
-    if (!token) return false;
-    const imsValidation = await new Ims('prod').validateToken(token);
-    return imsValidation.valid;
-};
 
 /**
  * @param {object} params action inputs
  * @returns {Promise<object>} usage for one fragment
  */
 async function main(params) {
+    const logger = Core.Logger('fragment-usage', { level: params.LOG_LEVEL || 'info' });
     try {
-        if (!(await authorize(params.__ow_headers))) {
+        // `allowedClientId` is the package's Studio IMS client, so a valid token issued to any
+        // other client is still refused.
+        if (!(await isAllowed(getBearerToken(params), params.allowedClientId))) {
             return { statusCode: 401, body: 'Unauthorized: token is missing or invalid' };
         }
 
-        const { fragmentId } = params;
+        // Fragment ids are UUIDs. Anything else is rejected rather than sanitised.
+        const { fragmentId } = parseOwBody(params);
         if (!fragmentId || !FRAGMENT_ID_PATTERN.test(fragmentId)) {
             return { statusCode: 400, body: 'A valid fragmentId is required' };
         }
@@ -47,6 +40,10 @@ async function main(params) {
         // than "unavailable".
         const pages = record?.pages || {};
 
+        // The rollup only prunes fragments it rewrites, so a fragment that went quiet keeps its old
+        // hours until the record expires. Pruning here keeps the list true to its 7-day label.
+        const recentPages = prunePages(pages, toEpochHour(Date.now()));
+
         // No custom headers: I/O Runtime adds CORS only when the response carries none of its own.
         return {
             statusCode: 200,
@@ -54,13 +51,13 @@ async function main(params) {
                 available: true,
                 fragmentId,
                 updatedAt: record?.updatedAt || null,
-                pages: topPages(pages),
+                pages: topPages(recentPages),
             },
         };
     } catch (error) {
-        return { statusCode: 500, body: `ERROR in fragment usage: ${error.message}` };
+        logger.error('fragment usage read failed', error);
+        return { statusCode: 500, body: 'ERROR in fragment usage' };
     }
 }
 
 exports.main = main;
-exports.FRAGMENT_ID_PATTERN = FRAGMENT_ID_PATTERN;

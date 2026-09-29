@@ -45,6 +45,12 @@ describe('usage-repository', () => {
             expect(resolveRegion({ US: 70, DZ: 30 })).to.equal(GLOBAL_REGION);
         });
 
+        it('counts requests outside the listed countries toward the total', () => {
+            // The action lists only a page's busiest countries, so they can add up to less than
+            // the page served. The rest must still dilute the leading region's share.
+            expect(resolveRegion({ GB: 70 }, 100)).to.equal(GLOBAL_REGION);
+        });
+
         it('accepts lower-cased country codes', () => {
             expect(resolveRegion({ us: 100 })).to.equal('LATAM/Americas');
         });
@@ -175,6 +181,11 @@ describe('usage-repository', () => {
             const result = parseWith([{ url: 'https://www.adobe.com/express/', requests: 5, countries: { US: 4, GB: 1 } }]);
             expect(result.pages[0].countries).to.deep.equal(['us', 'uk']);
             expect(result.pages[0].region).to.equal('LATAM/Americas');
+        });
+
+        it('weighs the region against the page total, not only its listed countries', () => {
+            const result = parseWith([{ url: 'https://www.adobe.com/uk/', requests: 100, countries: { GB: 70 } }]);
+            expect(result.pages[0].region).to.equal(GLOBAL_REGION);
         });
 
         it('falls back to Global for a page the action sent no countries for', () => {

@@ -779,6 +779,7 @@ export default class MasFragmentEditor extends LitElement {
         this.#usageAbortController = abortController;
         this.externalUsage = null;
         this.isLoadingExternalUsage = true;
+        this.usageDialogOpen = false;
         try {
             const usage = await fetchFragmentUsage(fragment.id, { signal: abortController.signal });
             if (token !== this.#usageLoadToken) return;

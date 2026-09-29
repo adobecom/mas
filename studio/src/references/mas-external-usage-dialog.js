@@ -2,6 +2,7 @@ import { html, nothing } from 'lit';
 import { MasDialogShell } from './mas-dialog-shell.js';
 import { dialogShellStyles } from './mas-dialog-shell.css.js';
 import { styles } from './mas-external-usage-dialog.css.js';
+import { showToast } from '../utils.js';
 /**
  * Modal listing the external pages that requested the open fragment, derived from Akamai CDN
  * referer logs (MWPW-185891).
@@ -108,7 +109,12 @@ class MasExternalUsageDialog extends MasDialogShell {
     }
 
     async #copyUrl(url) {
-        await navigator.clipboard?.writeText(url);
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('Page URL copied to clipboard', 'positive');
+        } catch {
+            showToast('Failed to copy page URL to clipboard', 'negative');
+        }
     }
 
     #renderRow(page, commonHost) {

@@ -2,11 +2,10 @@ const { expect } = require('chai');
 
 const {
     PAGE_RETENTION_HOURS,
-    MAX_PAGES_PER_HOUR,
+    MAX_COUNTRIES_PER_PAGE,
     MAX_PAGES_RETURNED,
     readEntry,
     addPage,
-    capPages,
     mergePages,
     prunePages,
     topPages,
@@ -88,28 +87,6 @@ describe('fragment-usage pages', () => {
         });
     });
 
-    describe('capPages', () => {
-        it('keeps the busiest pages', () => {
-            const byPage = {};
-            for (let index = 0; index < MAX_PAGES_PER_HOUR + 5; index += 1) {
-                byPage[`https://example.com/${index}`] = entry(index);
-            }
-            const capped = capPages(byPage);
-            expect(Object.keys(capped)).to.have.lengthOf(MAX_PAGES_PER_HOUR);
-            expect(capped).to.have.property(`https://example.com/${MAX_PAGES_PER_HOUR + 4}`);
-        });
-
-        it('leaves an hour that is already within the cap untouched', () => {
-            const byPage = { 'https://a.com': entry(1) };
-            expect(capPages(byPage)).to.equal(byPage);
-        });
-
-        it('breaks ties on url so the kept set is stable between runs', () => {
-            const byPage = { 'https://b.com': entry(1), 'https://a.com': entry(1) };
-            expect(Object.keys(capPages(byPage, 1))).to.deep.equal(['https://a.com']);
-        });
-    });
-
     describe('mergePages', () => {
         it('replaces an hour instead of accumulating it, so a retried run cannot double count', () => {
             const stored = { 10: { 'https://a.com': entry(5) } };
@@ -155,6 +132,21 @@ describe('fragment-usage pages', () => {
             expect(topPages(pages)).to.deep.equal([
                 { url: 'https://a.com', locale: '', requests: 7, countries: { US: 4, CA: 3 } },
             ]);
+        });
+
+        it('keeps only the busiest countries once a page is summed across hours', () => {
+            // Each stored hour already holds at most the cap, but different hours can hold
+            // different countries, so the sum across hours can exceed it.
+            const countriesIn = (prefix, count) =>
+                Object.fromEntries(
+                    Array.from({ length: MAX_COUNTRIES_PER_PAGE }, (unused, index) => [`${prefix}${index}`, count]),
+                );
+            const busy = countriesIn('A', 10);
+            const pages = {
+                10: { 'https://a.com': entry(120, busy) },
+                11: { 'https://a.com': entry(12, countriesIn('B', 1)) },
+            };
+            expect(Object.keys(topPages(pages)[0].countries)).to.have.members(Object.keys(busy));
         });
 
         it('ranks steady traffic above a single spike', () => {

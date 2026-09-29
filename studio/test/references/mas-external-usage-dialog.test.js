@@ -1,6 +1,8 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html, waitUntil } from '@open-wc/testing';
+import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/references/mas-external-usage-dialog.js';
+import Events from '../../src/events.js';
 
 const usage = {
     available: true,
@@ -29,6 +31,16 @@ const requestCounts = (element) =>
 const headerCell = (element, index) => element.shadowRoot.querySelectorAll('sp-table-head-cell')[index];
 
 describe('mas-external-usage-dialog', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
     it('renders nothing while closed', async () => {
         const element = await fixture(
             html`<mas-external-usage-dialog .open=${false} .usage=${usage}></mas-external-usage-dialog>`,
@@ -104,6 +116,28 @@ describe('mas-external-usage-dialog', () => {
     it('keeps a copy action on every row', async () => {
         const element = await openDialog();
         expect(element.shadowRoot.querySelectorAll('.page-copy')).to.have.lengthOf(3);
+    });
+
+    it('confirms a copied page url with a toast', async () => {
+        sandbox.stub(navigator.clipboard, 'writeText').resolves();
+        const emit = sandbox.stub(Events.toast, 'emit');
+        const element = await openDialog();
+
+        element.shadowRoot.querySelector('.page-copy').click();
+
+        await waitUntil(() => emit.called);
+        expect(emit.firstCall.args[0].variant).to.equal('positive');
+    });
+
+    it('reports a failed copy with a toast instead of an unhandled rejection', async () => {
+        sandbox.stub(navigator.clipboard, 'writeText').rejects(new DOMException('Write permission denied.', 'NotAllowedError'));
+        const emit = sandbox.stub(Events.toast, 'emit');
+        const element = await openDialog();
+
+        element.shadowRoot.querySelector('.page-copy').click();
+
+        await waitUntil(() => emit.called);
+        expect(emit.firstCall.args[0].variant).to.equal('negative');
     });
 
     it('does not leak the Studio referrer to the opened page', async () => {

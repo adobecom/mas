@@ -24,6 +24,12 @@ const PAGE_RETENTION_HOURS = 24 * 7;
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
+ * AEM content fragment ids are UUIDs. Live traffic also carries ids like `wrong-fragment-id`; the
+ * rollup skips those and the read action rejects them, so a typo never becomes a State key.
+ */
+const FRAGMENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
  * Epoch hour for a timestamp. Pages are keyed by it, so the rollup and the reader agree on what
  * "an hour" is without either carrying a date library.
  * @param {number} ms milliseconds since the epoch
@@ -41,10 +47,11 @@ function toEpochHour(ms) {
 const MAX_PAGES_PER_HOUR = 20;
 
 /**
- * Countries kept per page per hour. A busy page is reached from a long tail of countries that each
- * contribute a handful of requests; keeping every one multiplies the stored record for detail no
- * reader acts on. The kept countries are the busiest ones, so the region a page mostly serves is
- * always represented.
+ * Countries kept per page, both in each stored hour (the query slices them) and in the list returned
+ * (topPages trims them again after summing hours). A busy page is reached from a long tail of
+ * countries that each contribute a handful of requests; keeping every one multiplies the stored
+ * record for detail no reader acts on. The kept countries are the busiest ones, so the region a
+ * page mostly serves is always represented.
  */
 const MAX_COUNTRIES_PER_PAGE = 12;
 
@@ -90,10 +97,10 @@ function readEntry(entry, key = '') {
 }
 
 /**
- * Adds one page observation into an hour map, summing both the total and the per-country counts.
+ * Adds one page observation into a page map, summing both the total and the per-country counts.
  *
- * Used to combine the sub-windows of a single hour, which are fetched separately, so this sums
- * rather than replaces. Whole-hour replacement is mergePages' job.
+ * Sums rather than replaces so topPages can add a page up across hours. Whole-hour replacement is
+ * mergePages' job.
  *
  * @param {object} byPage hour map to add into, mutated
  * @param {string} url page url
@@ -113,28 +120,17 @@ function addPage(byPage, url, locale, requests, countries = {}) {
 }
 
 /**
- * Keeps only the busiest pages in an hour map.
- *
- * Each sub-window is capped independently in SQL, so combining them can exceed the per-hour cap --
- * capping again after they are summed is what makes the stored hour match the cap. Capping the
- * sub-windows alone would not: a page that is 21st in every sub-window but busiest overall would be
- * dropped before it was ever added up.
- *
- * @param {object} byPage key -> { url, locale, requests, countries }
- * @param {number} [limit] maximum pages kept
- * @returns {object} capped hour map
+ * Keeps only a page's busiest countries.
+ * @param {object} countries country -> request count
+ * @param {number} [limit] maximum countries kept
+ * @returns {object} capped country map
  */
-function capPages(byPage, limit = MAX_PAGES_PER_HOUR) {
-    const entries = Object.entries(byPage ?? {});
-    if (entries.length <= limit) return byPage ?? {};
-    const kept = {};
-    entries
-        .sort(([keyA, a], [keyB, b]) => b.requests - a.requests || keyA.localeCompare(keyB))
-        .slice(0, limit)
-        .forEach(([key, entry]) => {
-            kept[key] = entry;
-        });
-    return kept;
+function capCountries(countries, limit = MAX_COUNTRIES_PER_PAGE) {
+    return Object.fromEntries(
+        Object.entries(countries)
+            .sort(([countryA, a], [countryB, b]) => b - a || countryA.localeCompare(countryB))
+            .slice(0, limit),
+    );
 }
 
 /**
@@ -184,7 +180,7 @@ function topPages(pages, limit = MAX_PAGES_RETURNED) {
     }
 
     return Object.values(totals)
-        .map(({ url, locale, requests, countries }) => ({ url, locale, requests, countries }))
+        .map(({ url, locale, requests, countries }) => ({ url, locale, requests, countries: capCountries(countries) }))
         .sort((a, b) => b.requests - a.requests || a.url.localeCompare(b.url) || a.locale.localeCompare(b.locale))
         .slice(0, limit);
 }
@@ -192,13 +188,13 @@ function topPages(pages, limit = MAX_PAGES_RETURNED) {
 module.exports = {
     PAGE_RETENTION_HOURS,
     HOUR_MS,
+    FRAGMENT_ID_PATTERN,
     MAX_PAGES_PER_HOUR,
     MAX_COUNTRIES_PER_PAGE,
     MAX_PAGES_RETURNED,
     toEpochHour,
     readEntry,
     addPage,
-    capPages,
     mergePages,
     prunePages,
     topPages,

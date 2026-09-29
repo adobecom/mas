@@ -43,11 +43,14 @@ const COUNTRY_DISPLAY_ALIASES = { GB: 'uk' };
  *
  * Countries outside REGION_GROUPS still count toward the total but vote for no region, so traffic
  * we cannot attribute pushes a page toward Global rather than toward a region it may not belong to.
+ * The action lists only a page's busiest countries, so the page total is passed too: requests from
+ * the unlisted countries count the same way.
  *
  * @param {Object} countries country code -> request count
+ * @param {number} [requests] the page's total across every country
  * @returns {string} region name, or GLOBAL_REGION
  */
-export function resolveRegion(countries) {
+export function resolveRegion(countries, requests = 0) {
     let total = 0;
     const byRegion = new Map();
 
@@ -59,6 +62,7 @@ export function resolveRegion(countries) {
         if (region) byRegion.set(region, (byRegion.get(region) ?? 0) + count);
     }
 
+    total = Math.max(total, Number(requests) || 0);
     if (!total) return GLOBAL_REGION;
 
     let leader = null;
@@ -140,7 +144,7 @@ function normalizePages(raw) {
             locale: String(page.locale ?? ''),
             requests: Number(page.requests) || 0,
             countries: formatCountries(page.countries),
-            region: resolveRegion(page.countries),
+            region: resolveRegion(page.countries, page.requests),
         }));
 }
 

@@ -13,7 +13,7 @@
  * must be fully literal, which is why the time bounds are interpolated as explicit epoch seconds.
  */
 
-const { MAX_PAGES_PER_HOUR, MAX_COUNTRIES_PER_PAGE, addPage, capPages } = require('./pages');
+const { FRAGMENT_ID_PATTERN, HOUR_MS, MAX_PAGES_PER_HOUR, MAX_COUNTRIES_PER_PAGE, addPage } = require('./pages');
 
 const DEFAULT_GRAFANA_URL = 'https://adobe-grafana.trafficpeak.live';
 const GRAFANA_DATASOURCE_UID = 'ffmjsr3rpsrnkc';
@@ -26,18 +26,14 @@ const MAS_FRAGMENT_ENDPOINT = '/mas/io/fragment';
 /** Matches the dashboard's cap. A 1h rollup lands in ~1.5s, so this is headroom, not a target. */
 const MAX_EXECUTION_SECONDS = 60;
 
+const HOUR_SECONDS = HOUR_MS / 1000;
+
 /**
- * Width of each sub-window the pages query is split into.
- *
- * Grouping by country multiplies the row count, and the window the rollup asks for (LOOKBACK_HOURS)
- * is wider than one hour, so a single request returns a response large enough to be worth avoiding:
- * measured at ~1.1MB for one hour, against ~0.49MB for a 15-minute slice. Splitting also makes each
- * query cheap (~0.3s), so the run is faster in total than the single wide query it replaces.
- *
- * Sub-windows are summed back together per hour by fetchHourlyPages, so this is purely a transport
- * concern and does not change what gets stored.
+ * Start of the clock hour after the one holding `seconds`.
+ * @param {number} seconds epoch seconds
+ * @returns {number} epoch seconds
  */
-const CHUNK_SECONDS = 15 * 60;
+const nextHourStart = (seconds) => (Math.floor(seconds / HOUR_SECONDS) + 1) * HOUR_SECONDS;
 
 /**
  * Referer query parameters that change which cards a page shows, and so must survive
@@ -199,7 +195,7 @@ function collectPages(values, byFragment) {
     for (let index = 0; index < fragmentIds.length; index += 1) {
         const fragmentId = fragmentIds[index];
         const page = pageUrls[index];
-        if (!fragmentId || !page) continue;
+        if (!FRAGMENT_ID_PATTERN.test(fragmentId ?? '') || !page) continue;
 
         const names = countryNames[index] ?? [];
         const counts = countryCounts[index] ?? [];
@@ -218,10 +214,11 @@ function collectPages(values, byFragment) {
 /**
  * Fetches the top consuming pages, and the countries they were served from, per fragment per hour.
  *
- * The window is walked in CHUNK_SECONDS slices and summed back together, so the caller sees whole
- * hours and does not need to know the query was split. Each hour is capped once at the end rather
- * than per slice, because a page that ranks below the cap in every individual slice can still be
- * among the busiest once the slices are added up.
+ * The window is queried one clock hour at a time. The query ranks pages per hour and keeps
+ * MAX_PAGES_PER_HOUR, so a query that never spans more than one hour returns that hour's true top
+ * pages. Splitting an hour across queries would rank each part on its own, and a page just below
+ * the cut in every part would be dropped before the parts were added up. One hour at peak measured
+ * ~1.1MB and ~1.5s (2026-09-29).
  *
  * @param {number} fromMs window start in milliseconds
  * @param {number} toMs window end in milliseconds
@@ -233,22 +230,15 @@ async function fetchHourlyPages(fromMs, toMs, options) {
     const toSec = Math.floor(toMs / 1000);
 
     const byFragment = {};
-    for (let start = fromSec; start < toSec; start += CHUNK_SECONDS) {
-        const end = Math.min(start + CHUNK_SECONDS, toSec);
+    for (let start = fromSec; start < toSec; start = nextHourStart(start)) {
+        const end = Math.min(nextHourStart(start), toSec);
         const values = await runQuery(buildPagesQuery(start, end), start * 1000, end * 1000, options);
         collectPages(values, byFragment);
-    }
-
-    for (const hours of Object.values(byFragment)) {
-        for (const [hour, byPage] of Object.entries(hours)) {
-            hours[hour] = capPages(byPage);
-        }
     }
     return byFragment;
 }
 
 module.exports = {
-    CHUNK_SECONDS,
     MAX_EXECUTION_SECONDS,
     buildPagesQuery,
     fetchHourlyPages,

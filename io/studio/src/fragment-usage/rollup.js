@@ -40,8 +40,10 @@ async function main(params) {
             return { statusCode: 503, body: 'Rollup not configured (missing GRAFANA_SERVICE_TOKEN)' };
         }
 
+        // Stored hours are replaced whole, so the window starts on an hour boundary. Starting
+        // mid-hour would overwrite a complete stored hour with only its tail.
         const toMs = Date.now();
-        const fromMs = toMs - LOOKBACK_HOURS * HOUR_MS;
+        const fromMs = toEpochHour(toMs - LOOKBACK_HOURS * HOUR_MS) * HOUR_MS;
 
         const pagesByFragment = await fetchHourlyPages(fromMs, toMs, {
             token,
@@ -54,22 +56,29 @@ async function main(params) {
 
         let fragments = 0;
         let pages = 0;
+        let failures = 0;
 
         for (const [fragmentId, hourlyPages] of Object.entries(pagesByFragment)) {
-            const stored = (await readUsage(fragmentId, state)) || emptyRecord();
+            // One unreadable or unwritable record must not cost every other fragment its update.
+            try {
+                const stored = (await readUsage(fragmentId, state)) || emptyRecord();
 
-            // Records written while the traffic panel existed still carry an hourly count map.
-            // Spreading `stored` would copy it forward on every run, so it is dropped explicitly
-            // and ages out with the first rewrite rather than surviving until the record expires.
-            delete stored.hours;
+                // Records written while the traffic panel existed still carry an hourly count map.
+                // Spreading `stored` would copy it forward on every run, so it is dropped explicitly
+                // and ages out with the first rewrite rather than surviving until the record expires.
+                delete stored.hours;
 
-            const mergedPages = prunePages(mergePages(stored.pages ?? {}, hourlyPages), nowHour);
-            await writeUsage(fragmentId, { ...stored, updatedAt, pages: mergedPages }, state);
-            fragments += 1;
-            pages += Object.values(hourlyPages).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
+                const mergedPages = prunePages(mergePages(stored.pages ?? {}, hourlyPages), nowHour);
+                await writeUsage(fragmentId, { ...stored, updatedAt, pages: mergedPages }, state);
+                fragments += 1;
+                pages += Object.values(hourlyPages).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
+            } catch (error) {
+                failures += 1;
+                logger.warn(`fragment usage rollup skipped ${fragmentId}: ${error.message}`);
+            }
         }
 
-        const summary = { fragments, pages, durationMs: Date.now() - startedAt };
+        const summary = { fragments, pages, failures, durationMs: Date.now() - startedAt };
         logger.info('fragment usage rollup complete', summary);
 
         // Only a summary is returned. Returning the per-fragment grid would approach the 1MB

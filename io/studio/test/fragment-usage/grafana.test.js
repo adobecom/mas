@@ -1,10 +1,11 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 
-const { buildPagesQuery, fetchHourlyPages, CHUNK_SECONDS, MAX_EXECUTION_SECONDS } = require('../../src/fragment-usage/grafana');
+const { buildPagesQuery, fetchHourlyPages, MAX_EXECUTION_SECONDS } = require('../../src/fragment-usage/grafana');
 const { MAX_PAGES_PER_HOUR, MAX_COUNTRIES_PER_PAGE } = require('../../src/fragment-usage/pages');
 
 const HOUR_SECONDS = 3600;
+const FRAGMENT = '5c6e5bdb-161b-4d8d-a3c7-3ea3f843cfb4';
 
 describe('fragment-usage grafana', () => {
     describe('buildPagesQuery', () => {
@@ -137,24 +138,32 @@ describe('fragment-usage grafana', () => {
             global.fetch = fetchStub;
         }
 
-        /** A window exactly one chunk wide, so a test issues a single query. */
-        const oneChunk = (fromSec) => [fromSec * 1000, (fromSec + CHUNK_SECONDS) * 1000];
+        /** The clock hour holding 1700000000, so a test issues a single query. */
+        const HOUR_START = 472222 * HOUR_SECONDS;
+        const oneHour = [HOUR_START * 1000, (HOUR_START + HOUR_SECONDS) * 1000];
+
+        /** The exclusive end bound of every query sent, in epoch seconds. */
+        const queryEnds = () =>
+            fetchStub.getCalls().map((call) => {
+                const { rawSql } = JSON.parse(call.args[1].body).queries[0];
+                return Number(rawSql.match(/reqTimeSec < toDateTime\((\d+)\)/)[1]);
+            });
 
         it('reshapes column results into fragment -> hour -> page -> requests and countries', async () => {
             stubFetch(
                 frame(
                     [1700000000, 1700000000],
-                    ['frag-a', 'frag-a'],
+                    [FRAGMENT, FRAGMENT],
                     ['https://a.com', 'https://b.com'],
                     [['US', 'CA'], ['JP']],
                     [[5, 2], [3]],
                 ),
             );
 
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(result).to.deep.equal({
-                'frag-a': {
+                [FRAGMENT]: {
                     472222: {
                         'https://a.com': { url: 'https://a.com', locale: '', requests: 7, countries: { US: 5, CA: 2 } },
                         'https://b.com': { url: 'https://b.com', locale: '', requests: 3, countries: { JP: 3 } },
@@ -166,53 +175,41 @@ describe('fragment-usage grafana', () => {
         it('takes a page total from the query rather than from its kept countries', async () => {
             // The query keeps only the busiest countries, so their counts can add up to less than
             // the page actually served.
-            stubFetch(frame([1700000000], ['frag-a'], ['https://a.com'], [['US', 'GB', 'DE']], [[10, 4, 1]], [''], [20]));
+            stubFetch(frame([1700000000], [FRAGMENT], ['https://a.com'], [['US', 'GB', 'DE']], [[10, 4, 1]], [''], [20]));
 
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
-            expect(result['frag-a'][472222]['https://a.com'].requests).to.equal(20);
+            expect(result[FRAGMENT][472222]['https://a.com'].requests).to.equal(20);
         });
 
-        it('splits the window into chunks rather than asking for it all at once', async () => {
+        it('queries one hour at a time so the query ranks pages over whole hours', async () => {
+            // The query keeps the busiest pages per hour. Splitting an hour across queries would
+            // rank each part on its own, and a page just below the cut in every part would be
+            // dropped before the parts were added up.
             stubFetch(frame([], [], [], [], []));
 
-            await fetchHourlyPages(1700000000000, 1700000000000 + HOUR_SECONDS * 1000, { token: 't' });
+            await fetchHourlyPages(HOUR_START * 1000, (HOUR_START + 3 * HOUR_SECONDS) * 1000, { token: 't' });
 
-            expect(fetchStub.callCount).to.equal(HOUR_SECONDS / CHUNK_SECONDS);
+            expect(queryEnds()).to.deep.equal([
+                HOUR_START + HOUR_SECONDS,
+                HOUR_START + 2 * HOUR_SECONDS,
+                HOUR_START + 3 * HOUR_SECONDS,
+            ]);
         });
 
-        it('sums a page across the chunks of one hour instead of keeping only the last', async () => {
-            stubFetch(frame([1700000000], ['frag-a'], ['https://a.com'], [['US']], [[2]]));
+        it('ends the first query on the hour when the window starts mid-hour', async () => {
+            stubFetch(frame([], [], [], [], []));
 
-            const result = await fetchHourlyPages(1700000000000, 1700000000000 + HOUR_SECONDS * 1000, { token: 't' });
+            await fetchHourlyPages((HOUR_START + 1800) * 1000, (HOUR_START + 2 * HOUR_SECONDS) * 1000, { token: 't' });
 
-            const page = result['frag-a'][472222]['https://a.com'];
-            expect(page.requests).to.equal(2 * (HOUR_SECONDS / CHUNK_SECONDS));
-            expect(page.countries).to.deep.equal({ US: 2 * (HOUR_SECONDS / CHUNK_SECONDS) });
-        });
-
-        it('caps an hour after its chunks are summed, not within each chunk', async () => {
-            // A page ranked below the cap in every individual chunk can still be among the busiest
-            // once the chunks are added up, so capping per chunk would drop it.
-            const pageCount = MAX_PAGES_PER_HOUR + 5;
-            const buckets = Array(pageCount).fill(1700000000);
-            const fragmentIds = Array(pageCount).fill('frag-a');
-            const pages = Array.from({ length: pageCount }, (unused, index) => `https://example.com/${index}`);
-            const countries = Array.from({ length: pageCount }, () => ['US']);
-            const counts = Array.from({ length: pageCount }, (unused, index) => [pageCount - index]);
-            stubFetch(frame(buckets, fragmentIds, pages, countries, counts));
-
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
-
-            expect(Object.keys(result['frag-a'][472222])).to.have.lengthOf(MAX_PAGES_PER_HOUR);
-            expect(result['frag-a'][472222]).to.have.property('https://example.com/0');
+            expect(queryEnds()).to.deep.equal([HOUR_START + HOUR_SECONDS, HOUR_START + 2 * HOUR_SECONDS]);
         });
 
         it('keeps one url as separate rows when it served several locales', async () => {
             stubFetch(
                 frame(
                     [1700000000, 1700000000],
-                    ['frag-a', 'frag-a'],
+                    [FRAGMENT, FRAGMENT],
                     ['https://a.com', 'https://a.com'],
                     [['US'], ['GB']],
                     [[5], [2]],
@@ -220,18 +217,18 @@ describe('fragment-usage grafana', () => {
                 ),
             );
 
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
-            expect(result['frag-a'][472222]).to.deep.equal({
+            expect(result[FRAGMENT][472222]).to.deep.equal({
                 'https://a.com#en_US': { url: 'https://a.com', locale: 'en_US', requests: 5, countries: { US: 5 } },
                 'https://a.com#en_GB': { url: 'https://a.com', locale: 'en_GB', requests: 2, countries: { GB: 2 } },
             });
         });
 
         it('skips rows with no page', async () => {
-            stubFetch(frame([1700000000], ['frag-a'], [null], [['US']], [[7]]));
+            stubFetch(frame([1700000000], [FRAGMENT], [null], [['US']], [[7]]));
 
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(result).to.deep.equal({});
         });
@@ -239,7 +236,16 @@ describe('fragment-usage grafana', () => {
         it('skips rows with no fragment id', async () => {
             stubFetch(frame([1700000000], [null], ['https://a.com'], [['US']], [[7]]));
 
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
+
+            expect(result).to.deep.equal({});
+        });
+
+        it('skips fragment ids that are not uuids', async () => {
+            // Live traffic carries ids like this one. Storing them would add a State key per typo.
+            stubFetch(frame([1700000000], ['wrong-fragment-id'], ['https://a.com'], [['US']], [[7]]));
+
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(result).to.deep.equal({});
         });
@@ -247,7 +253,7 @@ describe('fragment-usage grafana', () => {
         it('returns nothing when the window had no traffic', async () => {
             stubFetch({ results: { A: { frames: [] } } });
 
-            const result = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(result).to.deep.equal({});
         });
@@ -255,7 +261,7 @@ describe('fragment-usage grafana', () => {
         it('sends the token as a bearer header and never in the body', async () => {
             stubFetch(frame([], [], [], [], []));
 
-            await fetchHourlyPages(...oneChunk(1700000000), { token: 'glsa_secret' });
+            await fetchHourlyPages(...oneHour, { token: 'glsa_secret' });
 
             const [, options] = fetchStub.firstCall.args;
             expect(options.headers.Authorization).to.equal('Bearer glsa_secret');
@@ -265,7 +271,7 @@ describe('fragment-usage grafana', () => {
         it('targets the org the MAS service account belongs to', async () => {
             stubFetch(frame([], [], [], [], []));
 
-            await fetchHourlyPages(...oneChunk(1700000000), { token: 't' });
+            await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(fetchStub.firstCall.args[1].headers['X-Grafana-Org-Id']).to.equal('2');
         });
@@ -273,7 +279,7 @@ describe('fragment-usage grafana', () => {
         it('throws on a non-ok response', async () => {
             stubFetch({}, false, 502);
 
-            const error = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' }).then(
+            const error = await fetchHourlyPages(...oneHour, { token: 't' }).then(
                 () => null,
                 (thrown) => thrown,
             );
@@ -285,7 +291,7 @@ describe('fragment-usage grafana', () => {
         it('throws when Grafana reports a query error', async () => {
             stubFetch({ results: { A: { error: 'Syntax error' } } });
 
-            const error = await fetchHourlyPages(...oneChunk(1700000000), { token: 't' }).then(
+            const error = await fetchHourlyPages(...oneHour, { token: 't' }).then(
                 () => null,
                 (thrown) => thrown,
             );

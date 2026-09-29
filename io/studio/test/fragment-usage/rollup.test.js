@@ -6,9 +6,10 @@ const sinonChai = require('sinon-chai');
 
 chai.use(sinonChai);
 
-const { toEpochHour, PAGE_RETENTION_HOURS } = require('../../src/fragment-usage/pages');
+const { toEpochHour, PAGE_RETENTION_HOURS, HOUR_MS } = require('../../src/fragment-usage/pages');
 
 const FRAGMENT = '5c6e5bdb-161b-4d8d-a3c7-3ea3f843cfb4';
+const OTHER_FRAGMENT = '9a1f7c2e-3b4d-4e5f-8a6b-7c8d9e0f1a2b';
 const PAGE = 'https://www.adobe.com/express/';
 
 /** Builds a stored page entry in the shape the rollup writes. */
@@ -139,6 +140,50 @@ describe('fragment-usage rollup', () => {
         await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
 
         expect(store[FRAGMENT]).to.not.have.property('hours');
+    });
+
+    it('starts its window on an hour boundary so the oldest hour it rewrites is complete', async () => {
+        // Stored hours are replaced whole. A window starting mid-hour would overwrite a complete
+        // hour with only its tail, and every hour is last written by the run that sees its tail.
+        const { rollup, fetchHourlyPages } = loadRollup();
+
+        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        const [fromMs, toMs] = fetchHourlyPages.firstCall.args;
+        expect(fromMs % HOUR_MS).to.equal(0);
+        expect(toMs - fromMs).to.be.at.least(rollup.LOOKBACK_HOURS * HOUR_MS);
+    });
+
+    it('keeps going when one fragment cannot be stored', async () => {
+        const hour = toEpochHour(Date.now()) - 1;
+        const { rollup, store, writeUsage } = loadRollup({
+            pagesByFragment: {
+                [FRAGMENT]: { [hour]: { [PAGE]: entry(1) } },
+                [OTHER_FRAGMENT]: { [hour]: { [PAGE]: entry(2) } },
+            },
+        });
+        writeUsage.withArgs(FRAGMENT).rejects(new Error('state write failed'));
+
+        const response = await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(response.statusCode).to.equal(200);
+        expect(store[OTHER_FRAGMENT].pages[hour]).to.deep.equal({ [PAGE]: entry(2) });
+    });
+
+    it('counts the fragments it could not store in the summary', async () => {
+        const hour = toEpochHour(Date.now()) - 1;
+        const { rollup, readUsage } = loadRollup({
+            pagesByFragment: {
+                [FRAGMENT]: { [hour]: { [PAGE]: entry(1) } },
+                [OTHER_FRAGMENT]: { [hour]: { [PAGE]: entry(2) } },
+            },
+        });
+        readUsage.withArgs(FRAGMENT).rejects(new Error('state read failed'));
+
+        const response = await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(response.body.fragments).to.equal(1);
+        expect(response.body.failures).to.equal(1);
     });
 
     it('re-reads more than one hour so a missed run repairs itself', async () => {

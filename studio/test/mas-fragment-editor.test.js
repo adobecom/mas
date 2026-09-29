@@ -2160,6 +2160,32 @@ describe('MasFragmentEditor', () => {
             });
         });
 
+        it('closes the page list when a different fragment loads', () => {
+            // The dialog would otherwise sit on a spinner and then show the new fragment's pages
+            // under a title the user opened for the previous one.
+            const meta = document.createElement('meta');
+            meta.name = 'io-base-url';
+            meta.content = 'https://io.example';
+            document.head.append(meta);
+            sessionStorage.setItem('masAccessToken', 'ims-token');
+            sandbox.stub(window, 'fetch').returns(new Promise(() => {}));
+            try {
+                const { editor } = createEditor();
+                let current = { id: 'frag-A', path: '/content/dam/mas/acom/en_US/card-a', model: { path: CARD_MODEL_PATH } };
+                sandbox.stub(editor, 'fragment').get(() => current);
+                editor.willUpdate(new Map());
+                editor.usageDialogOpen = true;
+
+                current = { id: 'frag-B', path: '/content/dam/mas/acom/en_US/card-b', model: { path: CARD_MODEL_PATH } };
+                editor.willUpdate(new Map());
+
+                expect(editor.usageDialogOpen).to.equal(false);
+            } finally {
+                meta.remove();
+                sessionStorage.removeItem('masAccessToken');
+            }
+        });
+
         it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
             let resolveA;
             let resolveB;

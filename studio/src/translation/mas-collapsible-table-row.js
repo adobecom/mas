@@ -4,7 +4,6 @@ import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
 import {
     getItemTypeLabel,
-    renderCopyableValue,
     renderCopyableValueCell,
     renderInheritedTagsNotice,
     shouldIgnoreRowClickForSelection,
@@ -529,15 +528,13 @@ export class MasCollapsibleTableRow extends LitElement {
 
     renderOsi(item) {
         const osi = new Fragment(item).getFieldValue('osi') ?? item?.offerData?.offerSelectorIds?.[0];
-        return html`<sp-table-cell class="osi">
-            ${osi
-                ? renderCopyableValue(this, osi, {
-                      ariaLabel: 'Copy OSI to clipboard',
-                      successMessage: 'OSI copied to clipboard',
-                      errorMessage: 'Failed to copy OSI',
-                  })
-                : 'no osi'}
-        </sp-table-cell>`;
+        return renderCopyableValueCell(this, osi, {
+            className: 'osi',
+            emptyLabel: 'no osi',
+            ariaLabel: 'Copy OSI to clipboard',
+            successMessage: 'OSI copied to clipboard',
+            errorMessage: 'Failed to copy OSI',
+        });
     }
 
     renderRelatedPages(item) {

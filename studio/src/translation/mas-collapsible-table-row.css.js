@@ -101,6 +101,24 @@ export const styles = [
             }
         }
 
+        .osi {
+            .copyable-value {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            overlay-trigger {
+                flex: 1;
+            }
+
+            sp-action-button {
+                flex: 0 0 auto;
+            }
+        }
+
         .details-cell {
             display: flex;
             flex-direction: column;

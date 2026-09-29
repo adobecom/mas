@@ -9,13 +9,15 @@ import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
-import MasPromotionsItemsTable from '../../src/promotions/mas-promotions-items-table.js';
+import '../../src/promotions/mas-promotions-items-table.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
+
+    const createItemsTable = () => document.createElement('mas-promotions-items-table');
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -109,7 +111,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('loads collection rows when repository resolves selected collection paths', async () => {
         Store.promotions.selectedCollections.set(['/content/dam/mas/col-one']);
-        const el = new MasPromotionsItemsTable();
+        const el = createItemsTable();
         el.type = TABLE_TYPE.COLLECTIONS;
         const fragment = {
             path: '/content/dam/mas/col-one',
@@ -172,7 +174,7 @@ describe('MasPromotionsItemsTable', () => {
             const paths = Array.from({ length: pathCount }, (_, i) => `/content/dam/mas/sandbox/en_US/col-${i}`);
             Store.promotions.selectedCollections.set(paths);
             const { getFragmentByPath, repo } = makeCollectionRepo();
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.COLLECTIONS;
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
@@ -998,7 +1000,7 @@ describe('MasPromotionsItemsTable', () => {
     it('aborts loading when disconnected before fetch completes', async () => {
         Store.promotions.selectedCards.set(['/content/dam/mas/card-abort']);
         const abortSpy = sandbox.spy(AbortController.prototype, 'abort');
-        const el = new MasPromotionsItemsTable();
+        const el = createItemsTable();
         el.type = TABLE_TYPE.CARDS;
         sandbox.stub(el, 'repository').get(() => ({
             aem: {
@@ -1357,7 +1359,7 @@ describe('MasPromotionsItemsTable', () => {
                 saveTags: sandbox.stub().resolves(),
             };
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
@@ -1525,7 +1527,7 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promotion));
             Store.promotions.selectedCards.set([defaultPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1829,7 +1831,7 @@ describe('MasPromotionsItemsTable', () => {
             setupPromotionInEdit();
             Store.promotions.selectedCards.set([defaultPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1865,7 +1867,7 @@ describe('MasPromotionsItemsTable', () => {
             };
             Store.promotions.selectedCards.set([defaultPath, groupedPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1902,7 +1904,7 @@ describe('MasPromotionsItemsTable', () => {
             };
             Store.promotions.selectedCards.set([defaultPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1939,7 +1941,7 @@ describe('MasPromotionsItemsTable', () => {
             };
             Store.promotions.selectedCards.set([defaultPath, groupedPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1978,7 +1980,7 @@ describe('MasPromotionsItemsTable', () => {
             const otherFragment = { ...cardFragment, path: otherPath, id: 'other-card-id' };
             Store.promotions.selectedCards.set([defaultPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             let searchCallCount = 0;
             const search = sandbox.stub().callsFake(async function* (query) {
@@ -2030,7 +2032,7 @@ describe('MasPromotionsItemsTable', () => {
             };
             Store.promotions.selectedCards.set([defaultPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             let searchCallCount = 0;
             const search = sandbox.stub().callsFake(async function* (query) {
@@ -2112,7 +2114,7 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promotion));
             Store.promotions.selectedCards.set([defaultPath]);
 
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             const fragment = { ...cardFragment };
             sandbox.stub(el, 'repository').get(() => ({
@@ -2166,7 +2168,7 @@ describe('MasPromotionsItemsTable', () => {
             const cardOnePath = '/content/dam/mas/card-one';
             const cardTwoPath = '/content/dam/mas/card-two';
             Store.promotions.selectedCards.set([cardOnePath]);
-            const el = new MasPromotionsItemsTable();
+            const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             const cardOneFragment = {
                 path: cardOnePath,
@@ -2237,7 +2239,7 @@ describe('MasPromotionsItemsTable', () => {
             };
             const getFragmentByPath = sandbox.stub().resolves(cardFragment);
             const search = makeSharedSearchStub(sandbox);
-            el = new MasPromotionsItemsTable();
+            el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
             sandbox
                 .stub(el, 'repository')

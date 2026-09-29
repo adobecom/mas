@@ -33,7 +33,9 @@ const HOUR_SECONDS = HOUR_MS / 1000;
  * @param {number} seconds epoch seconds
  * @returns {number} epoch seconds
  */
-const nextHourStart = (seconds) => (Math.floor(seconds / HOUR_SECONDS) + 1) * HOUR_SECONDS;
+function nextHourStart(seconds) {
+    return (Math.floor(seconds / HOUR_SECONDS) + 1) * HOUR_SECONDS;
+}
 
 /**
  * Referer query parameters that change which cards a page shows, and so must survive
@@ -195,7 +197,7 @@ function collectPages(values, byFragment) {
     for (let index = 0; index < fragmentIds.length; index += 1) {
         const fragmentId = fragmentIds[index];
         const page = pageUrls[index];
-        if (!FRAGMENT_ID_PATTERN.test(fragmentId ?? '') || !page) continue;
+        if (!FRAGMENT_ID_PATTERN.test(fragmentId) || !page) continue;
 
         const names = countryNames[index] ?? [];
         const counts = countryCounts[index] ?? [];
@@ -204,7 +206,7 @@ function collectPages(values, byFragment) {
             countries[names[position]] = Number(counts[position]) || 0;
         }
 
-        const epochHour = Math.floor(bucketSeconds[index] / 3600);
+        const epochHour = Math.floor(bucketSeconds[index] / HOUR_SECONDS);
         if (!byFragment[fragmentId]) byFragment[fragmentId] = {};
         if (!byFragment[fragmentId][epochHour]) byFragment[fragmentId][epochHour] = {};
         addPage(byFragment[fragmentId][epochHour], page, locales[index], pageRequests[index], countries);

@@ -102,7 +102,7 @@ function readEntry(entry, key = '') {
  * Sums rather than replaces so topPages can add a page up across hours. Whole-hour replacement is
  * mergePages' job.
  *
- * @param {object} byPage hour map to add into, mutated
+ * @param {object} byPage page map to add into, mutated
  * @param {string} url page url
  * @param {string} locale locale the page requested the fragment in
  * @param {number} requests request count to add

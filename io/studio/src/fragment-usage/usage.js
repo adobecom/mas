@@ -38,11 +38,10 @@ async function main(params) {
         // No record means the rollup has never seen a request for this fragment. That is a real
         // answer -- no page requested it -- not an error, so the UI shows an empty list rather
         // than "unavailable".
-        const pages = record?.pages || {};
-
+        //
         // The rollup only prunes fragments it rewrites, so a fragment that went quiet keeps its old
         // hours until the record expires. Pruning here keeps the list true to its 7-day label.
-        const recentPages = prunePages(pages, toEpochHour(Date.now()));
+        const pages = prunePages(record?.pages || {}, toEpochHour(Date.now()));
 
         // No custom headers: I/O Runtime adds CORS only when the response carries none of its own.
         return {
@@ -51,7 +50,7 @@ async function main(params) {
                 available: true,
                 fragmentId,
                 updatedAt: record?.updatedAt || null,
-                pages: topPages(recentPages),
+                pages: topPages(pages),
             },
         };
     } catch (error) {

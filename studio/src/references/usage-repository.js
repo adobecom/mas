@@ -47,10 +47,10 @@ const COUNTRY_DISPLAY_ALIASES = { GB: 'uk' };
  * the unlisted countries count the same way.
  *
  * @param {Object} countries country code -> request count
- * @param {number} [requests] the page's total across every country
+ * @param {number} [pageTotal] the page's requests across every country
  * @returns {string} region name, or GLOBAL_REGION
  */
-export function resolveRegion(countries, requests = 0) {
+export function resolveRegion(countries, pageTotal = 0) {
     let total = 0;
     const byRegion = new Map();
 
@@ -62,7 +62,7 @@ export function resolveRegion(countries, requests = 0) {
         if (region) byRegion.set(region, (byRegion.get(region) ?? 0) + count);
     }
 
-    total = Math.max(total, Number(requests) || 0);
+    total = Math.max(total, Number(pageTotal) || 0);
     if (!total) return GLOBAL_REGION;
 
     let leader = null;

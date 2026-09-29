@@ -2285,7 +2285,7 @@ describe('MasPromotionsItemsTable', () => {
         };
 
         it('renders the cards table headers in the expected order', async () => {
-            const { selectItemsTable } = await renderCardsTable();
+            const { el, selectItemsTable } = await renderCardsTable();
             const headers = [...selectItemsTable.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) =>
                 h.textContent.trim(),
             );
@@ -2300,6 +2300,10 @@ describe('MasPromotionsItemsTable', () => {
                 'OSI',
                 'Status',
             ]);
+            const container = el.shadowRoot.querySelector('.scrollable-table-container');
+            expect(container).to.exist;
+            expect(container.firstElementChild).to.equal(selectItemsTable);
+            expect(container.scrollWidth).to.be.greaterThan(container.clientWidth);
         });
 
         it('renders offer id and osi from different sources', async () => {

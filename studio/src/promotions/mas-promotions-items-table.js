@@ -1034,31 +1034,34 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderCardsTable() {
-        return html`<mas-select-items-table
-            .viewOnly=${true}
-            .viewOnlyFragments=${this.viewOnlyFragments}
-            .viewOnlyFragmentsFetchedByParent=${true}
-            .viewOnlyLoading=${this.viewOnlyLoading}
-            .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
-            .type=${TABLE_TYPE.CARDS}
-            .getDisplayName=${this.getDisplayName}
-            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
-            .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
-            .selectableTabs=${[]}
-            .groupedVariationsManageOnly=${true}
-            .columnsOverride=${cardsTableColumns}
-            .cellsOverride=${cardsTableCells}
-            .variationColumns=${promoVariationColumns}
-            .variationCells=${promoVariationCells}
-            .hideVariationExpand=${true}
-            .renderActionsCell=${(item) => this.#renderActionsCell(item)}
-            .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
-            .viewOnlyHasMore=${this.#hasMoreSelected}
-            @view-only-load-more=${() => this.#loadMore()}
-            @view-related-pages=${() => this.#openRelatedPagesDialog()}
-            @show-toast=${this.#showToast}
-        >
-        </mas-select-items-table>`;
+        return html`<div class="scrollable-table-container">
+            <mas-select-items-table
+                class="cards-table"
+                .viewOnly=${true}
+                .viewOnlyFragments=${this.viewOnlyFragments}
+                .viewOnlyFragmentsFetchedByParent=${true}
+                .viewOnlyLoading=${this.viewOnlyLoading}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .type=${TABLE_TYPE.CARDS}
+                .getDisplayName=${this.getDisplayName}
+                .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                .selectableTabs=${[]}
+                .groupedVariationsManageOnly=${true}
+                .columnsOverride=${cardsTableColumns}
+                .cellsOverride=${cardsTableCells}
+                .variationColumns=${promoVariationColumns}
+                .variationCells=${promoVariationCells}
+                .hideVariationExpand=${true}
+                .renderActionsCell=${(item) => this.#renderActionsCell(item)}
+                .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+                .viewOnlyHasMore=${this.#hasMoreSelected}
+                @view-only-load-more=${() => this.#loadMore()}
+                @view-related-pages=${() => this.#openRelatedPagesDialog()}
+                @show-toast=${this.#showToast}
+            >
+            </mas-select-items-table>
+        </div>`;
     }
 
     #openRelatedPagesDialog() {

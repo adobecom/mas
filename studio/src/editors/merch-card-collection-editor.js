@@ -12,6 +12,7 @@ import {
     TABLE_TYPE,
     QUICK_ACTION,
     PAGE_NAMES,
+    TAG_PROMOTION_PREFIX,
 } from '../constants.js';
 import Store from '../store.js';
 import router from '../router.js';
@@ -441,6 +442,7 @@ class MerchCardCollectionEditor extends LitElement {
         const currentPaths =
             this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation) ?? [];
         if (paths.length === currentPaths.length && paths.every((path, index) => path === currentPaths[index])) return;
+        if (this.#rejectsEmptyingInheritedList(fieldName, paths)) return;
 
         paths.forEach((path) => {
             const fragmentData = byPathsStore.value?.get(path) || Store.collectionCards.groupedVariationsData.value?.get(path);
@@ -1199,8 +1201,16 @@ class MerchCardCollectionEditor extends LitElement {
         if (index === -1) return;
 
         newValues.splice(index, 1);
+        if (this.#rejectsEmptyingInheritedList(fieldName, newValues)) return;
 
         this.#updateFieldValues(fieldName, newValues);
+    }
+
+    /** On a variation an empty list means "inherit", so emptying a list the parent fills would bring the parent's items back. */
+    #rejectsEmptyingInheritedList(fieldName, values) {
+        if (values.length || !this.isVariation || !this.localeDefaultFragment?.getFieldValues(fieldName)?.length) return false;
+        showToast('A variation must keep at least one item; an empty list inherits the parent items.', 'negative');
+        return true;
     }
 
     #handleDragEvent(event, action) {
@@ -1316,7 +1326,11 @@ class MerchCardCollectionEditor extends LitElement {
     /** Same tags-override tracking as the card editor's Tags field, applied to the collection's own tags. */
     #getTagsFieldState() {
         if (!this.isVariation) return 'no-parent';
-        const ownTags = (this.fragment.newTags || this.fragment.tags?.map((t) => t.id) || []).slice().sort().join(',');
+        // Promotion tags are set on promo variations by design, so they don't count as an override.
+        const ownTags = this.#currentTagIds
+            .filter((id) => !id.startsWith(TAG_PROMOTION_PREFIX))
+            .sort()
+            .join(',');
         const parentTags =
             this.localeDefaultFragment?.tags
                 ?.map((t) => t.id)
@@ -1333,7 +1347,8 @@ class MerchCardCollectionEditor extends LitElement {
 
     async #resetTagsToParent() {
         const parentTagIds = this.localeDefaultFragment?.tags?.map((t) => t.id) || [];
-        this.fragmentStore.updateField('tags', parentTagIds);
+        const promotionTagIds = this.#currentTagIds.filter((id) => id.startsWith(TAG_PROMOTION_PREFIX));
+        this.fragmentStore.updateField('tags', [...new Set([...parentTagIds, ...promotionTagIds])]);
         showToast('Tags restored to parent value', 'positive');
     }
 

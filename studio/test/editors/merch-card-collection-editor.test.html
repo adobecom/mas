@@ -46,7 +46,14 @@
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, QUICK_ACTION, STAGED } from '../../src/constants.js';
+            import {
+                CARD_MODEL_PATH,
+                COLLECTION_MODEL_PATH,
+                PAGE_NAMES,
+                QUICK_ACTION,
+                STAGED,
+                TAG_PROMOTION_PREFIX,
+            } from '../../src/constants.js';
             import Store from '../../src/store.js';
             import router from '../../src/router.js';
 
@@ -816,21 +823,22 @@
                     });
 
                     describe('confirming a picker on a variation', () => {
-                        async function mountVariation() {
+                        async function mountVariation({ ownCards = [], references = [], tags = [], parentTags = [] } = {}) {
                             const editor = document.createElement('merch-card-collection-editor');
                             editor.updateFragment = spy();
                             editor.isVariation = true;
-                            editor.localeDefaultFragment = new Fragment(savedCollectionData());
+                            editor.localeDefaultFragment = new Fragment(savedCollectionData({ tags: parentTags }));
                             editor.fragmentStore = new FragmentStore(
                                 new Fragment(
                                     savedCollectionData({
                                         id: 'variation-collection-id',
                                         path: '/content/dam/mas/sandbox/fr_FR/saved-collection',
+                                        tags,
                                         fields: [
-                                            { name: 'cards', type: 'content-reference', multiple: true, values: [] },
+                                            { name: 'cards', type: 'content-reference', multiple: true, values: ownCards },
                                             { name: 'collections', type: 'content-reference', multiple: true, values: [] },
                                         ],
-                                        references: [],
+                                        references,
                                     }),
                                 ),
                             );
@@ -860,15 +868,57 @@
                             expect(editor.updateFragment.called).to.be.false;
                         });
 
-                        it('writes a local override once the selection changes', async () => {
-                            const editor = await mountVariation();
+                        const confirmCardsSelection = (editor, selection) => {
                             const dialog = editor.shadowRoot.querySelector('.collection-cards-selector-dialog');
                             dialog.dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
-                            Store.collectionCards.selectedCards.set([]);
+                            Store.collectionCards.selectedCards.set(selection);
                             dialog.close = () => {};
                             dialog.dispatchEvent(new Event('confirm'));
+                        };
+
+                        it('writes a local override once the selection changes', async () => {
+                            const editor = await mountVariation();
+                            const otherCardPath = '/content/dam/mas/sandbox/en_US/other-card';
+                            confirmCardsSelection(editor, [savedCard.path, otherCardPath]);
                             expect(editor.updateFragment.calledOnce).to.be.true;
-                            expect(editor.updateFragment.firstCall.args[0].values).to.deep.equal([]);
+                            expect(editor.updateFragment.firstCall.args[0].values).to.deep.equal([
+                                savedCard.path,
+                                otherCardPath,
+                            ]);
+                        });
+
+                        // An empty list on a variation means "inherit", so the parent's cards would come back.
+                        it('rejects an empty selection instead of re-inheriting the parent cards', async () => {
+                            const editor = await mountVariation();
+                            confirmCardsSelection(editor, []);
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('rejects removing the last own card', async () => {
+                            const editor = await mountVariation({ ownCards: [savedCard.path], references: [savedCard] });
+                            expect(renderedItemCount(editor, 'cards-container')).to.equal(1);
+                            editor.removeItem(savedCard.path);
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('does not report the promotion tag as a tags override', async () => {
+                            const parentTag = { id: 'mas:product_code/phsp', title: 'Photoshop' };
+                            const promotionTag = { id: `${TAG_PROMOTION_PREFIX}black-friday`, title: 'Black Friday' };
+                            const editor = await mountVariation({ tags: [parentTag, promotionTag], parentTags: [parentTag] });
+                            const tagsField = editor.shadowRoot.querySelector('#collection-tags');
+                            expect(tagsField.dataset.fieldState).to.equal('same-as-parent');
+                        });
+
+                        it('keeps the promotion tag when restoring tags to the parent', async () => {
+                            const parentTag = { id: 'mas:product_code/phsp', title: 'Photoshop' };
+                            const ownTag = { id: 'mas:product_code/ilst', title: 'Illustrator' };
+                            const promotionTag = { id: `${TAG_PROMOTION_PREFIX}black-friday`, title: 'Black Friday' };
+                            const editor = await mountVariation({ tags: [ownTag, promotionTag], parentTags: [parentTag] });
+                            const tagsField = editor.shadowRoot.querySelector('#collection-tags');
+                            expect(tagsField.dataset.fieldState).to.equal('overridden');
+
+                            tagsField.parentElement.querySelector('.field-status-inherited-link').click();
+                            expect(editor.fragmentStore.get().newTags).to.deep.equal([parentTag.id, promotionTag.id]);
                         });
                     });
 

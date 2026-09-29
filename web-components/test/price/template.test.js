@@ -387,4 +387,34 @@ describe('Promotion price display with annual template', () => {
             'TVA comprise underline bold <a href="https://www.adobe.com/test.html">link</a> and another <a href="https://www.adobe.com/test2.html">link2</a> and text',
         );
     });
+
+    it('formats the ICU subset used by price literals', () => {
+        const literals = {
+            recurrence:
+                "{recurrenceTerm, select, MONTH {al mese} YEAR {all'anno} other {}}",
+            nested: '{planType, select, ABM {{label} ABM} other {none}}',
+            discount: '{remainingPercent, number, ::scale/0.1 .#}折',
+            fixed: '{remainingPercent, number, ::scale/0.1 .0}折',
+            plural: '{count, plural, one {#} other {# items}}',
+            quoted: "it''s {x}",
+            noOther: '{planType, select, ABM {abm}}',
+        };
+        const format = (key, parameters) =>
+            formatLiteral(literals, 'zh-TW', key, parameters);
+        expect(format('recurrence', { recurrenceTerm: 'YEAR' })).to.equal(
+            "all'anno",
+        );
+        expect(format('recurrence', { recurrenceTerm: 'DAY' })).to.equal('');
+        expect(format('nested', { planType: 'ABM', label: 'Annual' })).to.equal(
+            'Annual ABM',
+        );
+        expect(format('nested', { planType: 'M2M' })).to.equal('none');
+        expect(format('discount', { remainingPercent: 65 })).to.equal('6.5折');
+        expect(format('discount', { remainingPercent: 70 })).to.equal('7折');
+        expect(format('fixed', { remainingPercent: 100 })).to.equal('10.0折');
+        expect(format('recurrence', {})).to.equal('');
+        expect(format('plural', { count: 2 })).to.equal('');
+        expect(format('quoted', { x: 'y' })).to.equal('');
+        expect(format('noOther', { planType: 'ABM' })).to.equal('');
+    });
 });

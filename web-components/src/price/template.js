@@ -6,7 +6,6 @@ import {
     toBoolean,
     createLog,
 } from '@dexter/tacocat-core';
-import IntlMessageFormat from 'intl-messageformat';
 import {
     formatOpticalPrice,
     formatRegularPrice,
@@ -38,7 +37,8 @@ export const defaultLiterals = {
 
 const log = createLog('ConsonantTemplates/price');
 
-export const htmlPattern = /<\/?[^>]+(>|$)/g;
+// Markup is stripped from literals, except links: `<a ...>` and `</a>`.
+const tagPattern = /(<\/a>|<a [^>]+(?:>|$))|<\/?[^>]+(?:>|$)/g;
 
 export const cssClassNames = {
     container: 'price',
@@ -107,34 +107,81 @@ export const renderSpan = (
     );
 };
 
-function encodeLinks(literal) {
-    literal = literal.replaceAll('</a>', '&lt;/a&gt;');
+const TEXT = /[^{}']+|'(?![{}'])/y;
+const ARGUMENT = /\{\s*([^\s{},]+)\s*(?:(\})|,\s*(select|number)\s*,)/y;
+const SKELETON =
+    /\s*::\s*(?:scale\/(\d*\.?\d+)\s*)?(?:\.(?=[0#])(0*)(#*))?\s*\}/y;
+const BRANCH = /\s*(?:([^\s{}]+)\s*\{|\})/y;
+const CLOSE = /\}/y;
 
-    const regex = /<a [^>]+(>|$)/g;
-    const matches = literal.match(regex);
-    matches?.forEach((match) => {
-        const encodedMatch = match
-            .replace('<a ', '&lt;a ')
-            .replace('>', '&gt;');
-        literal = literal.replaceAll(match, encodedMatch);
-    });
+/**
+ * Formats the ICU MessageFormat subset used by price literals:
+ * `{arg}`, `{arg, select, KEY {...} other {...}}` and
+ * `{arg, number, ::scale/N .0#}`. Throws on any other syntax, including
+ * apostrophe quoting (`''`, `'{`); a lone apostrophe is plain text.
+ */
+function formatMessage(message, locale, values) {
+    let pos = 0;
+    const fail = () => {
+        throw new SyntaxError(`Unsupported syntax at ${pos}: ${message}`);
+    };
+    const read = (pattern) => {
+        pattern.lastIndex = pos;
+        const match = pattern.exec(message) ?? fail();
+        pos = pattern.lastIndex;
+        return match;
+    };
+    const valueOf = (name) => (name in values ? values[name] : fail());
 
-    return literal;
-}
+    // Returns a thunk so only the chosen select branch is evaluated.
+    const parseMessage = () => {
+        const parts = [];
+        while (pos < message.length && message[pos] !== '}') {
+            if (message[pos] === '{') {
+                parts.push(parseArgument());
+            } else {
+                const [text] = read(TEXT);
+                parts.push(() => text);
+            }
+        }
+        return () => parts.map((part) => part()).join('');
+    };
 
-function decodeLinks(literal) {
-    literal = literal.replaceAll('&lt;/a&gt;', '</a>');
+    const parseArgument = () => {
+        const [, name, simple, type] = read(ARGUMENT);
+        if (simple) {
+            return () => {
+                const value = valueOf(name);
+                return typeof value === 'string' || typeof value === 'number'
+                    ? String(value)
+                    : '';
+            };
+        }
+        if (type === 'number') {
+            const [, scale, zeros, hashes] = read(SKELETON);
+            const { format } = new Intl.NumberFormat(
+                locale,
+                zeros === undefined
+                    ? {}
+                    : {
+                          minimumFractionDigits: zeros.length,
+                          maximumFractionDigits: zeros.length + hashes.length,
+                      },
+            );
+            return () => format(scale ? valueOf(name) * scale : valueOf(name));
+        }
+        const branches = Object.create(null);
+        for (let key; (key = read(BRANCH)[1]); read(CLOSE)) {
+            if (key in branches) fail();
+            branches[key] = parseMessage();
+        }
+        if (!branches.other) fail();
+        return () => (branches[valueOf(name)] ?? branches.other)();
+    };
 
-    const regex = /&lt;a (?!&gt;)(.*?)(&gt;|$)/g;
-    const matches = literal.match(regex);
-    matches?.forEach((match) => {
-        const encodedMatch = match
-            .replace('&lt;a ', '<a ')
-            .replace('&gt;', '>');
-        literal = literal.replaceAll(match, encodedMatch);
-    });
-
-    return literal;
+    const render = parseMessage();
+    if (pos < message.length) fail();
+    return render();
 }
 
 export function formatLiteral(literals, locale, key, parameters) {
@@ -143,15 +190,9 @@ export function formatLiteral(literals, locale, key, parameters) {
         /* c8 ignore next 2 */
         return '';
     }
-    const hasHtml = literal.includes('<');
-    const hasLinks = literal.includes('<a ');
     try {
-        literal = hasLinks ? encodeLinks(literal) : literal;
-        literal = hasHtml ? literal.replace(htmlPattern, '') : literal;
-        const formattedLiteral = new IntlMessageFormat(literal, locale).format(
-            parameters,
-        );
-        return hasLinks ? decodeLinks(formattedLiteral) : formattedLiteral;
+        literal = literal.replace(tagPattern, (tag, link = '') => link);
+        return formatMessage(literal, locale, parameters);
     } catch {
         /* c8 ignore next 2 */
         log.error('Failed to format literal:', literal);

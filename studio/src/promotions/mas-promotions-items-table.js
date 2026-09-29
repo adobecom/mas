@@ -72,16 +72,16 @@ const cardsTableColumns = [
 const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
 
 const promoVariationColumns = [
-    { label: 'Offer', key: 'offer' },
+    { label: 'Offer', key: 'offer', class: 'offer-head-cell' },
     { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
-    { label: 'Fragment title', key: 'fragmentTitle' },
-    { label: 'Path', key: 'path' },
-    { label: 'Related pages', key: 'relatedPages' },
-    { label: 'Country', key: 'country' },
-    { label: 'Offer ID', key: 'offerId' },
-    { label: 'OSI', key: 'osi' },
-    { label: 'Applies to', key: 'applies-to' },
-    { label: 'Status', key: 'status' },
+    { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
+    { label: 'Path', key: 'path', class: 'path-head-cell' },
+    { label: 'Related pages', key: 'relatedPages', class: 'related-pages-head-cell' },
+    { label: 'Country', key: 'country', class: 'country-head-cell' },
+    { label: 'Offer ID', key: 'offerId', class: 'offer-id-head-cell' },
+    { label: 'OSI', key: 'osi', class: 'osi-head-cell' },
+    { label: 'Applies to', key: 'applies-to', class: 'applies-to-head-cell' },
+    { label: 'Status', key: 'status', class: 'status-head-cell' },
 ];
 
 const promoVariationCells = [

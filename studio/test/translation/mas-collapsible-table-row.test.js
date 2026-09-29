@@ -2514,12 +2514,67 @@ describe('MasCollapsibleTableRow cell overrides', () => {
                 .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
                 .selectableTabs=${[]}
                 .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
+                .variationCells=${Array(10).fill('Title')}
+                .variationColumns=${Array.from({ length: 10 }, (_, index) => ({
+                    label: `Column ${index + 1}`,
+                    key: `column-${index + 1}`,
+                }))}
+            ></mas-collapsible-table-row>`,
+        );
+        el.style.setProperty('--spectrum-gray-300', '#d5d5d5');
+        await el.updateComplete;
+        const headers = [...el.shadowRoot.querySelectorAll('.promo-variations-table sp-table-head-cell')];
+        expect(headers).to.have.length(10);
+        expect(getComputedStyle(headers.at(-1)).borderBottomWidth).to.equal('1px');
+        const tableHead = el.shadowRoot.querySelector('.promo-variations-table sp-table-head');
+        expect(tableHead.clientWidth).to.equal(tableHead.scrollWidth);
+    });
+
+    it('wraps the promotion variations table in a horizontal scroll container', async () => {
+        const variation = { path: variationPath, title: 'Promo variation', fields: [], tags: [] };
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .isTopLevelExpanded=${true}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .selectableTabs=${[]}
+                .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
                 .variationCells=${['Title']}
-                .variationColumns=${[{ label: 'Fragment title', key: 'fragmentTitle' }]}
             ></mas-collapsible-table-row>`,
         );
         await el.updateComplete;
-        const headers = [...el.shadowRoot.querySelectorAll('.promo-variations-table sp-table-head-cell')];
-        expect(headers.map((h) => h.textContent.trim())).to.deep.equal(['Fragment title']);
+        expect(el.shadowRoot.querySelector('.scrollable-table-container > .promo-variations-table')).to.exist;
+    });
+
+    it('allows promotion variation columns to overflow horizontally', async () => {
+        const variation = { path: variationPath, title: 'Promo variation', fields: [], tags: [] };
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .isTopLevelExpanded=${true}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .selectableTabs=${[]}
+                .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
+                .variationCells=${[
+                    'OfferName',
+                    'Actions',
+                    'Title',
+                    'StudioPath',
+                    'RelatedPages',
+                    'Country',
+                    'OfferId',
+                    'Osi',
+                    'AppliesTo',
+                    'Status',
+                ]}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        const container = el.shadowRoot.querySelector('.scrollable-table-container');
+        expect(container.scrollWidth).to.be.greaterThan(container.clientWidth);
     });
 });

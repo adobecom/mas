@@ -5,6 +5,7 @@ import {
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     textWithTooltipStyles,
+    scrollableTableStyles,
 } from '../common/styles/table-styles.css.js';
 
 export const styles = [
@@ -13,6 +14,7 @@ export const styles = [
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     textWithTooltipStyles,
+    scrollableTableStyles,
     css`
         :host {
             display: block;
@@ -140,12 +142,46 @@ export const styles = [
         }
 
         .promo-variations-table {
+            --column-width: 10rem;
+            --actions-column-width: 6rem;
+            --status-column-width: 7rem;
+
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
 
+            .actions-head-cell,
+            .actions-cell {
+                flex: 1 0 var(--actions-column-width);
+            }
+
+            .status-head-cell,
+            .status-cell {
+                flex: 1 0 var(--status-column-width);
+            }
+
+            .offer-head-cell,
+            .offer-cell,
+            .title-head-cell,
+            .title,
+            .path-head-cell,
+            .path,
+            .related-pages-head-cell,
+            .related-pages,
+            .country-head-cell,
+            .country,
+            .offer-id-head-cell,
+            .offer-id,
+            .osi-head-cell,
+            .osi,
+            .applies-to-head-cell,
+            .applies-to-cell {
+                flex: 1 0 var(--column-width);
+            }
+
             sp-table-head {
+                width: max-content;
+                min-width: 100%;
                 background: var(--spectrum-gray-75);
-                border-bottom: 1px solid var(--spectrum-gray-300);
                 border-top-left-radius: 12px;
                 border-top-right-radius: 12px;
             }
@@ -153,6 +189,7 @@ export const styles = [
             sp-table-head-cell {
                 display: flex;
                 align-items: center;
+                border-bottom: 1px solid var(--spectrum-gray-300);
             }
 
             sp-table-head-cell:first-of-type {
@@ -192,10 +229,6 @@ export const styles = [
 
         .nested-content {
             margin-left: 30px;
-        }
-
-        .nested-content sp-table {
-            width: 100%;
         }
 
         .nested-content sp-table-body sp-table-row:first-of-type:not(.variation-details-row) {

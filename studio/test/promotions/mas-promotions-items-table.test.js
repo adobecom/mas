@@ -2342,10 +2342,8 @@ describe('MasPromotionsItemsTable', () => {
             const row = selectItemsTable.shadowRoot.querySelector('mas-collapsible-table-row');
             row.isTopLevelExpanded = true;
             await row.updateComplete;
-            const headers = [...row.shadowRoot.querySelectorAll('.promo-variations-table sp-table-head-cell')].map((h) =>
-                h.textContent.trim(),
-            );
-            expect(headers).to.deep.equal([
+            const headers = [...row.shadowRoot.querySelectorAll('.promo-variations-table sp-table-head-cell')];
+            expect(headers.map((header) => header.textContent.trim())).to.deep.equal([
                 'Offer',
                 'Actions',
                 'Fragment title',
@@ -2356,6 +2354,18 @@ describe('MasPromotionsItemsTable', () => {
                 'OSI',
                 'Applies to',
                 'Status',
+            ]);
+            expect(headers.map((header) => header.className)).to.deep.equal([
+                'offer-head-cell',
+                'actions-head-cell',
+                'title-head-cell',
+                'path-head-cell',
+                'related-pages-head-cell',
+                'country-head-cell',
+                'offer-id-head-cell',
+                'osi-head-cell',
+                'applies-to-head-cell',
+                'status-head-cell',
             ]);
         });
 

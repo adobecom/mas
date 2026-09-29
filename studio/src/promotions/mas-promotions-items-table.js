@@ -1059,7 +1059,9 @@ class MasPromotionsItemsTable extends LitElement {
                 <span class="group-name">${group.label}</span>
                 <sp-icon-chevron-down class=${collapsed ? '' : 'expanded'}></sp-icon-chevron-down>
             </button>
-            ${collapsed ? nothing : this.#renderCardsSelectTable(group.items, false)}
+            ${collapsed
+                ? nothing
+                : html`<div class="scrollable-table-container">${this.#renderCardsSelectTable(group.items, false)}</div>`}
         </div>`;
     }
 

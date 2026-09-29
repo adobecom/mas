@@ -112,10 +112,6 @@ export const promotionsItemsTableStyles = [
             }
         }
 
-        sp-dialog-wrapper {
-            z-index: 11;
-        }
-
         .grouped-tables {
             display: flex;
             flex-direction: column;
@@ -156,12 +152,15 @@ export const promotionsItemsTableStyles = [
             border-bottom: 1px solid var(--spectrum-gray-200);
         }
 
-        .group-section:has(.group-header-row[aria-expanded='true']) mas-select-items-table {
-            display: block;
+        .group-section .scrollable-table-container {
             box-sizing: border-box;
             width: calc(100% - 40px);
             margin: 20px;
-            overflow-x: auto;
+        }
+
+        .group-section .scrollable-table-container mas-select-items-table {
+            display: block;
+            min-width: 72rem;
         }
 
         .group-header-row sp-icon-chevron-down {

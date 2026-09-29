@@ -509,6 +509,17 @@ export class Pro extends VariantLayout {
         return (this.licenseOptions?.length ?? 0) > 0;
     }
 
+    // Distinguishes this dropdown's accessible name from every other card's
+    // shared "Licenses" name (MWPW-198043), reusing the already-authored
+    // card title (merch-card.js `title`) rather than a new fragment field.
+    get licenseAccessibleName() {
+        const product = this.card.title;
+        if (!product) {
+            return this.licenseLabel(Number(this.currentLicenseValue));
+        }
+        return `${product} License`;
+    }
+
     get currentLicenseValue() {
         const opts = this.licenseOptions;
         if (!opts?.length) return null;
@@ -694,7 +705,7 @@ export class Pro extends VariantLayout {
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
-                    aria-labelledby="license-select-label"
+                    aria-label=${this.licenseAccessibleName}
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -718,7 +729,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby="license-select-label"
+                    aria-label=${this.licenseAccessibleName}
                     aria-multiselectable="false"
                     tabindex="-1"
                     ?hidden=${!open}

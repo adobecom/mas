@@ -1356,6 +1356,21 @@ class MerchCardEditor extends LitElement {
                     --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
                 }
 
+                .section-title-status {
+                    display: flex;
+                    justify-content: space-between;
+                }
+
+                .section-staged-status {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .section-staged-status mas-fragment-status {
+                    position: relative;
+                    top: -1px;
+                }
+
                 .section-title {
                     font-size: 20px;
                     font-weight: 700;
@@ -1549,7 +1564,15 @@ class MerchCardEditor extends LitElement {
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
                 ${this.renderValidationBanner()}
-                <div class="section-title">General info</div>
+                <div class="section-title-status">
+                    <div class="section-title">General info</div>
+                    <div class="section-staged-status">
+                        <sp-switch id="fragment-staged" ?checked="${this.fragment.isStaged}" @click="${this.#handleStaged}"
+                            >Staged</sp-switch
+                        >
+                        <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+                    </div>
+                </div>
                 <div class="two-column-grid">
                     <sp-field-group id="variant">
                         <sp-field-label for="card-variant">Template</sp-field-label>
@@ -1605,14 +1628,6 @@ class MerchCardEditor extends LitElement {
                                   ></sp-switch>
                               </sp-field-group>
                           `}
-                    <sp-field-group id="fragment-staged-group">
-                        <sp-field-label for="fragment-staged">Staged?</sp-field-label>
-                        <sp-switch
-                            id="fragment-staged"
-                            ?checked="${this.fragment.isStaged}"
-                            @click="${this.#handleStaged}"
-                        ></sp-switch>
-                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">

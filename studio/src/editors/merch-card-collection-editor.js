@@ -1608,11 +1608,6 @@ class MerchCardCollectionEditor extends LitElement {
                         @change=${(e) => this.#updateIcon(e, 'iconLight')}
                     ></mas-mnemonic-field>
                 </div>
-                <div class="form-row">
-                    <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}">
-                        Staged?
-                    </sp-switch>
-                </div>
             </div>
         `;
     }
@@ -1829,13 +1824,24 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    get #status() {
+        return html`
+            <div class="section-staged-status">
+                <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}"
+                    >Staged</sp-switch
+                >
+                <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+            </div>
+        `;
+    }
+
     render() {
         const hasCards =
             (this.fragment?.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation) ?? []).length > 0;
         const supportsDefault = this.#supportsDefaultCard;
 
         return html`<div class="editor-container">
-            ${this.#generalInfo}
+            ${this.#status} ${this.#generalInfo}
             <div class="section-box" data-field-name="${CARDS_SECTION}">${this.#cards}</div>
             <div class="section-box">${this.#collections}</div>
             ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}

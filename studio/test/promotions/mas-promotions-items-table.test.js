@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, LitElement } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -50,30 +50,33 @@ describe('MasPromotionsItemsTable', () => {
         await el.updateComplete;
         const headerCells = el.shadowRoot.querySelectorAll('sp-table-head-cell');
         expect(Array.from(headerCells).map((c) => c.textContent.trim())).to.deep.equal([
-            '',
             'Offer',
+            'Actions',
+            'Countries',
+            'OSI override',
+            'Promo code',
+            'Default OSI',
+            'Default Offer ID',
             'Product arrangement',
             'Offer type',
             'Plan type',
             'Customer segment',
             'Market segment',
-            'Promo code',
-            'Actions',
         ]);
     });
 
     it('rebuilds offer rows when offer records finish hydrating after first paint', async () => {
-        const offerId = 'osi-xyz';
-        Store.promotions.selectedOffers.set([offerId]);
+        const wcsOsi = 'osi-xyz';
+        Store.promotions.selectedOffers.set([wcsOsi]);
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
         // Placeholder row before the records land (offers render immediately, unblocked).
-        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerId });
+        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerSelectorIds: [wcsOsi] });
 
-        Store.promotions.offerRecordsCache.set(offerId, {
-            path: offerId,
-            id: offerId,
-            offerData: { offerId, offerType: 'BASE' },
+        Store.promotions.offerRecordsCache.set(wcsOsi, {
+            path: wcsOsi,
+            id: wcsOsi,
+            offerData: { offerSelectorIds: [wcsOsi], offerType: 'BASE' },
             tags: [],
             fields: [],
         });
@@ -237,30 +240,11 @@ describe('MasPromotionsItemsTable', () => {
         expect(Store.promotions.selectedCards.value).to.include('/content/dam/mas/sandbox/en_US/PA-123/pzn/edu');
     });
 
-    it('shows Add product offers empty state when offers selection is empty', async () => {
+    it('shows empty state when offers selection is empty', async () => {
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
-        expect(el.shadowRoot.textContent).to.include('Add product offers');
+        expect(el.shadowRoot.textContent).to.include('No offers selected');
         expect(el.shadowRoot.querySelector('sp-table')).to.be.null;
-    });
-
-    it('opens the offer selector tool when the Add offers icon is clicked', async () => {
-        const ostStub = sandbox.stub().returns(() => {});
-        const previousOst = window.ost;
-        window.ost = { openOfferSelectorTool: ostStub };
-        const commerceService = document.createElement('mas-commerce-service');
-        commerceService.settings = {};
-        commerceService.featureFlags = {};
-        document.body.appendChild(commerceService);
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
-        await el.updateComplete;
-        const addBtn = el.shadowRoot.querySelector('.offers-empty-state sp-button');
-        expect(addBtn).to.not.be.null;
-        addBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(ostStub.calledOnce).to.be.true;
-        window.ost = previousOst;
-        commerceService.remove();
     });
 
     it('shows skeleton rows for the offers table while loading', async () => {
@@ -302,7 +286,7 @@ describe('MasPromotionsItemsTable', () => {
         );
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
-        const rowText = el.shadowRoot.querySelector('.offer-row')?.textContent ?? '';
+        const rowText = el.shadowRoot.querySelector('sp-table-row[value="ffsa-osi"]')?.textContent ?? '';
         expect(rowText).to.include('FFSA');
         expect(rowText).to.include('PA-2511');
         expect(rowText).to.include('BASE');
@@ -316,22 +300,161 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.offerRecordsCache.set('offer-cache-1', {
             path: 'offer-cache-1',
             id: 'offer-cache-1',
-            offerData: { offerId: 'offer-cache-1', product_arrangement_code: 'PA-1' },
+            offerData: { offerSelectorIds: ['offer-cache-1'], product_arrangement_code: 'PA-1' },
             tags: [{ id: 'mas:product_code/cc', title: 'Creative Cloud' }],
             fields: [],
+            getTagTitle: (tagName) => {
+                return tagName.startsWith('mas:product_code') ? 'Creative Cloud' : '';
+            },
         });
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
         expect(el.viewOnlyFragments.length).to.equal(1);
-        expect(el.shadowRoot.textContent).to.include('Creative Cloud');
+        expect(el.shadowRoot.querySelector('.offer-cell').innerText).to.include('Creative Cloud');
     });
 
-    it('renders promo code count for offer rows', async () => {
+    it('sorts offer rows by name ascending by default', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ffsa-osi']);
+        Store.promotions.offerRecordsCache.set(
+            'phsp-osi',
+            buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const offerNames = Array.from(el.shadowRoot.querySelectorAll('sp-table-row .offer-cell span')).map(
+            (span) => span.textContent,
+        );
+        expect(offerNames).to.deep.equal(['FFSA', 'PHSP']);
+    });
+
+    it('reverses offer row sort order on header click', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ffsa-osi']);
+        Store.promotions.offerRecordsCache.set(
+            'phsp-osi',
+            buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const offerNames = () => {
+            return Array.from(el.shadowRoot.querySelectorAll('sp-table-row .offer-cell span')).map((span) => span.textContent);
+        };
+
+        el.shadowRoot.querySelector('sp-table-head-cell.offer-head-cell').click();
+        await el.updateComplete;
+        expect(offerNames()).to.deep.equal(['PHSP', 'FFSA']);
+    });
+
+    it('offer-cell falls back to "-" when an offer has no getTagTitle', async () => {
+        Store.promotions.selectedOffers.set(['untagged-offer', 'named-offer']);
+        Store.promotions.offerRecordsCache.set('untagged-offer', {
+            path: 'untagged-offer',
+            id: 'untagged-offer',
+            offerData: { offerSelectorIds: ['untagged-offer'] },
+            tags: [],
+            fields: [],
+        });
+        Store.promotions.offerRecordsCache.set(
+            'named-offer',
+            buildPromotionOfferRecord('named-offer', { product_code: 'PHSP', offer_id: 'wcs-1' }),
+        );
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const offerNames = Array.from(el.shadowRoot.querySelectorAll('sp-table-row .offer-cell span')).map((span) =>
+            span.textContent.trim(),
+        );
+        expect(offerNames).to.deep.equal(['-', 'PHSP']);
+    });
+
+    it('#renderOsiOverrideCell renders "-" when the offer has no OSI override', async () => {
+        Store.promotions.selectedOffers.set(['osi-override-empty']);
+        Store.promotions.offerRecordsCache.set('osi-override-empty', {
+            path: 'osi-override-empty',
+            id: 'osi-override-empty',
+            offerData: {},
+            tags: [],
+            fields: [],
+        });
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('sp-table-row[value="osi-override-empty"] .offer-id-cell');
+        expect(cells[0].textContent.trim()).to.equal('-');
+    });
+
+    it('#renderDefaultOsiCell renders offerSelectorIds from a resolved offer record with a copy button', async () => {
+        Store.promotions.selectedOffers.set(['osi-multi']);
+        Store.promotions.offerRecordsCache.set(
+            'osi-multi',
+            buildPromotionOfferRecord('osi-multi', { product_code: 'PHSP', offer_id: 'wcs-1' }),
+        );
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('sp-table-row[value="osi-multi"] .offer-id-cell');
+        const defaultOsiCell = cells[1];
+        expect(defaultOsiCell.textContent).to.include('osi-multi');
+        expect(defaultOsiCell.querySelector('sp-action-button[aria-label="Copy default OSI to clipboard"]')).to.exist;
+    });
+
+    it('#renderDefaultOsiCell falls back to the record id when the offer has no default OSI', async () => {
+        Store.promotions.selectedOffers.set(['osi-empty']);
+        Store.promotions.offerRecordsCache.set('osi-empty', {
+            path: 'osi-empty',
+            id: 'osi-empty',
+            offerData: {},
+            tags: [],
+            fields: [],
+        });
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('sp-table-row[value="osi-empty"] .offer-id-cell');
+        expect(cells[1].textContent).to.include('osi-empty');
+    });
+
+    it('#renderDefaultOfferIdCell renders the default offer id with a copy button', async () => {
+        Store.promotions.selectedOffers.set(['offerid-1']);
+        Store.promotions.offerRecordsCache.set('offerid-1', {
+            path: 'offerid-1',
+            id: 'offerid-1',
+            offerData: { offerId: 'wcs-offerid-1' },
+            tags: [],
+            fields: [],
+        });
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('sp-table-row[value="offerid-1"] .offer-id-cell');
+        const defaultOfferIdCell = cells[2];
+        expect(defaultOfferIdCell.textContent).to.include('wcs-offerid-1');
+        expect(defaultOfferIdCell.querySelector('sp-action-button[aria-label="Copy default offer ID to clipboard"]')).to.exist;
+    });
+
+    it('#renderDefaultOfferIdCell renders "-" when the offer has no default offer id', async () => {
+        Store.promotions.selectedOffers.set(['offerid-empty']);
+        Store.promotions.offerRecordsCache.set('offerid-empty', {
+            path: 'offerid-empty',
+            id: 'offerid-empty',
+            offerData: {},
+            tags: [],
+            fields: [],
+        });
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('sp-table-row[value="offerid-empty"] .offer-id-cell');
+        expect(cells[2].textContent.trim()).to.equal('-');
+    });
+
+    it('renders one row per country+promo-code group for an offer', async () => {
         Store.promotions.selectedOffers.set(['offer-1']);
         Store.promotions.offerRecordsCache.set('offer-1', {
             path: 'offer-1',
             id: 'offer-1',
-            offerData: { offerId: 'offer-1' },
+            offerData: { offerSelectorIds: ['offer-1'] },
             tags: [],
             fields: [],
         });
@@ -344,10 +467,15 @@ describe('MasPromotionsItemsTable', () => {
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
-        expect(el.shadowRoot.textContent).to.include('2');
+        const rows = [...el.shadowRoot.querySelectorAll('sp-table-row[value="offer-1"]')].map((row) => ({
+            countries: row.querySelector('.countries-cell').textContent.trim(),
+            promoCode: row.querySelector('.promo-code-cell').textContent.trim(),
+        }));
+        expect(rows).to.deep.include({ countries: 'US', promoCode: 'DEFAULT' });
+        expect(rows).to.deep.include({ countries: 'CA_EN', promoCode: 'OVERRIDE' });
     });
 
-    it('expands offer row with promo codes grouped by country table', async () => {
+    it('sorts countries alphabetically within a promo-code group row', async () => {
         Store.promotions.selectedOffers.set(['offer-expand']);
         Store.promotions.offerRecordsCache.set(
             'offer-expand',
@@ -358,58 +486,92 @@ describe('MasPromotionsItemsTable', () => {
                 .type=${TABLE_TYPE.OFFERS}
                 .defaultPromoCode=${'DEFAULT-CODE'}
                 .geos=${['mas:locale/US', 'mas:locale/CA_en']}
-                .promoCodeExceptions=${['offer-expand|US-OVERRIDE|US', 'offer-expand|CA-OVERRIDE|CA_en']}
+                .promoCodeExceptions=${['offer-expand|SAME-OVERRIDE|US', 'offer-expand|SAME-OVERRIDE|CA_en']}
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
-        const expandBtn = el.shadowRoot.querySelector('.expand-cell sp-action-button');
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        const detail = el.shadowRoot.querySelector('.detail-row');
-        expect(detail.textContent).to.include('Offer ID:');
-        expect(detail.textContent).to.include('offer-expand');
-        expect(detail.querySelector('.offer-promo-codes-table')).to.not.be.null;
-        expect(detail.textContent).to.include('Promo codes');
-        expect(detail.textContent).to.include('Countries');
-        expect(detail.textContent).to.include('US-OVERRIDE');
-        expect(detail.textContent).to.include('CA-OVERRIDE');
-        expect(detail.textContent).to.include('US');
-        expect(detail.textContent).to.include('CA_en');
+        const rows = el.shadowRoot.querySelectorAll('sp-table-row[value="offer-expand"]');
+        expect(rows.length).to.equal(1);
+        expect(rows[0].querySelector('.countries-cell').textContent.trim()).to.equal('CA_EN, US');
+        expect(rows[0].querySelector('.promo-code-cell').textContent.trim()).to.equal('SAME-OVERRIDE');
     });
 
-    it('collapses an expanded offer row on second expand-toggle click', async () => {
-        Store.promotions.selectedOffers.set(['offer-collapse']);
+    it("sorts an offer's expanded rows by countriesLabel when it has multiple groups", async () => {
+        Store.promotions.selectedOffers.set(['offer-multi-group']);
         Store.promotions.offerRecordsCache.set(
-            'offer-collapse',
-            buildPromotionOfferRecord('offer-collapse', { product_code: 'PHSP', offer_id: 'offer-collapse' }, 'PA-1'),
+            'offer-multi-group',
+            buildPromotionOfferRecord('offer-multi-group', { product_code: 'PHSP', offer_id: 'offer-multi-group' }),
         );
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        const el = await fixture(html`
+            <mas-promotions-items-table
+                .type=${TABLE_TYPE.OFFERS}
+                .defaultPromoCode=${'DEFAULT-CODE'}
+                .geos=${['mas:locale/US', 'mas:locale/FR']}
+                .promoCodeExceptions=${['offer-multi-group|OVERRIDE|FR']}
+            ></mas-promotions-items-table>
+        `);
         await el.updateComplete;
-        const expandBtn = el.shadowRoot.querySelector('.expand-cell sp-action-button');
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(el.shadowRoot.querySelector('.detail-row')).to.not.be.null;
-
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(el.shadowRoot.querySelector('.detail-row')).to.be.null;
+        const rows = [...el.shadowRoot.querySelectorAll('sp-table-row[value="offer-multi-group"]')].map((row) => ({
+            countries: row.querySelector('.countries-cell').textContent.trim(),
+            promoCode: row.querySelector('.promo-code-cell').textContent.trim(),
+        }));
+        expect(rows).to.deep.equal([
+            { countries: 'FR', promoCode: 'OVERRIDE' },
+            { countries: 'US', promoCode: 'DEFAULT-CODE' },
+        ]);
     });
 
-    it('toggles expand when clicking the offer row body directly', async () => {
-        Store.promotions.selectedOffers.set(['offer-row-click']);
+    it('sorts rows sharing the same offer name by countriesLabel across different offers', async () => {
+        Store.promotions.selectedOffers.set(['phsp-a', 'phsp-b']);
         Store.promotions.offerRecordsCache.set(
-            'offer-row-click',
-            buildPromotionOfferRecord('offer-row-click', { product_code: 'PHSP', offer_id: 'offer-row-click' }, 'PA-1'),
+            'phsp-a',
+            buildPromotionOfferRecord('phsp-a', { product_code: 'PHSP', offer_id: 'phsp-a' }),
         );
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        Store.promotions.offerRecordsCache.set(
+            'phsp-b',
+            buildPromotionOfferRecord('phsp-b', { product_code: 'PHSP', offer_id: 'phsp-b' }),
+        );
+        const el = await fixture(html`
+            <mas-promotions-items-table
+                .type=${TABLE_TYPE.OFFERS}
+                .defaultPromoCode=${'DEFAULT-CODE'}
+                .geos=${['mas:locale/US', 'mas:locale/CA_en']}
+                .promoCodeExceptions=${['phsp-a|CODE-US|US', 'phsp-b|CODE-CA|CA_en']}
+            ></mas-promotions-items-table>
+        `);
         await el.updateComplete;
-        const row = el.shadowRoot.querySelector('sp-table-row.offer-row');
-        row.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        expect(el.shadowRoot.querySelector('.detail-row')).to.not.be.null;
+        const countries = [...el.shadowRoot.querySelectorAll('sp-table-row .countries-cell')].map((cell) =>
+            cell.textContent.trim(),
+        );
+        expect(countries).to.deep.equal(['CA_EN', 'CA_EN', 'US', 'US']);
     });
 
-    it('shows a dash and a substitute-offers table when there are substitutions but no promo code exceptions', async () => {
+    it('renders one combined row when a country has both a promo code exception and an OSI override', async () => {
+        Store.promotions.selectedOffers.set(['offer-combo']);
+        Store.promotions.offerRecordsCache.set(
+            'offer-combo',
+            buildPromotionOfferRecord('offer-combo', { product_code: 'PHSP', offer_id: 'offer-combo' }, 'PA-1'),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'replacement-osi',
+            buildPromotionOfferRecord('replacement-osi', { product_code: 'ABCD', offer_id: 'replacement-osi' }, 'PA-2'),
+        );
+        const el = await fixture(html`
+            <mas-promotions-items-table
+                .type=${TABLE_TYPE.OFFERS}
+                .geos=${['mas:locale/US']}
+                .promoCodeExceptions=${['offer-combo|PROMO-US|US', 'substitute|offer-combo|replacement-osi|US']}
+            ></mas-promotions-items-table>
+        `);
+        await el.updateComplete;
+        const rows = el.shadowRoot.querySelectorAll('sp-table-row[value="offer-combo"]');
+        expect(rows.length).to.equal(1);
+        expect(rows[0].querySelector('.countries-cell').textContent.trim()).to.equal('US');
+        expect(rows[0].querySelector('.promo-code-cell').textContent.trim()).to.equal('PROMO-US');
+        expect(rows[0].querySelector('.offer-id').textContent).to.include('replacement-osi');
+    });
+
+    it('shows a dash in the promo code cell and the substitute offer id in the OSI override cell when there are substitutions but no promo code exceptions', async () => {
         Store.promotions.selectedOffers.set(['offer-sub']);
         Store.promotions.offerRecordsCache.set(
             'offer-sub',
@@ -431,14 +593,10 @@ describe('MasPromotionsItemsTable', () => {
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
-        const expandBtn = el.shadowRoot.querySelector('.expand-cell sp-action-button');
-        expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await el.updateComplete;
-        const detail = el.shadowRoot.querySelector('.detail-row');
-        const promoCodesTable = detail.querySelector('.offer-promo-codes-table');
-        expect(promoCodesTable.textContent.trim()).to.include('-');
-        expect(detail.textContent).to.include('Substitute offers');
-        expect(detail.textContent).to.include('US');
+        expect(el.shadowRoot.querySelector('.promo-code-cell').textContent.trim()).to.equal('-');
+        expect(el.shadowRoot.querySelector('.countries-cell').textContent.trim()).to.equal('US');
+        const osiOverrideCell = el.shadowRoot.querySelector('.offer-id');
+        expect(osiOverrideCell.textContent).to.include('offer-sub-replacement');
     });
 
     it('renders mnemonic icon for offers tab when cached entry has icon field', async () => {
@@ -449,7 +607,7 @@ describe('MasPromotionsItemsTable', () => {
         );
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
-        const img = el.shadowRoot.querySelector('.offer-row img.mnemonic-icon');
+        const img = el.shadowRoot.querySelector('sp-table-row[value="icon-offer"] img.mnemonic-icon');
         expect(img).to.not.be.null;
         expect(img.src).to.include('example.com/phsp.svg');
     });
@@ -637,11 +795,13 @@ describe('MasPromotionsItemsTable', () => {
         el.type = TABLE_TYPE.CARDS;
         document.body.appendChild(el);
         await el.updateComplete;
-        expect(ownControllerCount()).to.equal(1);
+        // itemsSelection (ItemsSelectionController) + the guarded #selectionController.
+        expect(ownControllerCount()).to.equal(2);
         el.remove();
         document.body.appendChild(el);
         await el.updateComplete;
-        expect(ownControllerCount()).to.equal(1);
+        // Reparenting must not add a second #selectionController.
+        expect(ownControllerCount()).to.equal(2);
         el.remove();
         addControllerSpy.restore();
     });
@@ -1189,7 +1349,7 @@ describe('MasPromotionsItemsTable', () => {
                 tags: [],
                 offerData: null,
             };
-            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]));
+            setCardVariationsByPaths(new Map([[defaultPath, new Map([[groupedPath, groupedItem]])]]), Store.promotions);
 
             const cardWithGroupedVariation = {
                 ...cardFragment,
@@ -1718,7 +1878,44 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.selectedCards.set([]);
         });
 
-        it('includes a promo variation created from a grouped variation in the parent card entry', async () => {
+        it('includes a promo variation created from a grouped variation in the parent card entry when the grouped variation is selected', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoVariationPath }],
+                                }),
+                            },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            const variations = el.existingPromoVariationsByPath.get(defaultPath);
+            expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('excludes a promo variation for a grouped variation that is no longer selected in the project', async () => {
             setupPromotionInEdit();
             const groupedPath = `${defaultPath}/pzn/edu`;
             const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
@@ -1750,7 +1947,50 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
 
             const variations = el.existingPromoVariationsByPath.get(defaultPath);
-            expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+            expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.not.be.true;
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('re-syncs immediately when only a grouped variation is deselected, without needing a page reload', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const groupedPromoVariationPath = `${promoFolder}/my-card/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoVariationPath }],
+                                }),
+                            },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+
+            Store.promotions.selectedCards.set([defaultPath]);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.some((v) => v.id === 'grouped-promo-var-id')).to.not.be
+                .true;
             el.remove();
             Store.promotions.selectedCards.set([]);
         });
@@ -1795,6 +2035,59 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
 
             Store.promotions.selectedCards.set([defaultPath, otherPath]);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
+        it('keeps the card own promo variation when the bulk probe fails even though a selected grouped variation gets a fresh (empty) re-probe', async () => {
+            setupPromotionInEdit();
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const cardWithGroupedVariation = {
+                ...cardFragment,
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+            Store.promotions.selectedCards.set([defaultPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* (query) {
+                if (query?.path !== promoFolder) {
+                    yield [];
+                    return;
+                }
+                searchCallCount += 1;
+                if (searchCallCount === 1) {
+                    yield [{ id: 'existing-var-id', path: promoVariationPath }];
+                    return;
+                }
+                if (searchCallCount === 2) {
+                    throw new Error('bulk probe network blip');
+                }
+                yield [];
+            });
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({ ...cardWithGroupedVariation }),
+                    sites: {
+                        cf: {
+                            fragments: { search },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.existingPromoVariationsByPath.get(defaultPath)?.[0]?.id).to.equal('existing-var-id');
+
+            Store.promotions.selectedCards.set([defaultPath, groupedPath]);
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 80));
             await el.updateComplete;
@@ -1932,6 +2225,60 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.viewOnlyFragments[0].path).to.equal(cardOnePath);
 
             Store.promotions.selectedCards.set([]);
+        });
+    });
+
+    describe('promo variation probe re-runs when the edited promotion changes', () => {
+        let el;
+
+        afterEach(() => {
+            el?.remove();
+            el = null;
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.inEdit.set(null);
+        });
+
+        it('re-probes promo variations when switching to a different promotion with the same selected paths', async () => {
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-one';
+            Store.promotions.selectedCards.set([cardPath]);
+            const promoA = new Fragment({
+                path: '/content/dam/mas/promotions/promo-a',
+                id: 'promo-a-id',
+                fields: [{ name: 'tags', values: ['mas:promotion/promo-a'], multiple: true }],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promoA));
+
+            const cardFragment = {
+                path: cardPath,
+                id: 'card-one-id',
+                title: 'Card one',
+                studioPath: cardPath,
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            };
+            const getFragmentByPath = sandbox.stub().resolves(cardFragment);
+            const search = makeSharedSearchStub(sandbox);
+            el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox
+                .stub(el, 'repository')
+                .get(() => ({ aem: { getFragmentByPath, sites: { cf: { fragments: { search } } } } }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await waitUntil(() => search.callCount > 0, 'search should probe promo variations for promo-a');
+
+            const callsBeforeSwitch = search.callCount;
+
+            const promoB = new Fragment({
+                path: '/content/dam/mas/promotions/promo-b',
+                id: 'promo-b-id',
+                fields: [{ name: 'tags', values: ['mas:promotion/promo-b'], multiple: true }],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promoB));
+            await el.updateComplete;
+            await waitUntil(() => search.callCount > callsBeforeSwitch, 'search should re-probe promo variations for promo-b');
         });
     });
 });

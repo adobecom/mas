@@ -12,7 +12,7 @@ import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
 
@@ -37,7 +37,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     #itemsConfirmed = false;
 
     constructor() {
@@ -66,8 +66,7 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.translationProjects);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
             this.repository.searchFragments();
@@ -76,7 +75,7 @@ class MasTranslationEditor extends LitElement {
             this.repository.loadPlaceholders();
         }
         if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+            this.repository.loadAllCollections(Store.translationProjects);
         }
 
         // reset locale to default
@@ -116,8 +115,8 @@ class MasTranslationEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
-        this.#itemsSelectionStoreSnapshot = null;
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     /** @type {MasRepository} */
@@ -531,7 +530,7 @@ class MasTranslationEditor extends LitElement {
         }
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
-        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
     }
 
     #openAddLanguagesOverlay() {

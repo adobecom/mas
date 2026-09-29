@@ -27,11 +27,12 @@ function getLocaleSettings({
     language = undefined,
 } = {}) {
     language ??= locale?.split('_')?.[0] || Defaults.language;
+    const hasExplicitCountry = Boolean(country || locale?.split('_')?.[1]);
     country ??= locale?.split('_')?.[1] || Defaults.country;
     // Commerce has no PR pricing: price Puerto Rico as US, keep es_PR locale for language/legal. MWPW-203596
     if (country === 'PR') country = 'US';
     locale ??= `${language}_${country}`;
-    return { locale, country, language };
+    return { locale, country, language, hasExplicitCountry };
 }
 
 function getPreviewSurface(wcsApiKey, previewParam) {
@@ -132,6 +133,12 @@ function getSettings(config = {}, service) {
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
+        aupSelect:
+            getParameter(
+                'aup-select',
+                { 'aup-select': service.getAttribute('aup-select') },
+                { search: true, storage: false },
+            ) === 'on',
         displayOldPrice,
         checkoutClientId,
         checkoutWorkflowStep,

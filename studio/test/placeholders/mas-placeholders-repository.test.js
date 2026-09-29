@@ -25,7 +25,7 @@ import {
     fetchDictionary,
 } from '../../src/placeholders/mas-placeholders-repository.js';
 import { odinUrl } from '../../../io/www/src/fragment/utils/paths.js';
-import { DEFAULT_CONTEXT } from '../../libs/fragment-client.js';
+import { DEFAULT_CONTEXT, clearCaches } from '../../libs/fragment-client.js';
 import { createResponse } from '../../../io/www/test/fragment/mocks/MockFetch.js';
 
 const mockFragmentCache = {
@@ -621,12 +621,16 @@ describe('mas-placeholders-repository', () => {
         let fetchStub;
 
         beforeEach(() => {
-            clearDictionaryCache(true);
+            clearDictionaryCache();
+            clearCaches();
             fetchStub = sandbox.stub(globalThis, 'fetch');
             fetchStub.callsFake(() => createResponse(404, null, 'not found'));
         });
 
-        afterEach(() => clearDictionaryCache(true));
+        afterEach(() => {
+            clearDictionaryCache();
+            clearCaches();
+        });
 
         it('resolves a defaultLocale so the acom baseline layer is requested at a real locale, not a bare-surface URL', async () => {
             repo.search = { value: { path: SURFACES.ACOM.name } };

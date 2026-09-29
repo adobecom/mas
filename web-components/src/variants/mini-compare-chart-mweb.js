@@ -4,12 +4,10 @@ import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
 import { keepInHeadingPriceForAnnual } from './mini-compare-chart.js';
 import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
-import { getService } from '../utilities.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     TEMPLATE_PRICE_LEGAL,
-    FF_ANNUAL_PRICE,
 } from '../constants.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32;
@@ -161,18 +159,21 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     priceOptionsProvider(element, options) {
+        const mainPriceSlot =
+            MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING.prices.slot;
+        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
                 this.card?.settings?.displayPlanType ?? false;
             return;
         }
-        const service = getService();
         // For main price display (strikethrough and regular price)
         // Disable perUnit display - it will be shown in legal price only
         if (
             element.dataset.template === 'strikethrough' ||
             (element.dataset.template === 'price' &&
-                !service.featureFlags[FF_ANNUAL_PRICE])
+                !element.closest?.('merch-card')?.settings?.displayAnnual)
         ) {
             options.displayPerUnit = false;
         }
@@ -308,7 +309,6 @@ export class MiniCompareChartMweb extends VariantLayout {
         if (this.legalAdjusted) return;
 
         try {
-            const service = getService();
             this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
@@ -325,13 +325,13 @@ export class MiniCompareChartMweb extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
 
             keepInHeadingPriceForAnnual(
-                service,
+                this.card,
                 headingPrice,
                 legal,
                 'displayTax',
             );
             keepInHeadingPriceForAnnual(
-                service,
+                this.card,
                 headingPrice,
                 legal,
                 'displayPerUnit',

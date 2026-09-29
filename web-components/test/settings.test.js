@@ -18,6 +18,7 @@ import { expect } from './utilities.js';
 
 const mockService = {
     featureFlags: { [FF_DEFAULTS]: true },
+    getAttribute: () => null,
 };
 
 describe('getSettings', () => {
@@ -40,9 +41,11 @@ describe('getSettings', () => {
     it('returns default settings, if called without arguments', () => {
         expect(getSettings(undefined, mockService)).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             locale: `${Defaults.language}_${Defaults.country}`,
             masIOUrl: 'https://www.adobe.com/mas/io',
             quantity: [Defaults.quantity],
+            hasExplicitCountry: false,
         });
     });
 
@@ -75,6 +78,7 @@ describe('getSettings', () => {
         const config = { commerce: { allowOverride: '' } };
         expect(getSettings(config, mockService)).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             checkoutClientId,
             checkoutWorkflowStep,
             promotionCode,
@@ -92,6 +96,7 @@ describe('getSettings', () => {
             masIOUrl: 'https://custom.adobeioruntime.net/mas/io',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
+            hasExplicitCountry: false,
         });
     });
 
@@ -127,6 +132,7 @@ describe('getSettings', () => {
             ),
         ).to.deep.equal({
             ...Defaults,
+            aupSelect: false,
             forceTaxExclusive: true,
             promotionCode: 'promo1',
             country: 'NO',
@@ -138,6 +144,7 @@ describe('getSettings', () => {
             wcsApiKey,
             wcsURL: WCS_STAGE_URL,
             landscape: Landscape.DRAFT,
+            hasExplicitCountry: true,
         });
         window.sessionStorage.removeItem(PARAM_ENV);
     });
@@ -223,6 +230,7 @@ describe('getLocaleSettings', () => {
             locale: `${Defaults.language}_${Defaults.country}`,
             language: Defaults.language,
             country: Defaults.country,
+            hasExplicitCountry: false,
         });
     });
 
@@ -232,6 +240,7 @@ describe('getLocaleSettings', () => {
             locale: `${Defaults.language}_${Defaults.country}`,
             language: Defaults.language,
             country: Defaults.country,
+            hasExplicitCountry: false,
         });
     });
 
@@ -241,6 +250,7 @@ describe('getLocaleSettings', () => {
             locale: 'fr_FR',
             language: 'fr',
             country: 'FR',
+            hasExplicitCountry: true,
         });
     });
 
@@ -250,6 +260,7 @@ describe('getLocaleSettings', () => {
             locale: 'ja_JP',
             language: 'ja',
             country: 'JP',
+            hasExplicitCountry: true,
         });
     });
 
@@ -259,6 +270,7 @@ describe('getLocaleSettings', () => {
             locale: 'de_DE',
             language: 'de',
             country: 'DE',
+            hasExplicitCountry: true,
         });
     });
 
@@ -268,6 +280,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'en',
             country: 'GB',
+            hasExplicitCountry: true,
         });
     });
 
@@ -277,6 +290,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'fr',
             country: 'US',
+            hasExplicitCountry: true,
         });
     });
 
@@ -290,6 +304,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'de',
             country: 'AT',
+            hasExplicitCountry: true,
         });
     });
 
@@ -299,6 +314,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_US',
             language: 'en',
             country: Defaults.country,
+            hasExplicitCountry: false,
         });
     });
 
@@ -308,6 +324,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_FR',
             language: Defaults.language,
             country: 'FR',
+            hasExplicitCountry: true,
         });
     });
 
@@ -317,6 +334,7 @@ describe('getLocaleSettings', () => {
             locale: 'en_GB',
             language: Defaults.language,
             country: 'GB',
+            hasExplicitCountry: true,
         });
     });
 
@@ -326,6 +344,7 @@ describe('getLocaleSettings', () => {
             locale: 'es_PR',
             language: 'es',
             country: 'US',
+            hasExplicitCountry: true,
         });
     });
 
@@ -335,6 +354,7 @@ describe('getLocaleSettings', () => {
             locale: 'es_PR',
             language: 'es',
             country: 'US',
+            hasExplicitCountry: true,
         });
     });
 });

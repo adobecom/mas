@@ -209,7 +209,7 @@ export class OstProductDetail extends LitElement {
             `;
         }
 
-        const offers = store.offers;
+        const offers = store.visibleOffers;
         return html`
             <div class="header">
                 ${product.icon ? html`<img class="header-icon" src="${product.icon}" alt="" />` : ''}

@@ -58,28 +58,18 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     }
 
     startDeeplink() {
-        this.stopDeeplink = deeplink(({ types }) => {
-            if (types) {
-                const newTypes = types.split(',');
-                [...new Set([...newTypes, ...this.selectedValues])].forEach(
-                    (name) => {
-                        const checkbox = this.querySelector(
-                            `sp-checkbox[name=${name}]`,
-                        );
-                        if (checkbox)
-                            checkbox.checked = newTypes.includes(name);
-                    },
-                );
-                this.selectedValues = newTypes;
-            } else {
-                this.selectedValues.forEach((name) => {
+        this.stopDeeplink = deeplink((state) => {
+            const raw = state[this.deeplink];
+            const newValues = raw ? raw.split(',') : [];
+            [...new Set([...newValues, ...this.selectedValues])].forEach(
+                (name) => {
                     const checkbox = this.querySelector(
                         `sp-checkbox[name=${name}]`,
                     );
-                    if (checkbox) checkbox.checked = false;
-                });
-                this.selectedValues = [];
-            }
+                    if (checkbox) checkbox.checked = newValues.includes(name);
+                },
+            );
+            this.selectedValues = newValues;
         });
     }
 

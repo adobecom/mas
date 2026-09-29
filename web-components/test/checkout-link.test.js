@@ -365,6 +365,20 @@ describe('class "CheckoutLink"', () => {
             expect(checkoutLink.getAttribute('href')).to.equal('#');
         });
 
+        it('keeps the real checkout url for a 3-in-1 modal handler', async () => {
+            mockIms('US');
+            const handler = sinon.stub();
+            await initMasCommerceService({}, () => ({ handler }));
+            const checkoutLink = mockCheckoutLink('abm', { modal: 'crm' });
+            await checkoutLink.onceSettled();
+            expect(checkoutLink.isOpen3in1Modal).to.be.true;
+            const href = checkoutLink.getAttribute('href');
+            expect(href).to.not.equal('#');
+            expect(href).to.include('commerce.adobe.com/store');
+            checkoutLink.click();
+            sinon.assert.calledOnce(handler);
+        });
+
         it('skips entitlements check', async () => {
             initMasCommerceService();
             const checkoutLink = mockCheckoutLink('abm');

@@ -16,6 +16,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    STAGED,
     VARIATION_TAB_NAME,
 } from '../constants.js';
 import '../mas-quick-actions.js';
@@ -36,7 +37,7 @@ import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
 import './mas-promotions-items-table.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
@@ -50,7 +51,6 @@ import {
     parsePromoCodeExceptions,
     parsePromotionOffersField,
     parseSelectedOfferIdsFromOffersField,
-    groupCountriesByPromoCode,
     handlePromotionOstOfferSelect,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
@@ -58,6 +58,8 @@ import {
     applyPromotionOfferProductTagsToSearch,
     collectPromotionOfferProductTags,
     extractPromotionItemProductCodeTagIds,
+    buildDuplicatePromotionToastArgs,
+    getPromotionTitles,
     PROMOTION_FIELD_TYPE_MAP,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
@@ -80,7 +82,11 @@ import {
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
-import { getAllAttachedPromoVariations } from './promotions-repository.js';
+import {
+    duplicatePromotionProject,
+    getAllAttachedPromoVariations,
+    getPromotionProjectsForProbe,
+} from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -156,13 +162,14 @@ class MasPromotionsEditor extends LitElement {
     promotionId = Store.promotions.promotionId;
 
     storeController = null;
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
     #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
+    #duplicateExistingTitles = [];
     #boundHandleOstOfferSelect = null;
     #promoCodesManagerLoading = false;
 
@@ -190,8 +197,7 @@ class MasPromotionsEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.promotions);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.promotions);
         this.#boundHandleOstOfferSelect = this.#handleOstOfferSelect.bind(this);
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.#boundHandleOstOfferSelect);
 
@@ -245,8 +251,8 @@ class MasPromotionsEditor extends LitElement {
             this.#boundHandleOstOfferSelect = null;
         }
         Store.promotions.itemPickerSurface.set(null);
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
-        this.#itemsSelectionStoreSnapshot = null;
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     /** @type {MasRepository} */
@@ -304,13 +310,25 @@ class MasPromotionsEditor extends LitElement {
         return toAttribute(getPromotionTagFromFragment(this.fragment) ?? '');
     }
 
+    #handleStagedToggle = ({ target }) => {
+        const tags = this.fragment?.getFieldValues('tags') || [];
+        const newTags = [...tags];
+        const index = newTags.indexOf(STAGED.TAG);
+        if (!target.checked && index !== -1) {
+            newTags.splice(index, 1);
+        } else {
+            newTags.push(STAGED.TAG);
+        }
+        this.fragmentStore.updateField('tags', newTags);
+    };
+
     #mapPromotionOfferSelectorToRow(selectorId) {
         const cached = Store.promotions.offerRecordsCache.get(selectorId);
         if (cached) return cached;
         return {
             path: selectorId,
             id: selectorId,
-            offerData: { offerId: selectorId },
+            offerData: { offerSelectorIds: [selectorId] },
             tags: [],
             fields: [],
         };
@@ -320,7 +338,7 @@ class MasPromotionsEditor extends LitElement {
         const offersByKey = new Map();
         for (const selectorId of Store.promotions.selectedOffers.value) {
             const row = this.#mapPromotionOfferSelectorToRow(selectorId);
-            const key = row.path || row.id || row.offerData?.offerId;
+            const key = row.path ?? row.id;
             if (key) offersByKey.set(key, row);
         }
         if (!offersByKey.size) {
@@ -328,6 +346,7 @@ class MasPromotionsEditor extends LitElement {
             if (cardPaths.length && this.repository) {
                 await loadSelectedFragments(cardPaths, TABLE_TYPE.CARDS, this.repository, {
                     getDisplayName: getPromotionPickerFragmentLabel,
+                    store: Store.promotions,
                     onItems: (items) => {
                         for (const item of items) {
                             const offerId = item?.offerData?.offerId ?? item?.offerData?.offer_id;
@@ -587,7 +606,16 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handlePublishPromotion = async () => {
-        await this.#publishOrSchedulePromotion();
+        const confirmed =
+            !this.fragment?.isStaged ||
+            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
+                confirmText: 'Publish',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+            }));
+        if (confirmed) {
+            await this.#publishOrSchedulePromotion();
+        }
     };
 
     #handleUnpublishPromotion = async () => {
@@ -621,6 +649,8 @@ class MasPromotionsEditor extends LitElement {
                 { name: 'offers', type: 'text', multiple: true, values: [] },
                 { name: 'startDate', values: [''] },
                 { name: 'endDate', values: [''] },
+                { name: 'cdtStart', values: [''] },
+                { name: 'cdtEnd', values: [''] },
                 { name: 'tags', values: [] },
                 { name: 'surfaces', type: 'text', multiple: true, values: [] },
                 { name: 'geos', type: 'tag', multiple: true, values: [] },
@@ -702,6 +732,18 @@ class MasPromotionsEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [parsed.toISOString()]);
     }
 
+    // AEM rejects empty strings on date-time fields; an unset countdown date means "no value".
+    #patchPromotionCountdownDatesForAem() {
+        for (const fieldName of ['cdtStart', 'cdtEnd']) {
+            const field = this.fragment?.getField?.(fieldName);
+            if (!field) continue;
+            const values = field.values.filter(Boolean);
+            if (values.length === field.values.length) continue;
+            field.values = values;
+            this.fragment.hasChanges = true;
+        }
+    }
+
     #patchPromotionSurfacesFieldForAem() {
         const field = this.fragment?.getField?.('surfaces');
         if (!field) return;
@@ -715,6 +757,10 @@ class MasPromotionsEditor extends LitElement {
         switch (field.name) {
             case 'endDate':
                 return this.evergreenEnabled ? [] : field.values;
+            // AEM rejects empty strings on date-time fields; an unset countdown date means "no value".
+            case 'cdtStart':
+            case 'cdtEnd':
+                return field.values.filter(Boolean);
             case 'surfaces':
                 return serializePromotionSurfacesForAem(field.values);
             case 'fragments':
@@ -805,6 +851,7 @@ class MasPromotionsEditor extends LitElement {
             if (endDateField) endDateField.values = [];
         }
         this.#patchPromotionSurfacesFieldForAem();
+        this.#patchPromotionCountdownDatesForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
         let saved;
@@ -886,7 +933,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleDuplicatePromotion() {
-        if (!this.fragment?.id || this.isNewPromotion) return;
+        if (!this.fragment?.id || this.isNewPromotion || this.duplicating) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
             showToast('Save your changes before duplicating.', 'info');
             return;
@@ -896,18 +943,30 @@ class MasPromotionsEditor extends LitElement {
             showToast(validationMessage, 'negative');
             return;
         }
-        this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
-        this.duplicateDialogOpen = true;
+        this.duplicating = true;
+        try {
+            this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
+            const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            this.#duplicateExistingTitles = getPromotionTitles(projects);
+            this.duplicateDialogOpen = true;
+        } catch (error) {
+            console.error('Error loading promotion projects for duplicate check:', error);
+            showToast('Failed to prepare duplicate dialog.', 'negative');
+        } finally {
+            this.duplicating = false;
+        }
     }
 
-    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+    #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
         this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
-            const newPromotion = await this.repository.createFragment(this.#buildPromotionFragmentPayload(title), false);
-            if (!newPromotion) return;
+            const { newPromotion, failedVariations } = await duplicatePromotionProject(this.repository, this.fragment, {
+                title,
+                duplicateVariations,
+            });
             clearCaches();
-            showToast('Project successfully duplicated.', 'positive');
+            showToast(...buildDuplicatePromotionToastArgs(failedVariations));
             Store.promotions.inEdit.set(new FragmentStore(new Promotion(newPromotion)));
             Store.promotions.promotionId.set(newPromotion.id);
             this.isNewPromotion = false;
@@ -919,7 +978,7 @@ class MasPromotionsEditor extends LitElement {
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
             console.error('Error duplicating promotion:', error);
-            showToast('Failed to duplicate project.', 'negative');
+            showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
         } finally {
             this.duplicating = false;
         }
@@ -1005,6 +1064,9 @@ class MasPromotionsEditor extends LitElement {
         }
         if (this.promotionPublish) {
             disabled.add(QUICK_ACTION.UNPUBLISH);
+        }
+        if (this.duplicating) {
+            disabled.add(QUICK_ACTION.DUPLICATE);
         }
         return disabled;
     }
@@ -1257,7 +1319,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleOstOfferSelect = async (event) => {
-        const added = await handlePromotionOstOfferSelect(event);
+        const added = await handlePromotionOstOfferSelect(event, Store.promotions);
         if (added) {
             this.#syncPromotionSelectionFieldsToFragment();
         }
@@ -1317,7 +1379,7 @@ class MasPromotionsEditor extends LitElement {
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
             Store.promotions.displayCollections.set(cachedCollections);
         } else if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+            this.repository.loadAllCollections(Store.promotions);
         }
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         return true;
@@ -1462,7 +1524,6 @@ class MasPromotionsEditor extends LitElement {
         const defaultPromoCode = form.promoCode?.values?.[0] ?? '';
         const exceptions = parsePromoCodeExceptions(form.offers?.values);
         const offerIds = Store.promotions.selectedOffers.value;
-        const promoCodeGroups = groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode);
         const totalOffers = offerIds.length;
         const totalFragments = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
 
@@ -1483,35 +1544,6 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                         <div class="promotion-stat-value">${totalFragments}</div>
                     </div>
-                </div>
-                <div class="promotion-codes-by-country">
-                    <div class="promotion-codes-title">
-                        Promo codes by country
-                        <sp-icon-info size="s" label="Countries grouped by effective promo code"></sp-icon-info>
-                    </div>
-                    <table class="promo-codes-summary-table">
-                        <thead>
-                            <tr>
-                                <th>Promo codes</th>
-                                <th>Countries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${promoCodeGroups.length
-                                ? repeat(
-                                      promoCodeGroups,
-                                      (group) => group.promoCode,
-                                      (group) =>
-                                          html`<tr>
-                                              <td>${group.promoCode}</td>
-                                              <td>${group.countriesLabel}</td>
-                                          </tr>`,
-                                  )
-                                : html`<tr>
-                                      <td colspan="2">-</td>
-                                  </tr>`}
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>`;
@@ -1615,6 +1647,7 @@ class MasPromotionsEditor extends LitElement {
             <mas-promotion-duplicate-dialog
                 .open=${this.duplicateDialogOpen}
                 .proposedTitle=${this.#duplicateProposedTitle}
+                .existingTitles=${this.#duplicateExistingTitles}
                 @duplicate-confirmed=${this.#onDuplicateConfirmed}
                 @duplicate-cancelled=${() => {
                     this.duplicateDialogOpen = false;
@@ -1680,6 +1713,30 @@ class MasPromotionsEditor extends LitElement {
                                     >Evergreen promo</sp-switch
                                 >
                             </div>
+                            <sp-switch
+                                ?checked=${this.fragment?.isStaged}
+                                ?disabled=${readOnly}
+                                @change=${this.#handleStagedToggle}
+                                >Staged</sp-switch
+                            >
+                            <sp-field-label for="cdtStart">Countdown Timer Start (UTC)</sp-field-label>
+                            <input
+                                type="datetime-local"
+                                id="cdtStart"
+                                value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
+                                data-field="cdtStart"
+                                ?disabled=${readOnly}
+                                @change=${this.#handleDateUpdate}
+                            />
+                            <sp-field-label for="cdtEnd">Countdown Timer End (UTC)</sp-field-label>
+                            <input
+                                type="datetime-local"
+                                id="cdtEnd"
+                                value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
+                                data-field="cdtEnd"
+                                ?disabled=${readOnly}
+                                @change=${this.#handleDateUpdate}
+                            />
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"
@@ -1851,7 +1908,7 @@ class MasPromotionsEditor extends LitElement {
                     ></mas-promo-codes-manager>
                 </div>
             </div>
-            ${this.fragment
+            ${this.fragment && !this.duplicateDialogOpen && !this.confirmDialogConfig
                 ? html`<mas-quick-actions
                       drag-handle-style="bar"
                       .actions=${PROMOTION_QUICK_ACTIONS}

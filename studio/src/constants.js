@@ -141,10 +141,7 @@ export const PAGE_NAMES = {
     OFFER_MAPPING: 'offer-mapping',
 };
 
-export const TAG_STATUS_PUBLISHED = 'mas:status/published';
-export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
-export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
 export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
@@ -185,6 +182,30 @@ export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code
 
 /** Tag id prefix in short form */
 export const MAS_PRODUCT_CODE_PREFIX = 'mas:product_code/';
+
+export const TAG_WORKFLOW_STEP = 'mas:workflow-step';
+
+export const WORKFLOW_STEP = {
+    EMAIL: 'email',
+    COMMITMENT: 'commitment',
+    RECOMMENDATION: 'recommendation',
+    SEGMENTATION: 'segmentation',
+    BUNDLE: 'bundle',
+    PAYMENT: 'payment',
+    CHANGE_PLAN_TEAM_PLANS: 'change_plan_team_plans',
+    CHANGE_PLAN_TEAM_PAYMENT: 'change_plan_team_payment',
+};
+
+export const WORKFLOW_STEP_OPTIONS = [
+    { id: WORKFLOW_STEP.EMAIL, title: 'Email' },
+    { id: WORKFLOW_STEP.COMMITMENT, title: 'Commitment' },
+    { id: WORKFLOW_STEP.RECOMMENDATION, title: 'Recommendation' },
+    { id: WORKFLOW_STEP.SEGMENTATION, title: 'Segmentation' },
+    { id: WORKFLOW_STEP.BUNDLE, title: 'Bundle' },
+    { id: WORKFLOW_STEP.PAYMENT, title: 'Payment' },
+    { id: WORKFLOW_STEP.CHANGE_PLAN_TEAM_PLANS, title: 'Change Plan Team Plans' },
+    { id: WORKFLOW_STEP.CHANGE_PLAN_TEAM_PAYMENT, title: 'Change Plan Team Payment' },
+];
 
 export const TAG_MODEL_ID_MAPPING = {
     [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
@@ -238,6 +259,10 @@ export const SURFACES = {
         label: 'Adobe Home',
         name: 'adobe-home',
     },
+    BRAND_CONCIERGE: {
+        label: 'Brand Concierge',
+        name: 'brand-concierge',
+    },
     CCD: {
         label: 'CCD',
         name: 'ccd',
@@ -284,6 +309,7 @@ export const FILTER_TYPE = {
     PRODUCT: 'product',
     OFFER_TYPE: 'offerType',
     PLAN_TYPE: 'planType',
+    WORKFLOW_STEP: 'workflowStep',
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',
@@ -293,7 +319,17 @@ export const FRAGMENT_STATUS = {
     PUBLISHED: 'PUBLISHED',
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
+    NEW: 'NEW',
+    UNPUBLISHED: 'UNPUBLISHED',
 };
+
+export const FRAGMENT_STATUS_OPTIONS = [
+    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
+    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
+    { id: FRAGMENT_STATUS.NEW, title: 'New' },
+    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
+    { id: FRAGMENT_STATUS.UNPUBLISHED, title: 'Unpublished' },
+];
 
 export const TABLE_TYPE = {
     OFFERS: 'offers',
@@ -302,7 +338,7 @@ export const TABLE_TYPE = {
     PLACEHOLDERS: 'placeholders',
 };
 
-export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
+export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala', 'brand-concierge'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
@@ -344,4 +380,14 @@ export const BASELINE_VARIATION = {
     TEXT: 'Baseline variation',
     TOOLTIP_TEXT:
         'This variation is the baseline for the project and inherits all geos tagged in the project. Any additional variations tagged with specific geos will override the baseline.',
+};
+
+export const STAGED = {
+    NAME: 'staged',
+    TAG: 'mas:studio/internal/staged',
+    DIALOG_CONFIRM_TEXT:
+        'This fragment is currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_CONFIRM_MULTIPLE_TEXT:
+        'Some of the selected fragments are currently flagged as Staged. It may contain incomplete or unverified updates. Review the content carefully before publishing to production.',
+    DIALOG_TITLE: 'Staged content warning',
 };

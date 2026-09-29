@@ -3,7 +3,7 @@ import { styles } from './mas-add-items-dialog.css.js';
 import { TABLE_TYPE } from './constants.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import { renderFragmentStatusCell } from './common/utils/render-utils.js';
 import './common/components/mas-select-items-table.js';
 import './common/components/mas-search-and-filters.js';
@@ -23,6 +23,8 @@ class MasAddItemsDialog extends LitElement {
         searchQuery: { state: true },
     };
 
+    #itemsSelectionStoreToken = null;
+
     constructor() {
         super();
         this.open = false;
@@ -32,12 +34,18 @@ class MasAddItemsDialog extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        setItemsSelectionStore(Store.bulkPublishProjects);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.bulkPublishProjects);
         this.resultsController = new ReactiveController(this, [
             Store.bulkPublishProjects.displayCards,
             Store.bulkPublishProjects.displayCollections,
             Store.bulkPublishProjects.displayPlaceholders,
         ]);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     get repository() {
@@ -56,7 +64,7 @@ class MasAddItemsDialog extends LitElement {
             s.displayCollections.set([]);
             s.allPlaceholders.set([]);
             s.displayPlaceholders.set([]);
-            if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+            if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.bulkPublishProjects);
         }
     }
 

@@ -1,8 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
-import { getItemsSelectionStore } from '../items-selection-store.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
+import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
 import { getItemTypeLabel } from '../utils/render-utils.js';
 import { fetchUnresolvedVariations } from '../utils/items-loader.js';
@@ -18,28 +18,46 @@ class MasSelectedItems extends LitElement {
     };
 
     #lastFetchedSelectedCardsKey = null;
+    itemsSelection = new ItemsSelectionController(this);
+    storeController = null;
+    fetchController = null;
 
     constructor() {
         super();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.loading = false;
         this.hideGroupedVariations = false;
-        this.storeController = new ReactiveController(this, [
-            getItemsSelectionStore().showSelected,
-            getItemsSelectionStore().selectedCards,
-            getItemsSelectionStore().selectedCollections,
-            getItemsSelectionStore().selectedPlaceholders,
-            getItemsSelectionStore().groupedVariationsByParent,
-            getItemsSelectionStore().cardsByPaths,
-            getItemsSelectionStore().groupedVariationsData,
-            getItemsSelectionStore().collectionsByPaths,
-            getItemsSelectionStore().placeholdersByPaths,
-        ]);
-        this.fetchController = new ReactiveController(
-            this,
-            [getItemsSelectionStore().showSelected, getItemsSelectionStore().selectedCards],
-            this.maybeFetchUnresolvedVariations.bind(this),
-        );
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#registerStores();
+    }
+
+    #registerStores() {
+        const store = this.itemsSelection.value;
+        const stores = [
+            store.showSelected,
+            store.selectedCards,
+            store.selectedCollections,
+            store.selectedPlaceholders,
+            store.groupedVariationsByParent,
+            store.cardsByPaths,
+            store.groupedVariationsData,
+            store.collectionsByPaths,
+            store.placeholdersByPaths,
+        ];
+        if (this.storeController) {
+            this.storeController.updateStores(stores);
+        } else {
+            this.storeController = new ReactiveController(this, stores);
+        }
+        const fetchStores = [store.showSelected, store.selectedCards];
+        if (this.fetchController) {
+            this.fetchController.updateStores(fetchStores);
+        } else {
+            this.fetchController = new ReactiveController(this, fetchStores, this.maybeFetchUnresolvedVariations.bind(this));
+        }
     }
 
     /** If grouped variations for selected cards are not in the Store yet, we fetch,
@@ -47,17 +65,21 @@ class MasSelectedItems extends LitElement {
     maybeFetchUnresolvedVariations() {
         if (!this.showSelected || !this.repository) return;
 
-        const selectedCards = getItemsSelectionStore().selectedCards.value || [];
+        const store = this.itemsSelection.value;
+        const selectedCards = store.selectedCards.value || [];
         const selectedCardsKey = [...selectedCards].sort().join('\0');
         if (selectedCardsKey === this.#lastFetchedSelectedCardsKey) return;
 
         this.#lastFetchedSelectedCardsKey = selectedCardsKey;
         fetchUnresolvedVariations(
             selectedCards,
-            getItemsSelectionStore().cardsByPaths.value,
-            getItemsSelectionStore().groupedVariationsByParent.value,
+            store.cardsByPaths.value,
+            store.groupedVariationsByParent.value,
             this.repository,
-            { getDisplayName: this.getDisplayName },
+            {
+                getDisplayName: this.getDisplayName,
+                store,
+            },
         );
     }
 
@@ -67,31 +89,24 @@ class MasSelectedItems extends LitElement {
     }
 
     get selectedItems() {
+        const store = this.itemsSelection.value;
         const selectedCardPaths = this.hideGroupedVariations
-            ? getItemsSelectionStore().selectedCards.value?.filter((path) => !Fragment.isGroupedVariationPath(path))
-            : getItemsSelectionStore().selectedCards.value;
+            ? store.selectedCards.value?.filter((path) => !Fragment.isGroupedVariationPath(path))
+            : store.selectedCards.value;
         const cards = selectedCardPaths
-            ?.map(
-                (path) =>
-                    getItemsSelectionStore().cardsByPaths.value?.get(path) ??
-                    getItemsSelectionStore().groupedVariationsData.value?.get(path),
-            )
+            ?.map((path) => store.cardsByPaths.value?.get(path) ?? store.groupedVariationsData.value?.get(path))
             .filter(Boolean);
-        const collections = getItemsSelectionStore()
-            .selectedCollections.value?.map((path) => {
-                return getItemsSelectionStore().collectionsByPaths.value.get(path);
-            })
+        const collections = store.selectedCollections.value
+            ?.map((path) => store.collectionsByPaths.value.get(path))
             .filter(Boolean);
-        const placeholders = getItemsSelectionStore()
-            .selectedPlaceholders.value?.map((path) => {
-                return getItemsSelectionStore().placeholdersByPaths.value.get(path);
-            })
+        const placeholders = store.selectedPlaceholders.value
+            ?.map((path) => store.placeholdersByPaths.value.get(path))
             .filter(Boolean);
         return [...cards, ...collections, ...placeholders];
     }
 
     get showSelected() {
-        return getItemsSelectionStore().showSelected.value;
+        return this.itemsSelection.value.showSelected.value;
     }
 
     getType(item) {
@@ -124,9 +139,8 @@ class MasSelectedItems extends LitElement {
                 type = 'Placeholders';
                 break;
         }
-        getItemsSelectionStore()[`selected${type}`].set(
-            getItemsSelectionStore()[`selected${type}`].value?.filter((selectedPath) => selectedPath !== item.path),
-        );
+        const store = this.itemsSelection.value;
+        store[`selected${type}`].set(store[`selected${type}`].value?.filter((selectedPath) => selectedPath !== item.path));
         this.dispatchEvent(
             new CustomEvent('selected-item-removed', {
                 bubbles: true,

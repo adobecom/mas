@@ -24,6 +24,8 @@ See [MAS](mas.html#terminology) to learn more.
 </button>
 ```
 
+Checkout buttons also support [AUP Select routing](checkout-link.html#aup-select).
+
 ## Attributes {#attributes}
 
 | Attribute                     | Description                                                                                                                                                                                                                                      | Default Value | Required | Provider                |

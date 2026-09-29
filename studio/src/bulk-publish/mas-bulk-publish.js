@@ -8,6 +8,7 @@ import { normalizeKey, showToast } from '../utils.js';
 import { startReverting, resetToDraft } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
 import { getProjectField, getProjectFieldList, itemTypeFromPath } from './bulk-publish-utils.js';
+import { removeFromFragmentCache } from '../mas-repository.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
@@ -76,6 +77,7 @@ class MasBulkPublish extends LitElement {
         if (!id) return;
         Store.bulkPublishProjects.projectId.set(id);
         Store.bulkPublishProjects.inEdit.set(null);
+        removeFromFragmentCache(id);
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
     }
 

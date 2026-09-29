@@ -340,6 +340,33 @@ runTests(async () => {
             const coll = document.querySelector('.merch-card-collection');
             expect(coll.classList.contains('two-merch-cards')).to.be.true;
         });
+
+        it('builds one filter group per tag namespace and tags cards', async () => {
+            document.location.hash = '';
+            [merchCards, render] = prepareTemplate('plansTwoCardsColl', false);
+            render();
+            await merchCards.checkReady();
+            await merchCards.updateComplete;
+
+            const groups = merchCards.tagGroups.map((g) => g.deeplink);
+            expect(groups).to.deep.equal([
+                'customer_segment',
+                'market_segments',
+            ]);
+
+            const card = merchCards.querySelector('merch-card');
+            expect(card.getAttribute('filter-tags')).to.contain(
+                'customer_segment:individual',
+            );
+
+            // selecting a value no card carries hides every card
+            document.location.hash = 'customer_segment=team';
+            await merchCards.updateComplete;
+            await delay(20);
+            expect(merchCards.resultCount).to.equal(0);
+
+            document.location.hash = '';
+        });
     });
 
     describe('merch-card-collection override feature', () => {

@@ -18,6 +18,7 @@ const logger = Core.Logger('translation', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 2;
 const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
+const ROLLOUT_PROJECT_TYPE = 'rollout';
 
 function getOdinLocTaskNameValidationError(value) {
     const title = (value ?? '').trim();
@@ -63,7 +64,7 @@ async function prepareProjectStart(params, options = {}) {
     }
 
     const projectType = getValue(projectCF, 'projectType')?.value;
-    const responseMessage = projectType === 'rollout' ? 'Rollout project started' : 'Translation project started';
+    const responseMessage = projectType === ROLLOUT_PROJECT_TYPE ? 'Rollout project started' : 'Translation project started';
 
     return {
         params,
@@ -91,7 +92,7 @@ async function runSyncAndLocStage(context) {
     }
 
     logger.info(`Project type: ${context.projectType}`);
-    if (context.projectType === 'rollout') {
+    if (context.projectType === ROLLOUT_PROJECT_TYPE) {
         const rolloutOnlyProject = await startRolloutOnlyProject(context.translationData, context.authToken, context.params);
         if (!rolloutOnlyProject) {
             throw createProjectStartError(500, 'Failed to start rollout only project');
@@ -490,4 +491,5 @@ module.exports = {
     createProjectStartError,
     isProjectStartError,
     updateProjectStatus,
+    ROLLOUT_PROJECT_TYPE,
 };

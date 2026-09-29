@@ -9,15 +9,12 @@ export class CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
         return createCheckoutElement(CheckoutLink, options, innerHTML);
     }
 
-    setCheckoutUrl(value) {
-        this.setAttribute('href', value);
-    }
-
     get isCheckoutLink() {
         return true;
     }
 
     clickHandler(e) {
+        if (this.handleAupCheckout(e)) return;
         if (this.checkoutActionHandler) {
             this.checkoutActionHandler?.(e);
             return;

@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { Fragment } from '../aem/fragment.js';
 import { styles } from './merch-card-collection-editor.css.js';
 import { VARIANT_NAMES } from './variant-picker.js';
-import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
+import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES, STAGED } from '../constants.js';
 import Store from '../store.js';
 import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
@@ -1158,6 +1158,24 @@ class MerchCardCollectionEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [icon]);
     }
 
+    #handleStaged() {
+        const fragment = this.fragmentStore.get();
+        if (fragment.isStaged) {
+            const index = fragment.tags.findIndex((tag) => tag.id === STAGED.TAG);
+            if (index !== -1) {
+                fragment.tags.splice(index, 1);
+                this.fragmentStore.updateField('tags', []);
+                fragment.hasChanges = true;
+                this.fragmentStore.notify();
+            }
+        } else {
+            const tags = this.fragment.getField('tags')?.values || [];
+            const newTags = [...tags];
+            newTags.push(STAGED.TAG);
+            this.fragmentStore.updateField('tags', newTags);
+        }
+    }
+
     handleDefaultCardDrop(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -1485,13 +1503,24 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    get #status() {
+        return html`
+            <div class="section-staged-status">
+                <sp-switch id="markStaged" ?checked="${this.fragment.isStaged}" @change="${this.#handleStaged}"
+                    >Staged</sp-switch
+                >
+                <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+            </div>
+        `;
+    }
+
     render() {
         const hasCards =
             (this.fragment?.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation) ?? []).length > 0;
         const supportsDefault = this.#supportsDefaultCard;
 
         return html`<div class="editor-container">
-            ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
+            ${this.#status} ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
             ${this.#collections} ${this.#tip} ${this.#sidenav} ${this.#fragmentEditor}
         </div>`;

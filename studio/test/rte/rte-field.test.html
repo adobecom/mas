@@ -502,6 +502,65 @@
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
                     });
+
+                    it('saves an aria-label onto the link element', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        rte.linkEditorElement.ariaLabel = 'Learn more about Adobe';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('aria-label')).to.equal('Learn more about Adobe');
+                    });
+
+                    it('retains the aria-label after the saved content is re-parsed (e.g. on reload)', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        rte.linkEditorElement.ariaLabel = 'Learn more about Adobe';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+
+                        // Simulate the field being re-initialized from its own saved HTML,
+                        // the way the fragment editor reloads a field from stored content.
+                        rte.updateContent(rte.value);
+                        await delay(100);
+                        expect(firstLink().getAttribute('aria-label')).to.equal('Learn more about Adobe');
+
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        expect(rte.linkEditorElement.ariaLabel).to.equal('Learn more about Adobe');
+                    });
+
+                    it('removes the aria-label from the link element when the field is cleared', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        rte.linkEditorElement.ariaLabel = 'Learn more about Adobe';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('aria-label')).to.equal('Learn more about Adobe');
+
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        rte.linkEditorElement.ariaLabel = '';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().hasAttribute('aria-label')).to.be.false;
+                    });
                 });
 
                 describe('RTE Field: headless CTA variant toggling', () => {

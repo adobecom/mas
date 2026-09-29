@@ -159,4 +159,12 @@ export const styles = css`
         background-color: var(--spectrum-orange-600, #d45b00);
         flex-shrink: 0;
     }
+    .status-staged {
+        background-color: var(--spectrum-orange-200);
+        color: var(--spectrum-gray-900);
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
 `;

@@ -3,6 +3,7 @@ import './ost-entitlements-tab.js';
 import './ost-offer-tab.js';
 import { store } from '../store/ost-store.js';
 import { getOfferSelector } from '../utils/aos-client.js';
+import { isOfferId } from '../utils/offer-utils.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
 const OST_DOCS_URL = 'https://mas.adobe.com/docs/ost/new-ost';
@@ -255,6 +256,9 @@ export class OstApp extends LitElement {
 
     async resolveDeepLinkOffer(id) {
         store.initialOsi = id;
+        // Show the deep-linked id in Tab 1's search field. Without this the
+        // author lands on an empty box with no sign of what was opened.
+        store.setSearch(id, isOfferId(id) ? 'offer' : 'osi');
         try {
             const config = {
                 accessToken: store.accessToken,
@@ -268,18 +272,27 @@ export class OstApp extends LitElement {
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (!code) return;
 
-            // Keep every segment filter at its "All" default: the resolved
-            // offer's attributes are stashed so autoSelectByInitialOsi can pick
-            // the matching offer out of the unfiltered list.
-            store.initialOsiAttributes = {
+            const attributes = {
                 commitment: result.commitment,
                 term: result.term,
                 customer_segment: result.customer_segment,
                 market_segment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
                 offer_type: result.offer_type,
             };
+            store.initialOsiAttributes = attributes;
             store.setOsi(id);
-            store.setAosParams({ arrangementCode: code });
+            // Load the offer's own entitlements into the Tab 1 filters, as an
+            // offer-ID search does (ost-search resolveOfferId). Each filter only
+            // narrows to a value the offer defines, so the offer stays in its own
+            // result list. The seeded OSI search then lists only this product.
+            store.setAosParams({
+                arrangementCode: code,
+                customerSegment: attributes.customer_segment || '',
+                marketSegment: attributes.market_segment || '',
+                offerType: attributes.offer_type || '',
+                commitment: attributes.commitment || '',
+                term: attributes.term || '',
+            });
             // setAosParams/setProduct trigger loadOffers, which selects the offer
             // matching this OSI via autoSelectByInitialOsi — the single, store-owned
             // resolution path (no competing state-changed listener that could

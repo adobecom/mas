@@ -190,6 +190,9 @@ export class OstProductList extends LitElement {
                 /* invalid regex, skip text filter */
             }
         }
+        // A resolved OSI/offer-id search lists only the product it resolved to;
+        // until it resolves (no arrangement code yet) every product stays listed.
+        const resolvedCode = this.isIdSearch ? store.aosParams.arrangementCode : '';
 
         return products
             .map((entry) => {
@@ -199,6 +202,7 @@ export class OstProductList extends LitElement {
             })
             .filter((product) => {
                 const code = product.arrangement_code || product.code || '';
+                if (resolvedCode && code !== resolvedCode) return false;
                 const name = product.name || '';
                 const customerSegments = product.customerSegments || {};
                 const marketSegments = product.marketSegments || {};
@@ -214,12 +218,20 @@ export class OstProductList extends LitElement {
             });
     }
 
+    get isIdSearch() {
+        return Boolean(store.searchQuery) && store.searchType !== 'product';
+    }
+
     handleProductClick(product) {
         const code = product.arrangement_code || product.code || '';
         // A manual product pick supersedes any deep-linked OSI — otherwise the
         // stale deep link re-resolves on the offer step and flips the product
-        // back to the originally opened one.
+        // back to the originally opened one. An OSI/offer-id search still
+        // describes a pick of the product it resolved to, so keep it; a pick of
+        // any other product clears it. A typed product search always stays, or
+        // the list resets under the user's click.
         store.clearInitialOsi();
+        if (this.isIdSearch && code !== store.aosParams.arrangementCode) store.setSearch('', '');
         store.setProduct(product);
         store.setAosParams({ arrangementCode: code });
     }

@@ -1,4 +1,11 @@
-import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX } from '../constants.js';
+import {
+    PATH_TOKENS,
+    PZN_FOLDER,
+    TAG_PROMOTION_PREFIX,
+    MAS_PRODUCT_CODE_PREFIX,
+    STAGED,
+    COLLECTION_MODEL_PATH,
+} from '../constants.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
 import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
@@ -138,6 +145,15 @@ export class Fragment {
     get locale() {
         const match = this.path.match(PATH_TOKENS);
         return match?.groups?.parsedLocale || '';
+    }
+
+    get isStaged() {
+        if (this.model?.path === COLLECTION_MODEL_PATH) {
+            return this.tags?.some((tag) => tag.id === STAGED.TAG);
+        }
+
+        const tags = this.getField('variation_tags')?.values || this.getField('tags')?.values || [];
+        return tags.includes(STAGED.TAG);
     }
 
     /**

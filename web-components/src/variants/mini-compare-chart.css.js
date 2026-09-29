@@ -494,15 +494,6 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"] .p
   font-weight: 700;
 }
 
-merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual,
-merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual-prefix::after,
-merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] >.price-annual-suffix {
-  font-size: var(--consonant-merch-card-body-s-font-size);
-  line-height: var(--consonant-merch-card-body-s-line-height);
-  font-weight: 400;
-  font-style: italic;
-}
-
 merch-card[variant="mini-compare-chart"].bullet-list [slot="body-xxs"] {
   padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xs) 0;
   font-size: var(--consonant-merch-card-body-s-font-size);

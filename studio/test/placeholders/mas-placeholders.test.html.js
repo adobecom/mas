@@ -181,6 +181,21 @@ runTests(async () => {
             expect(rte.hasAttribute('link'), 'link action still enabled').to.be.true;
         });
 
+        it('normalizes the key on inline edit so it matches the coll-tag-filter dictionary lookup', function () {
+            const placeholder = new Placeholder({
+                fields: [
+                    { name: 'key', values: [''] },
+                    { name: 'value', values: [''] },
+                ],
+            });
+            const item = document.createElement('mas-placeholders-item');
+            item.placeholderStore = new FragmentStore(placeholder);
+            item.handleKeyChange({
+                target: { value: 'Coll-Tag-Filter-Market_Segments' },
+            });
+            expect(item.placeholder.key).to.equal('coll-tag-filter-marketsegments');
+        });
+
         // MWPW-203852: creating a placeholder freshly (rich text) must also expose the icon (tooltip) action.
         it('renders the creation modal rich-text editor as an rte-field with the icon (tooltip) action enabled', function () {
             const modal = document.createElement('mas-placeholders-creation-modal');

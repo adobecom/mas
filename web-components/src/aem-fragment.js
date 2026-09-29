@@ -408,10 +408,13 @@ export class AemFragment extends HTMLElement {
             masIOUrl,
             wcsApiKey,
             country: configuredCountry,
+            hasExplicitCountry,
             locale,
             instant,
         } = this.#service.settings;
-        const country = getImsCountryCookie() ?? configuredCountry;
+        const country = hasExplicitCountry
+            ? configuredCountry
+            : (getImsCountryCookie() ?? configuredCountry);
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;

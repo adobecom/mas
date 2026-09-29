@@ -104,6 +104,24 @@ describe('pro add-on grey style', () => {
         expect(cs.width).to.equal('20px');
         expect(cs.height).to.equal('20px');
     });
+
+    it('paints the default checkbox and check mark solid black instead of the low-contrast AI gradient (MWPW-198038)', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
+        );
+        const addon = card.querySelector('merch-addon');
+        await addon.updateComplete;
+        const token = (name) =>
+            getComputedStyle(addon).getPropertyValue(
+                `--merch-addon-checkbox-${name}`,
+            );
+        expect(token('bg')).to.contain('000000');
+        expect(token('bg')).to.not.contain('8D88F2');
+        expect(token('bg')).to.not.contain('EB1000');
+        expect(token('checked-bg')).to.contain('000000');
+        expect(token('checked-bg')).to.not.contain('8D88F2');
+        expect(token('checked-bg')).to.not.contain('EB1000');
+    });
 });
 
 describe('Pro.adjustAddon', () => {

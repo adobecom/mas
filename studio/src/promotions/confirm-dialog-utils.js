@@ -7,7 +7,10 @@ import { html, nothing } from 'lit';
  * @param {string} title
  * @param {string} message
  * @param {{ confirmText?: string, cancelText?: string, variant?: string, question?: string, checkboxLabel?: string, checkboxDefault?: boolean }} options
- * @returns {Promise<boolean|{ confirmed: boolean, checked: boolean }>} plain boolean when no checkboxLabel is provided, otherwise `{ confirmed, checked }`
+ * @returns {Promise<boolean|{ confirmed: boolean, checked: boolean }>} Resolves to a plain boolean when `options.checkboxLabel`
+ * is omitted/falsy, or to `{ confirmed, checked }` when it is set. Callers must branch on whether they passed a `checkboxLabel`
+ * to know which shape to expect — treating the result as always-truthy (e.g. `x || (await showConfirmDialog(...))`) only works
+ * for the plain-boolean case.
  */
 export function showConfirmDialog(component, title, message, options = {}) {
     const {

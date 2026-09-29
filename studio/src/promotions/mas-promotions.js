@@ -487,7 +487,7 @@ class MasPromotions extends LitElement {
             }
             return;
         }
-        const { confirmed, variationPaths } = await confirmPublishDespiteUnpublishedPromoVariations(
+        const { confirmed, variationPaths, skippedCount } = await confirmPublishDespiteUnpublishedPromoVariations(
             this.repository.aem,
             fragment,
             (title, message, options) => showConfirmDialog(this, title, message, options),
@@ -495,7 +495,7 @@ class MasPromotions extends LitElement {
         if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await publishPromotionProject(this.repository, fragment, variationPaths);
+            const ok = await publishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;
@@ -508,7 +508,7 @@ class MasPromotions extends LitElement {
         if (!fragment.isPromotionPublished) {
             return;
         }
-        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+        const { confirmed, variationPaths, skippedCount } = await confirmUnpublishAlongsidePromoVariations(
             this.repository.aem,
             fragment,
             (title, message, options) => showConfirmDialog(this, title, message, options),
@@ -516,7 +516,7 @@ class MasPromotions extends LitElement {
         if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths);
+            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;

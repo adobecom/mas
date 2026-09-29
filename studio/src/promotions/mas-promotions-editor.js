@@ -599,12 +599,12 @@ class MasPromotionsEditor extends LitElement {
             }
             return;
         }
-        const { confirmed, variationPaths } = await this.#confirmPublishWithUnpublishedPromoVariations();
+        const { confirmed, variationPaths, skippedCount } = await this.#confirmPublishWithUnpublishedPromoVariations();
         if (!confirmed) return;
         this.promotionPublish = true;
         this.promotionPublishAction = 'publish';
         try {
-            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths);
+            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths, skippedCount);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
@@ -631,7 +631,7 @@ class MasPromotionsEditor extends LitElement {
             showToast('This promotion is not published.', 'info');
             return;
         }
-        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+        const { confirmed, variationPaths, skippedCount } = await confirmUnpublishAlongsidePromoVariations(
             this.repository.aem,
             this.fragment,
             (title, message, options) => showConfirmDialog(this, title, message, options),
@@ -640,7 +640,7 @@ class MasPromotionsEditor extends LitElement {
         this.promotionPublish = true;
         this.promotionPublishAction = 'unpublish';
         try {
-            const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths);
+            const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths, skippedCount);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;

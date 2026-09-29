@@ -69,5 +69,16 @@ export default {
             tags: '@mas-studio @translation-editor @regression',
             description: 'Translation Editor Actions: create project save, add languages overlay, add files overlay',
         },
+        {
+            tcid: '7',
+            name: '@studio-translations-import-placeholder-url',
+            path: '/studio.html',
+            data: {
+                key: 'test',
+            },
+            browserParams: '#page=translation-editor&path=nala',
+            tags: '@mas-studio @translations',
+            description: 'Import a placeholder Studio URL and reject a key-based placeholder URL',
+        },
     ],
 };

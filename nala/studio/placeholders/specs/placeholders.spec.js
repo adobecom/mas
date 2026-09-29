@@ -30,5 +30,33 @@ export default {
             browserParams: '#page=placeholders&path=nala&locale=en_US',
             tags: '@mas-studio @placeholders',
         },
+        {
+            tcid: '3',
+            name: '@studio-placeholders-key-normalization',
+            path: '/studio.html',
+            data: {
+                typedKey: 'coll-tag-filter-market_segments',
+                normalizedKey: 'coll-tag-filter-marketsegments',
+            },
+            browserParams: '#page=placeholders&path=nala&locale=en_US',
+            tags: '@mas-studio @placeholders',
+        },
+        {
+            tcid: '4',
+            name: '@studio-placeholders-copy-link-row-menu',
+            path: '/studio.html',
+            data: {
+                key: 'test',
+            },
+            browserParams: '#page=placeholders&path=nala&locale=en_US',
+            tags: '@mas-studio @placeholders',
+        },
+        {
+            tcid: '5',
+            name: '@studio-placeholders-copy-link-bulk',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala&locale=en_US',
+            tags: '@mas-studio @placeholders',
+        },
     ],
 };

@@ -1,7 +1,7 @@
 import { html, LitElement, css, unsafeCSS, nothing } from 'lit';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
-import { deeplink, pushState } from './deeplink.js';
+import { deeplink, pushState, parseState } from './deeplink.js';
 import {
     EVENT_MAS_ERROR,
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
@@ -21,6 +21,11 @@ import {
     clearForegroundTimeout,
 } from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
+import {
+    matchesTagGroups,
+    groupTagFilters,
+    cardFilterTags,
+} from './tag-groups.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
 
@@ -61,6 +66,23 @@ const typeFilter = (elements, { types }) => {
     types = types.split(',');
     return elements.filter((element) =>
         types.some((type) => element.types.includes(type)),
+    );
+};
+
+// Filters cards against every author-defined tag group. No-op when a
+// collection has no tag groups.
+const tagGroupFilter = (elements, collection) => {
+    const groups = collection.tagGroups;
+    if (!groups?.length) return elements;
+    const state = parseState();
+    return elements.filter((element) =>
+        matchesTagGroups(
+            (element.getAttribute('filter-tags') || '')
+                .split(',')
+                .filter(Boolean),
+            groups,
+            state,
+        ),
     );
 };
 
@@ -197,7 +219,13 @@ export class MerchCardCollection extends LitElement {
             this.sort === SORT_ORDER.alphabetical
                 ? alphabeticalSorter
                 : authoredSorter;
-        const reducers = [categoryFilter, typeFilter, searcher, sorter];
+        const reducers = [
+            categoryFilter,
+            typeFilter,
+            tagGroupFilter,
+            searcher,
+            sorter,
+        ];
 
         let result = reducers
             .reduce((elements, reducer) => reducer(elements, this), children)
@@ -283,12 +311,17 @@ export class MerchCardCollection extends LitElement {
         } else {
             this.startDeeplink();
         }
+        // Tag groups use their own hash params; re-run filtering on any change.
+        if (this.tagGroups?.length) {
+            this.stopFilterDeeplink = deeplink(() => this.requestUpdate());
+        }
         this.initializePlaceholders();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.stopDeeplink?.();
+        this.stopFilterDeeplink?.();
         for (const callback of this.onUnmount) callback();
         window.removeEventListener('resize', this.resizeHandlerDebounced);
     }
@@ -376,35 +409,15 @@ export class MerchCardCollection extends LitElement {
         const self = this;
 
         function prepareSideNavSettings(fragment) {
-            // Support both checkboxGroups (direct format) and tagFilters (parsed format)
+            // One group per tag namespace picked in tagFilters. A collection
+            // with only Type tags stays a single Type group.
             let tagFilters;
-            if (fragment.fields?.checkboxGroups) {
-                // Use checkboxGroups directly if provided
-                tagFilters = fragment.fields.checkboxGroups;
-            } else if (fragment.fields?.tagFilters) {
-                // Parse tagFilters into checkbox group format
-                tagFilters = [
-                    {
-                        title: fragment.fields?.tagFiltersTitle,
-                        label: 'types',
-                        deeplink: 'types',
-                        checkboxes: fragment.fields.tagFilters.map((tag) => {
-                            // Example: "mas:types/desktop" -> "desktop"
-                            // Example: "mas:types/mobile" -> "mobile"
-                            // Example: "mas:types/web" -> "web"
-                            // TODO: Get tag label from fragment instead of parsing the tag
-                            const parsedTag = tag.split('/').pop();
-                            let tagLabel =
-                                fragment.settings?.tagLabels?.[parsedTag] ||
-                                parsedTag;
-                            tagLabel = tagLabel.startsWith('coll-tag-filter')
-                                ? parsedTag.charAt(0).toUpperCase() +
-                                  parsedTag.slice(1)
-                                : tagLabel;
-                            return { name: parsedTag, label: tagLabel };
-                        }),
-                    },
-                ];
+            if (fragment.fields?.tagFilters?.length) {
+                tagFilters = groupTagFilters(
+                    fragment.fields.tagFilters,
+                    fragment.fields.tagFiltersTitle,
+                    fragment.settings,
+                );
             }
 
             return {
@@ -506,6 +519,7 @@ export class MerchCardCollection extends LitElement {
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
             this.limit = 27; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
+            this.tagGroups = this.data.sidenavSettings?.tagFilters ?? null;
             if (event.detail.variationId) {
                 this.setAttribute('variation-id', event.detail.variationId);
             }
@@ -543,6 +557,21 @@ export class MerchCardCollection extends LitElement {
                     .map((tag) => tag.split('/')[1])
                     .join(',');
                 if (typesTags) merchCard.setAttribute('types', typesTags);
+
+                if (this.tagGroups) {
+                    const namespaces = new Set(
+                        this.tagGroups.map((group) => group.deeplink),
+                    );
+                    const filterTags = cardFilterTags(
+                        fragment.fields.tags,
+                        namespaces,
+                    );
+                    if (filterTags.length)
+                        merchCard.setAttribute(
+                            'filter-tags',
+                            filterTags.join(','),
+                        );
+                }
 
                 // Check if this variant supports default child through mapping
                 const variantMapping = getFragmentMapping(

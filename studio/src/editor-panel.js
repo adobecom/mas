@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import {
@@ -114,6 +115,7 @@ export default class EditorPanel extends LitElement {
 
     #discardPromiseResolver;
     #pendingDiscardPromise = null;
+    #pendingPromoRefresh = null;
 
     constructor() {
         super();
@@ -408,7 +410,25 @@ export default class EditorPanel extends LitElement {
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
+        this.#refreshPromoVariationPaths(id, store.get());
         await this.loadLocaleDefaultFragmentContext(id);
+    }
+
+    #refreshPromoVariationPaths(fragmentId, fragment) {
+        const promoMerge = promotionsRepository.mergePromoReferencesIntoFragmentData(this.repository.aem, fragment, () =>
+            this.repository.loadPromotions(),
+        );
+        this.#pendingPromoRefresh = { fragmentId, promise: promoMerge };
+        promoMerge
+            .then((enriched) => {
+                if (this.fragment?.id !== fragmentId) return;
+                this.fragment.references = enriched.references;
+                this.fragment.promoVariationProbeNotNeeded = true;
+            })
+            .catch((error) => console.error('Failed to probe promo variations:', error))
+            .finally(() => {
+                if (this.#pendingPromoRefresh?.promise === promoMerge) this.#pendingPromoRefresh = null;
+            });
     }
 
     async loadLocaleDefaultFragmentContext(fragmentId) {
@@ -561,16 +581,20 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        const fieldVariations = this.fragment?.getVariations() || [];
+        const isVariation = this.fragment && this.editorContextStore.isVariation(this.fragment.id);
+        const fieldVariations = !isVariation && this.fragment ? this.fragment.getVariations() : [];
         let promoVariationPaths = [];
         if (this.fragment) {
-            try {
-                promoVariationPaths = await this.repository.getPromoVariationPaths(this.fragment);
-            } catch (error) {
-                console.error('Failed to probe promo variations:', error);
-                showToast('Failed to check for promo variations. Please try again.', 'negative');
-                return;
+            if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
+                try {
+                    await this.#pendingPromoRefresh.promise;
+                } catch (error) {
+                    console.error('Failed to probe promo variations:', error);
+                    showToast('Failed to check for promo variations. Please try again.', 'negative');
+                    return;
+                }
             }
+            promoVariationPaths = this.fragment.listPromoVariations().map((variation) => variation.path);
         }
         this.variationsToDelete = [...new Set([...fieldVariations, ...promoVariationPaths])];
         this.showDeleteDialog = true;
@@ -580,31 +604,31 @@ export default class EditorPanel extends LitElement {
         this.showDeleteDialog = false;
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
-                let parent = this.localeDefaultFragment;
-                if (!parent) {
-                    parent = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                let localeDefaultFragment = this.localeDefaultFragment;
+                if (!localeDefaultFragment) {
+                    localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 }
-                if (parent) {
-                    await this.repository.removeFromParentVariations(parent, this.fragment.path);
-                }
-                let deleted = await this.repository.deleteFragment(this.fragment, {
-                    startToast: false,
-                    endToast: false,
-                });
-                if (!deleted) {
-                    deleted = await this.repository.deleteFragment(this.fragment, {
-                        force: true,
-                        startToast: false,
-                        endToast: false,
-                    });
-                }
+                const { deleted, failedVariations, parentUpdateFailed } = await this.repository.deleteVariationFragment(
+                    this.fragment,
+                    {
+                        localeDefaultFragment,
+                        promoVariationPaths: this.variationsToDelete,
+                    },
+                );
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
                     return;
                 }
-                showToast('Fragment successfully deleted.', 'positive');
+                const issues = [];
+                if (parentUpdateFailed) issues.push("the parent's variation reference wasn't updated");
+                if (failedVariations.length > 0) issues.push(`${failedVariations.length} promo variation(s) failed to delete`);
+                if (issues.length > 0) {
+                    showToast(`Fragment deleted but ${issues.join(' and ')}`, 'warning');
+                } else {
+                    showToast('Fragment successfully deleted.', 'positive');
+                }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
             }
             this.#closeEditorAfterDelete();
         } catch (error) {

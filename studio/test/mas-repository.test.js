@@ -4318,6 +4318,219 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('forceDeletePromoVariations', () => {
+        it('force-deletes promo variations concurrently instead of one at a time', async () => {
+            const repository = createRepository();
+            const paths = [
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/a',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/b',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/c',
+            ];
+            const resolvers = [];
+            let concurrentCalls = 0;
+            let maxConcurrentCalls = 0;
+            repository.aem = createAemMock({
+                fragments: {
+                    forceDelete: sandbox.stub().callsFake(
+                        () =>
+                            new Promise((resolve) => {
+                                concurrentCalls += 1;
+                                maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
+                                resolvers.push(() => {
+                                    concurrentCalls -= 1;
+                                    resolve();
+                                });
+                            }),
+                    ),
+                },
+            });
+
+            const resultPromise = repository.forceDeletePromoVariations(paths);
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(resolvers.length).to.equal(3);
+            expect(maxConcurrentCalls).to.equal(3);
+
+            resolvers.forEach((resolve) => resolve());
+            const failedVariations = await resultPromise;
+            expect(failedVariations).to.deep.equal([]);
+        });
+
+        it('collects paths that fail to force-delete without stopping the others', async () => {
+            const repository = createRepository();
+            const paths = [
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/a',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/b',
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/c',
+            ];
+            const forceDelete = sandbox.stub();
+            forceDelete.withArgs({ path: paths[0] }).resolves();
+            forceDelete.withArgs({ path: paths[1] }).rejects(new Error('boom'));
+            forceDelete.withArgs({ path: paths[2] }).resolves();
+            repository.aem = createAemMock({ fragments: { forceDelete } });
+            const errorSpy = sandbox.stub(console, 'error');
+
+            const failedVariations = await repository.forceDeletePromoVariations(paths);
+
+            expect(failedVariations).to.deep.equal([paths[1]]);
+            expect(errorSpy.calledWith(`Failed to delete promo variation ${paths[1]}:`, sinon.match.instanceOf(Error))).to.be
+                .true;
+        });
+    });
+
+    describe('deleteVariationFragment', () => {
+        const buildVariationFragment = () =>
+            new Fragment({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+                fields: [],
+            });
+
+        it('cascades the parent-link removal and promo cleanup only after the fragment delete is confirmed', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            const localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/sandbox/en_US/my-fragment' };
+            const calls = [];
+            sandbox.stub(repository, 'deleteFragment').callsFake(async () => {
+                calls.push('deleteFragment');
+                return true;
+            });
+            sandbox.stub(repository, 'removeFromParentVariations').callsFake(async () => {
+                calls.push('removeFromParentVariations');
+            });
+            sandbox.stub(repository, 'forceDeletePromoVariations').callsFake(async () => {
+                calls.push('forceDeletePromoVariations');
+                return [];
+            });
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment,
+                promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+
+            expect(calls).to.deep.equal(['deleteFragment', 'removeFromParentVariations', 'forceDeletePromoVariations']);
+            expect(result).to.deep.equal({ deleted: true, failedVariations: [], parentUpdateFailed: false });
+        });
+
+        it('retries with force delete when the reference-aware delete fails, then still cascades', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            const deleteFragment = sandbox.stub(repository, 'deleteFragment');
+            deleteFragment.onFirstCall().resolves(false);
+            deleteFragment.onSecondCall().resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: [],
+            });
+
+            expect(deleteFragment.callCount).to.equal(2);
+            expect(deleteFragment.secondCall.calledWith(fragment, { force: true, startToast: false, endToast: false })).to.be
+                .true;
+            expect(result.deleted).to.be.true;
+        });
+
+        it('does not remove the parent link or force-delete promo variations when both delete attempts fail', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(false);
+            const removeFromParentVariations = sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            const forceDeletePromoVariations = sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+
+            expect(removeFromParentVariations.called).to.be.false;
+            expect(forceDeletePromoVariations.called).to.be.false;
+            expect(result).to.deep.equal({ deleted: false, failedVariations: [], parentUpdateFailed: false });
+        });
+
+        it('skips removing the parent link when no localeDefaultFragment is given', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            const removeFromParentVariations = sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            await repository.deleteVariationFragment(fragment, { promoVariationPaths: [] });
+
+            expect(removeFromParentVariations.called).to.be.false;
+        });
+
+        it('surfaces promo variations that failed to force-delete', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').resolves();
+            sandbox
+                .stub(repository, 'forceDeletePromoVariations')
+                .resolves(['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment']);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: ['/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment'],
+            });
+
+            expect(result.failedVariations).to.deep.equal([
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/pzn/my-fragment',
+            ]);
+        });
+
+        it('surfaces a failure to update the parent variations field instead of swallowing it', async () => {
+            const repository = createRepository();
+            const fragment = buildVariationFragment();
+            sandbox.stub(repository, 'deleteFragment').resolves(true);
+            sandbox.stub(repository, 'removeFromParentVariations').rejects(new Error('save failed'));
+            sandbox.stub(repository, 'forceDeletePromoVariations').resolves([]);
+
+            const result = await repository.deleteVariationFragment(fragment, {
+                localeDefaultFragment: { id: 'parent-id' },
+                promoVariationPaths: [],
+            });
+
+            expect(result).to.deep.equal({ deleted: true, failedVariations: [], parentUpdateFailed: true });
+        });
+    });
+
+    describe('deleteFragmentWithVariations reusing already-known variations', () => {
+        it('skips the promo-variation network probe when known variations are provided', async () => {
+            const repository = createRepository();
+            const fragment = new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                fields: [],
+            });
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves({ id: 'parent-id', fields: [] }),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            const getPromoVariationPaths = sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment, [
+                '/content/dam/mas/sandbox/en_US/promotions/summer-sale/my-fragment',
+            ]);
+
+            expect(getPromoVariationPaths.called).to.be.false;
+            expect(result.success).to.be.true;
+            expect(
+                repository.aem.sites.cf.fragments.forceDelete.calledWith({
+                    path: '/content/dam/mas/sandbox/en_US/promotions/summer-sale/my-fragment',
+                }),
+            ).to.be.true;
+        });
+    });
+
     describe('Store subscription lifecycle', () => {
         const connectAndDisconnect = (repository) => {
             sandbox.stub(repository, 'loadFolders').resolves();

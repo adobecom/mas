@@ -1,0 +1,53 @@
+name: Resolve AIO Identity
+
+# Single source of truth for mapping a PR author to the credentials their IO deploy uses.
+#
+# Every author deploys to their own workspace, keyed by GitHub login. The one exception is
+# the bot allowlist below: a GitHub App login carries a "[bot]" suffix, and brackets are not
+# legal in a GitHub secret name, so `secrets[format('AIO_WWW_ENV_{0}', login)]` can never
+# resolve for it. Allowlisted bots share the QA workspace instead.
+#
+# QA is safe to share: AIO_WWW_ENV_QA / AIO_WWW_AIO_QA / AIO_NS_QA are deployed to by no
+# other workflow, unlike STAGE, which io-merge.yaml owns for main.
+
+on:
+    workflow_call:
+        inputs:
+            login:
+                description: 'GitHub login of the PR author (github.event.pull_request.user.login)'
+                type: string
+                required: true
+        outputs:
+            secret_suffix:
+                description: 'Suffix for the AIO_WWW_ENV_/AIO_WWW_AIO_/AIO_NS_ secret names'
+                value: ${{ jobs.resolve.outputs.secret_suffix }}
+            vault_login:
+                description: >
+                    Path segment for merch-at-scale/aio-studio/<login>, minus any trailing
+                    [bot]. Never QA: that Vault path holds only odin_bucket, no env/aio.
+                value: ${{ jobs.resolve.outputs.vault_login }}
+
+jobs:
+    resolve:
+        runs-on: ubuntu-latest
+        outputs:
+            secret_suffix: ${{ steps.map.outputs.secret_suffix }}
+            vault_login: ${{ steps.map.outputs.vault_login }}
+        steps:
+            - name: Map author to deploy identity
+              id: map
+              env:
+                  LOGIN: ${{ inputs.login }}
+              run: |
+                  set -euo pipefail
+
+                  case "$LOGIN" in
+                      'pinatacode[bot]') secret_suffix=QA ;;
+                      *) secret_suffix="$LOGIN" ;;
+                  esac
+
+                  vault_login=$(printf '%s' "$LOGIN" | sed 's/\[bot\]$//')
+
+                  echo "Resolved '$LOGIN' to secret suffix '$secret_suffix', vault login '$vault_login'"
+                  echo "secret_suffix=$secret_suffix" >> "$GITHUB_OUTPUT"
+                  echo "vault_login=$vault_login" >> "$GITHUB_OUTPUT"

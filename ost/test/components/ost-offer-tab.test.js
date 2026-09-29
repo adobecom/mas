@@ -19,6 +19,34 @@ describe('ost-offer-tab configPanel per authoring flow', () => {
         store.offers = [];
     });
 
+    it('lists only the deep-linked offer, not its product siblings', async () => {
+        const sibling = { offer_id: 'TAB2', offer_type: 'TRIAL' };
+        store.offers = [SELECTED, sibling];
+        store.initialOsi = 'deep-osi';
+        store.selectedOffer = SELECTED;
+        store.selectedOsi = 'deep-osi';
+        const el = await fixture(html`<ost-offer-tab></ost-offer-tab>`);
+        const rendered = [...el.shadowRoot.querySelectorAll('ost-offer-card')].map((c) => c.offer.offer_id);
+        store.initialOsi = undefined;
+        expect(rendered).to.deep.equal(['TAB1']);
+    });
+
+    it('still lists only the deep-linked offer after a tab round-trip', async () => {
+        const sibling = { offer_id: 'TAB2', offer_type: 'TRIAL' };
+        store.offers = [SELECTED, sibling];
+        store.initialOsi = 'deep-osi';
+        store.initialOsiAttributes = { offer_type: 'BASE' };
+        store.autoSelectByInitialOsi(store.offers);
+        store.goToEntitlements();
+        store.goToOffer();
+        const el = await fixture(html`<ost-offer-tab></ost-offer-tab>`);
+        const rendered = [...el.shadowRoot.querySelectorAll('ost-offer-card')].map((c) => c.offer.offer_id);
+        store.initialOsi = undefined;
+        store.initialOsiAttributes = undefined;
+        store.wizardStep = 'entitlements';
+        expect(rendered).to.deep.equal(['TAB1']);
+    });
+
     it('single flow with a selected offer renders placeholder panel and promo tag', async () => {
         store.authoringFlow = 'single';
         store.selectedOffer = SELECTED;

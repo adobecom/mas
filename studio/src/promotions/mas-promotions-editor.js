@@ -51,7 +51,6 @@ import {
     parsePromoCodeExceptions,
     parsePromotionOffersField,
     parseSelectedOfferIdsFromOffersField,
-    groupCountriesByPromoCode,
     handlePromotionOstOfferSelect,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
@@ -329,7 +328,7 @@ class MasPromotionsEditor extends LitElement {
         return {
             path: selectorId,
             id: selectorId,
-            offerData: { offerId: selectorId },
+            offerData: { offerSelectorIds: [selectorId] },
             tags: [],
             fields: [],
         };
@@ -339,7 +338,7 @@ class MasPromotionsEditor extends LitElement {
         const offersByKey = new Map();
         for (const selectorId of Store.promotions.selectedOffers.value) {
             const row = this.#mapPromotionOfferSelectorToRow(selectorId);
-            const key = row.path || row.id || row.offerData?.offerId;
+            const key = row.path ?? row.id;
             if (key) offersByKey.set(key, row);
         }
         if (!offersByKey.size) {
@@ -650,6 +649,8 @@ class MasPromotionsEditor extends LitElement {
                 { name: 'offers', type: 'text', multiple: true, values: [] },
                 { name: 'startDate', values: [''] },
                 { name: 'endDate', values: [''] },
+                { name: 'cdtStart', values: [''] },
+                { name: 'cdtEnd', values: [''] },
                 { name: 'tags', values: [] },
                 { name: 'surfaces', type: 'text', multiple: true, values: [] },
                 { name: 'geos', type: 'tag', multiple: true, values: [] },
@@ -731,6 +732,18 @@ class MasPromotionsEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [parsed.toISOString()]);
     }
 
+    // AEM rejects empty strings on date-time fields; an unset countdown date means "no value".
+    #patchPromotionCountdownDatesForAem() {
+        for (const fieldName of ['cdtStart', 'cdtEnd']) {
+            const field = this.fragment?.getField?.(fieldName);
+            if (!field) continue;
+            const values = field.values.filter(Boolean);
+            if (values.length === field.values.length) continue;
+            field.values = values;
+            this.fragment.hasChanges = true;
+        }
+    }
+
     #patchPromotionSurfacesFieldForAem() {
         const field = this.fragment?.getField?.('surfaces');
         if (!field) return;
@@ -744,6 +757,10 @@ class MasPromotionsEditor extends LitElement {
         switch (field.name) {
             case 'endDate':
                 return this.evergreenEnabled ? [] : field.values;
+            // AEM rejects empty strings on date-time fields; an unset countdown date means "no value".
+            case 'cdtStart':
+            case 'cdtEnd':
+                return field.values.filter(Boolean);
             case 'surfaces':
                 return serializePromotionSurfacesForAem(field.values);
             case 'fragments':
@@ -834,6 +851,7 @@ class MasPromotionsEditor extends LitElement {
             if (endDateField) endDateField.values = [];
         }
         this.#patchPromotionSurfacesFieldForAem();
+        this.#patchPromotionCountdownDatesForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
         let saved;
@@ -1506,7 +1524,6 @@ class MasPromotionsEditor extends LitElement {
         const defaultPromoCode = form.promoCode?.values?.[0] ?? '';
         const exceptions = parsePromoCodeExceptions(form.offers?.values);
         const offerIds = Store.promotions.selectedOffers.value;
-        const promoCodeGroups = groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode);
         const totalOffers = offerIds.length;
         const totalFragments = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
 
@@ -1527,35 +1544,6 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                         <div class="promotion-stat-value">${totalFragments}</div>
                     </div>
-                </div>
-                <div class="promotion-codes-by-country">
-                    <div class="promotion-codes-title">
-                        Promo codes by country
-                        <sp-icon-info size="s" label="Countries grouped by effective promo code"></sp-icon-info>
-                    </div>
-                    <table class="promo-codes-summary-table">
-                        <thead>
-                            <tr>
-                                <th>Promo codes</th>
-                                <th>Countries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${promoCodeGroups.length
-                                ? repeat(
-                                      promoCodeGroups,
-                                      (group) => group.promoCode,
-                                      (group) =>
-                                          html`<tr>
-                                              <td>${group.promoCode}</td>
-                                              <td>${group.countriesLabel}</td>
-                                          </tr>`,
-                                  )
-                                : html`<tr>
-                                      <td colspan="2">-</td>
-                                  </tr>`}
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>`;
@@ -1731,6 +1719,24 @@ class MasPromotionsEditor extends LitElement {
                                 @change=${this.#handleStagedToggle}
                                 >Staged</sp-switch
                             >
+                            <sp-field-label for="cdtStart">Countdown Timer Start (UTC)</sp-field-label>
+                            <input
+                                type="datetime-local"
+                                id="cdtStart"
+                                value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
+                                data-field="cdtStart"
+                                ?disabled=${readOnly}
+                                @change=${this.#handleDateUpdate}
+                            />
+                            <sp-field-label for="cdtEnd">Countdown Timer End (UTC)</sp-field-label>
+                            <input
+                                type="datetime-local"
+                                id="cdtEnd"
+                                value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
+                                data-field="cdtEnd"
+                                ?disabled=${readOnly}
+                                @change=${this.#handleDateUpdate}
+                            />
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"

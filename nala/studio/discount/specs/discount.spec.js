@@ -24,5 +24,16 @@ export default {
             browserParams: '#page=fragment-editor&path=sandbox&fragmentId=',
             tags: '@mas-studio @discount @discount-badge @discount-badge-edit',
         },
+        {
+            tcid: '2',
+            name: '@studio-discount-amount-badge',
+            path: '/studio.html',
+            data: {
+                cardid: 'dcb17f60-3aa6-4288-9c98-d3de034c045c',
+                discountAmountText: 'US$67.00/mo',
+            },
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            tags: '@mas-studio @discount-amount @discount-amount-badge',
+        },
     ],
 };

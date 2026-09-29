@@ -131,7 +131,7 @@ class MerchCardEditor extends LitElement {
     };
 
     static SECTION_FIELDS = {
-        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground'],
+        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground', 'addonStyle'],
         "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
@@ -1195,6 +1195,12 @@ class MerchCardEditor extends LitElement {
             const dividerField = this.querySelector('sp-field-group.toggle#whats-included-divider-color');
             if (dividerField) dividerField.style.display = 'block';
         }
+        // addonStyle (pro only) is derived from the addon field's HTML, not a
+        // mapping key of its own, so it's never whitelisted by the loop above.
+        if (variant.addon) {
+            const addonStyleField = this.querySelector('sp-field-group.toggle#addonStyle');
+            if (addonStyleField) addonStyleField.style.display = 'block';
+        }
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayBadgeIconField(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
@@ -1354,6 +1360,21 @@ class MerchCardEditor extends LitElement {
                 sp-switch[data-field-state='overridden'][checked] {
                     --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
                     --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
+                }
+
+                .section-title-status {
+                    display: flex;
+                    justify-content: space-between;
+                }
+
+                .section-staged-status {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .section-staged-status mas-fragment-status {
+                    position: relative;
+                    top: -1px;
                 }
 
                 .section-title {
@@ -1549,7 +1570,15 @@ class MerchCardEditor extends LitElement {
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
                 ${this.renderValidationBanner()}
-                <div class="section-title">General info</div>
+                <div class="section-title-status">
+                    <div class="section-title">General info</div>
+                    <div class="section-staged-status">
+                        <sp-switch id="fragment-staged" ?checked="${this.fragment.isStaged}" @click="${this.#handleStaged}"
+                            >Staged</sp-switch
+                        >
+                        <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+                    </div>
+                </div>
                 <div class="two-column-grid">
                     <sp-field-group id="variant">
                         <sp-field-label for="card-variant">Template</sp-field-label>
@@ -1605,14 +1634,6 @@ class MerchCardEditor extends LitElement {
                                   ></sp-switch>
                               </sp-field-group>
                           `}
-                    <sp-field-group id="fragment-staged-group">
-                        <sp-field-label for="fragment-staged">Staged?</sp-field-label>
-                        <sp-switch
-                            id="fragment-staged"
-                            ?checked="${this.fragment.isStaged}"
-                            @click="${this.#handleStaged}"
-                        ></sp-switch>
-                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">
@@ -1696,7 +1717,7 @@ class MerchCardEditor extends LitElement {
                         'backgroundColor',
                     )}
                 </div>
-                ${this.#renderAddonBackgroundPicker(form)}
+                ${variantValue === VARIANT_NAMES.PRO ? this.#renderAddonStylePicker() : this.#renderAddonBackgroundPicker(form)}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
                     ${this.#renderWhatsIncludedLabel()}
@@ -2959,9 +2980,29 @@ class MerchCardEditor extends LitElement {
         return first?.tagName?.toLowerCase() === ADDON_TAG ? first.getAttribute('background') || undefined : undefined;
     }
 
-    #renderAddonBackgroundPicker(form) {
+    // Shared by every "which merch-addon[background] value is authored"
+    // picker (Addon Background for most variants, Add-on style for pro):
+    // rewrites the addon field's raw HTML with the new background attribute,
+    // or drops it back to plain content when bgValue is falsy (Default).
+    #setAddonBackground(bgValue) {
         const addonHtml = this.getEffectiveSettingValue(ADDON);
         const addonHtmlSettings = this.globalSettingsDefaults[ADDON];
+        const temp = document.createElement('div');
+        temp.innerHTML = addonHtml;
+        const first = temp.firstElementChild;
+        const innerContent = first?.tagName?.toLowerCase() === ADDON_TAG ? first.innerHTML : addonHtml;
+        const newAddonHtml = bgValue ? `<merch-addon background="${bgValue}">${innerContent}</merch-addon>` : innerContent;
+        const fragment = this.fragmentStore.get();
+        if (newAddonHtml === addonHtmlSettings) {
+            fragment.updateField(ADDON, ['']);
+        } else {
+            fragment.updateField(ADDON, [newAddonHtml]);
+        }
+        this.fragmentStore.set(fragment);
+    }
+
+    #renderAddonBackgroundPicker(form) {
+        const addonHtml = this.getEffectiveSettingValue(ADDON);
         const currentBg = this.#getAddonBackground(addonHtml);
         const defaultBg = MerchCardEditor.#ADDON_DEFAULT;
         const gradient = MerchCardEditor.#ADDON_GRADIENT;
@@ -2970,21 +3011,7 @@ class MerchCardEditor extends LitElement {
         if (this.effectiveIsVariation) options.Default = defaultBg;
         const selectedKey = Object.entries(options).find(([, v]) => v === currentBg)?.[0] ?? 'Default';
 
-        const handleChange = (e) => {
-            const bgValue = options[e.target.value];
-            const temp = document.createElement('div');
-            temp.innerHTML = addonHtml;
-            const first = temp.firstElementChild;
-            const innerContent = first?.tagName?.toLowerCase() === ADDON_TAG ? first.innerHTML : addonHtml;
-            const newAddonHtml = bgValue ? `<merch-addon background="${bgValue}">${innerContent}</merch-addon>` : innerContent;
-            const fragment = this.fragmentStore.get();
-            if (newAddonHtml === addonHtmlSettings) {
-                fragment.updateField(ADDON, ['']);
-            } else {
-                fragment.updateField(ADDON, [newAddonHtml]);
-            }
-            this.fragmentStore.set(fragment);
-        };
+        const handleChange = (e) => this.#setAddonBackground(options[e.target.value]);
 
         return html`
             <sp-field-group class="toggle" id="addonBackground">
@@ -3013,6 +3040,34 @@ class MerchCardEditor extends LitElement {
                             <span class="color-name-text">Grey</span>
                         </div>
                     </sp-menu-item>
+                </sp-picker>
+                ${this.renderAddonBgFieldStatusIndicator()}
+            </sp-field-group>
+        `;
+    }
+
+    // Pro-only add-on style (MWPW-208925): a simpler Default/Grey picker than
+    // the generic Addon Background field above — pro's shadow-DOM frame and
+    // checkbox only recognize the "grey" value, not Gradient — so pro renders
+    // this instead of #renderAddonBackgroundPicker (see the render() call site).
+    #renderAddonStylePicker() {
+        const addonHtml = this.getEffectiveSettingValue(ADDON);
+        const currentBg = this.#getAddonBackground(addonHtml);
+        const selectedValue = currentBg === 'grey' ? 'Grey' : 'Default';
+
+        const handleChange = (e) => this.#setAddonBackground(e.target.value === 'Grey' ? 'grey' : undefined);
+
+        return html`
+            <sp-field-group class="toggle" id="addonStyle">
+                <sp-field-label for="addonStyle">Add-on style</sp-field-label>
+                <sp-picker
+                    id="addonStyle"
+                    data-field-state="${this.isAddonBgOverridden() ? 'overridden' : 'default'}"
+                    value="${selectedValue}"
+                    @change="${handleChange}"
+                >
+                    <sp-menu-item value="Default">Default</sp-menu-item>
+                    <sp-menu-item value="Grey">Grey</sp-menu-item>
                 </sp-picker>
                 ${this.renderAddonBgFieldStatusIndicator()}
             </sp-field-group>

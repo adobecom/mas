@@ -237,7 +237,7 @@ describe('processCTAs', async () => {
     it('should create consonant buttons when merchCard.consonant is true', async () => {
         merchCard.consonant = true;
         const fields = {
-            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Click me</a>',
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" data-replaced-osi="original-abm" class="accent">Click me</a>',
         };
 
         processCTAs(fields, merchCard, aemFragmentMapping);
@@ -248,6 +248,7 @@ describe('processCTAs', async () => {
         const link = footer.firstChild;
         expect(link.classList.contains('con-button')).to.be.true;
         expect(link.classList.contains('blue')).to.be.true;
+        expect(link.getAttribute('data-replaced-osi')).to.equal('original-abm');
     });
 
     it('should preserve authored aria-label on consonant checkout links', async () => {

@@ -2303,6 +2303,53 @@ describe('MasPromotionsItemsTable', () => {
             const container = el.shadowRoot.querySelector('.scrollable-table-container');
             expect(container).to.exist;
             expect(container.firstElementChild).to.equal(selectItemsTable);
+            expect(selectItemsTable.classList.contains('cards-table')).to.be.true;
+            expect(selectItemsTable.columnsOverride.map(({ key }) => key)).to.deep.equal([
+                'chevron',
+                'offer',
+                'actions',
+                'fragmentTitle',
+                'path',
+                'relatedPages',
+                'offerId',
+                'osi',
+                'status',
+            ]);
+            expect(selectItemsTable.cellsOverride).to.deep.equal([
+                'OfferName',
+                'Actions',
+                'Title',
+                'StudioPath',
+                'RelatedPages',
+                'OfferId',
+                'Osi',
+                'Status',
+            ]);
+            expect(selectItemsTable.variationColumns.map(({ key }) => key)).to.deep.equal([
+                'offer',
+                'actions',
+                'fragmentTitle',
+                'path',
+                'relatedPages',
+                'country',
+                'offerId',
+                'osi',
+                'applies-to',
+                'status',
+            ]);
+            expect(selectItemsTable.variationCells).to.deep.equal([
+                'OfferName',
+                'Actions',
+                'Title',
+                'StudioPath',
+                'RelatedPages',
+                'Country',
+                'OfferId',
+                'Osi',
+                'AppliesTo',
+                'Status',
+            ]);
+            expect(selectItemsTable.hideVariationExpand).to.be.true;
             expect(container.scrollWidth).to.be.greaterThan(container.clientWidth);
         });
 

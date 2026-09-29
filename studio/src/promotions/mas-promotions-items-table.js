@@ -224,7 +224,12 @@ class MasPromotionsItemsTable extends LitElement {
         }
         // Eagerly pull every remaining window on load so grouping can operate on the full set
         // without fetching, and so the group-by control can be enabled once loading settles.
-        if (this.type === TABLE_TYPE.CARDS && this.#hasMoreSelected && !this.viewOnlyLoading) {
+        if (
+            this.type === TABLE_TYPE.CARDS &&
+            this.groupBy !== GROUP_BY.NONE &&
+            this.#hasMoreSelected &&
+            !this.viewOnlyLoading
+        ) {
             this.#loadMore();
         }
         this.#emitSelectedLoadingChange();

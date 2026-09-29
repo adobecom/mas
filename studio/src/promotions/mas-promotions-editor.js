@@ -1334,6 +1334,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #onPromotionItemsLoadingChange = (e) => {
+        if (e.target.type !== TABLE_TYPE.CARDS) return;
         this.promotionItemsLoading = e.detail.loading;
     };
 

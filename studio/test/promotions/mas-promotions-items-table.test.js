@@ -224,6 +224,7 @@ describe('MasPromotionsItemsTable', () => {
                 );
             const el = new MasPromotionsItemsTable();
             el.type = TABLE_TYPE.CARDS;
+            el.groupBy = 'template';
             sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
             document.body.appendChild(el);
             await el.updateComplete;

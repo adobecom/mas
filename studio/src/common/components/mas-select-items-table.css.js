@@ -40,7 +40,7 @@ export const styles = [
         }
 
         .actions-head-cell {
-            max-width: 80px;
+            max-width: 86px;
         }
 
         :host([data-type='view-only']) {

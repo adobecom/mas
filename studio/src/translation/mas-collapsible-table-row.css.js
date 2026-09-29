@@ -139,9 +139,29 @@ export const styles = [
             border: none;
         }
 
-        .promo-variations-table sp-table-head {
-            background: var(--spectrum-gray-75);
-            border-bottom: 1px solid var(--spectrum-gray-300);
+        .promo-variations-table {
+            border: 1px solid var(--spectrum-gray-300);
+            border-radius: 12px;
+
+            sp-table-head {
+                background: var(--spectrum-gray-75);
+                border-bottom: 1px solid var(--spectrum-gray-300);
+                border-top-left-radius: 12px;
+                border-top-right-radius: 12px;
+            }
+
+            sp-table-head-cell {
+                display: flex;
+                align-items: center;
+            }
+
+            sp-table-head-cell:first-of-type {
+                border-top-left-radius: 12px;
+            }
+
+            sp-table-head-cell:last-of-type {
+                border-top-right-radius: 12px;
+            }
         }
 
         .related-pages sp-action-button {
@@ -195,6 +215,16 @@ export const styles = [
 
             sp-table-cell:last-of-type {
                 border-bottom-right-radius: 12px;
+            }
+        }
+
+        .nested-content .promo-variations-table sp-table-body sp-table-row:first-of-type:not(.variation-details-row) {
+            sp-table-cell:first-of-type {
+                border-top-left-radius: 0;
+            }
+
+            sp-table-cell:last-of-type {
+                border-top-right-radius: 0;
             }
         }
 

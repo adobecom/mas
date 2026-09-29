@@ -10,6 +10,7 @@ const SETTINGS_ACCESS_GROUP_BY_SURFACE = new Map([
     ['acom-cc', 'GRP-ODIN-MAS-ACOM-CC-POWERUSERS'],
     ['acom-dc', 'GRP-ODIN-MAS-ACOM-DC-POWERUSERS'],
     ['adobe-home', 'GRP-ODIN-MAS-AH-POWERUSERS'],
+    ['brand-concierge', 'GRP-ODIN-MAS-BRAND-CONCIERGE-POWERUSERS'],
     ['ccd', 'GRP-ODIN-MAS-CCD-POWERUSERS'],
     ['express', 'GRP-ODIN-MAS-EXPRESS-POWERUSERS'],
 ]);

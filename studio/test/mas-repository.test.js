@@ -355,9 +355,35 @@ describe('MasRepository dictionary helpers', () => {
 
             await repository.loadPromotions();
             expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(repository.searchFragmentList.firstCall.args[0].sort).to.deep.equal([{ on: 'created', order: 'DESC' }]);
             expect(Store.promotions.list.data.get().length).to.equal(1);
             expect(Store.promotions.list.loading.get()).to.be.false;
             expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+        });
+
+        it('keeps loading set while a newer load is still in progress', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            let resolveFirst;
+            let resolveSecond;
+            const firstLoad = new Promise((resolve) => {
+                resolveFirst = resolve;
+            });
+            const secondLoad = new Promise((resolve) => {
+                resolveSecond = resolve;
+            });
+            repository.searchFragmentList = sandbox.stub().onFirstCall().returns(firstLoad).onSecondCall().returns(secondLoad);
+
+            const firstRequest = repository.loadPromotions();
+            const secondRequest = repository.loadPromotions();
+
+            resolveFirst([]);
+            await firstRequest;
+            expect(Store.promotions.list.loading.get()).to.be.true;
+
+            resolveSecond([]);
+            await secondRequest;
+            expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
         it('getCollectionPathsForSurfaces returns the union of collection paths across surfaces', async () => {

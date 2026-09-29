@@ -1,5 +1,7 @@
 import { expect } from '../utilities.js';
 import * as snapshots from './__snapshots__/template.snapshots.js';
+import expectedLiterals from './__snapshots__/price-literals.expected.json' with { type: 'json' };
+import priceLiteralsJson from '../../price-literals.json' with { type: 'json' };
 import {
     createPriceTemplate,
     createPromoPriceTemplate,
@@ -416,5 +418,34 @@ describe('Promotion price display with annual template', () => {
         expect(format('plural', { count: 2 })).to.equal('');
         expect(format('quoted', { x: 'y' })).to.equal('');
         expect(format('noOther', { planType: 'ABM' })).to.equal('');
+    });
+});
+
+// Every braced entry of price-literals.json, formatted with one fixed argument
+// set. Expected values were recorded with intl-messageformat before it was
+// removed (MWPW-209048), so this keeps that parity checked in CI.
+describe('price-literals.json parity', () => {
+    const args = {
+        recurrenceTerm: 'MONTH',
+        perUnit: 'LICENSE',
+        taxTerm: 'VAT',
+        planType: 'ABM',
+        alternativePrice: 'US$10.00',
+        strikethroughPrice: 'US$20.00',
+        remainingPercent: 65,
+        discount: 35,
+    };
+    priceLiteralsJson.data.forEach(({ lang, ...literals }) => {
+        Object.entries(literals)
+            .filter(
+                ([, value]) => typeof value === 'string' && value.includes('{'),
+            )
+            .forEach(([key]) => {
+                it(`${lang} ${key}`, () => {
+                    expect(formatLiteral(literals, lang, key, args)).to.equal(
+                        expectedLiterals[lang]?.[key],
+                    );
+                });
+            });
     });
 });

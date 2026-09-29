@@ -114,6 +114,20 @@ describe('service-auth', () => {
         expect(fetchStub).to.have.been.calledOnce;
     });
 
+    it('does not collide concurrent cold-cache calls for different client identities', async () => {
+        fetchStub.onCall(0).resolves(tokenResponse('token-for-client-1', 3600));
+        fetchStub.onCall(1).resolves(tokenResponse('token-for-client-2', 3600));
+
+        const [first, second] = await Promise.all([
+            serviceAuth.getServiceToken({ params }),
+            serviceAuth.getServiceToken({ params: { ...params, imsClientId: 'client-2' } }),
+        ]);
+
+        expect(first).to.equal('token-for-client-1');
+        expect(second).to.equal('token-for-client-2');
+        expect(fetchStub).to.have.been.calledTwice;
+    });
+
     it('returns the cached token without re-invoking IMS within the cached lifetime', async () => {
         fetchStub.resolves(tokenResponse('token-abc', 3600));
 

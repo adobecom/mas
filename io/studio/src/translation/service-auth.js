@@ -81,7 +81,7 @@ async function fetchNewToken(params, scope, key) {
     return accessToken;
 }
 
-let pendingFetch = null;
+const pendingFetches = new Map();
 
 async function getServiceToken({ params } = {}) {
     const scope = validateCredentialsAndGetScope(params);
@@ -91,10 +91,12 @@ async function getServiceToken({ params } = {}) {
     if (cached?.accessToken) {
         return cached.accessToken;
     }
+    let pendingFetch = pendingFetches.get(key);
     if (!pendingFetch) {
         pendingFetch = fetchNewToken(params, scope, key).finally(() => {
-            pendingFetch = null;
+            pendingFetches.delete(key);
         });
+        pendingFetches.set(key, pendingFetch);
     }
     return pendingFetch;
 }

@@ -31,25 +31,28 @@
         -->
         <template id="ai">
             <mas-commerce-service env="stage"></mas-commerce-service>
-            <merch-addon>
-                <p><strong>Acrobat AI Assistant</strong></p>
-                <p data-plan-type="">
-                    Add AI Assistant to your Acrobat plan for
-                    <span
-                        is="inline-price"
-                        data-template="price"
-                        data-wcs-osi="addon-fallback-to-puf"
-                    ></span>
-                </p>
-                <p data-plan-type="">
-                    Add AI Assistant to your Acrobat plan for
-                    <span
-                        is="inline-price"
-                        data-template="price"
-                        data-wcs-osi="addon-real-puf"
-                    ></span>
-                </p>
-            </merch-addon>
+            <merch-card>
+                <p class="card-heading">Acrobat Pro</p>
+                <merch-addon>
+                    <p><strong>Acrobat AI Assistant</strong></p>
+                    <p data-plan-type="">
+                        Add AI Assistant to your Acrobat plan for
+                        <span
+                            is="inline-price"
+                            data-template="price"
+                            data-wcs-osi="addon-fallback-to-puf"
+                        ></span>
+                    </p>
+                    <p data-plan-type="">
+                        Add AI Assistant to your Acrobat plan for
+                        <span
+                            is="inline-price"
+                            data-template="price"
+                            data-wcs-osi="addon-real-puf"
+                        ></span>
+                    </p>
+                </merch-addon>
+            </merch-card>
         </template>
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
@@ -139,9 +142,11 @@
                     });
 
                     it('renders exactly one addon price block when two OSIs collide on the same resolved plan type', async () => {
-                        const [masCommerceService, ai] =
+                        const [masCommerceService, card] =
                             getTemplateContent('ai');
-                        container.append(masCommerceService, ai);
+                        container.append(masCommerceService, card);
+                        await card.updateComplete;
+                        const ai = card.querySelector('merch-addon');
                         await delay(100); // time for both prices to resolve
 
                         ai.planType = 'PUF';
@@ -159,6 +164,22 @@
                             visible.length,
                             'exactly one addon price block should be visible, not both',
                         ).to.equal(1);
+
+                        // The accessible name must still reflect the
+                        // winning (visible) paragraph plus the host card's
+                        // product name, with the product name appearing
+                        // exactly once even after repeated plan-type claims.
+                        // innerText (unlike textContent) excludes the
+                        // losing, display:none paragraph.
+                        const label = ai.shadowRoot.getElementById(
+                            'custom-checkbox-label',
+                        );
+                        const name = label.innerText;
+                        expect(name).to.contain(visible[0].innerText.trim());
+                        const productNameOccurrences = (
+                            name.match(/Acrobat Pro/g) || []
+                        ).length;
+                        expect(productNameOccurrences).to.equal(1);
                     });
                 });
             });

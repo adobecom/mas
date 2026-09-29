@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_TYPE_RESOLVED, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 
 export default class MerchAddon extends LitElement {
@@ -96,7 +96,12 @@ export default class MerchAddon extends LitElement {
         }
     }
 
+    get productName() {
+        return this.closest('merch-card')?.title || '';
+    }
+
     render() {
+        const productName = this.productName;
         return html` <input
                 type="checkbox"
                 id="addon-checkbox"
@@ -115,6 +120,11 @@ export default class MerchAddon extends LitElement {
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
                 <slot></slot>
+                ${productName
+                    ? html`<span class="addon-plan-name">
+                          ${productName}
+                      </span>`
+                    : nothing}
             </label>`;
     }
 
@@ -174,6 +184,16 @@ export default class MerchAddon extends LitElement {
 
         ::slotted(p[data-plan-type]) {
             display: none;
+        }
+
+        .addon-plan-name {
+            position: absolute;
+            clip: rect(0 0 0 0);
+            clip-path: inset(50%);
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            white-space: nowrap;
         }
 
         :host([plan-type='PUF']) ::slotted(p[data-plan-type='PUF']) {

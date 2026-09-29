@@ -383,6 +383,12 @@ export const styles = css`
         background-color: var(--spectrum-blue-50);
     }
 
+    .section-staged-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
     .tip {
         display: flex;
         gap: 8px;

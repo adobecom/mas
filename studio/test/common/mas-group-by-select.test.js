@@ -50,6 +50,16 @@ describe('MasGroupBySelect', () => {
         expect(Array.from(buttons).every((b) => b.disabled)).to.be.true;
     });
 
+    it('shows a grouping indicator while keeping buttons enabled when pending', async () => {
+        const el = await fixture(
+            html`<mas-group-by-select .options=${OPTIONS} .value=${'offer'} ?pending=${true}></mas-group-by-select>`,
+        );
+        await el.updateComplete;
+        const buttons = el.shadowRoot.querySelectorAll('sp-action-button');
+        expect(el.shadowRoot.querySelector('sp-progress-circle')).to.not.be.null;
+        expect(Array.from(buttons).some((b) => b.disabled)).to.be.false;
+    });
+
     it('does not emit change when the value is unchanged', async () => {
         const el = await fixture(html`<mas-group-by-select .options=${OPTIONS} .value=${'offer'}></mas-group-by-select>`);
         await el.updateComplete;

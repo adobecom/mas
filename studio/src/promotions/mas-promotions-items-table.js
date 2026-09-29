@@ -222,8 +222,7 @@ class MasPromotionsItemsTable extends LitElement {
             this.#loadSelectedOffers(this.selectedPaths);
             return;
         }
-        // Eagerly pull every remaining window on load so grouping can operate on the full set
-        // without fetching, and so the group-by control can be enabled once loading settles.
+        // A requested grouping needs the full set: pull remaining windows eagerly instead of on scroll.
         if (
             this.type === TABLE_TYPE.CARDS &&
             this.groupBy !== GROUP_BY.NONE &&
@@ -1064,14 +1063,24 @@ class MasPromotionsItemsTable extends LitElement {
         </div>`;
     }
 
+    #cancelGrouping = () => {
+        this.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+    };
+
     #renderCardsTable() {
         if (this.groupBy === GROUP_BY.NONE) {
             return this.#renderCardsSelectTable(this.viewOnlyFragments, this.#hasMoreSelected);
         }
         if (this.#hasMoreSelected) {
-            return html`<div class="grouping-loading">
-                <sp-progress-circle size="m" indeterminate label="Loading fragments"></sp-progress-circle>
-            </div>`;
+            return html`<div class="grouping-pending" role="status">
+                    <sp-progress-circle size="s" indeterminate label="Grouping"></sp-progress-circle>
+                    <span>
+                        Grouping will apply once all items have loaded (${this.viewOnlyFragments.length} of
+                        ${this.#allSelectedPaths.length}).
+                    </span>
+                    <sp-action-button quiet size="s" @click=${this.#cancelGrouping}>Cancel</sp-action-button>
+                </div>
+                ${this.#renderCardsSelectTable(this.viewOnlyFragments, true)}`;
         }
         const groups = groupPromotionFragments(this.viewOnlyFragments, this.groupBy);
         return html`<div class="grouped-tables">

@@ -172,11 +172,12 @@ export const promotionsItemsTableStyles = [
             transform: rotate(180deg);
         }
 
-        .grouping-loading {
+        .grouping-pending {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: var(--spectrum-spacing-500);
+            gap: var(--spectrum-spacing-200);
+            margin-block-end: var(--spectrum-spacing-200);
+            color: var(--spectrum-gray-700);
         }
 
         .empty-state {

@@ -1313,7 +1313,7 @@ class MasPromotionsEditor extends LitElement {
                 ? html`<mas-group-by-select
                       .options=${PROMOTION_GROUP_BY_OPTIONS}
                       .value=${this.promotionGroupBy}
-                      ?disabled=${this.promotionItemsLoading}
+                      ?pending=${this.promotionItemsLoading && this.promotionGroupBy !== GROUP_BY.NONE}
                       @change=${this.#onPromotionGroupByChange}
                   ></mas-group-by-select>`
                 : nothing}
@@ -1323,6 +1323,7 @@ class MasPromotionsEditor extends LitElement {
                 .getDisplayName=${host.getDisplayName}
                 .renderFragmentStatusCell=${host.renderFragmentStatusCell}
                 @view-only-loading-change=${this.#onPromotionItemsLoadingChange}
+                @group-by-cancel=${() => (this.promotionGroupBy = GROUP_BY.NONE)}
                 @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
                 @promotion-offer-removed=${() =>
                     host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}

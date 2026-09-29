@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, LitElement } from 'lit';
-import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, oneEvent, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -2372,7 +2372,7 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.shadowRoot.querySelectorAll('mas-select-items-table').length).to.equal(0);
         });
 
-        it('shows a loading indicator while more windows are still loading with grouping enabled', async () => {
+        it('keeps loaded rows visible with a pending notice while grouping waits for remaining windows', async () => {
             const paths = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
             Store.promotions.selectedCards.set(paths);
             const getFragmentByPath = sandbox.stub().callsFake(
@@ -2398,10 +2398,47 @@ describe('MasPromotionsItemsTable', () => {
             sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
             document.body.appendChild(el);
             await waitUntil(
-                () => el.shadowRoot.querySelector('.grouping-loading') !== null,
-                'shows a loading indicator while grouping is active and more windows remain',
+                () =>
+                    el.shadowRoot.querySelector('.grouping-pending') !== null &&
+                    el.shadowRoot.querySelector('mas-select-items-table') !== null,
+                'shows the pending notice alongside the flat table while more windows remain',
             );
             await waitUntil(() => el.viewOnlyFragments.length === 30, 'all windows should finish loading', { timeout: 2000 });
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.grouping-pending')).to.be.null;
+            expect(el.shadowRoot.querySelector('.grouped-tables')).to.not.be.null;
+            el.remove();
+        });
+
+        it('dispatches group-by-cancel when the pending grouping is cancelled', async () => {
+            const paths = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+            Store.promotions.selectedCards.set(paths);
+            const getFragmentByPath = sandbox.stub().callsFake(
+                (path) =>
+                    new Promise((resolve) =>
+                        setTimeout(
+                            () =>
+                                resolve({
+                                    path,
+                                    id: path,
+                                    title: path,
+                                    model: { path: CARD_MODEL_PATH },
+                                    fields: [],
+                                    tags: [],
+                                }),
+                            20,
+                        ),
+                    ),
+            );
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            el.groupBy = 'template';
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            await waitUntil(() => el.shadowRoot.querySelector('.grouping-pending sp-action-button'), 'pending notice renders');
+            const cancelled = oneEvent(el, 'group-by-cancel');
+            el.shadowRoot.querySelector('.grouping-pending sp-action-button').click();
+            expect(await cancelled).to.exist;
             el.remove();
         });
     });

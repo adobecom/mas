@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { groupBySelectStyles } from './mas-group-by-select.css.js';
 
@@ -10,6 +10,7 @@ class MasGroupBySelect extends LitElement {
         options: { type: Array },
         value: { type: String },
         disabled: { type: Boolean, reflect: true },
+        pending: { type: Boolean, reflect: true },
     };
 
     constructor() {
@@ -18,6 +19,7 @@ class MasGroupBySelect extends LitElement {
         this.options = [];
         this.value = '';
         this.disabled = false;
+        this.pending = false;
     }
 
     #onChange(e) {
@@ -46,6 +48,10 @@ class MasGroupBySelect extends LitElement {
                         </sp-action-button>`,
                 )}
             </sp-action-group>
+            ${this.pending
+                ? html`<sp-progress-circle size="s" indeterminate label="Grouping…"></sp-progress-circle>
+                      <span class="group-by-pending">Grouping…</span>`
+                : nothing}
         </div>`;
     }
 }

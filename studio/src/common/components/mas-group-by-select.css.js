@@ -21,6 +21,10 @@ export const groupBySelectStyles = css`
         opacity: 0.4;
     }
 
+    .group-by-pending {
+        color: var(--spectrum-gray-700);
+    }
+
     .group-by-track {
         background: var(--spectrum-gray-100);
         border-radius: 10px;

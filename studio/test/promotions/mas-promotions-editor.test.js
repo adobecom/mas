@@ -2793,6 +2793,17 @@ describe('MasPromotionsEditor', () => {
                 await el.updateComplete;
                 expect(el.promotionGroupBy).to.equal(GROUP_BY.OFFER);
             });
+
+            it('resets promotionGroupBy when the items table cancels a pending grouping', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                el.promotionGroupBy = GROUP_BY.TEMPLATE;
+                await el.updateComplete;
+                const table = viewSelector(el).shadowRoot.querySelector('mas-promotions-items-table');
+                table.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.NONE);
+            });
         });
     });
 });

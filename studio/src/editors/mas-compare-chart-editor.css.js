@@ -321,6 +321,11 @@ export const styles = css`
         }
     }
 
+    .compchart-general-info-title-status {
+        display: flex;
+        justify-content: space-between;
+    }
+
     .compchart-cards-section {
         margin-bottom: 16px;
         border: 1px solid var(--spectrum-gray-300);

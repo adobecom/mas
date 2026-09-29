@@ -949,6 +949,12 @@ function createConsonantButton(
         if (cta.hasAttribute('aria-label')) {
             button.setAttribute('aria-label', cta.getAttribute('aria-label'));
         }
+        if (cta.hasAttribute('data-replaced-osi')) {
+            button.setAttribute(
+                'data-replaced-osi',
+                cta.getAttribute('data-replaced-osi'),
+            );
+        }
     }
     if (!isLinkStyle) {
         button.classList.add('button', 'con-button');
@@ -1120,6 +1126,7 @@ export async function hydrate(fragment, merchCard) {
     cleanup(merchCard);
     merchCard.compatVersion = fields.compatVersion;
     merchCard.contextPromotionCode = fields.promoCode;
+    merchCard.cardOsi = fields.osi;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     if (placeholders) merchCard.placeholders = placeholders;

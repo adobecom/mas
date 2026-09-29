@@ -1276,8 +1276,10 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) .license-select-option:hover,
         :host([variant='pro']) .license-select-option.highlighted,
-        :host([variant='pro']) .license-select-option.selected {
-            background: var(--consonant-merch-card-pro-control-hover-bg);
+        :host([variant='pro']) .license-select-option.selected,
+        :host([variant='pro']) .license-select-option:focus-visible {
+            background: var(--s2a-color-blue-900, #3b63fb);
+            color: var(--s2a-color-content-default, #fff);
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own

@@ -1553,7 +1553,64 @@ describe('MasCollapsibleTableRow', () => {
             expect(link).to.exist;
             expect(link.getAttribute('target')).to.equal('_blank');
             expect(link.getAttribute('rel')).to.equal('noopener');
-            expect(link.getAttribute('href')).to.equal(`#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}`);
+            expect(link.getAttribute('href')).to.equal(
+                `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
+            );
+        });
+
+        it('derives the surface from the variation path rather than the currently active page path', async () => {
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&path=sandbox';
+            try {
+                const el = await fixtureInPromotionsContext();
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+                const link = row.closest('a');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
+                );
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
+
+        it('falls back to the current page path when the variation path has no extractable surface', async () => {
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&path=sandbox';
+            try {
+                const topLevelCard = createMockTopLevelCard();
+                setupCardVariationsInStore(topLevelCard.path, []);
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                        .renderActionsCell=${() => nothing}
+                    ></mas-collapsible-table-row>`,
+                );
+                el.promoVariations = [makePromoVariation({ path: 'not-an-aem-path' })];
+                el.selectedTabKey = 'promotion';
+                await el.updateComplete;
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="not-an-aem-path"]`);
+                const link = row.closest('a');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=sandbox`,
+                );
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
+
+        it('includes the in-edit promotion id in the fragment edit link when set', async () => {
+            Store.promotions.promotionId.set('promo-project-42');
+            try {
+                const el = await fixtureInPromotionsContext();
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+                const link = row.closest('a');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom&promotionId=promo-project-42`,
+                );
+            } finally {
+                Store.promotions.promotionId.set(null);
+            }
         });
 
         it('does not wrap the row in a link when renderActionsCell is not provided (translation context)', async () => {
@@ -1567,7 +1624,7 @@ describe('MasCollapsibleTableRow', () => {
             const openStub = sandbox.stub(window, 'open');
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
             row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
-            const editUrl = `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}`;
+            const editUrl = `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`;
             expect(openStub.calledOnceWith(editUrl, '_blank', 'noopener')).to.be.true;
         });
 

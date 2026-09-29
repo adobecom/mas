@@ -9,6 +9,7 @@ import {
     shouldIgnoreRowClickForSelection,
 } from '../common/utils/render-utils.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
+import { extractSurfaceFromPath } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
@@ -657,7 +658,7 @@ export class MasCollapsibleTableRow extends LitElement {
     #getFragmentEditUrl(variation) {
         if (!variation?.id) return null;
         const currentParams = new URLSearchParams(window.location.hash.slice(1));
-        const path = currentParams.get('path');
+        const path = extractSurfaceFromPath(variation.path) || currentParams.get('path');
         let url = `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`;
         if (path) {
             url += `&path=${path}`;

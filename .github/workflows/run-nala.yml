@@ -12,6 +12,11 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    identity:
+        uses: ./.github/workflows/resolve-aio-identity.yaml
+        with:
+            login: ${{ github.event.pull_request.user.login }}
+
     check-paths:
         name: Check Changed Paths
         runs-on: ubuntu-latest
@@ -137,7 +142,7 @@ jobs:
 
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
-        needs: [nala-gate, check-paths]
+        needs: [nala-gate, check-paths, identity]
         if: |
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
@@ -208,11 +213,12 @@ jobs:
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
               env:
-                  ACTOR_NS: ${{ secrets[format('AIO_NS_{0}', github.event.pull_request.user.login)] }}
+                  ACTOR_NS: ${{ secrets[format('AIO_NS_{0}', needs.identity.outputs.secret_suffix)] }}
                   ACTOR_LOGIN: ${{ github.event.pull_request.user.login }}
+                  ACTOR_SUFFIX: ${{ needs.identity.outputs.secret_suffix }}
               run: |
                   if [ -z "$ACTOR_NS" ]; then
-                    echo "::error::Missing AIO namespace secret AIO_NS_${ACTOR_LOGIN} for PR author"
+                    echo "::error::Missing AIO namespace secret AIO_NS_${ACTOR_SUFFIX} for PR author ${ACTOR_LOGIN}"
                     exit 1
                   fi
                   echo "Using AIO namespace for PR author ${ACTOR_LOGIN}"

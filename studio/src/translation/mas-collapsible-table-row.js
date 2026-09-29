@@ -656,7 +656,17 @@ export class MasCollapsibleTableRow extends LitElement {
 
     #getFragmentEditUrl(variation) {
         if (!variation?.id) return null;
-        return `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`;
+        const currentParams = new URLSearchParams(window.location.hash.slice(1));
+        const path = currentParams.get('path');
+        let url = `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`;
+        if (path) {
+            url += `&path=${path}`;
+        }
+        const promotionId = Store.promotions.promotionId.get();
+        if (promotionId) {
+            url += `&promotionId=${encodeURIComponent(promotionId)}`;
+        }
+        return url;
     }
 
     #handlePromoVariationRowDblClick(event, variation) {
@@ -675,7 +685,7 @@ export class MasCollapsibleTableRow extends LitElement {
             target="_blank"
             rel="noopener"
             style="display: contents; color: inherit; text-decoration: none"
-            @click=${(e) => e.preventDefault()}
+            @click=${{ handleEvent: (e) => e.preventDefault(), capture: true }}
             >${rowTemplate}</a
         >`;
     }

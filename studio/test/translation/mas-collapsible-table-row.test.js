@@ -1620,16 +1620,21 @@ describe('MasCollapsibleTableRow', () => {
             expect(detailsRow.closest('a')).to.not.exist;
         });
 
-        it('does not navigate when the row link is left-clicked (single click keeps existing no-op behavior)', async () => {
+        it('prevents default navigation when the copy-offer-id action button is clicked (single click)', async () => {
             const el = await fixtureInPromotionsContext();
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
-            const link = row.closest('a');
-            // Real <a target="_blank">: a synthetic click has no user-activation, so Chrome
-            // navigates the test page itself instead of popup-blocking it. This extra listener
-            // only guards the test run; it is not part of what's being asserted below.
-            link.addEventListener('click', (e) => e.preventDefault());
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
             const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
-            link.dispatchEvent(clickEvent);
+            copyButton.dispatchEvent(clickEvent);
+            expect(clickEvent.defaultPrevented).to.be.true;
+        });
+
+        it('prevents default navigation when the row expand button is clicked (single click)', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const expandButton = row.querySelector('.expand-button');
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            expandButton.dispatchEvent(clickEvent);
             expect(clickEvent.defaultPrevented).to.be.true;
         });
     });

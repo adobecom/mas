@@ -206,15 +206,27 @@ The reader is a content author, not an engineer. Strip all technical detail — 
 paths, field names, etags, cache/status codes, fragment ids in prose, or internal file
 names. Name cards by their Studio **title** (fetch it from the live payload, step 3).
 
-**Slack formatting rules** (Slack mrkdwn, not Markdown): `*bold*` (single asterisks),
-links as `<url|label>`, `•` bullets, `:emoji:` codes. No `##` headings, no tables, no
-`**double**` bold, no `[label](url)` links.
+**Slack formatting rules** (the message is pasted into the Slack composer, which does not
+parse link markup):
+
+- `*bold*` (single asterisks), `•` bullets, `:emoji:` codes.
+- **Plain, full URLs only** — Slack auto-links them. Never `<url|label>` (it pastes
+  literally, leaving a stray `|label>` suffix) and never `[label](url)`.
+- **One URL per line.** Never chain URLs on one line with `·` or commas; put each on its
+  own indented line under its card.
+- No `##` headings, no tables, no `**double**` bold.
 
 **Sample pages:** for every card, list the referer pages where its failure was seen,
 taken from the export (not guessed). Cross-tab culprit id × referer (strip query
-strings); show up to ~5 pages per card, most frequent first. If several cards share the
-same pages, list the pages once in a shared "pages affected" line instead of repeating
-them.
+strings); show up to ~5 pages per card, most frequent first, one per line. If several
+cards share the same pages, list the pages once in a shared "Pages affected" block
+instead of repeating them.
+
+**How to check the fix:** never write "load it from <country>". Give ready-to-click test
+URLs that simulate the affected market with the `akamaiLocale` (geo, lowercase) and
+`country` (uppercase) query parameters, one per affected market seen in the export
+(e.g. `country=IN` → `?akamaiLocale=in&country=IN`, `country=AU` →
+`?akamaiLocale=au&country=AU`). Use the top sample page.
 
 ```
 :rotating_light: *<Short plain headline — what's broken, for whom>*
@@ -226,15 +238,24 @@ Scale: *an estimated ~<100·N rounded> <blank views/broken cards> in <window>* (
 *What to do (per card):* <imperative steps joined with →, e.g. open it in Studio → choose the card layout → *publish*>. <Also check the other cards in the same set, if relevant.>
 
 *Cards to fix:*
-• *<Card title>* (~<est.> <blank views>) → <https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>|Open in Studio>
-   Pages: <https://www.adobe.com/<path>|/<path>> · <…>
-• <one bullet per culprit card, highest volume first>
+• *<Card title>* (~<est.> <blank views>)
+   Studio: https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
+   Seen on:
+   https://www.adobe.com/<path-1>
+   https://www.adobe.com/<path-2>
+• <one bullet per culprit card, highest volume first; omit "Seen on" when using the shared block below>
 
-*Pages affected:* <only when shared across cards — <url|short-name> · <url|short-name> · …>
+*Pages affected:* <only when shared across cards>
+https://www.adobe.com/<path-1>
+https://www.adobe.com/<path-2>
 
-*Also worth a look (seen only a handful of times):* <low-count (raw <~10) cases, same format; no scaled number>
+*Also worth a look (seen only a handful of times):* <low-count (raw <~10) cases, same layout; no scaled number>
 
-<How to check the fix, e.g. reload the page / use ?akamaiLocale=<geo> to see the affected market.> Thanks! :pray:
+*How to check:* once published, open the page as a <market> visitor:
+https://www.adobe.com/<top-sample-path>?akamaiLocale=<geo>&country=<CC>
+<one line per affected market>
+
+Thanks! :pray:
 ```
 
 Always include the Studio link for each card: it takes the author straight to the card

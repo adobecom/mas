@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Catalog Merch Side Nav selected background test page</title>
+        <script type="module" src="../spectrum.js"></script>
+        <script
+            type="module"
+            src="./catalog-sidenav-selected-background.test.html.js"
+        ></script>
+    </head>
+    <body>
+        <main>
+            <div id="controls">
+                <button onclick="skipTests()">Skip tests</button>
+                <button onclick="runTests()">Run tests</button>
+            </div>
+            <div id="merch-sidenav-catalog"></div>
+            <div id="merch-sidenav-default"></div>
+        </main>
+        <template id="merch-sidenav-catalog-template">
+            <merch-sidenav class="catalog" sidenavTitle="REFINE YOUR RESULTS">
+                <merch-sidenav-list>
+                    <sp-sidenav
+                        variant="multilevel"
+                        manageTabIndex="true"
+                        label="category"
+                    >
+                        <sp-sidenav-item
+                            value="all"
+                            label="All"
+                            selected
+                        ></sp-sidenav-item>
+                        <sp-sidenav-item
+                            value="pdfesignature"
+                            label="PDF and E-signatures"
+                        ></sp-sidenav-item>
+                    </sp-sidenav>
+                </merch-sidenav-list>
+            </merch-sidenav>
+        </template>
+        <template id="merch-sidenav-default-template">
+            <merch-sidenav sidenavTitle="REFINE YOUR RESULTS">
+                <merch-sidenav-list>
+                    <sp-sidenav
+                        variant="multilevel"
+                        manageTabIndex="true"
+                        label="category"
+                    >
+                        <sp-sidenav-item
+                            value="all"
+                            label="All"
+                            selected
+                        ></sp-sidenav-item>
+                    </sp-sidenav>
+                </merch-sidenav-list>
+            </merch-sidenav>
+        </template>
+    </body>
+</html>

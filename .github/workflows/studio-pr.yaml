@@ -1,0 +1,50 @@
+name: Studio PR Validation
+
+on:
+    pull_request:
+        paths:
+            - 'studio/**'
+            - 'studio.html'
+            - 'web-components/dist/**'
+            - 'web-components/src/**'
+            - 'io/www/src/**'
+        types: [opened, synchronize, reopened]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    asset-versions:
+        name: Check Studio asset versions
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js 22.x
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Regenerate asset versions
+              run: npm run build:versions -w studio
+
+            - name: Check studio.html is up to date
+              run: |
+                  if ! git diff --quiet -- studio.html; then
+                    echo "❌ Studio asset versions are stale:"
+                    git diff --stat -- studio.html
+                    echo ""
+                    echo "Run 'npm run build:versions -w studio' and commit studio.html."
+                    echo "Merge conflict in the studio-versions block? Take either side, then run the same command."
+                    exit 1
+                  fi
+                  echo "✅ Studio asset versions are current"

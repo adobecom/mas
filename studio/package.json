@@ -4,6 +4,7 @@
     "description": "Merch at Scale Studio",
     "scripts": {
         "build": "node build.mjs",
+        "build:versions": "node build-versions.mjs",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
         "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage && npm run test:node",
         "test:node": "node --test test/build/build-versions.test.mjs",

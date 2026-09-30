@@ -117,15 +117,15 @@ class MasStudio extends LitElement {
         return this;
     }
 
-    #lazyLoad(elementName, importPath) {
+    #lazyLoad(elementName, load) {
         if (customElements.get(elementName)) return true;
         if (this.#failedImports.has(elementName)) return false;
         if (!this.#pendingImports.has(elementName)) {
             this.#pendingImports.add(elementName);
-            import(importPath).catch(() => {
+            load().catch((error) => {
                 this.#pendingImports.delete(elementName);
                 this.#failedImports.add(elementName);
-                console.error(`Failed to load ${elementName} from ${importPath}`);
+                console.error(`Failed to load ${elementName}`, error);
                 Events.toast.emit({ variant: 'negative', content: `Failed to load page` });
             });
             customElements.whenDefined(elementName).then(() => this.requestUpdate());
@@ -151,85 +151,86 @@ class MasStudio extends LitElement {
 
     get placeholders() {
         if (this.page.value !== PAGE_NAMES.PLACEHOLDERS) return nothing;
-        if (!this.#lazyLoad('mas-placeholders', './placeholders/mas-placeholders.js')) return nothing;
+        if (!this.#lazyLoad('mas-placeholders', () => import('./placeholders/mas-placeholders.js'))) return nothing;
         return html` <mas-placeholders></mas-placeholders> `;
     }
 
     get settings() {
         if (this.page.value !== PAGE_NAMES.SETTINGS && this.page.value !== PAGE_NAMES.SETTINGS_EDITOR) return nothing;
-        if (!this.#lazyLoad('mas-settings', './settings/mas-settings.js')) return nothing;
+        if (!this.#lazyLoad('mas-settings', () => import('./settings/mas-settings.js'))) return nothing;
         return html`<mas-settings bucket=${this.bucket} base-url=${this.baseUrl}></mas-settings>`;
     }
 
     get masks() {
         if (this.page.value !== PAGE_NAMES.MASKS && this.page.value !== PAGE_NAMES.MASKS_EDITOR) return nothing;
-        if (!this.#lazyLoad('mas-masks', './masks/mas-masks.js')) return nothing;
+        if (!this.#lazyLoad('mas-masks', () => import('./masks/mas-masks.js'))) return nothing;
         return html`<mas-masks bucket=${this.bucket} base-url=${this.baseUrl}></mas-masks>`;
     }
 
     get offerMapping() {
         if (this.page.value !== PAGE_NAMES.OFFER_MAPPING) return nothing;
-        if (!this.#lazyLoad('mas-offer-mapping', './offer-mapping/mas-offer-mapping.js')) return nothing;
+        if (!this.#lazyLoad('mas-offer-mapping', () => import('./offer-mapping/mas-offer-mapping.js'))) return nothing;
         return html`<mas-offer-mapping bucket=${this.bucket} base-url=${this.baseUrl}></mas-offer-mapping>`;
     }
 
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
-        if (!this.#lazyLoad('mas-splash-screen', './mas-splash-screen.js')) return nothing;
+        if (!this.#lazyLoad('mas-splash-screen', () => import('./mas-splash-screen.js'))) return nothing;
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
     get versionPage() {
         if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
-        if (!this.#lazyLoad('version-page', './version-page.js')) return nothing;
+        if (!this.#lazyLoad('version-page', () => import('./version-page.js'))) return nothing;
         return html`<version-page></version-page>`;
     }
 
     get fragmentEditor() {
         if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
-        if (!this.#lazyLoad('mas-fragment-editor', './mas-fragment-editor.js')) return nothing;
+        if (!this.#lazyLoad('mas-fragment-editor', () => import('./mas-fragment-editor.js'))) return nothing;
         return html`<mas-fragment-editor></mas-fragment-editor>`;
     }
 
     get promotions() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS) return nothing;
-        if (!this.#lazyLoad('mas-promotions', './promotions/mas-promotions.js')) return nothing;
+        if (!this.#lazyLoad('mas-promotions', () => import('./promotions/mas-promotions.js'))) return nothing;
         return html`<mas-promotions></mas-promotions>`;
     }
 
     get promotionsEditor() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR) return nothing;
-        if (!this.#lazyLoad('mas-promotions-editor', './promotions/mas-promotions-editor.js')) return nothing;
+        if (!this.#lazyLoad('mas-promotions-editor', () => import('./promotions/mas-promotions-editor.js'))) return nothing;
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
     get translation() {
         if (this.page.value !== PAGE_NAMES.TRANSLATIONS) return nothing;
-        if (!this.#lazyLoad('mas-translation', './translation/mas-translation.js')) return nothing;
+        if (!this.#lazyLoad('mas-translation', () => import('./translation/mas-translation.js'))) return nothing;
         return html`<mas-translation></mas-translation>`;
     }
 
     get translationEditor() {
         if (this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR) return nothing;
-        if (!this.#lazyLoad('mas-translation-editor', './translation/mas-translation-editor.js')) return nothing;
+        if (!this.#lazyLoad('mas-translation-editor', () => import('./translation/mas-translation-editor.js'))) return nothing;
         return html`<mas-translation-editor></mas-translation-editor>`;
     }
 
     get bulkPublish() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH) return nothing;
-        if (!this.#lazyLoad('mas-bulk-publish', './bulk-publish/mas-bulk-publish.js')) return nothing;
+        if (!this.#lazyLoad('mas-bulk-publish', () => import('./bulk-publish/mas-bulk-publish.js'))) return nothing;
         return html`<mas-bulk-publish></mas-bulk-publish>`;
     }
 
     get bulkPublishEditor() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH_EDITOR) return nothing;
-        if (!this.#lazyLoad('mas-bulk-publish-editor', './bulk-publish/mas-bulk-publish-editor.js')) return nothing;
+        if (!this.#lazyLoad('mas-bulk-publish-editor', () => import('./bulk-publish/mas-bulk-publish-editor.js')))
+            return nothing;
         return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
     }
 
     get advancedTools() {
         if (this.page.value !== PAGE_NAMES.ADVANCED_TOOLS) return nothing;
-        if (!this.#lazyLoad('mas-advanced-tools', './mas-advanced-tools.js')) return nothing;
+        if (!this.#lazyLoad('mas-advanced-tools', () => import('./mas-advanced-tools.js'))) return nothing;
         return html`<mas-advanced-tools></mas-advanced-tools>`;
     }
 
@@ -280,7 +281,7 @@ class MasStudio extends LitElement {
 
     get editorPanel() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
-        if (!this.#lazyLoad('editor-panel', './editor-panel.js')) return nothing;
+        if (!this.#lazyLoad('editor-panel', () => import('./editor-panel.js'))) return nothing;
         return html`<editor-panel></editor-panel>`;
     }
 

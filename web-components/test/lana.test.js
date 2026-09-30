@@ -49,6 +49,7 @@ describe('lana', () => {
                 sampleRate: 1,
                 severity: 'e',
                 tags: 'acom',
+                international: '',
             },
         ]);
     });
@@ -79,6 +80,7 @@ describe('lana', () => {
                 sampleRate: 1,
                 severity: 'e',
                 tags: 'acom',
+                international: '',
             },
         ]);
     });

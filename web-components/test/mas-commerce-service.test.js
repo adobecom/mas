@@ -242,6 +242,7 @@ describe('commerce service', () => {
                     severity: 'e',
                     tags: 'ccd',
                     isProdDomain: false,
+                    international: 'US',
                 });
             });
         });

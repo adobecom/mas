@@ -1,3 +1,5 @@
+import { getImsCountryCookie } from './ims.js';
+
 // Default configuration for logging system
 const config = {
     clientId: 'merch-at-scale',
@@ -11,6 +13,25 @@ const config = {
 };
 // total lana limit in /utils/lana.js is 2000
 const PAGE_LIMIT = 1000;
+
+// Country resolved for content selection, kept in sync with the commerce
+// service settings (see mas-commerce-service.js#activate). Mirrors the same
+// override precedence as aem-fragment.js #fetchData: an explicit configured/
+// query-param country wins, otherwise fall back to the IMS country cookie.
+let countrySettings = { country: undefined, hasExplicitCountry: false };
+
+function updateCountrySettings({ country, hasExplicitCountry } = {}) {
+    countrySettings = {
+        country,
+        hasExplicitCountry: Boolean(hasExplicitCountry),
+    };
+}
+
+function resolveInternationalCountry() {
+    const { country, hasExplicitCountry } = countrySettings;
+    if (hasExplicitCountry) return country ?? '';
+    return getImsCountryCookie() ?? country ?? '';
+}
 
 function isError(value) {
     return (
@@ -80,7 +101,10 @@ const lanaAppender = {
             payload += JSON.stringify(values, serializeParam);
         }
 
-        window.lana?.log(payload, config);
+        window.lana?.log(payload, {
+            ...config,
+            international: resolveInternationalCountry(),
+        });
     },
 };
 
@@ -101,4 +125,4 @@ function updateConfig(newConfig) {
     );
 }
 
-export { config, lanaAppender, updateConfig };
+export { config, lanaAppender, updateConfig, updateCountrySettings };

@@ -261,19 +261,22 @@ export class Pro extends VariantLayout {
     // sub-label + disclaimer strings published on the card's `placeholders` map
     // (settings.js -> replace transformer -> here). Idempotent via the
     // `.whats-included-title` guard so re-renders don't double-apply.
+    // The authored line is promotional copy, not a section heading, so it
+    // stays a <p>; the sub-label ("What's included?") is the real heading for
+    // this panel, so it renders as <h4> (MWPW-205322).
     adjustEduWhatsIncluded() {
         if (this.card.size !== 'edu') return;
         const slot = this.card.querySelector('[slot="whats-included"]');
         if (!slot || slot.querySelector('.whats-included-title')) return;
         const authoredTitle = slot.querySelector('.whats-included-label');
         if (!authoredTitle) return;
-        const title = document.createElement('h4');
+        const title = document.createElement('p');
         title.className = 'whats-included-title';
         title.innerHTML = authoredTitle.innerHTML;
         authoredTitle.replaceWith(title);
         const { whatsIncludedLabel, eduDisclaimer } =
             this.card.placeholders ?? {};
-        const label = document.createElement('p');
+        const label = document.createElement('h4');
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);

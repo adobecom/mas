@@ -1,6 +1,7 @@
 import { expect } from '../utilities.js';
 import * as snapshots from './__snapshots__/template.snapshots.js';
 import expectedLiterals from './__snapshots__/price-literals.expected.json' with { type: 'json' };
+import expectedMessages from './__snapshots__/message-format.expected.json' with { type: 'json' };
 import priceLiteralsJson from '../../price-literals.json' with { type: 'json' };
 import {
     createPriceTemplate,
@@ -415,8 +416,8 @@ describe('Promotion price display with annual template', () => {
         expect(format('discount', { remainingPercent: 70 })).to.equal('7折');
         expect(format('fixed', { remainingPercent: 100 })).to.equal('10.0折');
         expect(format('recurrence', {})).to.equal('');
-        expect(format('plural', { count: 2 })).to.equal('');
-        expect(format('quoted', { x: 'y' })).to.equal('');
+        expect(format('plural', { count: 2 })).to.equal('2 items');
+        expect(format('quoted', { x: 'y' })).to.equal("it's y");
         expect(format('noOther', { planType: 'ABM' })).to.equal('');
     });
 });
@@ -447,5 +448,33 @@ describe('price-literals.json parity', () => {
                     );
                 });
             });
+    });
+});
+
+// ICU syntax authored overrides may use (plural, selectordinal, apostrophe
+// quoting, number styles and skeletons, dates), including invalid messages,
+// which format to ''. Each message is formatted with a fixed value set per
+// group; expected values were recorded with intl-messageformat 9.13.
+describe('ICU message parity', () => {
+    const valueSets = {
+        plural: [
+            ...[0, 1, 2, 3, 11, 22, '3.5'].map((n) => ({ n, m: n, g: 'a' })),
+            {},
+        ],
+        text: [{ x: 'X', y: 'Y', g: 'a' }, { x: 0, y: '', g: 'z' }, {}],
+        number: [{ n: 1234567.891 }, { n: '0.5' }, { n: -1 }, {}],
+        date: [{ d: 1735732800000 }],
+    };
+    Object.entries(expectedMessages).forEach(([group, messages]) => {
+        Object.entries(messages).forEach(([message, byLocale]) => {
+            Object.entries(byLocale).forEach(([locale, expected]) => {
+                it(`${locale} ${message}`, () => {
+                    const actual = valueSets[group].map((values) =>
+                        formatLiteral({ message }, locale, 'message', values),
+                    );
+                    expect(actual).to.deep.equal(expected);
+                });
+            });
+        });
     });
 });

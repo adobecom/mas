@@ -8,6 +8,7 @@ import {
     renderInheritedTagsNotice,
     shouldIgnoreRowClickForSelection,
 } from '../common/utils/render-utils.js';
+import { renderFragmentEditorLink } from '../common/utils/fragment-editor-link.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';
@@ -402,7 +403,9 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderTitle(item) {
-        return html`<sp-table-cell>${item.title || 'no title'}</sp-table-cell>`;
+        const title = item.title || 'no title';
+        if (!item?.id) return html`<sp-table-cell>${title}</sp-table-cell>`;
+        return html`<sp-table-cell>${renderFragmentEditorLink({ fragmentId: item.id, content: title })}</sp-table-cell>`;
     }
 
     renderOfferName(item) {

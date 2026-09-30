@@ -9,7 +9,7 @@ import {
 } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
-import { generateLinkToUse, extractSurfaceFromPath } from '../../utils.js';
+import { generateLinkToUse, extractSurfaceFromPath, getHashParams } from '../../utils.js';
 import { isPromoVariationPath } from '../../promotions/promotion-model.js';
 import { toggleSidebarIcon } from '../../icons.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
@@ -37,6 +37,21 @@ export function getStudioFragmentDisplayPath(fragment) {
 export function applySearchSurfaceFromPath(path) {
     const surface = extractSurfaceFromPath(path);
     if (surface) Store.search.set((prev) => ({ ...prev, path: surface }));
+}
+
+/**
+ * Builds the mask-editor deep-link hash for a mask fragment name. Unlike the fragment
+ * editor, the mask editor is keyed by name rather than fragment id, so this preserves
+ * the current surface/locale hash params (already scoping the Masks list to the row's
+ * surface and locale) instead of setting them explicitly.
+ * @param {string} maskName
+ * @returns {string}
+ */
+export function getMaskEditorHref(maskName) {
+    const params = getHashParams();
+    params.set('page', PAGE_NAMES.MASKS_EDITOR);
+    params.set('maskName', maskName);
+    return `#${params.toString()}`;
 }
 
 /**

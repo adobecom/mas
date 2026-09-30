@@ -1,6 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 import { STAGED } from '../constants.js';
+import { extractSurfaceFromPath } from '../utils.js';
+import { getFragmentEditorHref } from '../common/utils/fragment-editor-link.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
@@ -80,8 +82,8 @@ class MasBulkPublishItems extends LitElement {
     }
 
     itemHref(item) {
-        const target = item.href ?? item.url;
-        return /^https?:\/\//.test(target) ? target : null;
+        if (!item.fragmentId) return null;
+        return getFragmentEditorHref(item.fragmentId, { path: extractSurfaceFromPath(item.path) });
     }
 
     renderStatusCell(item) {

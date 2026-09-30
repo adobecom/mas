@@ -27,7 +27,15 @@ describe('mas-bulk-publish-items', () => {
     it('prefixes the locale to the Studio path when item has locale and authorPath', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items
-                .items=${[{ url: 'https://a', authorPath: 'merch-card: SANDBOX / default', locale: 'en_US', status: 'valid' }]}
+                .items=${[
+                    {
+                        url: 'https://a',
+                        fragmentId: 'frag-1',
+                        authorPath: 'merch-card: SANDBOX / default',
+                        locale: 'en_US',
+                        status: 'valid',
+                    },
+                ]}
                 .urls=${'x'}
             ></mas-bulk-publish-items>
         `);
@@ -39,7 +47,15 @@ describe('mas-bulk-publish-items', () => {
     it('renders the Studio path without brackets when locale is missing', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items
-                .items=${[{ url: 'https://a', authorPath: 'merch-card: SANDBOX / default', locale: '', status: 'valid' }]}
+                .items=${[
+                    {
+                        url: 'https://a',
+                        fragmentId: 'frag-1',
+                        authorPath: 'merch-card: SANDBOX / default',
+                        locale: '',
+                        status: 'valid',
+                    },
+                ]}
                 .urls=${'x'}
             ></mas-bulk-publish-items>
         `);
@@ -48,7 +64,7 @@ describe('mas-bulk-publish-items', () => {
         expect(link.textContent.trim()).to.equal('merch-card: SANDBOX / default');
     });
 
-    it('renders a link with the resolved href when one is present', async () => {
+    it('renders plain text, not a link to the resolved live-page href, when no fragment id is known', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items
                 .items=${[
@@ -63,9 +79,9 @@ describe('mas-bulk-publish-items', () => {
             ></mas-bulk-publish-items>
         `);
         await el.updateComplete;
-        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
-        expect(link).to.exist;
-        expect(link.getAttribute('href')).to.equal('https://mas.adobe.com/studio.html#query=1');
+        const row = el.shadowRoot.querySelector('[data-testid="item-row"]');
+        expect(row.querySelector('a')).to.be.null;
+        expect(row.textContent).to.include('merch-card: SANDBOX');
     });
 
     it('renders plain text instead of a broken link when no resolved href exists', async () => {
@@ -81,7 +97,7 @@ describe('mas-bulk-publish-items', () => {
         expect(row.textContent).to.include('/content/dam/mas/x');
     });
 
-    it('falls back to the url label when authorPath is absent', async () => {
+    it('falls back to the url label, as plain text, when authorPath is absent and no fragment id is known', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items
                 .items=${[{ url: 'https://a', href: 'https://a', status: 'error', reason: 'not-found' }]}
@@ -89,8 +105,31 @@ describe('mas-bulk-publish-items', () => {
             ></mas-bulk-publish-items>
         `);
         await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="item-row"]');
+        expect(row.querySelector('a')).to.be.null;
+        expect(row.querySelector('.item-label').textContent.trim()).to.equal('https://a');
+    });
+
+    it('links to the fragment editor instead of the resolved live-page href when a fragment id is known', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[
+                    {
+                        url: '/content/dam/mas/sandbox/en_US/x',
+                        path: '/content/dam/mas/sandbox/en_US/x',
+                        href: 'https://mas.adobe.com/studio.html#query=1',
+                        fragmentId: 'frag-1',
+                        authorPath: 'merch-card: SANDBOX',
+                        status: 'valid',
+                    },
+                ]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
         const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
-        expect(link.textContent.trim()).to.equal('https://a');
+        expect(link).to.exist;
+        expect(link.getAttribute('href')).to.equal('#page=fragment-editor&fragmentId=frag-1&path=sandbox');
     });
 
     it('footer row shows error count when errors exist', async () => {

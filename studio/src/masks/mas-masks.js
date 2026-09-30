@@ -7,6 +7,8 @@ import { canAccessMasks } from '../groups.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { tableHeaderBaseStyles, tableBodyBaseStyles, tableCellBaseStyles } from '../common/styles/table-styles.css.js';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
+import { getMaskEditorHref } from '../common/utils/render-utils.js';
+import { renderNewTabAwareLink } from '../common/utils/fragment-editor-link.js';
 import '../mas-locale-picker.js';
 import './mas-mask-editor.js';
 
@@ -206,7 +208,12 @@ class MasMasks extends LitElement {
                     ${masks.map(
                         (fragment) => html`
                             <sp-table-row @dblclick=${() => this.#edit(fragment)}>
-                                <sp-table-cell>${fragment.title || fragment.fragmentName}</sp-table-cell>
+                                <sp-table-cell>
+                                    ${renderNewTabAwareLink({
+                                        href: getMaskEditorHref(fragment.fragmentName),
+                                        content: fragment.title || fragment.fragmentName,
+                                    })}
+                                </sp-table-cell>
                                 <sp-table-cell>${fragment.description || ''}</sp-table-cell>
                                 <sp-table-cell>${fragment.modified?.fullName || fragment.modified?.by || ''}</sp-table-cell>
                                 <sp-table-cell>${fragment.published?.fullName || fragment.published?.by || ''}</sp-table-cell>

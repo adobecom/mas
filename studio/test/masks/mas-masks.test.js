@@ -64,6 +64,47 @@ describe('mas-masks', () => {
         expect(rows[0].querySelector('sp-table-cell').textContent.trim()).to.equal('Mask One');
     });
 
+    describe('row link to the mask editor', () => {
+        async function mountWithMasks() {
+            Store.profile.set({ email: 'admin@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+            Store.search.set({ path: 'acom' });
+            Store.masks.setAem(createAemMock());
+            const el = await mount();
+            await Store.masks.ensureLoaded('acom', Store.localeOrRegion());
+            await el.updateComplete;
+            return el;
+        }
+
+        it('renders the mask name as a real link to the mask editor deep-link', async () => {
+            const el = await mountWithMasks();
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            const link = rows[0].querySelector('a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.include('page=masks-editor');
+            expect(link.getAttribute('href')).to.include('maskName=m1');
+            expect(link.textContent.trim()).to.equal('Mask One');
+        });
+
+        it('does not navigate away on a plain click of the mask name link', async () => {
+            const el = await mountWithMasks();
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            const link = rows[0].querySelector('a');
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+            link.dispatchEvent(event);
+            expect(event.defaultPrevented).to.be.true;
+            expect(Store.masks.editing.get()).to.equal(null);
+        });
+
+        it('still opens the mask editor for the row on double-click, unaffected by the added link', async () => {
+            const el = await mountWithMasks();
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            rows[0].dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(Store.masks.fragmentId.get()).to.equal('m1');
+            expect(Store.masks.editingName.get()).to.equal('m1');
+        });
+    });
+
     describe('delete confirmation', () => {
         async function mountWithMasks() {
             Store.profile.set({ email: 'admin@adobe.com' });

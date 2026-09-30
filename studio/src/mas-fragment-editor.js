@@ -39,6 +39,7 @@ import {
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
+import { getFragmentEditorHref } from './common/utils/fragment-editor-link.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
@@ -1491,15 +1492,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     getFragmentEditorUrl(fragmentId) {
-        // Preserve the current path parameter from the URL
-        const currentParams = new URLSearchParams(window.location.hash.slice(1));
-        const path = currentParams.get('path');
-
-        let url = `#page=fragment-editor&fragmentId=${fragmentId}`;
-        if (path) {
-            url += `&path=${path}`;
-        }
-        return url;
+        return getFragmentEditorHref(fragmentId);
     }
 
     promptDiscardChanges() {

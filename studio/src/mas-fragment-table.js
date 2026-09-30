@@ -4,6 +4,7 @@ import { extractLocaleFromPath, generateLinkToUse, getService, showToast, previe
 import { getFragmentName } from './translation/translation-utils.js';
 import Store, { toggleSelection } from './store.js';
 import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
+import { renderFragmentEditorLink } from './common/utils/fragment-editor-link.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from './constants.js';
 import { MasRepository } from './mas-repository.js';
@@ -103,6 +104,12 @@ class MasFragmentTable extends LitElement {
 
     get name() {
         return generateLinkToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
+    }
+
+    get nameCellContent() {
+        if (this.nested && !this.toggleExpand) return html`${this.data.locale}`;
+        return html`<div class="icon">${this.icon}</div>
+            ${getFragmentName(this.data)}`;
     }
 
     get price() {
@@ -266,10 +273,17 @@ class MasFragmentTable extends LitElement {
                               @click=${(e) => e.stopPropagation()}
                           ></sp-checkbox>`
                         : ''}
-                    ${this.nested && !this.toggleExpand
-                        ? html`${data.locale}`
-                        : html`<div class="icon">${this.icon}</div>
-                              ${getFragmentName(data)}`}
+                    ${renderFragmentEditorLink({
+                        fragmentId: data.id,
+                        content: this.nameCellContent,
+                        onPlainClick: (event) => {
+                            // Stop the click here and re-run the row's own handler explicitly,
+                            // instead of letting it bubble to <sp-table-row>'s @click, so a plain
+                            // click still selects exactly once (not twice, which would cancel out).
+                            event.stopPropagation();
+                            this.handleNestedRowClick(event);
+                        },
+                    })}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
                 <sp-table-cell class="wf-status"

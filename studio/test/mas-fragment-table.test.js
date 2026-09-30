@@ -225,6 +225,16 @@ describe('MasFragmentTable', () => {
             expect(row.getAttribute('value')).to.equal('');
         });
 
+        it('renders the name cell as a real link to the fragment editor', async () => {
+            const fragmentStore = createFragmentStore({ id: 'fragment-1' });
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            await el.updateComplete;
+
+            const link = el.querySelector('sp-table-cell.name a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal('#page=fragment-editor&fragmentId=fragment-1');
+        });
+
         it('shows a checkbox in the name cell while selecting', async () => {
             Store.selecting.set(true);
             const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
@@ -266,6 +276,39 @@ describe('MasFragmentTable', () => {
 
             el.handleNestedRowClick({ composedPath: () => [titleCell] });
             expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('toggles Store.selection exactly once when clicking the real name-cell link, not just the cell', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const link = el.querySelector('sp-table-cell.name a');
+            expect(link).to.exist;
+            link.click();
+            await el.updateComplete;
+            expect(Store.selection.get()).to.deep.equal(['variation-1']);
+
+            link.click();
+            await el.updateComplete;
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('prevents default navigation on a plain click of the name-cell link', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const link = el.querySelector('sp-table-cell.name a');
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+            link.dispatchEvent(event);
+            expect(event.defaultPrevented).to.be.true;
         });
 
         it('does not toggle Store.selection when clicking the expand button', async () => {

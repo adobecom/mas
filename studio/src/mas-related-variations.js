@@ -7,6 +7,7 @@ import Store from './store.js';
 import Events from './events.js';
 import { extractLocaleFromPath } from './utils.js';
 import { shouldIgnoreRowClickForSelection, renderInheritedTagsNotice } from './common/utils/render-utils.js';
+import { getFragmentEditorHref } from './common/utils/fragment-editor-link.js';
 import { getPromotionTagFromFragment, getPromotionInfo, findPromotionProjectIdByTag } from './promotions/promotion-model.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { enrichPromoVariations, loadCardVariations } from './common/utils/items-loader.js';
@@ -110,10 +111,7 @@ export default class MasRelatedVariations extends LitElement {
 
     #navigateToVariation(variation) {
         if (!variation?.id) return;
-        const params = new URLSearchParams(window.location.hash.slice(1));
-        params.set('page', PAGE_NAMES.FRAGMENT_EDITOR);
-        params.set('fragmentId', variation.id);
-        window.open(`#${params.toString()}`, '_blank', 'noopener');
+        window.open(getFragmentEditorHref(variation.id), '_blank', 'noopener');
     }
 
     #handleVariationRowDblClick(event, variation) {
@@ -227,13 +225,9 @@ export default class MasRelatedVariations extends LitElement {
     #renderVariationTitleCell(variation) {
         const title = variation.title || 'no title';
         if (!variation?.id) return html`<sp-table-cell>${title}</sp-table-cell>`;
-        const params = new URLSearchParams(window.location.hash.slice(1));
-        params.set('page', PAGE_NAMES.FRAGMENT_EDITOR);
-        params.set('fragmentId', variation.id);
-        const href = `#${params.toString()}`;
         return html`<sp-table-cell>
             <a
-                href=${href}
+                href=${getFragmentEditorHref(variation.id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 @click=${(e) => e.stopPropagation()}

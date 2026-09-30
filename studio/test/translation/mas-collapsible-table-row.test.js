@@ -23,6 +23,7 @@ describe('MasCollapsibleTableRow', () => {
     let sandbox;
 
     const createMockTopLevelCard = (options = {}) => ({
+        id: options.id,
         path: options.path || '/content/dam/mas/acom/en_US/cards/test',
         title: options.title !== undefined ? options.title : 'Test Card',
         studioPath: options.studioPath !== undefined ? options.studioPath : 'merch-card: ACOM / Test Card',
@@ -614,6 +615,43 @@ describe('MasCollapsibleTableRow', () => {
             titleCell.click();
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.include(topLevelCard.path);
+        });
+
+        it('renders the title cell as a real link to the fragment editor', async () => {
+            const topLevelCard = createMockTopLevelCard({ id: 'test-id', title: 'My Title' });
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            const link = row.querySelector('a');
+            expect(link).to.exist;
+            expect(link.textContent.trim()).to.equal('My Title');
+            expect(link.getAttribute('href')).to.include('page=fragment-editor');
+        });
+
+        it('should add path to selectedCards when the real title link, not just the cell, is clicked', async () => {
+            const topLevelCard = createMockTopLevelCard({ id: 'test-id', title: 'My Title' });
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            const link = row.querySelector('a');
+            link.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(topLevelCard.path);
+        });
+
+        it('prevents default navigation on a plain click of the title link', async () => {
+            const topLevelCard = createMockTopLevelCard({ id: 'test-id', title: 'My Title' });
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            const link = row.querySelector('a');
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+            link.dispatchEvent(event);
+            expect(event.defaultPrevented).to.be.true;
         });
 
         it('should not change selectedCards when expand button is clicked', async () => {

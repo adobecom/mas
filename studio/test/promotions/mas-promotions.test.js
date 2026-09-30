@@ -70,6 +70,7 @@ describe('MasPromotions', () => {
             loadPromotions: sandbox.stub().callsFake(async () => {
                 Store.promotions.list.loading.set(false);
             }),
+            clearStagedTag: sandbox.stub().resolves(),
             aem: {
                 tags: {
                     create: sandbox.stub().resolves(),

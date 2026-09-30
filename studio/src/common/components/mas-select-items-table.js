@@ -13,7 +13,7 @@ import {
     loadSelectedPlaceholders,
     loadSelectedFragments,
 } from '../utils/items-loader.js';
-import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath, getOfferName } from '../utils/render-utils.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 import { Fragment } from '../../aem/fragment.js';
 
@@ -45,8 +45,8 @@ class MasSelectItemsTable extends LitElement {
         variationCells: { type: Array },
         variationColumns: { type: Array },
         hideVariationExpand: { type: Boolean },
-        sortBy: { type: String, state: true },
-        sortDirection: { type: String, state: true },
+        sortBy: { type: String },
+        sortDirection: { type: String },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -271,19 +271,19 @@ class MasSelectItemsTable extends LitElement {
         return this.#sortItems(visible);
     }
 
-    #offerName(item) {
-        return item?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title ?? '';
-    }
-
     #sortItems(items) {
-        if (this.sortBy !== 'offer') return items;
+        if (this.sortBy !== 'offer' || this.viewOnlyFragmentsFetchedByParent) return items;
         const direction = this.sortDirection === 'desc' ? -1 : 1;
-        return [...items].sort((a, b) => this.#offerName(a).localeCompare(this.#offerName(b)) * direction);
+        return [...items].sort((a, b) => getOfferName(a).localeCompare(getOfferName(b)) * direction);
     }
 
     #onSorted({ detail: { sortKey, sortDirection } }) {
         this.sortBy = sortKey;
         this.sortDirection = sortDirection;
+        if (!this.viewOnlyFragmentsFetchedByParent) return;
+        this.dispatchEvent(
+            new CustomEvent('view-only-sort', { detail: { sortKey, sortDirection }, bubbles: true, composed: true }),
+        );
     }
 
     get selectedInTable() {

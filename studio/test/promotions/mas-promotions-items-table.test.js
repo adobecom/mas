@@ -215,6 +215,88 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.viewOnlyFragments.length).to.equal(60);
             el.remove();
         });
+
+        async function mountSortableCards(pathCount) {
+            const paths = Array.from({ length: pathCount }, (_, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+            const offerName = (path) => `Offer ${String(pathCount - paths.indexOf(path)).padStart(2, '0')}`;
+            Store.promotions.selectedCards.set(paths);
+            const getFragmentByPath = sandbox.stub().callsFake((path) =>
+                Promise.resolve({
+                    path,
+                    id: path,
+                    title: path,
+                    model: { path: CARD_MODEL_PATH },
+                    fields: [],
+                    tags: [{ id: `mas:product_code/${path}`, title: offerName(path) }],
+                }),
+            );
+            const el = createItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            await waitUntil(() => el.viewOnlyFragments.length === 25 && !el.viewOnlyLoading);
+            return { el, paths, getFragmentByPath };
+        }
+
+        function fireSort(el, sortDirection) {
+            el.shadowRoot.querySelector('mas-select-items-table').dispatchEvent(
+                new CustomEvent('view-only-sort', {
+                    detail: { sortKey: 'offer', sortDirection },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+        }
+
+        it('sorts cards by offer ascending on open', async () => {
+            const { el, paths } = await mountSortableCards(30);
+            expect(el.viewOnlyFragments.map(({ path }) => path)).to.deep.equal(paths.slice(5).reverse());
+            const table = el.shadowRoot.querySelector('mas-select-items-table');
+            expect(table.sortBy).to.equal('offer');
+            expect(table.sortDirection).to.equal('asc');
+            el.remove();
+        });
+
+        it('sorts across all selected items, not only the loaded window', async () => {
+            const { el, paths } = await mountSortableCards(30);
+            fireSort(el, 'asc');
+            await waitUntil(() => !el.viewOnlyLoading && el.viewOnlyFragments[0].path === paths[29]);
+            expect(el.viewOnlyFragments.map(({ path }) => path)).to.deep.equal(paths.slice(5).reverse());
+            el.remove();
+        });
+
+        it('appends later windows below the sorted rows without reordering them', async () => {
+            const { el, paths } = await mountSortableCards(30);
+            fireSort(el, 'asc');
+            await waitUntil(() => !el.viewOnlyLoading && el.viewOnlyFragments[0].path === paths[29]);
+            const firstWindow = el.viewOnlyFragments.map(({ path }) => path);
+            fireLoadMore(el);
+            await waitUntil(() => el.viewOnlyFragments.length === 30);
+            const allRows = el.viewOnlyFragments.map(({ path }) => path);
+            expect(allRows.slice(0, 25)).to.deep.equal(firstWindow);
+            expect(allRows).to.deep.equal([...paths].reverse());
+            el.remove();
+        });
+
+        it('fetches each selected fragment once across sort and load-more', async () => {
+            const { el, getFragmentByPath } = await mountSortableCards(30);
+            fireSort(el, 'asc');
+            await waitUntil(() => !el.viewOnlyLoading && el.viewOnlyFragments.length === 25);
+            fireLoadMore(el);
+            await waitUntil(() => el.viewOnlyFragments.length === 30);
+            expect(getFragmentByPath.callCount).to.equal(30);
+            el.remove();
+        });
+
+        it('passes the active sort to the cards table header', async () => {
+            const { el } = await mountSortableCards(30);
+            fireSort(el, 'desc');
+            await el.updateComplete;
+            const table = el.shadowRoot.querySelector('mas-select-items-table');
+            expect(table.sortBy).to.equal('offer');
+            expect(table.sortDirection).to.equal('desc');
+            el.remove();
+        });
     });
 
     it('typeUppercased returns capitalized type string', async () => {

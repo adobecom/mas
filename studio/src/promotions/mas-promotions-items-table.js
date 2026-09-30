@@ -4,7 +4,8 @@ import { styles as tableStyles } from '../common/components/mas-select-items-tab
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
-import { applySearchSurfaceFromPath, renderCopyableValueCell } from '../common/utils/render-utils.js';
+import { applySearchSurfaceFromPath, getOfferName, renderCopyableValueCell } from '../common/utils/render-utils.js';
+import { OFFER_DATA_CONCURRENCY_LIMIT, processConcurrently } from '../common/utils/item-loading.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
@@ -121,6 +122,7 @@ class MasPromotionsItemsTable extends LitElement {
         fragmentHasEmptyGeosVariation: { type: Boolean, state: true },
         relatedPagesDialogOpen: { type: Boolean, state: true },
         offersSortDirection: { type: String, state: true },
+        cardsSortDirection: { type: String, state: true },
     };
 
     #loadedPathsKey = null;
@@ -129,6 +131,9 @@ class MasPromotionsItemsTable extends LitElement {
     itemsSelection = new ItemsSelectionController(this);
     #allSelectedPaths = [];
     #visibleCount = 0;
+    #loadedByPath = new Map();
+    #prefetchedByPath = new Map();
+    #offerNameByPath = new Map();
     #offerRecordsHydratedSeen = 0;
     #promoVariationProbe = null;
 
@@ -148,6 +153,7 @@ class MasPromotionsItemsTable extends LitElement {
         this.fragmentHasEmptyGeosVariation = false;
         this.relatedPagesDialogOpen = false;
         this.offersSortDirection = 'asc';
+        this.cardsSortDirection = 'asc';
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
@@ -294,6 +300,8 @@ class MasPromotionsItemsTable extends LitElement {
     async #loadSelected(paths) {
         this.#processAbortController?.abort();
         this.#allSelectedPaths = paths;
+        this.#loadedByPath = new Map();
+        this.#prefetchedByPath = new Map();
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
         // Probe every selected card's promo variations in a single recursive folder search
@@ -305,7 +313,43 @@ class MasPromotionsItemsTable extends LitElement {
             this.viewOnlyLoading = false;
             return;
         }
+        await this.#loadSelectedInOrder();
+    }
+
+    #onViewOnlySort({ detail: { sortKey, sortDirection } }) {
+        if (sortKey !== 'offer') return;
+        this.cardsSortDirection = sortDirection;
+        void this.#loadSelectedInOrder();
+    }
+
+    // Offer names are known before loading windows so each window lands at the bottom in order.
+    async #loadSelectedInOrder() {
+        if (this.type === TABLE_TYPE.CARDS && this.cardsSortDirection) {
+            this.#processAbortController?.abort();
+            this.#processAbortController = new AbortController();
+            const signal = this.#processAbortController.signal;
+            this.viewOnlyLoading = true;
+            const sortedPaths = await this.#sortPathsByOfferName(this.#allSelectedPaths);
+            if (signal.aborted) return;
+            this.#allSelectedPaths = sortedPaths;
+        }
+        this.#visibleCount = 0;
         await this.#loadNextSelectedWindow();
+    }
+
+    async #sortPathsByOfferName(paths) {
+        const unnamed = paths.filter((path) => !this.#offerNameByPath.has(path));
+        await processConcurrently(
+            unnamed,
+            async (path) => {
+                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path)).catch(() => null);
+                if (fragment) this.#prefetchedByPath.set(path, fragment);
+                this.#offerNameByPath.set(path, getOfferName(fragment));
+            },
+            OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+        const direction = this.cardsSortDirection === 'desc' ? -1 : 1;
+        return [...paths].sort((a, b) => this.#offerNameByPath.get(a).localeCompare(this.#offerNameByPath.get(b)) * direction);
     }
 
     async #probeAllPromoVariations(paths) {
@@ -332,11 +376,18 @@ class MasPromotionsItemsTable extends LitElement {
         this.#processAbortController = new AbortController();
         const signal = this.#processAbortController.signal;
         this.viewOnlyLoading = true;
-        await loadSelectedFragments(slice, this.type, this.repository, {
+        const unloaded = slice.filter((path) => !this.#loadedByPath.has(path));
+        await loadSelectedFragments(unloaded, this.type, this.repository, {
             signal,
+            prefetched: this.#prefetchedByPath,
             onItems: (items) => {
                 if (signal.aborted) return;
-                this.viewOnlyFragments = start === 0 ? items : [...this.viewOnlyFragments, ...items];
+                for (const item of items) {
+                    this.#loadedByPath.set(item.path, item);
+                    this.#offerNameByPath.set(item.path, getOfferName(item));
+                }
+                const windowItems = slice.map((path) => this.#loadedByPath.get(path)).filter(Boolean);
+                this.viewOnlyFragments = start === 0 ? windowItems : [...this.viewOnlyFragments, ...windowItems];
                 this.#visibleCount = end;
                 if (this.type === TABLE_TYPE.CARDS) {
                     this.#syncExistingPromoVariations(items, signal);
@@ -1056,7 +1107,10 @@ class MasPromotionsItemsTable extends LitElement {
                 .renderActionsCell=${(item) => this.#renderActionsCell(item)}
                 .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
                 .viewOnlyHasMore=${this.#hasMoreSelected}
+                .sortBy=${'offer'}
+                .sortDirection=${this.cardsSortDirection}
                 @view-only-load-more=${() => this.#loadMore()}
+                @view-only-sort=${(e) => this.#onViewOnlySort(e)}
                 @view-related-pages=${() => this.#openRelatedPagesDialog()}
                 @show-toast=${this.#showToast}
             >

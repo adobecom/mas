@@ -2008,4 +2008,27 @@ describe('MasSelectItemsTable column overrides and sorting', () => {
         await el.updateComplete;
         expect(el.itemsToDisplay.map((i) => i.path)).to.deep.equal(['/p/a', '/p/b', '/p/c']);
     });
+
+    it('delegates the offer sort to the parent when it fetches the viewOnly rows', async () => {
+        const rows = [createCard('/p/a', 'A', 'Zebra'), createCard('/p/b', 'B', 'Acrobat')];
+        const el = await fixture(
+            html`<mas-select-items-table
+                .type=${TABLE_TYPE.CARDS}
+                .viewOnly=${true}
+                .viewOnlyFragmentsFetchedByParent=${true}
+                .viewOnlyFragments=${rows}
+            ></mas-select-items-table>`,
+        );
+        const onSort = sinon.spy();
+        el.addEventListener('view-only-sort', onSort);
+        const offerHeader = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].find(
+            (h) => h.getAttribute('sort-key') === 'offer',
+        );
+        offerHeader.dispatchEvent(
+            new CustomEvent('sorted', { detail: { sortKey: 'offer', sortDirection: 'asc' }, bubbles: true }),
+        );
+        await el.updateComplete;
+        expect(onSort.firstCall.args[0].detail).to.deep.equal({ sortKey: 'offer', sortDirection: 'asc' });
+        expect(el.itemsToDisplay.map((i) => i.path)).to.deep.equal(['/p/a', '/p/b']);
+    });
 });

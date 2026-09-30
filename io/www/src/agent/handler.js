@@ -1,6 +1,6 @@
 import zlib from 'zlib';
 import openwhisk from 'openwhisk';
-import { resolveFragmentId } from './product-fragment-map.js';
+import { SEGMENTS, resolveProduct } from './product-fragment-map.js';
 import { flattenOffer } from './flatten.js';
 
 function response(statusCode, body) {
@@ -21,13 +21,20 @@ function parseFragmentBody(result) {
 }
 
 async function main(params, { openwhiskFactory = openwhisk } = {}) {
-    const { productName, locale, pzn, country, api_key: apiKey } = params;
+    const { productName, locale, segment = 'individual', pzn, country, api_key: apiKey } = params;
     if (!productName || !locale) {
         return response(400, { message: 'requested parameters productName & locale are not present' });
     }
-    const fragmentId = resolveFragmentId(productName);
-    if (!fragmentId) {
+    if (!SEGMENTS.includes(segment)) {
+        return response(400, { message: `unknown segment '${segment}', expected one of ${SEGMENTS.join(', ')}` });
+    }
+    const product = resolveProduct(productName);
+    if (!product) {
         return response(404, { message: `unknown product '${productName}'` });
+    }
+    const fragmentId = product[segment];
+    if (!fragmentId) {
+        return response(404, { message: `no ${segment} offer for product '${productName}'` });
     }
 
     const fragmentParams = { id: fragmentId, locale };
@@ -65,7 +72,7 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
     }
 
     const flat = await Promise.race([flattenOffer(parseFragmentBody(result)), deadline(15000, 'price hydration')]);
-    return response(200, { ...flat, pzn: pzn ?? null });
+    return response(200, { ...flat, segment, pzn: pzn ?? null });
 }
 
 export { main };

@@ -1,9 +1,9 @@
 # BCOS tool: resolve a MAS offer
 
 `/mas/io/agent` is a proof-of-concept HTTP action for Brand Concierge (BCOS).
-It resolves a product name through the static map in `product-fragment-map.js`,
-invokes the sibling `fragment` action, hydrates prices and authored terms in
-Node.js, and returns one flat offer record.
+It resolves a product name and audience segment through the static map in
+`product-fragment-map.js`, invokes the sibling `fragment` action, hydrates
+prices and authored terms in Node.js, and returns one flat offer record.
 
 The repository does not contain an authoritative BCOS manifest schema. The
 HTTP and data contracts below are authoritative; translate the schema-neutral
@@ -13,13 +13,14 @@ confirmed.
 ## HTTP endpoint
 
 ```http
-GET /mas/io/agent?productName=<name>&locale=<locale>[&api_key=<key>][&pzn=<pzn>][&country=<country>]
+GET /mas/io/agent?productName=<name>&locale=<locale>[&segment=<segment>][&api_key=<key>][&pzn=<pzn>][&country=<country>]
 ```
 
 | Parameter     | Required | Description                                                                     |
 | ------------- | -------- | ------------------------------------------------------------------------------- |
 | `productName` | yes      | Product intent resolved case-insensitively through the static product map.      |
 | `locale`      | yes      | Locale passed to the `fragment` action.                                         |
+| `segment`     | no       | `individual` (default), `team`, or `edu`; selects the product's fragment.       |
 | `api_key`     | no       | Passed to the `fragment` action when supplied.                                  |
 | `pzn`         | no       | Pricing zone passed to the `fragment` action and echoed as `null` when omitted. |
 | `country`     | no       | Country passed to the `fragment` action.                                        |
@@ -28,13 +29,28 @@ GET /mas/io/agent?productName=<name>&locale=<locale>[&api_key=<key>][&pzn=<pzn>]
 web page (or BC agent) reads them there and passes them through. They are page
 context, not model-selected inputs.
 
+## Product map
+
+`PRODUCT_FRAGMENT_MAP` maps each product to one Brand Concierge product card
+(variant `brand-concierge-product`) per segment, sourced from
+`/content/dam/mas/sandbox/en_US`. A card's segment comes from its tags:
+
+| Segment      | Tags                                                          |
+| ------------ | ------------------------------------------------------------- |
+| `individual` | `mas:customer_segment/individual` + `mas:market_segments/com` |
+| `team`       | `mas:customer_segment/team` + `mas:market_segments/com`       |
+| `edu`        | `mas:customer_segment/individual` + `mas:market_segments/edu` |
+
+Not every product has a card for every segment.
+
 `__ow_action_name` is OpenWhisk runtime metadata, not a public query
 parameter. The handler uses it to derive the sibling `fragment` action name.
 
 ## Processing contract
 
-1. Reject missing `productName` or `locale`.
-2. Resolve the product to a fragment ID through `PRODUCT_FRAGMENT_MAP`.
+1. Reject missing `productName` or `locale`, and an unknown `segment`.
+2. Resolve the product and segment to a fragment ID through
+   `PRODUCT_FRAGMENT_MAP`.
 3. Invoke the sibling `fragment` action with the fragment ID, locale, and any
    supplied `api_key`, `pzn`, and `country`.
 4. Base64-decode and Brotli-decompress the fragment response when its
@@ -69,6 +85,7 @@ The action returns HTTP 200 with one JSON offer record.
 | ------------------- | -------------- | -------------------------------------------------------------------- |
 | `fragment`          | string         | Resolved fragment ID.                                                |
 | `productName`       | string         | Hydrated card title.                                                 |
+| `segment`           | string         | Requested segment (`individual` when omitted).                       |
 | `pzn`               | string or null | Requested pricing zone.                                              |
 | `badge`             | string or null | Card badge text.                                                     |
 | `cta_label`         | string or null | Authored CTA text; checkout URLs are not hydrated.                   |
@@ -102,16 +119,19 @@ Other non-excluded MAS tags may also appear as tag-derived top-level fields.
 | --------------- | ------------------------------------------------- |
 | 400             | `productName` is missing.                         |
 | 400             | `locale` is missing.                              |
+| 400             | `segment` is not `individual`, `team`, or `edu`.  |
 | 404             | The product is not in the static product map.     |
+| 404             | The product has no fragment for the segment.      |
 | upstream status | The `fragment` action returns a non-200 response. |
 | 502             | Invoking the `fragment` action throws.            |
 
 ## BCOS registration
 
 See [`bcos-tools.json`](./bcos-tools.json) for the tool metadata sample — the
-LLM `input_schema` (`productName` enum + `pzn`), the context-injected
-`query_template` (`locale`/`country` from the page's `mas-commerce-service`,
-`api_key` from a BCOS-held secret), and the `multimodal` card mapping. Field
+LLM `input_schema` (`productName` and `segment` enums + `pzn`), the
+context-injected `query_template` (`locale`/`country` from the page's
+`mas-commerce-service`, `api_key` from a BCOS-held secret), and the
+`multimodal` card mapping. Field
 names and registration format must follow the authoritative BCOS manifest
 schema rather than that illustrative local format.
 

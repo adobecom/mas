@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import { PAGE_NAMES, QUICK_ACTION, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
 import Store from '../../src/store.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -10,8 +10,24 @@ import Events from '../../src/events.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { SURFACES } from '../../src/constants.js';
+import { UserFriendlyError } from '../../src/utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation-editor.js';
+
+const mockFragmentCache = {
+    get: () => null,
+    add: () => {},
+    has: () => false,
+    remove: () => {},
+};
+if (!customElements.get('aem-fragment')) {
+    customElements.define(
+        'aem-fragment',
+        class extends HTMLElement {
+            cache = mockFragmentCache;
+        },
+    );
+}
 
 describe('MasTranslationEditor', () => {
     let sandbox;
@@ -1793,6 +1809,225 @@ describe('MasTranslationEditor', () => {
             dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
             await el.updateComplete;
             expect(el.showLangSelectedEmptyState).to.be.true;
+        });
+    });
+
+    describe('duplicate translation project (editor floating bar)', () => {
+        let mockRepository;
+
+        const withStatus = (fragmentData, status) => ({
+            ...fragmentData,
+            fields: fragmentData.fields.map((field) =>
+                field.name === 'status' ? { ...field, values: status ? [status] : [] } : field,
+            ),
+        });
+
+        const loadExistingProject = async (fragmentData = createMockFragment()) => {
+            Store.translationProjects.translationProjectId.set('test-fragment-id');
+            mockRepository = createMockRepository();
+            mockRepository.aem.sites.cf.fragments.getById.resolves(fragmentData);
+            mockRepository.loadTranslationProjects = sandbox.stub().resolves();
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await waitUntil(() => !el.isLoading && el.translationProject, 'project should load');
+            await el.updateComplete;
+            return el;
+        };
+
+        it('enables the Duplicate quick action for an existing, saved project', async () => {
+            const el = await loadExistingProject();
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.false;
+        });
+
+        it('disables the Duplicate quick action for a new, unsaved project', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+        });
+
+        it('disables the Duplicate quick action while the project has unsaved changes', async () => {
+            const el = await loadExistingProject();
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'Test-Translation-Project-Edited';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+        });
+
+        it('disables the Duplicate quick action for QUEUED projects', async () => {
+            const el = await loadExistingProject(withStatus(createMockFragment(), 'QUEUED'));
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+        });
+
+        it('disables the Duplicate quick action for RUNNING projects', async () => {
+            const el = await loadExistingProject(withStatus(createMockFragment(), 'RUNNING'));
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+        });
+
+        it('opens the duplicate dialog with a proposed "<title> copy" title and existing titles', async () => {
+            Store.translationProjects.list.data.value = [
+                new FragmentStore(new Fragment(createMockFragment({ id: 'other-id', title: 'Other-Project' }))),
+            ];
+            const el = await loadExistingProject();
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            expect(dialog.open).to.be.true;
+            expect(dialog.proposedTitle).to.equal('Test-Translation-Project copy');
+            expect(dialog.existingTitles).to.include('Other-Project');
+            expect(mockRepository.loadTranslationProjects.calledOnce).to.be.true;
+        });
+
+        it('does nothing when Duplicate is triggered while it is not allowed', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await el.updateComplete;
+            expect(el.duplicateDialogOpen).to.be.false;
+        });
+
+        it('duplicates the project and switches the editor to the new project on confirm', async () => {
+            const el = await loadExistingProject();
+            mockRepository.createFragment = sandbox
+                .stub()
+                .resolves(new Fragment(createMockFragment({ id: 'new-id', title: 'Test-Translation-Project copy' })));
+            mockRepository.aem.sites.cf.fragments.getById.resolves(
+                createMockFragment({ id: 'new-id', title: 'Test-Translation-Project copy' }),
+            );
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    detail: { title: 'Test-Translation-Project copy' },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            expect(mockRepository.createFragment.calledOnce).to.be.true;
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(Store.translationProjects.translationProjectId.get()).to.equal('new-id');
+            expect(el.isNewTranslationProject).to.be.false;
+            expect(el.translationProject.title).to.equal('Test-Translation-Project copy');
+        });
+
+        it('shows a single error toast and does not switch project when duplication fails', async () => {
+            const el = await loadExistingProject();
+            const consoleErrorStub = sandbox.stub(console, 'error');
+            mockRepository.createFragment = sandbox.stub().rejects(new Error('Failed to duplicate project.'));
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    detail: { title: 'Test-Translation-Project copy' },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            expect(Store.translationProjects.translationProjectId.get()).to.equal('test-fragment-id');
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(1);
+            expect(negativeToasts[0].args[0].content).to.equal('Failed to duplicate project.');
+            consoleErrorStub.restore();
+        });
+
+        it('does not show a second toast when the repository already toasted the failure', async () => {
+            const el = await loadExistingProject();
+            const consoleErrorStub = sandbox.stub(console, 'error');
+            mockRepository.createFragment = sandbox.stub().resolves(null);
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    detail: { title: 'Test-Translation-Project copy' },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(0);
+            consoleErrorStub.restore();
+        });
+
+        it('shows the UserFriendlyError message when duplication fails with one', async () => {
+            const el = await loadExistingProject();
+            const consoleErrorStub = sandbox.stub(console, 'error');
+            mockRepository.createFragment = sandbox.stub().rejects(new UserFriendlyError('That title is already taken.'));
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    detail: { title: 'Test-Translation-Project copy' },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(1);
+            expect(negativeToasts[0].args[0].content).to.equal('That title is already taken.');
+            consoleErrorStub.restore();
+        });
+
+        it('shows the duplicating overlay and disables the quick action while duplication is in progress', async () => {
+            const el = await loadExistingProject();
+            let resolveCreate;
+            mockRepository.createFragment = sandbox.stub().callsFake(
+                () =>
+                    new Promise((resolve) => {
+                        resolveCreate = resolve;
+                    }),
+            );
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    detail: { title: 'Test-Translation-Project copy' },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.duplicating-overlay')).to.exist;
+            expect(el.shadowRoot.querySelector('mas-quick-actions').disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+            resolveCreate(new Fragment(createMockFragment({ id: 'new-id', title: 'Test-Translation-Project copy' })));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.duplicating-overlay')).to.not.exist;
+        });
+
+        it('cancels the duplicate dialog without duplicating', async () => {
+            const el = await loadExistingProject();
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(new CustomEvent('duplicate-cancelled', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(mockRepository.createFragment.called).to.be.false;
         });
     });
 });

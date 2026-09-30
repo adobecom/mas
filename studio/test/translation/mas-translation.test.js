@@ -1,11 +1,12 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import { PAGE_NAMES } from '../../src/constants.js';
 import Store from '../../src/store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import { UserFriendlyError } from '../../src/utils.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation.js';
@@ -323,8 +324,48 @@ describe('MasTranslation', () => {
             expect(deleteItem).to.exist;
         });
 
-        it('should have disabled Duplicate menu item', async () => {
+        it('should enable Duplicate menu item for a Draft project (no status)', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            expect(duplicateItem).to.exist;
+            expect(duplicateItem.disabled).to.be.false;
+        });
+
+        it('should enable Duplicate menu item for a project Sent to loc', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null, 'ASYNC_PROCESSING')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            expect(duplicateItem).to.exist;
+            expect(duplicateItem.disabled).to.be.false;
+        });
+
+        it('should enable Duplicate menu item for a Failed project', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null, 'FAILED')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            expect(duplicateItem).to.exist;
+            expect(duplicateItem.disabled).to.be.false;
+        });
+
+        it('should disable Duplicate menu item for a project in progress (QUEUED or RUNNING)', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null, 'QUEUED')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            expect(duplicateItem).to.exist;
+            expect(duplicateItem.disabled).to.be.true;
+        });
+
+        it('should disable Duplicate menu item for a project that is Running', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null, 'RUNNING')];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
@@ -781,6 +822,244 @@ describe('MasTranslation', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(loadingDuringDelete).to.be.true;
             expect(Store.translationProjects.list.loading.get()).to.be.false;
+        });
+    });
+
+    describe('duplicate translation project execution', () => {
+        let toastEmitStub;
+        let querySelectorStub;
+        let originalQuerySelector;
+        let createFragmentStub;
+        let loadTranslationProjectsStub;
+
+        beforeEach(() => {
+            toastEmitStub = sinon.stub(Events.toast, 'emit');
+            createFragmentStub = sinon.stub().resolves(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            loadTranslationProjectsStub = sinon.stub().resolves();
+            originalQuerySelector = document.querySelector.bind(document);
+            querySelectorStub = sinon.stub(document, 'querySelector').callsFake((selector) => {
+                if (selector === 'mas-repository') {
+                    return {
+                        createFragment: createFragmentStub,
+                        getTranslationsPath: () => '/content/dam/mas/acom/translations',
+                        loadTranslationProjects: loadTranslationProjectsStub,
+                    };
+                }
+                return originalQuerySelector(selector);
+            });
+        });
+
+        afterEach(() => {
+            toastEmitStub.restore();
+            querySelectorStub.restore();
+        });
+
+        it('opens the duplicate dialog with a proposed "<title> copy" title', async () => {
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            expect(dialog.open).to.be.true;
+            expect(dialog.proposedTitle).to.equal('Project 1 copy');
+        });
+
+        it('creates the duplicate and reloads the list on confirm', async () => {
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            expect(createFragmentStub.calledOnce).to.be.true;
+            expect(loadTranslationProjectsStub.calledOnce).to.be.true;
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(el.duplicating).to.be.false;
+        });
+
+        it('shows a single error toast and does not reload the list when duplication fails', async () => {
+            createFragmentStub.rejects(new Error('Failed to duplicate project.'));
+            const consoleErrorStub = sinon.stub(console, 'error');
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            expect(loadTranslationProjectsStub.called).to.be.false;
+            expect(el.duplicating).to.be.false;
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(1);
+            expect(negativeToasts[0].args[0].content).to.equal('Failed to duplicate project.');
+            consoleErrorStub.restore();
+        });
+
+        it('does not show a second toast when the repository already toasted the failure', async () => {
+            // createFragment resolving falsy simulates repository.processError having already shown a negative toast.
+            createFragmentStub.resolves(null);
+            const consoleErrorStub = sinon.stub(console, 'error');
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            expect(loadTranslationProjectsStub.called).to.be.false;
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(0);
+            consoleErrorStub.restore();
+        });
+
+        it('shows the UserFriendlyError message when duplication fails with one', async () => {
+            createFragmentStub.rejects(new UserFriendlyError('That title is already taken.'));
+            const consoleErrorStub = sinon.stub(console, 'error');
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(1);
+            expect(negativeToasts[0].args[0].content).to.equal('That title is already taken.');
+            consoleErrorStub.restore();
+        });
+
+        it('shows the duplicating overlay while a duplication is in progress', async () => {
+            let resolveCreate;
+            createFragmentStub.callsFake(
+                () =>
+                    new Promise((resolve) => {
+                        resolveCreate = resolve;
+                    }),
+            );
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.duplicating-overlay')).to.exist;
+            resolveCreate(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.duplicating-overlay')).to.not.exist;
+        });
+
+        it('disables the Duplicate menu item while a duplication is in progress', async () => {
+            let resolveCreate;
+            createFragmentStub.callsFake(
+                () =>
+                    new Promise((resolve) => {
+                        resolveCreate = resolve;
+                    }),
+            );
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            expect(duplicateItem.disabled).to.be.false;
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await el.updateComplete;
+            expect(duplicateItem.disabled).to.be.true;
+            resolveCreate(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            await el.updateComplete;
+            expect(duplicateItem.disabled).to.be.false;
+        });
+
+        it('closes the duplicate dialog without duplicating when cancelled', async () => {
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(new CustomEvent('duplicate-cancelled', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(createFragmentStub.called).to.be.false;
+        });
+
+        it('ignores duplicate clicks while a duplication is already in progress', async () => {
+            let resolveCreate;
+            createFragmentStub.callsFake(
+                () =>
+                    new Promise((resolve) => {
+                        resolveCreate = resolve;
+                    }),
+            );
+            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
+            const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            dialog.dispatchEvent(
+                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
+            );
+            await el.updateComplete;
+            expect(el.duplicating).to.be.true;
+
+            duplicateItem.click();
+            await el.updateComplete;
+            expect(el.duplicateDialogOpen).to.be.false;
+
+            resolveCreate(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            await waitUntil(() => createFragmentStub.calledOnce, 'duplication should finish');
+            expect(createFragmentStub.calledOnce).to.be.true;
         });
     });
 });

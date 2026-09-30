@@ -113,4 +113,109 @@ test.describe('M@S Studio Boot', () => {
             expect(consoleErrors.some((text) => text.includes('invalid studio-versions block'))).toBe(true);
         });
     });
+
+    // @MAS-Studio-Boot-spinner — spinner shows while loading and is removed once Studio loads
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
+        const testPage = studioUrl(baseURL, features[4]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+
+        await test.step('step-1: Served page contains the spinner', async () => {
+            const response = await page.goto(testPage);
+            expect(await response.text()).toContain('class="studio-boot"');
+        });
+
+        await test.step('step-2: Spinner is removed once Studio loads', async () => {
+            await waitForStudio(page);
+            await expect(bootPage.spinner).toHaveCount(0);
+            await expect(bootPage.error).toBeHidden();
+        });
+
+        await test.step('step-3: Errors after boot never show the boot error', async () => {
+            await page.evaluate(() => {
+                const filename = `${location.origin}/studio/src/late.js`;
+                window.dispatchEvent(new ErrorEvent('error', { filename, message: 'nala late error' }));
+            });
+            await expect(bootPage.error).toBeHidden();
+        });
+    });
+
+    // @MAS-Studio-Boot-failure-missing-module — a 404 on studio.js shows the error; Reload adds cb=1
+    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[5];
+        const testPage = studioUrl(baseURL, features[5]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 404, body: 'not found' }),
+        );
+
+        await test.step('step-1: Load Studio with studio.js failing', async () => {
+            await page.goto(testPage);
+        });
+
+        await test.step('step-2: Boot error replaces the spinner', async () => {
+            await expect(bootPage.error).toBeVisible();
+            await expect(bootPage.spinner).toHaveCount(0);
+        });
+
+        await test.step('step-3: Reload adds cb=1 and keeps the hash', async () => {
+            await bootPage.reloadButton.click();
+            await page.waitForURL((url) => url.searchParams.get('cb') === '1');
+            expect(new URL(page.url()).hash).toBe(features[5].browserParams);
+            await expect(bootPage.error).toBeVisible();
+        });
+    });
+
+    // @MAS-Studio-Boot-failure-link-error — a module importing a missing export (the stale-mix error) shows the error
+    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[6];
+        const testPage = studioUrl(baseURL, features[6]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: data.brokenModule }),
+        );
+
+        await test.step('step-1: Load Studio with a mismatched module', async () => {
+            await page.goto(testPage);
+        });
+
+        await test.step('step-2: Boot error is shown', async () => {
+            await expect(bootPage.error).toBeVisible();
+            await expect(bootPage.spinner).toHaveCount(0);
+        });
+    });
+
+    // @MAS-Studio-Boot-error-cleared-when-studio-loads — a non-fatal boot error does not stay over a working Studio
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[7];
+        const testPage = studioUrl(baseURL, features[7]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        const consoleErrors = [];
+        page.on('console', (message) => {
+            if (message.type() === 'error') consoleErrors.push(message.text());
+        });
+        await page.route(
+            (url) => url.pathname === data.throwingPath,
+            async (route) => {
+                const response = await route.fetch();
+                const body = await response.text();
+                await route.fulfill({ response, body: `${body}\nthrow new Error('nala benign boot error');\n` });
+            },
+        );
+
+        await test.step('step-1: Load Studio with mas.js throwing at the end', async () => {
+            await page.goto(testPage);
+            await waitForStudio(page);
+        });
+
+        await test.step('step-2: The error was detected, then cleared once Studio loaded', async () => {
+            expect(consoleErrors.some((text) => text.includes('[M@S Studio] boot failed'))).toBe(true);
+            await expect(bootPage.error).toBeHidden();
+        });
+    });
 });

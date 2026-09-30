@@ -35,4 +35,42 @@ export const features = [
         browserParams: '#locale=fr_FR&page=content&path=nala',
         tags: '@mas-studio @boot @regression',
     },
+    {
+        tcid: '5',
+        name: '@MAS-Studio-Boot-spinner',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '6',
+        name: '@MAS-Studio-Boot-failure-missing-module',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/studio/src/studio.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '7',
+        name: '@MAS-Studio-Boot-failure-link-error',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/studio/src/studio.js',
+            brokenModule: "import { nalaMissingExport } from './constants.js';\nconsole.log(nalaMissingExport);\n",
+        },
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '8',
+        name: '@MAS-Studio-Boot-error-cleared-when-studio-loads',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            throwingPath: '/web-components/dist/mas.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
 ];

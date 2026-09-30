@@ -1346,3 +1346,52 @@ mas-fragment-table .icon {
     border-radius: 4px;
     white-space: nowrap;
 }
+
+/* Boot overlay: fixed, so it takes no row in the body grid. */
+.studio-boot,
+.studio-boot-error {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 16px;
+    background-color: #f9f9f9;
+    font-family: Arial, sans-serif;
+}
+
+/* display: grid above would otherwise override the hidden attribute. */
+.studio-boot-error[hidden] {
+    display: none;
+}
+
+.studio-boot-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #d5d5d5;
+    border-top-color: #1473e6;
+    border-radius: 50%;
+    animation: studio-boot-spin 0.8s linear infinite;
+}
+
+.studio-boot-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@keyframes studio-boot-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .studio-boot-spinner {
+        animation-duration: 2.4s;
+    }
+}

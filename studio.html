@@ -272,7 +272,7 @@
                 "/studio/src/utils/version-transformer.js": "b93a9bd3",
                 "/studio/src/version-page.js": "0869cb97",
                 "/studio/src/version-repository.js": "cbcbf503",
-                "/studio/style.css": "02263196",
+                "/studio/style.css": "ff545297",
                 "/web-components/dist/lit-all.min.js": "8b2f8cbe",
                 "/web-components/dist/mas.js": "5ce3525c",
                 "/web-components/src/compare-chart-table-parser.js": "c60dc9d9",
@@ -301,6 +301,42 @@
                     }
                     return cacheSalt ? `${path}?v=${hash}-${cacheSalt}` : `${path}?v=${hash}`;
                 };
+
+                const bootAssetPath = /^\/(studio|web-components)\//;
+                const isBootAsset = (url) => {
+                    if (!url) return false;
+                    const parsed = new URL(url, location.href);
+                    return parsed.origin === location.origin && bootAssetPath.test(parsed.pathname);
+                };
+                const revealBootError = () => {
+                    document.querySelector('.studio-boot')?.remove();
+                    document.querySelector('.studio-boot-error')?.removeAttribute('hidden');
+                };
+                const onBootError = (event) => {
+                    const { target } = event;
+                    const element = target instanceof HTMLScriptElement || target instanceof HTMLLinkElement ? target : null;
+                    const url = element ? element.src || element.href : event.filename;
+                    if (!isBootAsset(url) && event.error?.name !== 'SyntaxError') return;
+                    console.error('[M@S Studio] boot failed', url);
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', revealBootError, { once: true });
+                    } else {
+                        revealBootError();
+                    }
+                };
+                const onReloadClick = (event) => {
+                    if (!event.target.closest?.('.studio-boot-error button')) return;
+                    const url = new URL(location.href);
+                    url.searchParams.set('cb', String(Number(cacheSalt || 0) + 1));
+                    location.assign(url.href);
+                };
+                window.addEventListener('error', onBootError, true);
+                document.addEventListener('click', onReloadClick);
+                customElements.whenDefined('mas-studio').then(() => {
+                    window.removeEventListener('error', onBootError, true);
+                    document.removeEventListener('click', onReloadClick);
+                    document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
+                });
 
                 const lit = '/web-components/dist/lit-all.min.js';
                 const prosemirror = '/studio/libs/prosemirror.js';
@@ -363,6 +399,7 @@
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
                 if (envOverride) studio.aemEnv = envOverride;
+                customElements.whenDefined('mas-studio').then(() => document.querySelector('.studio-boot')?.remove());
             }
             const context = {
                 profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
@@ -404,6 +441,14 @@
         <script src="https://www.adobe.com/libs/deps/imslib.min.js"></script>
     </head>
     <body class="spectrum spectrum--medium spectrum--light">
+        <div class="studio-boot" role="status">
+            <div class="studio-boot-spinner"></div>
+            <span class="studio-boot-label">Loading Studio…</span>
+        </div>
+        <div class="studio-boot-error" role="alert" hidden>
+            <p>Studio couldn't load. This can happen right after an update.</p>
+            <button type="button">Reload</button>
+        </div>
         <mas-commerce-service></mas-commerce-service>
         <main>
             <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>

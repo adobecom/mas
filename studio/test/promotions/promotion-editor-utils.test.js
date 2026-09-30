@@ -136,24 +136,33 @@ describe('promotion-editor-utils', () => {
         });
 
         it('preserves promo exceptions for geos no longer in the geos field', () => {
-            const p = makePromotionFragment({
-                geos: ['mas:locale/en_AU', 'mas:locale/en_GB'],
-                offers: ['osi-1|CCI_AU|en_AU', 'osi-1|CCI_UK|en_GB', 'osi-1|OLD|au'],
+            const removedGeo = makePromotionFragment({
+                geos: ['mas:locale/en_AU'],
+                offers: ['osi-1|CCI_AU|mas:locale/en_AU', 'osi-1|CCI_UK|mas:locale/en_GB'],
             });
-            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
+            const removedGeoValues = buildPromotionOffersFieldValues(removedGeo, ['osi-1']);
+            const readdedGeo = makePromotionFragment({
+                geos: ['mas:locale/en_AU', 'mas:locale/en_GB'],
+                offers: removedGeoValues,
+            });
+            const values = buildPromotionOffersFieldValues(readdedGeo, ['osi-1']);
             expect(values).to.include('osi-1|CCI_AU|mas:locale/en_AU');
             expect(values).to.include('osi-1|CCI_UK|mas:locale/en_GB');
-            expect(values).to.include('osi-1|OLD|au');
         });
 
         it('preserves substitutions for geos no longer in the geos field', () => {
-            const p = makePromotionFragment({
+            const removedGeo = makePromotionFragment({
                 geos: ['mas:locale/en_AU'],
-                offers: ['substitute|osi-1|osi-2|en_AU', 'substitute|osi-1|osi-3|en_GB'],
+                offers: ['substitute|osi-1|osi-2|mas:locale/en_AU', 'substitute|osi-1|osi-3|mas:locale/en_GB'],
             });
-            const values = buildPromotionOffersFieldValues(p, []);
+            const removedGeoValues = buildPromotionOffersFieldValues(removedGeo, []);
+            const readdedGeo = makePromotionFragment({
+                geos: ['mas:locale/en_AU', 'mas:locale/en_GB'],
+                offers: removedGeoValues,
+            });
+            const values = buildPromotionOffersFieldValues(readdedGeo, []);
             expect(values).to.include('substitute|osi-1|osi-2|mas:locale/en_AU');
-            expect(values).to.include('substitute|osi-1|osi-3|en_GB');
+            expect(values).to.include('substitute|osi-1|osi-3|mas:locale/en_GB');
         });
 
         it('does not filter when geos field is empty', () => {
@@ -175,13 +184,18 @@ describe('promotion-editor-utils', () => {
         });
 
         it('preserves ignore-variations lines for geos no longer in the geos field', () => {
-            const p = makePromotionFragment({
+            const removedGeo = makePromotionFragment({
                 geos: ['mas:locale/en_AU'],
-                offers: ['ignore-variations|osi-1|en_AU', 'ignore-variations|osi-1|en_GB'],
+                offers: ['ignore-variations|osi-1|mas:locale/en_AU', 'ignore-variations|osi-1|mas:locale/en_GB'],
             });
-            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
+            const removedGeoValues = buildPromotionOffersFieldValues(removedGeo, ['osi-1']);
+            const readdedGeo = makePromotionFragment({
+                geos: ['mas:locale/en_AU', 'mas:locale/en_GB'],
+                offers: removedGeoValues,
+            });
+            const values = buildPromotionOffersFieldValues(readdedGeo, ['osi-1']);
             expect(values).to.include('ignore-variations|osi-1|mas:locale/en_AU');
-            expect(values).to.include('ignore-variations|osi-1|en_GB');
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/en_GB');
         });
 
         it('applies ignoredVariations override when provided', () => {

@@ -26,9 +26,8 @@
 <sp-theme color="light" scale="medium">
 <h1 id="agent-api" tabindex="-1">Agent API <a class="header-anchor" href="#agent-api" href="#agent-api" title="Permalink to this heading">#</a></h1>
 <h2 id="introduction" tabindex="-1">Introduction <a class="header-anchor" href="#introduction" href="#introduction" title="Permalink to this heading">#</a></h2>
-<p>The Agent API returns one server-hydrated M@S offer object. Price and terms data are resolved in Node.js from the fragment’s WCS data, without browser APIs.</p>
-<p>Authored CTA labels are returned in an ordered <code>ctas</code> array. Checkout URLs are
-not returned or hydrated.</p>
+<p>Returns one M@S offer with server-hydrated prices, authored content, and CTA
+labels. Checkout URLs are not returned.</p>
 <h2 id="request" tabindex="-1">Request <a class="header-anchor" href="#request" href="#request" title="Permalink to this heading">#</a></h2>
 <pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&amp;locale=en_US&amp;api_key=&lt;api-key&gt;
 </code></pre>
@@ -64,156 +63,14 @@ not returned or hydrated.</p>
 <tr>
 <td><code>country</code></td>
 <td>No</td>
-<td>Country code forwarded to the fragment action and normalized for pricing hydration, for example <code>US</code>.</td>
+<td>Case-insensitive country code, for example <code>EG</code>. Defaults to the locale’s country and follows the fragment pipeline’s market and territory rules.</td>
 </tr>
 </tbody>
 </table>
 <p>Product names are matched case-insensitively and trimmed. Not every product has
-an offer for every audience; an unavailable combination returns 404.
-Use <code>&amp;pzn=edu</code> or <code>&amp;pzn=team</code> to select that audience.</p>
-<p>For teams, add <code>&amp;pzn=team</code>; for students and teachers, add <code>&amp;pzn=edu</code>.
-Omit <code>pzn</code> for individuals: <code>pzn=individual</code> and an empty <code>pzn</code> are not accepted.
-The agent passes only the selected fragment UUID, locale, API key, and any
-country to the fragment action; it does not pass <code>pzn</code>.</p>
+an offer for every audience; an unavailable combination returns 404.</p>
 <p>Browser integrations read <code>locale</code> and <code>country</code> from the page’s
 <code>mas-commerce-service</code>; these are page context, not model-selected inputs.</p>
-<h2 id="product-availability" tabindex="-1">Product availability <a class="header-anchor" href="#product-availability" href="#product-availability" title="Permalink to this heading">#</a></h2>
-<p>The static product map uses <code>brand-concierge-product</code> cards from
-<code>/content/dam/mas/brand-concierge/en_US</code>. It contains 20 products and 49 offers.
-Individual offers require no <code>pzn</code>; team and education offers use <code>pzn=team</code>
-and <code>pzn=edu</code>, respectively. Unsupported combinations return 404.</p>
-<table>
-<thead>
-<tr>
-<th>Product</th>
-<th>Individual</th>
-<th><code>pzn=team</code></th>
-<th><code>pzn=edu</code></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Creative Cloud Pro</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Creative Cloud Pro Plus</td>
-<td>No</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
-<tr>
-<td>Photography</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Acrobat Studio</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
-<tr>
-<td>Photoshop</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Adobe Firefly Pro</td>
-<td>Yes</td>
-<td>No</td>
-<td>No</td>
-</tr>
-<tr>
-<td>Adobe Premiere</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Illustrator</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>After Effects</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>InDesign</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Lightroom</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Acrobat Pro</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Acrobat Express</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Audition</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Animate</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Adobe Substance 3D Collection</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
-<tr>
-<td>Adobe Substance 3D Texturing</td>
-<td>Yes</td>
-<td>No</td>
-<td>No</td>
-</tr>
-<tr>
-<td>Acrobat Standard</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>AI Assistant for Acrobat</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
-<tr>
-<td><a href="http://Frame.io">Frame.io</a></td>
-<td>No</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
-</tbody>
-</table>
 <h2 id="response" tabindex="-1">Response <a class="header-anchor" href="#response" href="#response" title="Permalink to this heading">#</a></h2>
 <p>Example shape; prices and authored text vary by locale, offer, and publication
 state:</p>
@@ -241,11 +98,8 @@ education offers use <code>individual</code>/<code>edu</code>.
 <code>pzn</code> is <code>null</code> when omitted from the request.
 Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.</p>
-<p><code>fragment</code> is the exact UUID used to invoke the fragment action, even when the
-returned payload represents a different locale or variation.
-<code>ctas</code> contains one <code>{ &quot;label&quot;: &quot;...&quot; }</code> object per non-empty authored link or
-button, in authored order. It is <code>[]</code> when no CTAs exist and replaces the
-concatenated <code>cta_label</code> field. Checkout URLs are not returned or hydrated.</p>
+<p><code>ctas</code> contains one <code>{ &quot;label&quot;: &quot;...&quot; }</code> object per non-empty authored link or
+button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <table>
 <thead>
 <tr>
@@ -378,33 +232,6 @@ concatenated <code>cta_label</code> field. Checkout URLs are not returned or hyd
 </tbody>
 </table>
 <p>Other non-excluded authored MAS tags may add top-level fields.</p>
-<h2 id="api-contract-changes" tabindex="-1">API contract changes <a class="header-anchor" href="#api-contract-changes" href="#api-contract-changes" title="Permalink to this heading">#</a></h2>
-<table>
-<thead>
-<tr>
-<th>Previous contract</th>
-<th>Current contract</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>pzn</code> forwarded to the fragment action</td>
-<td>Only the mapped UUID selects the audience downstream; <code>pzn</code> is not forwarded.</td>
-</tr>
-<tr>
-<td>Concatenated <code>cta_label</code> string</td>
-<td>Ordered <code>ctas</code> array of <code>{ label }</code> objects, or <code>[]</code>.</td>
-</tr>
-<tr>
-<td><code>fragment</code> taken from the response payload</td>
-<td>Exact UUID passed to the fragment action, even if the payload ID differs.</td>
-</tr>
-<tr>
-<td><code>api_key</code> documented as optional</td>
-<td>Required registered client key; missing keys return 400.</td>
-</tr>
-</tbody>
-</table>
 <h2 id="errors" tabindex="-1">Errors <a class="header-anchor" href="#errors" href="#errors" title="Permalink to this heading">#</a></h2>
 <p>Errors return JSON with a <code>message</code> field.</p>
 <table>
@@ -437,22 +264,8 @@ concatenated <code>cta_label</code> field. Checkout URLs are not returned or hyd
 </tr>
 </tbody>
 </table>
-<p>Incomplete WCS caches may require network requests during hydration. Only the
-Node agent applies a 5-second timeout to each such WCS request; browser clients
-have no default fetch timeout.</p>
-<h3 id="hydration-geography" tabindex="-1">Hydration geography <a class="header-anchor" href="#hydration-geography" href="#hydration-geography" title="Permalink to this heading">#</a></h3>
-<p>Country codes are case-insensitive at the agent boundary: <code>country=eg</code> becomes
-<code>EG</code> before the fragment action is called, not only when its response is
-hydrated. This ensures prefetch and hydration use the same canonical country.</p>
-<p>The agent carries request <code>locale</code> and <code>country</code> into its pricing runtime even
-when the fragment contains no geography settings. If <code>country</code> is omitted,
-it derives the country from <code>locale</code>. The same surface-specific market
-restrictions and territory mapping used by the fragment pipeline determine
-the effective commerce country; for example, <code>es_PR</code> uses US pricing.</p>
-<p>Request geography overrides fragment-wide defaults, while authored per-price
-country and language overrides are preserved. Photoshop with
-<code>locale=en_US&amp;country=EG</code> therefore uses the prefetched Egypt offer instead of
-attempting an unnecessary US WCS lookup.</p>
+<p>Uncached WCS requests time out after 5 seconds. Fragment invocation is limited
+to 20 seconds and hydration to 15 seconds.</p>
 
 </sp-theme>
 </main>

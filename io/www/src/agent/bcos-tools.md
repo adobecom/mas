@@ -49,9 +49,9 @@ Omitting `pzn` selects the `individual` card. There is no separate `segment`
 query parameter. Not every product has a card for every audience.
 
 The current map contains 20 products and 49 offers: 18 individual, 18 team, and
-13 education cards. Creative Cloud Pro Plus and Frame.io are team-only. See the
-[product availability table](../../../../web-components/docs/src/agent.md#product-availability)
-for every supported product/audience combination. Cards with missing audience
+13 education cards. Creative Cloud Pro Plus and Frame.io are team-only. The
+[product map](./product-fragment-map.js) defines supported product/audience
+combinations. Cards with missing audience
 tags or unresolved product identity are not added to the map.
 
 `__ow_action_name` is OpenWhisk runtime metadata, not a public query

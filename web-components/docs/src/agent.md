@@ -2,10 +2,8 @@
 
 ## Introduction
 
-The Agent API returns one server-hydrated M@S offer object. Price and terms data are resolved in Node.js from the fragment's WCS data, without browser APIs.
-
-Authored CTA labels are returned in an ordered `ctas` array. Checkout URLs are
-not returned or hydrated.
+Returns one M@S offer with server-hydrated prices, authored content, and CTA
+labels. Checkout URLs are not returned.
 
 ## Request
 
@@ -19,49 +17,13 @@ GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&locale=en_US
 | `locale` | Yes | Adobe locale, for example `en_US`; used for fragment retrieval and pricing hydration. |
 | `api_key` | Yes | Registered MAS client API key forwarded to the fragment action. |
 | `pzn` | No | Agent-only audience selector: `edu` for students and teachers, or `team` for business plans. Omit for individual offers. Not forwarded to the fragment action. |
-| `country` | No | Country code forwarded to the fragment action and normalized for pricing hydration, for example `US`. |
+| `country` | No | Case-insensitive country code, for example `EG`. Defaults to the locale's country and follows the fragment pipeline's market and territory rules. |
 
 Product names are matched case-insensitively and trimmed. Not every product has
 an offer for every audience; an unavailable combination returns 404.
-Use `&pzn=edu` or `&pzn=team` to select that audience.
-
-For teams, add `&pzn=team`; for students and teachers, add `&pzn=edu`.
-Omit `pzn` for individuals: `pzn=individual` and an empty `pzn` are not accepted.
-The agent passes only the selected fragment UUID, locale, API key, and any
-country to the fragment action; it does not pass `pzn`.
 
 Browser integrations read `locale` and `country` from the page's
 `mas-commerce-service`; these are page context, not model-selected inputs.
-
-## Product availability
-
-The static product map uses `brand-concierge-product` cards from
-`/content/dam/mas/brand-concierge/en_US`. It contains 20 products and 49 offers.
-Individual offers require no `pzn`; team and education offers use `pzn=team`
-and `pzn=edu`, respectively. Unsupported combinations return 404.
-
-| Product | Individual | `pzn=team` | `pzn=edu` |
-| --- | --- | --- | --- |
-| Creative Cloud Pro | Yes | Yes | Yes |
-| Creative Cloud Pro Plus | No | Yes | No |
-| Photography | Yes | Yes | Yes |
-| Acrobat Studio | Yes | Yes | No |
-| Photoshop | Yes | Yes | Yes |
-| Adobe Firefly Pro | Yes | No | No |
-| Adobe Premiere | Yes | Yes | Yes |
-| Illustrator | Yes | Yes | Yes |
-| After Effects | Yes | Yes | Yes |
-| InDesign | Yes | Yes | Yes |
-| Lightroom | Yes | Yes | Yes |
-| Acrobat Pro | Yes | Yes | Yes |
-| Acrobat Express | Yes | Yes | Yes |
-| Audition | Yes | Yes | Yes |
-| Animate | Yes | Yes | Yes |
-| Adobe Substance 3D Collection | Yes | Yes | No |
-| Adobe Substance 3D Texturing | Yes | No | No |
-| Acrobat Standard | Yes | Yes | Yes |
-| AI Assistant for Acrobat | Yes | Yes | No |
-| Frame.io | No | Yes | No |
 
 ## Response
 
@@ -95,11 +57,8 @@ education offers use `individual`/`edu`.
 Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.
 
-`fragment` is the exact UUID used to invoke the fragment action, even when the
-returned payload represents a different locale or variation.
 `ctas` contains one `{ "label": "..." }` object per non-empty authored link or
-button, in authored order. It is `[]` when no CTAs exist and replaces the
-concatenated `cta_label` field. Checkout URLs are not returned or hydrated.
+button, in authored order, or `[]` when no CTAs exist.
 
 | Property | Type | Description |
 | --- | --- | --- |
@@ -130,15 +89,6 @@ concatenated `cta_label` field. Checkout URLs are not returned or hydrated.
 
 Other non-excluded authored MAS tags may add top-level fields.
 
-## API contract changes
-
-| Previous contract | Current contract |
-| --- | --- |
-| `pzn` forwarded to the fragment action | Only the mapped UUID selects the audience downstream; `pzn` is not forwarded. |
-| Concatenated `cta_label` string | Ordered `ctas` array of `{ label }` objects, or `[]`. |
-| `fragment` taken from the response payload | Exact UUID passed to the fragment action, even if the payload ID differs. |
-| `api_key` documented as optional | Required registered client key; missing keys return 400. |
-
 ## Errors
 
 Errors return JSON with a `message` field.
@@ -151,23 +101,5 @@ Errors return JSON with a `message` field.
 | 502 | Fragment invocation, decoding, parsing, or hydration fails. |
 | 504 | Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds. |
 
-Incomplete WCS caches may require network requests during hydration. Only the
-Node agent applies a 5-second timeout to each such WCS request; browser clients
-have no default fetch timeout.
-
-### Hydration geography
-
-Country codes are case-insensitive at the agent boundary: `country=eg` becomes
-`EG` before the fragment action is called, not only when its response is
-hydrated. This ensures prefetch and hydration use the same canonical country.
-
-The agent carries request `locale` and `country` into its pricing runtime even
-when the fragment contains no geography settings. If `country` is omitted,
-it derives the country from `locale`. The same surface-specific market
-restrictions and territory mapping used by the fragment pipeline determine
-the effective commerce country; for example, `es_PR` uses US pricing.
-
-Request geography overrides fragment-wide defaults, while authored per-price
-country and language overrides are preserved. Photoshop with
-`locale=en_US&country=EG` therefore uses the prefetched Egypt offer instead of
-attempting an unnecessary US WCS lookup.
+Uncached WCS requests time out after 5 seconds. Fragment invocation is limited
+to 20 seconds and hydration to 15 seconds.

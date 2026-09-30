@@ -182,6 +182,9 @@ export const styles = css`
     .header-leading-detail {
         grid-row: var(--row);
     }
+    .header-leading-callout {
+        grid-row: var(--row);
+    }
     .header-leading-cta {
         grid-row: var(--row);
         font: var(--compare-chart-header-title-font);
@@ -233,6 +236,9 @@ export const styles = css`
         padding: 0 var(--comparison-table-spacing);
     }
     .detail-segment {
+        padding: 0 var(--comparison-table-spacing);
+    }
+    .callout-segment {
         padding: 0 var(--comparison-table-spacing);
     }
     .cta-segment {

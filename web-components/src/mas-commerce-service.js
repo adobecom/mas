@@ -13,10 +13,7 @@ import { Log } from './log.js';
 import { Price } from './price.js';
 import { getSettings } from './settings.js';
 import { Wcs } from './wcs.js';
-import {
-    updateConfig as updateLanaConfig,
-    updateCountrySettings,
-} from './lana.js';
+import { updateConfig as updateLanaConfig } from './lana.js';
 import { printMeasure } from './utils.js';
 import { resolvePriceTaxFlags } from './inline-price.js';
 import { getParameter } from '@dexter/tacocat-core';
@@ -114,7 +111,6 @@ export class MasCommerceService extends HTMLElement {
         // Load settings and literals
         const settings = getSettings(config, this);
         updateLanaConfig(config.lana);
-        updateCountrySettings(settings);
         const log = Log.init(config.hostEnv).module('service');
         log.debug('Activating:', config);
 

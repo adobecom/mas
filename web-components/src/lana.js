@@ -1,5 +1,3 @@
-import { getImsCountryCookie } from './ims.js';
-
 // Default configuration for logging system
 const config = {
     clientId: 'merch-at-scale',
@@ -13,25 +11,9 @@ const config = {
 };
 // total lana limit in /utils/lana.js is 2000
 const PAGE_LIMIT = 1000;
-
-// Country resolved for content selection, kept in sync with the commerce
-// service settings (see mas-commerce-service.js#activate). Mirrors the same
-// override precedence as aem-fragment.js #fetchData: an explicit configured/
-// query-param country wins, otherwise fall back to the IMS country cookie.
-let countrySettings = { country: undefined, hasExplicitCountry: false };
-
-function updateCountrySettings({ country, hasExplicitCountry } = {}) {
-    countrySettings = {
-        country,
-        hasExplicitCountry: Boolean(hasExplicitCountry),
-    };
-}
-
-function resolveInternationalCountry() {
-    const { country, hasExplicitCountry } = countrySettings;
-    if (hasExplicitCountry) return country ?? '';
-    return getImsCountryCookie() ?? country ?? '';
-}
+// Locale prefix (e.g. `us`, `fr`, `lu_fr`) Milo stores for the region the user
+// browses in, see setInternational() in milo/libs/utils/utils.js.
+const INTERNATIONAL_COOKIE = 'international';
 
 function isError(value) {
     return (
@@ -71,6 +53,22 @@ function serializeParam(key, value) {
     return serializeValue(value);
 }
 
+// The international cookie holds the region used for content selection. It is
+// merged into the first logged fact so region-specific errors on localized
+// pages can be reproduced from the log entry alone.
+function withInternationalCookie(values) {
+    const internationalCookie =
+        document.cookie
+            .split('; ')
+            .find((row) => row.startsWith(`${INTERNATIONAL_COOKIE}=`))
+            ?.split('=')[1] ?? '';
+    const [first, ...rest] = values;
+    if (first?.constructor === Object) {
+        return [{ ...first, internationalCookie }, ...rest];
+    }
+    return [{ internationalCookie }, ...values];
+}
+
 const lanaAppender = {
     append(entry) {
         if (entry.level !== 'error') return;
@@ -96,15 +94,13 @@ const lanaAppender = {
         }
         payload += page;
 
-        if (values.length) {
-            payload += `${config.delimiter}facts=`;
-            payload += JSON.stringify(values, serializeParam);
-        }
+        payload += `${config.delimiter}facts=`;
+        payload += JSON.stringify(
+            withInternationalCookie(values),
+            serializeParam,
+        );
 
-        window.lana?.log(payload, {
-            ...config,
-            international: resolveInternationalCountry(),
-        });
+        window.lana?.log(payload, config);
     },
 };
 
@@ -125,4 +121,4 @@ function updateConfig(newConfig) {
     );
 }
 
-export { config, lanaAppender, updateConfig, updateCountrySettings };
+export { config, lanaAppender, updateConfig };

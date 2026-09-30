@@ -1124,26 +1124,26 @@ const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
     }
 };
 
-const USAGE = `usage: node audit.mjs [options] [url | sitemap.xml]...
+const USAGE = `Usage: node audit.mjs [OPTION]... [URL | SITEMAP]...
 
-Crawl pages for OST and MAS card links, price every offer both with the
-client formatter and with WCS priceInfo, and write a CSV report.
+Price every offer linked from the given pages both with the client formatter
+and with WCS priceInfo, and write one CSV row per offer link.
 
-  -m file     read URLs and sitemaps from file, one per line
+  -m FILE     read URLs and sitemaps from FILE, one per line
               (./audit-manifest.txt covers acom)
-  -S surface  audit every published card of surface in every locale it
+  -S SURFACE  audit every published card of SURFACE in every locale it
               serves, e.g. ccd, adobe-home, express; repeatable
-  -e env      WCS to price against: ${Object.keys(WCS_ENVS).join(' or ')} (default ${wcsEnv})
-  -f file     write the CSV to file (default ${file})
-  -b n        pages audited in parallel (default ${BUFFER_SIZE})
-  -w ms       spacing between WCS-bound requests, at least 100 (default ${WCS_INTERVAL})
-  -t target   ${Object.values(AUDIT_TARGET).join(' or ')}: modal lists links that open commerce
+  -e ENV      price against ENV WCS: ${Object.keys(WCS_ENVS).join(' or ')} (default ${wcsEnv})
+  -f FILE     write the CSV to FILE (default ${file})
+  -b NUM      audit NUM pages in parallel (default ${BUFFER_SIZE})
+  -w MS       space WCS-bound requests MS apart, at least 100 (default ${WCS_INTERVAL})
+  -t TARGET   ${Object.values(AUDIT_TARGET).join(' or ')}; modal lists links that open commerce
               modals instead of pricing offers (default ${auditTarget})
-  -s file     also list pages containing any line of file, in file.matches
+  -s FILE     list pages containing any line of FILE in FILE.matches
   -d          log debug details
-  -h, --help  print this help
+  -h, --help  print this help and exit
 
-examples:
+Examples:
   node audit.mjs -b 50 -f /tmp/acom.csv -m ./audit-manifest.txt
   node audit.mjs -f /tmp/surfaces.csv -S adobe-home -S ccd -S express
   node audit.mjs -e stage https://www.adobe.com/kr/creativecloud/plans.html`;

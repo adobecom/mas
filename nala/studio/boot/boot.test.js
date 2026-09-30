@@ -4,7 +4,7 @@ import BootPage from './boot.page.js';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
-const BOOT_ASSET = /^\/(studio|web-components)\/.+\.(js|css)$/;
+const BOOT_ASSET = /^\/(studio|web-components|io)\/.+\.(js|css)$/;
 
 function studioUrl(baseURL, feature, params = {}) {
     const url = new URL(`${baseURL}${feature.path}${miloLibs}`);
@@ -82,6 +82,7 @@ test.describe('M@S Studio Boot', () => {
 
         await test.step('step-2: Verify nothing was injected and no salt was applied', async () => {
             await expect(bootPage.injectedMarkup).toHaveCount(0);
+            expect(assets.length).toBeGreaterThan(50);
             expect(assetsNotMatching(assets, /^[0-9a-f]{8}$/)).toEqual([]);
         });
     });
@@ -91,6 +92,7 @@ test.describe('M@S Studio Boot', () => {
         const testPage = studioUrl(baseURL, features[3]);
         setTestPage(testPage);
         const consoleErrors = [];
+        const assets = trackBootAssets(page, baseURL);
         page.on('console', (message) => {
             if (message.type() === 'error') consoleErrors.push(message.text());
         });
@@ -111,6 +113,9 @@ test.describe('M@S Studio Boot', () => {
 
         await test.step('step-2: Verify the error was logged', async () => {
             expect(consoleErrors.some((text) => text.includes('invalid studio-versions block'))).toBe(true);
+            const studioJs = assets.filter((url) => url.pathname === '/studio/src/studio.js');
+            expect(studioJs.length).toBeGreaterThan(0);
+            expect(studioJs.every((url) => !url.searchParams.has('v'))).toBe(true);
         });
     });
 
@@ -120,7 +125,7 @@ test.describe('M@S Studio Boot', () => {
         setTestPage(testPage);
         const bootPage = new BootPage(page);
 
-        await test.step('step-1: Served page contains the spinner', async () => {
+        await test.step('step-1: Served page contains the spinner markup', async () => {
             const response = await page.goto(testPage);
             expect(await response.text()).toContain('class="studio-boot"');
         });
@@ -216,6 +221,55 @@ test.describe('M@S Studio Boot', () => {
         await test.step('step-2: The error was detected, then cleared once Studio loaded', async () => {
             expect(consoleErrors.some((text) => text.includes('[M@S Studio] boot failed'))).toBe(true);
             await expect(bootPage.error).toBeHidden();
+        });
+    });
+
+    // @MAS-Studio-Boot-css-error-cleared — a failing stylesheet does not leave the error over a working Studio
+    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[8];
+        const testPage = studioUrl(baseURL, features[8]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 404, body: 'not found' }),
+        );
+
+        await test.step('step-1: Load Studio with a stylesheet failing', async () => {
+            await page.goto(testPage);
+            await waitForStudio(page);
+        });
+
+        await test.step('step-2: Boot error stays hidden and Studio is defined', async () => {
+            await expect(bootPage.error).toBeHidden();
+            expect(await page.evaluate(() => Boolean(customElements.get('mas-studio')))).toBe(true);
+        });
+    });
+
+    // @MAS-Studio-Boot-lazy-view-failure — a lazy view failing to load shows the error; Reload adds cb=1
+    test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[9];
+        const testPage = studioUrl(baseURL, features[9]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 404, body: 'not found' }),
+        );
+
+        await test.step('step-1: Load the placeholders view with its module failing', async () => {
+            await page.goto(testPage);
+            await waitForStudio(page);
+        });
+
+        await test.step('step-2: Boot error is shown', async () => {
+            await expect(bootPage.error).toBeVisible();
+        });
+
+        await test.step('step-3: Reload adds cb=1 and keeps the hash', async () => {
+            await bootPage.reloadButton.click();
+            await page.waitForURL((url) => url.searchParams.get('cb') === '1');
+            expect(new URL(page.url()).hash).toBe(features[9].browserParams);
         });
     });
 });

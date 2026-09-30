@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 export const REPO_ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-export const GRAPH_ENTRY = '/studio/src/studio.js';
+export const GRAPH_ENTRIES = ['/studio/src/studio.js', '/studio/libs/fragment-client.js'];
 
 const BOOT_SCRIPT = /<script id="studio-boot">([\s\S]*?)<\/script>/;
 const VERSIONS_BLOCK = /(<script type="application\/json" id="studio-versions">)[\s\S]*?(<\/script>)/;
@@ -60,24 +60,32 @@ export function replaceVersionsBlock(html, versions) {
 }
 
 /**
- * Every module reachable from `entry` (static and literal dynamic imports), as sorted root-relative paths.
+ * Every module reachable from `entries` (static and literal dynamic imports), as sorted root-relative paths.
+ * Throws on a non-literal import(), whose target would load unversioned.
  * Bare specifiers (lit, prosemirror-*, fragment-client) stay external: the import map versions their targets.
  * @param {string} rootDir absolute repo root
- * @param {string} entry root-relative entry path
+ * @param {string[]} entries root-relative entry paths
  * @returns {Promise<string[]>}
  */
-export async function collectModuleGraph(rootDir, entry) {
+export async function collectModuleGraph(rootDir, entries) {
     const result = await build({
         absWorkingDir: rootDir,
-        entryPoints: [`.${entry}`],
+        entryPoints: entries.map((entry) => `.${entry}`),
+        outdir: 'out',
         bundle: true,
         write: false,
         metafile: true,
         format: 'esm',
         platform: 'browser',
+        minifyWhitespace: true,
         logLevel: 'silent',
         plugins: [externalizeBareSpecifiers],
     });
+    if (result.outputFiles.some((file) => /\bimport\(/.test(file.text))) {
+        throw new Error(
+            `${entries.join(', ')}: non-literal dynamic import() found; use import('./literal.js') so the module can be versioned`,
+        );
+    }
     return Object.keys(result.metafile.inputs)
         .map((input) => `/${input}`)
         .sort();
@@ -90,11 +98,12 @@ export async function collectModuleGraph(rootDir, entry) {
  * @returns {Promise<Record<string, string>>}
  */
 export async function computeVersions(rootDir, html) {
-    const graph = await collectModuleGraph(rootDir, GRAPH_ENTRY);
+    const graph = await collectModuleGraph(rootDir, GRAPH_ENTRIES);
     const assetPaths = [...new Set([...extractAssetPaths(html), ...graph])].sort();
     const contents = await Promise.all(
         assetPaths.map((assetPath) =>
-            readFile(path.join(rootDir, assetPath)).catch(() => {
+            readFile(path.join(rootDir, assetPath)).catch((error) => {
+                if (error.code !== 'ENOENT') throw error;
                 throw new Error(`studio.html references ${assetPath}, which does not exist`);
             }),
         ),

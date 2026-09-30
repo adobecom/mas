@@ -249,7 +249,7 @@
                 "/studio/src/settings/mas-settings.js": "c93c8ce1",
                 "/studio/src/settings/settings-store.js": "ad944605",
                 "/studio/src/store.js": "b80cfa45",
-                "/studio/src/studio.js": "f118fe32",
+                "/studio/src/studio.js": "d28fc1ac",
                 "/studio/src/translation/mas-collapsible-table-row.css.js": "c7a3c565",
                 "/studio/src/translation/mas-collapsible-table-row.js": "920a37d4",
                 "/studio/src/translation/mas-translation-editor.css.js": "e90a911c",
@@ -302,7 +302,7 @@
                     return cacheSalt ? `${path}?v=${hash}-${cacheSalt}` : `${path}?v=${hash}`;
                 };
 
-                const bootAssetPath = /^\/(studio|web-components)\//;
+                const bootAssetPath = /^\/(studio|web-components|io)\//;
                 const isBootAsset = (url) => {
                     if (!url) return false;
                     const parsed = new URL(url, location.href);
@@ -334,7 +334,7 @@
                 document.addEventListener('click', onReloadClick);
                 customElements.whenDefined('mas-studio').then(() => {
                     window.removeEventListener('error', onBootError, true);
-                    document.removeEventListener('click', onReloadClick);
+                    document.removeEventListener('DOMContentLoaded', revealBootError);
                     document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
                 });
 

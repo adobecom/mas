@@ -73,4 +73,24 @@ export const features = [
         },
         tags: '@mas-studio @boot @regression',
     },
+    {
+        tcid: '9',
+        name: '@MAS-Studio-Boot-css-error-cleared',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/studio/con-button.css',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '10',
+        name: '@MAS-Studio-Boot-lazy-view-failure',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=placeholders&path=nala',
+        data: {
+            failingPath: '/studio/src/placeholders/mas-placeholders.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
 ];

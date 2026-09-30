@@ -1,12 +1,13 @@
-import { describe, test } from 'node:test';
+import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import {
     collectModuleGraph,
     computeVersions,
     extractAssetPaths,
-    GRAPH_ENTRY,
+    GRAPH_ENTRIES,
     hashContent,
     replaceVersionsBlock,
     REPO_ROOT,
@@ -111,7 +112,7 @@ const GRAPH_HTML = [
 
 describe('collectModuleGraph', () => {
     test('includes studio, io/www, and web-components source modules and the lazy editor', async () => {
-        const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRY);
+        const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRIES);
         assert.ok(graph.includes('/studio/src/studio.js'));
         assert.ok(graph.includes('/studio/src/editors/merch-card-editor.js'));
         assert.ok(graph.includes('/studio/src/placeholders/mas-placeholders.js'));
@@ -119,9 +120,39 @@ describe('collectModuleGraph', () => {
         assert.ok(graph.some((assetPath) => assetPath.startsWith('/web-components/src/')));
     });
 
+    test('includes io/www modules reached from fragment-client', async () => {
+        const graph = await collectModuleGraph(REPO_ROOT, ['/studio/libs/fragment-client.js']);
+        assert.ok(graph.includes('/studio/libs/fragment-client.js'));
+        assert.ok(graph.some((assetPath) => assetPath.startsWith('/io/www/src/')));
+    });
+
     test('leaves bare specifiers to the import map', async () => {
-        const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRY);
+        const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRIES);
         assert.ok(graph.every((assetPath) => assetPath.startsWith('/') && !assetPath.includes('node_modules')));
+    });
+});
+
+describe('collectModuleGraph dynamic imports', () => {
+    let tmpDir;
+
+    before(async () => {
+        tmpDir = await mkdtemp(path.join(os.tmpdir(), 'studio-versions-'));
+    });
+
+    after(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    test('rejects a non-literal dynamic import()', async () => {
+        await writeFile(path.join(tmpDir, 'entry.js'), 'export const load = (name) => import(name);\n');
+        await assert.rejects(collectModuleGraph(tmpDir, ['/entry.js']), /non-literal dynamic import/);
+    });
+
+    test('follows a literal dynamic import()', async () => {
+        await writeFile(path.join(tmpDir, 'entry.js'), "export const load = () => import('./lazy.js');\n");
+        await writeFile(path.join(tmpDir, 'lazy.js'), 'export const value = 1;\n');
+        const graph = await collectModuleGraph(tmpDir, ['/entry.js']);
+        assert.ok(graph.includes('/lazy.js'));
     });
 });
 

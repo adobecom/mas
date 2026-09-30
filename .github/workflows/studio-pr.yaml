@@ -1,6 +1,16 @@
 name: Studio PR Validation
 
 on:
+    push:
+        branches: [main]
+        paths:
+            - 'studio/**'
+            - 'studio.html'
+            - 'web-components/dist/**'
+            - 'web-components/src/**'
+            - 'io/www/src/**'
+            - 'package-lock.json'
+            - '.github/workflows/studio-pr.yaml'
     pull_request:
         paths:
             - 'studio/**'
@@ -8,6 +18,8 @@ on:
             - 'web-components/dist/**'
             - 'web-components/src/**'
             - 'io/www/src/**'
+            - 'package-lock.json'
+            - '.github/workflows/studio-pr.yaml'
         types: [opened, synchronize, reopened]
 
 concurrency:

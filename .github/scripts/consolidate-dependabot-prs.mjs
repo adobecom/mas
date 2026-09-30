@@ -94,13 +94,22 @@ export function assertOnlyManifestPaths(changedPaths) {
     return true;
 }
 
-export function createConsolidationBranch({ name, run = runCommand }) {
-    run('git', ['fetch', 'origin', 'main']);
-    run('git', ['checkout', '-B', name, 'origin/main']);
+export function resolveRemote({ repo = REPO, run = runCommand } = {}) {
+    const repoRe = new RegExp(`github\\.com[:/]${repo.replace('/', '\\/')}(\\.git)?$`, 'i');
+    for (const line of run('git', ['remote', '-v']).split('\n')) {
+        const [name, url] = line.split(/\s+/);
+        if (url && repoRe.test(url)) return name;
+    }
+    throw new Error(`No git remote points to ${repo}. Add one with: git remote add upstream git@github.com:${repo}.git`);
 }
 
-export function mergePrHead({ number, run = runCommand }) {
-    run('git', ['fetch', 'origin', `pull/${number}/head`]);
+export function createConsolidationBranch({ name, remote, run = runCommand }) {
+    run('git', ['fetch', remote, 'main']);
+    run('git', ['checkout', '-B', name, `${remote}/main`]);
+}
+
+export function mergePrHead({ number, remote, run = runCommand }) {
+    run('git', ['fetch', remote, `pull/${number}/head`]);
     try {
         run('git', ['merge', '--no-edit', 'FETCH_HEAD']);
     } catch (error) {
@@ -108,18 +117,31 @@ export function mergePrHead({ number, run = runCommand }) {
     }
 }
 
-export function getChangedManifestPaths({ run = runCommand } = {}) {
-    const stdout = run('git', ['diff', '--name-only', 'origin/main...HEAD']);
+export function getChangedManifestPaths({ remote, run = runCommand } = {}) {
+    const stdout = run('git', ['diff', '--name-only', `${remote}/main...HEAD`]);
     return stdout.split('\n').filter(Boolean);
 }
 
-export function createConsolidatedPr({ title, bodyFile, run = runCommand }) {
-    return run('gh', ['pr', 'create', '--title', title, '--body-file', bodyFile]).trim();
+export function createConsolidatedPr({ title, bodyFile, branch, repo = REPO, run = runCommand }) {
+    return run('gh', [
+        'pr',
+        'create',
+        '--repo',
+        repo,
+        '--base',
+        'main',
+        '--head',
+        branch,
+        '--title',
+        title,
+        '--body-file',
+        bodyFile,
+    ]).trim();
 }
 
-export function closeOriginalPr({ number, consolidatedPrUrl, run = runCommand }) {
-    run('gh', ['pr', 'comment', String(number), '--body', `Consolidated into ${consolidatedPrUrl}`]);
-    run('gh', ['pr', 'close', String(number)]);
+export function closeOriginalPr({ number, consolidatedPrUrl, repo = REPO, run = runCommand }) {
+    run('gh', ['pr', 'comment', String(number), '--repo', repo, '--body', `Consolidated into ${consolidatedPrUrl}`]);
+    run('gh', ['pr', 'close', String(number), '--repo', repo]);
 }
 
 function writeTempBodyFile(body) {
@@ -155,23 +177,27 @@ export function consolidate({
         return { prs, executed: false, body };
     }
 
-    createConsolidationBranch({ name: branch, run });
-    for (const pr of prs) mergePrHead({ number: pr.number, run });
+    const remote = resolveRemote({ repo, run });
+    createConsolidationBranch({ name: branch, remote, run });
+    for (const pr of prs) mergePrHead({ number: pr.number, remote, run });
 
-    const changedPaths = getChangedManifestPaths({ run });
+    const changedPaths = getChangedManifestPaths({ remote, run });
     assertOnlyManifestPaths(changedPaths);
+    run('git', ['push', '-u', remote, branch]);
 
     const bodyFile = writeTempBodyFile(buildConsolidatedBody(prs, { branch }));
     const consolidatedPrUrl = createConsolidatedPr({
         title: `chore(deps): consolidate ${prs.length} Dependabot update(s)`,
         bodyFile,
+        branch,
+        repo,
         run,
     });
 
     const finalBody = buildConsolidatedBody(prs, { branch, consolidatedPrUrl });
-    run('gh', ['pr', 'edit', consolidatedPrUrl, '--body', finalBody]);
+    run('gh', ['pr', 'edit', consolidatedPrUrl, '--repo', repo, '--body', finalBody]);
 
-    for (const pr of prs) closeOriginalPr({ number: pr.number, consolidatedPrUrl, run });
+    for (const pr of prs) closeOriginalPr({ number: pr.number, consolidatedPrUrl, repo, run });
 
     return { prs, executed: true, consolidatedPrUrl };
 }

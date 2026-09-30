@@ -149,6 +149,9 @@ test('consolidate in execute mode comments before closing each original PR and n
         if (cmd === 'gh' && args[0] === 'pr' && args[1] === 'list') {
             return JSON.stringify(samplePrs.map(asDependabotAuthor));
         }
+        if (cmd === 'git' && args[0] === 'remote') {
+            return 'origin\tgit@github.com:someone/mas.git (fetch)\nupstream\tgit@github.com:adobecom/mas.git (fetch)\n';
+        }
         if (cmd === 'git' && args[0] === 'diff') {
             return 'package.json\npackage-lock.json\n';
         }
@@ -176,6 +179,16 @@ test('consolidate in execute mode comments before closing each original PR and n
     }
 
     assert.ok(!ghPrCalls.some((call) => call[2] === 'merge'), 'expected no `gh pr merge` call on any original PR');
+    assert.ok(
+        run.calls.some(
+            (call) => call[0] === 'git' && call[1] === 'fetch' && call[2] === 'upstream' && call[3] === 'pull/101/head',
+        ),
+        'expected PR heads to be fetched from the remote pointing to adobecom/mas',
+    );
+    assert.ok(
+        ghPrCalls.every((call) => call.includes('--repo')),
+        'expected every gh pr call to target the repo explicitly',
+    );
 });
 
 test('consolidate reports no PRs to consolidate when none are open', () => {

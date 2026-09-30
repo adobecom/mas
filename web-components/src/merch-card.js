@@ -255,6 +255,22 @@ export class MerchCard extends LitElement {
         }
     }
 
+    #cardOsi;
+
+    get cardOsi() {
+        return this.#cardOsi;
+    }
+
+    set cardOsi(value) {
+        this.#cardOsi = value;
+        const attrValue = Array.isArray(value) ? value.join(',') : value;
+        if (attrValue) {
+            this.setAttribute('data-card-osi', attrValue);
+        } else {
+            this.removeAttribute('data-card-osi');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;

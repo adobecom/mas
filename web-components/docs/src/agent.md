@@ -23,8 +23,7 @@ GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&locale=en_US
 
 Product names are matched case-insensitively and trimmed. Not every product has
 an offer for every audience; an unavailable combination returns 404.
-Use `&pzn=edu` or `&pzn=team` to select that audience. There is no separate
-`segment` query parameter.
+Use `&pzn=edu` or `&pzn=team` to select that audience.
 
 For teams, add `&pzn=team`; for students and teachers, add `&pzn=edu`.
 Omit `pzn` for individuals: `pzn=individual` and an empty `pzn` are not accepted.
@@ -91,7 +90,7 @@ state:
 
 `customer_segment` and `market_segment` come from the returned fragment's tags:
 individual offers use `individual`/`com`, team offers use `team`/`com`, and
-education offers use `individual`/`edu`. No `segment` field is returned.
+education offers use `individual`/`edu`.
 `pzn` is `null` when omitted from the request.
 Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.
@@ -135,9 +134,7 @@ Other non-excluded authored MAS tags may add top-level fields.
 
 | Previous contract | Current contract |
 | --- | --- |
-| Separate `segment` query parameter | Agent-only `pzn=edu` or `pzn=team`; omit for individuals. |
 | `pzn` forwarded to the fragment action | Only the mapped UUID selects the audience downstream; `pzn` is not forwarded. |
-| Response `segment` field | Tag-derived `customer_segment` and singular `market_segment`. |
 | Concatenated `cta_label` string | Ordered `ctas` array of `{ label }` objects, or `[]`. |
 | `fragment` taken from the response payload | Exact UUID passed to the fragment action, even if the payload ID differs. |
 | `api_key` documented as optional | Required registered client key; missing keys return 400. |

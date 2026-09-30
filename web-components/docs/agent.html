@@ -70,8 +70,7 @@ not returned or hydrated.</p>
 </table>
 <p>Product names are matched case-insensitively and trimmed. Not every product has
 an offer for every audience; an unavailable combination returns 404.
-Use <code>&amp;pzn=edu</code> or <code>&amp;pzn=team</code> to select that audience. There is no separate
-<code>segment</code> query parameter.</p>
+Use <code>&amp;pzn=edu</code> or <code>&amp;pzn=team</code> to select that audience.</p>
 <p>For teams, add <code>&amp;pzn=team</code>; for students and teachers, add <code>&amp;pzn=edu</code>.
 Omit <code>pzn</code> for individuals: <code>pzn=individual</code> and an empty <code>pzn</code> are not accepted.
 The agent passes only the selected fragment UUID, locale, API key, and any
@@ -238,7 +237,7 @@ state:</p>
 </code></pre>
 <p><code>customer_segment</code> and <code>market_segment</code> come from the returned fragment’s tags:
 individual offers use <code>individual</code>/<code>com</code>, team offers use <code>team</code>/<code>com</code>, and
-education offers use <code>individual</code>/<code>edu</code>. No <code>segment</code> field is returned.
+education offers use <code>individual</code>/<code>edu</code>.
 <code>pzn</code> is <code>null</code> when omitted from the request.
 Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.</p>
@@ -389,16 +388,8 @@ concatenated <code>cta_label</code> field. Checkout URLs are not returned or hyd
 </thead>
 <tbody>
 <tr>
-<td>Separate <code>segment</code> query parameter</td>
-<td>Agent-only <code>pzn=edu</code> or <code>pzn=team</code>; omit for individuals.</td>
-</tr>
-<tr>
 <td><code>pzn</code> forwarded to the fragment action</td>
 <td>Only the mapped UUID selects the audience downstream; <code>pzn</code> is not forwarded.</td>
-</tr>
-<tr>
-<td>Response <code>segment</code> field</td>
-<td>Tag-derived <code>customer_segment</code> and singular <code>market_segment</code>.</td>
 </tr>
 <tr>
 <td>Concatenated <code>cta_label</code> string</td>

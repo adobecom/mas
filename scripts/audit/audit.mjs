@@ -1124,6 +1124,30 @@ const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
     }
 };
 
+const USAGE = `usage: node audit.mjs [options] [url | sitemap.xml]...
+
+Crawl pages for OST and MAS card links, price every offer both with the
+client formatter and with WCS priceInfo, and write a CSV report.
+
+  -m file     read URLs and sitemaps from file, one per line
+              (./audit-manifest.txt covers acom)
+  -S surface  audit every published card of surface in every locale it
+              serves, e.g. ccd, adobe-home, express; repeatable
+  -e env      WCS to price against: ${Object.keys(WCS_ENVS).join(' or ')} (default ${wcsEnv})
+  -f file     write the CSV to file (default ${file})
+  -b n        pages audited in parallel (default ${BUFFER_SIZE})
+  -w ms       spacing between WCS-bound requests, at least 100 (default ${WCS_INTERVAL})
+  -t target   ${Object.values(AUDIT_TARGET).join(' or ')}: modal lists links that open commerce
+              modals instead of pricing offers (default ${auditTarget})
+  -s file     also list pages containing any line of file, in file.matches
+  -d          log debug details
+  -h, --help  print this help
+
+examples:
+  node audit.mjs -b 50 -f /tmp/acom.csv -m ./audit-manifest.txt
+  node audit.mjs -f /tmp/surfaces.csv -S adobe-home -S ccd -S express
+  node audit.mjs -e stage https://www.adobe.com/kr/creativecloud/plans.html`;
+
 const processArgs = async () => {
     const BUFFER_ARG = '-b';
     const WCS_INTERVAL_ARG = '-w';
@@ -1135,8 +1159,13 @@ const processArgs = async () => {
     const SURFACE_ARG = '-S';
     const ENV_ARG = '-e';
     let args = process.argv.slice(2);
+    if (args.includes('-h') || args.includes('--help')) {
+        console.log(USAGE);
+        process.exit(0);
+    }
     if (!args.length) {
-        console.log('you should provide at least one URL to audit');
+        console.error(USAGE);
+        process.exit(2);
     }
     let searchStrings;
     let urlsToFetch = [];

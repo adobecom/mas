@@ -2,6 +2,8 @@
 
 ## Audit script
 
+`node audit.mjs --help` lists every option with its default.
+
 script that crawls through raw EDS html versions of page for OST links and spits out a CSV report
 
 for one page or two or more

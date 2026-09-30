@@ -56,6 +56,21 @@
                 ></merch-gradient>
             </merch-addon>
         </template>
+        <template id="two-plan-cards">
+            <mas-commerce-service env="stage"></mas-commerce-service>
+            <merch-card>
+                <p class="card-heading">Acrobat Pro</p>
+                <merch-addon custom-checkbox>
+                    <p>Add AI Assistant to your Acrobat plan for US$1.99/mo.</p>
+                </merch-addon>
+            </merch-card>
+            <merch-card>
+                <p class="card-heading">Creative Cloud Pro</p>
+                <merch-addon custom-checkbox>
+                    <p>Add AI Assistant to your Acrobat plan for US$1.99/mo.</p>
+                </merch-addon>
+            </merch-card>
+        </template>
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
@@ -127,6 +142,77 @@
                         ai.planType = 'M2M';
                         await ai.updateComplete;
                         expect(ai.innerText).to.contain('US$82.49/mo');
+                    });
+
+                    it('gives identically worded add-on checkboxes on different cards distinct accessible names', async () => {
+                        const [masCommerceService, cardA, cardB] =
+                            getTemplateContent('two-plan-cards');
+                        container.append(masCommerceService, cardA, cardB);
+                        await cardA.updateComplete;
+                        await cardB.updateComplete;
+
+                        const authoredText =
+                            'Add AI Assistant to your Acrobat plan for US$1.99/mo.';
+                        const addonA = cardA.querySelector('merch-addon');
+                        const addonB = cardB.querySelector('merch-addon');
+                        await addonA.updateComplete;
+                        await addonB.updateComplete;
+
+                        const labelA = addonA.shadowRoot.getElementById(
+                            'custom-checkbox-label',
+                        );
+                        const labelB = addonB.shadowRoot.getElementById(
+                            'custom-checkbox-label',
+                        );
+                        const normalize = (text) =>
+                            text.replace(/\s+/g, ' ').trim();
+                        const nameA = normalize(labelA.innerText);
+                        const nameB = normalize(labelB.innerText);
+
+                        expect(nameA).to.not.equal(nameB);
+                        expect(nameA).to.contain('Acrobat Pro');
+                        expect(nameB).to.contain('Creative Cloud Pro');
+                        expect(nameA).to.contain(authoredText);
+                        expect(nameB).to.contain(authoredText);
+
+                        // visible authored text must remain unchanged
+                        expect(
+                            normalize(addonA.querySelector('p').textContent),
+                        ).to.equal(authoredText);
+                        expect(
+                            normalize(addonB.querySelector('p').textContent),
+                        ).to.equal(authoredText);
+
+                        // the product-name text is exposed to the accessible
+                        // name only, never painted
+                        const span = labelA.querySelector('.addon-plan-name');
+                        expect(span).to.exist;
+                        const cs = getComputedStyle(span);
+                        expect(cs.display).to.not.equal('none');
+                        expect(cs.visibility).to.not.equal('hidden');
+                        expect(
+                            span.getBoundingClientRect().width,
+                        ).to.be.at.most(1);
+                    });
+
+                    it('falls back to the authored-only accessible name when there is no host card', async () => {
+                        const el = document.createElement('merch-addon');
+                        el.setAttribute('custom-checkbox', '');
+                        el.innerHTML =
+                            '<p>Add AI Assistant to your Acrobat plan for US$1.99/mo.</p>';
+                        container.append(el);
+                        await el.updateComplete;
+
+                        const label = el.shadowRoot.getElementById(
+                            'custom-checkbox-label',
+                        );
+                        expect(label.querySelector('.addon-plan-name')).to.not
+                            .exist;
+                        expect(
+                            label.innerText.replace(/\s+/g, ' ').trim(),
+                        ).to.equal(
+                            'Add AI Assistant to your Acrobat plan for US$1.99/mo.',
+                        );
                     });
                 });
             });

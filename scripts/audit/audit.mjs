@@ -1239,8 +1239,6 @@ async function main() {
         console.log(`finished in ${(Date.now() - startTime) / 1000}s`);
     } catch (error) {
         console.error(`Fatal error: ${error.message}`);
-    } finally {
-        clearTimeout(scriptTimeout);
     }
 }
 

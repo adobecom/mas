@@ -3,9 +3,9 @@
 // token that has `pull-requests: write` (and `contents: write` to push the branch).
 //
 // Usage:
-//   node .github/scripts/consolidate-dependabot-prs.mjs             # dry run (default)
-//   node .github/scripts/consolidate-dependabot-prs.mjs --execute   # creates the
-//     consolidated PR, then comments on and closes each original Dependabot PR.
+//   node .github/scripts/consolidate-dependabot-prs.mjs --ticket MWPW-123456
+//   node .github/scripts/consolidate-dependabot-prs.mjs --ticket MWPW-123456 --execute
+//     # creates the consolidated PR, then comments on and closes each original Dependabot PR.
 
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -56,7 +56,14 @@ export function extractChangelogLink(body) {
     return match ? match[1] : null;
 }
 
-export function buildConsolidatedBody(prs, { branch, consolidatedPrUrl } = {}) {
+export function createBranchName(ticket, timestamp = Date.now()) {
+    if (!/^MWPW-\d{6}$/.test(ticket ?? '')) {
+        throw new Error('Ticket must use the MWPW-XXXXXX format, for example MWPW-123456.');
+    }
+    return `${ticket}-consolidate-dependabot-${timestamp}`;
+}
+
+export function buildConsolidatedBody(prs, { branch, consolidatedPrUrl, changedPaths = [] } = {}) {
     const rows = prs.map((pr) => {
         const parsed = parseDependabotTitle(pr.title) ?? { name: pr.title, from: '—', to: '—' };
         const changelog = extractChangelogLink(pr.body) ?? pr.url;
@@ -75,8 +82,27 @@ export function buildConsolidatedBody(prs, { branch, consolidatedPrUrl } = {}) {
         qaLines.push(`- Checks: https://github.com/${REPO}/actions?query=branch%3A${branch}`);
     }
     if (branch) {
-        qaLines.push(`- Preview: https://${branch}--mas--adobecom.aem.page/`);
-        qaLines.push('- Live (after merge): https://main--mas--adobecom.aem.live/');
+        const edsBranch = branch.toLowerCase();
+        qaLines.push('## Test URLs');
+        qaLines.push(`- EDS page: https://${edsBranch}--mas--adobecom.aem.page/`);
+        qaLines.push(`- EDS live: https://${edsBranch}--mas--adobecom.aem.live/`);
+        if (changedPaths.some((path) => /^(studio|io\/studio)\//.test(path))) {
+            qaLines.push(`- Studio: https://${edsBranch}--mas--adobecom.aem.live/studio.html?martech=off`);
+        }
+        if (changedPaths.some((path) => path.startsWith('web-components/'))) {
+            qaLines.push(
+                `- Web components: https://${edsBranch}--mas--adobecom.aem.page/web-components/docs/merch-card.html?martech=off`,
+            );
+        }
+        if (changedPaths.some((path) => path.startsWith('io/www/'))) {
+            const masIoUrl = 'https://14257-merchatscale-dev.adobeioruntime.net/api/v1/web/MerchAtScale';
+            qaLines.push(
+                `- io/www: https://www.adobe.com/products/indesign/plans.html?mas-io-url=${encodeURIComponent(masIoUrl)}`,
+            );
+            qaLines.push(
+                `- io/www: https://www.adobe.com/kr/creativecloud/plans.html?mas-io-url=${encodeURIComponent(masIoUrl)}`,
+            );
+        }
     } else {
         qaLines.push('- Only diff and CI links are available for this change; no preview branch was created.');
     }
@@ -155,7 +181,7 @@ export function consolidate({
     execute = false,
     run = runCommand,
     repo = REPO,
-    branch = `consolidate-dependabot-${Date.now()}`,
+    branch,
     listPrs = listOpenDependabotPrs,
     log = console.log,
 } = {}) {
@@ -177,6 +203,10 @@ export function consolidate({
         return { prs, executed: false, body };
     }
 
+    if (!/^MWPW-\d{6}-/.test(branch ?? '')) {
+        throw new Error('Consolidation branch must start with the MWPW-XXXXXX ticket format.');
+    }
+
     const remote = resolveRemote({ repo, run });
     createConsolidationBranch({ name: branch, remote, run });
     for (const pr of prs) mergePrHead({ number: pr.number, remote, run });
@@ -185,7 +215,7 @@ export function consolidate({
     assertOnlyManifestPaths(changedPaths);
     run('git', ['push', '-u', remote, branch]);
 
-    const bodyFile = writeTempBodyFile(buildConsolidatedBody(prs, { branch }));
+    const bodyFile = writeTempBodyFile(buildConsolidatedBody(prs, { branch, changedPaths }));
     const consolidatedPrUrl = createConsolidatedPr({
         title: `chore(deps): consolidate ${prs.length} Dependabot update(s)`,
         bodyFile,
@@ -194,7 +224,7 @@ export function consolidate({
         run,
     });
 
-    const finalBody = buildConsolidatedBody(prs, { branch, consolidatedPrUrl });
+    const finalBody = buildConsolidatedBody(prs, { branch, consolidatedPrUrl, changedPaths });
     run('gh', ['pr', 'edit', consolidatedPrUrl, '--repo', repo, '--body', finalBody]);
 
     for (const pr of prs) closeOriginalPr({ number: pr.number, consolidatedPrUrl, repo, run });
@@ -213,8 +243,21 @@ function checkGhAvailable() {
 
 function main() {
     checkGhAvailable();
+    const ticketIndex = process.argv.indexOf('--ticket');
+    const ticket = ticketIndex === -1 ? null : process.argv[ticketIndex + 1];
     const execute = process.argv.includes('--execute');
-    const result = consolidate({ execute });
+    if (!ticket) {
+        console.error('Usage: node consolidate-dependabot-prs.mjs --ticket MWPW-XXXXXX [--execute]');
+        process.exit(1);
+    }
+    let branch;
+    try {
+        branch = createBranchName(ticket);
+    } catch (error) {
+        console.error(error.message);
+        process.exit(1);
+    }
+    const result = consolidate({ execute, branch });
     if (execute && result.executed) {
         console.log(`\nConsolidated PR created: ${result.consolidatedPrUrl}`);
     }

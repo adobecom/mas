@@ -5,9 +5,20 @@ import {
     assertOnlyManifestPaths,
     buildConsolidatedBody,
     consolidate,
+    createBranchName,
     extractChangelogLink,
     parseDependabotTitle,
 } from './consolidate-dependabot-prs.mjs';
+
+test('createBranchName prefixes the consolidation branch with a valid MWPW ticket', () => {
+    assert.equal(createBranchName('MWPW-123456', 42), 'MWPW-123456-consolidate-dependabot-42');
+});
+
+test('createBranchName rejects ticket IDs outside the MWPW-XXXXXX format', () => {
+    assert.throws(() => createBranchName('MWPW-12345'), {
+        message: /MWPW-XXXXXX/,
+    });
+});
 
 test('parseDependabotTitle parses the plain "Bump X from A to B" form', () => {
     assert.deepEqual(parseDependabotTitle('Bump lodash from 4.17.20 to 4.17.21'), {
@@ -75,11 +86,28 @@ test('buildConsolidatedBody emits one table row per PR with changelog fallback t
 });
 
 test('buildConsolidatedBody includes diff, checks and preview links for a branch', () => {
-    const body = buildConsolidatedBody(samplePrs, { branch: 'consolidate-dependabot-1' });
+    const branch = 'MWPW-123456-consolidate-dependabot-1';
+    const body = buildConsolidatedBody(samplePrs, { branch });
 
-    assert.match(body, /Diff: https:\/\/github\.com\/adobecom\/mas\/compare\/main\.\.\.consolidate-dependabot-1/);
-    assert.match(body, /Checks: https:\/\/github\.com\/adobecom\/mas\/actions\?query=branch%3Aconsolidate-dependabot-1/);
-    assert.match(body, /Preview: https:\/\/consolidate-dependabot-1--mas--adobecom\.aem\.page\//);
+    assert.match(body, /Diff: https:\/\/github\.com\/adobecom\/mas\/compare\/main\.\.\.MWPW-123456-consolidate-dependabot-1/);
+    assert.match(
+        body,
+        /Checks: https:\/\/github\.com\/adobecom\/mas\/actions\?query=branch%3AMWPW-123456-consolidate-dependabot-1/,
+    );
+    assert.match(body, /EDS page: https:\/\/mwpw-123456-consolidate-dependabot-1--mas--adobecom\.aem\.page\//);
+    assert.match(body, /EDS live: https:\/\/mwpw-123456-consolidate-dependabot-1--mas--adobecom\.aem\.live\//);
+});
+
+test('buildConsolidatedBody adds test links for affected project areas', () => {
+    const body = buildConsolidatedBody(samplePrs, {
+        branch: 'MWPW-123456-consolidate-dependabot-1',
+        changedPaths: ['studio/package-lock.json', 'web-components/package.json', 'io/www/package.json'],
+    });
+
+    assert.match(body, /\/studio\.html\?martech=off/);
+    assert.match(body, /\/web-components\/docs\/merch-card\.html\?martech=off/);
+    assert.match(body, /mas-io-url=https%3A%2F%2F14257-merchatscale-dev\.adobeioruntime\.net%2Fapi%2Fv1%2Fweb%2FMerchAtScale/);
+    assert.match(body, /www\.adobe\.com\/kr\/creativecloud\/plans\.html/);
 });
 
 test('buildConsolidatedBody uses the consolidated PR URL for diff/checks once it exists', () => {
@@ -161,7 +189,7 @@ test('consolidate in execute mode comments before closing each original PR and n
         return '';
     });
 
-    const result = consolidate({ execute: true, run, branch: 'consolidate-dependabot-1', log: () => {} });
+    const result = consolidate({ execute: true, run, branch: 'MWPW-123456-consolidate-dependabot-1', log: () => {} });
 
     assert.equal(result.executed, true);
     assert.equal(result.consolidatedPrUrl, 'https://github.com/adobecom/mas/pull/999');
@@ -189,6 +217,23 @@ test('consolidate in execute mode comments before closing each original PR and n
         ghPrCalls.every((call) => call.includes('--repo')),
         'expected every gh pr call to target the repo explicitly',
     );
+});
+
+test('consolidate refuses to create a branch without the required MWPW ticket prefix', () => {
+    const run = makeRecorder(() => '');
+
+    assert.throws(
+        () =>
+            consolidate({
+                execute: true,
+                run,
+                branch: 'consolidate-dependabot-1',
+                listPrs: () => samplePrs,
+                log: () => {},
+            }),
+        { message: /MWPW-XXXXXX/ },
+    );
+    assert.equal(run.calls.length, 0);
 });
 
 test('consolidate reports no PRs to consolidate when none are open', () => {

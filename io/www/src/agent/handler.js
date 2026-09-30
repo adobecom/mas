@@ -1,6 +1,6 @@
 import zlib from 'zlib';
 import openwhisk from 'openwhisk';
-import { SEGMENTS, resolveProduct } from './product-fragment-map.js';
+import { resolveProduct } from './product-fragment-map.js';
 import { flattenOffer } from './flatten.js';
 
 function response(statusCode, body) {
@@ -20,14 +20,34 @@ function parseFragmentBody(result) {
     return JSON.parse(body);
 }
 
+async function withTimeout(operation, ms, label) {
+    let timer;
+    const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const error = new Error(`${label} exceeded ${ms}ms`);
+            error.isTimeout = true;
+            reject(error);
+        }, ms);
+    });
+    try {
+        return await Promise.race([operation(), deadline]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 async function main(params, { openwhiskFactory = openwhisk } = {}) {
-    const { productName, locale, segment = 'individual', pzn, country, api_key: apiKey } = params;
+    const { productName, locale, pzn, country: requestedCountry, api_key: apiKey } = params;
     if (!productName || !locale) {
         return response(400, { message: 'requested parameters productName & locale are not present' });
     }
-    if (!SEGMENTS.includes(segment)) {
-        return response(400, { message: `unknown segment '${segment}', expected one of ${SEGMENTS.join(', ')}` });
+    if (!apiKey) {
+        return response(400, { message: 'requested parameter api_key is not present' });
     }
+    if (pzn !== undefined && !['edu', 'team'].includes(pzn)) {
+        return response(400, { message: `unknown pzn '${pzn}', expected one of edu, team` });
+    }
+    const segment = pzn ?? 'individual';
     const product = resolveProduct(productName);
     if (!product) {
         return response(404, { message: `unknown product '${productName}'` });
@@ -37,15 +57,9 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
         return response(404, { message: `no ${segment} offer for product '${productName}'` });
     }
 
-    const fragmentParams = { id: fragmentId, locale };
-    if (apiKey) fragmentParams.api_key = apiKey;
-    if (pzn) fragmentParams.pzn = pzn;
+    const country = requestedCountry?.toUpperCase();
+    const fragmentParams = { id: fragmentId, locale, api_key: apiKey };
     if (country) fragmentParams.country = country;
-
-    // A fragment invoke or price hydration must never hang the whole activation to its
-    // platform timeout: bound each with a deadline so a stall fails fast (see MWPW agent hang).
-    const deadline = (ms, label) =>
-        new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} exceeded ${ms}ms`)), ms));
 
     let result;
     try {
@@ -54,25 +68,35 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
             apihost: params.__ow_api_host,
             namespace: params.__ow_namespace,
         });
-        result = await Promise.race([
-            client.actions.invoke({
-                name: fragmentActionName(params),
-                params: fragmentParams,
-                blocking: true,
-                result: true,
-            }),
-            deadline(20000, 'fragment invoke'),
-        ]);
+        result = await withTimeout(
+            () =>
+                client.actions.invoke({
+                    name: fragmentActionName(params),
+                    params: fragmentParams,
+                    blocking: true,
+                    result: true,
+                }),
+            20000,
+            'fragment invoke',
+        );
     } catch (error) {
-        return response(502, { message: `failed to invoke fragment action: ${error.message}` });
+        return response(error.isTimeout ? 504 : 502, { message: `failed to invoke fragment action: ${error.message}` });
     }
 
     if (result.statusCode !== 200) {
-        return response(result.statusCode, { message: `fragment action returned ${result.statusCode}` });
+        return response(result.statusCode, { message: result.message ?? `fragment action returned ${result.statusCode}` });
     }
 
-    const flat = await Promise.race([flattenOffer(parseFragmentBody(result)), deadline(15000, 'price hydration')]);
-    return response(200, { ...flat, segment, pzn: pzn ?? null });
+    try {
+        const flat = await withTimeout(
+            () => flattenOffer(parseFragmentBody(result), { locale, country }),
+            15000,
+            'price hydration',
+        );
+        return response(200, { ...flat, fragment: fragmentId, pzn: pzn ?? null });
+    } catch (error) {
+        return response(error.isTimeout ? 504 : 502, { message: `failed to hydrate fragment offer: ${error.message}` });
+    }
 }
 
 export { main };

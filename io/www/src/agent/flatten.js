@@ -2,6 +2,8 @@ import { Defaults } from '../../../../web-components/src/defaults.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../../../web-components/src/compat-version.js';
 import { Price } from '../../../../web-components/src/price.js';
 import { Wcs } from '../../../../web-components/src/wcs.js';
+import { parseLocaleCode, resolveTerritoryCountries, restrictCountryToLocaleMarket } from '../fragment/locales.js';
+import { PATH_TOKENS } from '../fragment/utils/paths.js';
 
 function fieldValue(fields, name) {
     const value = fields?.[name];
@@ -38,13 +40,13 @@ function parseTags(tags) {
         'commitment',
         'product_line',
         'plan_type',
-        'market_segments',
+        'segment',
         'studio',
     ]);
     for (const tag of tags ?? []) {
         const match = /^mas:([^/]+)\/(.+)$/.exec(tag);
         if (match) {
-            const key = match[1] === 'product' ? 'product_line' : match[1];
+            const key = match[1] === 'product' ? 'product_line' : match[1] === 'market_segments' ? 'market_segment' : match[1];
             if (omitted.has(key)) continue;
             result[key] = match[2];
         }
@@ -61,9 +63,9 @@ function parseAttributes(source) {
     return attributes;
 }
 
-function extractElements(html) {
+function extractElements(html, tagNames = 'span|a|button') {
     const elements = [];
-    const pattern = /<(span|a|button)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+    const pattern = new RegExp(`<(${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/\\1>`, 'gi');
     for (const match of String(html).matchAll(pattern)) {
         elements.push({
             tag: match[1].toLowerCase(),
@@ -104,11 +106,19 @@ function toDataset(attributes) {
     );
 }
 
-function createPriceRuntime(fragment) {
+function createPriceRuntime(fragment, { locale, country } = {}) {
     const settings = {
         ...Defaults,
         ...(fragment?.settings ?? {}),
     };
+    if (locale) {
+        const [language, localeCountry] = parseLocaleCode(locale);
+        const surface = fragment?.path?.match(PATH_TOKENS)?.groups.surface;
+        const territory = resolveTerritoryCountries(locale, country || localeCountry);
+        const fixedCountry = restrictCountryToLocaleMarket(surface, locale, territory.country);
+        const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+        Object.assign(settings, { locale, language, country: wcsCountry.toUpperCase() });
+    }
     const startup = {
         literals: {
             price: fragment?.priceLiterals ?? {},
@@ -119,7 +129,7 @@ function createPriceRuntime(fragment) {
         settings,
     };
     const price = Price(startup);
-    const wcs = Wcs(startup);
+    const wcs = Wcs({ ...startup, fetchTimeout: 5000 });
     if (fragment?.wcs) wcs.prefillWcsCache(fragment.wcs);
     return {
         price,
@@ -251,13 +261,13 @@ function authoredText(elements, className) {
     return elements.find((element) => element.attributes.class?.split(/\s+/).includes(className))?.text;
 }
 
-async function extractMerchCard(fragment) {
-    const runtime = createPriceRuntime(fragment);
+async function extractMerchCard(fragment, context) {
+    const runtime = createPriceRuntime(fragment, context);
     const prices = [];
     const fields = await hydrateRecord(fragment?.fields, runtime, prices);
     const settings = await hydrateRecord(fragment?.settings, runtime, prices);
     const hydratedFragment = { ...fragment, fields, settings };
-    const elements = htmlSources(hydratedFragment).flatMap(extractElements);
+    const elements = htmlSources(hydratedFragment).flatMap((source) => extractElements(source));
     const mainPrice = prices.find((price) => price.template === 'price');
     const seeTerms = elements.find(
         (element) =>
@@ -271,6 +281,9 @@ async function extractMerchCard(fragment) {
         description: stripTags(fieldValue(fields, 'description')) ?? undefined,
         shortDescription: stripTags(fieldValue(fields, 'shortDescription')) ?? undefined,
         callout: stripTags(fieldValue(fields, 'callout')) ?? undefined,
+        ctas: extractElements(fieldValue(fields, 'ctas'), 'a|button')
+            .filter(({ text }) => text)
+            .map(({ text }) => ({ label: text })),
         promoPrice: mainPrice?.promoPrice,
         regularPrice: mainPrice?.regularPrice,
         annualPrice: mainPrice?.annualPrice,
@@ -284,15 +297,13 @@ async function extractMerchCard(fragment) {
     };
 }
 
-async function flattenOffer(fragment) {
+async function flattenOffer(fragment, context) {
     const fields = fragment?.fields ?? {};
-    const ctas = fieldValue(fields, 'ctas');
-    const merchCard = await extractMerchCard(fragment);
+    const merchCard = await extractMerchCard(fragment, context);
     return {
         fragment: fragment?.id ?? null,
         productName: (fieldValue(fields, 'cardTitle') || '').trim() || null,
         badge: stripTags(fieldValue(fields, 'badge')),
-        cta_label: stripTags(ctas),
         terms_url: extractTermsUrl(fieldValue(fields, 'description')),
         ...parseTags(fields.tags),
         ...merchCard,

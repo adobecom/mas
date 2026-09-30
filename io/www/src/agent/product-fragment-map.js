@@ -1,4 +1,4 @@
-// Brand Concierge product cards (variant `brand-concierge-product`) in /content/dam/mas/sandbox/en_US.
+// Brand Concierge product cards (variant `brand-concierge-product`) in /content/dam/mas/brand-concierge/en_US.
 // The segment is derived from fragment tags:
 //   individual: mas:customer_segment/individual + mas:market_segments/com
 //   team:       mas:customer_segment/team + mas:market_segments/com
@@ -17,11 +17,12 @@ const PRODUCT_FRAGMENT_MAP = {
     photography: {
         individual: '42df425a-e020-469f-bf0f-5b83504dabce',
         team: '0d7c05c5-ff71-43d5-a3b7-bb65ee51642e',
+        edu: 'f00dad45-531a-41b2-bd98-bd5bfed389d3',
     },
     photoshop: {
         individual: '9941bca0-5304-47f7-aeb3-4f638aeb8791',
         team: 'c2c79d69-8990-44b8-9a86-071c69e4a25a',
-        edu: '7f8315df-c95e-4b19-858d-4ecb60f8ab5c',
+        edu: '15754a77-40ba-45c6-b761-fc3e815adf15',
     },
     illustrator: {
         individual: 'd9f8b8e7-ff8a-4048-b11f-5e23a76f3d12',
@@ -65,6 +66,7 @@ const PRODUCT_FRAGMENT_MAP = {
     'acrobat pro': {
         individual: '7fef9873-f153-4354-a3c0-4e6fa98b42f9',
         team: 'db695a1a-61a6-403f-b847-c684cbf4ae0e',
+        edu: '1605af8e-05b4-4017-a5ce-03ea85c49f76',
     },
     'acrobat standard': {
         individual: '3d79b0d1-1c88-440f-a596-e503388036be',
@@ -74,6 +76,7 @@ const PRODUCT_FRAGMENT_MAP = {
     'acrobat express': {
         individual: '7490cc4e-4064-4152-af18-29d37aa308c5',
         team: 'a5b6556b-0542-405c-9de9-6baa596f1743',
+        edu: '8e16d3ee-bf1e-452f-b371-c1513a04dafa',
     },
     'ai assistant for acrobat': {
         individual: '3345c485-af93-4fef-97d1-bbc10f3b03eb',

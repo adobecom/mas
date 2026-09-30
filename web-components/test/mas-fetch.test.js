@@ -126,14 +126,27 @@ describe('masFetch', () => {
         }
     });
 
-    it('should pass an abort signal to fetch by default', async () => {
+    it('does not create a timeout or require AbortSignal.timeout by default', async () => {
+        const timeoutStub = sinon
+            .stub(AbortSignal, 'timeout')
+            .throws(new Error('AbortSignal.timeout is unavailable'));
         fetchStub.resolves(new Response('ok', { status: 200 }));
 
         await masFetch('https://example.com/api');
 
-        expect(fetchStub.firstCall.args[1].signal).to.be.instanceOf(
-            AbortSignal,
-        );
+        expect(fetchStub.firstCall.args[1]).to.not.have.property('signal');
+        expect(timeoutStub.called).to.be.false;
+    });
+
+    it('preserves an explicit caller-provided abort signal and options', async () => {
+        const controller = new AbortController();
+        const options = { signal: controller.signal, credentials: 'omit' };
+        fetchStub.resolves(new Response('ok', { status: 200 }));
+
+        await masFetch('https://example.com/api', options);
+
+        expect(fetchStub.firstCall.args[1]).to.equal(options);
+        expect(fetchStub.firstCall.args[1].signal).to.equal(controller.signal);
     });
 
     it('should not retry on successful responses', async () => {

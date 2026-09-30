@@ -11,7 +11,6 @@
         "method": "GET",
         "query_template": {
             "productName": "{{args.productName}}",
-            "segment": "{{args.segment}}",
             "pzn": "{{args.pzn}}",
             "locale": "{{context.locale}}",
             "country": "{{context.country}}",
@@ -47,14 +46,10 @@
                         "Frame.io"
                     ]
                 },
-                "segment": {
-                    "type": "string",
-                    "enum": ["individual", "team", "edu"],
-                    "description": "Audience: individual (default), team (business plans), or edu (students and teachers)."
-                },
                 "pzn": {
                     "type": "string",
-                    "description": "Optional personalization token forwarded to the fragment action."
+                    "enum": ["edu", "team"],
+                    "description": "Agent audience selector: edu selects student and teacher offers; team selects business plans. Omit for individual offers. Not forwarded to the fragment action."
                 }
             }
         },
@@ -67,7 +62,8 @@
                 "entity_info": {
                     "productName": "{{record.productName}}",
                     "fragment": "{{record.fragment}}",
-                    "segment": "{{record.segment}}",
+                    "customer_segment": "{{record.customer_segment}}",
+                    "market_segment": "{{record.market_segment}}",
                     "pzn": "{{record.pzn}}"
                 }
             }

@@ -26,10 +26,11 @@
 <sp-theme color="light" scale="medium">
 <h1 id="agent-api" tabindex="-1">Agent API <a class="header-anchor" href="#agent-api" href="#agent-api" title="Permalink to this heading">#</a></h1>
 <h2 id="introduction" tabindex="-1">Introduction <a class="header-anchor" href="#introduction" href="#introduction" title="Permalink to this heading">#</a></h2>
-<p>The Agent API returns a flat, server-hydrated M@S offer. Price and terms data are resolved in Node.js from the fragment’s WCS data, without browser APIs.</p>
-<p>Checkout links and buttons are not included.</p>
+<p>The Agent API returns one server-hydrated M@S offer object. Price and terms data are resolved in Node.js from the fragment’s WCS data, without browser APIs.</p>
+<p>Authored CTA labels are returned in an ordered <code>ctas</code> array. Checkout URLs are
+not returned or hydrated.</p>
 <h2 id="request" tabindex="-1">Request <a class="header-anchor" href="#request" href="#request" title="Permalink to this heading">#</a></h2>
-<pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent?productName=Creative%20Cloud%20Pro&amp;locale=en_US&amp;api_key=&lt;api-key&gt;
+<pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&amp;locale=en_US&amp;api_key=&lt;api-key&gt;
 </code></pre>
 <table>
 <thead>
@@ -48,31 +49,204 @@
 <tr>
 <td><code>locale</code></td>
 <td>Yes</td>
-<td>Adobe locale, for example <code>en_US</code>.</td>
+<td>Adobe locale, for example <code>en_US</code>; used for fragment retrieval and pricing hydration.</td>
 </tr>
 <tr>
 <td><code>api_key</code></td>
+<td>Yes</td>
+<td>Registered MAS client API key forwarded to the fragment action.</td>
+</tr>
+<tr>
+<td><code>pzn</code></td>
 <td>No</td>
-<td>API key forwarded to the fragment action.</td>
+<td>Agent-only audience selector: <code>edu</code> for students and teachers, or <code>team</code> for business plans. Omit for individual offers. Not forwarded to the fragment action.</td>
+</tr>
+<tr>
+<td><code>country</code></td>
+<td>No</td>
+<td>Country code forwarded to the fragment action and normalized for pricing hydration, for example <code>US</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Product names are matched case-insensitively and trimmed. Not every product has
+an offer for every audience; an unavailable combination returns 404.
+Use <code>&amp;pzn=edu</code> or <code>&amp;pzn=team</code> to select that audience. There is no separate
+<code>segment</code> query parameter.</p>
+<p>For teams, add <code>&amp;pzn=team</code>; for students and teachers, add <code>&amp;pzn=edu</code>.
+Omit <code>pzn</code> for individuals: <code>pzn=individual</code> and an empty <code>pzn</code> are not accepted.
+The agent passes only the selected fragment UUID, locale, API key, and any
+country to the fragment action; it does not pass <code>pzn</code>.</p>
+<p>Browser integrations read <code>locale</code> and <code>country</code> from the page’s
+<code>mas-commerce-service</code>; these are page context, not model-selected inputs.</p>
+<h2 id="product-availability" tabindex="-1">Product availability <a class="header-anchor" href="#product-availability" href="#product-availability" title="Permalink to this heading">#</a></h2>
+<p>The static product map uses <code>brand-concierge-product</code> cards from
+<code>/content/dam/mas/brand-concierge/en_US</code>. It contains 20 products and 49 offers.
+Individual offers require no <code>pzn</code>; team and education offers use <code>pzn=team</code>
+and <code>pzn=edu</code>, respectively. Unsupported combinations return 404.</p>
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Individual</th>
+<th><code>pzn=team</code></th>
+<th><code>pzn=edu</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Creative Cloud Pro</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Creative Cloud Pro Plus</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Photography</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Acrobat Studio</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Photoshop</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Adobe Firefly Pro</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Adobe Premiere</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Illustrator</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>After Effects</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>InDesign</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Lightroom</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Acrobat Pro</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Acrobat Express</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Audition</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Animate</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Adobe Substance 3D Collection</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Adobe Substance 3D Texturing</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Acrobat Standard</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>AI Assistant for Acrobat</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td><a href="http://Frame.io">Frame.io</a></td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
 </tr>
 </tbody>
 </table>
 <h2 id="response" tabindex="-1">Response <a class="header-anchor" href="#response" href="#response" title="Permalink to this heading">#</a></h2>
+<p>Example shape; prices and authored text vary by locale, offer, and publication
+state:</p>
 <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;fragment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2c5cd672-1db8-409c-96ff-46b1a1dfb7dc&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;productName&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Creative Cloud Pro&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;badge&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Save 50%&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;fragment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ea8f1b95-56b1-4665-b859-41ac2961ddcd&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;productName&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Adobe Premiere&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pzn&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;badge&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;ctas&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;label&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Free trial&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;label&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Buy now&quot;</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;customer_segment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;individual&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Creative Cloud Pro&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;description&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Pay US$34.99/mo for the first 3 months and US$69.99/mo after that.&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;promoPrice&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;US$34.99&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;regularPrice&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;US$69.99&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;planTypeText&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Annual, billed monthly&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;market_segment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Adobe Premiere&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;description&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Professional video and film editing on desktop and iPhone&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;regularPrice&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;US$22.99&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;recurrenceText&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/mo&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;terms_url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/offer-terms/cc_full_special_offer.html&quot;</span>
+  <span class="hljs-attr">&quot;terms_url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
-<p>Optional properties are omitted when they do not apply.</p>
+<p><code>customer_segment</code> and <code>market_segment</code> come from the returned fragment’s tags:
+individual offers use <code>individual</code>/<code>com</code>, team offers use <code>team</code>/<code>com</code>, and
+education offers use <code>individual</code>/<code>edu</code>. No <code>segment</code> field is returned.
+<code>pzn</code> is <code>null</code> when omitted from the request.
+Locale and country are not echoed. Other optional properties are omitted when
+they do not apply.</p>
+<p><code>fragment</code> is the exact UUID used to invoke the fragment action, even when the
+returned payload represents a different locale or variation.
+<code>ctas</code> contains one <code>{ &quot;label&quot;: &quot;...&quot; }</code> object per non-empty authored link or
+button, in authored order. It is <code>[]</code> when no CTAs exist and replaces the
+concatenated <code>cta_label</code> field. Checkout URLs are not returned or hydrated.</p>
 <table>
 <thead>
 <tr>
@@ -84,13 +258,28 @@
 <tbody>
 <tr>
 <td><code>fragment</code></td>
-<td><code>string | null</code></td>
-<td>Fragment ID.</td>
+<td><code>string</code></td>
+<td>Exact fragment UUID passed to the fragment action.</td>
 </tr>
 <tr>
 <td><code>productName</code></td>
 <td><code>string | null</code></td>
-<td>Product name used by the agent.</td>
+<td>Authored card title from the returned fragment; not an echo of the lookup name.</td>
+</tr>
+<tr>
+<td><code>customer_segment</code></td>
+<td><code>string</code></td>
+<td>Customer segment from fragment tags, for example <code>individual</code> or <code>team</code>.</td>
+</tr>
+<tr>
+<td><code>market_segment</code></td>
+<td><code>string</code></td>
+<td>Market segment from <code>mas:market_segments/*</code> tags, for example <code>com</code> or <code>edu</code>.</td>
+</tr>
+<tr>
+<td><code>pzn</code></td>
+<td><code>string | null</code></td>
+<td>Requested audience selector; <code>null</code> when omitted.</td>
 </tr>
 <tr>
 <td><code>badge</code></td>
@@ -98,9 +287,9 @@
 <td>Card badge text.</td>
 </tr>
 <tr>
-<td><code>cta_label</code></td>
-<td><code>string | null</code></td>
-<td>Authored CTA label.</td>
+<td><code>ctas</code></td>
+<td><code>object[]</code></td>
+<td>Ordered <code>{ label: string }</code> CTA entries; <code>[]</code> when none exist.</td>
 </tr>
 <tr>
 <td><code>terms_url</code></td>
@@ -177,9 +366,102 @@
 <td><code>object</code></td>
 <td>See-terms <code>analyticsId</code>, <code>href</code>, and <code>text</code>.</td>
 </tr>
+<tr>
+<td><code>renewalText</code></td>
+<td><code>string</code></td>
+<td>Authored renewal text.</td>
+</tr>
+<tr>
+<td><code>promoDurationText</code></td>
+<td><code>string</code></td>
+<td>Authored promotion-duration text.</td>
+</tr>
 </tbody>
 </table>
-<p>Authored fragment tags may add fields such as <code>customer_segment</code>.</p>
+<p>Other non-excluded authored MAS tags may add top-level fields.</p>
+<h2 id="api-contract-changes" tabindex="-1">API contract changes <a class="header-anchor" href="#api-contract-changes" href="#api-contract-changes" title="Permalink to this heading">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Previous contract</th>
+<th>Current contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Separate <code>segment</code> query parameter</td>
+<td>Agent-only <code>pzn=edu</code> or <code>pzn=team</code>; omit for individuals.</td>
+</tr>
+<tr>
+<td><code>pzn</code> forwarded to the fragment action</td>
+<td>Only the mapped UUID selects the audience downstream; <code>pzn</code> is not forwarded.</td>
+</tr>
+<tr>
+<td>Response <code>segment</code> field</td>
+<td>Tag-derived <code>customer_segment</code> and singular <code>market_segment</code>.</td>
+</tr>
+<tr>
+<td>Concatenated <code>cta_label</code> string</td>
+<td>Ordered <code>ctas</code> array of <code>{ label }</code> objects, or <code>[]</code>.</td>
+</tr>
+<tr>
+<td><code>fragment</code> taken from the response payload</td>
+<td>Exact UUID passed to the fragment action, even if the payload ID differs.</td>
+</tr>
+<tr>
+<td><code>api_key</code> documented as optional</td>
+<td>Required registered client key; missing keys return 400.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="errors" tabindex="-1">Errors <a class="header-anchor" href="#errors" href="#errors" title="Permalink to this heading">#</a></h2>
+<p>Errors return JSON with a <code>message</code> field.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td>Missing <code>productName</code>, <code>locale</code>, or <code>api_key</code>, or a supplied <code>pzn</code> other than <code>edu</code> or <code>team</code>.</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Unknown product or no offer for the requested audience.</td>
+</tr>
+<tr>
+<td>Upstream status</td>
+<td>The fragment action returns a non-200 response; its message is preserved when supplied.</td>
+</tr>
+<tr>
+<td>502</td>
+<td>Fragment invocation, decoding, parsing, or hydration fails.</td>
+</tr>
+<tr>
+<td>504</td>
+<td>Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds.</td>
+</tr>
+</tbody>
+</table>
+<p>Incomplete WCS caches may require network requests during hydration. Only the
+Node agent applies a 5-second timeout to each such WCS request; browser clients
+have no default fetch timeout.</p>
+<h3 id="hydration-geography" tabindex="-1">Hydration geography <a class="header-anchor" href="#hydration-geography" href="#hydration-geography" title="Permalink to this heading">#</a></h3>
+<p>Country codes are case-insensitive at the agent boundary: <code>country=eg</code> becomes
+<code>EG</code> before the fragment action is called, not only when its response is
+hydrated. This ensures prefetch and hydration use the same canonical country.</p>
+<p>The agent carries request <code>locale</code> and <code>country</code> into its pricing runtime even
+when the fragment contains no geography settings. If <code>country</code> is omitted,
+it derives the country from <code>locale</code>. The same surface-specific market
+restrictions and territory mapping used by the fragment pipeline determine
+the effective commerce country; for example, <code>es_PR</code> uses US pricing.</p>
+<p>Request geography overrides fragment-wide defaults, while authored per-price
+country and language overrides are preserved. Photoshop with
+<code>locale=en_US&amp;country=EG</code> therefore uses the prefetched Egypt offer instead of
+attempting an unnecessary US WCS lookup.</p>
 
 </sp-theme>
 </main>

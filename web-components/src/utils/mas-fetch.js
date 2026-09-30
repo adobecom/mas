@@ -1,7 +1,3 @@
-// A request that never settles (e.g. WCS unreachable from a serverless runtime) must not hang
-// the caller: cap each attempt so it fails fast. Overridable via an explicit options.signal.
-const FETCH_TIMEOUT_MS = 5000;
-
 /**
  * A fetch wrapper that retries failed requests up to a specified number of times.
  * Only retries on network errors, not server errors (HTTP status codes) or timeouts.
@@ -16,10 +12,7 @@ async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-            const response = await fetch(resource, {
-                ...options,
-                signal: options.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
-            });
+            const response = await fetch(resource, options);
             // Don't retry on server errors (HTTP status codes)
             response.retryCount = attempt;
             return response;
@@ -41,4 +34,4 @@ async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
     throw lastError;
 }
 
-export { masFetch, FETCH_TIMEOUT_MS };
+export { masFetch };

@@ -387,6 +387,7 @@ function applyPriceLiterals(fragment) {
             alternativePriceAriaLabel: '{{price-literal-alternative-price-aria-label}}',
             strikethroughAriaLabel: '{{price-literal-strikethrough-aria-label}}',
             planTypeLabel: '{{price-literal-plan-type-label}}',
+            priceUnavailableLabel: '{{price-literal-price-unavailable-label}}',
         };
     }
 }

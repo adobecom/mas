@@ -13,17 +13,12 @@ on:
 permissions:
     contents: read
     pull-requests: read
+    checks: read
 
 env:
     # Keep in sync with the branch-protection required-approval count. These are
     # separate sources of truth and will drift if one is changed without the other.
     REQUIRED_APPROVALS: 2
-
-# Prevent multiple runs from happening at the same time. Keyed on the PR number
-# so pull_request and pull_request_review runs for the same PR share a group.
-concurrency:
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-    cancel-in-progress: true
 
 jobs:
     identity:
@@ -62,7 +57,18 @@ jobs:
               with:
                   script: |
                       const required = Number(process.env.REQUIRED_APPROVALS);
-                      const pr = context.payload.pull_request;
+
+                      // Fetch the PR live instead of trusting context.payload.pull_request.
+                      // That payload is a point-in-time snapshot: a manual "Re-run jobs"
+                      // replays the *original* event payload rather than refetching it, so
+                      // a label added after the first trigger would otherwise be reported
+                      // as missing forever. Live data keeps every run — including reruns —
+                      // accurate.
+                      const { data: pr } = await github.rest.pulls.get({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          pull_number: context.payload.pull_request.number,
+                      });
                       const hasLabel = pr.labels.some((label) => label.name === 'run nala');
 
                       const reviews = await github.paginate(github.rest.pulls.listReviews, {
@@ -114,15 +120,51 @@ jobs:
                       const approvals = permissions.filter(Boolean).length;
 
                       const canRun = hasLabel && approvals >= required;
+
+                      // A new commit, or deliberately re-adding the 'run nala' label, is a
+                      // genuine request to (re)run Nala. Anything else that re-evaluates the
+                      // gate — a review landing/being dismissed, or an unrelated label change
+                      // — must not restart Nala if it already ran (or is still running) for
+                      // this exact commit. Without this, every extra approval beyond the
+                      // required count fires a brand-new full suite.
+                      const isFreshTrigger =
+                          context.eventName === 'pull_request' &&
+                          (context.payload.action === 'opened' ||
+                              context.payload.action === 'synchronize' ||
+                              (context.payload.action === 'labeled' &&
+                                  context.payload.label?.name === 'run nala'));
+
+                      let alreadyHandled = false;
+                      if (canRun && !isFreshTrigger) {
+                          const { data: checkRuns } = await github.rest.checks.listForRef({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              ref: pr.head.sha,
+                              per_page: 100,
+                          });
+                          const nalaTestNames = [
+                              'Running Nala Studio E2E UI Tests',
+                              'Running Nala Docs E2E UI Tests',
+                          ];
+                          alreadyHandled = checkRuns.check_runs.some(
+                              (run) =>
+                                  nalaTestNames.some((name) => run.name.startsWith(name)) &&
+                                  (run.status !== 'completed' || run.conclusion === 'success'),
+                          );
+                      }
+
+                      const effectiveCanRun = canRun && !alreadyHandled;
                       const summary = `'run nala' label: ${hasLabel}, approvals: ${approvals}/${required}`;
-                      if (canRun) {
+                      if (effectiveCanRun) {
                           core.info(`Nala will run — ${summary}`);
+                      } else if (alreadyHandled) {
+                          core.info(`Nala already ran (or is running) for this commit, skipping re-run — ${summary}`);
                       } else {
                           core.notice(`Nala skipped — ${summary}`);
                       }
 
                       core.setOutput('has-label', String(hasLabel));
-                      core.setOutput('can-run', String(canRun));
+                      core.setOutput('can-run', String(effectiveCanRun));
 
     nala-gate:
         name: Nala Gate
@@ -159,6 +201,15 @@ jobs:
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true'
+        # Scoped to just the heavy test jobs, not the whole workflow: cheap jobs
+        # (check-paths/check-approvals/nala-gate) always run immediately for every
+        # trigger. Only an actual new commit should cancel an in-progress test
+        # run here; a review/relabel event that reaches this point at all only
+        # does so because check-approvals' dedup guard already found no prior
+        # successful/running Nala run for this exact commit.
+        concurrency:
+            group: nala-studio-tests-${{ github.event.pull_request.number }}
+            cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
         runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 45 # Prevent hanging jobs
         strategy:
@@ -243,6 +294,10 @@ jobs:
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true'
+        # See run-nala-studio-tests above for why this is job-scoped, not workflow-wide.
+        concurrency:
+            group: nala-docs-tests-${{ github.event.pull_request.number }}
+            cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
         runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:

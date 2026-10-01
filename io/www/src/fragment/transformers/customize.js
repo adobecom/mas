@@ -1,6 +1,7 @@
 import { PATH_TOKENS } from '../utils/paths.js';
 import {
     CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
     geoMatchScore,
     getRequestInfos,
     hasGeoTag,
@@ -326,20 +327,33 @@ function hasExplicitMapping(osis, customizeContext, { project, label, promoMap, 
  * evergreen without a mapping doesn't apply.
  * there should be no fallback to mapping-less evergreen promo project
  *
+ * Collections carry no offer, so mappings don't apply to them: any targeting project is taken,
+ * seasonal first.
+ *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
  */
 function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
-    const osis = fragmentOsis(root);
-    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
 
     const seasonalEntries = [];
     const evergreenEntries = [];
     for (const entry of promoEntries) {
         (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
     }
+
+    if (root.model?.id === COLLECTION_MODEL_ID) {
+        const selected = seasonalEntries[0] ?? evergreenEntries[0];
+        logDebug(
+            () => `Selected promo project ${selected.project.id} for collection ${root.id} out of ${promoEntries.length}`,
+            customizeContext,
+        );
+        return selected;
+    }
+
+    const osis = fragmentOsis(root);
+    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
 
     const selected =
         seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??

@@ -231,17 +231,6 @@ export const styles = css`
         gap: 16px;
     }
 
-    .hide-cards-control {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    /* sp-field-label reserves a taller box with its text at the top; shrink it so flex centering aligns the text. */
-    .hide-cards-control sp-field-label {
-        min-block-size: 0;
-    }
-
     .cards-container {
         display: flex;
         flex-direction: column;
@@ -249,8 +238,37 @@ export const styles = css`
         min-height: 60px;
     }
 
-    .cards-container.hidden {
+    .cards-container.hidden,
+    .form-container.hidden {
         display: none;
+    }
+
+    .collapsible-title {
+        gap: 4px;
+    }
+
+    .section-title h2 {
+        margin: 0;
+    }
+
+    .collapsible-title h2 {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .collapsible-title + .form-container {
+        margin-top: 16px;
+    }
+
+    .item-placeholder {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 8px 12px;
+        border: 1px dashed var(--spectrum-gray-300);
+        border-radius: 4px;
+        color: var(--spectrum-gray-600);
     }
 
     .empty-cards-placeholder {

@@ -28,6 +28,8 @@ import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 
 const CARDS_SECTION = 'cards-section';
+// Surface/locale the shared picker slice was last loaded for.
+let pickerContext = null;
 
 /** Floating quick-actions bar (mas-quick-actions) used for collections instead of the app's
  * global left sidenav toolbar, matching promotions/translation project editors. Mirrors the
@@ -58,6 +60,7 @@ class MerchCardCollectionEditor extends LitElement {
             collectionPasteLinksInput: { type: String, state: true },
             collectionPasteLinksItems: { type: Array, state: true },
             hideCards: { type: Boolean, state: true },
+            sidenavExpanded: { type: Boolean, state: true },
         };
     }
 
@@ -77,12 +80,14 @@ class MerchCardCollectionEditor extends LitElement {
         this.collectionPasteLinksInput = '';
         this.collectionPasteLinksItems = [];
         this.hideCards = false;
+        this.sidenavExpanded = null;
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.#addEventListeners();
         this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.collectionCards);
+        this.#resetPickerCacheOnContextChange();
 
         if (this.repository?.loadAllCollections) {
             this.repository.loadAllCollections(Store.collectionCards);
@@ -99,6 +104,25 @@ class MerchCardCollectionEditor extends LitElement {
         this.#itemsSelectionStoreToken = null;
         super.disconnectedCallback();
         this.hideItemPreview();
+    }
+
+    /** The picker slice outlives the editor and its loader skips subscribing once cards are cached,
+     * so drop the cached items when the editor reopens on another surface or locale. */
+    #resetPickerCacheOnContextChange() {
+        const context = `${Store.search.value.path}/${Store.filters.value.locale}`;
+        if (context === pickerContext) return;
+        pickerContext = context;
+        const store = Store.collectionCards;
+        store.allCards.set([]);
+        store.cardsByPaths.set(new Map());
+        store.displayCards.set([]);
+        store.offerDataCache.clear();
+        store.groupedVariationsByParent.set(new Map());
+        store.groupedVariationsData.set(new Map());
+        store.allCollections.set([]);
+        store.allCollections.setMeta('loaded', false);
+        store.collectionsByPaths.set(new Map());
+        store.displayCollections.set([]);
     }
 
     #addEventListeners() {
@@ -379,8 +403,13 @@ class MerchCardCollectionEditor extends LitElement {
         const cardsValues = this.fragment?.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation) ?? [];
         return html`
             <div class="section-header">
-                <div class="section-title">
-                    <h2>Selected fragments (${cardsValues.length})</h2>
+                <div class="section-title collapsible-title">
+                    ${this.#renderCollapsibleTitle(
+                        `Selected fragments (${cardsValues.length})`,
+                        !this.hideCards,
+                        'cards-container',
+                        this.#toggleCards,
+                    )}
                     ${this.#renderFieldStatusIndicator(
                         'cards',
                         () => this.#overrideField('cards'),
@@ -388,14 +417,6 @@ class MerchCardCollectionEditor extends LitElement {
                     )}
                 </div>
                 <div class="cards-header-actions">
-                    <div class="hide-cards-control">
-                        <sp-field-label for="hide-cards">hide</sp-field-label>
-                        <sp-switch
-                            id="hide-cards"
-                            .checked=${this.hideCards}
-                            @change=${this.#handleHideCardsChange}
-                        ></sp-switch>
-                    </div>
                     <overlay-trigger type="modal" triggered-by="click">
                         ${this.#cardsSelectorDialog}
                         <sp-button slot="trigger" size="s" variant="secondary" treatment="outline">
@@ -408,9 +429,29 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
-    #handleHideCardsChange = (event) => {
-        this.hideCards = event.target.checked;
+    #toggleCards = () => {
+        this.hideCards = !this.hideCards;
     };
+
+    /** Chevron toggle + heading shared by the collapsible sections. */
+    #renderCollapsibleTitle(title, expanded, controls, onToggle) {
+        return html`
+            <sp-action-button
+                quiet
+                size="s"
+                id="toggle-${controls}"
+                label=${expanded ? `Collapse ${title}` : `Expand ${title}`}
+                aria-expanded=${expanded}
+                aria-controls=${controls}
+                @click=${onToggle}
+            >
+                ${expanded
+                    ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                    : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
+            </sp-action-button>
+            <h2 @click=${onToggle}>${title}</h2>
+        `;
+    }
 
     /** Seeds the picker's selection scope with the collection's own current cards, mirroring
      * mas-compare-chart-editor's #openItemsSelector. */
@@ -478,7 +519,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         return html`
             ${this.#cardsHeader}
-            <div class="cards-container ${this.hideCards ? 'hidden' : ''}">
+            <div id="cards-container" class="cards-container ${this.hideCards ? 'hidden' : ''}">
                 ${hasCards
                     ? this.getItems({ values: cardsValues }, inherited)
                     : html`<div class="empty-fragments-placeholder">
@@ -865,6 +906,17 @@ class MerchCardCollectionEditor extends LitElement {
         }
     }
 
+    get #isLoadingReferences() {
+        return !this.fragment?.references || this.#referencesMapAppliedRun !== this.#referencesMapRun;
+    }
+
+    get #itemPlaceholder() {
+        return html`<div class="item-placeholder" aria-busy="true">
+            <sp-progress-circle indeterminate size="s" label="Loading item"></sp-progress-circle>
+            <span>Loading…</span>
+        </div>`;
+    }
+
     getItems(field, inherited = false) {
         return html`
             <div
@@ -876,11 +928,8 @@ class MerchCardCollectionEditor extends LitElement {
                     field.values,
                     (item) => item,
                     (item, index) => {
-                        const fragmentStore = this.#fragmentReferencesMap.get(item);
-                        if (!fragmentStore) return nothing;
-
-                        const fragment = fragmentStore.previewStore.get();
-                        if (!fragment) return nothing;
+                        const fragment = this.#fragmentReferencesMap.get(item)?.previewStore.get();
+                        if (!fragment) return this.#isLoadingReferences ? this.#itemPlaceholder : nothing;
 
                         const { label, iconPaths } = this.#getFragmentInfo(fragment);
                         const isDefaultCard =
@@ -1552,6 +1601,16 @@ class MerchCardCollectionEditor extends LitElement {
                         ></sp-textfield>
                     </div>
                     <div class="form-row">
+                        <sp-field-label for="fragment-title">Fragment title (not shown on the page)</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter fragment title"
+                            id="fragment-title"
+                            data-field="title"
+                            value="${this.fragment.title}"
+                            @input=${this.#updateFragmentInternal}
+                        ></sp-textfield>
+                    </div>
+                    <div class="form-row span-2">
                         <sp-field-label for="collection-description">Collection description</sp-field-label>
                         <sp-textfield
                             placeholder="Enter collection description"
@@ -1623,10 +1682,32 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    /** Most collections leave the side navigation empty, so it starts collapsed unless it has content. */
+    get #isSidenavExpanded() {
+        if (this.sidenavExpanded !== null) return this.sidenavExpanded;
+        const values = [
+            this.searchText,
+            this.tagFiltersTitle,
+            this.tagFilters,
+            this.linksTitle,
+            this.link,
+            this.linkIcon,
+            this.linkText,
+        ];
+        return this.isGroupedVariation || values.some(Boolean);
+    }
+
+    #toggleSidenav = () => {
+        this.sidenavExpanded = !this.#isSidenavExpanded;
+    };
+
     get #sidenav() {
+        const expanded = this.#isSidenavExpanded;
         return html`
-            <h2>Side Navigation</h2>
-            <div class="form-container two-column-grid">
+            <div class="section-title collapsible-title">
+                ${this.#renderCollapsibleTitle('Side Navigation', expanded, 'sidenav-fields', this.#toggleSidenav)}
+            </div>
+            <div id="sidenav-fields" class="form-container two-column-grid ${expanded ? '' : 'hidden'}">
                 <div class="grid-column">
                     <div class="form-row">
                         <sp-field-label for="searchText">Search Text</sp-field-label>
@@ -1715,42 +1796,8 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
-    #updateLocReady() {
-        this.fragmentStore.updateField('locReady', [!this.fragment.getField('locReady').values[0]]);
-    }
-
     #updateFragmentInternal({ target }) {
         this.fragmentStore.updateFieldInternal(target.dataset.field, target.value);
-    }
-
-    get #fragmentEditor() {
-        return html`
-            ${this.fragment
-                ? html`
-                      <div class="form-container">
-                          <h2>Fragment details (not shown on the card)</h2>
-                          <div class="form-row">
-                              <sp-field-label for="fragment-title">Fragment Title</sp-field-label>
-                              <sp-textfield
-                                  placeholder="Enter fragment title"
-                                  id="fragment-title"
-                                  data-field="title"
-                                  value="${this.fragment.title}"
-                                  @input=${this.#updateFragmentInternal}
-                              ></sp-textfield>
-                          </div>
-                          <div class="form-row">
-                              <sp-switch
-                                  ?checked="${this.fragment.getField('locReady')?.values[0]}"
-                                  @change="${this.#updateLocReady}"
-                              >
-                                  Send to translation
-                              </sp-switch>
-                          </div>
-                      </div>
-                  `
-                : nothing}
-        `;
     }
 
     /** @returns {import('../mas-fragment-editor.js').default | null} */
@@ -1857,7 +1904,6 @@ class MerchCardCollectionEditor extends LitElement {
             <div class="section-box">${this.#form}</div>
             ${this.#tip}
             <div class="section-box">${this.#sidenav}</div>
-            <div class="section-box">${this.#fragmentEditor}</div>
             ${this.#quickActions}
         </div>`;
     }

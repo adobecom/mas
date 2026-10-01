@@ -401,35 +401,20 @@
                         fragEditorHost = null;
                     });
 
-                    it('renders fragment-title, collection-description, and the locReady sp-switch', async () => {
+                    it('renders the fragment title in General info, without a fragment details section', async () => {
                         const editor = document.createElement('merch-card-collection-editor');
                         editor.updateFragment = () => {};
                         editor.fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-render')));
                         fragEditorHost.appendChild(editor);
                         await editor.updateComplete;
 
-                        expect(editor.shadowRoot.querySelector('#fragment-title')).to.exist;
-                        expect(editor.shadowRoot.querySelector('#collection-description')).to.exist;
-                        expect(editor.shadowRoot.querySelector('sp-switch:not(#hide-cards)')).to.exist;
-                    });
-
-                    it('calls fragmentStore.updateField to toggle locReady when the sp-switch fires a change event', async () => {
-                        const editor = document.createElement('merch-card-collection-editor');
-                        editor.updateFragment = () => {};
-                        const fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-toggle')));
-                        const updateFieldSpy = spy(fragmentStore, 'updateField');
-                        editor.fragmentStore = fragmentStore;
-                        fragEditorHost.appendChild(editor);
-                        await editor.updateComplete;
-
-                        editor.shadowRoot
-                            .querySelector('sp-switch:not(#hide-cards):not(#markStaged)')
-                            .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-
-                        const locReadyCall = updateFieldSpy.getCalls().find((c) => c.args[0] === 'locReady');
-                        expect(locReadyCall).to.exist;
-                        expect(locReadyCall.args[1]).to.deep.equal([true]); // !false → true
-                        updateFieldSpy.restore();
+                        const generalInfo = editor.shadowRoot.querySelector('.general-info-container');
+                        expect(generalInfo.querySelector('#fragment-title')).to.exist;
+                        expect(generalInfo.querySelector('#collection-description')).to.exist;
+                        expect(editor.shadowRoot.textContent).to.not.include('Fragment details');
+                        expect(editor.shadowRoot.textContent).to.not.include('Send to translation');
+                        const switches = [...editor.shadowRoot.querySelectorAll('sp-switch')].map((el) => el.id);
+                        expect(switches).to.deep.equal(['markStaged']);
                     });
 
                     it('calls fragmentStore.updateFieldInternal with field name and new value on title input', async () => {
@@ -447,6 +432,43 @@
 
                         expect(updateInternalSpy.calledWith('title', 'Updated Title')).to.be.true;
                         updateInternalSpy.restore();
+                    });
+
+                    const mountWithFields = async (extraFields = [], suffix = '') => {
+                        const data = collectionWithLocReady(false, suffix);
+                        data.fields.push(...extraFields);
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(data));
+                        fragEditorHost.appendChild(editor);
+                        await editor.updateComplete;
+                        return editor;
+                    };
+                    const sidenavFieldsVisible = (editor) =>
+                        getComputedStyle(editor.shadowRoot.querySelector('#sidenav-fields')).display !== 'none';
+
+                    it('collapses an empty side navigation by default and expands it on demand', async () => {
+                        const editor = await mountWithFields([], '-sidenav-empty');
+                        const toggle = editor.shadowRoot.querySelector('#toggle-sidenav-fields');
+                        expect(sidenavFieldsVisible(editor)).to.be.false;
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+
+                        toggle.click();
+                        await editor.updateComplete;
+                        expect(sidenavFieldsVisible(editor)).to.be.true;
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('true');
+
+                        toggle.nextElementSibling.click();
+                        await editor.updateComplete;
+                        expect(sidenavFieldsVisible(editor)).to.be.false;
+                    });
+
+                    it('expands the side navigation when it already has content', async () => {
+                        const editor = await mountWithFields(
+                            [{ name: 'searchText', type: 'text', multiple: false, values: ['Search'] }],
+                            '-sidenav-filled',
+                        );
+                        expect(sidenavFieldsVisible(editor)).to.be.true;
                     });
                 });
 
@@ -786,6 +808,7 @@
                         const withoutReferences = savedCollectionData({ references: undefined });
                         const editor = await mountEditor(withoutReferences);
                         expect(renderedItemCount(editor, 'cards-container')).to.equal(0);
+                        expect(editor.shadowRoot.querySelectorAll('.cards-container .item-placeholder').length).to.equal(1);
 
                         editor.fragmentStore.refreshFrom(savedCollectionData());
                         await editor.updateComplete;
@@ -794,6 +817,29 @@
 
                         expect(renderedItemCount(editor, 'cards-container')).to.equal(1);
                         expect(renderedItemCount(editor, 'collections-container')).to.equal(1);
+                        expect(editor.shadowRoot.querySelectorAll('.item-placeholder').length).to.equal(0);
+                    });
+
+                    it('drops the picker cache when a collection opens on another locale', async () => {
+                        const staleCard = { path: '/content/dam/mas/sandbox/fr_FR/stale-card', id: 'stale' };
+                        const originalLocale = Store.filters.value.locale;
+                        const first = await mountEditor(savedCollectionData());
+                        Store.collectionCards.allCards.set([staleCard]);
+                        Store.collectionCards.cardsByPaths.set(new Map([[staleCard.path, staleCard]]));
+                        first.remove();
+
+                        await mountEditor(savedCollectionData());
+                        expect(Store.collectionCards.allCards.value).to.deep.equal([staleCard]);
+                        reopenHost.replaceChildren();
+
+                        Store.filters.set({ ...Store.filters.value, locale: 'de_DE' });
+                        try {
+                            await mountEditor(savedCollectionData());
+                            expect(Store.collectionCards.allCards.value).to.deep.equal([]);
+                            expect(Store.collectionCards.cardsByPaths.value.size).to.equal(0);
+                        } finally {
+                            Store.filters.set({ ...Store.filters.value, locale: originalLocale });
+                        }
                     });
 
                     it('seeds the fragments picker with only the saved cards', async () => {
@@ -922,21 +968,23 @@
                         });
                     });
 
-                    it('collapses the selected fragments list with the hide toggle', async () => {
+                    it('collapses the selected fragments list with the chevron toggle and the heading', async () => {
                         const editor = await mountEditor(savedCollectionData());
                         const container = editor.shadowRoot.querySelector('.cards-container');
-                        const toggle = editor.shadowRoot.querySelector('#hide-cards');
+                        const toggle = editor.shadowRoot.querySelector('#toggle-cards-container');
                         expect(getComputedStyle(container).display).to.not.equal('none');
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('true');
 
                         toggle.click();
                         await editor.updateComplete;
                         expect(getComputedStyle(container).display).to.equal('none');
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('false');
                         expect(editor.shadowRoot.querySelector('[data-field-name="cards-section"] h2').textContent).to.include(
                             'Selected fragments (1)',
                         );
                         expect(editor.shadowRoot.querySelector('.cards-header-actions overlay-trigger')).to.exist;
 
-                        toggle.click();
+                        editor.shadowRoot.querySelector('[data-field-name="cards-section"] h2').click();
                         await editor.updateComplete;
                         expect(getComputedStyle(container).display).to.not.equal('none');
                     });

@@ -3422,6 +3422,56 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-seasonal');
         expect(result.body.fields.promoCode).to.be.undefined;
     });
+
+    describe('collections (no offer attached)', function () {
+        const collectionProject = (id, { endDate } = {}) => ({
+            id,
+            path: `/content/dam/mas/promotions/${id}`,
+            ...(endDate && { endDate }),
+            defaultVariations: {
+                'coll-a': {
+                    id: `var-${id}`,
+                    path: `/content/dam/mas/sandbox/en_US/promotions/${id}/coll-a`,
+                    fields: { cards: ['card-2', 'card-1'] },
+                },
+            },
+            regionVariations: {},
+        });
+        const collectionRoot = () => ({
+            id: 'coll-a',
+            path: '/content/dam/mas/sandbox/en_US/coll-a',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { cards: ['card-1', 'card-2'], collections: [] },
+            references: {},
+            referencesTree: [],
+        });
+        const processCollection = (entries) =>
+            processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'coll-a', body: collectionRoot() }, entries);
+
+        it('applies an evergreen promo variation without any mapping or wildcard', async function () {
+            const result = await processCollection([
+                { project: collectionProject('proj-evergreen'), promoMap: {}, fragmentPaths: new Set(['coll-a']) },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-evergreen');
+            expect(result.body.fields.cards).to.deep.equal(['card-2', 'card-1']);
+            expect(result.body.promoProject).to.equal('proj-evergreen');
+        });
+
+        it('prefers a seasonal project over an evergreen one', async function () {
+            const result = await processCollection([
+                { project: collectionProject('proj-evergreen'), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['coll-a']) },
+                {
+                    project: collectionProject('proj-seasonal', { endDate: '2026-09-01T00:00:00.000Z' }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-seasonal');
+            expect(result.body.promoProject).to.equal('proj-seasonal');
+        });
+    });
 });
 
 describe('customize OSI substitution', function () {

@@ -17,16 +17,27 @@ generated:
 provision: npm ci
 
 gates:
+    # Piñata dispatches a credentialed CI deploy for io/studio candidates, so it
+    # must never edit CI or its own contract. Defense in depth: the App also has
+    # no Workflows permission, and io-studio-candidate.yaml refuses such branches.
+    pipeline-config:
+        template: protected_paths
+        name: CI and Piñata configuration
+        paths:
+            - '.github'
+            - '.pinata'
+        blocking: true
+        failure_route: escalate_to_human
+
     io-preview-support:
         template: protected_paths
-        name: IO changes need manual verification (no candidate IO preview)
+        name: io/www changes need manual verification (no candidate io/www preview)
         description: >-
-            IO changes need a separately deployed candidate service before
-            screenshots can verify them. Stop for manual review, even when
-            the same change also touches Studio or web components.
+            io/www is the fragment pipeline and has no candidate deploy. Stop for
+            manual review, even when the same change also touches Studio or web
+            components. io/studio candidates deploy through io-studio-candidate.
         paths:
             - 'io/www'
-            - 'io/studio'
         blocking: true
         failure_route: escalate_to_human
 
@@ -87,6 +98,19 @@ gates:
         # A repair step can't rebuild the bundle (the missing dist files sit
         # outside its mutation boundary), so the producer redoes the candidate.
         failure_route: regenerate
+
+    io-studio-candidate:
+        template: command
+        name: io/studio candidate deployed and healthy (bot workspace)
+        # Dispatches .github/workflows/io-studio-candidate.yaml and waits: unit tests,
+        # deploy to the pinatacode[bot] workspace (14257-merchatscale-pinata) on the
+        # stage bucket, health check. Skips when the change has no io/studio files.
+        cmd: bash .pinata/scripts/deploy-candidate-io.sh {changed_files}
+        timeout_s: 1200
+        blocking: true
+        # temporary: a failure can be infra (Vault, runner), not code. Move to
+        # regenerate once the loop has a clean record on this gate.
+        failure_route: escalate_to_human
 
     visual:
         template: visual

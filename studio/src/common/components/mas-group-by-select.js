@@ -34,7 +34,7 @@ class MasGroupBySelect extends LitElement {
     render() {
         return html`<div class="group-by-toolbar">
             <span class="group-by-label">${this.label}</span>
-            <sp-action-group class="group-by-track" selects="single" @change=${(e) => this.#onChange(e)}>
+            <sp-action-group class="group-by-track" selects="single" label="${this.label}" @change=${(e) => this.#onChange(e)}>
                 ${repeat(
                     this.options,
                     (option) => option.value,

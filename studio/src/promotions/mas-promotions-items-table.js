@@ -797,16 +797,6 @@ class MasPromotionsItemsTable extends LitElement {
         </sp-table-cell>`;
     }
 
-    #toggleExpand(path) {
-        const next = new Set(this.expandedPaths);
-        if (next.has(path)) {
-            next.delete(path);
-        } else {
-            next.add(path);
-        }
-        this.expandedPaths = next;
-    }
-
     #toggleGroup(key) {
         const next = new Set(this.expandedGroups);
         if (next.has(key)) {

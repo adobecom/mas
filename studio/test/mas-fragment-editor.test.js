@@ -1856,6 +1856,62 @@ describe('MasFragmentEditor', () => {
         });
     });
 
+    describe('editor content layout', () => {
+        const renderEditorContentClass = (fragmentData, { groupedPreview = false } = {}) => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({ tags: [], ...fragmentData });
+            el.inEdit.value = { get: () => fragment };
+            el.initState = MasFragmentEditor.INIT_STATE.READY;
+            sandbox.stub(el, 'previewColumn').get(() => (groupedPreview ? html`<div class="preview-column"></div>` : nothing));
+            const container = document.createElement('div');
+            render(el.render(), container);
+            return container.querySelector('#editor-content').className;
+        };
+
+        it('renders a plain collection full width', () => {
+            const className = renderEditorContentClass({
+                id: 'plain-coll',
+                path: '/content/dam/mas/sandbox/en_US/plain-coll',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: 'label', values: ['L'] }],
+            });
+            expect(className).to.equal('full-width-content');
+        });
+
+        it('does not render a compare chart full width', () => {
+            const className = renderEditorContentClass({
+                id: 'compare-chart',
+                path: '/content/dam/mas/sandbox/en_US/compare-chart',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] }],
+            });
+            expect(className).to.equal('compare-chart-content');
+        });
+
+        it('does not render a collection with a related-variations preview column full width', () => {
+            const className = renderEditorContentClass(
+                {
+                    id: 'grouped-coll',
+                    path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-coll',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [{ name: 'label', values: ['L'] }],
+                },
+                { groupedPreview: true },
+            );
+            expect(className).to.equal('');
+        });
+
+        it('does not render a card full width', () => {
+            const className = renderEditorContentClass({
+                id: 'card',
+                path: '/content/dam/mas/sandbox/en_US/card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variant', values: ['plans'] }],
+            });
+            expect(className).to.equal('');
+        });
+    });
+
     describe('authorPath for collection grouped variation', () => {
         it('includes parent title in grouped collection author path', () => {
             const el = document.createElement('mas-fragment-editor');

@@ -192,10 +192,6 @@ class MerchCardCollectionEditor extends LitElement {
         else this.reactiveController = new ReactiveController(this, stores);
 
         this.requestUpdate();
-
-        if (this.defaultChild) {
-            this.requestUpdate();
-        }
     }
 
     async editFragment(item) {
@@ -1590,7 +1586,7 @@ class MerchCardCollectionEditor extends LitElement {
                 <h2>General info</h2>
                 <div class="general-info-grid">
                     <div class="form-row">
-                        <sp-field-label for="collection-title" required>Collection title</sp-field-label>
+                        <sp-field-label for="collection-title">Collection title</sp-field-label>
                         ${this.#renderTextFieldStatusIndicator('label')}
                         <sp-textfield
                             id="collection-title"

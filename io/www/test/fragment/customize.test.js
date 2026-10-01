@@ -3471,6 +3471,26 @@ describe('customize with multiple active promotion projects', function () {
             expect(result.body.variationId).to.equal('var-proj-seasonal');
             expect(result.body.promoProject).to.equal('proj-seasonal');
         });
+
+        // promoProjects arrive sorted by the promotions transformer: seasonal first, newest startDate first.
+        it('takes the first (most recently started) of several seasonal projects', async function () {
+            const endDate = '2026-09-01T00:00:00.000Z';
+            const result = await processCollection([
+                {
+                    project: collectionProject('proj-seasonal-new', { endDate }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+                {
+                    project: collectionProject('proj-seasonal-old', { endDate }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-seasonal-new');
+            expect(result.body.promoProject).to.equal('proj-seasonal-new');
+        });
     });
 });
 

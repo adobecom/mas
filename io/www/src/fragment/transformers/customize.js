@@ -328,7 +328,8 @@ function hasExplicitMapping(osis, customizeContext, { project, label, promoMap, 
  * there should be no fallback to mapping-less evergreen promo project
  *
  * Collections carry no offer, so mappings don't apply to them: any targeting project is taken,
- * seasonal first.
+ * seasonal first. Ties go to the first entry, i.e. the most recently started project, since the
+ * promotions transformer sorts projects by startDate (newest first) before seasonal ones are floated up.
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.

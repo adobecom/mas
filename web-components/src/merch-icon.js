@@ -1,6 +1,22 @@
 import { LitElement, html, css } from 'lit';
 import { toRelativeAssetUrl } from './utils.js';
 
+// MWPW-205738: when no alt is authored, derive an accessible name from the
+// icon's own src (e.g. "creative-cloud.svg" -> "Creative Cloud") so every
+// mnemonic icon gets a complete, icon-specific name instead of an empty one.
+export function getDefaultIconAlt(src) {
+    if (!src) return '';
+    const path = `${src}`.split(/[?#]/)[0];
+    const filename = path.substring(path.lastIndexOf('/') + 1);
+    const base = filename.replace(/\.[a-z0-9]+$/i, '');
+    if (!base) return '';
+    return base
+        .split(/[-_]+/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
 // Self-contained tooltip detection for MAS
 function hasSpectrumTooltip() {
     return (
@@ -82,17 +98,18 @@ export default class MerchIcon extends LitElement {
     render() {
         const { href } = this;
         const src = toRelativeAssetUrl(this.src);
+        // Fall back to a name derived from the icon's own src only when no
+        // alt was authored; an explicitly authored empty alt stays decorative.
+        const alt = this.hasAttribute('alt')
+            ? this.alt
+            : getDefaultIconAlt(this.src);
         return href
             ? html`<a href="${href}">
-                  <img
-                      src="${src}"
-                      alt="${this.alt}"
-                      loading="${this.loading}"
-                  />
+                  <img src="${src}" alt="${alt}" loading="${this.loading}" />
               </a>`
             : html` <img
                   src="${src}"
-                  alt="${this.alt}"
+                  alt="${alt}"
                   loading="${this.loading}"
               />`;
     }

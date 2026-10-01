@@ -5,9 +5,22 @@ import {
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
 } from './constants.js';
-import { getService, shouldHideStPriceLabels } from './utils.js';
-import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
-import { hostOsi, planTypeTextOptionsProvider } from './plan-type-text.js';
+import { getService } from './utils.js';
+import { hostOsi } from './plan-type-text.js';
+import {
+    applyDisplayAnnualDefault,
+    applyHideStPriceLabels,
+    mergePriceLiterals,
+    registerContextOptionsProviders,
+    resolveContextPromotionCode,
+} from './mas-context.js';
+import {
+    rewriteImageUrlsForProd,
+    sanitizeAssetUrl,
+    sanitizePictureMarkup,
+    buildPictureInnerMarkup,
+    extractBackgroundUrl,
+} from './image-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -18,22 +31,6 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-project',
     'data-promotion-variation-project',
 ];
-
-/**
- * Resolves the promo code the mas-field should apply to its prices/CTAs,
- * honoring the global promo-code compat gate the same way merch-card's
- * option providers do: only fragments authored at or above
- * COMPAT_VERSION_GLOBAL_PROMO_CODE (or explicitly part of a promo project)
- * opt into promo codes, so older fragments are left untouched.
- */
-function contextPromotionCode(masField) {
-    if (
-        masField.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
-        masField.hasAttribute('data-promotion-project')
-    )
-        return masField.getAttribute('data-promotion-code');
-    return null;
-}
 
 /**
  * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
@@ -55,6 +52,12 @@ function contextPromotionCode(masField) {
  * never left with no CTA. For an indexed ref we return null so the single
  * requested slot renders nothing rather than shifting to its neighbour.
  */
+/** Escapes text for safe embedding inside a double-quoted HTML attribute
+ *  (e.g. alt text), before it's parsed via template.innerHTML. */
+function escapeAttr(value) {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
 function stripTrialCtas(html, indexed) {
     const template = document.createElement('template');
     template.innerHTML = html;
@@ -92,16 +95,9 @@ export function priceOptionsProvider(element, options) {
     // Apply the fragment's resolved price literals (e.g. the locale's plan-type
     // label), mirroring merch-card — otherwise labels fall back to the built-in
     // defaults and locale-specific plan types render empty.
-    const priceLiterals = masField?.aemFragment?.data?.priceLiterals;
-    if (priceLiterals) {
-        options.literals ??= {};
-        Object.assign(options.literals, priceLiterals);
-    }
+    mergePriceLiterals(masField?.aemFragment?.data?.priceLiterals, options);
 
-    if (shouldHideStPriceLabels(element)) {
-        options.displayPerUnit = false;
-        options.displayTax = false;
-    }
+    applyHideStPriceLabels(element, options);
 
     // Legal disclaimers show the plan type based on the fragment's
     // displayPlanType setting, mirroring the merch-card variant provider.
@@ -115,16 +111,11 @@ export function priceOptionsProvider(element, options) {
     if (!options.promotionCode) {
         const promotionCode =
             element.dataset.promotionCode ??
-            (masField ? contextPromotionCode(masField) : null);
+            (masField ? resolveContextPromotionCode(masField) : null);
         if (promotionCode) options.promotionCode = promotionCode;
     }
 
-    if (
-        options.displayAnnual === undefined &&
-        typeof masField?.settings?.displayAnnual === 'boolean'
-    ) {
-        options.displayAnnual = masField.settings.displayAnnual;
-    }
+    applyDisplayAnnualDefault(masField, options);
 }
 
 /**
@@ -137,18 +128,16 @@ export function checkoutOptionsProvider(element, options) {
     const masField = element.closest(MAS_FIELD_TAG);
     const promotionCode =
         element.dataset.promotionCode ??
-        (masField ? contextPromotionCode(masField) : null);
+        (masField ? resolveContextPromotionCode(masField) : null);
     if (promotionCode) options.promotionCode = promotionCode;
 }
 
 function registerOptionsProviders(service) {
-    if (!service?.providers || service.providers.has(priceOptionsProvider))
-        return;
-    service.providers.price(priceOptionsProvider);
-    service.providers.checkout(checkoutOptionsProvider);
-    if (!service.providers.has(planTypeTextOptionsProvider)) {
-        service.providers.price(planTypeTextOptionsProvider);
-    }
+    registerContextOptionsProviders(
+        service,
+        priceOptionsProvider,
+        checkoutOptionsProvider,
+    );
 }
 
 const MAS_FIELD_STYLES = `
@@ -313,6 +302,32 @@ mas-field .icon-button.hide-tooltip::after {
         max-width: 180px;
     }
 }
+
+.table .row-heading .col-heading .pricing:has(.price-annual-prefix) {
+  display: flex;
+  flex-direction: column;
+}
+
+.table .row-heading .col-heading .pricing .price-annual-prefix + .price-annual,
+.table .row-heading .col-heading .pricing .price-annual-prefix,
+.table .row-heading .col-heading .pricing .price-annual-suffix {
+  font-size: var(--type-heading-xxs-size);
+  line-height: var(--type-heading-xxs-size);
+  font-weight: 400;
+  position: relative;
+}
+
+.pricing.has-pricing-after .price-annual-prefix {
+  display: none;
+}
+
+.pricing.has-pricing-after:has(.price-annual-prefix) .price:not(.price-annual) {
+  display: block;
+}
+
+.pricing.has-pricing-after .price-annual-prefix + .price-annual::before {
+  content: '(';
+}
 `;
 
 if (!document.querySelector('style[data-mas-field]')) {
@@ -320,6 +335,13 @@ if (!document.querySelector('style[data-mas-field]')) {
     style.setAttribute('data-mas-field', '');
     style.textContent = MAS_FIELD_STYLES;
     document.head.append(style);
+}
+
+/** Wraps stored image markup (the picture's inner <source>/<img>) in a <picture>
+ *  so the <source>s survive parsing, applying the shared prod asset-URL rewrite. */
+export function renderImageMarkup(inner, location = globalThis.location) {
+    if (typeof inner !== 'string' || !inner) return '';
+    return `<picture>${rewriteImageUrlsForProd(inner, location)}</picture>`;
 }
 
 /**
@@ -342,6 +364,16 @@ class MasField extends HTMLElement {
      * @type {number}
      */
     compatVersion;
+
+    /**
+     * Raw promo code carried by this mas-field, mirroring merch-card's
+     * contextPromotionCode property so both hosts share the same interface
+     * for the promo-code gate in mas-context.js.
+     * @type {?string}
+     */
+    get contextPromotionCode() {
+        return this.getAttribute('data-promotion-code');
+    }
 
     static get observedAttributes() {
         return ['field'];
@@ -404,20 +436,65 @@ class MasField extends HTMLElement {
         return hostOsi(this);
     }
 
-    #ensureContentElement() {
-        if (this.#contentElement?.isConnected) return this.#contentElement;
+    #ensureContentElement(requireSpan = false) {
+        if (
+            this.#contentElement?.isConnected &&
+            this.#contentElement.matches('[data-role="mas-field-content"]') &&
+            (!requireSpan || this.#contentElement.tagName === 'SPAN')
+        ) {
+            return this.#contentElement;
+        }
         const existing = this.querySelector(
-            ':scope > span[data-role="mas-field-content"]',
+            ':scope > [data-role="mas-field-content"]',
         );
-        if (existing) {
+        if (existing && (!requireSpan || existing.tagName === 'SPAN')) {
             this.#contentElement = existing;
             return existing;
         }
+        if (requireSpan) existing?.remove();
         const content = document.createElement('span');
         content.setAttribute('data-role', 'mas-field-content');
         this.append(content);
         this.#contentElement = content;
         return content;
+    }
+
+    #clearContent() {
+        this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        )?.remove();
+        this.#contentElement = null;
+    }
+
+    /** Installs the field's <picture> as the content root, carrying
+     *  data-role="mas-field-content" directly (no wrapping span). */
+    #renderPictureContent(pictureHtml) {
+        const template = document.createElement('template');
+        template.innerHTML = pictureHtml;
+        const picture = template.content.querySelector('picture');
+        if (!picture) return;
+        picture.innerHTML = sanitizePictureMarkup(picture.innerHTML);
+        picture.setAttribute('data-role', 'mas-field-content');
+        const existing = this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        );
+        if (existing) existing.replaceWith(picture);
+        else this.append(picture);
+        this.#contentElement = picture;
+        this.#stampContext(picture);
+    }
+
+    /** Real alt text when authored,
+     *  otherwise role="none" (not an empty alt) to mark the image decorative. */
+    #backgroundImageMarkup(url) {
+        const altText = this.#unwrapSingleParagraph(
+            this.#normalizeFieldValue(this.#fields.backgroundImageAltText),
+        );
+        const altAttr =
+            typeof altText === 'string' && altText
+                ? `alt="${escapeAttr(altText)}"`
+                : 'role="none"';
+        return `<img loading="lazy" ${altAttr} src="${sanitizeAssetUrl(url)}">`;
     }
 
     #normalizeFieldValue(value) {
@@ -519,7 +596,7 @@ class MasField extends HTMLElement {
                     }
                 }
                 this.#setFragmentIds();
-                const content = this.#ensureContentElement();
+                const content = this.#ensureContentElement(true);
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
                 this.#upgradeCheckoutLinks(content);
                 this.#decorateTooltips(content);
@@ -534,7 +611,45 @@ class MasField extends HTMLElement {
             return;
         }
         this.#setFragmentIds();
-        const content = this.#ensureContentElement();
+
+        if (
+            index === null &&
+            (fieldName === 'image' ||
+                fieldName === 'backgroundImage' ||
+                fieldName === 'backgrounds')
+        ) {
+            const value = this.#unwrapSingleParagraph(fieldValue);
+            if (typeof value === 'string' && value) {
+                const inner =
+                    fieldName === 'image' || fieldName === 'backgrounds'
+                        ? value
+                        : this.#backgroundImageMarkup(value);
+                this.#renderPictureContent(renderImageMarkup(inner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
+            }
+            return;
+        }
+
+        if (fieldName === 'backgrounds' && index !== null) {
+            const url = this.#unwrapSingleParagraph(
+                extractBackgroundUrl(fieldValue, index),
+            );
+            const pictureInner =
+                typeof url === 'string' && url
+                    ? buildPictureInnerMarkup(url)
+                    : '';
+            if (pictureInner) {
+                this.#renderPictureContent(renderImageMarkup(pictureInner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
+            }
+            return;
+        }
+
+        const content = this.#ensureContentElement(true);
         let html;
         if (index !== null) {
             html = this.#extractIndexedAnchor(fieldValue, index);
@@ -765,7 +880,7 @@ class MasField extends HTMLElement {
         };
         for (const name of CONTEXT_ATTRIBUTES)
             stamp(name, this.getAttribute(name));
-        stamp('data-promotion-code', contextPromotionCode(this));
+        stamp('data-promotion-code', resolveContextPromotionCode(this));
     }
 
     /**

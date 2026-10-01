@@ -190,6 +190,41 @@ describe('MasPromotionsEditor', () => {
         await el.updateComplete;
     }
 
+    describe('publishing overlay', () => {
+        it('shows a progress circle while promotionPublish is true and hides it otherwise', async () => {
+            const el = await mountEditor();
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+
+            el.promotionPublish = true;
+            await el.updateComplete;
+            const overlay = el.renderRoot.querySelector('.publishing-overlay');
+            expect(overlay).to.not.be.null;
+            expect(overlay.querySelector('sp-progress-circle')).to.not.be.null;
+
+            el.promotionPublish = false;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+        });
+
+        it('labels the progress circle as "Publishing project" for a publish action', async () => {
+            const el = await mountEditor();
+            el.promotionPublish = true;
+            el.promotionPublishAction = 'publish';
+            await el.updateComplete;
+            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
+            expect(progressCircle.getAttribute('label')).to.equal('Publishing project');
+        });
+
+        it('labels the progress circle as "Unpublishing project" for an unpublish action', async () => {
+            const el = await mountEditor();
+            el.promotionPublish = true;
+            el.promotionPublishAction = 'unpublish';
+            await el.updateComplete;
+            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
+            expect(progressCircle.getAttribute('label')).to.equal('Unpublishing project');
+        });
+    });
+
     describe('selectedItemsCount', () => {
         it('sums selected offers, cards and collections from the promotions store', async () => {
             const el = await mountEditor();
@@ -1470,6 +1505,83 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
         });
+
+        it('ignores a second unpublish click while the checkbox dialog is open, and applies the checked value on confirm', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'PUBLISHED',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'PUBLISHED', title: 'Published variation' }],
+            });
+            const unpublish = sandbox.stub().resolves();
+            const getWithEtag = sandbox.stub();
+            getWithEtag
+                .withArgs('promo-1')
+                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
+            const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getWithEtag,
+                                getByPath,
+                                search,
+                                unpublish,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Unpublish');
+            clickPromotionQuickAction(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.isDialogOpen).to.be.true;
+            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+            expect(el.dialogCheckboxChecked).to.be.true;
+
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig).to.be.null;
+            expect(el.isDialogOpen).to.be.false;
+            expect(unpublish.calledTwice).to.be.true;
+            expect(unpublish.calledWith(sinon.match({ id: 'promo-var-id', path: promoVarPath }))).to.be.true;
+        });
     });
 
     describe('publish reminder flow', () => {
@@ -1529,6 +1641,81 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+        });
+
+        it('publishes the attached promo variation together with the project when the checkbox is checked on confirm', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+                fragments: [parentPath],
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2030-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT', title: 'Unpublished variation' }],
+            });
+            const getWithEtag = sandbox.stub();
+            getWithEtag
+                .withArgs('promo-1')
+                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
+            const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
+            const publishFragments = sandbox.stub().resolves();
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                publish: sandbox.stub().resolves(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath,
+                                search,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(publishFragments.calledOnce).to.be.true;
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments.map((fragment) => fragment.path)).to.include(promoVarPath);
         });
     });
 
@@ -1607,6 +1794,32 @@ describe('MasPromotionsEditor', () => {
             expect(el.promoCodesManagerOpen).to.be.true;
             expect(el.promoManagerOffers).to.have.length(1);
             expect(el.promoManagerOffers[0].path).to.equal('offer-1');
+        });
+
+        it('builds a placeholder row with offerSelectorIds for an uncached offer selector id', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-2', title: 'T', geos: ['mas:geo/usa'] })));
+            const el = await mountEditor();
+            await el.updateComplete;
+            Store.promotions.selectedOffers.set(['uncached-osi']);
+            await el.updateComplete;
+
+            const manageBtn = [...el.renderRoot.querySelectorAll('sp-action-button')].find((b) =>
+                b.textContent.includes('Manage'),
+            );
+            manageBtn.click();
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(el.promoManagerOffers).to.deep.equal([
+                {
+                    path: 'uncached-osi',
+                    id: 'uncached-osi',
+                    offerData: { offerSelectorIds: ['uncached-osi'] },
+                    tags: [],
+                    fields: [],
+                },
+            ]);
         });
     });
 

@@ -38,6 +38,21 @@ describe('ost-search', () => {
         expect(badge).to.not.exist;
     });
 
+    it('shows the deep-linked OSI already in the field on open', async () => {
+        store.setSearch('abcdef0123456789abcdef0123456789', 'osi');
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const search = el.shadowRoot.querySelector('sp-search');
+        expect(search.value).to.equal('abcdef0123456789abcdef0123456789');
+    });
+
+    it('labels the deep-linked query with its detected type badge', async () => {
+        store.setSearch('abcdef0123456789abcdef0123456789', 'osi');
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const badge = el.shadowRoot.querySelector('sp-badge');
+        expect(badge).to.exist;
+        expect(badge.textContent.trim()).to.equal('OSI');
+    });
+
     it('shows Product badge for text input', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         const search = el.shadowRoot.querySelector('sp-search');

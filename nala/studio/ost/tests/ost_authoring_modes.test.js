@@ -135,9 +135,11 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
             await advanceToOffer(ost);
         });
 
-        await test.step('step-2: Select two offers to form a bundle', async () => {
-            await ost.offerCard.nth(0).click();
-            await ost.offerCard.nth(1).click();
+        await test.step('step-2: Add the only listed offer, then search a second one', async () => {
+            await ost.offerCard.first().click();
+            await expect(ost.bundleSlot).toHaveCount(1);
+            await ost.addBundleOfferFromSearch(features[4].data.secondProduct);
+            await expect(ost.bundleSlot).toHaveCount(2);
             await expect(await ost.footerUseButton).toBeEnabled();
         });
 

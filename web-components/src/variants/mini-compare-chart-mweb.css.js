@@ -77,9 +77,7 @@ export const CSS = `
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [is="inline-price"] {
-    display: inline-block;
-    min-height: 30px;
-    min-width: 1px;
+    display: inline;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] merch-badge span,
@@ -433,15 +431,6 @@ merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-st
   font-size: var(--consonant-merch-card-body-s-font-size);
   line-height: var(--consonant-merch-card-body-s-line-height);
   font-weight: 700;
-}
-
-merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual,
-merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual-prefix::after,
-merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] >.price-annual-suffix {
-  font-size: var(--consonant-merch-card-body-s-font-size);
-  line-height: var(--consonant-merch-card-body-s-line-height);
-  font-weight: 400;
-  font-style: italic;
 }
 
 merch-card[variant="mini-compare-chart-mweb"] [slot="body-xxs"] {

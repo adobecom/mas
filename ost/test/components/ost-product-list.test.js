@@ -43,6 +43,8 @@ describe('ost-product-list', () => {
         };
         store.landscape = 'PUBLISHED';
         store.productsLoading = false;
+        store.searchQuery = '';
+        store.searchType = '';
     });
 
     it('clears the deep-link OSI when the user picks a product manually', async () => {
@@ -53,6 +55,47 @@ describe('ost-product-list', () => {
         expect(store.initialOsi).to.be.undefined;
         expect(store.initialOsiAttributes).to.be.undefined;
         expect(store.selectedProduct?.name).to.equal('Photoshop');
+    });
+
+    it('clears the deep-link-seeded search when the user picks a product manually', async () => {
+        store.setSearch('stale-deep-osi', 'osi');
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        el.handleProductClick({ arrangement_code: 'phsp-arr', name: 'Photoshop' });
+        expect(store.searchQuery).to.equal('');
+        expect(store.searchType).to.equal('');
+    });
+
+    it('keeps a typed product search when the user picks a product from its results', async () => {
+        store.setSearch('photo', 'product');
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        el.handleProductClick({ arrangement_code: 'phsp', name: 'Photoshop' });
+        expect(store.searchQuery).to.equal('photo');
+        expect(store.searchType).to.equal('product');
+    });
+
+    it('keeps an OSI search when the user picks the product it resolved to', async () => {
+        store.setSearch('resolved-osi', 'osi');
+        store.aosParams = { ...store.aosParams, arrangementCode: 'phsp' };
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        el.handleProductClick({ arrangement_code: 'phsp', name: 'Photoshop' });
+        expect(store.searchQuery).to.equal('resolved-osi');
+    });
+
+    ['osi', 'offer'].forEach((type) => {
+        it(`lists only the resolved product for a resolved ${type} search`, async () => {
+            store.setSearch('resolved-id', type);
+            store.aosParams = { ...store.aosParams, arrangementCode: 'phsp' };
+            const el = await fixture(html`<ost-product-list></ost-product-list>`);
+            const names = [...el.shadowRoot.querySelectorAll('[data-testid="ost-product-name"]')].map((n) => n.textContent);
+            expect(names).to.deep.equal(['Photoshop']);
+        });
+    });
+
+    it('lists every product while an OSI search is still resolving', async () => {
+        store.setSearch('pending-osi', 'osi');
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        const cards = el.shadowRoot.querySelectorAll('.product-card');
+        expect(cards.length).to.equal(2);
     });
 
     it('renders product cards from store', async () => {

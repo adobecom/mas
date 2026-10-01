@@ -59,10 +59,19 @@ For production, the minimun attributes to set are: `wcs-api-key` and `lana-tags`
 
 | Name                               | Description                                                                                            |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
-|  `registerCheckoutAction (action)` |  registers an action, that must have signature (offers, options, imsSignedInPromise)                   |
+|  `registerCheckoutAction (action)` |  registers an action with signature `(offers, options, imsSignedInPromise, element)`                   |
 |  `flushWcsCache()`                 |  flush the payload cache for WCS calls                                                                 |
 |  `refreshOffers()`                 | `flushWcsCache` + refresh prices + checkout links                                                      |
 |  `refreshFragments()`              |  `flushWcsCache` + refresh fragment content from Odin. This results in card content update with offers |
+
+Checkout actions remain compatible with the existing `{ url, handler }` shape.
+Hosts can optionally provide `aupHandler({ type, element })` to track the host
+modal lifecycle while M@S owns checkout routing. M@S calls it with
+`type: 'open'` when it routes an eligible owned click to AUP. Every open is
+balanced by one `type: 'close'`: after a handled AUP workflow ends, or before
+M@S invokes the existing `handler(event)` fallback when AUP fails or does not
+handle the workflow. Pre-AUP bypasses emit neither phase. `element` is the
+originating checkout link or button and carries the configured `data-modal-id`.
 
 ### Feature flags
 

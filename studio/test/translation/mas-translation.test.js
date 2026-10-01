@@ -76,7 +76,54 @@ describe('MasTranslation', () => {
             ];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
-            expect(el.translationProjectsData).to.equal(mockProjects);
+            expect(el.translationProjectsData).to.deep.equal(mockProjects);
+        });
+
+        it('should filter projects by a case-insensitive substring match on title', async () => {
+            const springProject = createMockTranslationProject('1', 'Spring Campaign');
+            const summerProject = createMockTranslationProject('2', 'summer promo');
+            const winterProject = createMockTranslationProject('3', 'Winter Refresh');
+            Store.translationProjects.list.data.value = [springProject, summerProject, winterProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+
+            el.searchQuery = 'summer';
+            await el.updateComplete;
+            expect(el.translationProjectsData).to.deep.equal([summerProject]);
+
+            el.searchQuery = 'SUMMER';
+            await el.updateComplete;
+            expect(el.translationProjectsData).to.deep.equal([summerProject]);
+
+            el.searchQuery = 'ring';
+            await el.updateComplete;
+            expect(el.translationProjectsData).to.deep.equal([springProject]);
+
+            el.searchQuery = 'zzz';
+            await el.updateComplete;
+            expect(el.translationProjectsData).to.deep.equal([]);
+
+            el.searchQuery = '';
+            await el.updateComplete;
+            expect(el.translationProjectsData).to.deep.equal([springProject, summerProject, winterProject]);
+        });
+
+        it('should not truncate the store when sorting while a search filter is active', async () => {
+            const date1 = new Date('2024-01-15').getTime();
+            const date2 = new Date('2024-03-20').getTime();
+            const date3 = new Date('2024-02-10').getTime();
+            const mockProjects = [
+                createMockTranslationProject('1', 'Spring Campaign', 'User 1', date2),
+                createMockTranslationProject('2', 'summer promo', 'User 2', date1),
+                createMockTranslationProject('3', 'Winter Refresh', 'User 3', date3),
+            ];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            el.searchQuery = 'summer';
+            await el.updateComplete;
+            const headerCell = el.shadowRoot.querySelector('sp-table-head-cell.sentOn');
+            headerCell.dispatchEvent(new CustomEvent('sorted', { detail: { sortKey: 'sentOn', sortDirection: 'asc' } }));
+            await el.updateComplete;
+            expect(Store.translationProjects.list.data.get().length).to.equal(3);
         });
     });
 
@@ -108,11 +155,40 @@ describe('MasTranslation', () => {
             expect(createButton.textContent.trim()).to.include('Create project');
         });
 
-        it('should render search field', async () => {
+        it('should render an enabled search field', async () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const search = el.shadowRoot.querySelector('sp-search');
             expect(search).to.exist;
-            expect(search.disabled).to.be.true;
+            expect(search.disabled).to.be.false;
+        });
+
+        it('should filter rendered rows when typing in the search field', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1'), createMockTranslationProject('2', 'Other')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const search = el.shadowRoot.querySelector('sp-search');
+            search.value = 'Other';
+            search.dispatchEvent(new Event('input'));
+            await el.updateComplete;
+            expect(el.searchQuery).to.equal('Other');
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            expect(rows.length).to.equal(1);
+            expect(rows[0].textContent).to.include('Other');
+        });
+
+        it('should restore the full project list when the search field is cleared', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1'), createMockTranslationProject('2', 'Other')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            el.searchQuery = 'Other';
+            await el.updateComplete;
+            const search = el.shadowRoot.querySelector('sp-search');
+            search.value = '';
+            search.dispatchEvent(new Event('change'));
+            await el.updateComplete;
+            expect(el.searchQuery).to.equal('');
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            expect(rows.length).to.equal(2);
         });
 
         it('should render result count', async () => {

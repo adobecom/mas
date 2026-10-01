@@ -565,6 +565,7 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.priceLiterals).to.be.an('object');
             expect(result.body.priceLiterals.recurrenceLabel).to.equal('{{price-literal-recurrence-label}}');
+            expect(result.body.priceLiterals.priceUnavailableLabel).to.equal('{{price-literal-price-unavailable-label}}');
         });
 
         it('applies settings to collection model references', async () => {
@@ -650,6 +651,31 @@ describe('settings', () => {
             } finally {
                 fromEntriesStub.restore();
             }
+        });
+
+        it('derives tagLabels from each namespace and leaf in tagFilters, skipping malformed tags', function () {
+            const context = {
+                body: {
+                    references: null,
+                    fields: {
+                        tagFilters: [
+                            'mas:market_segments/edu',
+                            'mas:market_segments/com',
+                            'mas:types/desktop',
+                            'mas:malformed',
+                        ],
+                    },
+                },
+                dictionary: {},
+            };
+            applyCollectionSettings(context, 'fr_FR', {});
+            expect(context.body.settings.tagLabels).to.deep.equal({
+                market_segments: '{{coll-tag-filter-marketsegments}}',
+                edu: '{{coll-tag-filter-edu}}',
+                com: '{{coll-tag-filter-com}}',
+                types: '{{coll-tag-filter-types}}',
+                desktop: '{{coll-tag-filter-desktop}}',
+            });
         });
 
         it('skips null entry (no default and no override)', async () => {

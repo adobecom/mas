@@ -94,6 +94,7 @@ styles.innerHTML = `
     --merch-color-green-promo: #05834E;
     --merch-color-red-promo: #D31510;
     --merch-color-error: #D73220;
+    --merch-color-red-strikethrough: #ff0000;
     --merch-color-error-background: #ffebe8;
     --merch-color-grey-80: #2c2c2c;
     --consonant-merch-card-body-xs-color: var(--spectrum-gray-800, var(--merch-color-grey-80));
@@ -160,6 +161,10 @@ styles.innerHTML = `
 
     /* background image */
     --consonant-merch-card-bg-img-height: 180px;
+
+    /* backgrounds field image */
+    --consonant-merch-card-backgrounds-img-object-fit: contain;
+    --consonant-merch-card-backgrounds-img-radius: 16px;
 
     /* inline SVGs */
     --checkmark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath fill='%23fff' d='M3.788 9A.999.999 0 0 1 3 8.615l-2.288-3a1 1 0 1 1 1.576-1.23l1.5 1.991 3.924-4.991a1 1 0 1 1 1.576 1.23l-4.712 6A.999.999 0 0 1 3.788 9z' class='spectrum-UIIcon--medium'/%3E%3C/svg%3E%0A");
@@ -304,23 +309,6 @@ merch-card p, merch-card h3, merch-card h4 {
 
 merch-card span[is='inline-price'] {
     display: inline-block;
-}
-
-.annual-price-new-line > span[is="inline-price"] {
-  line-height: var(--consonant-merch-card-body-m-line-height);
-}
-
-.annual-price-new-line > span[is="inline-price"] > .price-annual-prefix {
-  font-size: 0;
-  line-height: 0;
-}
-
-.annual-price-new-line > span[is="inline-price"] .price:not(.price-annual) {
-  display: block;
-}
-
-.annual-price-new-line > span[is="inline-price"] > .price-annual::before {
-  content: '(';
 }
 
 merch-card [slot^='heading-'],
@@ -606,6 +594,16 @@ merch-card div[slot='bg-image'] img {
     border-top-right-radius: 16px;
 }
 
+merch-card picture[slot='backgrounds'] img {
+    position: relative;
+    width: 100%;
+    min-height: var(--consonant-merch-card-bg-img-height);
+    max-height: var(--consonant-merch-card-bg-img-height);
+    object-fit: var(--consonant-merch-card-backgrounds-img-object-fit);
+    border-top-left-radius: var(--consonant-merch-card-backgrounds-img-radius);
+    border-top-right-radius: var(--consonant-merch-card-backgrounds-img-radius);
+}
+
 .price-unit-type:not(.disabled)::before,
 .price-tax-inclusivity:not(.disabled)::before {
   content: "\\00a0";
@@ -640,7 +638,7 @@ merch-offer-select[variant="subscription-options"] merch-offer span[is="inline-p
     top: 20px;
 }
 
-merch-addon span[data-wcs-osi][data-offer-type="TRIAL"] {
+merch-addon span[is='inline-price'][data-wcs-osi][data-offer-type="TRIAL"] {
     display: none;
 }
 
@@ -1093,5 +1091,104 @@ merch-card[border-color="spectrum-red-700-plans"] {
     }
 }
 
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-s-font-size);
+  line-height: var(--consonant-merch-card-body-s-font-size);
+  font-weight: 400;
+}
+
+merch-card[annualized][variant="mini-compare-chart"] [slot="heading-m-price"] {
+  display: flex;
+  flex-direction: column;
+}
+
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-s-font-size);
+  line-height: var(--consonant-merch-card-body-s-font-size);
+  font-weight: 400;
+}
+
+merch-card[annualized] span[is='inline-price'],
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"][data-template="price"] {
+  display: inline;
+}
+
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strikethrough span {
+  color: var(--merch-color-red-strikethrough);
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[annualized]:is([variant="simplified-pricing-express"], [variant="full-pricing-express"]) [slot='price'] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before,
+merch-card[variant^="plans"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] p {
+  font-size: var(--consonant-merch-card-body-xxl-font-size);
+  line-height: var(--consonant-merch-card-body-l-line-height);
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] p:has([data-template="strikethrough"]) {
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price.price-annual span,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    letter-spacing: 0;
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price.price-annual span,
+merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-suffix,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual,
+merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+  font-weight: 400;
+}
+
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual span,
+merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
+merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual span,
+merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-m-font-size);
+  font-weight: 400;
+}
+
+merch-card[variant^="plans"][annualized] [slot="heading-m"] span.price.price-annual:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal),
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual,
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
+  font-size: var(--consonant-merch-card-body-xs-font-size);
+  line-height: var(--consonant-merch-card-body-xs-line-height);
+  position: relative;
+  top: calc(-1 * var(--consonant-merch-spacing-xxxs));
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child,
+merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:first-child {
+  display: inline;
+}
 `;
 document.head.appendChild(styles);

@@ -105,6 +105,12 @@ gates:
             neighboring cards are not regressed.
         require_human: false
         blocking: false
+        # Let the gate drive the live page itself for interaction criteria a still
+        # cannot show (open a row menu, click, wait for a toast): grounded in the
+        # page's own elements, every step photographed, and kept inside Studio's
+        # sandbox (preview.yaml explore_scope). Advisory like the rest of this
+        # gate; a state it cannot reach stays an evidence gap.
+        explore: true
 
     # Last on purpose: the adversary reviews the code together with every
     # deterministic and visual gate result, not blind of them.

@@ -30,6 +30,11 @@ on:
                 type: string
                 required: false
                 default: ''
+            shared-secrets:
+                description: 'Fetch the shared AOS/OST service secrets (merch-at-scale/aio-studio/common). False for automated candidate deploys.'
+                type: boolean
+                required: false
+                default: true
         secrets:
             VAULT_ROLE_ID:
                 required: true
@@ -113,6 +118,7 @@ jobs:
             # AOS / OST credentials are identical across environments — stored once in a
             # shared path so they don't need to live in every workspace's .env blob.
             - name: Fetch shared service secrets from Vault
+              if: inputs.shared-secrets
               uses: ./.github/actions/vault-secrets
               with:
                   role-id: ${{ secrets.VAULT_ROLE_ID }}

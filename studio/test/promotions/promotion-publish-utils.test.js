@@ -486,6 +486,7 @@ describe('promotion-publish-utils', () => {
                         },
                     },
                 },
+                clearStagedTag: sinon.stub().resolves(),
                 processError: sinon.stub(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
@@ -526,6 +527,7 @@ describe('promotion-publish-utils', () => {
                 operation: { set: sinon.stub() },
                 aem: { sites: { cf: { fragments: { publish, publishFragments, getWithEtag, getByPath } } } },
                 processError,
+                clearStagedTag: sinon.stub().resolves(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
 
@@ -543,6 +545,7 @@ describe('promotion-publish-utils', () => {
                 operation: { set: sinon.stub() },
                 aem: { sites: { cf: { fragments: { publish } } } },
                 processError: sinon.stub(),
+                clearStagedTag: sinon.stub().resolves(),
             };
             const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
             const toastStub = sandbox.stub(Events.toast, 'emit');
@@ -596,6 +599,7 @@ describe('promotion-publish-utils', () => {
                     },
                 },
                 processError: sinon.stub(),
+                clearStagedTag: sinon.stub().resolves(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
 
@@ -634,6 +638,7 @@ describe('promotion-publish-utils', () => {
                 operation: { set: sinon.stub() },
                 aem: { sites: { cf: { fragments: { publish: sinon.stub(), publishFragments, getWithEtag, getByPath } } } },
                 processError: sinon.stub(),
+                clearStagedTag: sinon.stub().resolves(),
             };
             const promotion = { id: 'promo-1', path: promotionPath };
 

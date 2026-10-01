@@ -42,7 +42,6 @@ function parse(message, locale) {
         const value = Number((match(INTEGER) ?? fail(message))[0]);
         return Number.isSafeInteger(value) ? value : fail(message);
     };
-    const isTagStart = (i) => /^[a-zA-Z/]$/.test(message[i] ?? '');
 
     const parseMessage = (depth, parentType) => {
         const plural =
@@ -57,8 +56,6 @@ function parse(message, locale) {
             } else if (char === '#' && plural) {
                 pos++;
                 elements.push({ type: 'pound' });
-            } else if (char === '<' && isTagStart(pos + 1)) {
-                fail(message);
             } else {
                 elements.push({
                     type: 'literal',
@@ -98,8 +95,7 @@ function parse(message, locale) {
             } else if (
                 char === '{' ||
                 (char === '#' && plural) ||
-                (char === '}' && depth > 0) ||
-                (char === '<' && isTagStart(pos + 1))
+                (char === '}' && depth > 0)
             ) {
                 break;
             } else {
@@ -239,8 +235,6 @@ function significantPrecision(str) {
             result.maximumSignificantDigits = g1.length;
         } else if (g2 === '+') {
             result.minimumSignificantDigits = g1.length;
-        } else if (g1[0] === '#') {
-            result.maximumSignificantDigits = g1.length;
         } else {
             result.minimumSignificantDigits = g1.length;
             result.maximumSignificantDigits = g1.length + g2.length;
@@ -531,9 +525,8 @@ function formatElements(elements, locale, values, pluralValue) {
             const { type, name, style } = element;
             if (type === 'literal') return element.value;
             if (type === 'pound') {
-                return typeof pluralValue === 'number'
-                    ? new Intl.NumberFormat(locale).format(pluralValue)
-                    : '';
+                // Only parsed directly in a plural branch: always a number.
+                return new Intl.NumberFormat(locale).format(pluralValue);
             }
             if (!(values && name in values)) {
                 throw new ReferenceError(`Missing value: ${name}`);

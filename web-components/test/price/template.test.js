@@ -461,9 +461,15 @@ describe('ICU message parity', () => {
             ...[0, 1, 2, 3, 11, 22, '3.5'].map((n) => ({ n, m: n, g: 'a' })),
             {},
         ],
-        text: [{ x: 'X', y: 'Y', g: 'a' }, { x: 0, y: '', g: 'z' }, {}],
+        text: [
+            { x: 'X', y: 'Y', g: 'a' },
+            { x: 0, y: '', g: 'z' },
+            { x: null, y: undefined },
+            {},
+        ],
         number: [{ n: 1234567.891 }, { n: '0.5' }, { n: -1 }, {}],
         date: [{ d: 1735732800000 }],
+        time: [{ d: 1735732800000 }, { d: 1735690500000 }],
     };
     Object.entries(expectedMessages).forEach(([group, messages]) => {
         Object.entries(messages).forEach(([message, byLocale]) => {
@@ -476,5 +482,28 @@ describe('ICU message parity', () => {
                 });
             });
         });
+    });
+
+    // The library's fraction-stem regex keeps state (`g` flag), so it rejects
+    // this message only on every other call. Recorded output would depend on
+    // call order; the port always rejects it, as the library's first call does.
+    it('rejects a fraction stem with two options', () => {
+        expect(
+            formatLiteral(
+                { message: '{n, number, ::.00/@@#/w}' },
+                'en',
+                'message',
+                { n: 1 },
+            ),
+        ).to.equal('');
+    });
+
+    it('formats in the default locale when none is given', () => {
+        const message = '{n, plural, other {# items}} {n, number}';
+        const format = (locale) =>
+            formatLiteral({ message }, locale, 'message', { n: 1234.5 });
+        expect(format(undefined)).to.equal(
+            format(new Intl.NumberFormat().resolvedOptions().locale),
+        );
     });
 });

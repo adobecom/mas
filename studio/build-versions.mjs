@@ -124,8 +124,9 @@ export async function main(rootDir = REPO_ROOT) {
     const html = await readFile(htmlPath, 'utf8');
     const versions = await computeVersions(rootDir, html);
     const next = replaceVersionsBlock(html, versions);
-    if (next !== html) await writeFile(htmlPath, next);
-    const status = next === html ? 'already current' : 'updated';
+    const isCurrent = next === html;
+    if (!isCurrent) await writeFile(htmlPath, next);
+    const status = isCurrent ? 'already current' : 'updated';
     console.log(`studio.html: ${Object.keys(versions).length} asset versions ${status}`);
 }
 

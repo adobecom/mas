@@ -1,0 +1,455 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>M@S Web Components</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="spectrum.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
+    <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <link rel="stylesheet" href="/studio/con-button.css">
+  
+  <!-- Include your custom element script as an ES6 module -->
+  <script type="module">
+    import { init } from './common.js';
+    init();
+  </script>
+  <!-- Include Highlight.js stylesheet for syntax highlighting -->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+  <script type="module" src="./mas-sidenav.js"></script>
+</head>
+<body class="spectrum spectrum--medium spectrum--light">
+    <aside is="mas-sidenav"></aside>
+<main>
+<sp-theme color="light" scale="medium">
+<h1 id="agent-api" tabindex="-1">Agent API <a class="header-anchor" href="#agent-api" href="#agent-api" title="Permalink to this heading">#</a></h1>
+<h2 id="introduction" tabindex="-1">Introduction <a class="header-anchor" href="#introduction" href="#introduction" title="Permalink to this heading">#</a></h2>
+<p>Returns one M@S offer with server-hydrated prices, authored content, and CTA
+labels. Checkout URLs are not returned.</p>
+<p>Select a fragment directly by UUID or resolve an offer by product name.</p>
+<h2 id="request" tabindex="-1">Request <a class="header-anchor" href="#request" href="#request" title="Permalink to this heading">#</a></h2>
+<h3 id="url-paths" tabindex="-1">URL paths <a class="header-anchor" href="#url-paths" href="#url-paths" title="Permalink to this heading">#</a></h3>
+<p>Select a published fragment by UUID:</p>
+<pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent/ea8f1b95-56b1-4665-b859-41ac2961ddcd?locale=en_US&amp;api_key=&lt;api-key&gt;
+</code></pre>
+<p>The fragment UUID is the path segment after <code>/agent/</code>.</p>
+<p>Or use product-name lookup:</p>
+<pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&amp;locale=en_US&amp;api_key=&lt;api-key&gt;
+</code></pre>
+<h3 id="query-parameters" tabindex="-1">Query parameters <a class="header-anchor" href="#query-parameters" href="#query-parameters" title="Permalink to this heading">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Query parameter</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>productName</code></td>
+<td>For product lookup</td>
+<td>Product name, for example <code>Creative Cloud Pro</code>.</td>
+</tr>
+<tr>
+<td><code>locale</code></td>
+<td>Yes</td>
+<td>Adobe locale, for example <code>en_US</code>; used for fragment retrieval and pricing hydration.</td>
+</tr>
+<tr>
+<td><code>api_key</code></td>
+<td>Yes</td>
+<td>Registered MAS client API key forwarded to the fragment action.</td>
+</tr>
+<tr>
+<td><code>pzn</code></td>
+<td>No</td>
+<td>Audience selector for product lookup: <code>edu</code> for students and teachers, or <code>team</code> for business plans. Omit for individual offers. Ignored with a fragment ID. Not forwarded to the fragment action.</td>
+</tr>
+<tr>
+<td><code>country</code></td>
+<td>No</td>
+<td>Case-insensitive country code, for example <code>EG</code>. Defaults to the locale’s country and follows the fragment pipeline’s market and territory rules.</td>
+</tr>
+</tbody>
+</table>
+<p>A path UUID takes precedence over <code>productName</code> and bypasses product and
+audience mapping. The path accepts one UUID, case-insensitively, with an
+optional trailing slash. An empty path or <code>/</code> uses product lookup. Invalid
+paths return 400. The selected fragment must be published and retrievable by
+the existing fragment pipeline; it does not need an entry in the product map.
+With a fragment ID, <code>pzn</code> is discarded without validation and returned as
+<code>null</code>. Response classification comes from the returned fragment’s tags.</p>
+<p>For product lookup, see the <a href="#product-name-mapping">product-name mapping</a> below.</p>
+<p>Browser integrations read <code>locale</code> and <code>country</code> from the page’s
+<code>mas-commerce-service</code>; these are page context, not model-selected inputs.</p>
+<h2 id="product-name-mapping" tabindex="-1">Product-name mapping <a class="header-anchor" href="#product-name-mapping" href="#product-name-mapping" title="Permalink to this heading">#</a></h2>
+<p>Product lookup uses <code>PRODUCT_FRAGMENT_MAP</code> in <code>product-fragment-map.js</code>.
+The tree has one branch per audience segment, with a <code>default</code> fragment UUID
+and a <code>products</code> map of product names to fragment UUIDs.</p>
+<p><code>pzn</code> selects the segment. Product names are trimmed and matched
+case-insensitively within that branch. A product match takes precedence;
+unknown products and products without an entry in that branch use its default.
+All segment defaults are Creative Cloud Pro offers.</p>
+<h3 id="segment-defaults" tabindex="-1">Segment defaults <a class="header-anchor" href="#segment-defaults" href="#segment-defaults" title="Permalink to this heading">#</a></h3>
+<p>Select a fragment UUID in the tables to open it in Studio.</p>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Query selector</th>
+<th>Default fragment UUID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>individual</code></td>
+<td>Omit <code>pzn</code></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=128b6634-6631-4081-a6d9-9a2c7c003414&amp;page=fragment-editor&amp;path=brand-concierge">128b6634-6631-4081-a6d9-9a2c7c003414</a></td>
+</tr>
+<tr>
+<td><code>team</code></td>
+<td><code>pzn=team</code></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=5c3fe2ac-0dbb-4495-9858-feac379ca19b&amp;page=fragment-editor&amp;path=brand-concierge">5c3fe2ac-0dbb-4495-9858-feac379ca19b</a></td>
+</tr>
+<tr>
+<td><code>edu</code></td>
+<td><code>pzn=edu</code></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=2b1a6493-e03b-4803-a150-eed983094a05&amp;page=fragment-editor&amp;path=brand-concierge">2b1a6493-e03b-4803-a150-eed983094a05</a></td>
+</tr>
+</tbody>
+</table>
+<p>The <code>edu</code> branch has an empty <code>products</code> map. Every education product lookup
+returns <a href="https://mas.adobe.com/studio.html#fragmentId=2b1a6493-e03b-4803-a150-eed983094a05&amp;page=fragment-editor&amp;path=brand-concierge">2b1a6493-e03b-4803-a150-eed983094a05</a>, regardless of product name.
+<code>productName</code> is still required for product lookup.</p>
+<h3 id="product-overrides" tabindex="-1">Product overrides <a class="header-anchor" href="#product-overrides" href="#product-overrides" title="Permalink to this heading">#</a></h3>
+<p>The current map contains 20 product names. Cells marked <code>default</code> use the
+selected segment’s default UUID above. Education uses its shared default for
+every row.</p>
+<table>
+<thead>
+<tr>
+<th>Product name</th>
+<th>Individual fragment UUID</th>
+<th>Team fragment UUID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Creative Cloud Pro</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=128b6634-6631-4081-a6d9-9a2c7c003414&amp;page=fragment-editor&amp;path=brand-concierge">128b6634-6631-4081-a6d9-9a2c7c003414</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=5c3fe2ac-0dbb-4495-9858-feac379ca19b&amp;page=fragment-editor&amp;path=brand-concierge">5c3fe2ac-0dbb-4495-9858-feac379ca19b</a></td>
+</tr>
+<tr>
+<td>Creative Cloud Pro Plus</td>
+<td><code>default</code></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=af478a51-949c-49af-b7df-d3b14b5156de&amp;page=fragment-editor&amp;path=brand-concierge">af478a51-949c-49af-b7df-d3b14b5156de</a></td>
+</tr>
+<tr>
+<td>Photography</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=42df425a-e020-469f-bf0f-5b83504dabce&amp;page=fragment-editor&amp;path=brand-concierge">42df425a-e020-469f-bf0f-5b83504dabce</a></td>
+<td><code>default</code></td>
+</tr>
+<tr>
+<td>Acrobat Studio</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=03822008-9d0f-403a-a22c-ee71884c25ef&amp;page=fragment-editor&amp;path=brand-concierge">03822008-9d0f-403a-a22c-ee71884c25ef</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=c777f435-3175-4d94-a461-88a0113b82f6&amp;page=fragment-editor&amp;path=brand-concierge">c777f435-3175-4d94-a461-88a0113b82f6</a></td>
+</tr>
+<tr>
+<td>Photoshop</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=9941bca0-5304-47f7-aeb3-4f638aeb8791&amp;page=fragment-editor&amp;path=brand-concierge">9941bca0-5304-47f7-aeb3-4f638aeb8791</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=c2c79d69-8990-44b8-9a86-071c69e4a25a&amp;page=fragment-editor&amp;path=brand-concierge">c2c79d69-8990-44b8-9a86-071c69e4a25a</a></td>
+</tr>
+<tr>
+<td>Adobe Firefly Pro</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=95c664e4-f605-41df-8f9c-4779d0ef58c5&amp;page=fragment-editor&amp;path=brand-concierge">95c664e4-f605-41df-8f9c-4779d0ef58c5</a></td>
+<td><code>default</code></td>
+</tr>
+<tr>
+<td>Adobe Premiere</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=ea8f1b95-56b1-4665-b859-41ac2961ddcd&amp;page=fragment-editor&amp;path=brand-concierge">ea8f1b95-56b1-4665-b859-41ac2961ddcd</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=d53944f8-20f1-408d-99fb-98f4e2724534&amp;page=fragment-editor&amp;path=brand-concierge">d53944f8-20f1-408d-99fb-98f4e2724534</a></td>
+</tr>
+<tr>
+<td>Illustrator</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=d9f8b8e7-ff8a-4048-b11f-5e23a76f3d12&amp;page=fragment-editor&amp;path=brand-concierge">d9f8b8e7-ff8a-4048-b11f-5e23a76f3d12</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=9c6d13e0-49e0-4046-9ff4-185bc4717774&amp;page=fragment-editor&amp;path=brand-concierge">9c6d13e0-49e0-4046-9ff4-185bc4717774</a></td>
+</tr>
+<tr>
+<td>After Effects</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=e41c94e5-d89a-4c68-8d15-3c88c638b8e2&amp;page=fragment-editor&amp;path=brand-concierge">e41c94e5-d89a-4c68-8d15-3c88c638b8e2</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=6e4d5cfc-6d46-4120-8181-a28a1b6e2f57&amp;page=fragment-editor&amp;path=brand-concierge">6e4d5cfc-6d46-4120-8181-a28a1b6e2f57</a></td>
+</tr>
+<tr>
+<td>InDesign</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=689468c6-7489-48d9-942c-3621e77c2d8f&amp;page=fragment-editor&amp;path=brand-concierge">689468c6-7489-48d9-942c-3621e77c2d8f</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=d9d74f31-3e77-4b6c-8ff6-6841a716e783&amp;page=fragment-editor&amp;path=brand-concierge">d9d74f31-3e77-4b6c-8ff6-6841a716e783</a></td>
+</tr>
+<tr>
+<td>Lightroom</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=2a86ae74-df04-4faf-96e8-46903aa023bf&amp;page=fragment-editor&amp;path=brand-concierge">2a86ae74-df04-4faf-96e8-46903aa023bf</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=ee56ead8-fe04-422f-8423-84ab832d3fd7&amp;page=fragment-editor&amp;path=brand-concierge">ee56ead8-fe04-422f-8423-84ab832d3fd7</a></td>
+</tr>
+<tr>
+<td>Acrobat Pro</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=7fef9873-f153-4354-a3c0-4e6fa98b42f9&amp;page=fragment-editor&amp;path=brand-concierge">7fef9873-f153-4354-a3c0-4e6fa98b42f9</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=db695a1a-61a6-403f-b847-c684cbf4ae0e&amp;page=fragment-editor&amp;path=brand-concierge">db695a1a-61a6-403f-b847-c684cbf4ae0e</a></td>
+</tr>
+<tr>
+<td>Acrobat Express</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=7490cc4e-4064-4152-af18-29d37aa308c5&amp;page=fragment-editor&amp;path=brand-concierge">7490cc4e-4064-4152-af18-29d37aa308c5</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=a5b6556b-0542-405c-9de9-6baa596f1743&amp;page=fragment-editor&amp;path=brand-concierge">a5b6556b-0542-405c-9de9-6baa596f1743</a></td>
+</tr>
+<tr>
+<td>Audition</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=fdd63a7e-8a02-403e-a5ed-ebd85d585b95&amp;page=fragment-editor&amp;path=brand-concierge">fdd63a7e-8a02-403e-a5ed-ebd85d585b95</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=07b31d92-e6d0-4b19-8181-02f54956fd33&amp;page=fragment-editor&amp;path=brand-concierge">07b31d92-e6d0-4b19-8181-02f54956fd33</a></td>
+</tr>
+<tr>
+<td>Animate</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=789e6cc7-e5dd-4fb5-b468-a21a19f4966a&amp;page=fragment-editor&amp;path=brand-concierge">789e6cc7-e5dd-4fb5-b468-a21a19f4966a</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=be18b47b-ba1f-4c51-94f3-5d2a22a52df9&amp;page=fragment-editor&amp;path=brand-concierge">be18b47b-ba1f-4c51-94f3-5d2a22a52df9</a></td>
+</tr>
+<tr>
+<td>Adobe Substance 3D Collection</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=99a79b2f-0fc0-44c6-822f-b5c3e3098ffc&amp;page=fragment-editor&amp;path=brand-concierge">99a79b2f-0fc0-44c6-822f-b5c3e3098ffc</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=6375d22a-bdf1-4d5b-8769-3e4ddc635e61&amp;page=fragment-editor&amp;path=brand-concierge">6375d22a-bdf1-4d5b-8769-3e4ddc635e61</a></td>
+</tr>
+<tr>
+<td>Adobe Substance 3D Texturing</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=cab214a9-9f95-4308-aeb2-ff58ff177d06&amp;page=fragment-editor&amp;path=brand-concierge">cab214a9-9f95-4308-aeb2-ff58ff177d06</a></td>
+<td><code>default</code></td>
+</tr>
+<tr>
+<td>Acrobat Standard</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=3d79b0d1-1c88-440f-a596-e503388036be&amp;page=fragment-editor&amp;path=brand-concierge">3d79b0d1-1c88-440f-a596-e503388036be</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=ec9fed2e-eaa2-4c6c-b06b-b55762362de7&amp;page=fragment-editor&amp;path=brand-concierge">ec9fed2e-eaa2-4c6c-b06b-b55762362de7</a></td>
+</tr>
+<tr>
+<td>AI Assistant for Acrobat</td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=3345c485-af93-4fef-97d1-bbc10f3b03eb&amp;page=fragment-editor&amp;path=brand-concierge">3345c485-af93-4fef-97d1-bbc10f3b03eb</a></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=9ac1751b-4b73-4e1e-bc92-797de6d93cf9&amp;page=fragment-editor&amp;path=brand-concierge">9ac1751b-4b73-4e1e-bc92-797de6d93cf9</a></td>
+</tr>
+<tr>
+<td><a href="http://Frame.io">Frame.io</a></td>
+<td><code>default</code></td>
+<td><a href="https://mas.adobe.com/studio.html#fragmentId=ee2636e6-0ecc-49df-9a01-69ffd0558f74&amp;page=fragment-editor&amp;path=brand-concierge">ee2636e6-0ecc-49df-9a01-69ffd0558f74</a></td>
+</tr>
+</tbody>
+</table>
+<p>Direct fragment selection through <code>/agent/&lt;fragment-id&gt;</code> bypasses this map.</p>
+<h2 id="response" tabindex="-1">Response <a class="header-anchor" href="#response" href="#response" title="Permalink to this heading">#</a></h2>
+<p>Example shape; prices and authored text vary by locale, offer, and publication
+state:</p>
+<pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;fragment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ea8f1b95-56b1-4665-b859-41ac2961ddcd&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;productName&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Adobe Premiere&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pzn&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;badge&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;ctas&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;label&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Free trial&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;label&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Buy now&quot;</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;customer_segment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;individual&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;market_segment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;com&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Adobe Premiere&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;description&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Professional video and film editing on desktop and iPhone&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;regularPrice&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;US$22.99&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;recurrenceText&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/mo&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;terms_url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p><code>customer_segment</code> and <code>market_segment</code> come from the returned fragment’s tags:
+individual offers use <code>individual</code>/<code>com</code>, team offers use <code>team</code>/<code>com</code>, and
+education offers use <code>individual</code>/<code>edu</code>.
+<code>pzn</code> is <code>null</code> when omitted from the request or when selecting a fragment by UUID.
+Locale and country are not echoed. Other optional properties are omitted when
+they do not apply.</p>
+<p><code>ctas</code> contains one <code>{ &quot;label&quot;: &quot;...&quot; }</code> object per non-empty authored link or
+button, in authored order, or <code>[]</code> when no CTAs exist.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fragment</code></td>
+<td><code>string</code></td>
+<td>Exact fragment UUID passed to the fragment action.</td>
+</tr>
+<tr>
+<td><code>productName</code></td>
+<td><code>string | null</code></td>
+<td>Authored card title from the returned fragment; not an echo of the lookup name.</td>
+</tr>
+<tr>
+<td><code>customer_segment</code></td>
+<td><code>string</code></td>
+<td>Customer segment from fragment tags, for example <code>individual</code> or <code>team</code>.</td>
+</tr>
+<tr>
+<td><code>market_segment</code></td>
+<td><code>string</code></td>
+<td>Market segment from <code>mas:market_segments/*</code> tags, for example <code>com</code> or <code>edu</code>.</td>
+</tr>
+<tr>
+<td><code>pzn</code></td>
+<td><code>string | null</code></td>
+<td>Requested audience selector for product lookup; <code>null</code> when omitted or selecting a fragment by UUID.</td>
+</tr>
+<tr>
+<td><code>badge</code></td>
+<td><code>string | null</code></td>
+<td>Card badge text.</td>
+</tr>
+<tr>
+<td><code>ctas</code></td>
+<td><code>object[]</code></td>
+<td>Ordered <code>{ label: string }</code> CTA entries; <code>[]</code> when none exist.</td>
+</tr>
+<tr>
+<td><code>terms_url</code></td>
+<td><code>string | null</code></td>
+<td>Authored offer terms URL.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td>Card title.</td>
+</tr>
+<tr>
+<td><code>subtitle</code></td>
+<td><code>string</code></td>
+<td>Card subtitle.</td>
+</tr>
+<tr>
+<td><code>promoText</code></td>
+<td><code>string</code></td>
+<td>Promotional text.</td>
+</tr>
+<tr>
+<td><code>shortDescription</code></td>
+<td><code>string</code></td>
+<td>Short card description.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td>Card description with hydrated inline prices.</td>
+</tr>
+<tr>
+<td><code>callout</code></td>
+<td><code>string</code></td>
+<td>Card callout.</td>
+</tr>
+<tr>
+<td><code>promoPrice</code></td>
+<td><code>string</code></td>
+<td>Promotional price.</td>
+</tr>
+<tr>
+<td><code>regularPrice</code></td>
+<td><code>string</code></td>
+<td>Regular or strikethrough price.</td>
+</tr>
+<tr>
+<td><code>annualPrice</code></td>
+<td><code>string</code></td>
+<td>Annual price.</td>
+</tr>
+<tr>
+<td><code>planTypeText</code></td>
+<td><code>string</code></td>
+<td>Plan type, for example <code>Annual, billed monthly</code>.</td>
+</tr>
+<tr>
+<td><code>taxText</code></td>
+<td><code>string</code></td>
+<td>Tax text, for example <code>excl. GST</code>.</td>
+</tr>
+<tr>
+<td><code>recurrenceText</code></td>
+<td><code>string</code></td>
+<td>Billing frequency, for example <code>/mo</code>.</td>
+</tr>
+<tr>
+<td><code>unitText</code></td>
+<td><code>string</code></td>
+<td>Offer unit, for example <code>per license</code>.</td>
+</tr>
+<tr>
+<td><code>seeTermsInfo</code></td>
+<td><code>object</code></td>
+<td>See-terms <code>analyticsId</code>, <code>href</code>, and <code>text</code>.</td>
+</tr>
+<tr>
+<td><code>renewalText</code></td>
+<td><code>string</code></td>
+<td>Authored renewal text.</td>
+</tr>
+<tr>
+<td><code>promoDurationText</code></td>
+<td><code>string</code></td>
+<td>Authored promotion-duration text.</td>
+</tr>
+</tbody>
+</table>
+<p>Other non-excluded authored MAS tags may add top-level fields.</p>
+<h2 id="errors" tabindex="-1">Errors <a class="header-anchor" href="#errors" href="#errors" title="Permalink to this heading">#</a></h2>
+<p>Errors return JSON with a <code>message</code> field.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td>Invalid fragment path, neither a path UUID nor <code>productName</code>, missing <code>locale</code> or <code>api_key</code>, or a supplied <code>pzn</code> other than <code>edu</code> or <code>team</code> for product lookup.</td>
+</tr>
+<tr>
+<td>Upstream status</td>
+<td>The fragment action returns a non-200 response; its message is preserved when supplied.</td>
+</tr>
+<tr>
+<td>502</td>
+<td>Fragment invocation, decoding, parsing, or hydration fails.</td>
+</tr>
+<tr>
+<td>504</td>
+<td>Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds.</td>
+</tr>
+</tbody>
+</table>
+<p>Uncached WCS requests time out after 5 seconds. Fragment invocation is limited
+to 20 seconds and hydration to 15 seconds.</p>
+
+</sp-theme>
+</main>
+<script type="module">
+  document.querySelectorAll('code.demo').forEach(el => {
+      const targetContainer = document.createElement('div');
+      targetContainer.classList.toggle('light', el.classList.contains('light'));
+      targetContainer.innerHTML = `<h4>Demo: </h4><div class="demo-container">${el.textContent}</div>`;
+      el.parentElement.after(targetContainer);
+      // Extract and evaluate <script> tags
+      const scriptTags = targetContainer.getElementsByTagName('script');
+      for (let i = 0; i < scriptTags.length; i++) {
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.text = scriptTags[i].text;
+          document.body.appendChild(script); // Appends to the document to execute
+          scriptTags[i].remove(); // Remove the script tag
+      }
+  });
+</script>
+</body>
+</html>

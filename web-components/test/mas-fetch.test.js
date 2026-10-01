@@ -112,6 +112,43 @@ describe('masFetch', () => {
         }
     });
 
+    it('should not retry on a timeout and rethrow it', async () => {
+        const timeoutError = new Error('timed out');
+        timeoutError.name = 'TimeoutError';
+        fetchStub.rejects(timeoutError);
+
+        try {
+            await masFetch('https://example.com/api', {}, 2, 100);
+            expect.fail('Should have thrown an error');
+        } catch (error) {
+            expect(fetchStub.callCount).to.equal(1);
+            expect(error).to.equal(timeoutError);
+        }
+    });
+
+    it('does not create a timeout or require AbortSignal.timeout by default', async () => {
+        const timeoutStub = sinon
+            .stub(AbortSignal, 'timeout')
+            .throws(new Error('AbortSignal.timeout is unavailable'));
+        fetchStub.resolves(new Response('ok', { status: 200 }));
+
+        await masFetch('https://example.com/api');
+
+        expect(fetchStub.firstCall.args[1]).to.not.have.property('signal');
+        expect(timeoutStub.called).to.be.false;
+    });
+
+    it('preserves an explicit caller-provided abort signal and options', async () => {
+        const controller = new AbortController();
+        const options = { signal: controller.signal, credentials: 'omit' };
+        fetchStub.resolves(new Response('ok', { status: 200 }));
+
+        await masFetch('https://example.com/api', options);
+
+        expect(fetchStub.firstCall.args[1]).to.equal(options);
+        expect(fetchStub.firstCall.args[1].signal).to.equal(controller.signal);
+    });
+
     it('should not retry on successful responses', async () => {
         // Setup
         const mockResponse = new Response('success', { status: 500 }); // Even with error status code

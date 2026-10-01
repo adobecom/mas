@@ -9,7 +9,7 @@ import {
     SUPPORTED_COUNTRIES,
 } from './constants.js';
 
-import { PlanType, applyPlanType } from '@dexter/tacocat-core';
+import { PlanType, applyPlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
 import { Log } from './log.js';
 import { MasError } from './mas-error.js';
 import { masFetch } from './utils/mas-fetch.js';
@@ -76,9 +76,10 @@ const NAMESPACE = 'wcs';
  * Creates a new WCS client instance
  * @param {Object} params - The parameters for creating the WCS client
  * @param {Settings} params.settings - The settings for the WCS client
+ * @param {number} [params.fetchTimeout] - Optional fetch timeout in milliseconds
  * @returns {Client} A new WCS client instance
  */
-export function Wcs({ settings }) {
+export function Wcs({ settings, fetchTimeout }) {
     const log = Log.module(NAMESPACE);
     const { env, wcsApiKey: apiKey } = settings;
     /**
@@ -151,6 +152,9 @@ export function Wcs({ settings }) {
             }
             response = await masFetch(url.toString(), {
                 credentials: 'omit',
+                ...(fetchTimeout
+                    ? { signal: AbortSignal.timeout(fetchTimeout) }
+                    : {}),
             });
             if (response.ok) {
                 let offers = [];

@@ -1,10 +1,10 @@
 import {
-    forceTaxExclusivePrice,
     isNotEmptyString,
     isPositiveFiniteNumber,
     toPositiveFiniteInteger,
-} from '@dexter/tacocat-core';
-import { HEADER_X_REQUEST_ID } from './constants';
+} from '@dexter/tacocat-core/src/utilities.js';
+import { forceTaxExclusivePrice } from '@dexter/tacocat-core/src/wcsUtils.js';
+import { HEADER_X_REQUEST_ID } from './constants.js';
 import { Log } from './log.js';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
@@ -218,6 +218,8 @@ export function toWcsOsiAndPromotionCodes(osiValue, promotionCodeValue) {
  * @returns
  */
 export function getService() {
+    /* c8 ignore next */
+    if (typeof document === 'undefined') return null;
     return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
 }
 

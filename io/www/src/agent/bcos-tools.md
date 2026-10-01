@@ -13,15 +13,21 @@ confirmed.
 
 ## HTTP endpoint
 
+### URL paths
+
 ```http
 GET /mas/io/agent/<fragment-id>?locale=<locale>&api_key=<key>[&country=<country>]
 GET /mas/io/agent?productName=<name>&locale=<locale>&api_key=<key>[&pzn=<pzn>][&country=<country>]
 ```
 
-| Parameter     | Required | Description                                                                |
+In `/mas/io/agent/<fragment-id>`, the fragment UUID is the path segment after
+`/agent/`.
+
+### Query parameters
+
+| Query parameter | Required | Description                                                                |
 | ------------- | -------- | -------------------------------------------------------------------------- |
-| `fragment-id` | either   | Fragment UUID in the URL path, selected by the client.                     |
-| `productName` | either   | Required when there is no path UUID; resolved case-insensitively through the product map. |
+| `productName` | for product lookup | Product name resolved case-insensitively through the product map. |
 | `locale`      | yes      | Locale passed to the `fragment` action and used for pricing hydration.     |
 | `api_key`     | yes      | Registered MAS client API key passed to the `fragment` action.             |
 | `pzn`         | no       | Audience selector for product lookup: `edu` or `team`. Omit for individuals. Not supported with a fragment ID. |
@@ -59,7 +65,7 @@ The Brand Concierge product cards (variant `brand-concierge-product`) are source
 Product matches take precedence over the segment's default. Unknown products
 and products without a card for that audience receive its Creative Cloud Pro
 default. `pzn=edu` always selects education card
-`2b1a6493-e03b-4803-a150-eed983094a05`; its `products` map is empty.
+[2b1a6493-e03b-4803-a150-eed983094a05](https://mas.adobe.com/studio.html#fragmentId=2b1a6493-e03b-4803-a150-eed983094a05&page=fragment-editor&path=brand-concierge); its `products` map is empty.
 `productName` is required for product lookup. `pzn=team` selects the `team` branch, and
 omitting `pzn` selects `individual`. There is no separate `segment` parameter.
 
@@ -71,6 +77,9 @@ combinations. Product identity is checked against authored `cardTitle` and
 product-code tags; fragment titles and `cardName` alone are insufficient.
 Cards with missing audience tags or conflicting product identity are not added
 to the map.
+
+See the [API mapping table](../../../../web-components/docs/src/agent.md#product-name-mapping)
+for all current segment defaults and product fragment UUIDs.
 
 The former single-product student cards are now authored as Creative Cloud Pro;
 all education product lookups use the canonical Creative Cloud Pro education card.

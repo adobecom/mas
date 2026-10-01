@@ -36,7 +36,14 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
+import '../common/components/mas-grouped-selector.js';
 import './mas-promotions-items-table.js';
+import {
+    getCountryGroups,
+    getSelectedCountriesFromGeos,
+    mergeCountriesIntoGeos,
+    isCountryGeoTag,
+} from './promotion-countries.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 import {
@@ -292,6 +299,10 @@ class MasPromotionsEditor extends LitElement {
 
     get hasSelectedOffers() {
         return Store.promotions.selectedOffers.value.length > 0;
+    }
+
+    get selectedSurfaces() {
+        return parsePromotionSurfacesFieldValues(this.fragment?.getFieldValues('surfaces'));
     }
 
     get canManagePromoCodes() {
@@ -668,10 +679,19 @@ class MasPromotionsEditor extends LitElement {
         });
     }
 
+    // The Personalization tags picker and the Selected countries selector both write into the
+    // same `geos` field, each one only ever replacing the slice of values it owns, so the other's
+    // selection survives.
     #handleGeosChange = (event) => {
         const value = event.target.getAttribute('value');
-        const newGeos = value ? value.split(',') : [];
-        this.fragmentStore.updateField('geos', newGeos);
+        const pznTags = value ? value.split(',') : [];
+        const countryTags = (this.fragment?.getFieldValues('geos') ?? []).filter(isCountryGeoTag);
+        this.fragmentStore.updateField('geos', [...pznTags, ...countryTags]);
+    };
+
+    #handleCountriesChange = ({ detail }) => {
+        const geos = this.fragment?.getFieldValues('geos') ?? [];
+        this.fragmentStore.updateField('geos', mergeCountriesIntoGeos(geos, detail.value));
     };
 
     #handleCloseAddSurfacesDialog = (event) => {
@@ -1620,6 +1640,10 @@ class MasPromotionsEditor extends LitElement {
         }
         const readOnly = !this.canEdit;
         const canOpenItemPicker = this.canEdit && this.promotionPickerSurfaces.length > 0;
+        const geoValues = form.geos?.values ?? [];
+        const personalizationTagValues = geoValues.filter((tag) => !isCountryGeoTag(tag));
+        const selectedCountries = getSelectedCountriesFromGeos(geoValues);
+        const countryGroups = getCountryGroups(this.selectedSurfaces);
         return html`
             ${this.confirmDialog}
             ${this.duplicating
@@ -1741,19 +1765,31 @@ class MasPromotionsEditor extends LitElement {
                                 class="promotion-tag-field"
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
-                                <sp-field-label required>Geos</sp-field-label>
+                                <sp-field-label>Personalization tags</sp-field-label>
                                 <aem-tag-picker-field
                                     selection="checkbox-tags"
                                     display-value
-                                    label="Locale tags"
+                                    label="Personalization tags"
                                     namespace="/content/cq:tags/mas"
-                                    top="locale,pzn"
+                                    top="pzn"
                                     multiple
                                     ?disabled=${readOnly}
-                                    value="${form.geos?.values.join(',') || ''}"
+                                    value="${personalizationTagValues.join(',') || ''}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
                             </sp-field-group>
+                            <mas-grouped-selector
+                                label="Selected countries"
+                                item-noun="country"
+                                required
+                                ?read-only=${readOnly}
+                                ?disabled=${this.selectedSurfaces.length === 0}
+                                placeholder="Select surfaces first
+Countries will be generated automatically once surfaces are selected."
+                                .groups=${countryGroups}
+                                .value=${selectedCountries}
+                                @change=${this.#handleCountriesChange}
+                            ></mas-grouped-selector>
                         </div>
                         <sp-divider size="m" class="promotions-form-panel-divider" vertical></sp-divider>
                         <div class="promotions-form-surfaces">

@@ -621,6 +621,8 @@ describe('MasPromotionsEditor', () => {
             for (const picker of el.renderRoot.querySelectorAll('aem-tag-picker-field')) {
                 expect(picker.hasAttribute('disabled')).to.be.true;
             }
+            const countriesSelector = el.renderRoot.querySelector('mas-grouped-selector');
+            expect(countriesSelector.hasAttribute('read-only')).to.be.true;
             expect(el.renderRoot.querySelector('sp-tag[deletable]')).to.be.null;
         });
 
@@ -876,6 +878,59 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             const geos = el.fragment.getFieldValues('geos');
             expect(geos).to.deep.equal(['mas:locale/us']);
+        });
+
+        it('labels the renamed geos picker "Personalization tags" and restricts it to the pzn namespace', async () => {
+            const el = await mountEditor();
+            const geosPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[1];
+            expect(geosPicker.getAttribute('label')).to.equal('Personalization tags');
+            expect(geosPicker.getAttribute('top')).to.equal('pzn');
+        });
+
+        it('preserves selected countries when the personalization tags picker changes', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/us']);
+            await el.updateComplete;
+            const geosPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[1];
+            geosPicker.setAttribute('value', 'mas:pzn/smb');
+            geosPicker.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/smb', 'mas:locale/us']);
+        });
+
+        it('renders a "Selected countries" grouped selector', async () => {
+            const el = await mountEditor();
+            const selector = el.renderRoot.querySelector('mas-grouped-selector');
+            expect(selector).to.exist;
+            expect(selector.getAttribute('label')).to.equal('Selected countries');
+        });
+
+        it('disables the countries selector with a placeholder when no surface is selected', async () => {
+            const el = await mountEditor();
+            const selector = el.renderRoot.querySelector('mas-grouped-selector');
+            expect(selector.hasAttribute('disabled')).to.be.true;
+            expect(selector.placeholder).to.include('Select surfaces first');
+        });
+
+        it('enables the countries selector with the union of surfaces once surfaces are selected', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom', 'express']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('mas-grouped-selector');
+            expect(selector.hasAttribute('disabled')).to.be.false;
+            const allCountries = selector.groups.flatMap((group) => group.items.map((item) => item.value));
+            expect(new Set(allCountries).size).to.equal(allCountries.length);
+        });
+
+        it('merges a country selection into geos, preserving personalization tags', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('mas-grouped-selector');
+            selector.dispatchEvent(new CustomEvent('change', { detail: { value: ['US'] } }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/smb', 'mas:locale/US']);
         });
 
         it('removes surface on delete event from sp-tag', async () => {

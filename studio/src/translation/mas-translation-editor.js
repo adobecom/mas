@@ -7,8 +7,9 @@ import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
 import '../common/components/mas-items-selector.js';
+import '../common/components/mas-grouped-selector.js';
 import '../mas-quick-actions.js';
-import './mas-translation-languages.js';
+import { getLanguageGroups } from './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
@@ -27,8 +28,6 @@ class MasTranslationEditor extends LitElement {
         disabledActions: { type: Set, state: true },
         isSelectedItemsOpen: { type: Boolean, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
-        isSelectedLangsOpen: { type: Boolean, state: true },
-        showLangSelectedEmptyState: { type: Boolean, state: true },
         ioBaseUrl: { type: String, state: true },
         isProjectReadonly: { type: Boolean, state: true },
     };
@@ -36,7 +35,6 @@ class MasTranslationEditor extends LitElement {
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
-    #targetLocalesSnapshot = [];
     #itemsSelectionStoreToken = null;
     #itemsConfirmed = false;
 
@@ -58,8 +56,6 @@ class MasTranslationEditor extends LitElement {
         ]);
         this.isSelectedItemsOpen = false;
         this.showSelectedEmptyState = true;
-        this.showLangSelectedEmptyState = true;
-        this.isSelectedLangsOpen = false;
         this.ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
         this.isProjectReadonly = false;
     }
@@ -93,7 +89,6 @@ class MasTranslationEditor extends LitElement {
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
             await this.#loadTranslationProjectById(translationProjectId);
-            this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
         } else {
             this.#initializeNewTranslationProject(fragmentPath, targetLocale, Boolean(isCollection));
@@ -148,10 +143,6 @@ class MasTranslationEditor extends LitElement {
         return Store.translationProjects.targetLocales.value.length;
     }
 
-    get selectedLangsList() {
-        return Store.translationProjects.targetLocales.value.sort().join(', ');
-    }
-
     #updateDisabledActions({ add = [], remove = [] }) {
         const newSet = new Set(this.disabledActions);
         remove.forEach((action) => newSet.delete(action));
@@ -176,7 +167,6 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
                 Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType') ?? 'translation');
                 this.showSelectedEmptyState = this.selectedCount === 0;
-                this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
             }
         } catch (err) {
             console.error('Failed to load translation project:', err);
@@ -221,7 +211,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.projectType.set('translation');
 
         this.showSelectedEmptyState = this.selectedCount === 0;
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
     }
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -413,7 +402,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.inEdit.set(new FragmentStore(this.translationProject));
         Store.translationProjects.translationProjectId.set(this.translationProject.id);
         this.showSelectedEmptyState = this.selectedCount === 0;
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
         Store.translationProjects.selectedCards.set(this.translationProject.getFieldValues('fragments'));
         Store.translationProjects.selectedCollections.set(this.translationProject.getFieldValues('collections'));
         Store.translationProjects.selectedPlaceholders.set(this.translationProject.getFieldValues('placeholders'));
@@ -533,22 +521,9 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
     }
 
-    #openAddLanguagesOverlay() {
-        this.#targetLocalesSnapshot = Store.translationProjects.targetLocales.value;
-    }
-
-    #confirmLangSelection = ({ target }) => {
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
+    #handleLanguagesChange = ({ detail }) => {
+        Store.translationProjects.targetLocales.set(detail.value);
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
-        const closeEvent = new Event('close', { bubbles: true, composed: true });
-        target.dispatchEvent(closeEvent);
-    };
-
-    #cancelLangSelection = ({ target }) => {
-        Store.translationProjects.targetLocales.set(this.#targetLocalesSnapshot);
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
-        const closeEvent = new Event('close', { bubbles: true, composed: true });
-        target.dispatchEvent(closeEvent);
     };
 
     #toggleSelectedItemsOpen = ({ target }) => {
@@ -596,24 +571,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
     };
-
-    renderAddLanguagesDialog() {
-        return html`
-            <sp-dialog-wrapper
-                class="add-langs-dialog"
-                slot="click-content"
-                headline="Select languages"
-                confirm-label="Confirm"
-                cancel-label="Cancel"
-                underlay
-                no-divider
-                @confirm=${this.#confirmLangSelection}
-                @cancel=${this.#cancelLangSelection}
-            >
-                <mas-translation-languages></mas-translation-languages>
-            </sp-dialog-wrapper>
-        `;
-    }
 
     renderConfirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
@@ -726,71 +683,15 @@ class MasTranslationEditor extends LitElement {
                         </div>
                     </div>
                 </div>
-                ${
-                    this.showLangSelectedEmptyState
-                        ? html`
-                              <div class="form-field select-langs">
-                                  <h2>Select languages <sp-icon-asterisk100></sp-icon-asterisk100></h2>
-                                  <div class="languages-empty-state">
-                                      <div class="icon">
-                                          <overlay-trigger
-                                              type="modal"
-                                              id="add-languages-overlay"
-                                              triggered-by="click"
-                                              @sp-opened=${this.#openAddLanguagesOverlay}
-                                          >
-                                              ${this.renderAddLanguagesDialog()}
-                                              <sp-button
-                                                  slot="trigger"
-                                                  variant="secondary"
-                                                  size="xl"
-                                                  icon-only
-                                                  class="ghost-button"
-                                              >
-                                                  <sp-icon-add size="xxl" slot="icon" label="Add Languages"></sp-icon-add>
-                                              </sp-button>
-                                          </overlay-trigger>
-                                      </div>
-                                      <div class="label">
-                                          <strong>Add languages</strong><br />
-                                          <span>Choose one or more languages for your translation project.</span>
-                                      </div>
-                                  </div>
-                              </div>
-                          `
-                        : html`<div
-                              class="form-field selected-langs"
-                              @click=${() => (this.isSelectedLangsOpen = !this.isSelectedLangsOpen)}
-                          >
-                              <div class="selected-langs-header">
-                                  <h2>
-                                      Selected languages
-                                      <span>(${this.targetLocalesCount})</span>
-                                      <sp-icon-asterisk100></sp-icon-asterisk100>
-                                  </h2>
-                                  <div>
-                                      ${!this.isProjectReadonly
-                                          ? html` <overlay-trigger type="modal" id="add-languages-overlay" triggered-by="click">
-                                                ${this.renderAddLanguagesDialog()}
-                                                <sp-action-button slot="trigger" quiet @click=${this.#openAddLanguagesOverlay}>
-                                                    <sp-icon-edit slot="icon" label="Edit Languages"></sp-icon-edit>
-                                                    Edit
-                                                </sp-action-button>
-                                            </overlay-trigger>`
-                                          : nothing}
-                                      <sp-button icon-only class="toggle-btn ghost-button">
-                                          <sp-icon-chevron-down
-                                              slot="icon"
-                                              label="${this.isSelectedLangsOpen ? 'Close' : 'Open'}"
-                                          ></sp-icon-chevron-down>
-                                      </sp-button>
-                                  </div>
-                              </div>
-                              ${this.isSelectedLangsOpen
-                                  ? html` <div class="selected-langs-list">${this.selectedLangsList}</div> `
-                                  : nothing}
-                          </div>`
-                }
+                <mas-grouped-selector
+                    label="Selected languages"
+                    item-noun="language"
+                    required
+                    ?read-only=${this.isProjectReadonly}
+                    .groups=${getLanguageGroups(Store.search.value.path)}
+                    .value=${Store.translationProjects.targetLocales.value}
+                    @change=${this.#handleLanguagesChange}
+                ></mas-grouped-selector>
                 ${
                     this.showSelectedEmptyState
                         ? html`

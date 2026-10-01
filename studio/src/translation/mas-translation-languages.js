@@ -11,6 +11,53 @@ import {
     computeSelectionCountLabel,
 } from '../common/utils/selectable-list.js';
 
+/**
+ * Default-or-regional locales for `surface`, in the same shape (and sort order) the
+ * language picker renders.
+ * @param {string} surface e.g. 'acom'
+ * @param {{ includeSource?: boolean, includeRegional?: boolean }} [options]
+ * @returns {{ lang: string, country: string, locale: string }[]}
+ */
+export function getLocalesArray(surface, { includeSource = false, includeRegional = false } = {}) {
+    const source = includeRegional ? getSurfaceLocales(surface) : getDefaultLocales(surface);
+    const all = source.map((item) => ({ ...item, locale: getLocaleCode(item) }));
+    const filtered = includeSource ? all : all.filter((item) => item.locale !== 'en_US');
+    return filtered.sort((a, b) => a.locale.localeCompare(b.locale));
+}
+
+/**
+ * Groups `locales` into the EMEA/JAPAC/LATAM-Americas regions (plus an 'Other' bucket), in the
+ * `{ name, items: [{ value, label }] }` shape the shared `mas-grouped-selector` consumes.
+ * @param {{ country: string, locale: string }[]} locales
+ * @returns {{ name: string, items: { value: string, label: string }[] }[]}
+ */
+export function groupLocalesByRegion(locales) {
+    const groups = [];
+    for (const region of REGION_GROUPS) {
+        const items = locales
+            .filter((item) => region.countries.includes(item.country))
+            .map((item) => ({ value: item.locale, label: item.locale }));
+        if (items.length) groups.push({ name: region.name, items });
+    }
+    const grouped = new Set(groups.flatMap((group) => group.items.map((item) => item.value)));
+    const other = locales
+        .filter((item) => !grouped.has(item.locale))
+        .map((item) => ({ value: item.locale, label: item.locale }));
+    if (other.length) groups.push({ name: 'Other', items: other });
+    return groups;
+}
+
+/**
+ * Language groups for `surface`'s target-locale picker, for callers (e.g. the Promotions editor)
+ * that render the shared `mas-grouped-selector` directly instead of `<mas-translation-languages>`.
+ * @param {string} surface
+ * @param {{ includeSource?: boolean, includeRegional?: boolean }} [options]
+ * @returns {{ name: string, items: { value: string, label: string }[] }[]}
+ */
+export function getLanguageGroups(surface, options) {
+    return groupLocalesByRegion(getLocalesArray(surface, options));
+}
+
 class MasTranslationLanguages extends LitElement {
     static styles = styles;
 
@@ -33,10 +80,10 @@ class MasTranslationLanguages extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         const surface = Store.search.value.path;
-        const source = this.includeRegional ? getSurfaceLocales(surface) : getDefaultLocales(surface);
-        const all = source.map((item) => ({ ...item, locale: getLocaleCode(item) }));
-        const filtered = this.includeSource ? all : all.filter((item) => item.locale !== 'en_US');
-        this.localesArray = filtered.sort((a, b) => a.locale.localeCompare(b.locale));
+        this.localesArray = getLocalesArray(surface, {
+            includeSource: this.includeSource,
+            includeRegional: this.includeRegional,
+        });
         this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
     }
 

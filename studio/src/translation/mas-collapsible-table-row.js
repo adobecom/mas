@@ -24,6 +24,7 @@ import {
     getPromoVariationPersonalizationTagLabels,
 } from '../editors/variation-utils.js';
 import Store from '../store.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
 import '../aem/aem-tag-picker-field.js';
 
@@ -216,12 +217,14 @@ export class MasCollapsibleTableRow extends LitElement {
                     const variation = this.topLevelCardVariationsByPaths.get(variationPath);
                     const isSelected = this.selectedCards.includes(variationPath);
                     const isExpanded = this.expandedVariationsPaths.has(variationPath);
+                    const promotionId = this.#getPromotionIdForItem(variation);
                     return html` <sp-table-row
                             value=${variationPath}
                             ?selected=${isSelected}
                             aria-selected=${isSelected ? 'true' : 'false'}
                             @click=${isSelectable ? (event) => this.#onRowClickForSelection(event, variationPath) : null}
                         >
+                            ${renderRowLinkOverlay(variation, promotionId ? { promotionId } : {})}
                             <sp-table-cell class="table-icon-cell">
                                 <sp-button
                                     class="expand-button"
@@ -280,8 +283,8 @@ export class MasCollapsibleTableRow extends LitElement {
                     (variation) => variation.path,
                     (variation) =>
                         html`<sp-table-row value=${variation.path}>
-                            ${this.renderOfferName(variation)} ${this.renderTitle(variation)} ${this.renderOfferId(variation)}
-                            ${this.renderStudioPath(variation)} ${this.renderStatus(variation)}
+                            ${renderRowLinkOverlay(variation)} ${this.renderOfferName(variation)} ${this.renderTitle(variation)}
+                            ${this.renderOfferId(variation)} ${this.renderStudioPath(variation)} ${this.renderStatus(variation)}
                         </sp-table-row>`,
                 )}
             </sp-table-body>
@@ -324,6 +327,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   aria-selected=${isSelected ? 'true' : 'false'}
                                   @click=${(event) => isSelectable && this.#onRowClickForSelection(event, path)}
                               >
+                                  ${renderRowLinkOverlay(variation, { promotionId: this.#getPromotionIdForItem(variation) })}
                                   <sp-table-cell class="table-icon-cell">
                                       <sp-button
                                           class="expand-button"
@@ -358,6 +362,7 @@ export class MasCollapsibleTableRow extends LitElement {
 
     get viewOnlyTemplate() {
         const topLevelRow = html`<sp-table-row value=${this.topLevelCard.path}>
+            ${renderRowLinkOverlay(this.topLevelCard, { promotionId: this.#getPromotionIdForItem(this.topLevelCard) })}
             ${this.isGroupedVariation || this.viewOnlyTabs?.length
                 ? html`<sp-table-cell class="table-icon-cell">
                       <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
@@ -402,7 +407,10 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderTitle(item) {
-        return html`<sp-table-cell>${item.title || 'no title'}</sp-table-cell>`;
+        const promotionId = this.#getPromotionIdForItem(item);
+        return html`<sp-table-cell
+            >${renderEditorLink(item, item.title || 'no title', promotionId ? { promotionId } : {})}</sp-table-cell
+        >`;
     }
 
     renderOfferName(item) {
@@ -630,7 +638,7 @@ export class MasCollapsibleTableRow extends LitElement {
               </sp-table-row>`;
     }
 
-    #getPromoProjectUrl(variation) {
+    #getPromotionIdForItem(variation) {
         const promotionTagId = getPromotionTagFromFragment(variation);
         if (!promotionTagId) return null;
         const projects =
@@ -640,7 +648,11 @@ export class MasCollapsibleTableRow extends LitElement {
                 .filter(Boolean) || [];
         const inEditProject = Store.promotions.inEdit.get()?.value;
         const allProjects = inEditProject ? [...projects, inEditProject] : projects;
-        const id = findPromotionProjectIdByTag(promotionTagId, allProjects);
+        return findPromotionProjectIdByTag(promotionTagId, allProjects) || null;
+    }
+
+    #getPromoProjectUrl(variation) {
+        const id = this.#getPromotionIdForItem(variation);
         if (!id) return null;
         return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
     }
@@ -697,6 +709,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 aria-selected=${isSelected ? 'true' : 'false'}
                 @click=${(e) => this.#onRowClickForSelection(e, this.topLevelCard.path)}
             >
+                ${renderRowLinkOverlay(this.topLevelCard, { promotionId: this.#getPromotionIdForItem(this.topLevelCard) })}
                 <sp-table-cell class="table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded

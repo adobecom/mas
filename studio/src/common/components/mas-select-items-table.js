@@ -14,6 +14,7 @@ import {
     loadSelectedFragments,
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import { renderEditorLink } from '../utils/editor-link.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 import { Fragment } from '../../aem/fragment.js';
 
@@ -414,7 +415,7 @@ class MasSelectItemsTable extends LitElement {
                                       </sp-table-cell>
                                   `
                                 : nothing}
-                            <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
+                            <sp-table-cell> ${renderEditorLink(fragment, fragment.title || '-')} </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,

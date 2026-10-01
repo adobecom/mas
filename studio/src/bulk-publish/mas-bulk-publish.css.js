@@ -1,11 +1,12 @@
 import { css } from 'lit';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
-import { tableHeaderBaseStyles, tableBodyBaseStyles } from '../common/styles/table-styles.css.js';
+import { tableHeaderBaseStyles, tableBodyBaseStyles, tableCellBaseStyles } from '../common/styles/table-styles.css.js';
 
 export const styles = [
     skeletonStyles,
     tableHeaderBaseStyles,
     tableBodyBaseStyles,
+    tableCellBaseStyles,
     css`
         :host {
             display: block;

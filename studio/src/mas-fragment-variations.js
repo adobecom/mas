@@ -208,6 +208,19 @@ class MasFragmentVariations extends LitElement {
         await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
     }
 
+    #getPromotionIdForItem(fragment) {
+        const promotionTagId = getPromotionTagFromFragment(fragment);
+        if (!promotionTagId) return null;
+        const projects =
+            Store.promotions.list.data
+                .get()
+                ?.map((store) => store.get())
+                .filter(Boolean) || [];
+        const inEditProject = Store.promotions.inEdit.get()?.value;
+        const allProjects = inEditProject ? [...projects, inEditProject] : projects;
+        return findPromotionProjectIdByTag(promotionTagId, allProjects) || null;
+    }
+
     /**
      * Toggles the expanded state of a grouped variation.
      * @param {string} fragmentId
@@ -462,6 +475,7 @@ class MasFragmentVariations extends LitElement {
                         const { promotionName } = getPromotionInfo(variationFragment);
                         const isGroupedVariation = Fragment.isGroupedVariationPath(variationFragment.path);
                         const geosValue = getPromoVariationGeoTagsValue(variationFragment);
+                        const promotionId = this.#getPromotionIdForItem(variationFragment);
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted
@@ -473,6 +487,7 @@ class MasFragmentVariations extends LitElement {
                                 .canCreateVariation=${false}
                                 .nested=${true}
                                 .expanded=${isExpanded}
+                                .editorLinkOptions=${promotionId ? { promotionId } : {}}
                                 .toggleExpand=${() => this.togglePromoVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}
                             ></mas-fragment-table>

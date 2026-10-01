@@ -132,6 +132,22 @@ describe('MasSelectItemsTable', () => {
     });
 
     describe('initialization', () => {
+        it('exposes collection editor links without changing row selection on plain click', async () => {
+            const collection = {
+                ...createMockCollection('/content/dam/mas/acom/en_US/collections/example', 'Example collection'),
+                id: 'collection-1',
+            };
+            setupCollectionsInStore([collection]);
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('sp-table-row a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('fragmentId')).to.equal('collection-1');
+            link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([collection.path]);
+        });
+
         it('should initialize with default values', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;

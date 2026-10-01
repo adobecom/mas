@@ -25,23 +25,24 @@ In `/mas/io/agent/<fragment-id>`, the fragment UUID is the path segment after
 
 ### Query parameters
 
-| Query parameter | Required | Description                                                                |
-| ------------- | -------- | -------------------------------------------------------------------------- |
-| `productName` | for product lookup | Product name resolved case-insensitively through the product map. |
-| `locale`      | yes      | Locale passed to the `fragment` action and used for pricing hydration.     |
-| `api_key`     | yes      | Registered MAS client API key passed to the `fragment` action.             |
-| `pzn`         | no       | Audience selector for product lookup: `edu` or `team`. Omit for individuals. Not supported with a fragment ID. |
-| `country`     | no       | Country passed to the `fragment` action and normalized for hydration.      |
+| Query parameter | Required           | Description                                                                                              |
+| --------------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
+| `productName`   | for product lookup | Product name resolved case-insensitively through the product map.                                        |
+| `locale`        | yes                | Locale passed to the `fragment` action and used for pricing hydration.                                   |
+| `api_key`       | yes                | Registered MAS client API key passed to the `fragment` action.                                           |
+| `pzn`           | no                 | Audience selector for product lookup: `edu` or `team`. Omit for individuals. Ignored with a fragment ID. |
+| `country`       | no                 | Country passed to the `fragment` action and normalized for hydration.                                    |
 
 `locale` and `country` come from the page's `mas-commerce-service` element — the
 web page (or BC agent) reads them there and passes them through. They are page
 context, not model-selected inputs.
 
-Omit `pzn` for individual offers. Only `edu` and `team` are accepted when it is
-supplied; an empty value or `pzn=individual` returns 400. `pzn` is not forwarded
-to the fragment action. A path UUID takes precedence over `productName` and
-bypasses audience selection, including the education fallback. Supplying `pzn`
-with a fragment ID returns 400.
+For product lookup, omit `pzn` for individual offers. Only `edu` and `team` are
+accepted when it is supplied; an empty value or `pzn=individual` returns 400.
+`pzn` is not forwarded to the fragment action. A path UUID takes precedence
+over `productName` and bypasses audience selection, including the education
+fallback. With a fragment ID, `pzn` is discarded without validation and
+returned as `null`; classification comes from the fragment's tags.
 
 The fragment path accepts one UUID, case-insensitively, with an optional
 trailing slash. Invalid paths return 400 rather than using the product map.
@@ -96,9 +97,8 @@ query parameters. The handler uses the action name to derive the sibling
 ## Processing contract
 
 1. Reject an invalid fragment path, a missing path UUID and `productName`,
-   missing `locale` or `api_key`, `pzn` supplied with a fragment ID, and an
-   unknown `pzn` for product lookup.
-2. Use the path UUID when supplied. Otherwise select the audience branch in
+   missing `locale` or `api_key`, and an unknown `pzn` for product lookup.
+2. Use a supplied path UUID and discard `pzn`. Otherwise select the audience branch in
    `PRODUCT_FRAGMENT_MAP`, then the matching product fragment ID or that branch's
    default ID.
 3. Invoke the sibling `fragment` action with the fragment ID, locale, API key,
@@ -118,8 +118,9 @@ query parameters. The handler uses the action name to derive the sibling
    preserving authored order after inline-price hydration.
 9. Extract the offer, price, and authored terms data, including tag-derived
    `customer_segment` and `market_segment`.
-10. Return the selected fragment UUID used for the invocation and echo `pzn`.
-    Locale and country are not included in the response.
+10. Return the selected fragment UUID used for the invocation. Echo `pzn` for
+    product lookup; return `null` for a path UUID. Locale and country are not
+    included in the response.
 
 The fragment is expected to contain a complete WCS cache for every offer
 selector and promotion combination used by its inline prices. With a complete
@@ -141,32 +142,32 @@ Fragment-level promotion codes follow the web-component compatibility rules:
 
 The action returns HTTP 200 with one JSON offer record.
 
-| Field               | Type           | Description                                                               |
-| ------------------- | -------------- | ------------------------------------------------------------------------- |
-| `fragment`          | string         | Exact fragment UUID passed to the `fragment` action.                      |
-| `productName`       | string         | Hydrated card title.                                                      |
-| `pzn`               | string or null | Requested audience selector; `null` when omitted.                         |
-| `badge`             | string or null | Card badge text.                                                          |
-| `ctas`              | object array   | Ordered authored CTA labels as `{ label }` objects; `[]` when none exist. |
-| `terms_url`         | string or null | Authored offer-terms URL when present.                                    |
-| `customer_segment`  | string         | Customer segment derived from fragment tags when present.                 |
-| `market_segment`    | string         | Market segment derived from `mas:market_segments/*` tags when present.    |
-| `title`             | string         | Card title.                                                               |
-| `subtitle`          | string         | Card subtitle.                                                            |
-| `promoText`         | string         | Promotional copy.                                                         |
-| `shortDescription`  | string         | Short card description.                                                   |
-| `description`       | string         | Description after inline prices are hydrated and markup is stripped.      |
-| `callout`           | string         | Card callout text.                                                        |
-| `promoPrice`        | string         | Main promotional display price.                                           |
-| `regularPrice`      | string         | Main regular or strikethrough display price.                              |
-| `annualPrice`       | string         | Main annual display price when rendered.                                  |
-| `planTypeText`      | string         | Authored plan-type text.                                                  |
-| `taxText`           | string         | Authored tax text.                                                        |
-| `recurrenceText`    | string         | Authored billing-frequency text.                                          |
-| `unitText`          | string         | Authored unit text.                                                       |
-| `seeTermsInfo`      | object         | `{ analyticsId, href, text }` for the authored terms link.                |
-| `renewalText`       | string         | Authored renewal text.                                                    |
-| `promoDurationText` | string         | Authored promotion-duration text.                                         |
+| Field               | Type           | Description                                                                                          |
+| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| `fragment`          | string         | Exact fragment UUID passed to the `fragment` action.                                                 |
+| `productName`       | string         | Hydrated card title.                                                                                 |
+| `pzn`               | string or null | Requested audience selector for product lookup; `null` when omitted or selecting a fragment by UUID. |
+| `badge`             | string or null | Card badge text.                                                                                     |
+| `ctas`              | object array   | Ordered authored CTA labels as `{ label }` objects; `[]` when none exist.                            |
+| `terms_url`         | string or null | Authored offer-terms URL when present.                                                               |
+| `customer_segment`  | string         | Customer segment derived from fragment tags when present.                                            |
+| `market_segment`    | string         | Market segment derived from `mas:market_segments/*` tags when present.                               |
+| `title`             | string         | Card title.                                                                                          |
+| `subtitle`          | string         | Card subtitle.                                                                                       |
+| `promoText`         | string         | Promotional copy.                                                                                    |
+| `shortDescription`  | string         | Short card description.                                                                              |
+| `description`       | string         | Description after inline prices are hydrated and markup is stripped.                                 |
+| `callout`           | string         | Card callout text.                                                                                   |
+| `promoPrice`        | string         | Main promotional display price.                                                                      |
+| `regularPrice`      | string         | Main regular or strikethrough display price.                                                         |
+| `annualPrice`       | string         | Main annual display price when rendered.                                                             |
+| `planTypeText`      | string         | Authored plan-type text.                                                                             |
+| `taxText`           | string         | Authored tax text.                                                                                   |
+| `recurrenceText`    | string         | Authored billing-frequency text.                                                                     |
+| `unitText`          | string         | Authored unit text.                                                                                  |
+| `seeTermsInfo`      | object         | `{ analyticsId, href, text }` for the authored terms link.                                           |
+| `renewalText`       | string         | Authored renewal text.                                                                               |
+| `promoDurationText` | string         | Authored promotion-duration text.                                                                    |
 
 Optional string and object fields are omitted from serialized JSON when their
 value is unavailable.
@@ -196,18 +197,17 @@ standard singular field `market_segment`. The response does not include a
 
 ## Errors
 
-| Status          | Condition                                                    |
-| --------------- | ------------------------------------------------------------ |
-| 400             | Neither a path UUID nor `productName` is supplied.           |
+| Status          | Condition                                                          |
+| --------------- | ------------------------------------------------------------------ |
+| 400             | Neither a path UUID nor `productName` is supplied.                 |
 | 400             | The fragment path is not one UUID with an optional trailing slash. |
-| 400             | `locale` is missing.                                         |
-| 400             | `api_key` is missing.                                        |
-| 400             | `pzn` is supplied with a fragment ID.                        |
-| 400             | Supplied `pzn` is not `edu` or `team`.                       |
-| upstream status | The `fragment` action returns a non-200 response.            |
-| 502             | Invoking the `fragment` action throws.                       |
-| 502             | Fragment decoding, parsing, or price hydration fails.        |
-| 504             | Fragment invocation or price hydration exceeds its deadline. |
+| 400             | `locale` is missing.                                               |
+| 400             | `api_key` is missing.                                              |
+| 400             | Product lookup supplies a `pzn` other than `edu` or `team`.        |
+| upstream status | The `fragment` action returns a non-200 response.                  |
+| 502             | Invoking the `fragment` action throws.                             |
+| 502             | Fragment decoding, parsing, or price hydration fails.              |
+| 504             | Fragment invocation or price hydration exceeds its deadline.       |
 
 Errors return JSON with a `message` field. Fragment-action error messages
 are preserved when supplied.

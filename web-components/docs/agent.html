@@ -66,7 +66,7 @@ labels. Checkout URLs are not returned.</p>
 <tr>
 <td><code>pzn</code></td>
 <td>No</td>
-<td>Supported only for product lookup: <code>edu</code> for students and teachers, or <code>team</code> for business plans. Omit for individual offers. Not supported with <code>fragment-id</code>. Not forwarded to the fragment action.</td>
+<td>Audience selector for product lookup: <code>edu</code> for students and teachers, or <code>team</code> for business plans. Omit for individual offers. Ignored with a fragment ID. Not forwarded to the fragment action.</td>
 </tr>
 <tr>
 <td><code>country</code></td>
@@ -80,8 +80,8 @@ audience mapping. The path accepts one UUID, case-insensitively, with an
 optional trailing slash. An empty path or <code>/</code> uses product lookup. Invalid
 paths return 400. The selected fragment must be published and retrievable by
 the existing fragment pipeline; it does not need an entry in the product map.
-Supplying <code>pzn</code> with a fragment ID returns 400. Response classification comes
-from the returned fragment’s tags.</p>
+With a fragment ID, <code>pzn</code> is discarded without validation and returned as
+<code>null</code>. Response classification comes from the returned fragment’s tags.</p>
 <p>For product lookup, see the <a href="#product-name-mapping">product-name mapping</a> below.</p>
 <p>Browser integrations read <code>locale</code> and <code>country</code> from the page’s
 <code>mas-commerce-service</code>; these are page context, not model-selected inputs.</p>
@@ -264,7 +264,7 @@ state:</p>
 <p><code>customer_segment</code> and <code>market_segment</code> come from the returned fragment’s tags:
 individual offers use <code>individual</code>/<code>com</code>, team offers use <code>team</code>/<code>com</code>, and
 education offers use <code>individual</code>/<code>edu</code>.
-<code>pzn</code> is <code>null</code> when omitted from the request.
+<code>pzn</code> is <code>null</code> when omitted from the request or when selecting a fragment by UUID.
 Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.</p>
 <p><code>ctas</code> contains one <code>{ &quot;label&quot;: &quot;...&quot; }</code> object per non-empty authored link or
@@ -301,7 +301,7 @@ button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <tr>
 <td><code>pzn</code></td>
 <td><code>string | null</code></td>
-<td>Requested audience selector; <code>null</code> when omitted.</td>
+<td>Requested audience selector for product lookup; <code>null</code> when omitted or selecting a fragment by UUID.</td>
 </tr>
 <tr>
 <td><code>badge</code></td>
@@ -413,7 +413,7 @@ button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <tbody>
 <tr>
 <td>400</td>
-<td>Invalid fragment path, neither a path UUID nor <code>productName</code>, missing <code>locale</code> or <code>api_key</code>, <code>pzn</code> supplied with a fragment ID, or a supplied <code>pzn</code> other than <code>edu</code> or <code>team</code> for product lookup.</td>
+<td>Invalid fragment path, neither a path UUID nor <code>productName</code>, missing <code>locale</code> or <code>api_key</code>, or a supplied <code>pzn</code> other than <code>edu</code> or <code>team</code> for product lookup.</td>
 </tr>
 <tr>
 <td>Upstream status</td>

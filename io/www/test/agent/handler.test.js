@@ -158,15 +158,24 @@ describe('agent action main', () => {
     });
 
     for (const pzn of ['edu', 'team', '', 'enterprise', null]) {
-        it(`rejects pzn=${JSON.stringify(pzn)} with a fragment path before invoking the fragment action`, async () => {
-            const invoke = sinon.stub();
+        it(`discards pzn=${JSON.stringify(pzn)} with a fragment path and uses the fragment tags`, async () => {
+            const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('team', 'com') });
             const res = await main(
                 { ...requestParams, __ow_path: `/${UNMAPPED_FRAGMENT_ID}`, pzn },
                 { openwhiskFactory: fakeFactory(invoke) },
             );
-            expect(res.statusCode).to.equal(400);
-            expect(res.body.message).to.equal('pzn is not supported when a fragment ID is provided');
-            expect(invoke.called).to.be.false;
+            expect(res.statusCode).to.equal(200);
+            expect(res.body).to.deep.include({
+                fragment: UNMAPPED_FRAGMENT_ID,
+                pzn: null,
+                customer_segment: 'team',
+                market_segment: 'com',
+            });
+            expect(invoke.firstCall.args[0].params).to.deep.equal({
+                id: UNMAPPED_FRAGMENT_ID,
+                locale: 'en_US',
+                api_key: 'test-api-key',
+            });
         });
     }
 

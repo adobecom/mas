@@ -32,7 +32,7 @@ GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&locale=en_US
 | `productName` | For product lookup | Product name, for example `Creative Cloud Pro`. |
 | `locale` | Yes | Adobe locale, for example `en_US`; used for fragment retrieval and pricing hydration. |
 | `api_key` | Yes | Registered MAS client API key forwarded to the fragment action. |
-| `pzn` | No | Supported only for product lookup: `edu` for students and teachers, or `team` for business plans. Omit for individual offers. Not supported with `fragment-id`. Not forwarded to the fragment action. |
+| `pzn` | No | Audience selector for product lookup: `edu` for students and teachers, or `team` for business plans. Omit for individual offers. Ignored with a fragment ID. Not forwarded to the fragment action. |
 | `country` | No | Case-insensitive country code, for example `EG`. Defaults to the locale's country and follows the fragment pipeline's market and territory rules. |
 
 A path UUID takes precedence over `productName` and bypasses product and
@@ -40,8 +40,8 @@ audience mapping. The path accepts one UUID, case-insensitively, with an
 optional trailing slash. An empty path or `/` uses product lookup. Invalid
 paths return 400. The selected fragment must be published and retrievable by
 the existing fragment pipeline; it does not need an entry in the product map.
-Supplying `pzn` with a fragment ID returns 400. Response classification comes
-from the returned fragment's tags.
+With a fragment ID, `pzn` is discarded without validation and returned as
+`null`. Response classification comes from the returned fragment's tags.
 
 For product lookup, see the [product-name mapping](#product-name-mapping) below.
 
@@ -132,7 +132,7 @@ state:
 `customer_segment` and `market_segment` come from the returned fragment's tags:
 individual offers use `individual`/`com`, team offers use `team`/`com`, and
 education offers use `individual`/`edu`.
-`pzn` is `null` when omitted from the request.
+`pzn` is `null` when omitted from the request or when selecting a fragment by UUID.
 Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.
 
@@ -145,7 +145,7 @@ button, in authored order, or `[]` when no CTAs exist.
 | `productName` | `string \| null` | Authored card title from the returned fragment; not an echo of the lookup name. |
 | `customer_segment` | `string` | Customer segment from fragment tags, for example `individual` or `team`. |
 | `market_segment` | `string` | Market segment from `mas:market_segments/*` tags, for example `com` or `edu`. |
-| `pzn` | `string \| null` | Requested audience selector; `null` when omitted. |
+| `pzn` | `string \| null` | Requested audience selector for product lookup; `null` when omitted or selecting a fragment by UUID. |
 | `badge` | `string \| null` | Card badge text. |
 | `ctas` | `object[]` | Ordered `{ label: string }` CTA entries; `[]` when none exist. |
 | `terms_url` | `string \| null` | Authored offer terms URL. |
@@ -174,7 +174,7 @@ Errors return JSON with a `message` field.
 
 | Status | Condition |
 | --- | --- |
-| 400 | Invalid fragment path, neither a path UUID nor `productName`, missing `locale` or `api_key`, `pzn` supplied with a fragment ID, or a supplied `pzn` other than `edu` or `team` for product lookup. |
+| 400 | Invalid fragment path, neither a path UUID nor `productName`, missing `locale` or `api_key`, or a supplied `pzn` other than `edu` or `team` for product lookup. |
 | Upstream status | The fragment action returns a non-200 response; its message is preserved when supplied. |
 | 502 | Fragment invocation, decoding, parsing, or hydration fails. |
 | 504 | Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds. |

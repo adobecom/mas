@@ -37,7 +37,7 @@ async function withTimeout(operation, ms, label) {
 }
 
 async function main(params, { openwhiskFactory = openwhisk } = {}) {
-    const { productName, locale, pzn, country: requestedCountry, api_key: apiKey } = params;
+    const { productName, locale, country: requestedCountry, api_key: apiKey } = params;
     const path = params.__ow_path ?? '';
     let fragmentId;
     if (path !== '' && path !== '/') {
@@ -48,6 +48,7 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
         }
         fragmentId = match[1].toLowerCase();
     }
+    const pzn = fragmentId ? undefined : params.pzn;
     if (!fragmentId && (!productName || typeof productName !== 'string')) {
         return response(400, { message: 'requested parameter productName or fragment ID is not present' });
     }
@@ -56,9 +57,6 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
     }
     if (!apiKey) {
         return response(400, { message: 'requested parameter api_key is not present' });
-    }
-    if (fragmentId && pzn !== undefined) {
-        return response(400, { message: 'pzn is not supported when a fragment ID is provided' });
     }
     if (pzn !== undefined && !['edu', 'team'].includes(pzn)) {
         return response(400, { message: `unknown pzn '${pzn}', expected one of edu, team` });

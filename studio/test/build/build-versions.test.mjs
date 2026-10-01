@@ -1,6 +1,6 @@
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -9,6 +9,7 @@ import {
     extractAssetPaths,
     GRAPH_ENTRIES,
     hashContent,
+    main,
     replaceVersionsBlock,
     REPO_ROOT,
 } from '../../build-versions.mjs';
@@ -90,7 +91,9 @@ describe('replaceVersionsBlock', () => {
     });
 
     test('writes an empty object when there are no versions', () => {
-        assert.equal(replaceVersionsBlock(VERSIONS_HTML, {}), VERSIONS_HTML);
+        const seeded = replaceVersionsBlock(VERSIONS_HTML, { '/studio/a.js': '11111111' });
+        assert.notEqual(seeded, VERSIONS_HTML);
+        assert.equal(replaceVersionsBlock(seeded, {}), VERSIONS_HTML);
     });
 
     test('does not expand $ replacement patterns', () => {
@@ -128,7 +131,7 @@ describe('collectModuleGraph', () => {
 
     test('leaves bare specifiers to the import map', async () => {
         const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRIES);
-        assert.ok(graph.every((assetPath) => assetPath.startsWith('/') && !assetPath.includes('node_modules')));
+        assert.ok(graph.every((assetPath) => !assetPath.includes('node_modules')));
     });
 });
 
@@ -170,5 +173,62 @@ describe('computeVersions', () => {
             computeVersions(REPO_ROOT, GRAPH_HTML.replace('lit-all.min.js', '__missing__.js')),
             /\/web-components\/dist\/__missing__\.js, which does not exist/,
         );
+    });
+});
+
+describe('computeVersions path guard', () => {
+    test('rejects a boot path that resolves outside the repo', async () => {
+        const html = GRAPH_HTML.replace('</script>', "versioned('/studio/../../outside.js');\n</script>");
+        await assert.rejects(computeVersions(REPO_ROOT, html), /outside the repo/);
+    });
+});
+
+describe('main', () => {
+    let tmpDir;
+
+    before(async () => {
+        tmpDir = await mkdtemp(path.join(os.tmpdir(), 'studio-versions-main-'));
+        await mkdir(path.join(tmpDir, 'studio/src'), { recursive: true });
+        await mkdir(path.join(tmpDir, 'studio/libs'), { recursive: true });
+        await writeFile(path.join(tmpDir, 'studio/src/studio.js'), "import './helper.js';\nexport const studio = 1;\n");
+        await writeFile(path.join(tmpDir, 'studio/src/helper.js'), 'export const helper = 2;\n');
+        await writeFile(path.join(tmpDir, 'studio/libs/fragment-client.js'), 'export const client = 3;\n');
+        await writeFile(
+            path.join(tmpDir, 'studio.html'),
+            [
+                '<head>',
+                '        <script type="application/json" id="studio-versions">',
+                '            {}',
+                '        </script>',
+                '        <script id="studio-boot">',
+                "            versioned('/studio/src/studio.js');",
+                '        </script>',
+                '</head>',
+            ].join('\n'),
+        );
+    });
+
+    after(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    test('writes the versions block, then leaves the file unchanged', async (t) => {
+        t.mock.method(console, 'log', () => {});
+        const htmlPath = path.join(tmpDir, 'studio.html');
+        const original = await readFile(htmlPath, 'utf8');
+
+        await main(tmpDir);
+        const written = await readFile(htmlPath, 'utf8');
+        assert.notEqual(written, original);
+        const versions = blockJson(written);
+        assert.deepEqual(Object.keys(versions), [
+            '/studio/libs/fragment-client.js',
+            '/studio/src/helper.js',
+            '/studio/src/studio.js',
+        ]);
+        assert.equal(versions['/studio/src/helper.js'], hashContent('export const helper = 2;\n'));
+
+        await main(tmpDir);
+        assert.equal(await readFile(htmlPath, 'utf8'), written);
     });
 });

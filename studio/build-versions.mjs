@@ -101,12 +101,16 @@ export async function computeVersions(rootDir, html) {
     const graph = await collectModuleGraph(rootDir, GRAPH_ENTRIES);
     const assetPaths = [...new Set([...extractAssetPaths(html), ...graph])].sort();
     const contents = await Promise.all(
-        assetPaths.map((assetPath) =>
-            readFile(path.join(rootDir, assetPath)).catch((error) => {
+        assetPaths.map((assetPath) => {
+            const absolute = path.resolve(rootDir, `.${assetPath}`);
+            if (!absolute.startsWith(`${rootDir}${path.sep}`)) {
+                throw new Error(`studio.html references ${assetPath}, which is outside the repo`);
+            }
+            return readFile(absolute).catch((error) => {
                 if (error.code !== 'ENOENT') throw error;
                 throw new Error(`studio.html references ${assetPath}, which does not exist`);
-            }),
-        ),
+            });
+        }),
     );
     return Object.fromEntries(assetPaths.map((assetPath, index) => [assetPath, hashContent(contents[index])]));
 }

@@ -93,4 +93,14 @@ export const features = [
         },
         tags: '@mas-studio @boot @regression',
     },
+    {
+        tcid: '11',
+        name: '@MAS-Studio-Boot-script-failure-stays',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/studio/libs/swc.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
 ];

@@ -309,6 +309,7 @@
                     const parsed = new URL(url, location.href);
                     return parsed.origin === location.origin && bootAssetPath.test(parsed.pathname);
                 };
+                let scriptLoadFailed = false;
                 const revealBootError = () => {
                     document.querySelector('.studio-boot')?.remove();
                     document.querySelector('.studio-boot-error')?.removeAttribute('hidden');
@@ -319,6 +320,7 @@
                     const url = element ? element.src || element.href : event.filename;
                     if (!isBootAsset(url) && event.error?.name !== 'SyntaxError') return;
                     console.error('[M@S Studio] boot failed', url);
+                    if (target instanceof HTMLScriptElement && isBootAsset(url)) scriptLoadFailed = true;
                     if (document.readyState === 'loading') {
                         document.addEventListener('DOMContentLoaded', revealBootError, { once: true });
                     } else {
@@ -336,7 +338,7 @@
                 customElements.whenDefined('mas-studio').then(() => {
                     window.removeEventListener('error', onBootError, true);
                     document.removeEventListener('DOMContentLoaded', revealBootError);
-                    document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
+                    if (!scriptLoadFailed) document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
                 });
 
                 const lit = '/web-components/dist/lit-all.min.js';

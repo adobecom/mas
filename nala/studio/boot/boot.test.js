@@ -272,4 +272,25 @@ test.describe('M@S Studio Boot', () => {
             expect(new URL(page.url()).hash).toBe(features[9].browserParams);
         });
     });
+
+    // @MAS-Studio-Boot-script-failure-stays — an independent script failing to load keeps the error over a defined Studio
+    test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[10];
+        const testPage = studioUrl(baseURL, features[10]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 404, body: 'not found' }),
+        );
+
+        await test.step('step-1: Load Studio with swc.js failing', async () => {
+            await page.goto(testPage);
+            await waitForStudio(page);
+        });
+
+        await test.step('step-2: Boot error stays visible', async () => {
+            await expect(bootPage.error).toBeVisible();
+        });
+    });
 });

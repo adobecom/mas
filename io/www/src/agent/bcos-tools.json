@@ -49,7 +49,7 @@
                 "pzn": {
                     "type": "string",
                     "enum": ["edu", "team"],
-                    "description": "Agent audience selector: edu selects student and teacher offers; team selects business plans. Omit for individual offers. Not forwarded to the fragment action."
+                    "description": "Agent audience selector: edu always selects the Creative Cloud Pro student and teacher offer; team selects business plans. Omit for individual offers. Unknown or unavailable products use the audience's Creative Cloud Pro default. Not forwarded to the fragment action."
                 }
             }
         },

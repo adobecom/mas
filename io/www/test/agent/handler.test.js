@@ -8,6 +8,7 @@ const CC_PRO_INDIVIDUAL_ID = '128b6634-6631-4081-a6d9-9a2c7c003414';
 const CC_PRO_TEAM_ID = '5c3fe2ac-0dbb-4495-9858-feac379ca19b';
 const CC_PRO_EDU_ID = '2b1a6493-e03b-4803-a150-eed983094a05';
 const PREMIERE_INDIVIDUAL_ID = 'ea8f1b95-56b1-4665-b859-41ac2961ddcd';
+const UNMAPPED_FRAGMENT_ID = 'a352adc7-6b85-4bfd-97e8-91a1082cc126';
 const ccProBody = readFileSync(new URL('./mocks/fragment-cc-pro.json', import.meta.url), 'utf-8');
 const photoshopEgBody = readFileSync(new URL('./mocks/fragment-photoshop-eg.json', import.meta.url), 'utf-8');
 
@@ -104,6 +105,131 @@ describe('agent action main', () => {
         expect(res.body.productName).to.equal('Creative Cloud Pro');
     });
 
+    it('hydrates a fragment selected by path without a product name', async () => {
+        const fetchStub = sinon.stub(globalThis, 'fetch').rejects(new Error('Unexpected WCS request'));
+        const fragmentId = '9941bca0-5304-47f7-aeb3-4f638aeb8791';
+        const invoke = sinon.stub().resolves({ statusCode: 200, body: photoshopEgBody });
+        const pending = main(
+            {
+                __ow_path: `/${fragmentId}`,
+                __ow_action_name: '/ns/MerchAtScale/agent',
+                locale: 'en_US',
+                country: 'eg',
+                api_key: 'test-api-key',
+            },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
+        await clock.tickAsync(1000);
+        const res = await pending;
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.deep.include({
+            fragment: fragmentId,
+            productName: 'Photoshop',
+            regularPrice: 'LE 552.90',
+            pzn: null,
+        });
+        expect(invoke.firstCall.args[0]).to.deep.include({
+            name: '/ns/MerchAtScale/fragment',
+            params: { id: fragmentId, locale: 'en_US', api_key: 'test-api-key', country: 'EG' },
+        });
+        expect(fetchStub.called).to.be.false;
+        expect(clock.countTimers()).to.equal(0);
+    });
+
+    it('uses an unmapped path UUID instead of product lookup and classifies the returned fragment tags', async () => {
+        const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('team', 'com') });
+        const res = await main(
+            { ...requestParams, __ow_path: `/${UNMAPPED_FRAGMENT_ID}`, productName: 'Photoshop' },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.deep.include({
+            fragment: UNMAPPED_FRAGMENT_ID,
+            productName: 'Creative Cloud Pro',
+            customer_segment: 'team',
+            market_segment: 'com',
+            pzn: null,
+        });
+        expect(invoke.firstCall.args[0].params).to.deep.equal({
+            id: UNMAPPED_FRAGMENT_ID,
+            locale: 'en_US',
+            api_key: 'test-api-key',
+        });
+    });
+
+    for (const pzn of ['edu', 'team', '', 'enterprise', null]) {
+        it(`rejects pzn=${JSON.stringify(pzn)} with a fragment path before invoking the fragment action`, async () => {
+            const invoke = sinon.stub();
+            const res = await main(
+                { ...requestParams, __ow_path: `/${UNMAPPED_FRAGMENT_ID}`, pzn },
+                { openwhiskFactory: fakeFactory(invoke) },
+            );
+            expect(res.statusCode).to.equal(400);
+            expect(res.body.message).to.equal('pzn is not supported when a fragment ID is provided');
+            expect(invoke.called).to.be.false;
+        });
+    }
+
+    it('normalizes an uppercase path UUID and accepts a trailing slash', async () => {
+        const invoke = sinon.stub().resolves({ statusCode: 200, body: ccProBody });
+        const res = await main(
+            { __ow_path: `/${UNMAPPED_FRAGMENT_ID.toUpperCase()}/`, locale: 'en_US', api_key: 'test-api-key' },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.fragment).to.equal(UNMAPPED_FRAGMENT_ID);
+        expect(invoke.firstCall.args[0].params.id).to.equal(UNMAPPED_FRAGMENT_ID);
+    });
+
+    for (const path of ['', '/']) {
+        it(`keeps product lookup for the root path '${path}'`, async () => {
+            const invoke = sinon.stub().resolves({ statusCode: 200, body: ccProBody });
+            const res = await main({ ...requestParams, __ow_path: path }, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res.statusCode).to.equal(200);
+            expect(invoke.firstCall.args[0].params.id).to.equal(CC_PRO_INDIVIDUAL_ID);
+        });
+    }
+
+    for (const path of [
+        '/not-a-uuid',
+        `/${UNMAPPED_FRAGMENT_ID}/extra`,
+        `//${UNMAPPED_FRAGMENT_ID}`,
+        `/${UNMAPPED_FRAGMENT_ID}\n`,
+        '/%2e%2e%2fsecret',
+        { id: UNMAPPED_FRAGMENT_ID },
+    ]) {
+        it(`rejects an invalid fragment path ${JSON.stringify(path)} without using the product fallback`, async () => {
+            const invoke = sinon.stub();
+            const res = await main({ ...requestParams, __ow_path: path }, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res.statusCode).to.equal(400);
+            expect(res.body.message).to.equal('requested path must contain one fragment UUID');
+            expect(invoke.called).to.be.false;
+        });
+    }
+
+    for (const missingParameter of ['locale', 'api_key']) {
+        it(`requires ${missingParameter} when selecting a fragment by path`, async () => {
+            const params = { __ow_path: `/${UNMAPPED_FRAGMENT_ID}`, locale: 'en_US', api_key: 'test-api-key' };
+            delete params[missingParameter];
+            const invoke = sinon.stub();
+            const res = await main(params, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res.statusCode).to.equal(400);
+            expect(res.body.message).to.equal(`requested parameter ${missingParameter} is not present`);
+            expect(invoke.called).to.be.false;
+        });
+    }
+
+    it('preserves the upstream 404 for a missing fragment selected by path', async () => {
+        const invoke = sinon.stub().resolves({ statusCode: 404, message: 'fragment not found' });
+        const res = await main(
+            { __ow_path: `/${UNMAPPED_FRAGMENT_ID}`, locale: 'en_US', api_key: 'test-api-key' },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
+        expect(res.statusCode).to.equal(404);
+        expect(res.body.message).to.equal('fragment not found');
+        expect(invoke.firstCall.args[0].params.id).to.equal(UNMAPPED_FRAGMENT_ID);
+    });
+
     it('returns 400 when productName is missing', async () => {
         const res = await main({ locale: 'en_US' });
         expect(res.statusCode).to.equal(400);
@@ -120,17 +246,27 @@ describe('agent action main', () => {
         expect(res.body.message).to.equal("unknown pzn 'enterprise', expected one of edu, team");
     });
 
-    it('returns 404 for an unknown product', async () => {
-        const res = await main({ ...requestParams, productName: 'Nope' });
-        expect(res.statusCode).to.equal(404);
-        expect(res.body.message).to.equal("unknown product 'Nope'");
-    });
-
-    it('returns 404 when the product has no fragment for the segment', async () => {
-        const res = await main({ ...requestParams, productName: 'Frame.io', pzn: 'edu' });
-        expect(res.statusCode).to.equal(404);
-        expect(res.body.message).to.equal("no edu offer for product 'Frame.io'");
-    });
+    for (const [productName, pzn, fragmentId, customerSegment] of [
+        ['Nope', undefined, CC_PRO_INDIVIDUAL_ID, 'individual'],
+        ['Nope', 'team', CC_PRO_TEAM_ID, 'team'],
+        ['Photography', 'team', CC_PRO_TEAM_ID, 'team'],
+        ['Frame.io', undefined, CC_PRO_INDIVIDUAL_ID, 'individual'],
+    ]) {
+        it(`selects the segment default for ${productName}/${pzn ?? 'individual'}`, async () => {
+            const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments(customerSegment, 'com') });
+            const res = await main({ ...requestParams, productName, pzn }, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res.statusCode).to.equal(200);
+            expect(res.body.fragment).to.equal(fragmentId);
+            expect(res.body.productName).to.equal('Creative Cloud Pro');
+            expect(res.body.customer_segment).to.equal(customerSegment);
+            expect(res.body.pzn).to.equal(pzn ?? null);
+            expect(invoke.firstCall.args[0].params).to.deep.equal({
+                id: fragmentId,
+                locale: 'en_US',
+                api_key: 'test-api-key',
+            });
+        });
+    }
 
     it('selects the team offer without forwarding pzn and echoes the audience', async () => {
         const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('team', 'com') });
@@ -164,22 +300,25 @@ describe('agent action main', () => {
         });
     });
 
-    it('selects the edu offer without forwarding pzn and echoes the audience', async () => {
-        const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('individual', 'edu') });
-        const res = await main({ ...requestParams, pzn: 'edu' }, { openwhiskFactory: fakeFactory(invoke) });
-        expect(res.statusCode).to.equal(200);
-        expect(res.body.fragment).to.equal(CC_PRO_EDU_ID);
-        expect(res.body.customer_segment).to.equal('individual');
-        expect(res.body.market_segment).to.equal('edu');
-        expect(res.body).to.not.have.any.keys('segment', 'market_segments');
-        expect(res.body.pzn).to.equal('edu');
-        expect(invoke.firstCall.args[0].params).to.deep.equal({
-            id: CC_PRO_EDU_ID,
-            locale: 'en_US',
-            api_key: 'test-api-key',
+    for (const productName of ['Creative Cloud Pro', 'Photoshop', 'Lightroom', 'Frame.io', 'Adobe Firefly', 'Nonexistent']) {
+        it(`selects the shared edu offer for ${productName} without forwarding pzn`, async () => {
+            const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('individual', 'edu') });
+            const res = await main({ ...requestParams, productName, pzn: 'edu' }, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res.statusCode).to.equal(200);
+            expect(res.body.fragment).to.equal(CC_PRO_EDU_ID);
+            expect(res.body.productName).to.equal('Creative Cloud Pro');
+            expect(res.body.customer_segment).to.equal('individual');
+            expect(res.body.market_segment).to.equal('edu');
+            expect(res.body).to.not.have.any.keys('segment', 'market_segments');
+            expect(res.body.pzn).to.equal('edu');
+            expect(invoke.firstCall.args[0].params).to.deep.equal({
+                id: CC_PRO_EDU_ID,
+                locale: 'en_US',
+                api_key: 'test-api-key',
+            });
+            expect(clock.countTimers()).to.equal(0);
         });
-        expect(clock.countTimers()).to.equal(0);
-    });
+    }
 
     it('defaults to individual/com, the packaged action name, and a null pzn', async () => {
         const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('individual', 'com') });

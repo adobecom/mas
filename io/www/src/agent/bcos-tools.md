@@ -1,9 +1,10 @@
 # BCOS tool: resolve a MAS offer
 
-`/mas/io/agent` is a proof-of-concept HTTP action for Brand Concierge (BCOS).
-It resolves a product name and audience personalization through the static map in
-`product-fragment-map.js`, invokes the sibling `fragment` action, hydrates
-prices and authored terms in Node.js, and returns one offer object.
+`/mas/io/agent` accepts a fragment UUID selected by the client or resolves a product
+name and audience through the static map in `product-fragment-map.js`. Both
+routes invoke the sibling `fragment` action, hydrate prices and authored terms
+in Node.js, and return one offer object. This document describes its Brand
+Concierge (BCOS) integration.
 
 The repository does not contain an authoritative BCOS manifest schema. The
 HTTP and data contracts below are authoritative; translate the schema-neutral
@@ -13,15 +14,17 @@ confirmed.
 ## HTTP endpoint
 
 ```http
+GET /mas/io/agent/<fragment-id>?locale=<locale>&api_key=<key>[&country=<country>]
 GET /mas/io/agent?productName=<name>&locale=<locale>&api_key=<key>[&pzn=<pzn>][&country=<country>]
 ```
 
 | Parameter     | Required | Description                                                                |
 | ------------- | -------- | -------------------------------------------------------------------------- |
-| `productName` | yes      | Product intent resolved case-insensitively through the static product map. |
+| `fragment-id` | either   | Fragment UUID in the URL path, selected by the client.                     |
+| `productName` | either   | Required when there is no path UUID; resolved case-insensitively through the product map. |
 | `locale`      | yes      | Locale passed to the `fragment` action and used for pricing hydration.     |
 | `api_key`     | yes      | Registered MAS client API key passed to the `fragment` action.             |
-| `pzn`         | no       | Agent-only audience selector: `edu` or `team`. Omit for individuals.       |
+| `pzn`         | no       | Audience selector for product lookup: `edu` or `team`. Omit for individuals. Not supported with a fragment ID. |
 | `country`     | no       | Country passed to the `fragment` action and normalized for hydration.      |
 
 `locale` and `country` come from the page's `mas-commerce-service` element — the
@@ -30,12 +33,21 @@ context, not model-selected inputs.
 
 Omit `pzn` for individual offers. Only `edu` and `team` are accepted when it is
 supplied; an empty value or `pzn=individual` returns 400. `pzn` is not forwarded
-to the fragment action.
+to the fragment action. A path UUID takes precedence over `productName` and
+bypasses audience selection, including the education fallback. Supplying `pzn`
+with a fragment ID returns 400.
+
+The fragment path accepts one UUID, case-insensitively, with an optional
+trailing slash. Invalid paths return 400 rather than using the product map.
+An empty path or `/` uses product lookup. Direct selection does not require an
+entry in `PRODUCT_FRAGMENT_MAP`; the client owns that mapping. The fragment
+must be published and retrievable by the existing fragment pipeline.
 
 ## Product map
 
-`PRODUCT_FRAGMENT_MAP` maps each product to one Brand Concierge product card
-(variant `brand-concierge-product`) per segment, sourced from
+`PRODUCT_FRAGMENT_MAP` is a tree keyed by audience segment. Each segment has a
+`default` fragment ID and a `products` map of product names to fragment IDs.
+The Brand Concierge product cards (variant `brand-concierge-product`) are sourced from
 `/content/dam/mas/brand-concierge/en_US`. A card's segment comes from its tags:
 
 | Segment      | Tags                                                          |
@@ -44,24 +56,42 @@ to the fragment action.
 | `team`       | `mas:customer_segment/team` + `mas:market_segments/com`       |
 | `edu`        | `mas:customer_segment/individual` + `mas:market_segments/edu` |
 
-`pzn=edu` selects the `edu` card and `pzn=team` selects the `team` card.
-Omitting `pzn` selects the `individual` card. There is no separate `segment`
-query parameter. Not every product has a card for every audience.
+Product matches take precedence over the segment's default. Unknown products
+and products without a card for that audience receive its Creative Cloud Pro
+default. `pzn=edu` always selects education card
+`2b1a6493-e03b-4803-a150-eed983094a05`; its `products` map is empty.
+`productName` is required for product lookup. `pzn=team` selects the `team` branch, and
+omitting `pzn` selects `individual`. There is no separate `segment` parameter.
 
-The current map contains 20 products and 49 offers: 18 individual, 18 team, and
-13 education cards. Creative Cloud Pro Plus and Frame.io are team-only. The
-[product map](./product-fragment-map.js) defines supported product/audience
-combinations. Cards with missing audience
-tags or unresolved product identity are not added to the map.
+The tree contains 20 products and 36 distinct offers: 18 individual, 17 team, and
+1 shared education card. Creative Cloud Pro Plus and Frame.io have only
+product-specific team cards. The [product map](./product-fragment-map.js)
+defines supported product/audience
+combinations. Product identity is checked against authored `cardTitle` and
+product-code tags; fragment titles and `cardName` alone are insufficient.
+Cards with missing audience tags or conflicting product identity are not added
+to the map.
 
-`__ow_action_name` is OpenWhisk runtime metadata, not a public query
-parameter. The handler uses it to derive the sibling `fragment` action name.
+The former single-product student cards are now authored as Creative Cloud Pro;
+all education product lookups use the canonical Creative Cloud Pro education card.
+Photography/team cards still combine Creative Cloud Pro content with
+Photography checkout links, so that request uses the team default.
+Lightroom/team is mapped to its corrected card
+with the Lightroom product code and OSI.
+
+`__ow_action_name` and `__ow_path` are OpenWhisk runtime metadata, not public
+query parameters. The handler uses the action name to derive the sibling
+`fragment` action name and the unmatched path to read the requested UUID. See
+[OpenWhisk web actions](https://github.com/apache/openwhisk/blob/master/docs/webactions.md).
 
 ## Processing contract
 
-1. Reject missing `productName`, `locale`, or `api_key`, and an unknown `pzn`.
-2. Resolve the product and audience selected by `pzn` to a fragment ID through
-   `PRODUCT_FRAGMENT_MAP`.
+1. Reject an invalid fragment path, a missing path UUID and `productName`,
+   missing `locale` or `api_key`, `pzn` supplied with a fragment ID, and an
+   unknown `pzn` for product lookup.
+2. Use the path UUID when supplied. Otherwise select the audience branch in
+   `PRODUCT_FRAGMENT_MAP`, then the matching product fragment ID or that branch's
+   default ID.
 3. Invoke the sibling `fragment` action with the fragment ID, locale, API key,
    and any supplied `country`. Do not forward `pzn`; it only selects the mapped
    fragment in the agent.
@@ -79,7 +109,7 @@ parameter. The handler uses it to derive the sibling `fragment` action name.
    preserving authored order after inline-price hydration.
 9. Extract the offer, price, and authored terms data, including tag-derived
    `customer_segment` and `market_segment`.
-10. Return the mapped fragment UUID used for the invocation and echo `pzn`.
+10. Return the selected fragment UUID used for the invocation and echo `pzn`.
     Locale and country are not included in the response.
 
 The fragment is expected to contain a complete WCS cache for every offer
@@ -159,12 +189,12 @@ standard singular field `market_segment`. The response does not include a
 
 | Status          | Condition                                                    |
 | --------------- | ------------------------------------------------------------ |
-| 400             | `productName` is missing.                                    |
+| 400             | Neither a path UUID nor `productName` is supplied.           |
+| 400             | The fragment path is not one UUID with an optional trailing slash. |
 | 400             | `locale` is missing.                                         |
 | 400             | `api_key` is missing.                                        |
+| 400             | `pzn` is supplied with a fragment ID.                        |
 | 400             | Supplied `pzn` is not `edu` or `team`.                       |
-| 404             | The product is not in the static product map.                |
-| 404             | The product has no fragment for the segment.                 |
 | upstream status | The `fragment` action returns a non-200 response.            |
 | 502             | Invoking the `fragment` action throws.                       |
 | 502             | Fragment decoding, parsing, or price hydration fails.        |
@@ -195,6 +225,8 @@ retain their content locale while using the US commerce country.
 
 ## API contract changes
 
+- Use `/mas/io/agent/<fragment-id>` to let the client select the offer
+  directly. The existing `productName` query route remains supported.
 - Use `pzn=edu` or `pzn=team` instead of the removed `segment` query parameter;
   omit `pzn` for individuals. It selects the mapped UUID in the agent only.
 - Consume `customer_segment` and `market_segment` from fragment tags, not a
@@ -214,6 +246,11 @@ context-injected `query_template` (`locale`/`country` from the page's
 `multimodal` card mapping. Field
 names and registration format must follow the authoritative BCOS manifest
 schema rather than that illustrative local format.
+
+That sample uses product lookup. For direct fragment selection, Brand Concierge
+constructs the endpoint path using its own product/audience mapping and passes
+the same `locale`, `country`, and `api_key` context. No product map entry or
+`productName` parameter is required on that route.
 
 The BCOS integration must call the action with HTTP GET, pass only supplied
 optional parameters, consume the response root as one offer record, and

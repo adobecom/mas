@@ -28,7 +28,12 @@
 <h2 id="introduction" tabindex="-1">Introduction <a class="header-anchor" href="#introduction" href="#introduction" title="Permalink to this heading">#</a></h2>
 <p>Returns one M@S offer with server-hydrated prices, authored content, and CTA
 labels. Checkout URLs are not returned.</p>
+<p>Select a fragment directly by UUID or resolve an offer by product name.</p>
 <h2 id="request" tabindex="-1">Request <a class="header-anchor" href="#request" href="#request" title="Permalink to this heading">#</a></h2>
+<p>Select a published fragment by UUID:</p>
+<pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent/ea8f1b95-56b1-4665-b859-41ac2961ddcd?locale=en_US&amp;api_key=&lt;api-key&gt;
+</code></pre>
+<p>Or use product-name lookup:</p>
 <pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent?productName=Adobe%20Premiere&amp;locale=en_US&amp;api_key=&lt;api-key&gt;
 </code></pre>
 <table>
@@ -41,9 +46,14 @@ labels. Checkout URLs are not returned.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>fragment-id</code></td>
+<td>Either</td>
+<td>Fragment UUID in the URL path.</td>
+</tr>
+<tr>
 <td><code>productName</code></td>
-<td>Yes</td>
-<td>Product name, for example <code>Creative Cloud Pro</code>.</td>
+<td>Either</td>
+<td>Required without a path UUID; product name, for example <code>Creative Cloud Pro</code>.</td>
 </tr>
 <tr>
 <td><code>locale</code></td>
@@ -58,7 +68,7 @@ labels. Checkout URLs are not returned.</p>
 <tr>
 <td><code>pzn</code></td>
 <td>No</td>
-<td>Agent-only audience selector: <code>edu</code> for students and teachers, or <code>team</code> for business plans. Omit for individual offers. Not forwarded to the fragment action.</td>
+<td>Supported only for product lookup: <code>edu</code> for students and teachers, or <code>team</code> for business plans. Omit for individual offers. Not supported with <code>fragment-id</code>. Not forwarded to the fragment action.</td>
 </tr>
 <tr>
 <td><code>country</code></td>
@@ -67,8 +77,18 @@ labels. Checkout URLs are not returned.</p>
 </tr>
 </tbody>
 </table>
-<p>Product names are matched case-insensitively and trimmed. Not every product has
-an offer for every audience; an unavailable combination returns 404.</p>
+<p>A path UUID takes precedence over <code>productName</code> and bypasses product and
+audience mapping. The path accepts one UUID, case-insensitively, with an
+optional trailing slash. An empty path or <code>/</code> uses product lookup. Invalid
+paths return 400. The selected fragment must be published and retrievable by
+the existing fragment pipeline; it does not need an entry in the product map.
+Supplying <code>pzn</code> with a fragment ID returns 400. Response classification comes
+from the returned fragment’s tags.</p>
+<p>For product lookup, names are matched case-insensitively and trimmed. Unknown
+products and products without a card for that audience receive its Creative
+Cloud Pro default. <code>pzn=edu</code> always selects
+<code>2b1a6493-e03b-4803-a150-eed983094a05</code>. <code>pzn=team</code> selects business plans;
+omitting <code>pzn</code> selects individual offers.</p>
 <p>Browser integrations read <code>locale</code> and <code>country</code> from the page’s
 <code>mas-commerce-service</code>; these are page context, not model-selected inputs.</p>
 <h2 id="response" tabindex="-1">Response <a class="header-anchor" href="#response" href="#response" title="Permalink to this heading">#</a></h2>
@@ -244,11 +264,7 @@ button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <tbody>
 <tr>
 <td>400</td>
-<td>Missing <code>productName</code>, <code>locale</code>, or <code>api_key</code>, or a supplied <code>pzn</code> other than <code>edu</code> or <code>team</code>.</td>
-</tr>
-<tr>
-<td>404</td>
-<td>Unknown product or no offer for the requested audience.</td>
+<td>Invalid fragment path, neither a path UUID nor <code>productName</code>, missing <code>locale</code> or <code>api_key</code>, <code>pzn</code> supplied with a fragment ID, or a supplied <code>pzn</code> other than <code>edu</code> or <code>team</code> for product lookup.</td>
 </tr>
 <tr>
 <td>Upstream status</td>

@@ -1,6 +1,6 @@
 import zlib from 'zlib';
 import openwhisk from 'openwhisk';
-import { resolveProduct } from './product-fragment-map.js';
+import { resolveFragmentId } from './product-fragment-map.js';
 import { flattenOffer } from './flatten.js';
 
 function response(statusCode, body) {
@@ -38,24 +38,32 @@ async function withTimeout(operation, ms, label) {
 
 async function main(params, { openwhiskFactory = openwhisk } = {}) {
     const { productName, locale, pzn, country: requestedCountry, api_key: apiKey } = params;
-    if (!productName || !locale) {
-        return response(400, { message: 'requested parameters productName & locale are not present' });
+    const path = params.__ow_path ?? '';
+    let fragmentId;
+    if (path !== '' && path !== '/') {
+        const match =
+            typeof path === 'string' && path.match(/^\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i);
+        if (!match || match[0] !== path) {
+            return response(400, { message: 'requested path must contain one fragment UUID' });
+        }
+        fragmentId = match[1].toLowerCase();
+    }
+    if (!fragmentId && (!productName || typeof productName !== 'string')) {
+        return response(400, { message: 'requested parameter productName or fragment ID is not present' });
+    }
+    if (!locale) {
+        return response(400, { message: 'requested parameter locale is not present' });
     }
     if (!apiKey) {
         return response(400, { message: 'requested parameter api_key is not present' });
     }
+    if (fragmentId && pzn !== undefined) {
+        return response(400, { message: 'pzn is not supported when a fragment ID is provided' });
+    }
     if (pzn !== undefined && !['edu', 'team'].includes(pzn)) {
         return response(400, { message: `unknown pzn '${pzn}', expected one of edu, team` });
     }
-    const segment = pzn ?? 'individual';
-    const product = resolveProduct(productName);
-    if (!product) {
-        return response(404, { message: `unknown product '${productName}'` });
-    }
-    const fragmentId = product[segment];
-    if (!fragmentId) {
-        return response(404, { message: `no ${segment} offer for product '${productName}'` });
-    }
+    fragmentId ??= resolveFragmentId(productName, pzn ?? 'individual');
 
     const country = requestedCountry?.toUpperCase();
     const fragmentParams = { id: fragmentId, locale, api_key: apiKey };

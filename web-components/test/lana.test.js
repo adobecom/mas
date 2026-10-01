@@ -1,20 +1,9 @@
 import { Log } from '../src/log.js';
-import { lanaAppender, updateConfig } from '../src/lana.js';
+import { config, lanaAppender, updateConfig } from '../src/lana.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
 import { expect } from './utilities.js';
 
 updateConfig({ isProdDomain: true });
-
-function stubCookie(value) {
-    Object.defineProperty(document, 'cookie', {
-        configurable: true,
-        get: () => value,
-    });
-}
-
-function restoreCookie() {
-    delete document.cookie;
-}
 
 describe('lana', () => {
     let lana;
@@ -22,7 +11,7 @@ describe('lana', () => {
 
     afterEach(() => {
         unmockLana();
-        restoreCookie();
+        config.country = '';
         window.history.replaceState({}, '', originalHref);
     });
 
@@ -67,7 +56,7 @@ describe('lana', () => {
         });
 
         expect(lana.log.firstCall.args).to.deep.equal([
-            'Test¶page=/test/page¶facts=[{"err":"Houston","fn":"function open","str":"test","internationalCookie":""}]',
+            'Test¶page=/test/page¶facts=[{"err":"Houston","fn":"function open","str":"test","mas-commerce-service:country":""}]',
             {
                 clientId: 'merch-at-scale',
                 delimiter: '¶',
@@ -77,6 +66,7 @@ describe('lana', () => {
                 sampleRate: 1,
                 severity: 'e',
                 tags: 'acom',
+                country: '',
             },
         ]);
     });
@@ -97,7 +87,7 @@ describe('lana', () => {
         });
 
         expect(lana.log.firstCall.args).to.deep.equal([
-            'Failed to build price, osi 123:  Uncaught TypeError: Cannot read properties of null¶page=/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa<trunc>¶facts=[{"internationalCookie":""}]',
+            'Failed to build price, osi 123:  Uncaught TypeError: Cannot read properties of null¶page=/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa<trunc>¶facts=[{"mas-commerce-service:country":""}]',
             {
                 clientId: 'merch-at-scale',
                 delimiter: '¶',
@@ -107,41 +97,36 @@ describe('lana', () => {
                 sampleRate: 1,
                 severity: 'e',
                 tags: 'acom',
+                country: '',
             },
         ]);
     });
 
-    describe('international cookie', () => {
+    describe('commerce service country', () => {
         beforeEach(() => {
             window.history.replaceState({}, '', '/test/page');
         });
 
-        it('logs an empty internationalCookie when the cookie is absent', () => {
-            stubCookie('other=1');
+        it('logs an empty country before the service activates', () => {
+            append();
+
+            expect(facts()).to.deep.equal([
+                { 'mas-commerce-service:country': '' },
+            ]);
+        });
+
+        it('logs the country when there are no other facts', () => {
+            updateConfig({ country: 'KZ' });
 
             append();
 
-            expect(facts()).to.deep.equal([{ internationalCookie: '' }]);
+            expect(facts()).to.deep.equal([
+                { 'mas-commerce-service:country': 'KZ' },
+            ]);
         });
 
-        it('logs the cookie value when there are no other facts', () => {
-            stubCookie('international=kz');
-
-            append();
-
-            expect(facts()).to.deep.equal([{ internationalCookie: 'kz' }]);
-        });
-
-        it('logs the locale prefix verbatim when it is not the first cookie', () => {
-            stubCookie('other=1; international=ch_de; ims_country_code=CH');
-
-            append();
-
-            expect(facts()).to.deep.equal([{ internationalCookie: 'ch_de' }]);
-        });
-
-        it('merges the cookie into the first fact object', () => {
-            stubCookie('international=lu_fr');
+        it('merges the country into the first fact object', () => {
+            updateConfig({ country: 'LU' });
 
             append('inline-price: Failed to render', [
                 {
@@ -155,34 +140,32 @@ describe('lana', () => {
                 {
                     'mas-commerce-service:measure':
                         'startTime:1460.40|duration:1.10',
-                    internationalCookie: 'lu_fr',
+                    'mas-commerce-service:country': 'LU',
                 },
                 { other: 'fact' },
             ]);
         });
 
-        it('prepends the cookie fact when the first value is not a plain object', () => {
-            stubCookie('international=lu_fr');
+        it('prepends the country fact when the first value is not a plain object', () => {
+            updateConfig({ country: 'LU' });
 
             append('Boom', ['a string fact']);
 
             expect(facts()).to.deep.equal([
-                { internationalCookie: 'lu_fr' },
+                { 'mas-commerce-service:country': 'LU' },
                 'a string fact',
             ]);
         });
 
-        it('keeps the cookie fact out of the lana options', () => {
-            stubCookie('international=lu_fr');
+        it('logs the country for messages raised without any params', () => {
+            updateConfig({ country: 'KZ' });
 
-            append('Boom');
+            append('MERCH-CARD failed to initialize');
 
-            const [message, options] = lana.log.firstCall.args;
+            const [message] = lana.log.firstCall.args;
             expect(message).to.equal(
-                'Boom¶page=/test/page¶facts=[{"internationalCookie":"lu_fr"}]',
+                'MERCH-CARD failed to initialize\u00b6page=/test/page\u00b6facts=[{"mas-commerce-service:country":"KZ"}]',
             );
-            expect(options).to.not.have.property('international');
-            expect(options).to.not.have.property('internationalCookie');
         });
     });
 });

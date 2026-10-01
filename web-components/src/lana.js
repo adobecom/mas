@@ -8,12 +8,13 @@ const config = {
     severity: 'e',
     tags: 'acom',
     isProdDomain: false,
+    // Resolved by getLocaleSettings(), published by mas-commerce-service on
+    // activation. Lana drops it from the options, we log it as a fact instead.
+    country: '',
 };
 // total lana limit in /utils/lana.js is 2000
 const PAGE_LIMIT = 1000;
-// Locale prefix (e.g. `us`, `fr`, `lu_fr`) Milo stores for the region the user
-// browses in, see setInternational() in milo/libs/utils/utils.js.
-const INTERNATIONAL_COOKIE = 'international';
+const COUNTRY_FACT = 'mas-commerce-service:country';
 
 function isError(value) {
     return (
@@ -53,20 +54,15 @@ function serializeParam(key, value) {
     return serializeValue(value);
 }
 
-// The international cookie holds the region used for content selection. It is
-// merged into the first logged fact so region-specific errors on localized
-// pages can be reproduced from the log entry alone.
-function withInternationalCookie(values) {
-    const internationalCookie =
-        document.cookie
-            .split('; ')
-            .find((row) => row.startsWith(`${INTERNATIONAL_COOKIE}=`))
-            ?.split('=')[1] ?? '';
+// Merged into the first logged fact so region-specific errors can be reproduced
+// from the log entry alone, including the ones Milo raises through Log.module()
+// without any commerce params.
+function withCountry(values) {
     const [first, ...rest] = values;
     if (first?.constructor === Object) {
-        return [{ ...first, internationalCookie }, ...rest];
+        return [{ ...first, [COUNTRY_FACT]: config.country }, ...rest];
     }
-    return [{ internationalCookie }, ...values];
+    return [{ [COUNTRY_FACT]: config.country }, ...values];
 }
 
 const lanaAppender = {
@@ -95,10 +91,7 @@ const lanaAppender = {
         payload += page;
 
         payload += `${config.delimiter}facts=`;
-        payload += JSON.stringify(
-            withInternationalCookie(values),
-            serializeParam,
-        );
+        payload += JSON.stringify(withCountry(values), serializeParam);
 
         window.lana?.log(payload, config);
     },

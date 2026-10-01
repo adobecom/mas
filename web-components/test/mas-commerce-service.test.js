@@ -242,7 +242,20 @@ describe('commerce service', () => {
                     severity: 'e',
                     tags: 'ccd',
                     isProdDomain: false,
+                    country: 'US',
                 });
+            });
+
+            it('logs the resolved country in lana facts', async () => {
+                const el = await initMasCommerceService({
+                    'lana-sample-rate': '100',
+                    locale: 'fr_LU',
+                });
+                el.log.error('MERCH-CARD failed to initialize');
+                const [msg] = window.lana.log.lastCall.args;
+                expect(msg).to.match(
+                    /¶facts=\[\{"mas-commerce-service:country":"LU"\}\]$/,
+                );
             });
         });
 

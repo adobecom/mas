@@ -293,4 +293,48 @@ test.describe('M@S Studio Boot', () => {
             await expect(bootPage.error).toBeVisible();
         });
     });
+
+    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[11];
+        const testPage = studioUrl(baseURL, features[11]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: data.brokenModule }),
+        );
+
+        await test.step('step-1: Load Studio with a broken MAS bundle', async () => {
+            await page.goto(testPage);
+            await waitForStudio(page);
+        });
+
+        await test.step('step-2: Recovery remains available after Studio registers', async () => {
+            await expect(bootPage.error).toBeVisible();
+            await expect(bootPage.reloadButton).toBeVisible();
+            await expect(bootPage.spinner).toHaveCount(0);
+        });
+    });
+
+    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[12];
+        const testPage = studioUrl(baseURL, features[12]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: data.brokenModule }),
+        );
+
+        await test.step('step-1: Load Studio with a broken Spectrum bundle', async () => {
+            await page.goto(testPage);
+            await waitForStudio(page);
+        });
+
+        await test.step('step-2: Recovery remains available after Studio registers', async () => {
+            await expect(bootPage.error).toBeVisible();
+            await expect(bootPage.reloadButton).toBeVisible();
+            await expect(bootPage.spinner).toHaveCount(0);
+        });
+    });
 });

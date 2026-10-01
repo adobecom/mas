@@ -103,4 +103,26 @@ export const features = [
         },
         tags: '@mas-studio @boot @regression',
     },
+    {
+        tcid: '12',
+        name: '@MAS-Studio-Boot-mas-evaluation-failure',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/web-components/dist/mas.js',
+            brokenModule: 'export const broken = ;',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '13',
+        name: '@MAS-Studio-Boot-spectrum-evaluation-failure',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/studio/libs/swc.js',
+            brokenModule: 'export const broken = ;',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
 ];

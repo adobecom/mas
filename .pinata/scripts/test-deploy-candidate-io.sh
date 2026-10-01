@@ -42,12 +42,18 @@ case "$1 $2" in
         if [ -e "$WORK/dispatched" ]; then runs="$FAKE_RUNS_AFTER"; else runs="$FAKE_RUNS_BEFORE"; fi
         echo "$runs" | jq -r "$jq_expr" ;;
     'run watch')
+        # The first FAKE_WATCH_DROPS watches lose the connection before the run ends.
+        count=$(( $(cat "$WORK/watch_count" 2>/dev/null || echo 0) + 1 ))
+        echo "$count" >"$WORK/watch_count"
         # Simulates the engine stopping the gate while it waits on the run.
         [ -n "$FAKE_WATCH_SIGNAL" ] && kill "-$FAKE_WATCH_SIGNAL" "$PPID"
-        exit "$FAKE_WATCH_EXIT" ;;
+        [ "$count" -le "$FAKE_WATCH_DROPS" ] && exit 1
+        exit 0 ;;
     'run view')
         if [ -n "$jq_expr" ]; then
-            echo "{\"conclusion\":\"$FAKE_CONCLUSION\"}" | jq -r "$jq_expr"
+            count=$(cat "$WORK/watch_count" 2>/dev/null || echo 0)
+            if [ "$count" -gt "$FAKE_WATCH_DROPS" ]; then status=completed; else status=in_progress; fi
+            echo "{\"status\":\"$status\",\"conclusion\":\"$FAKE_CONCLUSION\"}" | jq -r "$jq_expr"
         else
             echo "npm test: 3 failing"
         fi ;;
@@ -60,8 +66,8 @@ printf '#!/usr/bin/env bash\nexit 0\n' >"$BIN/sleep"
 chmod +x "$BIN"/*
 
 defaults() {
-    export FAKE_BRANCH=MWPW-123456 FAKE_SHA=abc123 FAKE_REMOTE_SHA=abc123 FAKE_WATCH_EXIT=0
-    export FAKE_WATCH_SIGNAL="" FAKE_CONCLUSION=failure
+    export FAKE_BRANCH=MWPW-123456 FAKE_SHA=abc123 FAKE_REMOTE_SHA=abc123
+    export FAKE_WATCH_SIGNAL="" FAKE_WATCH_DROPS=0 FAKE_CONCLUSION=success
     export FAKE_RUNS_BEFORE='[{"databaseId":100,"headSha":"abc123"}]'
     export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"abc123"},{"databaseId":100,"headSha":"abc123"}]'
 }
@@ -70,7 +76,7 @@ defaults() {
 run_case() {
     local name="$1" expected_exit="$2" expected_out="$3"
     shift 3
-    rm -f "$WORK/gh.log" "$WORK/dispatched"
+    rm -f "$WORK/gh.log" "$WORK/dispatched" "$WORK/watch_count"
     local out code
     out=$(PATH="$BIN:$PATH" bash "$SCRIPT" "$@" 2>&1)
     code=$?
@@ -132,13 +138,22 @@ run_case "ignores a newer run for a different commit" 1 "run appeared for abc123
 log_lacks "never watches the other commit's run" "run watch 101"
 
 defaults
-export FAKE_WATCH_EXIT=1
+export FAKE_CONCLUSION=failure
 run_case "surfaces the failed run log" 1 "npm test: 3 failing" io/studio/src/custom-field-audit/index.js
 
 defaults
-export FAKE_WATCH_EXIT=1 FAKE_CONCLUSION=cancelled
+export FAKE_CONCLUSION=cancelled
 run_case "explains a run replaced by a newer deploy" 1 "was cancelled" io/studio/src/custom-field-audit/index.js
 log_lacks "skips the empty failed-step log" "--log-failed"
+
+defaults
+export FAKE_WATCH_DROPS=1
+run_case "rides out a dropped watch connection" 0 "OK: io/studio candidate deployed" \
+    io/studio/src/custom-field-audit/index.js
+
+defaults
+export FAKE_WATCH_DROPS=99
+run_case "gives up after repeated dropped watches" 1 "lost track of" io/studio/src/custom-field-audit/index.js
 
 defaults
 export FAKE_WATCH_SIGNAL=TERM

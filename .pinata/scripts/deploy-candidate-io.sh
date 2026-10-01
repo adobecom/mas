@@ -10,6 +10,7 @@ cd "$(dirname "$0")/../.."
 
 WORKFLOW=io-studio-candidate.yaml
 RUN_LOOKUP_ATTEMPTS=30
+WATCH_ATTEMPTS=5
 
 touches_io_studio=0
 for file in "$@"; do
@@ -57,15 +58,27 @@ fi
 trap 'gh run cancel "$run_id" >/dev/null 2>&1 || true; exit 1' TERM INT
 
 echo "Waiting on $WORKFLOW run $run_id"
-watch_status=0
-gh run watch "$run_id" --exit-status --interval 15 || watch_status=$?
+# A watch can drop on a network error while the run keeps going, so the verdict
+# comes from the run's own status and conclusion, never from the watch's exit code.
+status=""
+for attempt in $(seq "$WATCH_ATTEMPTS"); do
+    gh run watch "$run_id" --interval 15 || true
+    status=$(gh run view "$run_id" --json status --jq '.status' || true)
+    [ "$status" = "completed" ] && break
+    sleep 15
+done
 trap - TERM INT
-if [ "$watch_status" -ne 0 ]; then
-    conclusion=$(gh run view "$run_id" --json conclusion --jq '.conclusion')
-    if [ "$conclusion" = "cancelled" ]; then
-        echo "FAIL: $WORKFLOW run $run_id was cancelled, most likely replaced by a newer deploy to the shared bot workspace. Retry the gate." >&2
-        exit 1
-    fi
+if [ "$status" != "completed" ]; then
+    echo "FAIL: lost track of $WORKFLOW run $run_id after $attempt watch attempts (last status '${status:-unknown}'). Check it on GitHub." >&2
+    exit 1
+fi
+
+conclusion=$(gh run view "$run_id" --json conclusion --jq '.conclusion')
+if [ "$conclusion" = "cancelled" ]; then
+    echo "FAIL: $WORKFLOW run $run_id was cancelled, most likely replaced by a newer deploy to the shared bot workspace. Retry the gate." >&2
+    exit 1
+fi
+if [ "$conclusion" != "success" ]; then
     echo "FAIL: $WORKFLOW run $run_id ended '$conclusion'. Failed steps:" >&2
     gh run view "$run_id" --log-failed | tail -n 200 >&2
     exit 1

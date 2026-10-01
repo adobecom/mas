@@ -194,3 +194,5 @@ You can generate this file using the command `aio app use`. Be aware that it wou
 ### `app.config.yaml`
 
 Main configuration file that defines an application's implementation.
+
+<!-- MWPW-209588 human deploy path test: do not merge -->

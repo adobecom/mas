@@ -2,6 +2,7 @@ import zlib from 'zlib';
 import openwhisk from 'openwhisk';
 import { resolveFragmentId } from './product-fragment-map.js';
 import { flattenOffer } from './flatten.js';
+import { logError } from '../fragment/utils/log.js';
 
 function response(statusCode, body) {
     return { statusCode, headers: { 'Content-Type': 'application/json' }, body };
@@ -90,7 +91,19 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
     }
 
     if (result.statusCode !== 200) {
-        return response(result.statusCode, { message: result.message ?? `fragment action returned ${result.statusCode}` });
+        let message = result.message;
+        if (message == null && result.body) {
+            try {
+                message = parseFragmentBody(result)?.message;
+            } catch (error) {
+                logError(`Failed to decode fragment action error response: ${error.message}`, {
+                    ...params,
+                    id: fragmentId,
+                    loggedTransformer: 'agent',
+                });
+            }
+        }
+        return response(result.statusCode, { message: message ?? `fragment action returned ${result.statusCode}` });
     }
 
     try {

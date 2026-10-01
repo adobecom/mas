@@ -229,7 +229,11 @@ describe('agent action main', () => {
     }
 
     it('preserves the upstream 404 for a missing fragment selected by path', async () => {
-        const invoke = sinon.stub().resolves({ statusCode: 404, message: 'fragment not found' });
+        const invoke = sinon.stub().resolves({
+            statusCode: 404,
+            headers: { 'Content-Encoding': 'br' },
+            body: zlib.brotliCompressSync(JSON.stringify({ message: 'fragment not found' })).toString('base64'),
+        });
         const res = await main(
             { __ow_path: `/${UNMAPPED_FRAGMENT_ID}`, locale: 'en_US', api_key: 'test-api-key' },
             { openwhiskFactory: fakeFactory(invoke) },
@@ -386,9 +390,56 @@ describe('agent action main', () => {
         const invoke = sinon.stub().resolves({ statusCode: 503, body: JSON.stringify({ message: 'down' }) });
         const res = await main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
         expect(res.statusCode).to.equal(503);
-        expect(res.body.message).to.equal('fragment action returned 503');
+        expect(res.body.message).to.equal('down');
         expect(clock.countTimers()).to.equal(0);
     });
+
+    it('preserves compressed JSON error messages for an unknown locale', async () => {
+        const invoke = sinon.stub().resolves({
+            statusCode: 400,
+            headers: { 'Content-Encoding': 'br' },
+            body: zlib.brotliCompressSync(JSON.stringify({ message: "unknown locale 'xx_XX'" })).toString('base64'),
+        });
+        const res = await main({ ...requestParams, locale: 'xx_XX' }, { openwhiskFactory: fakeFactory(invoke) });
+        expect(res).to.deep.equal({
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: { message: "unknown locale 'xx_XX'" },
+        });
+        expect(clock.countTimers()).to.equal(0);
+    });
+
+    for (const body of [undefined, '', '{}', 'null']) {
+        it(`keeps the upstream status with a generic message when the error body is ${JSON.stringify(body)}`, async () => {
+            const invoke = sinon.stub().resolves({ statusCode: 404, body });
+            const res = await main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res).to.deep.equal({
+                statusCode: 404,
+                headers: { 'Content-Type': 'application/json' },
+                body: { message: 'fragment action returned 404' },
+            });
+            expect(clock.countTimers()).to.equal(0);
+        });
+    }
+
+    for (const result of [
+        { statusCode: 503, body: '<html>Service unavailable</html>' },
+        { statusCode: 502, headers: { 'Content-Encoding': 'br' }, body: Buffer.from('invalid Brotli').toString('base64') },
+    ]) {
+        it(`logs unreadable upstream ${result.statusCode} error bodies without replacing their status`, async () => {
+            const errorLog = sinon.stub(console, 'error');
+            const invoke = sinon.stub().resolves(result);
+            const res = await main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
+            expect(res).to.deep.equal({
+                statusCode: result.statusCode,
+                headers: { 'Content-Type': 'application/json' },
+                body: { message: `fragment action returned ${result.statusCode}` },
+            });
+            expect(errorLog.calledOnce).to.be.true;
+            expect(errorLog.firstCall.args[0]).to.include('Failed to decode fragment action error response:');
+            expect(clock.countTimers()).to.equal(0);
+        });
+    }
 
     it('returns 502 when the fragment action invocation fails', async () => {
         const invoke = sinon.stub().rejects(new Error('runtime down'));

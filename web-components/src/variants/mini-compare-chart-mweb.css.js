@@ -77,9 +77,7 @@ export const CSS = `
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [is="inline-price"] {
-    display: inline-block;
-    min-height: 30px;
-    min-width: 1px;
+    display: inline;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] merch-badge span,

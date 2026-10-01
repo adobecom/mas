@@ -330,9 +330,8 @@ class MasPromotions extends LitElement {
                         </div>
                         <span class="promotions-result-count">${this.filteredPromotions.length} results</span>
                     </div>
-                    <div class="filters-container">
-                        ${this.renderEnvironmentFilterPicker} ${this.renderAppliedEnvironmentFilters()}
-                    </div>
+                    ${this.renderEnvironmentFilterPicker}
+                    ${this.renderAppliedEnvironmentFilters()}
                 </div>
 
                 <div class="promotions-content">${this.renderPromotionsContent()}</div>

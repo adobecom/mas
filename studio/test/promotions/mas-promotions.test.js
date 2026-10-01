@@ -341,24 +341,19 @@ describe('MasPromotions', () => {
     });
 
     describe('environment filter layout', () => {
-        it('places the environment filter picker below the search row, without a filter icon or "Filters:" label', async () => {
+        it('places the environment filter picker below the search row', async () => {
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const { el } = await mountWithRepo(promotion);
             await el.updateComplete;
 
             expect(el.shadowRoot.querySelector('sp-icon-filter')).to.not.exist;
-            const filtersContainer = el.shadowRoot.querySelector('.filters-container');
-            expect(filtersContainer).to.exist;
-            const hasFiltersLabel = [...filtersContainer.querySelectorAll('span')].some(
-                (span) => span.textContent.trim() === 'Filters:',
-            );
-            expect(hasFiltersLabel).to.be.false;
+            const filtersPicker = el.shadowRoot.querySelector('.environment-filter-picker');
+            expect(filtersPicker).to.exist;
 
             const searchRow = el.shadowRoot.querySelector('.promotions-search-row');
-            expect(searchRow.contains(filtersContainer)).to.be.false;
-            const position = searchRow.compareDocumentPosition(filtersContainer);
+            expect(searchRow.contains(filtersPicker)).to.be.false;
+            const position = searchRow.compareDocumentPosition(filtersPicker);
             expect(position & Node.DOCUMENT_POSITION_FOLLOWING).to.be.above(0);
-            expect(filtersContainer.querySelector('.environment-filter-picker')).to.exist;
         });
 
         it('keeps environment filtering behaviour unchanged: selecting and clearing values updates the results', async () => {
@@ -372,7 +367,7 @@ describe('MasPromotions', () => {
             expect(el.filteredPromotions).to.have.lengthOf(2);
 
             const testCheckbox = [...el.shadowRoot.querySelectorAll('sp-checkbox')].find(
-                (checkbox) => checkbox.value === 'test',
+                (checkbox) => checkbox.getAttribute('value') === 'test',
             );
             testCheckbox.checked = true;
             testCheckbox.dispatchEvent(new Event('change', { bubbles: true }));

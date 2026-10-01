@@ -99,19 +99,6 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
-    .environment-filter-picker {
-        display: flex;
-        height: 32px;
-        padding: 0 11px 0 12px;
-        justify-content: flex-end;
-        align-items: flex-start;
-        gap: 6px;
-        align-self: flex-start;
-        border-radius: 8px;
-        border: 2px solid var(--Palette-gray-300, #dadada);
-        background: var(--Palette-gray-25, #fff);
-    }
-
     .filter-popover {
         padding: 12px;
     }
@@ -179,14 +166,6 @@ export const styles = css`
         font-style: normal;
         font-weight: 400;
         line-height: 18px;
-    }
-
-    .filters-container {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        align-self: stretch;
     }
 
     .promotions-table {

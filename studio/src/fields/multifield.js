@@ -13,6 +13,7 @@ class MasMultifield extends LitElement {
             variant: { type: String, reflect: true },
             osi: { type: String, attribute: 'osi' },
             dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
+            renameAllowed: { type: Boolean },
         };
     }
 
@@ -65,6 +66,7 @@ class MasMultifield extends LitElement {
         this.draggingIndex = -1;
         this.min = 0;
         this.buttonLabel = 'Add';
+        this.renameAllowed = true;
         this.#boundHandlers = {
             deleteField: this.#handleDeleteField.bind(this),
         };
@@ -330,6 +332,9 @@ class MasMultifield extends LitElement {
         }
         if (this.osi) {
             fieldEl.setAttribute('osi', this.osi);
+        }
+        if (!this.renameAllowed) {
+            fieldEl.renameAllowed = false;
         }
 
         return html`

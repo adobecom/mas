@@ -96,6 +96,29 @@ describe('Multifield', () => {
         expect(field.getAttribute('variant')).to.equal('pro');
     });
 
+    it('forwards renameAllowed=false to each rendered field, but not when true (the default)', async () => {
+        const el = await fixture(
+            html`
+                <mas-multifield .value="${[{ value: 'a' }]}" .renameAllowed="${false}">
+                    <template>
+                        <sp-textfield class="field"></sp-textfield>
+                    </template>
+                </mas-multifield>
+                ${styles}
+            `,
+            { parentNode: spTheme() },
+        );
+        await el.updateComplete;
+        const field = el.shadowRoot.querySelector('.field-wrapper .field');
+        expect(field.renameAllowed).to.equal(false);
+
+        el.renameAllowed = true;
+        el.value = [{ value: 'b' }];
+        await el.updateComplete;
+        const rerenderedField = el.shadowRoot.querySelector('.field-wrapper .field');
+        expect(rerenderedField.renameAllowed).to.not.equal(false);
+    });
+
     it('should support mas-mnemonic-field', async () => {
         const value = [
             {

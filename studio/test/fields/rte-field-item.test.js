@@ -181,6 +181,26 @@ describe('MasRteFieldItem', () => {
             await delay(0);
             expect(Store.confirmDialogOptions.get()).to.equal(null);
         });
+
+        it('clicking a locked label does nothing when renameAllowed is false', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1"></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
+            el.renameAllowed = false;
+            await el.updateComplete;
+            const labelField = el.shadowRoot.querySelector('sp-textfield');
+
+            labelField.click();
+            await delay(0);
+
+            expect(Store.confirmDialogOptions.get()).to.equal(null);
+            expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('readonly')).to.be.true;
+        });
+
+        it('defaults renameAllowed to true', async () => {
+            const el = await fixture(html`<mas-rte-field-item></mas-rte-field-item>`, { parentNode: spTheme() });
+            expect(el.renameAllowed).to.be.true;
+        });
     });
 
     describe('delete', () => {

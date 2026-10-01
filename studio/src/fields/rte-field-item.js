@@ -6,6 +6,7 @@ class MasRteFieldItem extends LitElement {
     static properties = {
         label: { type: String },
         osi: { type: String },
+        renameAllowed: { type: Boolean },
         _labelLocked: { type: Boolean, state: true },
     };
 
@@ -68,6 +69,7 @@ class MasRteFieldItem extends LitElement {
         super();
         this.label = '';
         this.osi = '';
+        this.renameAllowed = true;
         this._labelLocked = false;
     }
 
@@ -112,7 +114,7 @@ class MasRteFieldItem extends LitElement {
     };
 
     #handleLabelClick = async (e) => {
-        if (!this._labelLocked) return;
+        if (!this._labelLocked || !this.renameAllowed) return;
         e.preventDefault();
         const confirmed = await confirmation({
             variant: 'warning',

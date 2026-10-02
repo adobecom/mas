@@ -39,7 +39,8 @@ export const styles = [
             border-radius: 0;
         }
 
-        .actions-head-cell {
+        .actions-head-cell,
+        .actions-cell {
             max-width: 86px;
         }
 

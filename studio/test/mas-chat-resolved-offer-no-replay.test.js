@@ -1,0 +1,156 @@
+import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
+import '../src/swc.js';
+import '../src/mas-chat.js';
+import { useIsolatedChatSessionStorage } from './helpers/chat-session-storage.js';
+
+/**
+ * Picking a product, answering the offering type, then choosing an offer in OST
+ * made the flow render "Found your product:" again and ask the offering type a
+ * second time. Both were already answered.
+ *
+ * Resolving an offer runs continueFromResolvedOffer, which looks the product up
+ * from the offer's arrangement code and renders it. That is right for the
+ * offer-first entry, where the user pastes an offer id and nothing is selected
+ * yet, and the product path then tells the model to "Proceed to Step 4
+ * (Offering Type Selection)". Reached from Step 5 it rewinds two answered steps.
+ *
+ * This only became visible once get_offer_by_id started succeeding; before that
+ * the path was never reached.
+ */
+const PRODUCT_CODE = 'PA-1930';
+const resolvedOffer = {
+    success: true,
+    rawResult: { offer: { offer_id: 'F5B3D59867BC5B6020EFA0763C3AE92A', product_arrangement_code: PRODUCT_CODE } },
+};
+
+describe('MasChat does not replay steps the user already answered', () => {
+    let el;
+    let storageSandbox;
+    let reResolved;
+    let sent;
+
+    beforeEach(async () => {
+        storageSandbox = useIsolatedChatSessionStorage();
+        el = document.createElement('mas-chat');
+        document.body.appendChild(el);
+        await el.updateComplete;
+        reResolved = sinon.stub(el, 'resolveReleaseProductByArrangementCode').resolves();
+        sent = sinon.stub(el, 'handleSendMessage').resolves();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        el.remove();
+        storageSandbox.restore();
+    });
+
+    it('does not look the product up again when it is the one already selected', async () => {
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE, name: 'Adobe Firefly Standard' };
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        expect(reResolved.called, 'the product was chosen at Step 2 and has not changed').to.equal(false);
+    });
+
+    it('renders no second product card, which is what the user sees', async () => {
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE, name: 'Adobe Firefly Standard' };
+        el.messages = [
+            { role: 'assistant', content: 'Found your product:', productCards: [{ label: 'Adobe Firefly Standard' }] },
+        ];
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        const productRenders = el.messages.filter((m) => String(m.content).includes('Found your product:'));
+        expect(productRenders, 'the product is shown once, from Step 2').to.have.lengthOf(1);
+    });
+
+    it('carries the flow forward instead of stopping dead', async () => {
+        // The first version of this guard only skipped the lookup, which left
+        // the user staring at "Resolving offer..." with nothing after it.
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE };
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        expect(sent.calledOnce, 'a turn must advance the flow').to.equal(true);
+        const detail = sent.firstCall.args[0].detail;
+        expect(detail.message).to.include('Proceed to Step 6');
+        expect(detail.message).to.include('do not ask for either again');
+        // Restating the id made the model resolve the offer a second time and
+        // render "Resolving offer..." twice. It travels in context instead.
+        expect(detail.message, 'the offer id must not read as a new selection').to.not.include('F5B3');
+        expect(detail.context.offer.offer_id, 'but the offer itself still reaches the model').to.equal(
+            'F5B3D59867BC5B6020EFA0763C3AE92A',
+        );
+        expect(detail.context.hidden, 'the nudge is not shown to the user').to.equal(true);
+    });
+
+    it('ignores case when comparing the arrangement code', async () => {
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE.toLowerCase() };
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        expect(reResolved.called).to.equal(false);
+    });
+
+    it('still resolves the product when the offer belongs to a different one', async () => {
+        el.selectedReleaseProduct = { arrangement_code: 'PA-9999' };
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        expect(reResolved.calledWith(PRODUCT_CODE), 'a different product is new information').to.equal(true);
+    });
+
+    it('still resolves the product on the offer-first entry, where nothing is selected', async () => {
+        el.selectedReleaseProduct = null;
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        expect(reResolved.calledWith(PRODUCT_CODE)).to.equal(true);
+    });
+});
+
+describe('MasChat does not re-ask about a trial already chosen', () => {
+    let el;
+    let storageSandbox;
+    let sent;
+
+    beforeEach(async () => {
+        storageSandbox = useIsolatedChatSessionStorage();
+        el = document.createElement('mas-chat');
+        document.body.appendChild(el);
+        await el.updateComplete;
+        sinon.stub(el, 'resolveReleaseProductByArrangementCode').resolves();
+        sent = sinon.stub(el, 'handleSendMessage').resolves();
+        el.selectedReleaseProduct = { arrangement_code: PRODUCT_CODE };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        el.remove();
+        storageSandbox.restore();
+    });
+
+    it('says the trial is settled when OST returned both slots', async () => {
+        // plans-base-and-trial mode fills both in one session, so asking again
+        // is asking for something the user already gave.
+        el.selectedReleaseTrialOsi = 'trial-osi-abc';
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        const detail = sent.firstCall.args[0].detail;
+        expect(detail.message).to.include('do not ask whether one is wanted');
+        expect(detail.context.trialOsi).to.equal('trial-osi-abc');
+    });
+
+    it('forbids prose that tells the user to open a tool they cannot open', async () => {
+        el.selectedReleaseTrialOsi = null;
+
+        await el.continueFromResolvedOffer(resolvedOffer, PRODUCT_CODE);
+
+        const detail = sent.firstCall.args[0].detail;
+        expect(detail.message).to.include('emit open_ost');
+        expect(detail.message).to.include('no control to click');
+        expect(detail.context.trialOsi, 'nothing to carry when none was picked').to.equal(undefined);
+    });
+});

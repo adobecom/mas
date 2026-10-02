@@ -4,8 +4,10 @@
     "description": "Merch at Scale Studio",
     "scripts": {
         "build": "node build.mjs",
+        "build:versions": "node build-versions.mjs",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage && npm run test:node",
+        "test:node": "node --test test/build/build-versions.test.mjs",
         "proxy:qa": "node ./proxy-server.mjs https://author-p22655-e155390.adobeaemcloud.com",
         "proxy:stage": "node ./proxy-server.mjs https://author-p22655-e59471.adobeaemcloud.com",
         "proxy": "node ./proxy-server.mjs https://author-p22655-e59433.adobeaemcloud.com",

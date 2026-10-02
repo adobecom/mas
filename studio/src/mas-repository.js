@@ -32,6 +32,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    STAGED,
     BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
@@ -1170,23 +1171,25 @@ export class MasRepository extends LitElement {
     }
 
     async loadPromotions({ rethrow = false } = {}) {
+        let abortController;
         try {
             const promotionsPath = this.getPromotionsPath();
 
             const searchOptions = {
                 path: promotionsPath,
-                sort: [{ on: 'created', order: 'ASC' }],
+                sort: [{ on: 'created', order: 'DESC' }],
             };
 
             if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
-            this.#abortControllers.promotions = new AbortController();
+            abortController = new AbortController();
+            this.#abortControllers.promotions = abortController;
 
             Store.promotions.list.loading.set(true);
 
-            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+            const fragments = await this.searchFragmentList(searchOptions, 50, abortController);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
-            const signal = this.#abortControllers.promotions.signal;
+            const signal = abortController.signal;
             const expiredPublished = promotions.filter((store) => {
                 const p = store.get();
                 return p?.promotionStatus === 'expired' && p.isPromotionPublished;
@@ -1203,7 +1206,10 @@ export class MasRepository extends LitElement {
             this.processError(error, 'Could not load promotions.');
             if (rethrow) throw error;
         } finally {
-            Store.promotions.list.loading.set(false);
+            // A superseded call's `finally` must not clear `loading` behind the newer call's back.
+            if (this.#abortControllers.promotions === abortController) {
+                Store.promotions.list.loading.set(false);
+            }
         }
     }
 
@@ -1573,6 +1579,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
 
+            await this.clearStagedTag(fragment);
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
@@ -1600,6 +1607,41 @@ export class MasRepository extends LitElement {
         }
     }
 
+    /**
+     * Clears the internal staged tag once a fragment has been successfully published.
+     * No-ops when the fragment isn't staged. Persistence failures are reported via
+     * processError but never turn a successful publish into a reported failure.
+     * @param {Fragment|object} fragmentData
+     */
+    async clearStagedTag(fragmentData) {
+        if (!fragmentData) return;
+        const fragment = fragmentData instanceof Fragment ? fragmentData : new Fragment(fragmentData);
+        if (!fragment.isStaged) return;
+
+        if (fragment.model?.path === COLLECTION_MODEL_PATH) {
+            const index = fragment.tags?.findIndex((tag) => tag.id === STAGED.TAG) ?? -1;
+            if (index !== -1) fragment.tags.splice(index, 1);
+            fragment.newTags = fragment.tags?.map((tag) => tag.id) ?? [];
+            fragment.hasChanges = true;
+        } else {
+            const tags = fragment.getField('tags')?.values || [];
+            fragment.updateField(
+                'tags',
+                tags.filter((tag) => tag !== STAGED.TAG),
+            );
+        }
+
+        try {
+            const saved = await this.aem.sites.cf.fragments.save(fragment, { refetchEtag: true });
+            if (!saved) return;
+            fragment.refreshFrom(saved);
+            const store = findFragmentStoreById(fragment.id, Store.fragments.list.data.get());
+            if (typeof store?.refreshFrom === 'function') store.refreshFrom(saved);
+        } catch (error) {
+            this.processError(error, 'Failed to clear staged flag after publish.');
+        }
+    }
+
     async #publishRefIds(refIds) {
         const CHUNK_SIZE = 10;
         const valid = [];
@@ -1618,6 +1660,7 @@ export class MasRepository extends LitElement {
         if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
         for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
             const chunk = valid.slice(i, i + CHUNK_SIZE);
+            await Promise.all(chunk.map((ref) => this.clearStagedTag(ref)));
             await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
         }
     }
@@ -1680,6 +1723,7 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
+            await Promise.all(fragments.map((fragment) => this.clearStagedTag(fragment)));
             await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
             const refreshPromises = fragmentIds.map((id) => {

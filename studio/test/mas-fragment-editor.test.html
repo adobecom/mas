@@ -52,7 +52,7 @@
             import router from '../src/router.js';
             import Events from '../src/events.js';
             import { extractLocaleFromPath } from '../src/utils.js';
-            import { delay } from './utils.js';
+            import { waitUntil } from '@open-wc/testing-helpers/pure';
             import { nothing } from 'lit';
             runTests(async () => {
                 describe('MasFragmentEditor', () => {
@@ -215,24 +215,19 @@
                         });
                         const el = document.createElement('mas-fragment-editor');
                         el.inEdit.value = { get: () => fragment };
-                        el.publishFragment();
+                        const publishStub = sandbox.stub();
+                        sandbox.stub(el, 'repository').get(() => ({ publishFragment: publishStub }));
+                        const openedDialog = async (tagName) => {
+                            await waitUntil(() => document.body.querySelector(tagName), `${tagName} did not open`);
+                            return document.body.querySelector(tagName);
+                        };
 
-                        await delay(100);
-                        const dialog = document.body.querySelector('mas-publish-dialog');
-                        dialog.confirm();
+                        const publishing = el.publishFragment();
+                        (await openedDialog('mas-publish-dialog')).confirm();
+                        (await openedDialog('mas-publish-staged-dialog')).cancel();
+                        await publishing;
 
-                        await delay(100);
-                        const dialogStaged = document.body.querySelector('mas-publish-staged-dialog');
-
-                        let cancelled = false;
-                        if (dialogStaged) {
-                            dialogStaged.addEventListener('staged-cancelled', () => {
-                                cancelled = true;
-                            });
-                            dialogStaged.cancel();
-                        }
-                        await delay(100);
-                        expect(cancelled).to.be.true;
+                        expect(publishStub.called).to.be.false;
                     });
 
                     it('renders the masked editor skeleton (not a blocking spinner) when no fragment', async () => {

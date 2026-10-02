@@ -575,8 +575,9 @@ class MasPromotions extends LitElement {
 
     /**
      * Applies status filter, environment filter and search term to the raw promotions list.
-     * Used both for the visible table (current filter) and for each status tile's count
-     * (restricted to that tile's status, with the current search term applied).
+     * Used both for the visible table (current filter, with the search term applied) and for
+     * each status tile's count (restricted to that tile's status, with the search term ignored
+     * so counts reflect each status's total regardless of what's typed in the search field).
      */
     #derivePromotions({
         filterKey = this.filter,
@@ -613,7 +614,7 @@ class MasPromotions extends LitElement {
     get #statusCounts() {
         const counts = {};
         for (const option of this.filterOptions) {
-            counts[option.value] = this.#derivePromotions({ filterKey: option.value }).length;
+            counts[option.value] = this.#derivePromotions({ filterKey: option.value, searchQuery: '' }).length;
         }
         return counts;
     }

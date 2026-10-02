@@ -30,6 +30,7 @@ export const styles = css`
     .promotions-page-title {
         margin: 0;
         color: #000;
+        font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
         font-size: 25px;
         font-style: normal;
         font-weight: 700;
@@ -37,7 +38,15 @@ export const styles = css`
     }
 
     .create-button {
+        display: flex;
+        min-width: 72px;
+        justify-content: center;
+        align-items: flex-start;
         --mod-button-border-radius: 16px;
+        --mod-button-background-color-default: #3b63fb;
+        --mod-button-background-color-hover: #3b63fb;
+        --mod-button-background-color-down: #3b63fb;
+        --mod-button-background-color-focus: #3b63fb;
     }
 
     .promotions-status-tiles {
@@ -57,7 +66,7 @@ export const styles = css`
         padding: 12px 20px;
         border: none;
         border-radius: 12px;
-        background: var(--spectrum-white);
+        background: var(--spectrum-white, #fff);
         box-shadow:
             0 0 2px 0 rgba(0, 0, 0, 0.12),
             0 2px 6px 0 rgba(0, 0, 0, 0.04),
@@ -74,6 +83,7 @@ export const styles = css`
 
     .status-tile-label {
         color: var(--spectrum-gray-800, #292929);
+        font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
         font-size: 14px;
         font-style: normal;
         font-weight: 400;
@@ -83,6 +93,7 @@ export const styles = css`
     .status-tile-count {
         flex: 1 0 0;
         color: #000;
+        font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
         font-size: 25px;
         font-style: normal;
         font-weight: 700;
@@ -96,8 +107,8 @@ export const styles = css`
         max-height: 1px;
         align-items: flex-start;
         align-self: stretch;
-        background: var(--spectrum-gray-200);
-        margin-bottom: 24px;
+        border-bottom: 1px solid #e1e1e1;
+        margin: 16px 0;
     }
 
     .environment-filter-picker {
@@ -143,8 +154,7 @@ export const styles = css`
 
     .promotions-search-row {
         display: flex;
-        width: 100%;
-        max-width: 1148px;
+        width: 1148px;
         height: 32px;
         align-items: center;
         gap: 6px;
@@ -163,6 +173,10 @@ export const styles = css`
         display: flex;
         align-self: stretch;
         width: 100%;
+        height: 32px;
+        padding-left: 14px;
+        align-items: flex-start;
+        box-sizing: border-box;
         --mod-search-border-radius: 16px;
         --mod-search-border-width: 2px;
         --mod-search-border-color-default: var(--spectrum-gray-300, #dadada);
@@ -172,6 +186,7 @@ export const styles = css`
     .promotions-result-count {
         flex: 1 0 0;
         color: var(--spectrum-gray-800, #292929);
+        font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
         font-size: 14px;
         font-style: normal;
         font-weight: 400;

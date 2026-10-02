@@ -3,6 +3,8 @@ import EXPRESSFullPricingSpec from '../specs/full_pricing_edit_and_discard.spec.
 
 const { features } = EXPRESSFullPricingSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
     // @studio-full-pricing-express-edit-discard-mnemonic-title - Validate edit mnemonic for full pricing express card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -11,7 +13,7 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -55,7 +57,7 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -93,7 +95,7 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

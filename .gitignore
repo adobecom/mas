@@ -27,6 +27,7 @@ studio.json
 test-html-results/
 test-results/
 nala/.auth/
+nala/.runs/
 *.js.map
 /.cursor*/
 .CLAUDE.md

@@ -1,0 +1,317 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync, unlinkSync, rmdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { EventEmitter } from 'node:events';
+import { chromium } from '@playwright/test';
+import { isStaticResource, serveStaticResource, getResourceMetrics } from '../libs/static-resource-cache.js';
+import { isBootstrapRead } from '../libs/editor-bootstrap.js';
+import { createRunId, clearRunId, setCurrentTestName, setCurrentTestAttempt, getTitle } from '../utils/fragment-tracker.js';
+import {
+    initializeFragmentLedger,
+    beginFragmentCreation,
+    completeFragmentCreation,
+    recordCreatedFragment,
+    readFragmentLedger,
+    completeFragmentLedger,
+    trackFragmentResponses,
+} from '../utils/fragment-ledger.js';
+import globalTeardown, { deleteOwnedFragments, findRunFragments } from '../utils/global.teardown.js';
+
+test('network Docs suites track each test; benchmark and foreground-timeout suites stay cold', () => {
+    const directory = resolve('nala/docs');
+    const sources = readdirSync(directory, { recursive: true })
+        .filter((name) => name.endsWith('.test.js'))
+        .map((name) => ({ name, source: readFileSync(join(directory, name), 'utf8') }));
+    assert.ok(sources.length > 0);
+    for (const { name, source } of sources) {
+        if ([join('benchmark', 'benchmark.test.js'), join('foreground-timeout', 'foreground-timeout.test.js')].includes(name)) {
+            assert.doesNotMatch(source, /from ['"][^'"]*\/libs\/docs-test\.js['"]/, `${name} must not use static caching`);
+            assert.match(source, /from ['"]@playwright\/test['"]/, `${name} must retain the plain fixture`);
+            continue;
+        }
+        if (!source.includes('createWorkerPageSetup(')) {
+            assert.match(source, /from ['"][^'"]*\/libs\/docs-test\.js['"]/, `${name} must use fresh Docs request tracking`);
+            continue;
+        }
+        const beforeEach = source.match(/test\.beforeEach\(([\s\S]*?)\n\s*\}\);/)?.[1] ?? '';
+        const afterEach = source.match(/test\.afterEach\(([\s\S]*?)\n\s*\}\);/)?.[1] ?? '';
+        assert.match(beforeEach, /await workerSetup\.beginTest\(\)/, `${name} must begin per-test tracking`);
+        assert.match(afterEach, /await workerSetup\.finishTest\(testInfo\)/, `${name} must finish per-test tracking`);
+    }
+});
+
+const request = (url, { method = 'GET', headers = {}, type = 'script', body = null } = {}) => ({
+    url: () => url,
+    method: () => method,
+    headers: () => headers,
+    allHeaders: async () => headers,
+    resourceType: () => type,
+    postData: () => body,
+});
+
+function routes(url, { headers = {}, status = 200, fail = false, body = Buffer.from('asset') } = {}) {
+    const stats = { fetches: 0, paces: 0, disposed: 0, bodies: [] };
+    const route = () => ({
+        request: () => request(url),
+        fetch: async () => {
+            stats.fetches++;
+            await new Promise((done) => setImmediate(done));
+            if (fail) throw new Error('Upstream failed');
+            return {
+                headers: () => ({ ...headers }),
+                body: async () => body,
+                status: () => status,
+                dispose: async () => {
+                    stats.disposed++;
+                },
+            };
+        },
+        fulfill: async (response) => {
+            stats.bodies.push(response);
+        },
+    });
+    const pace = async () => {
+        stats.paces++;
+    };
+    return { route, pace, stats };
+}
+
+test('static classification excludes documents, APIs, auth, cookies and writes', async () => {
+    assert.equal(await isStaticResource(request('https://main--mas--adobecom.aem.live/scripts/app.js')), true);
+    for (const candidate of [
+        request('https://main--mas--adobecom.aem.live/studio.html', { type: 'document' }),
+        request('https://main--mas--adobecom.aem.live/api/data.json'),
+        request('https://author-test.adobeaemcloud.com/app.js'),
+        request('https://main--mas--adobecom.aem.live/app.js', { method: 'POST' }),
+        request('https://main--mas--adobecom.aem.live/app.js', { headers: { authorization: 'Bearer test' } }),
+        request('https://main--mas--adobecom.aem.live/app.js', { headers: { cookie: 'session=test' } }),
+    ])
+        assert.equal(await isStaticResource(candidate), false);
+});
+
+test('static cache deduplicates concurrent misses, paces once, and strips decoded-body headers', async () => {
+    const before = getResourceMetrics();
+    const { route, pace, stats } = routes('https://localhost/concurrent.js', {
+        headers: { 'content-encoding': 'gzip', 'content-length': '20', vary: 'Accept-Encoding' },
+    });
+    await Promise.all([serveStaticResource(route(), pace), serveStaticResource(route(), pace)]);
+    await serveStaticResource(route(), pace);
+    assert.equal(stats.fetches, 1);
+    assert.equal(stats.paces, 1);
+    assert.equal(stats.disposed, 1);
+    assert.equal(stats.bodies.length, 3);
+    assert.equal(stats.bodies[0].headers['content-encoding'], undefined);
+    assert.equal(stats.bodies[0].headers['content-length'], undefined);
+    assert.equal(getResourceMetrics().cacheHits - before.cacheHits, 2);
+});
+
+test('uncacheable static responses are not shared, even by concurrent contexts', async () => {
+    for (const [index, options] of [
+        { headers: { 'cache-control': 'no-store' } },
+        { headers: { 'cache-control': 'Private' } },
+        { headers: { 'set-cookie': 'session=test' } },
+        { headers: { vary: '*' } },
+        { headers: { vary: 'Cookie' } },
+        { status: 429 },
+    ].entries()) {
+        const { route, pace, stats } = routes(`https://localhost/excluded-${index}.js`, options);
+        await Promise.all([serveStaticResource(route(), pace), serveStaticResource(route(), pace)]);
+        await serveStaticResource(route(), pace);
+        assert.equal(stats.fetches, 3);
+        assert.equal(stats.paces, 3);
+    }
+});
+
+test('failed static requests propagate and do not poison the cache', async () => {
+    const url = 'https://localhost/recovered.js';
+    const failing = routes(url, { fail: true });
+    const results = await Promise.allSettled([
+        serveStaticResource(failing.route(), failing.pace),
+        serveStaticResource(failing.route(), failing.pace),
+    ]);
+    assert.ok(results.every(({ status }) => status === 'rejected'));
+    const recovered = routes(url);
+    await serveStaticResource(recovered.route(), recovered.pace);
+    assert.equal(recovered.stats.fetches, 1);
+});
+
+test('static cache retains at most 256 entries and excludes bodies over 256 KiB', async () => {
+    for (let index = 0; index <= 256; index++) {
+        const { route, pace } = routes(`https://localhost/bounded-${index}.js`);
+        await serveStaticResource(route(), pace);
+    }
+    const evicted = routes('https://localhost/bounded-0.js');
+    await serveStaticResource(evicted.route(), evicted.pace);
+    assert.equal(evicted.stats.fetches, 1);
+    const retained = routes('https://localhost/bounded-256.js');
+    await serveStaticResource(retained.route(), retained.pace);
+    assert.equal(retained.stats.fetches, 0);
+    const oversized = routes('https://localhost/oversized.js', { body: Buffer.alloc(256 * 1024 + 1) });
+    await serveStaticResource(oversized.route(), oversized.pace);
+    await serveStaticResource(oversized.route(), oversized.pace);
+    assert.equal(oversized.stats.fetches, 2);
+});
+
+test('bootstrap classification includes author search reads, never mutations or other services', () => {
+    const base = 'https://author-test.adobeaemcloud.com/adobe/sites/cf/fragments';
+    assert.equal(isBootstrapRead(request(`${base}/seed`)), true);
+    assert.equal(isBootstrapRead(request(`${base}/search`, { method: 'POST', body: '{}' })), true);
+    for (const candidate of [
+        request(base, { method: 'POST' }),
+        request(`${base}/seed`, { method: 'PUT' }),
+        request(`${base}/seed/deleteAndUnpublish`, { method: 'DELETE' }),
+        request('https://commerce.adobe.com/adobe/sites/cf/fragments/seed'),
+    ])
+        assert.equal(isBootstrapRead(candidate), false);
+});
+
+test('ledger persists pending intents, exact owned IDs, response recovery, and completion tombstones', async (t) => {
+    const runId = createRunId();
+    const directory = resolve('nala/.runs', runId);
+    initializeFragmentLedger();
+    t.after(() => {
+        for (const name of readdirSync(directory)) unlinkSync(join(directory, name));
+        rmdirSync(directory);
+        clearRunId();
+    });
+    assert.deepEqual(readFragmentLedger(), { fragments: [], recover: false });
+    setCurrentTestName('Create test');
+    setCurrentTestAttempt(2, 1);
+    assert.ok(getTitle().endsWith('.w2.r1'));
+    const token = beginFragmentCreation('clone');
+    assert.equal(readFragmentLedger().recover, true);
+    const owned = { id: 'owned', title: getTitle(), path: '/content/dam/mas/nala/en_US/owned' };
+    assert.throws(() => recordCreatedFragment({ ...owned, title: 'Other execution' }), /not owned/);
+    assert.throws(() => recordCreatedFragment({ ...owned, path: '/content/dam/other/owned' }), /not owned/);
+    const page = new EventEmitter();
+    const stop = trackFragmentResponses(page);
+    page.emit('response', {
+        request: () => request('https://author-test.adobeaemcloud.com/adobe/sites/cf/fragments'),
+        status: () => 201,
+        headers: () => ({ 'content-type': 'application/json' }),
+        json: async () => owned,
+    });
+    await stop();
+    assert.equal(readFragmentLedger().fragments[0].id, 'owned');
+    assert.equal(readFragmentLedger().recover, true);
+    const id = await completeFragmentCreation(token, { evaluate: async () => owned });
+    assert.equal(id, 'owned');
+    assert.equal(readFragmentLedger().recover, false);
+    completeFragmentLedger();
+    assert.deepEqual(readFragmentLedger(), { fragments: [], recover: false });
+    assert.deepEqual(readdirSync(directory), ['run.json']);
+});
+
+test('exact cleanup uses live ETags, skips 404s, refuses foreign data, and reports partial failures', async (t) => {
+    const runId = 'nala-run-offline';
+    const deleted = [];
+    const entries = ['owned', 'gone', 'foreign', 'wrong-path', 'unavailable', 'last'].map((id) => ({
+        id,
+        path: `/content/dam/mas/nala/en_US/${id}`,
+        title: runId,
+    }));
+    globalThis.document = {
+        querySelector: () => ({
+            aem: {
+                cfFragmentsUrl: 'https://author-test.adobeaemcloud.com/adobe/sites/cf/fragments',
+                headers: { authorization: 'Bearer offline' },
+                sites: {
+                    cf: {
+                        fragments: {
+                            delete: async (fragment) => {
+                                deleted.push(fragment);
+                            },
+                        },
+                    },
+                },
+            },
+        }),
+    };
+    t.after(() => {
+        delete globalThis.document;
+    });
+    t.mock.method(globalThis, 'fetch', async (url) => {
+        const id = url.split('/').pop();
+        return {
+            status: id === 'gone' ? 404 : id === 'unavailable' ? 503 : 200,
+            ok: !['gone', 'unavailable'].includes(id),
+            headers: new Headers({ etag: `live-${id}` }),
+            json: async () => ({
+                id,
+                title: id === 'foreign' ? 'Another run' : runId,
+                path: id === 'wrong-path' ? '/content/dam/mas/elsewhere' : entries.find((entry) => entry.id === id).path,
+            }),
+        };
+    });
+    const result = await deleteOwnedFragments({ fragments: entries, runId });
+    assert.deepEqual(result.deletedIds, ['owned', 'last']);
+    assert.deepEqual(result.alreadyDeletedIds, ['gone']);
+    assert.deepEqual(
+        result.failures.map(({ id }) => id),
+        ['foreign', 'wrong-path', 'unavailable'],
+    );
+    assert.deepEqual(
+        deleted.map(({ etag }) => etag),
+        ['live-owned', 'live-last'],
+    );
+});
+
+test('empty run cleanup and repeated cleanup do not start a browser', async (t) => {
+    const runId = createRunId();
+    const directory = resolve('nala/.runs', runId);
+    const skipAuth = process.env.SKIP_AUTH;
+    delete process.env.SKIP_AUTH;
+    initializeFragmentLedger();
+    t.after(() => {
+        for (const name of readdirSync(directory)) unlinkSync(join(directory, name));
+        rmdirSync(directory);
+        if (skipAuth === undefined) delete process.env.SKIP_AUTH;
+        else process.env.SKIP_AUTH = skipAuth;
+        clearRunId();
+    });
+    t.mock.method(chromium, 'launch', async () => {
+        throw new Error('Empty cleanup must not launch a browser');
+    });
+    await globalTeardown();
+    process.env.NALA_RUN_ID = runId;
+    await globalTeardown();
+    assert.deepEqual(global.nalaCleanupResults, { totalFound: 0, totalDeleted: 0, totalFailed: 0 });
+});
+
+test('recovery search filters by run marker, includes translations, and deduplicates paginated results', async (t) => {
+    const queries = [];
+    globalThis.document = {
+        querySelector: () => ({
+            aem: {
+                sites: {
+                    cf: {
+                        fragments: {
+                            search: async function* (query) {
+                                queries.push(query);
+                                yield [{ id: 'known', title: 'nala-run-offline', path: `${query.path}/known` }];
+                                yield [
+                                    { id: query.path, title: 'nala-run-offline', path: `${query.path}/owned` },
+                                    { id: 'foreign', title: 'Another run', path: `${query.path}/foreign` },
+                                ];
+                            },
+                        },
+                    },
+                },
+            },
+        }),
+    };
+    t.after(() => {
+        delete globalThis.document;
+    });
+    const found = await findRunFragments({
+        runId: 'nala-run-offline',
+        locales: ['en_US', 'translations'],
+        knownIds: ['known'],
+    });
+    assert.equal(found.length, 2);
+    assert.deepEqual(queries, [
+        { path: '/content/dam/mas/nala/en_US', query: 'nala-run-offline' },
+        { path: '/content/dam/mas/nala/translations', query: 'nala-run-offline' },
+    ]);
+});

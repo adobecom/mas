@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import { isBranchURLValid } from '../libs/baseurl.js';
 import GlobalRequestCounter, { DEFAULT_TRACKED_URLS } from '../libs/global-request-counter.js';
 import { createRunId } from './fragment-tracker.js';
+import { initializeFragmentLedger } from './fragment-ledger.js';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
@@ -138,6 +139,7 @@ async function globalSetup() {
 
     // Initialize fragment tracker run ID at the very start of test suite
     const runId = createRunId();
+    initializeFragmentLedger();
     console.info(`🆔 Test suite run ID: ${runId}\n`);
 
     // Store run ID in GitHub environment for cross-step access

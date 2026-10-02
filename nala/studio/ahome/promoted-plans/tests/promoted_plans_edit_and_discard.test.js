@@ -3,6 +3,8 @@ import AHPromotedPlansSpec from '../specs/promoted_plans_edit_and_discard.spec.j
 
 const { features } = AHPromotedPlansSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
     // @studio-promoted-plans-edit-discard-gradient-border - Validate editing and discarding gradient border
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -12,7 +14,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         const promotedPlansCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await promotedPlansCard).toBeVisible();

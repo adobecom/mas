@@ -3,6 +3,8 @@ import DiscountSpec from '../specs/discount.spec.js';
 
 const { features } = DiscountSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Discount Badge test suite', () => {
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
@@ -11,7 +13,7 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         const card = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();
@@ -40,7 +42,7 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         const card = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();

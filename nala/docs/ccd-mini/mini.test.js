@@ -21,6 +21,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('CCD Mini Cards Feature', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -29,8 +30,12 @@ test.describe('CCD Mini Cards Feature', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     features.forEach((feature) => {
@@ -41,7 +46,7 @@ test.describe('CCD Mini Cards Feature', () => {
             const pageName = Object.keys(DOCS_GALLERY_PATH.CCD_MINI).find(
                 (k) => DOCS_GALLERY_PATH.CCD_MINI[k] === feature.path,
             );
-            const page = workerSetup.getPage(pageName);
+            const page = await workerSetup.getPage(pageName);
 
             await test.step('1. Verify CCD Mini Card page is loaded', async () => {
                 miniCard = new MiniCard(page);
@@ -119,7 +124,7 @@ test.describe('CCD Mini Cards Feature', () => {
 
     test(`${settingsFeatures[0].name},${settingsFeatures[0].tags}`, async () => {
         const { data, path } = settingsFeatures[0];
-        const page = workerSetup.getPage('KR_SETTINGS');
+        const page = await workerSetup.getPage('KR_SETTINGS');
 
         await test.step('1. Verify the KR CCD Mini page and target card are loaded', async () => {
             miniCard = new MiniCard(page);
@@ -135,7 +140,7 @@ test.describe('CCD Mini Cards Feature', () => {
 
     test(`${settingsFeatures[1].name},${settingsFeatures[1].tags}`, async () => {
         const { data, path } = settingsFeatures[1];
-        const page = workerSetup.getPage('US_SETTINGS');
+        const page = await workerSetup.getPage('US_SETTINGS');
 
         await test.step('1. Verify the US CCD Mini page and target card are loaded', async () => {
             miniCard = new MiniCard(page);

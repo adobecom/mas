@@ -3,6 +3,8 @@ import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec
 
 const { features } = ACOMPlansIndividualsSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-variant-change-to-plans-students - Validate variant change for plans individuals card to plans students in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -12,7 +14,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -80,7 +82,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -150,7 +152,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -204,7 +206,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -239,7 +241,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -331,7 +333,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -366,7 +368,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -404,7 +406,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -484,7 +486,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -534,7 +536,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -617,7 +619,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -677,7 +679,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -719,7 +721,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -801,7 +803,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -901,7 +903,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await individualsCard).toBeVisible();
             await expect(await individualsCard).toHaveAttribute('variant', 'plans');
@@ -948,7 +950,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await individualsCard).toBeVisible();
             await expect(await individualsCard).toHaveAttribute('variant', 'plans');
@@ -999,7 +1001,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await individualsCard).toBeVisible();
             await expect(await individualsCard).toHaveAttribute('variant', 'plans');
@@ -1046,7 +1048,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1117,7 +1119,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1173,7 +1175,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1223,7 +1225,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1276,7 +1278,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
             await expect(await editor.panel).toBeVisible();
@@ -1383,7 +1385,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1431,7 +1433,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
             await expect(await editor.panel).toBeVisible();
@@ -1523,7 +1525,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1571,7 +1573,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
@@ -1609,7 +1611,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

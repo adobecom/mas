@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('Fries Cards Feature', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -20,14 +21,18 @@ test.describe('Fries Cards Feature', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     features.forEach((feature) => {
         test(`${feature.name},${feature.tags}`, async () => {
             const { data } = feature;
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
 
             await test.step('1. Verify Fries gallery page is loaded', async () => {
                 friesPage = new FriesGalleryPage(page);

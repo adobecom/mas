@@ -1,8 +1,13 @@
+import { isStaticResource, serveStaticResource } from './static-resource-cache.js';
+
+const installedPages = new WeakSet();
+
 /**
  * Pace requests to EDS / Helix preview hosts (~200 rps tenant limit).
  *
  * Throttle state is per Playwright *worker process*. Multiple workers each run their own chain,
- * so effective RPS to the same hostname is multiplied — use workers=1 on CI (see playwright.config.js).
+ * so effective RPS to the same hostname is multiplied. Keep workflow worker counts
+ * and the existing pacing policy aligned; setup caching does not change either.
  *
  * Auth setup loads studio.html before GlobalRequestCounter runs; call installEdsThrottleOnPage(page)
  * there so the first navigation is paced too.
@@ -63,7 +68,7 @@ export function logEdsThrottleOnce(edsMaxRps) {
     globalThis._edsThrottleLogged = true;
     console.info(
         `[NALA] EDS request pacing ~${edsMaxRps} rps per worker for .aem.live / hlx hosts. ` +
-            `NALA_EDS_THROTTLE_DISABLED=1 disables; NALA_EDS_MAX_RPS sets cap. Use one Playwright worker on CI so pacing is not multiplied.\n`,
+            `NALA_EDS_THROTTLE_DISABLED=1 disables; NALA_EDS_MAX_RPS sets cap. Pacing is multiplied by worker count.\n`,
     );
 }
 
@@ -72,14 +77,22 @@ export function logEdsThrottleOnce(edsMaxRps) {
  * @param {import('@playwright/test').Page} page
  */
 export async function installEdsThrottleOnPage(page) {
+    if (installedPages.has(page)) return;
     const edsMaxRps = resolveEdsMaxRps();
-    if (edsMaxRps <= 0) return;
+    const cacheEnabled = process.env.NALA_STATIC_CACHE_DISABLED !== '1';
+    if (edsMaxRps <= 0 && !cacheEnabled) return;
+    installedPages.add(page);
     logEdsThrottleOnce(edsMaxRps);
     await page.route('**/*', async (route) => {
         const url = route.request().url();
-        if (isEdsEdgeHost(url)) {
-            await throttleEdsGap(edsMaxRps);
+        const pace = async () => {
+            if (edsMaxRps > 0 && isEdsEdgeHost(url)) await throttleEdsGap(edsMaxRps);
+        };
+        if (cacheEnabled && (await isStaticResource(route.request()))) {
+            await serveStaticResource(route, pace);
+            return;
         }
+        await pace();
         await route.continue();
     });
 }

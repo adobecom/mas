@@ -23,6 +23,7 @@ export default class RequestCountingReporter {
         // Sum all individual test count files across all services
         const serviceTotals = {};
         const serviceMethodCounts = {};
+        const serviceCacheHits = {};
         const trackedUrls = {};
         const testResultsDir = './test-results';
 
@@ -52,6 +53,7 @@ export default class RequestCountingReporter {
 
                             // Add total requests
                             serviceTotals[serviceName] += serviceData.totalRequests || 0;
+                            serviceCacheHits[serviceName] = (serviceCacheHits[serviceName] || 0) + (serviceData.cacheHits || 0);
 
                             // Aggregate method counts
                             for (const [method, count] of Object.entries(serviceData.methods || {})) {
@@ -80,6 +82,8 @@ export default class RequestCountingReporter {
                 const serviceLabel = `# Total ${serviceName} Requests`;
                 const servicePadding = ' '.repeat(Math.max(0, 25 - serviceLabel.length));
                 console.log(`    \x1b[1m\x1b[33m${serviceLabel}${servicePadding}: \x1b[0m\x1b[32m${total}\x1b[0m`);
+                console.log(`        # Upstream requests: ${total - (serviceCacheHits[serviceName] || 0)}`);
+                console.log(`        # Replayed setup reads: ${serviceCacheHits[serviceName] || 0}`);
 
                 // Method breakdown for this service
                 const methods = serviceMethodCounts[serviceName] || {};

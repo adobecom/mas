@@ -66,17 +66,16 @@ for (const feature of features) {
     }
 }
 
-// Cap concurrent page loads and retry with growing backoff: this suite's page count makes it prone
-// to 429s/timeouts against the rate-limited AEM/EDS host if all pages are requested at once.
+// Only requested locale/instant/preview states load; preserve navigation retry behavior.
 const workerSetup = createWorkerPageSetup({
     pages: workerPages,
-    concurrency: 4,
     retries: 2,
     retryDelay: 1000,
     setupTimeout: 120000,
 });
 
 test.describe('ACOM MAS Promotions feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -85,8 +84,12 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     // @MAS-Promotions-Card-in-Collection
@@ -94,7 +97,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[0];
 
         await test.step('step-1: Verify promotion card on US', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS_COLLECTION.US, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -113,7 +116,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[1];
 
         await test.step('step-1: Verify regional promotion card on GR_co with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_co_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -129,7 +132,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify regional promotion card on GR_EN with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -145,7 +148,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-3: Verify regional promotion card on GR_co without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const page = await workerSetup.getPage('GR_co_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -160,7 +163,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-4: Verify regional promotion card on GR_EN without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -180,7 +183,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[2];
 
         await test.step('step-1: Verify grouped promotion card on GR_co with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_co_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -195,7 +198,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify grouped promotion card on GR_EN with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -210,7 +213,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-3: Verify grouped promotion card on GR_co without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const page = await workerSetup.getPage('GR_co_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -224,7 +227,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-4: Verify grouped promotion card on GR_EN without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -243,7 +246,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[3];
 
         await test.step('step-1: Verify regional variation card in regional variation collection on GR_co with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_co_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -259,7 +262,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify regional variation card in regional variation collection on GR_EN with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -275,7 +278,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-3: Verify regional variation card in regional variation collection on GR_co without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const page = await workerSetup.getPage('GR_co_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -290,7 +293,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-4: Verify regional variation card in regional variation collection on GR_EN without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -310,7 +313,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[4];
 
         await test.step('step-1: Verify grouped variation card in regional variation collection on GR_co with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_co_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -326,7 +329,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify grouped variation card in regional variation collection on GR_EN with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15_preview');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -342,7 +345,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-3: Verify grouped variation card in regional variation collection on GR_co without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_co_2026-04-15');
+            const page = await workerSetup.getPage('GR_co_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -357,7 +360,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-4: Verify grouped variation card in regional variation collection on GR_EN without preview parameter - no strikethrough', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-04-15');
+            const page = await workerSetup.getPage('GR_EN_2026-04-15');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-04-15', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -377,7 +380,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[5];
 
         await test.step('step-1: Verify translated regional variation card in grouped variation collection on AR_ES_co', async () => {
-            const page = workerSetup.getPage('AR_ES_co');
+            const page = await workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -393,7 +396,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify translated regional variation card in grouped variation collection on AR_ES', async () => {
-            const page = workerSetup.getPage('AR_ES');
+            const page = await workerSetup.getPage('AR_ES');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -414,7 +417,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[6];
 
         await test.step('step-1: Verify evergreen promo variation card on US', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS_COLLECTION.US, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -429,7 +432,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[7];
 
         await test.step('step-1: Verify intro promo on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co_2026-07-10');
+            const page = await workerSetup.getPage('GR_co_2026-07-10');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-07-10', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -440,7 +443,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify intro promo on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-07-10');
+            const page = await workerSetup.getPage('GR_EN_2026-07-10');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-07-10', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -451,7 +454,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-3: Verify regional evergreen promo overtakes intro on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co');
+            const page = await workerSetup.getPage('GR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -467,7 +470,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-4: Verify regional evergreen promo overtakes intro on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN');
+            const page = await workerSetup.getPage('GR_EN');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -488,7 +491,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         const { data } = features[8];
 
         await test.step('step-1: Verify seasonal promo on GR_co with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_co_2026-09-10_preview');
+            const page = await workerSetup.getPage('GR_co_2026-09-10_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co_2026-09-10_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -498,7 +501,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
         });
 
         await test.step('step-2: Verify seasonal promo on GR_EN with preview parameter on', async () => {
-            const page = workerSetup.getPage('GR_EN_2026-09-10_preview');
+            const page = await workerSetup.getPage('GR_EN_2026-09-10_preview');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN_2026-09-10_preview', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();

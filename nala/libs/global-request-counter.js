@@ -46,11 +46,12 @@ class GlobalRequestCounter {
             globalThis.requestCounter.serviceCounts[serviceName] = {
                 totalRequests: 0,
                 methods: {},
+                cacheHits: 0,
             };
         }
 
         // Count requests without intercepting — avoids conflicting with any page.route() throttle handler
-        page.on('request', (request) => {
+        const listener = (request) => {
             const url = request.url();
             const method = request.method();
 
@@ -62,7 +63,9 @@ class GlobalRequestCounter {
                     break;
                 }
             }
-        });
+        };
+        page.on('request', listener);
+        return () => page.removeListener('request', listener);
     }
 
     /**
@@ -115,6 +118,18 @@ class GlobalRequestCounter {
      */
     static getCurrentTotal(serviceName = 'ODIN_AEM') {
         return globalThis.requestCounter.serviceCounts[serviceName]?.totalRequests || 0;
+    }
+
+    /**
+     * Account for browser requests fulfilled locally rather than sent upstream.
+     */
+    static recordCacheHit(url) {
+        for (const [name, prefix] of Object.entries(globalThis.requestCounter.trackedUrls)) {
+            if (url.startsWith(prefix)) {
+                globalThis.requestCounter.serviceCounts[name].cacheHits++;
+                break;
+            }
+        }
     }
 
     /**

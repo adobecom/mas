@@ -14,6 +14,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('MAS Express Cards test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -22,13 +23,17 @@ test.describe('MAS Express Cards test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     test(`[Test Id - ${features[0].tcid}] ${features[0].name}, ${features[0].tags}`, async () => {
         const { data } = features[0];
-        const page = workerSetup.getPage('EXPRESS');
+        const page = await workerSetup.getPage('EXPRESS');
 
         console.info(`[Test Page]: ${await page.url()}`);
 
@@ -37,7 +42,7 @@ test.describe('MAS Express Cards test suite', () => {
 
             await page.waitForSelector('merch-card-collection', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="simplified-pricing-express"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            await new ExpressCard(page, data.id).waitUntilReady();
         });
 
         await test.step('step-2: Verify Free card content', async () => {
@@ -64,7 +69,7 @@ test.describe('MAS Express Cards test suite', () => {
 
     test(`[Test Id - ${features[1].tcid}] ${features[1].name}, ${features[1].tags}`, async () => {
         const { data } = features[1];
-        const page = workerSetup.getPage('EXPRESS');
+        const page = await workerSetup.getPage('EXPRESS');
 
         console.info(`[Test Page]: ${await page.url()}`);
 
@@ -73,7 +78,7 @@ test.describe('MAS Express Cards test suite', () => {
 
             await page.waitForSelector('merch-card-collection', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="simplified-pricing-express"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            await new ExpressCard(page, data.id).waitUntilReady();
         });
 
         await test.step('step-2: Verify Premium card content', async () => {
@@ -103,24 +108,21 @@ test.describe('MAS Express Cards test suite', () => {
         await test.step('step-3: Verify mobile accordion functionality', async () => {
             const card = new ExpressCard(page, data.id);
 
-            await page.setViewportSize({ width: 375, height: 812 });
-            await page.waitForTimeout(500);
-
-            await card.ensureExpanded();
-
-            await expect(card.description).toBeVisible();
-            await expect(card.ctaButton).toBeVisible();
-
-            if (await card.chevronButton.isVisible()) {
-                await card.chevronButton.click();
-                await page.waitForTimeout(300);
-                expect(await card.isExpanded()).toBe('false');
-
-                // Restore expanded state so later tests reusing this shared page don't inherit a collapsed card
+            try {
+                await page.setViewportSize({ width: 375, height: 812 });
                 await card.ensureExpanded();
-            }
+                await expect(card.description).toBeVisible();
+                await expect(card.ctaButton).toBeVisible();
 
-            await page.setViewportSize({ width: 1920, height: 1080 });
+                if (await card.chevronButton.isVisible()) {
+                    await card.chevronButton.click();
+                    await expect(card.card).toHaveAttribute('data-expanded', 'false');
+                    expect(await card.isExpanded()).toBe('false');
+                }
+            } finally {
+                await card.ensureExpanded();
+                await page.setViewportSize({ width: 1920, height: 1080 });
+            }
         });
 
         await test.step('step-4: Verify accessibility', async () => {
@@ -131,7 +133,7 @@ test.describe('MAS Express Cards test suite', () => {
 
     test(`[Test Id - ${features[2].tcid}] ${features[2].name}, ${features[2].tags}`, async () => {
         const { data } = features[2];
-        const page = workerSetup.getPage('EXPRESS');
+        const page = await workerSetup.getPage('EXPRESS');
 
         console.info(`[Test Page]: ${await page.url()}`);
 
@@ -140,7 +142,7 @@ test.describe('MAS Express Cards test suite', () => {
 
             await page.waitForSelector('merch-card-collection', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="simplified-pricing-express"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            await new ExpressCard(page, data.id).waitUntilReady();
         });
 
         await test.step('step-2: Verify Firefly Pro card content', async () => {
@@ -172,7 +174,7 @@ test.describe('MAS Express Cards test suite', () => {
 
     test(`[Test Id - ${features[3].tcid}] ${features[3].name}, ${features[3].tags}`, async () => {
         const { data } = features[3];
-        const page = workerSetup.getPage('FULL_PRICING_EXPRESS');
+        const page = await workerSetup.getPage('FULL_PRICING_EXPRESS');
 
         console.info(`[Test Page]: ${await page.url()}`);
 
@@ -181,7 +183,7 @@ test.describe('MAS Express Cards test suite', () => {
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            await new ExpressCard(page, data.id).waitUntilReady();
         });
 
         await test.step('step-2: Verify Free card content', async () => {
@@ -229,7 +231,7 @@ test.describe('MAS Express Cards test suite', () => {
 
     test(`[Test Id - ${features[4].tcid}] ${features[4].name}, ${features[4].tags}`, async () => {
         const { data } = features[4];
-        const page = workerSetup.getPage('FULL_PRICING_EXPRESS');
+        const page = await workerSetup.getPage('FULL_PRICING_EXPRESS');
 
         console.info(`[Test Page]: ${await page.url()}`);
 
@@ -238,7 +240,7 @@ test.describe('MAS Express Cards test suite', () => {
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            await new ExpressCard(page, data.id).waitUntilReady();
         });
 
         await test.step('step-2: Verify Premium card content', async () => {
@@ -298,7 +300,7 @@ test.describe('MAS Express Cards test suite', () => {
 
     test(`[Test Id - ${features[5].tcid}] ${features[5].name}, ${features[5].tags}`, async () => {
         const { data } = features[5];
-        const page = workerSetup.getPage('FULL_PRICING_EXPRESS');
+        const page = await workerSetup.getPage('FULL_PRICING_EXPRESS');
 
         console.info(`[Test Page]: ${await page.url()}`);
 
@@ -307,7 +309,7 @@ test.describe('MAS Express Cards test suite', () => {
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            await new ExpressCard(page, data.id).waitUntilReady();
         });
 
         await test.step('step-2: Verify Pro card content', async () => {
@@ -336,16 +338,15 @@ test.describe('MAS Express Cards test suite', () => {
         await test.step('step-3: Verify mobile view behavior', async () => {
             const card = new ExpressCard(page, data.id);
 
-            await page.setViewportSize({ width: 375, height: 812 });
-            await page.waitForTimeout(500);
-
-            const mobileCheck = await card.checkMobileView();
-            expect(mobileCheck.isMobile).toBeTruthy();
-
-            expect(mobileCheck.buttonVisible).toBeTruthy();
-
-            await page.setViewportSize({ width: 1920, height: 1080 });
-            await page.waitForTimeout(500);
+            try {
+                await page.setViewportSize({ width: 375, height: 812 });
+                await expect(card.compareLink).toBeVisible();
+                const mobileCheck = await card.checkMobileView();
+                expect(mobileCheck.isMobile).toBeTruthy();
+                expect(mobileCheck.buttonVisible).toBeTruthy();
+            } finally {
+                await page.setViewportSize({ width: 1920, height: 1080 });
+            }
         });
 
         await test.step('step-4: Verify divider structure', async () => {
@@ -362,8 +363,8 @@ test.describe('MAS Express Cards test suite', () => {
     });
 
     test('Collection alignment test, @express @collection @smoke @regression @milo', async () => {
-        const simplifiedPage = workerSetup.getPage('EXPRESS');
-        const fullPricingPage = workerSetup.getPage('FULL_PRICING_EXPRESS');
+        const simplifiedPage = await workerSetup.getPage('EXPRESS');
+        const fullPricingPage = await workerSetup.getPage('FULL_PRICING_EXPRESS');
 
         await test.step('step-1: Verify simplified-pricing-express collection alignment', async () => {
             const collection = simplifiedPage.locator('merch-card-collection.simplified-pricing-express');
@@ -379,7 +380,10 @@ test.describe('MAS Express Cards test suite', () => {
                 expect(variant).toBe('simplified-pricing-express');
             }
 
-            await simplifiedPage.waitForTimeout(500);
+            await cards.evaluateAll(async (elements) => {
+                await customElements.whenDefined('merch-card');
+                await Promise.all(elements.map((card) => card.checkReady()));
+            });
 
             const styles = await collection.evaluate((el) => {
                 const computed = window.getComputedStyle(el);
@@ -411,7 +415,10 @@ test.describe('MAS Express Cards test suite', () => {
                 expect(variant).toBe('full-pricing-express');
             }
 
-            await fullPricingPage.waitForTimeout(500);
+            await cards.evaluateAll(async (elements) => {
+                await customElements.whenDefined('merch-card');
+                await Promise.all(elements.map((card) => card.checkReady()));
+            });
 
             const styles = await collection.evaluate((el) => {
                 const computed = window.getComputedStyle(el);

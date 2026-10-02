@@ -841,7 +841,7 @@ describe('MasPromotions', () => {
             expect(rows[0].textContent).to.include('Winter Draft Promo');
         });
 
-        it('updates status tile counts live as the search term changes', async () => {
+        it('keeps status tile counts unchanged while a search term narrows the visible rows', async () => {
             const match = makePromotion({ id: 'promo-1', title: 'Matching Promo' });
             const other = makePromotion({ id: 'promo-2', title: 'Other Promo' });
             const { el } = await mountWithRepo(match);
@@ -862,7 +862,10 @@ describe('MasPromotions', () => {
             search.dispatchEvent(new Event('input'));
             await el.updateComplete;
 
-            expect(allTileCount()).to.equal('1');
+            expect(allTileCount()).to.equal('2');
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+            expect(rows).to.have.lengthOf(1);
+            expect(rows[0].textContent).to.include('Matching Promo');
         });
 
         it('renders the result count next to the search field and removes it from the far right of the filter bar', async () => {

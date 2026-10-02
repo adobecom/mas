@@ -107,8 +107,8 @@ export const styles = css`
         max-height: 1px;
         align-items: flex-start;
         align-self: stretch;
-        background: var(--spectrum-gray-200);
-        margin-bottom: 24px;
+        border-bottom: 1px solid #e1e1e1;
+        margin: 16px 0;
     }
 
     .environment-filter-picker {

@@ -922,6 +922,28 @@ describe('MasPromotions', () => {
             expect(getComputedStyle(divider).height).to.equal('1px');
         });
 
+        it('renders the divider as a visible 1px #E1E1E1 line between the tiles row and the search row', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const tiles = el.shadowRoot.querySelector('.promotions-status-tiles');
+            const divider = el.shadowRoot.querySelector('.promotions-divider');
+            const searchRow = el.shadowRoot.querySelector('.promotions-search-row');
+
+            expect(tiles.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
+            expect(divider.compareDocumentPosition(searchRow) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
+
+            const dividerStyle = getComputedStyle(divider);
+            expect(dividerStyle.height).to.equal('1px');
+            expect(dividerStyle.borderBottomWidth).to.equal('1px');
+            expect(dividerStyle.borderBottomStyle).to.equal('solid');
+            expect(dividerStyle.borderBottomColor).to.equal('rgb(225, 225, 225)');
+            expect(dividerStyle.marginTop).to.equal('16px');
+            expect(dividerStyle.marginBottom).to.equal('16px');
+
+            expect(divider.getBoundingClientRect().width).to.equal(tiles.getBoundingClientRect().width);
+        });
+
         it('pins the create-button layout, radius, and accent-background custom properties', async () => {
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const { el } = await mountWithRepo(promotion);

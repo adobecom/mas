@@ -1,3 +1,7 @@
+// A card badge is labelled by its template and a mas-field by its field name.
+// A standalone price or CTA has neither, so it is labelled by what it is.
+const ELEMENT_TYPE_LABEL = { price: 'price', cta: 'CTA' };
+
 class CardOverlay {
     constructor() {
         this.overlays = new Map();
@@ -26,7 +30,7 @@ class CardOverlay {
 
         const variantLabel = document.createElement('span');
         variantLabel.className = 'mas-ext-badge-variant';
-        variantLabel.textContent = cardData.variant;
+        variantLabel.textContent = cardData.variant || ELEMENT_TYPE_LABEL[cardData.elementType] || '';
         badge.appendChild(variantLabel);
 
         badge.addEventListener('click', (e) => {
@@ -34,7 +38,7 @@ class CardOverlay {
             this.togglePanel(cardData);
         });
 
-        this.positionBadge(badge, cardData.element);
+        this.positionBadge(badge, cardData.anchorElement);
         document.body.appendChild(badge);
         this.overlays.set(cardData.fragmentId, { badge, cardData });
 
@@ -74,12 +78,16 @@ class CardOverlay {
         const icons = window.MASIcons;
         const isCollection = cardData.elementType === 'collection';
         const isBareElement = cardData.elementType === 'price' || cardData.elementType === 'cta';
+        const isField = cardData.elementType === 'field';
+        // Set for cards, and for anything mas-field rendered; null for a standalone offer.
+        const sourceFragmentId = cardData.sourceFragmentId;
         const headerLabel = isCollection
             ? `Collection: ${this.escapeHtml(cardData.cardName)}`
             : this.escapeHtml(cardData.cardName);
         const promotion = !isCollection && window.MASPromo ? window.MASPromo.readElementPromotion(cardData.element) : null;
-        const idLabel = isBareElement ? 'OSI' : 'Fragment ID';
-        const idValue = isBareElement ? cardData.osi : cardData.fragmentId;
+        const idFields = [];
+        if (isBareElement) idFields.push({ label: 'OSI', value: cardData.osi });
+        if (sourceFragmentId) idFields.push({ label: 'Fragment ID', value: sourceFragmentId });
         panel.innerHTML = `
       <div class="mas-ext-panel-header">
         <h3>${headerLabel}</h3>
@@ -90,19 +98,24 @@ class CardOverlay {
       <div class="mas-ext-panel-body">
         <section class="mas-ext-section mas-ext-section-basic">
           <h4 class="mas-ext-section-title">Basic info</h4>
+          ${idFields
+              .map(
+                  ({ label, value }) => `
           <div class="mas-ext-field">
-            <span class="mas-ext-field-label">${idLabel}</span>
-            <span class="mas-ext-field-value mas-ext-mono">${this.escapeHtml(idValue)}</span>
-            <button class="mas-ext-icon-btn mas-ext-copy-btn" data-value="${this.escapeAttr(idValue)}" aria-label="Copy ${idLabel}">
+            <span class="mas-ext-field-label">${label}</span>
+            <span class="mas-ext-field-value mas-ext-mono">${this.escapeHtml(value)}</span>
+            <button class="mas-ext-icon-btn mas-ext-copy-btn" data-value="${this.escapeAttr(value)}" aria-label="Copy ${label}">
               ${icons.get('Copy', 'S')}
             </button>
-          </div>
+          </div>`,
+              )
+              .join('')}
           ${
-              isCollection || isBareElement
+              isCollection || isBareElement || !cardData.variant
                   ? ''
                   : `
           <div class="mas-ext-field">
-            <span class="mas-ext-field-label">Template</span>
+            <span class="mas-ext-field-label">${isField ? 'Field' : 'Template'}</span>
             <span class="mas-ext-tag">${this.escapeHtml(cardData.variant)}</span>
           </div>`
           }
@@ -118,7 +131,7 @@ class CardOverlay {
           }
           ${this.renderPromotionField(promotion)}
           ${
-              isBareElement
+              !sourceFragmentId
                   ? ''
                   : `
           <div class="mas-ext-field">
@@ -131,7 +144,7 @@ class CardOverlay {
           }
         </section>
         ${
-            isBareElement
+            !sourceFragmentId
                 ? ''
                 : `
         <hr class="mas-ext-divider"/>
@@ -154,7 +167,7 @@ class CardOverlay {
         }
       </div>
       ${
-          isBareElement
+          !sourceFragmentId
               ? ''
               : `
       <div class="mas-ext-panel-footer">
@@ -185,7 +198,7 @@ class CardOverlay {
             });
         });
 
-        this.positionPanel(panel, cardData.element);
+        this.positionPanel(panel, cardData.anchorElement);
         document.body.appendChild(panel);
 
         const overlayData = this.overlays.get(cardData.fragmentId);
@@ -194,11 +207,11 @@ class CardOverlay {
         }
         this.expandedOverlays.add(cardData.fragmentId);
 
-        if (isBareElement) return;
+        if (!sourceFragmentId) return;
 
         const editBtn = panel.querySelector('.mas-ext-edit-btn');
         editBtn.addEventListener('click', () => {
-            window.MASStudioLinker.openInStudio(cardData.fragmentId, {
+            window.MASStudioLinker.openInStudio(sourceFragmentId, {
                 variant: cardData.variant,
                 locale: cardData.locale,
             });
@@ -274,10 +287,14 @@ class CardOverlay {
         const overlayData = this.overlays.get(fragmentId);
         if (!overlayData || !overlayData.panel) return;
 
-        const contentDiv = overlayData.panel.querySelector('[data-section="details"] .mas-ext-section-content');
-
+        // Cards key their overlay by the fragment id, but price/cta/field overlays are
+        // keyed by a synthetic id, so the id to fetch always comes off the cardData.
         const cardData = overlayData.cardData;
-        const key = this.cacheKey(fragmentId, cardData?.locale, cardData?.country);
+        const sourceFragmentId = cardData?.sourceFragmentId;
+        if (!sourceFragmentId) return;
+
+        const contentDiv = overlayData.panel.querySelector('[data-section="details"] .mas-ext-section-content');
+        const key = this.cacheKey(sourceFragmentId, cardData?.locale, cardData?.country);
 
         if (this.fragmentDataCache.has(key)) {
             const cachedData = this.fragmentDataCache.get(key);
@@ -291,7 +308,7 @@ class CardOverlay {
             chrome.runtime.sendMessage(
                 {
                     type: 'FETCH_FRAGMENT_DATA',
-                    fragmentId: fragmentId,
+                    fragmentId: sourceFragmentId,
                     locale: cardData?.locale || 'en_US',
                     country: cardData?.country,
                     ...window.MASCardDetector.getServiceConfig(),
@@ -643,9 +660,8 @@ class CardOverlay {
     }
 
     refreshFragmentData(fragmentId) {
-        const overlayData = this.overlays.get(fragmentId);
-        const cardData = overlayData?.cardData;
-        const key = this.cacheKey(fragmentId, cardData?.locale, cardData?.country);
+        const cardData = this.overlays.get(fragmentId)?.cardData;
+        const key = this.cacheKey(cardData?.sourceFragmentId, cardData?.locale, cardData?.country);
         this.fragmentDataCache.delete(key);
         this.loadFragmentDetails(fragmentId);
     }
@@ -693,10 +709,10 @@ class CardOverlay {
 
     updatePositions() {
         this.overlays.forEach((overlayData) => {
-            this.positionBadge(overlayData.badge, overlayData.cardData.element);
+            this.positionBadge(overlayData.badge, overlayData.cardData.anchorElement);
 
             if (overlayData.panel) {
-                this.positionPanel(overlayData.panel, overlayData.cardData.element);
+                this.positionPanel(overlayData.panel, overlayData.cardData.anchorElement);
             }
         });
     }

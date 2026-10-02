@@ -7,7 +7,15 @@ const { CardDetector } = require('../../utils/card-detector.js');
 
 const detector = new CardDetector();
 
-function fakeBareElement({ is, osi, promotionCode, insideCard = false, text = '' } = {}) {
+function fakeBareElement({
+    is,
+    osi,
+    promotionCode,
+    insideCard = false,
+    text = '',
+    fragmentId = null,
+    masFieldOwner = null,
+} = {}) {
     return {
         tagName: is === 'inline-price' ? 'SPAN' : is === 'checkout-button' ? 'BUTTON' : 'A',
         textContent: text,
@@ -15,10 +23,75 @@ function fakeBareElement({ is, osi, promotionCode, insideCard = false, text = ''
             if (name === 'is') return is;
             if (name === 'data-wcs-osi') return osi ?? null;
             if (name === 'data-promotion-code') return promotionCode ?? null;
+            if (name === 'fragment-id') return fragmentId;
             return null;
         },
         closest(selector) {
+            if (selector.includes('mas-field')) return masFieldOwner;
             return insideCard && selector.includes('merch-card') ? {} : null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getBoundingClientRect() {
+            return { top: 0, left: 0, bottom: 0, right: 0 };
+        },
+    };
+}
+
+function fakeMasField({
+    fragmentId = null,
+    field = 'title',
+    text = '',
+    insideCard = false,
+    commerceChild = null,
+    contentSpan = null,
+} = {}) {
+    return {
+        tagName: 'MAS-FIELD',
+        textContent: text,
+        getAttribute(name) {
+            if (name === 'fragment-id') return fragmentId;
+            if (name === 'field') return field;
+            return null;
+        },
+        closest(selector) {
+            if (selector.includes('mas-field')) return this;
+            return insideCard && selector.includes('merch-card') ? {} : null;
+        },
+        querySelector(selector) {
+            if (selector.includes('mas-field-content')) return contentSpan;
+            if (selector.includes('inline-price')) return commerceChild;
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getBoundingClientRect() {
+            return { top: 0, left: 0, bottom: 0, right: 0 };
+        },
+    };
+}
+
+function fakeCard({ fragmentId = 'frag-1', variant = 'plans', name = 'Photoshop', tagName = 'MERCH-CARD' } = {}) {
+    const aemFragment = {
+        getAttribute(attr) {
+            if (attr === 'fragment') return fragmentId;
+            if (attr === 'title') return name;
+            return null;
+        },
+    };
+    return {
+        tagName,
+        variant,
+        getAttribute(attr) {
+            return attr === 'variant' ? variant : null;
+        },
+        hasAttribute() {
+            return false;
+        },
+        querySelector(selector) {
+            return selector === 'aem-fragment' ? aemFragment : null;
         },
         querySelectorAll() {
             return [];
@@ -167,4 +240,150 @@ test('getAllCards preserves promotion data for price/cta elements', () => {
     assert.equal(card.promotion.effectiveCode, 'SAVE20');
     assert.equal(card.osi, 'abc123');
     assert.equal(card.elementType, 'price');
+});
+
+test('resolveSourceFragmentId reads the fragment id stamped on the element itself', () => {
+    const d = new CardDetector();
+    const el = fakeBareElement({ is: 'inline-price', osi: 'abc123', fragmentId: 'stamped-id' });
+    assert.equal(d.resolveSourceFragmentId(el), 'stamped-id');
+});
+
+test('resolveSourceFragmentId falls back to the enclosing mas-field', () => {
+    const d = new CardDetector();
+    const owner = fakeMasField({ fragmentId: 'owner-id' });
+    const el = fakeBareElement({ is: 'inline-price', osi: 'abc123', masFieldOwner: owner });
+    assert.equal(d.resolveSourceFragmentId(el), 'owner-id');
+});
+
+test('resolveSourceFragmentId returns null for a standalone commerce element', () => {
+    const d = new CardDetector();
+    assert.equal(d.resolveSourceFragmentId(fakeBareElement({ is: 'inline-price', osi: 'abc123' })), null);
+});
+
+test('processBareElement carries the source fragment id of a mas-field hosted price', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processBareElement(fakeBareElement({ is: 'inline-price', osi: 'abc123', fragmentId: 'frag-9' }));
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.sourceFragmentId, 'frag-9');
+});
+
+test('processBareElement leaves the source fragment id null for a standalone price', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processBareElement(fakeBareElement({ is: 'inline-price', osi: 'abc123' }));
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.sourceFragmentId, null);
+});
+
+test('processCard exposes its fragment id as the source fragment id', async () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    await d.processCard(fakeCard({ fragmentId: 'frag-card' }));
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.sourceFragmentId, 'frag-card');
+});
+
+test('processMasField records a loaded content field with its fragment id', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'title', text: 'Photoshop' }));
+    assert.equal(d.detectedCards.size, 1);
+    const [[id, data]] = d.detectedCards.entries();
+    assert.match(id, /^field-\d+$/);
+    assert.equal(data.elementType, 'field');
+    assert.equal(data.sourceFragmentId, 'frag-7');
+    assert.equal(data.variant, 'title');
+    assert.equal(data.cardName, 'Photoshop');
+});
+
+test('processMasField falls back to the field name when the field renders no text', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'description', text: '' }));
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.cardName, 'description');
+});
+
+test('processMasField skips a field whose fragment has not loaded yet', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processMasField(fakeMasField({ fragmentId: null }));
+    assert.equal(d.detectedCards.size, 0);
+});
+
+test('processMasField records a field that loads after an earlier skipped attempt', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const el = fakeMasField({ fragmentId: null });
+    d.processMasField(el);
+    el.getAttribute = fakeMasField({ fragmentId: 'frag-late' }).getAttribute;
+    d.processMasField(el);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('processMasField defers to the inner commerce element when the field renders one', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'prices', commerceChild: {} }));
+    assert.equal(d.detectedCards.size, 0);
+});
+
+test('processMasField skips fields nested inside a merch-card', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', insideCard: true }));
+    assert.equal(d.detectedCards.size, 0);
+});
+
+test('processMasField does not create duplicate entries for the same field', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const el = fakeMasField({ fragmentId: 'frag-7' });
+    d.processMasField(el);
+    d.processMasField(el);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('processMasField anchors positioning on the rendered content span', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const contentSpan = { getBoundingClientRect: () => ({ top: 5, left: 5, bottom: 20, right: 40 }) };
+    const el = fakeMasField({ fragmentId: 'frag-7', contentSpan });
+    d.processMasField(el);
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.anchorElement, contentSpan);
+    assert.equal(data.element, el);
+});
+
+test('processMasField anchors on the field itself when it has no content span', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const el = fakeMasField({ fragmentId: 'frag-7' });
+    d.processMasField(el);
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.anchorElement, el);
+});
+
+test('cards and bare elements anchor positioning on themselves', async () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const card = fakeCard();
+    const price = fakeBareElement({ is: 'inline-price', osi: 'abc123' });
+    await d.processCard(card);
+    d.processBareElement(price);
+    const [cardData, priceData] = [...d.detectedCards.values()];
+    assert.equal(cardData.anchorElement, card);
+    assert.equal(priceData.anchorElement, price);
+});
+
+test('getAllCards exposes the source fragment id and anchor rect for field elements', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const contentSpan = { getBoundingClientRect: () => ({ top: 5, left: 5, bottom: 20, right: 40 }) };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'title', contentSpan }));
+    const [field] = d.getAllCards();
+    assert.equal(field.sourceFragmentId, 'frag-7');
+    assert.equal(field.elementType, 'field');
+    assert.equal(field.boundingRect.right, 40);
 });

@@ -13,6 +13,8 @@ import { SURFACES } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation-editor.js';
 
+const getLangSelector = (el) => el.shadowRoot.querySelector('mas-grouped-selector');
+
 describe('MasTranslationEditor', () => {
     let sandbox;
     let toastEmitStub;
@@ -131,7 +133,6 @@ describe('MasTranslationEditor', () => {
             expect(el.isDialogOpen).to.be.false;
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isSelectedItemsOpen).to.be.false;
-            expect(el.isSelectedLangsOpen).to.be.false;
             expect(el.isProjectReadonly).to.be.false;
         });
 
@@ -140,7 +141,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             expect(el.isNewTranslationProject).to.be.true;
             expect(el.showSelectedEmptyState).to.be.true;
-            expect(el.showLangSelectedEmptyState).to.be.true;
+            expect(getLangSelector(el).showEmptyState).to.be.true;
         });
 
         it('restricts the items selector import to the active search surface', async () => {
@@ -165,7 +166,8 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.targetLocales.get()).to.deep.equal(['tr_TR']);
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/content/dam/mas/s/en_US/f']);
             expect(el.showSelectedEmptyState).to.be.false;
-            expect(el.showLangSelectedEmptyState).to.be.false;
+            await getLangSelector(el).updateComplete;
+            expect(getLangSelector(el).showEmptyState).to.be.false;
         });
 
         it('should put collection prefill into selectedCollections when prefill.isCollection is true', async () => {
@@ -323,20 +325,6 @@ describe('MasTranslationEditor', () => {
         });
     });
 
-    describe('selectedLangsList getter', () => {
-        it('should return empty string when no locales selected', async () => {
-            Store.translationProjects.targetLocales.set([]);
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            expect(el.selectedLangsList).to.equal('');
-        });
-
-        it('should return sorted comma-separated list of locales', async () => {
-            Store.translationProjects.targetLocales.set(['fr_FR', 'en_US', 'de_DE']);
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            expect(el.selectedLangsList).to.equal('de_DE, en_US, fr_FR');
-        });
-    });
-
     describe('repository getter', () => {
         it('should return mas-repository element from document', async () => {
             const mockRepository = createMockRepository();
@@ -414,9 +402,9 @@ describe('MasTranslationEditor', () => {
         it('should show languages empty state when no languages selected', async () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = true;
-            await el.updateComplete;
-            const emptyState = el.shadowRoot.querySelector('.languages-empty-state');
+            const selector = getLangSelector(el);
+            await selector.updateComplete;
+            const emptyState = selector.shadowRoot.querySelector('.empty-state');
             expect(emptyState).to.exist;
             expect(emptyState.textContent).to.include('Add languages');
         });
@@ -433,12 +421,11 @@ describe('MasTranslationEditor', () => {
         it('should show selected languages section when languages are selected', async () => {
             Store.translationProjects.targetLocales.set(['en_US', 'fr_FR']);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = false;
-            await el.updateComplete;
-            const selectedLangs = el.shadowRoot.querySelector('.selected-langs');
-            expect(selectedLangs).to.exist;
-            const header = selectedLangs.querySelector('h2');
+            const selector = getLangSelector(el);
+            await selector.updateComplete;
+            const header = selector.shadowRoot.querySelector('.selected-header h2');
             expect(header.textContent).to.include('Selected languages');
+            expect(header.textContent).to.include('(2)');
         });
 
         it('should show selected items section when items are selected', async () => {
@@ -560,34 +547,6 @@ describe('MasTranslationEditor', () => {
             expect(cancelled).to.be.true;
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isDialogOpen).to.be.false;
-        });
-    });
-
-    describe('toggle selected languages', () => {
-        it('should toggle isSelectedLangsOpen when toggle button is clicked', async () => {
-            Store.translationProjects.targetLocales.set(['en_US']);
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = false;
-            await el.updateComplete;
-            const toggleBtn = el.shadowRoot.querySelector('.selected-langs .toggle-btn');
-            expect(el.isSelectedLangsOpen).to.be.false;
-            toggleBtn.click();
-            await el.updateComplete;
-            expect(el.isSelectedLangsOpen).to.be.true;
-            toggleBtn.click();
-            await el.updateComplete;
-            expect(el.isSelectedLangsOpen).to.be.false;
-        });
-
-        it('should show languages list when expanded', async () => {
-            Store.translationProjects.targetLocales.set(['en_US', 'fr_FR']);
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = false;
-            el.isSelectedLangsOpen = true;
-            await el.updateComplete;
-            const langsList = el.shadowRoot.querySelector('.selected-langs-list');
-            expect(langsList).to.exist;
-            expect(langsList.textContent).to.include('en_US');
         });
     });
 
@@ -1573,42 +1532,25 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('language selection dialog', () => {
-        it('should confirm language selection and close dialog', async () => {
+        it('should enable save and discard when language selection is confirmed', async () => {
             Store.translationProjects.targetLocales.set(['en_US']);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = true;
+            const selector = getLangSelector(el);
+            selector.dispatchEvent(new Event('open'));
+            selector.dispatchEvent(new Event('confirm'));
             await el.updateComplete;
-            const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
-            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
-            await el.updateComplete;
-            const dialogWrapper = el.shadowRoot.querySelector('.add-langs-dialog');
-            let closeEventFired = false;
-            dialogWrapper.addEventListener('close', () => {
-                closeEventFired = true;
-            });
-            dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
-            await el.updateComplete;
-            expect(closeEventFired).to.be.true;
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
+            expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.false;
         });
 
         it('should cancel language selection and restore snapshot', async () => {
             Store.translationProjects.targetLocales.set(['en_US']);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = true;
-            await el.updateComplete;
-            const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
-            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
-            await el.updateComplete;
+            const selector = getLangSelector(el);
+            selector.dispatchEvent(new Event('open'));
             Store.translationProjects.targetLocales.set(['fr_FR', 'de_DE']);
-            const dialogWrapper = el.shadowRoot.querySelector('.add-langs-dialog');
-            let closeEventFired = false;
-            dialogWrapper.addEventListener('close', () => {
-                closeEventFired = true;
-            });
-            dialogWrapper.dispatchEvent(new CustomEvent('cancel'));
+            selector.dispatchEvent(new Event('cancel'));
             await el.updateComplete;
-            expect(closeEventFired).to.be.true;
             expect(Store.translationProjects.targetLocales.get()).to.deep.equal(['en_US']);
         });
 
@@ -1616,12 +1558,7 @@ describe('MasTranslationEditor', () => {
             Store.search.set({ path: 'acom' });
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = true;
-            await el.updateComplete;
-            const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
-            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
-            await el.updateComplete;
-            const langPicker = el.shadowRoot.querySelector('.add-langs-dialog mas-translation-languages');
+            const langPicker = getLangSelector(el).querySelector('mas-translation-languages');
             expect(langPicker).to.exist;
             expect(langPicker.hasAttribute('include-regional')).to.equal(false);
             const codes = langPicker.localesArray.map((item) => item.locale);
@@ -1682,9 +1619,9 @@ describe('MasTranslationEditor', () => {
             Store.translationProjects.inEdit.set(fragmentStore);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             el.isProjectReadonly = true;
-            el.showLangSelectedEmptyState = false;
             await el.updateComplete;
-            const editButton = el.shadowRoot.querySelector('.selected-langs sp-action-button');
+            await getLangSelector(el).updateComplete;
+            const editButton = getLangSelector(el).shadowRoot.querySelector('.edit-button');
             expect(editButton).to.be.null;
         });
 
@@ -1708,9 +1645,9 @@ describe('MasTranslationEditor', () => {
             Store.translationProjects.inEdit.set(fragmentStore);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             el.isProjectReadonly = false;
-            el.showLangSelectedEmptyState = false;
             await el.updateComplete;
-            const editButton = el.shadowRoot.querySelector('.selected-langs sp-action-button');
+            await getLangSelector(el).updateComplete;
+            const editButton = getLangSelector(el).shadowRoot.querySelector('.edit-button');
             expect(editButton).to.exist;
         });
 
@@ -1779,20 +1716,6 @@ describe('MasTranslationEditor', () => {
             dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
             await el.updateComplete;
             expect(el.showSelectedEmptyState).to.be.true;
-        });
-
-        it('should update showLangSelectedEmptyState when languages are confirmed', async () => {
-            Store.translationProjects.targetLocales.set([]);
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.showLangSelectedEmptyState = true;
-            await el.updateComplete;
-            const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
-            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
-            await el.updateComplete;
-            const dialogWrapper = el.shadowRoot.querySelector('.add-langs-dialog');
-            dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
-            await el.updateComplete;
-            expect(el.showLangSelectedEmptyState).to.be.true;
         });
     });
 });

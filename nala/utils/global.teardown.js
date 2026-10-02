@@ -84,10 +84,26 @@ export async function findRunFragments({ runId, locales, knownIds }) {
 export function printCleanupSummary() {
     const results = global.nalaCleanupResults;
     if (!results) return;
-    console.log('\n    ---------Fragment Cleanup Summary---------');
-    console.log(`    # Total Fragments to delete: ${results.totalFound}`);
-    console.log(`    # Deleted / already absent : ${results.totalDeleted}`);
-    console.log(`    # Failed to clean up       : ${results.totalFailed}`);
+    console.log('\n    \x1b[1m\x1b[34m---------Fragment Cleanup Summary---------\x1b[0m');
+    console.log(`    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${results.totalFound}\x1b[0m`);
+    if (results.totalDeleted > 0) {
+        console.log(
+            `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Successfully deleted     :\x1b[0m \x1b[32m${results.totalDeleted}\x1b[0m`,
+        );
+    } else if (results.totalFound === 0) {
+        console.log('    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m');
+    }
+    if (results.totalFailed > 0) {
+        console.log(
+            `    \x1b[31m✘\x1b[0m \x1b[1m\x1b[33m Failed to delete         :\x1b[0m \x1b[31m${results.totalFailed}/${results.totalFound}\x1b[0m`,
+        );
+    }
+    for (const result of results.paths ?? []) {
+        console.log(
+            `    \x1b[36m${result.path}\x1b[0m — found: ${result.found}, deleted/already absent: \x1b[32m${result.deleted}\x1b[0m, failed: \x1b[${result.failed ? '31' : '32'}m${result.failed}\x1b[0m`,
+        );
+        if (result.searchError) console.log(`      \x1b[31m✘ Recovery search failed: ${result.searchError}\x1b[0m`);
+    }
 }
 
 /**
@@ -152,19 +168,38 @@ async function globalTeardown() {
         console.info('[NALA teardown] Authenticated repository ready.');
 
         const fragments = [...ledger.fragments];
+        const paths = new Map();
+        const recoveryErrors = [];
         if (ledger.recover) {
             console.info(`[NALA teardown] Searching Nala locale and translation paths for interrupted creations.`);
-            fragments.push(
-                ...(await evaluateCleanup(page, findRunFragments, {
-                    runId,
-                    locales: ['en_US', 'fr_FR', 'en_CA', 'en_GB', 'en_AU', 'translations'],
-                    knownIds: fragments.map(({ id }) => id),
-                })),
-            );
+            for (const locale of ['en_US', 'fr_FR', 'en_CA', 'en_GB', 'en_AU', 'translations']) {
+                const path = `/content/dam/mas/nala/${locale}`;
+                console.info(`📍 Checking path: \x1b[33m${path}\x1b[0m`);
+                paths.set(path, { path, found: 0, deleted: 0, failed: 0 });
+                try {
+                    const recovered = await evaluateCleanup(page, findRunFragments, {
+                        runId,
+                        locales: [locale],
+                        knownIds: fragments.map(({ id }) => id),
+                    });
+                    fragments.push(...recovered);
+                    console.info(`  \x1b[32m✓\x1b[0m Found ${recovered.length} additional run-owned fragments.`);
+                } catch (error) {
+                    paths.get(path).searchError = error.message;
+                    console.error(`  \x1b[31m✘\x1b[0m Recovery search failed: ${path}: ${error.message}`);
+                    recoveryErrors.push(new Error(`${path}: ${error.message}`, { cause: error }));
+                }
+            }
             console.info(
                 `[NALA teardown] Recovery complete: ${fragments.length - ledger.fragments.length} additional fragments.`,
             );
         }
+        for (const fragment of fragments) {
+            const path = fragment.path.slice(0, fragment.path.lastIndexOf('/'));
+            if (!paths.has(path)) paths.set(path, { path, found: 0, deleted: 0, failed: 0 });
+            paths.get(path).found++;
+        }
+        global.nalaCleanupResults.paths = [...paths.values()];
         global.nalaCleanupResults.totalFound = fragments.length;
         const failures = [];
         for (let start = 0; start < fragments.length; start += 10) {
@@ -176,14 +211,22 @@ async function globalTeardown() {
                 runId,
             });
             global.nalaCleanupResults.totalDeleted += result.deletedIds.length + result.alreadyDeletedIds.length;
+            for (const id of [...result.deletedIds, ...result.alreadyDeletedIds]) {
+                const fragment = fragments.find((entry) => entry.id === id);
+                paths.get(fragment.path.slice(0, fragment.path.lastIndexOf('/'))).deleted++;
+            }
+            for (const { id } of result.failures) {
+                const fragment = fragments.find((entry) => entry.id === id);
+                paths.get(fragment.path.slice(0, fragment.path.lastIndexOf('/'))).failed++;
+            }
             for (const id of result.deletedIds) console.info(`[NALA teardown] Deleted fragment: ${id}`);
             for (const id of result.alreadyDeletedIds) console.info(`[NALA teardown] Fragment already absent: ${id}`);
             for (const { id, message } of result.failures) console.error(`[NALA teardown] Failed fragment ${id}: ${message}`);
             failures.push(...result.failures);
         }
-        if (failures.length) {
+        if (failures.length || recoveryErrors.length) {
             throw new AggregateError(
-                failures.map(({ id, message }) => new Error(`${id}: ${message}`)),
+                [...recoveryErrors, ...failures.map(({ id, message }) => new Error(`${id}: ${message}`))],
                 'Fragment cleanup failed',
             );
         }
@@ -192,6 +235,7 @@ async function globalTeardown() {
         clearRunId();
     } catch (error) {
         global.nalaCleanupResults.totalFailed = global.nalaCleanupResults.totalFound - global.nalaCleanupResults.totalDeleted;
+        for (const path of global.nalaCleanupResults.paths ?? []) path.failed = path.found - path.deleted;
         throw error;
     } finally {
         stopCounting?.();

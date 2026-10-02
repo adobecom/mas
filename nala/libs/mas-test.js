@@ -114,6 +114,7 @@ const masTest = base.extend({
         try {
             await use(page);
         } finally {
+            await page.unrouteAll({ behavior: 'wait' });
             // Store test page in testInfo for base reporter if test failed
             if (testInfo.status === 'failed' && currentTestPage) {
                 testInfo.annotations.push({

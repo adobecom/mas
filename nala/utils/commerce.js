@@ -436,6 +436,7 @@ function createWorkerPageSetup(config = {}) {
 
         // Clean up worker context
         if (workerContext) {
+            for (const page of workerContext.pages()) await page.unrouteAll({ behavior: 'wait' });
             stopCounting?.();
             await workerContext.close();
             workerContext = null;

@@ -81,6 +81,9 @@ Next test -> fresh context -> replay setup -> editor/preview ready -> LIVE test 
 ```
 
 Replay ends before assertions/actions: discard, refresh, navigation, searches, saves and deletes remain live.
+Editor setup waits for the selected fragment and preview markup, not successful live price/checkout resolution;
+each test retains its own commerce assertions. Save completion uses the live response and refreshed editor state,
+not the lifetime of a transient toast. Cached routes finish before their owning page/context closes.
 Different fragment IDs, locales and URL overrides have separate snapshots. Writer and dedicated navigation/editor
 coverage stays cold; no writable fragment or loaded editor tab is shared across tests or executions.
 
@@ -100,6 +103,8 @@ Workers replay only those current-run assets. HAR files are never committed, reu
 from a CI cache, and global setup's teardown removes them after the run (interrupted runs can leave unused files).
 Unrecorded assets fall back to the network and the bounded worker-local static cache; fonts and images also use that cache.
 Documents, authenticated/cookie-bearing requests, API responses, errors and private/no-store responses are not cached.
+Missing (HTTP 404) seed assets are reported and excluded from HAR; their test requests stay live, so caching does not
+block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
 Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;

@@ -23,7 +23,8 @@ The Playwright teardown project and existing GitHub `if: always()` steps use `gl
 3. Each recorded ID is fetched live. Cleanup verifies the run marker and exact path, then deletes using the live ETag.
    A 404 means the test already deleted its fragment.
 4. Only missing ledgers or unfinished intents trigger recovery searches. Searches filter by the current run marker
-   in the five Nala locale paths and the translations path; pagination is deduplicated.
+   in `nala/en_US`, `nala/fr_FR`, `nala/en_CA`, `nala/en_GB`, `nala/en_AU` and `nala/translations`;
+   pagination is deduplicated. Recorded IDs are deleted regardless of their locale or folder.
 5. Failures are reported with partial progress and fail teardown. Maintenance operations have a 90-second bound;
    the existing teardown project retains its overall six-minute budget.
 
@@ -47,7 +48,8 @@ It also persists the resolved test URL, so that separate cleanup step restores a
 GitHub cleanup remains in the separate `Cleanup cloned cards` workflow step; local cleanup runs in the teardown project.
 
 Cleanup logs its start, run ID, repository initialization, recovery searches, deletion batches, each fragment outcome,
-and a final summary. Browser script errors, failed requests and HTTP errors are reported during initialization rather
+and the original colored summary with per-path found/deleted/failed counts. Recovery logs each path being searched.
+Browser script errors, failed requests and HTTP errors are reported during initialization rather
 than leaving an unexplained wait.
 
 The separate `cleanup-cloned-cards.js` maintenance utility still supports account/date-based manual cleanup and

@@ -79,6 +79,12 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
                 pending.push(
                     (async () => {
                         if (!(await isStaticResource(response.request()))) return;
+                        if (response.status() === 404) {
+                            console.warn(
+                                `[NALA] Static HAR miss: HTTP 404 ${response.url()}; excluded from replay, test requests remain live.`,
+                            );
+                            return;
+                        }
                         if (response.status() >= 400)
                             throw new Error(`Static HAR seed failed: HTTP ${response.status()} ${response.url()}`);
                         allowed.add(response.url());
@@ -90,6 +96,7 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
                 pending.push(
                     (async () => {
                         if (await isStaticResource(request)) {
+                            if ((await request.response())?.status() === 404) return;
                             throw new Error(`Static HAR seed failed: ${request.failure().errorText} ${request.url()}`);
                         }
                     })().catch((error) => errors.push(error)),

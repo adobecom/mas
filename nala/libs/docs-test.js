@@ -11,6 +11,7 @@ export const test = base.extend({
         try {
             await use(page);
         } finally {
+            await page.unrouteAll({ behavior: 'wait' });
             stopCounting();
             GlobalRequestCounter.saveCountToFileSync();
             const after = getResourceMetrics();

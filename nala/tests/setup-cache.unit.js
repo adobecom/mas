@@ -17,7 +17,7 @@ import {
     completeFragmentLedger,
     trackFragmentResponses,
 } from '../utils/fragment-ledger.js';
-import globalTeardown, { deleteOwnedFragments, findRunFragments } from '../utils/global.teardown.js';
+import globalTeardown, { deleteOwnedFragments, findRunFragments, printCleanupSummary } from '../utils/global.teardown.js';
 
 test('network Docs suites track each test; benchmark and foreground-timeout suites stay cold', () => {
     const directory = resolve('nala/docs');
@@ -224,7 +224,7 @@ test('ledger persists pending intents, exact owned IDs, response recovery, and c
     await stop();
     assert.equal(readFragmentLedger().fragments[0].id, 'owned');
     assert.equal(readFragmentLedger().recover, true);
-    const id = await completeFragmentCreation(token, { evaluate: async () => owned });
+    const id = await completeFragmentCreation(token, { waitForFunction: async () => {}, evaluate: async () => owned });
     assert.equal(id, 'owned');
     assert.equal(readFragmentLedger().recover, false);
     completeFragmentLedger();
@@ -333,14 +333,42 @@ test('recovery search filters by run marker, includes translations, and deduplic
     t.after(() => {
         delete globalThis.document;
     });
+
+    const locales = ['en_US', 'fr_FR', 'en_CA', 'en_GB', 'en_AU', 'translations'];
     const found = await findRunFragments({
         runId: 'nala-run-offline',
-        locales: ['en_US', 'translations'],
+        locales,
         knownIds: ['known'],
     });
-    assert.equal(found.length, 2);
-    assert.deepEqual(queries, [
-        { path: '/content/dam/mas/nala/en_US', query: 'nala-run-offline' },
-        { path: '/content/dam/mas/nala/translations', query: 'nala-run-offline' },
-    ]);
+    assert.equal(found.length, locales.length);
+    assert.deepEqual(
+        queries,
+        locales.map((locale) => ({ path: `/content/dam/mas/nala/${locale}`, query: 'nala-run-offline' })),
+    );
+});
+
+test('cleanup summary preserves colored totals and exposes per-path outcomes', (t) => {
+    const previous = global.nalaCleanupResults;
+    const lines = [];
+    t.mock.method(console, 'log', (line) => lines.push(line));
+    t.after(() => {
+        global.nalaCleanupResults = previous;
+    });
+    global.nalaCleanupResults = {
+        totalFound: 3,
+        totalDeleted: 2,
+        totalFailed: 1,
+        paths: [
+            { path: '/content/dam/mas/nala/en_US', found: 2, deleted: 2, failed: 0 },
+            { path: '/content/dam/mas/nala/en_GB', found: 1, deleted: 0, failed: 1, searchError: 'Search unavailable' },
+        ],
+    };
+    printCleanupSummary();
+    const output = lines.join('\n');
+    assert.match(output, /\x1b\[1m\x1b\[34m---------Fragment Cleanup Summary---------/);
+    assert.match(output, /Successfully deleted/);
+    assert.match(output, /Failed to delete/);
+    assert.match(output, /nala\/en_US/);
+    assert.match(output, /nala\/en_GB/);
+    assert.match(output, /Recovery search failed: Search unavailable/);
 });

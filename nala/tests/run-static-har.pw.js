@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, rmdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmdirSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
@@ -39,6 +39,9 @@ test.beforeAll(async () => {
         } else if (request.url === '/failed.js') {
             response.writeHead(429, { 'content-type': 'application/javascript' });
             response.end('rate limited');
+        } else if (request.url === '/not-found.js') {
+            response.writeHead(404, { 'content-type': 'text/html' });
+            response.end('not found');
         } else if (request.url.startsWith('/excluded.js')) {
             const policy = new URL(request.url, 'http://localhost').searchParams.get('policy');
             const headers = { 'content-type': 'application/javascript' };
@@ -194,7 +197,34 @@ test('a new invocation cannot replay the previous invocation archive', async ({ 
     }
 });
 
-test('failed static seed responses fail setup and remove the raw archive', async ({ browser }) => {
+test('missing static assets are reported, excluded from HAR, and remain live in tests', async ({ browser }) => {
+    await recordRunStaticHar({
+        browser,
+        name: 'studio',
+        urls: [baseURL],
+        ready: async (page) => {
+            await ready(page);
+            await expect(page.addScriptTag({ url: `${baseURL}/not-found.js` })).rejects.toThrow();
+        },
+    });
+    const har = JSON.parse(readFileSync(join(directory, 'studio.har'), 'utf8'));
+    expect(har.log.entries.some((entry) => entry.request.url === `${baseURL}/not-found.js`)).toBe(false);
+    const context = await browser.newContext();
+    try {
+        const page = await context.newPage();
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        const response = page.waitForResponse(`${baseURL}/not-found.js`);
+        await expect(page.addScriptTag({ url: `${baseURL}/not-found.js` })).rejects.toThrow();
+        expect((await response).status()).toBe(404);
+        await page.unrouteAll({ behavior: 'wait' });
+    } finally {
+        await context.close();
+        unlinkSync(join(directory, 'studio.har'));
+    }
+});
+
+test('rate-limited static seed responses fail setup and remove the raw archive', async ({ browser }) => {
     await expect(
         recordRunStaticHar({
             browser,

@@ -54,6 +54,16 @@ export function recordCreatedFragment(fragment) {
  * Finish a creation using the editor's authoritative ID, not a broad card selector.
  */
 export async function completeFragmentCreation(token, page, selector = 'mas-repository', property = 'fragmentInEdit') {
+    await page.waitForFunction(
+        ({ selector, property, runId }) => {
+            const fragment = document.querySelector(selector)?.[property];
+            if (!fragment?.id || !fragment.title?.includes(runId)) return false;
+            return (
+                selector !== 'mas-repository' || fragment.id === new URLSearchParams(location.hash.slice(1)).get('fragmentId')
+            );
+        },
+        { selector, property, runId: getCurrentRunId() },
+    );
     const fragment = await page.evaluate(
         ({ selector, property }) => {
             const { id, path, title } = document.querySelector(selector)[property];

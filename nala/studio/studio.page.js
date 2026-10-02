@@ -398,38 +398,13 @@ export default class StudioPage {
                             response.request().method() === 'PUT' &&
                             new URL(response.url()).pathname.endsWith(`/cf/fragments/${id}`),
                     ),
-                    this.saveCardButton.click({ force: true }),
+                    this.saveCardButton.click(),
                 ]);
                 expect(response.ok(), 'Fragment save must succeed').toBe(true);
-                await this.page.waitForFunction(() => !document.querySelector('mas-repository').operation.get());
-
-                // Wait for progress toast or success toast (save may complete before progress is visible)
-                await Promise.race([
-                    this.toastProgress.waitFor({ state: 'visible', timeout: 10000 }),
-                    this.toastPositive.waitFor({ state: 'visible', timeout: 10000 }),
-                ]).catch(() => {
-                    throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
-                });
-
-                // Wait for any toast (excluding progress toast)
-                await this.page
-                    .waitForSelector('mas-toast >> sp-toast:not([variant="info"])', {
-                        state: 'visible',
-                        timeout: 15000,
-                    })
-                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
-
-                // Check for error toast first
-                if (await this.toastNegative.isVisible()) {
-                    const errorText = await this.toastNegative.textContent();
-
-                    throw new Error(`[ERROR_TOAST] Save operation received error: "${errorText.trim()}"`);
-                }
-
-                // Wait for success toast
-                await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
-                    throw new Error('[NO_RESPONSE] Save operation failed - no success toast shown');
-                });
+                await this.page.waitForFunction((id) => {
+                    const repo = document.querySelector('mas-repository');
+                    return !repo.operation.get() && repo.fragmentInEdit?.id === id && !repo.fragmentInEdit.hasChanges;
+                }, id);
             });
         } catch (e) {
             // On failure, collect all attempt errors and console logs

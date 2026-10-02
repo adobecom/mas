@@ -1,13 +1,26 @@
 import { createServer } from 'node:http';
 import { test, expect } from '@playwright/test';
-import { EditorBootstrapCache } from '../libs/editor-bootstrap.js';
+import { EditorBootstrapCache, waitForEditorReady } from '../libs/editor-bootstrap.js';
 import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
 import { createWorkerPageSetup } from '../utils/commerce.js';
+import {
+    beginFragmentCreation,
+    completeFragmentCreation,
+    initializeFragmentLedger,
+    readFragmentLedger,
+} from '../utils/fragment-ledger.js';
+import { createRunId, clearRunId } from '../utils/fragment-tracker.js';
+import { unlinkSync, readdirSync, rmdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { test as studioTest } from '../libs/mas-test.js';
+import { test as docsTest } from '../libs/docs-test.js';
+import StudioPage from '../studio/studio.page.js';
 
 const AUTHOR = 'http://author-test.adobeaemcloud.com';
 let server;
 let baseURL;
 let documentLoads;
+let slowAssetStarted;
 
 const editorHTML = `<!doctype html>
 <mas-repository></mas-repository><mas-fragment-editor></mas-fragment-editor>
@@ -42,6 +55,14 @@ test.beforeAll(async () => {
     documentLoads = [];
     server = createServer((request, response) => {
         documentLoads.push(request.url);
+        if (request.url.startsWith('/slow-asset')) {
+            slowAssetStarted();
+            setTimeout(() => {
+                response.writeHead(200, { 'content-type': 'image/svg+xml' });
+                response.end('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>');
+            }, 200);
+            return;
+        }
         const asset = request.url.startsWith('/asset');
         response.writeHead(200, { 'content-type': asset ? 'application/javascript' : 'text/html' });
         response.end(
@@ -181,26 +202,133 @@ test('seed, locale, URL overrides and worker caches have separate cold snapshots
     }
 });
 
-test('failed bootstrap never commits a snapshot', async ({ browser }) => {
+test('editor bootstrap does not turn commerce preview failures into setup assertions', async ({ browser }) => {
     const cache = new EditorBootstrapCache();
     const calls = [];
     const url = `${baseURL}/editor#fragmentId=seed-a`;
     const failed = await seedPage(browser, cache, calls, true);
     try {
-        await expect(cache.open(failed.page, url)).rejects.toThrow('must resolve');
-        expect(cache.snapshots.size).toBe(0);
+        await cache.open(failed.page, url);
+        expect(await failed.page.locator('merch-card').evaluate((card) => card.failed)).toBe(true);
+        expect(cache.snapshots.size).toBe(1);
     } finally {
         await failed.context.close();
     }
     const recovered = await seedPage(browser, cache, calls);
     try {
         await cache.open(recovered.page, url);
-        expect(calls).toHaveLength(6);
+        expect(calls).toHaveLength(3);
         expect(cache.snapshots.size).toBe(1);
     } finally {
         await recovered.context.close();
     }
 });
+
+test('fragment registration waits for navigation and the newly initialized run-owned editor', async ({ page }) => {
+    const previousRunId = process.env.NALA_RUN_ID;
+    const runId = createRunId();
+    const directory = resolve('nala/.runs', runId);
+    initializeFragmentLedger();
+    try {
+        await page.goto(baseURL);
+        await page.setContent('<mas-repository></mas-repository>');
+        await page.evaluate((runId) => {
+            location.hash = 'page=fragment-editor&fragmentId=created';
+            const repo = document.querySelector('mas-repository');
+            repo.fragmentInEdit = {
+                id: 'previous',
+                title: runId,
+                path: '/content/dam/mas/nala/en_GB/previous',
+            };
+            setTimeout(() => {
+                repo.fragmentInEdit = {
+                    id: 'created',
+                    title: runId,
+                    path: '/content/dam/mas/nala/en_GB/created',
+                };
+            }, 150);
+        }, runId);
+        const token = beginFragmentCreation('create');
+        expect(await completeFragmentCreation(token, page)).toBe('created');
+        expect(readFragmentLedger().fragments.map(({ id }) => id)).toEqual(['created']);
+        expect(readFragmentLedger().recover).toBe(false);
+    } finally {
+        for (const name of readdirSync(directory)) unlinkSync(join(directory, name));
+        rmdirSync(directory);
+        clearRunId();
+        if (previousRunId !== undefined) process.env.NALA_RUN_ID = previousRunId;
+    }
+});
+
+test('editor readiness does not wait for unresolved live commerce', async ({ browser }) => {
+    const cache = new EditorBootstrapCache();
+    const { page, context } = await seedPage(browser, cache, []);
+    try {
+        await cache.open(page, `${baseURL}/editor#fragmentId=seed-a`);
+        await page.locator('merch-card').evaluate((card) => {
+            card.checkReady = () => {
+                throw new Error('Commerce resolution must be asserted by the test, not editor setup');
+            };
+        });
+        await waitForEditorReady(page, 'seed-a');
+    } finally {
+        await context.close();
+    }
+});
+
+for (const [name, fixtureTest] of [
+    ['Studio', studioTest],
+    ['Docs', docsTest],
+]) {
+    fixtureTest(`${name} fixture finishes pending static routes before closing the page`, async ({ page }, testInfo) => {
+        globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
+        const started = new Promise((resolve) => {
+            slowAssetStarted = resolve;
+        });
+        await page.goto(baseURL);
+        await page.evaluate((url) => {
+            const image = new Image();
+            image.src = url;
+            document.body.append(image);
+        }, `${baseURL}/slow-asset-${name}.svg`);
+        await started;
+    });
+}
+
+for (const status of [200, 500]) {
+    test(`save waits for the live response and refreshed state without a toast (HTTP ${status})`, async ({ page }) => {
+        await page.goto(baseURL);
+        await page.setContent(
+            '<mas-repository></mas-repository><mas-fragment-editor></mas-fragment-editor>' +
+                '<mas-side-nav><mas-side-nav-item label="Save">Save</mas-side-nav-item></mas-side-nav>',
+        );
+        await page.route('**/adobe/sites/cf/fragments/saved', (route) =>
+            route.fulfill({ status, contentType: 'application/json', body: '{}' }),
+        );
+        await page.evaluate(() => {
+            const fragment = { id: 'saved', hasChanges: true };
+            const repo = document.querySelector('mas-repository');
+            const editor = document.querySelector('mas-fragment-editor');
+            let saving = false;
+            repo.fragmentInEdit = fragment;
+            repo.operation = { get: () => saving };
+            editor.fragment = fragment;
+            document.querySelector('mas-side-nav-item').addEventListener('click', async () => {
+                saving = true;
+                const response = await fetch('/adobe/sites/cf/fragments/saved', { method: 'PUT' });
+                if (response.ok) fragment.hasChanges = false;
+                saving = false;
+            });
+        });
+        const studio = new StudioPage(page);
+        if (status === 200) {
+            await studio.saveCard();
+            expect(await page.locator('mas-repository').evaluate((repo) => repo.fragmentInEdit.hasChanges)).toBe(false);
+        } else {
+            await expect(studio.saveCard()).rejects.toThrow('Fragment save must succeed');
+        }
+    });
+}
 
 test('bootstrap disable flag keeps warm seeds live with the same readiness boundary', async ({ browser }) => {
     const cache = new EditorBootstrapCache();

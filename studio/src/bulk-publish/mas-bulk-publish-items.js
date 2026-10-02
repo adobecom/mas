@@ -4,7 +4,6 @@ import { STAGED } from '../constants.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
-    staged: 'Staged',
 };
 
 function emit(target, type, detail) {
@@ -33,7 +32,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     get errorCount() {
-        return this.items.filter((i) => i.status === 'error' && i.reason !== STAGED.NAME).length;
+        return this.items.filter((i) => i.status === 'error').length;
     }
 
     get urlLines() {
@@ -88,6 +87,11 @@ class MasBulkPublishItems extends LitElement {
         if (!item.status || item.status === 'pending') {
             return html`<span class="status-cell status-pending">Pending…</span>`;
         }
+        if (item.staged) {
+            return html`<span class="status-cell">
+                <span class="status-staged">Staged</span>
+            </span>`;
+        }
         if (item.status === 'valid') {
             return html`<span class="status-cell status-valid">
                 <sp-icon-checkmark-circle></sp-icon-checkmark-circle>
@@ -96,12 +100,6 @@ class MasBulkPublishItems extends LitElement {
         }
 
         const label = ERROR_LABELS[item.reason] ?? 'Invalid URL';
-        if (item.reason === STAGED.NAME) {
-            return html`<span class="status-cell">
-                <span class="status-staged">${label}</span>
-            </span>`;
-        }
-
         return html`<span class="status-cell status-error">
             <sp-icon-alert></sp-icon-alert>
             ${label}

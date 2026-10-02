@@ -185,7 +185,7 @@ describe('MasPromotionsEditor', () => {
         el.fragmentStore.updateField('startDate', ['2024-01-01T00:00:00.000Z']);
         el.fragmentStore.updateField('endDate', ['2024-12-31T00:00:00.000Z']);
         el.fragmentStore.updateField('tags', ['mas:promotion/code-test']);
-        el.fragmentStore.updateField('geos', ['mas:locale/us']);
+        el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
         el.fragmentStore.updateField('surfaces', ['sandbox']);
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
@@ -868,16 +868,115 @@ describe('MasPromotionsEditor', () => {
             expect(tagsPicker.getAttribute('value')).to.equal('mas:promotion/new');
         });
 
-        it('updates geos via change on geos tag-picker-field', async () => {
+        it('updates personalization tags and keeps country and locale geos', async () => {
             const el = await mountEditor();
-            const tagPickers = el.renderRoot.querySelectorAll('aem-tag-picker-field');
-            const geosPicker = tagPickers[1];
-            expect(geosPicker).to.not.be.null;
-            geosPicker.setAttribute('value', 'mas:locale/us');
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            geosPicker.setAttribute('value', 'mas:pzn/teams');
             geosPicker.dispatchEvent(new Event('change', { bubbles: true }));
             await el.updateComplete;
-            const geos = el.fragment.getFieldValues('geos');
-            expect(geos).to.deep.equal(['mas:locale/us']);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal([
+                'mas:locale/en_US',
+                'mas:pzn/country/US',
+                'mas:pzn/teams',
+            ]);
+        });
+
+        it('shows only personalization tags in the pzn picker', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            expect(geosPicker.getAttribute('top')).to.equal('pzn');
+            expect(geosPicker.getAttribute('label')).to.equal('Personalization tags');
+            expect(geosPicker.value).to.deep.equal(['/content/cq:tags/mas/pzn/smb']);
+        });
+
+        it('disables the countries selector with a hint when no surface is selected', async () => {
+            const el = await mountEditor();
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            expect(selector.disabled).to.be.true;
+            expect(selector.addLabel).to.equal('Select surfaces first');
+            expect(selector.description).to.equal('Countries will be generated automatically once surfaces are selected.');
+        });
+
+        it('offers only countries available on every selected surface', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom', 'ccd']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            const picker = selector.querySelector('mas-translation-languages');
+            const countries = picker.items.map(({ country }) => country);
+            expect(selector.disabled).to.be.false;
+            expect(countries).to.include('US');
+            expect(countries).to.not.include('BG');
+        });
+
+        it('shows selected countries from pzn country tags only', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#promotion-countries').selected).to.deep.equal(['US']);
+        });
+
+        it('writes confirmed countries as pzn country tags and keeps other geos', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/smb', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            const picker = selector.querySelector('mas-translation-languages');
+            selector.dispatchEvent(new Event('open'));
+            expect(picker.targetStore.targetLocales.value).to.deep.equal(['US']);
+            picker.targetStore.targetLocales.set(['FR', 'DE']);
+            selector.dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal([
+                'mas:locale/en_US',
+                'mas:pzn/smb',
+                'mas:pzn/country/FR',
+                'mas:pzn/country/DE',
+            ]);
+        });
+
+        it('does not change geos when country selection is cancelled', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-translation-languages').targetStore.targetLocales.set(['FR']);
+            selector.dispatchEvent(new Event('cancel'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('removes countries not available on newly added surfaces', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US', 'mas:pzn/country/BG']);
+            await el.updateComplete;
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', 'ccd']);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/smb', 'mas:pzn/country/US']);
+        });
+
+        it('removes all countries when the last surface is deleted', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('sp-tag[deletable][value="acom"]')
+                .dispatchEvent(new Event('delete', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal([]);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:locale/en_US']);
         });
 
         it('removes surface on delete event from sp-tag', async () => {
@@ -2043,7 +2142,7 @@ describe('MasPromotionsEditor', () => {
                     { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
                     { name: 'tags', values: ['mas:promotion/original'] },
                     { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
-                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:pzn/country/US'] },
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
                 ],
             });
@@ -2093,7 +2192,7 @@ describe('MasPromotionsEditor', () => {
                     { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
                     { name: 'tags', values: ['mas:promotion/original'] },
                     { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
-                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:pzn/country/US'] },
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
                 ],
             });

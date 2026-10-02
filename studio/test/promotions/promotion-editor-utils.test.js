@@ -444,7 +444,7 @@ describe('promotion-editor-utils', () => {
                 return map[name];
             },
             getFieldValues: (name) => {
-                if (name === 'geos') return ['us'];
+                if (name === 'geos') return ['mas:pzn/country/US'];
                 if (name === 'tags') return ['mas:promotion/test'];
                 if (name === 'surfaces') return ['sandbox'];
                 return [];
@@ -460,7 +460,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValues: (name) => {
                     if (name === 'tags') return ['mas:promotion/test'];
-                    if (name === 'geos') return ['us'];
+                    if (name === 'geos') return ['mas:pzn/country/US'];
                     if (name === 'surfaces') return [];
                     return [];
                 },
@@ -522,23 +522,24 @@ describe('promotion-editor-utils', () => {
             expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
         });
 
-        it('returns a message when geos are missing', () => {
+        it('returns a message when countries are missing', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValues: (name) => {
                     if (name === 'tags') return ['mas:promotion/test'];
                     if (name === 'surfaces') return ['sandbox'];
+                    if (name === 'geos') return ['mas:locale/en_US', 'mas:pzn/smb'];
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one geo.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please select at least one country.');
         });
 
         it('returns a message when no promotion classification tag', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValues: (name) => {
-                    if (name === 'geos') return ['us'];
+                    if (name === 'geos') return ['mas:pzn/country/US'];
                     if (name === 'surfaces') return ['sandbox'];
                     if (name === 'tags') return ['mas:status/published'];
                     return [];

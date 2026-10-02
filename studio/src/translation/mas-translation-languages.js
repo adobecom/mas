@@ -20,6 +20,10 @@ class MasTranslationLanguages extends LitElement {
         searchQuery: { type: String, state: true },
         includeSource: { type: Boolean, attribute: 'include-source' },
         includeRegional: { type: Boolean, attribute: 'include-regional' },
+        items: { type: Array, attribute: false },
+        noun: { type: String },
+        nounPlural: { type: String, attribute: 'noun-plural' },
+        searchPlaceholder: { type: String, attribute: 'search-placeholder' },
     };
 
     constructor() {
@@ -28,16 +32,29 @@ class MasTranslationLanguages extends LitElement {
         this.searchQuery = '';
         this.includeSource = false;
         this.includeRegional = false;
+        this.items = null;
+        this.noun = 'language';
+        this.searchPlaceholder = 'Search locale';
     }
 
     connectedCallback() {
         super.connectedCallback();
+        if (!this.items) this.localesArray = this.surfaceLocales;
+        this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
+    }
+
+    willUpdate(changed) {
+        if (changed.has('items') && this.items) {
+            this.localesArray = [...this.items].sort((a, b) => a.locale.localeCompare(b.locale));
+        }
+    }
+
+    get surfaceLocales() {
         const surface = Store.search.value.path;
         const source = this.includeRegional ? getSurfaceLocales(surface) : getDefaultLocales(surface);
         const all = source.map((item) => ({ ...item, locale: getLocaleCode(item) }));
         const filtered = this.includeSource ? all : all.filter((item) => item.locale !== 'en_US');
-        this.localesArray = filtered.sort((a, b) => a.locale.localeCompare(b.locale));
-        this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
+        return filtered.sort((a, b) => a.locale.localeCompare(b.locale));
     }
 
     get selectedLocales() {
@@ -61,7 +78,7 @@ class MasTranslationLanguages extends LitElement {
     }
 
     get numberOfLocales() {
-        return computeSelectionCountLabel(this.selectedLocales.length, this.localesArray.length, 'language');
+        return computeSelectionCountLabel(this.selectedLocales.length, this.localesArray.length, this.noun, this.nounPlural);
     }
 
     get groupedLocales() {
@@ -161,7 +178,7 @@ class MasTranslationLanguages extends LitElement {
             <div class="select-lang-content">
                 <div class="sticky-header">
                     <sp-search
-                        placeholder="Search locale"
+                        placeholder=${this.searchPlaceholder}
                         .value=${this.searchQuery}
                         @input=${this.handleSearch}
                         @change=${this.handleSearch}

@@ -11,6 +11,7 @@ class MasGroupedSelector extends LitElement {
         description: { type: String },
         required: { type: Boolean },
         readonly: { type: Boolean },
+        disabled: { type: Boolean },
         selected: { type: Array },
         expanded: { type: Boolean, state: true },
         showEmptyState: { type: Boolean, state: true },
@@ -26,6 +27,7 @@ class MasGroupedSelector extends LitElement {
         this.description = '';
         this.required = false;
         this.readonly = false;
+        this.disabled = false;
         this.selected = [];
         this.expanded = false;
         this.showEmptyState = true;
@@ -110,6 +112,7 @@ class MasGroupedSelector extends LitElement {
                             size="xl"
                             icon-only
                             class="ghost-button add-button"
+                            ?disabled=${this.disabled}
                             @click=${this.#open}
                         >
                             <sp-icon-add size="xxl" slot="icon" label=${this.addLabel}></sp-icon-add>
@@ -136,7 +139,13 @@ class MasGroupedSelector extends LitElement {
                     ${this.readonly
                         ? nothing
                         : this.renderOverlay(html`
-                              <sp-action-button slot="trigger" class="edit-button" quiet @click=${this.#open}>
+                              <sp-action-button
+                                  slot="trigger"
+                                  class="edit-button"
+                                  quiet
+                                  ?disabled=${this.disabled}
+                                  @click=${this.#open}
+                              >
                                   <sp-icon-edit slot="icon" label="Edit"></sp-icon-edit>
                                   Edit
                               </sp-action-button>

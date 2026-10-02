@@ -387,4 +387,38 @@ describe('MasTranslationLanguages', () => {
             expect(el.localesArray.length).to.be.greaterThan(0);
         });
     });
+
+    describe('explicit items', () => {
+        const items = [
+            { locale: 'US', country: 'US' },
+            { locale: 'FR', country: 'FR' },
+        ];
+
+        it('uses provided items instead of surface locales, sorted', async () => {
+            const el = await fixture(html`<mas-translation-languages .items=${items}></mas-translation-languages>`);
+            expect(el.localesArray.map(({ locale }) => locale)).to.deep.equal(['FR', 'US']);
+        });
+
+        it('groups provided items by region', async () => {
+            const el = await fixture(html`<mas-translation-languages .items=${items}></mas-translation-languages>`);
+            const groups = el.groupedLocales.map(({ name, locales }) => [name, locales.map(({ locale }) => locale)]);
+            expect(groups).to.deep.equal([
+                ['LATAM/Americas', ['US']],
+                ['EMEA', ['FR']],
+            ]);
+        });
+
+        it('renders the custom noun and search placeholder', async () => {
+            const el = await fixture(html`
+                <mas-translation-languages
+                    .items=${items}
+                    noun="country"
+                    noun-plural="countries"
+                    search-placeholder="Search country"
+                ></mas-translation-languages>
+            `);
+            expect(el.shadowRoot.querySelector('.locale-count').textContent).to.equal('2 countries');
+            expect(el.shadowRoot.querySelector('sp-search').getAttribute('placeholder')).to.equal('Search country');
+        });
+    });
 });

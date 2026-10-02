@@ -90,7 +90,7 @@ describe('MasGroupedSelector', () => {
         const el = await render();
         const onOpen = sinon.spy();
         el.addEventListener('open', onOpen);
-        query(el, '.add-button').click();
+        query(el, '.add-button').dispatchEvent(new Event('click'));
         expect(onOpen.calledOnce).to.be.true;
     });
 
@@ -120,7 +120,7 @@ describe('MasGroupedSelector', () => {
 
     it('keeps the empty state while the dialog is open and updates it on close', async () => {
         const el = await render();
-        query(el, '.add-button').click();
+        query(el, '.add-button').dispatchEvent(new Event('click'));
         el.selected = ['fr_FR'];
         await el.updateComplete;
         expect(el.showEmptyState).to.be.true;
@@ -134,5 +134,17 @@ describe('MasGroupedSelector', () => {
         el.selected = [];
         await el.updateComplete;
         expect(el.showEmptyState).to.be.true;
+    });
+
+    it('disables the triggers when disabled', async () => {
+        const empty = await render();
+        empty.disabled = true;
+        await empty.updateComplete;
+        expect(query(empty, '.add-button').disabled).to.be.true;
+        fixtureCleanup();
+        const filled = await render(['fr_FR']);
+        filled.disabled = true;
+        await filled.updateComplete;
+        expect(query(filled, '.edit-button').disabled).to.be.true;
     });
 });

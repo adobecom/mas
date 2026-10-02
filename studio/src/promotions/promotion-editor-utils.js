@@ -753,18 +753,11 @@ export function applyPromotionItemSelectionToFragment(
 export function buildPromotionOffersFieldValues(promotionFragment, selectedOfferIds, overrides = {}) {
     const offerValues = promotionFragment?.getField('offers') ? promotionFragment.getFieldValues('offers') : [];
     const parsed = parsePromotionOffersField(offerValues);
-    let promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
-    let offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
-    let ignoredVariations = overrides.ignoredVariations ?? parsed.ignoredVariations;
+    const promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
+    const offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
+    const ignoredVariations = overrides.ignoredVariations ?? parsed.ignoredVariations;
     const geos = promotionFragment?.getFieldValues?.('geos') ?? [];
     const displayToCq = new Map(geos.map((g) => [formatGeoDisplayLabel(g), g]).filter(([label]) => label));
-    if (geos.length) {
-        const valid = new Set(displayToCq.keys());
-        const isValid = (key) => valid.has(key.split('|')[1]);
-        promoExceptions = new Map([...promoExceptions].filter(([k]) => isValid(k)));
-        offerSubstitutions = new Map([...offerSubstitutions].filter(([k]) => isValid(k)));
-        ignoredVariations = new Map([...ignoredVariations].filter(([k]) => isValid(k)));
-    }
     return serializePromotionOffersField(promoExceptions, offerSubstitutions, ignoredVariations, selectedOfferIds, displayToCq);
 }
 

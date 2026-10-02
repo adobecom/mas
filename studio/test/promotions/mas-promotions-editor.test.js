@@ -152,6 +152,7 @@ describe('MasPromotionsEditor', () => {
             getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
+            clearStagedTag: sandbox.stub().resolves(null),
             aem: {
                 sites: {
                     cf: {
@@ -679,6 +680,7 @@ describe('MasPromotionsEditor', () => {
                     },
                     getFragmentByPath: sandbox.stub().resolves(null),
                 },
+                clearStagedTag: sandbox.stub().resolves(null),
             });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Publish');

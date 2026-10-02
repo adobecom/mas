@@ -1,0 +1,735 @@
+/**
+ * AEM Client
+ * Wrapper for AEM Sites Content Fragment APIs
+ */
+export class AEMClient {
+    constructor(baseUrl, authManager) {
+        this.baseUrl = baseUrl.replace(/\/$/, '');
+        this.authManager = authManager;
+    }
+
+    /**
+     * Search for fragments with filters
+     */
+    async searchFragments(params) {
+        const {
+            path = '/content/dam/mas',
+            query,
+            tags,
+            modelIds,
+            limit = 50,
+            offset = 0,
+            cursor,
+            searchMode = 'EDGES',
+            includeCursor = false,
+        } = params;
+
+        const authHeader = await this.authManager.getAuthHeader();
+        console.log('[AEMClient] Auth header:', authHeader ? 'present' : 'MISSING');
+
+        const filter = { path };
+
+        if (query && query.trim()) {
+            const trimmedQuery = query.trim();
+
+            // Auto-detect if we should use EXACT_PHRASE mode for special characters
+            let resolvedMode = searchMode;
+            const hasSpecialChars = /[+\-()]/.test(trimmedQuery);
+            const isQuoted = trimmedQuery.startsWith('"') && trimmedQuery.endsWith('"');
+
+            if ((hasSpecialChars || isQuoted) && searchMode === 'EDGES') {
+                resolvedMode = 'EXACT_PHRASE';
+                console.log(`[AEMClient] Auto-detected special characters/quoted phrase, switching to EXACT_PHRASE mode`);
+            }
+
+            // Strip quotes for EXACT_PHRASE mode (the mode itself indicates phrase matching)
+            let queryText = trimmedQuery;
+            if (resolvedMode === 'EXACT_PHRASE' && isQuoted) {
+                queryText = trimmedQuery.slice(1, -1);
+                console.log(`[AEMClient] Stripped quotes for EXACT_PHRASE: "${trimmedQuery}" → "${queryText}"`);
+            }
+
+            filter.fullText = {
+                text: queryText,
+                queryMode: resolvedMode,
+            };
+
+            console.log(`[AEMClient] Full text search: query="${queryText}" mode="${resolvedMode}"`);
+        }
+
+        if (tags && tags.length > 0) {
+            filter.tags = tags;
+        }
+
+        if (modelIds && modelIds.length > 0) {
+            filter.modelIds = modelIds;
+        }
+
+        const searchQuery = {
+            filter,
+        };
+
+        console.log('[AEMClient] Search query structure:', JSON.stringify(searchQuery, null, 2));
+
+        const searchParams = new URLSearchParams({
+            query: JSON.stringify(searchQuery),
+        });
+
+        if (limit) {
+            searchParams.set('limit', String(limit));
+        }
+
+        if (cursor) {
+            searchParams.set('cursor', cursor);
+        } else if (offset) {
+            searchParams.set('offset', String(offset));
+        }
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/search?${searchParams}`;
+
+        console.log('[AEMClient] Request URL:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            console.error('[AEMClient] Search failed!');
+            console.error('[AEMClient] Response status:', response.status, response.statusText);
+            console.error('[AEMClient] Response headers:', Object.fromEntries(response.headers.entries()));
+            console.error('[AEMClient] Response body:', errorText);
+            console.error('[AEMClient] Search params:', { path, query, tags, limit, offset });
+            throw new Error(`AEM search failed: ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
+        }
+
+        const data = await response.json();
+        if (includeCursor) {
+            return { items: data.items || [], cursor: data.cursor || null };
+        }
+        return data.items || [];
+    }
+
+    /**
+     * Get fragment by ID
+     */
+    async getFragment(id) {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: authHeader,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment: ${response.statusText}`);
+        }
+
+        // Extract ETag from response headers (required for updates)
+        const etag = response.headers.get('Etag');
+        const fragment = await response.json();
+        fragment.etag = etag;
+
+        return fragment;
+    }
+
+    /**
+     * Get fragment by path
+     */
+    async getFragmentByPath(path) {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments?path=${encodeURIComponent(path)}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment by path: ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Create a new fragment
+     */
+    async createFragment(data) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => null);
+            const detail = errorBody?.detail || errorBody?.message || errorBody?.['o:errorCode'] || JSON.stringify(errorBody);
+            throw new Error(`Failed to create fragment: ${response.status} ${detail || response.statusText}`);
+        }
+
+        const fragment = await response.json();
+
+        await this.waitForFragment(fragment.id);
+
+        return fragment;
+    }
+
+    /**
+     * Save a fragment with complete fields array (PUT method)
+     * Mirrors frontend approach for consistency
+     */
+    async saveFragment(id, title, description, fields, etag) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
+
+        const headers = {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+            'CSRF-Token': csrfToken,
+            pragma: 'no-cache',
+            'cache-control': 'no-cache',
+            'x-aem-affinity-type': 'api',
+        };
+
+        if (etag) {
+            headers['If-Match'] = etag;
+        }
+
+        const body = {
+            title,
+            description,
+            fields,
+        };
+
+        console.log('[AEMClient] saveFragment called with:', {
+            id,
+            title,
+            description,
+            fieldsCount: Array.isArray(fields) ? fields.length : 0,
+            etag: etag ? 'present' : 'missing',
+        });
+
+        console.log('[AEMClient] PUT request body to be sent:', JSON.stringify(body, null, 2));
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const responseText = await response.text();
+            let error;
+            try {
+                error = JSON.parse(responseText);
+            } catch {
+                error = { message: response.statusText, body: responseText };
+            }
+
+            console.error('[AEMClient] Save failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorMessage: error.message,
+                responseBody: responseText.substring(0, 500),
+                requestBody: JSON.stringify(body, null, 2),
+                requestHeaders: headers,
+            });
+            throw new Error(`Failed to save fragment (${response.status}): ${error.message || response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Update a fragment
+     */
+    async updateFragment(id, fields, etag, title, tags) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
+
+        const currentFragment = await this.getFragment(id);
+        if (!currentFragment) throw new Error(`Fragment not found: ${id}`);
+
+        const currentEtag = etag || currentFragment.etag;
+
+        const currentFields = Array.isArray(currentFragment.fields) ? currentFragment.fields : [];
+
+        const mergedFields = currentFields.map((field) => {
+            if (fields && field.name in fields) {
+                const newValue = fields[field.name];
+                return {
+                    ...field,
+                    values: Array.isArray(newValue) ? newValue : [newValue],
+                };
+            }
+            return field;
+        });
+
+        if (fields) {
+            const existingNames = new Set(currentFields.map((f) => f.name));
+            for (const [key, value] of Object.entries(fields)) {
+                if (!existingNames.has(key)) {
+                    mergedFields.push({
+                        name: key,
+                        values: Array.isArray(value) ? value : [value],
+                    });
+                }
+            }
+        }
+
+        const body = {
+            title: title !== undefined ? title : currentFragment.title,
+            fields: mergedFields,
+        };
+
+        const headers = {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+            'CSRF-Token': csrfToken,
+            pragma: 'no-cache',
+            'cache-control': 'no-cache',
+            'x-aem-affinity-type': 'api',
+        };
+
+        if (currentEtag) {
+            headers['If-Match'] = currentEtag;
+        }
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const responseText = await response.text();
+            let error;
+            try {
+                error = JSON.parse(responseText);
+            } catch {
+                error = { message: response.statusText, body: responseText };
+            }
+
+            console.error('[AEMClient] Update failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorMessage: error.message,
+                responseBody: responseText.substring(0, 500),
+            });
+            throw new Error(`Failed to update fragment (${response.status}): ${error.message || response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        if (tags !== undefined) {
+            await this.applyValidTags(id, tags);
+        }
+
+        return result;
+    }
+
+    /**
+     * Apply tags to a fragment, skipping any that don't exist in AEM taxonomy.
+     */
+    async applyValidTags(id, tags) {
+        try {
+            await this.updateFragmentTags(id, tags);
+        } catch (error) {
+            const match = error.message?.match(/Tag id\(s\) not valid: \[([^\]]+)\]/);
+            if (match) {
+                const invalidTags = match[1].split(',').map((t) => t.trim());
+                const validTags = tags.filter((t) => !invalidTags.includes(t));
+                if (validTags.length > 0) {
+                    console.log(
+                        `[AEMClient] Retrying with ${validTags.length} valid tags (skipped ${invalidTags.length} invalid)`,
+                    );
+                    await this.updateFragmentTags(id, validTags);
+                } else {
+                    console.log('[AEMClient] No valid tags to apply');
+                }
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    /**
+     * Update fragment tags via dedicated tags endpoint
+     */
+    async updateFragmentTags(id, tags) {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const tagsUrl = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}/tags`;
+
+        let getResp = await fetch(tagsUrl, { method: 'GET', headers: { Authorization: authHeader } });
+        if (getResp.status === 404) {
+            await new Promise((r) => setTimeout(r, 3000));
+            getResp = await fetch(tagsUrl, { method: 'GET', headers: { Authorization: authHeader } });
+        }
+        if (!getResp.ok) {
+            throw new Error(`Failed to get tags for fragment (${getResp.status})`);
+        }
+        const etag = getResp.headers.get('Etag');
+
+        let response = await fetch(tagsUrl, {
+            method: 'PUT',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                'If-Match': etag,
+            },
+            body: JSON.stringify({ tags }),
+        });
+
+        if (response.status === 404) {
+            await new Promise((r) => setTimeout(r, 3000));
+            getResp = await fetch(tagsUrl, { method: 'GET', headers: { Authorization: authHeader } });
+            if (!getResp.ok) throw new Error(`Failed to get tags for fragment (${getResp.status})`);
+            const freshEtag = getResp.headers.get('Etag');
+            response = await fetch(tagsUrl, {
+                method: 'PUT',
+                headers: {
+                    Authorization: authHeader,
+                    'Content-Type': 'application/json',
+                    'If-Match': freshEtag,
+                },
+                body: JSON.stringify({ tags }),
+            });
+        }
+
+        if (!response.ok) {
+            const responseText = await response.text();
+            console.error('[AEMClient] updateFragmentTags failed:', { status: response.status, responseText });
+            throw new Error(`Failed to update tags (${response.status}): ${responseText}`);
+        }
+    }
+
+    /**
+     * Publish a fragment
+     */
+    async publishFragment(id) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const fragment = await this.getFragment(id);
+        if (!fragment) throw new Error(`Fragment not found: ${id}`);
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/publish`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+                'If-Match': fragment.etag,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+            body: JSON.stringify({
+                paths: [fragment.path],
+                filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
+                workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
+            }),
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(
+                `Failed to publish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`,
+            );
+        }
+
+        if (response.status === 204) return { success: true };
+        return await response.json();
+    }
+
+    /**
+     * Unpublish a fragment
+     */
+    async unpublishFragment(id) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const fragment = await this.getFragment(id);
+        if (!fragment) throw new Error(`Fragment not found: ${id}`);
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/publish`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+                'If-Match': fragment.etag,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+            body: JSON.stringify({
+                paths: [fragment.path],
+                workflowModelId: '/var/workflow/models/scheduled_deactivation',
+            }),
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(
+                `Failed to unpublish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`,
+            );
+        }
+
+        if (response.status === 204) return { success: true };
+        return await response.json();
+    }
+
+    /**
+     * Copy/duplicate a fragment
+     */
+    async copyFragment(params) {
+        const { id, parentPath, newTitle } = params;
+
+        const fragment = await this.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Fragment ${id} not found`);
+        }
+
+        const copyData = {
+            title: newTitle || `${fragment.title} (Copy)`,
+            description: fragment.description,
+            model: fragment.model?.id || fragment.model,
+            parentPath: parentPath || fragment.parentPath,
+            fields: fragment.fields,
+            tags: fragment.tags || [],
+        };
+
+        return await this.createFragment(copyData);
+    }
+
+    /**
+     * Get CSRF token for write operations
+     */
+    async getCsrfToken() {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const url = `${this.baseUrl}/libs/granite/csrf/token.json`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: authHeader,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to get CSRF token');
+        }
+
+        const data = await response.json();
+        return data.token;
+    }
+
+    /**
+     * Wait for fragment to be fully created/updated (polling)
+     */
+    async waitForFragment(id, maxAttempts = 10) {
+        for (let i = 0; i < maxAttempts; i++) {
+            try {
+                const fragment = await this.getFragment(id);
+                if (fragment && fragment.id) {
+                    return fragment;
+                }
+            } catch {
+                // Fragment not ready yet
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+
+        throw new Error(`Fragment ${id} not available after ${maxAttempts} attempts`);
+    }
+
+    async createFolder(path) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+        const url = `${this.baseUrl}${path}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: authHeader,
+                'CSRF-Token': csrfToken,
+                'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+            },
+            body: JSON.stringify({ 'jcr:primaryType': 'sling:OrderedFolder' }),
+        });
+        return response.status === 201 || response.ok || response.status === 409;
+    }
+
+    /**
+     * Find content fragments by exact jcr:title using AEM QueryBuilder.
+     * The CF Fragments Search API does not index jcr:title; QueryBuilder does.
+     * Returns an array of objects with { id, title, path } suitable for
+     * passing to getFragment() for full data.
+     *
+     * @param {string} title - Exact jcr:title to match
+     * @param {string} path - DAM path to scope the search (e.g. /content/dam/mas/sandbox)
+     * @param {number} limit - Max results (capped at 500 by QueryBuilder)
+     */
+    async findFragmentsByTitle(title, path, limit = 200) {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const params = new URLSearchParams({
+            path,
+            type: 'dam:AssetContent',
+            property: 'jcr:title',
+            'property.value': title,
+            'p.limit': String(Math.min(limit, 500)),
+            'p.hits': 'selective',
+            'p.properties': 'jcr:title jcr:path',
+        });
+
+        const url = `${this.baseUrl}/bin/querybuilder.json?${params}`;
+        console.log('[AEMClient] QueryBuilder title search:', url);
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    Authorization: authHeader,
+                    pragma: 'no-cache',
+                    'cache-control': 'no-cache',
+                },
+            });
+        } finally {
+            clearTimeout(timeout);
+        }
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            console.error('[AEMClient] QueryBuilder failed:', response.status, text.substring(0, 200));
+            throw new Error(`QueryBuilder search failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(`[AEMClient] QueryBuilder returned ${data.total} hits`);
+
+        return (data.hits || []).map((hit) => ({
+            path: hit['jcr:path']?.replace('/jcr:content', '') || hit['jcr:path'],
+            title: hit['jcr:title'],
+        }));
+    }
+
+    /**
+     * Find fragments whose jcr:title contains the search string (case-insensitive).
+     * Paginates through fragments under the given path using the CF Fragments search API.
+     * Used as fallback when QueryBuilder is unavailable.
+     * @param {string} title - Title substring to match (case-insensitive)
+     * @param {string} path - DAM path to scope the search
+     * @returns {Promise<Array<{path: string, title: string, id: string}>>}
+     */
+    async findFragmentsByTitleFallback(title, path) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const pageSize = 50;
+        const maxPages = 20;
+        const perPageTimeoutMs = 2000;
+        const needle = title.toLowerCase();
+        const matches = [];
+
+        for (let page = 0; page < maxPages; page++) {
+            const filter = { path, modelIds: ['L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ'] };
+            const searchParams = new URLSearchParams({
+                query: JSON.stringify({ filter }),
+                limit: String(pageSize),
+                offset: String(page * pageSize),
+            });
+
+            const url = `${this.baseUrl}/adobe/sites/cf/fragments/search?${searchParams}`;
+            const signal =
+                typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(perPageTimeoutMs) : undefined;
+            let response;
+            try {
+                response = await fetch(url, {
+                    headers: {
+                        Authorization: authHeader,
+                        pragma: 'no-cache',
+                        'cache-control': 'no-cache',
+                        'x-aem-affinity-type': 'api',
+                    },
+                    signal,
+                });
+            } catch (err) {
+                console.warn(`[AEMClient] Fallback title search aborted on page ${page}: ${err.message}`);
+                break;
+            }
+
+            if (!response.ok) break;
+
+            const data = await response.json();
+            const items = data.items || [];
+
+            for (const item of items) {
+                if (item.title?.toLowerCase().includes(needle)) {
+                    matches.push({ path: item.path, title: item.title, id: item.id });
+                }
+            }
+
+            if (items.length < pageSize) break;
+        }
+
+        console.log(`[AEMClient] Fallback title search found ${matches.length} match(es) for "${title}"`);
+        return matches;
+    }
+}

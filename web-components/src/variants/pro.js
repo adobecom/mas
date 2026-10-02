@@ -257,23 +257,26 @@ export class Pro extends VariantLayout {
     }
 
     // pro/edu only: the authored whats-included leading paragraph is the panel
-    // title; promote it and inject the server-resolved (already localized)
-    // sub-label + disclaimer strings published on the card's `placeholders` map
-    // (settings.js -> replace transformer -> here). Idempotent via the
-    // `.whats-included-title` guard so re-renders don't double-apply.
+    // title (promotional copy, not a section heading per MWPW-205138); promote
+    // it to a styled, non-heading element and inject the server-resolved
+    // (already localized) "What's included" sub-label — the only real heading
+    // in the panel — plus the disclaimer string published on the card's
+    // `placeholders` map (settings.js -> replace transformer -> here).
+    // Idempotent via the `.whats-included-title` guard so re-renders don't
+    // double-apply.
     adjustEduWhatsIncluded() {
         if (this.card.size !== 'edu') return;
         const slot = this.card.querySelector('[slot="whats-included"]');
         if (!slot || slot.querySelector('.whats-included-title')) return;
         const authoredTitle = slot.querySelector('.whats-included-label');
         if (!authoredTitle) return;
-        const title = document.createElement('h4');
+        const title = document.createElement('p');
         title.className = 'whats-included-title';
         title.innerHTML = authoredTitle.innerHTML;
         authoredTitle.replaceWith(title);
         const { whatsIncludedLabel, eduDisclaimer } =
             this.card.placeholders ?? {};
-        const label = document.createElement('p');
+        const label = document.createElement('h4');
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);

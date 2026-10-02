@@ -1,5 +1,5 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragment } from '../../libs/fragment-client.js';
+import { previewFragmentContext } from '../../libs/fragment-client.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
@@ -66,13 +66,12 @@ export class EditorContextStore extends ReactiveStore {
 
             const options = {
                 locale: Store.filters.value.locale,
-                fullContext: true,
                 surface,
                 hasExternalDictionary: true,
                 dictionary: {},
                 preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
             };
-            const result = await previewFragment(fragmentId, options);
+            const result = await previewFragmentContext(fragmentId, options);
 
             if (result.status === 200) {
                 this.set(result.body);

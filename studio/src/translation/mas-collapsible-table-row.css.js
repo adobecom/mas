@@ -231,6 +231,10 @@ export const styles = [
             margin-left: 30px;
         }
 
+        .nested-content sp-table {
+            width: 100%;
+        }
+
         .nested-content sp-table-body sp-table-row:first-of-type:not(.variation-details-row) {
             sp-table-cell:first-of-type {
                 border-top-left-radius: 12px;

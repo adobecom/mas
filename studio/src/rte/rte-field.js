@@ -1577,7 +1577,7 @@ class RteField extends LitElement {
             tr = selection.empty ? tr.insert(selection.from, linkNode) : tr.replaceWith(selection.from, selection.to, linkNode);
         }
 
-        dispatch(tr);
+        dispatch(variant === 'primary' ? this.#demoteOtherPrimaryCtas(tr, selection.from) : tr);
         this.showLinkEditor = false;
     }
 
@@ -1742,7 +1742,25 @@ class RteField extends LitElement {
             selection.node.content,
             this.#marksForHeadlessVariant(newVariant),
         );
-        dispatch(state.tr.replaceWith(selection.from, selection.to, updatedNode));
+        const tr = state.tr.replaceWith(selection.from, selection.to, updatedNode);
+        dispatch(newVariant === 'primary' ? this.#demoteOtherPrimaryCtas(tr, selection.from) : tr);
+    }
+
+    /** A headless CTA field keeps exactly one primary: every other primary link is rewritten to
+     *  secondary in the same transaction so undo stays atomic. */
+    #demoteOtherPrimaryCtas(tr, keepPos) {
+        if (!this.isHeadlessCta) return tr;
+        const otherPrimaries = [];
+        tr.doc.descendants((node, pos) => {
+            if (node.type.name === 'link' && pos !== keepPos && this.#headlessVariantFromNode(node) === 'primary') {
+                otherPrimaries.push({ node, pos });
+            }
+        });
+        for (const { node, pos } of otherPrimaries) {
+            const attrs = { ...node.attrs, class: this.#mergeLinkVariantClass(node.attrs.class, '') || null };
+            tr.setNodeMarkup(pos, undefined, attrs, this.#marksForHeadlessVariant('secondary'));
+        }
+        return tr;
     }
 
     #handleStylingMenuOpen(event) {

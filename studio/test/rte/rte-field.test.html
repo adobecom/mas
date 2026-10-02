@@ -632,6 +632,34 @@
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.equal('S');
                     });
+
+                    const linkAt = (href) => rte.shadowRoot.querySelector(`.ProseMirror a[href="${href}"]`);
+
+                    it('demotes the previous primary CTA to secondary when another CTA becomes primary', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-two', this.test.title);
+                        rte.selectLink(2);
+                        await delay(50);
+                        boldButton().click();
+                        await delay(50);
+                        expect(linkAt('#two').parentElement.tagName).to.equal('STRONG');
+                        expect(linkAt('#one').parentElement.tagName).to.equal('EM');
+                    });
+
+                    it('keeps the existing primary CTA when another CTA becomes secondary', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-two', this.test.title);
+                        rte.selectLink(2);
+                        await delay(50);
+                        italicButton().click();
+                        await delay(50);
+                        expect(linkAt('#one').parentElement.tagName).to.equal('STRONG');
+                        expect(linkAt('#two').parentElement.tagName).to.equal('EM');
+                    });
+
+                    it('does not rewrite saved CTAs with several primaries on load', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-two-primaries', this.test.title);
+                        await delay(50);
+                        expect(rte.shadowRoot.querySelectorAll('.ProseMirror strong').length).to.equal(2);
+                    });
                 });
 
                 // Theses are not very stable in headless chrome. Enable them for localing.
@@ -995,6 +1023,16 @@
         </template>
         <template id="rte-headless-cta-legacy">
             <rte-field is-headless-cta link><a class="accent" href="#" data-wcs-osi="abm">Buy now</a></rte-field>
+        </template>
+        <template id="rte-headless-cta-two">
+            <rte-field is-headless-cta link
+                ><strong><a href="#one">First</a></strong> <a href="#two">Second</a></rte-field
+            >
+        </template>
+        <template id="rte-headless-cta-two-primaries">
+            <rte-field is-headless-cta link
+                ><strong><a href="#one">First</a></strong> <strong><a href="#two">Second</a></strong></rte-field
+            >
         </template>
         <template id="rte-strong-link">
             <rte-field link

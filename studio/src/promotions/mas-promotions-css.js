@@ -100,15 +100,6 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
-    .environment-filter-picker {
-        display: flex;
-    }
-
-    sp-action-button.environment-filter {
-        display: flex;
-        flex-direction: row-reverse;
-    }
-
     .filter-popover {
         padding: 12px;
     }
@@ -176,12 +167,6 @@ export const styles = css`
         font-style: normal;
         font-weight: 400;
         line-height: 18px;
-    }
-
-    .filters-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
     }
 
     .promotions-table {

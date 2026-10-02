@@ -880,4 +880,90 @@ describe('MasPromotions', () => {
             expect(searchRow.querySelector('.promotions-result-count')).to.exist;
         });
     });
+
+    describe('styling regression', () => {
+        it('pins the status-tile layout, container gap, and background colour', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const tiles = el.shadowRoot.querySelector('.promotions-status-tiles');
+            expect(getComputedStyle(tiles).gap).to.equal('20px');
+
+            const tile = el.shadowRoot.querySelector('.status-tile');
+            const tileStyle = getComputedStyle(tile);
+            expect(tileStyle.borderRadius).to.equal('12px');
+            expect(tileStyle.paddingTop).to.equal('12px');
+            expect(tileStyle.paddingLeft).to.equal('20px');
+            expect(tileStyle.backgroundColor).to.equal('rgb(255, 255, 255)');
+        });
+
+        it('pins the header and tile-count typography', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const title = el.shadowRoot.querySelector('.promotions-page-title');
+            const titleStyle = getComputedStyle(title);
+            expect(titleStyle.fontSize).to.equal('25px');
+            expect(titleStyle.fontWeight).to.equal('700');
+            expect(titleStyle.color).to.equal('rgb(0, 0, 0)');
+
+            const count = el.shadowRoot.querySelector('.status-tile-count');
+            const countStyle = getComputedStyle(count);
+            expect(countStyle.fontSize).to.equal('25px');
+            expect(countStyle.fontWeight).to.equal('700');
+            expect(countStyle.color).to.equal('rgb(0, 0, 0)');
+        });
+
+        it('pins the divider height', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const divider = el.shadowRoot.querySelector('.promotions-divider');
+            expect(getComputedStyle(divider).height).to.equal('1px');
+        });
+
+        it('pins the create-button layout, radius, and accent-background custom properties', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const button = el.shadowRoot.querySelector('.create-button');
+            const buttonStyle = getComputedStyle(button);
+            expect(buttonStyle.minWidth).to.equal('72px');
+            expect(buttonStyle.getPropertyValue('--mod-button-border-radius').trim()).to.equal('16px');
+            expect(buttonStyle.getPropertyValue('--mod-button-background-color-default').trim()).to.equal('#3b63fb');
+            expect(buttonStyle.getPropertyValue('--mod-button-background-color-hover').trim()).to.equal('#3b63fb');
+            expect(buttonStyle.getPropertyValue('--mod-button-background-color-down').trim()).to.equal('#3b63fb');
+            expect(buttonStyle.getPropertyValue('--mod-button-background-color-focus').trim()).to.equal('#3b63fb');
+        });
+
+        it('pins the search-row and field-container dimensions', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const row = el.shadowRoot.querySelector('.promotions-search-row');
+            const rowStyle = getComputedStyle(row);
+            expect(rowStyle.width).to.equal('1148px');
+            expect(rowStyle.height).to.equal('32px');
+            expect(rowStyle.gap).to.equal('6px');
+
+            const container = el.shadowRoot.querySelector('.promotions-search-field-container');
+            const containerStyle = getComputedStyle(container);
+            expect(containerStyle.width).to.equal('246px');
+            expect(containerStyle.minWidth).to.equal('112px');
+        });
+
+        it('pins the search field height, left inset, and border/background custom properties', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+
+            const search = el.shadowRoot.querySelector('.promotions-search-field-container sp-search');
+            const searchStyle = getComputedStyle(search);
+            expect(searchStyle.height).to.equal('32px');
+            expect(searchStyle.paddingLeft).to.equal('14px');
+            expect(searchStyle.getPropertyValue('--mod-search-border-radius').trim()).to.equal('16px');
+            expect(searchStyle.getPropertyValue('--mod-search-border-width').trim()).to.equal('2px');
+            expect(searchStyle.getPropertyValue('--mod-search-border-color-default').trim()).to.not.equal('');
+            expect(searchStyle.getPropertyValue('--mod-search-background-color').trim()).to.not.equal('');
+        });
+    });
 });

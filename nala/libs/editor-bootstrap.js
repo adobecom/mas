@@ -1,19 +1,48 @@
 import { expect } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
 
+const pendingEditorReads = new WeakMap();
+
+export function trackEditorReads(page) {
+    if (pendingEditorReads.has(page)) return;
+    const pending = new Set();
+    pendingEditorReads.set(page, pending);
+    page.on('request', (request) => {
+        if (request.method() === 'GET' && isBootstrapRead(request)) pending.add(request);
+    });
+    const finished = (request) => pending.delete(request);
+    page.on('requestfinished', finished);
+    page.on('requestfailed', finished);
+}
+
 /**
  * Wait for the requested editor and preview markup, not live commerce success.
  */
-export async function waitForEditorReady(page, fragmentId) {
-    await page.waitForFunction((id) => {
+export async function waitForEditorReady(page, fragmentId, { preview = true } = {}) {
+    const ready = ({ id, preview }) => {
         const editor = document.querySelector('mas-fragment-editor');
         return (
             editor?.initState === 'ready' &&
             editor.fragmentStore?.get().id === id &&
-            editor.previewResolved &&
+            !editor.fragmentStore.loading &&
+            (!preview || editor.previewResolved) &&
             !document.querySelector('mas-repository').operation.get()
         );
-    }, fragmentId);
+    };
+    await page.waitForFunction(ready, { id: fragmentId, preview });
+    const pending = pendingEditorReads.get(page);
+    if (pending) {
+        // Concurrent refreshes can clear the store's loading flag before the last response arrives.
+        await expect
+            .poll(
+                () =>
+                    [...pending].filter((request) => new URL(request.url()).pathname.endsWith(`/cf/fragments/${fragmentId}`))
+                        .length,
+            )
+            .toBe(0);
+        await page.waitForFunction(ready, { id: fragmentId, preview });
+    }
+    if (!preview) return;
     const card = page.locator(`merch-card:has(aem-fragment[fragment="${fragmentId}"])`);
     await expect(card).toBeVisible();
 }
@@ -45,6 +74,7 @@ export class EditorBootstrapCache {
     metrics = { coldLoads: 0, reusedLoads: 0, replayedReads: 0 };
 
     async install(page) {
+        trackEditorReads(page);
         const state = { active: null };
         this.pages.set(page, state);
         await page.route('**/*', async (route) => {

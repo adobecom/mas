@@ -81,8 +81,11 @@ Next test -> fresh context -> replay setup -> editor/preview ready -> LIVE test 
 ```
 
 Replay ends before assertions/actions: discard, refresh, navigation, searches, saves and deletes remain live.
-Editor setup waits for the selected fragment and preview markup, not successful live price/checkout resolution;
-each test retains its own commerce assertions. Save completion uses the live response and refreshed editor state,
+Editor setup waits for the selected fragment and preview markup, not successful live price/checkout resolution.
+It also waits for source-fragment refreshes to finish before edits, including overlapping reads for that ID,
+so refreshed data cannot overwrite test input. New fragments wait for editor initialization before template selection;
+their preview is checked after a template exists.
+Each test retains its own commerce assertions. Save completion uses the live response and refreshed editor state,
 not the lifetime of a transient toast. Cached routes finish before their owning page/context closes.
 Different fragment IDs, locales and URL overrides have separate snapshots. Writer and dedicated navigation/editor
 coverage stays cold; no writable fragment or loaded editor tab is shared across tests or executions.

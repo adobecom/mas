@@ -332,9 +332,7 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
-            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
-                data.price,
-            );
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).toHaveText(data.price);
         });
 
         await test.step('step-3: Expand row and verify variation exists and price visible', async () => {

@@ -45,8 +45,30 @@ async function start() {
     card.innerHTML = '<aem-fragment fragment="' + id + '">Seed</aem-fragment>';
     card.checkReady = async () => {};
     card.failed = !!fragment.failed;
+    if (new URLSearchParams(location.search).has('blank')) {
+        editor.previewResolved = false;
+        card.style.display = 'none';
+    }
     document.body.append(card);
     editor.initState = 'ready';
+    if (new URLSearchParams(location.search).has('refresh')) {
+        editor.fragmentStore.loading = true;
+        setTimeout(() => {
+            fragment.title = 'Refreshed seed';
+            editor.fragmentStore.loading = false;
+        }, 200);
+    }
+    if (new URLSearchParams(location.search).has('overlap')) {
+        editor.fragmentStore.loading = true;
+        fetch('${AUTHOR}/adobe/sites/cf/fragments/' + id + '?refresh=fast').then(() => {
+            fragment.title = 'First refresh';
+            editor.fragmentStore.loading = false;
+        });
+        fetch('${AUTHOR}/adobe/sites/cf/fragments/' + id + '?refresh=slow').then(() => {
+            fragment.title = 'Last refresh';
+            editor.fragmentStore.loading = false;
+        });
+    }
 }
 start();
 </script>`;
@@ -90,6 +112,9 @@ async function seedPage(browser, cache, calls, failed = false) {
         if (request.method() !== 'OPTIONS')
             calls.push({ url: request.url(), method: request.method(), body: request.postData() });
         const id = new URL(request.url()).pathname.split('/').pop();
+        if (new URL(request.url()).searchParams.get('refresh') === 'slow') {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
         await route.fulfill({
             status: 200,
             headers: {
@@ -171,6 +196,56 @@ test('static routing reuses public assets but keeps cookie-bearing contexts live
         }
     }
     expect(loads()).toBe(3);
+});
+
+test('editor setup waits for background fragment refresh before allowing edits', async ({ browser }) => {
+    const cache = new EditorBootstrapCache();
+    const calls = [];
+    const url = `${baseURL}/editor?refresh#fragmentId=seed-a`;
+    const { page, context } = await seedPage(browser, cache, calls);
+    try {
+        await cache.open(page, url);
+        expect(
+            await page.locator('mas-fragment-editor').evaluate((editor) => ({
+                loading: editor.fragmentStore.loading,
+                title: editor.fragmentStore.get().title,
+            })),
+        ).toEqual({ loading: false, title: 'Refreshed seed' });
+    } finally {
+        await context.close();
+    }
+});
+
+test('new fragment initialization does not require a preview before its template is selected', async ({ browser }) => {
+    const cache = new EditorBootstrapCache();
+    const { page, context } = await seedPage(browser, cache, []);
+    try {
+        await page.goto(`${baseURL}/editor?refresh&blank#fragmentId=seed-a`);
+        await waitForEditorReady(page, 'seed-a', { preview: false });
+        expect(
+            await page.locator('mas-fragment-editor').evaluate((editor) => ({
+                loading: editor.fragmentStore.loading,
+                title: editor.fragmentStore.get().title,
+                previewResolved: editor.previewResolved,
+            })),
+        ).toEqual({ loading: false, title: 'Refreshed seed', previewResolved: false });
+        await expect(page.locator('merch-card')).toBeHidden();
+    } finally {
+        await context.close();
+    }
+});
+
+test('editor setup waits for every overlapping source refresh, not the first cleared loading flag', async ({ browser }) => {
+    const cache = new EditorBootstrapCache();
+    const { page, context } = await seedPage(browser, cache, []);
+    try {
+        await cache.open(page, `${baseURL}/editor?overlap#fragmentId=seed-a`);
+        expect(await page.locator('mas-fragment-editor').evaluate((editor) => editor.fragmentStore.get().title)).toBe(
+            'Last refresh',
+        );
+    } finally {
+        await context.close();
+    }
 });
 
 test('seed, locale, URL overrides and worker caches have separate cold snapshots', async ({ browser }) => {

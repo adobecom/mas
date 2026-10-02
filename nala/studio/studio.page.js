@@ -1,13 +1,14 @@
 import { expect } from '@playwright/test';
 import { getTitle } from '../utils/fragment-tracker.js';
 import { beginFragmentCreation, completeFragmentCreation } from '../utils/fragment-ledger.js';
-import { waitForEditorReady } from '../libs/editor-bootstrap.js';
+import { trackEditorReads, waitForEditorReady } from '../libs/editor-bootstrap.js';
 import OSTPage from './ost.page';
 import EditorPage from './editor.page';
 
 export default class StudioPage {
     constructor(page) {
         this.page = page;
+        trackEditorReads(page);
         this.ost = new OSTPage(page);
         this.editor = new EditorPage(page);
 
@@ -181,6 +182,10 @@ export default class StudioPage {
      * @param {string} localeName - The display name of the locale (e.g., 'French (FR)', 'Turkish (TR)')
      */
     async selectLocale(localeName) {
+        const params = new URLSearchParams(new URL(this.page.url()).hash.slice(1));
+        if (params.get('page') === 'fragment-editor') {
+            await waitForEditorReady(this.page, params.get('fragmentId'));
+        }
         await this.localePicker.click();
         await this.page.getByRole('menuitem', { name: localeName }).click();
         await expect(this.localePicker).toHaveJSProperty('open', false);
@@ -654,6 +659,7 @@ export default class StudioPage {
             timeout: 30000,
         });
         const fragmentId = await completeFragmentCreation(creation, this.page);
+        await waitForEditorReady(this.page, fragmentId, { preview: false });
 
         await expect(this.editor.variant).toBeVisible({ timeout: 10000 });
         await this.editor.variant.click();

@@ -79,7 +79,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-2: Selecting an offer reveals the placeholder type rows', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(await ost.priceRow).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.selectionList).toBeHidden();
@@ -100,7 +100,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-3: Filling a slot reveals the per-offer placeholder rows', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(await ost.buyPriceRow).toBeVisible();
             await expect(await ost.buyPriceRow.locator('[data-testid="ost-use-button"]')).toBeVisible();
         });
@@ -120,7 +120,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-3: Adding an offer reveals the joined-OSI placeholder rows', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(await ost.priceRow).toBeVisible();
         });
     });
@@ -138,7 +138,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-2: Add the only listed offer, then search a second one', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(ost.bundleSlot).toHaveCount(1);
             await ost.addBundleOfferFromSearch(features[4].data.secondProduct);
             await expect(ost.bundleSlot).toHaveCount(2);

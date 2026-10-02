@@ -68,7 +68,7 @@ test.describe('M@S Studio OST soft bundle across RTE fields', () => {
             });
 
             await test.step('step-2: Add the only listed offer, then search a second one', async () => {
-                await ost.offerCard.first().click();
+                await ost.selectFirstOffer();
                 await expect(ost.bundleSlot).toHaveCount(1);
                 await ost.addBundleOfferFromSearch(feature.data.secondProduct);
                 await expect(ost.bundleSlot).toHaveCount(2);

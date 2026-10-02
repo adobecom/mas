@@ -1448,6 +1448,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 data.promo.original,
             );
 
+            await expect.poll(() => individualsCard.locator(plans.cardCTA).getAttribute('href')).toContain(data.ucv3);
             const CTAhref = await individualsCard.locator(plans.cardCTA).getAttribute('href');
             const workflowStep = decodeURI(CTAhref).split('?')[0];
             const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);

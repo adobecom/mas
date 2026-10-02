@@ -2,6 +2,8 @@
 // ../ost.page.js, which targets the legacy tacocat OST that ships as the
 // default — the two OSTs render entirely different DOM, so they cannot share
 // one set of locators.
+import { expect } from '@playwright/test';
+
 export default class OSTNewPage {
     constructor(page) {
         // The OST is a Lit web component (ost-app) with shadow DOM.
@@ -139,7 +141,14 @@ export default class OSTNewPage {
     // old chip flow had no separate offer-select step, so legacy tests skipped
     // this and never reached the preview.
     async selectFirstOffer() {
-        await this.offerCard.first().click();
+        const offer = this.offerCard.first();
+        await expect(offer).toBeVisible();
+        const offerId = await offer.evaluate((card) => card.offer.offer_id);
+        // Switching modes carries the deep-linked offer into a filled slot.
+        // Clicking it again would asynchronously remove it from the bundle.
+        if (await this.bundleSlot.locator('.slot-osi').filter({ hasText: offerId }).count()) return;
+        await offer.click();
+        await expect.poll(() => offer.evaluate((card) => card.resolving)).toBe(false);
     }
 
     // From the product step (where openEditorAndOST leaves the OST after backing
@@ -159,13 +168,17 @@ export default class OSTNewPage {
     async addBundleOfferFromSearch(productName) {
         await this.backButton.click();
         await this.searchField.fill(productName);
-        await this.productCard.filter({ hasText: productName }).first().click();
+        const product = this.productCard.filter({ hasText: productName }).first();
+        await product.click();
+        await expect(product).toHaveAttribute('selected', '');
         await this.nextButton.click();
         // The offer list keeps rendering the previous product's card until the
         // new product's fetch resolves. Clicking that stale card would toggle
         // the offer already in the bundle back off (addOffer matches on osi),
         // so target the new product's own card by name and let Playwright wait.
-        await this.offerCard.filter({ hasText: productName }).first().click();
+        const offer = this.offerCard.filter({ hasText: productName }).first();
+        await offer.click();
+        await expect.poll(() => offer.evaluate((card) => card.resolving)).toBe(false);
     }
 
     // The "Options" (Disable) group is collapsed by default; expand it once so

@@ -563,7 +563,7 @@
                     });
                 });
 
-                describe('RTE Field: headless CTA variant toggling', () => {
+                describe('RTE Field: persisted headless CTA variants', () => {
                     let rte;
 
                     const firstLink = () => rte.shadowRoot.querySelector('.ProseMirror a');
@@ -571,32 +571,35 @@
                     const boldButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Bold"]');
                     const italicButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Italic"]');
 
-                    it('toggles a headless CTA to primary (strong) on Bold, and off again', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                    it('toggles Bold formatting without changing the selected CTA variant', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
                         boldButton().click();
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.equal('STRONG');
+                        expect(firstLink().classList.contains('accent')).to.be.true;
 
                         rte.selectLink(1);
                         await delay(50);
                         boldButton().click();
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
+                        expect(firstLink().classList.contains('accent')).to.be.true;
                     });
 
-                    it('toggles a headless CTA to secondary (em) on Italic', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                    it('toggles Italic formatting without changing the selected CTA variant', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
                         italicButton().click();
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.equal('EM');
+                        expect(firstLink().classList.contains('accent')).to.be.true;
                     });
 
-                    it('switches directly from primary to secondary without toggling off', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                    it('saves the dialog variant as a class and preserves normal text formatting', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
                         boldButton().click();
@@ -604,26 +607,98 @@
                         expect(firstLink().parentElement.tagName).to.equal('STRONG');
 
                         rte.selectLink(1);
+                        rte.openLinkEditor();
+                        await rte.updateComplete;
+                        const editor = rte.linkEditorElement;
+                        expect(editor.variant).to.equal('accent');
+                        editor.variant = 'secondary';
+                        await editor.updateComplete;
+                        editor.shadowRoot.querySelector('#saveButton').click();
                         await delay(50);
-                        italicButton().click();
+                        expect(firstLink().className).to.equal('secondary');
+                        expect(firstLink().parentElement.tagName).to.equal('STRONG');
+                        rte.updateContent(rte.value);
                         await delay(50);
-                        expect(firstLink().parentElement.tagName).to.equal('EM');
+                        expect(firstLink().className).to.equal('secondary');
+                        expect(firstLink().parentElement.tagName).to.equal('STRONG');
                     });
 
-                    it('derives the current variant from a legacy class when no mark is present', async function () {
+                    it('persists all three headless dialog variants without introducing formatting wrappers', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        for (const variant of ['primary', 'secondary', 'secondary-link']) {
+                            rte.selectLink(1);
+                            rte.openLinkEditor();
+                            await rte.updateComplete;
+                            const editor = rte.linkEditorElement;
+                            editor.variant = variant;
+                            await editor.updateComplete;
+                            editor.shadowRoot.querySelector('#saveButton').click();
+                            await delay(50);
+                            expect(firstLink().className).to.equal(variant);
+                            expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
+                            expect(firstLink().parentElement.tagName).to.not.equal('EM');
+                            rte.updateContent(rte.value);
+                            await delay(50);
+                            expect(firstLink().className).to.equal(variant);
+                        }
+                    });
+
+                    it('normalizes legacy wrapper-only CTAs without overriding explicit variants', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.updateContent(
+                            '<p><strong><a href="#">Primary</a></strong><em><a href="#">Secondary</a></em>' +
+                                '<a href="#">Link</a><strong><a href="#" class="secondary-link">Explicit link</a></strong></p>',
+                        );
+                        await delay(50);
+                        const links = [...rte.shadowRoot.querySelectorAll('.ProseMirror a')];
+                        expect(links.map((a) => a.className)).to.deep.equal([
+                            'primary',
+                            'secondary',
+                            'secondary-link',
+                            'secondary-link',
+                        ]);
+                        expect(links[0].parentElement.tagName).to.not.equal('STRONG');
+                        expect(links[1].parentElement.tagName).to.not.equal('EM');
+                        expect(links[3].parentElement.tagName).to.equal('STRONG');
+                    });
+
+                    it('normalizes legacy variants on initial load and retains checkout attributes when edited', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-wrapped', this.test.title);
+                        expect(firstLink().className).to.equal('primary');
+                        expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
+                        rte.selectLink(1);
+                        rte.openLinkEditor();
+                        await rte.updateComplete;
+                        const editor = rte.linkEditorElement;
+                        expect(editor.variant).to.equal('primary');
+                        editor.variant = 'secondary';
+                        await editor.updateComplete;
+                        editor.shadowRoot.querySelector('#saveButton').click();
+                        await delay(50);
+                        const link = firstLink();
+                        expect(link.className).to.equal('secondary');
+                        expect(link.dataset.key).to.equal('buy');
+                        expect(link.dataset.wcsOsi).to.equal('abm');
+                        expect(link.dataset.checkoutWorkflowStep).to.equal('segmentation');
+                        expect(link.dataset.modal).to.equal('true');
+                        expect(link.dataset.extraOptions).to.equal('{"promoid":"test"}');
+                    });
+
+                    it('keeps Bold and Italic independent text-formatting controls', async function () {
                         rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
-                        // 'accent' resolves to the 'primary' display variant, matching Bold's
-                        // target variant, so this toggles it OFF to secondary-link/plain.
                         boldButton().click();
                         await delay(50);
-                        const a = firstLink();
-                        expect(a.parentElement.tagName).to.not.equal('STRONG');
-                        expect(a.className).to.equal('');
+                        rte.selectLink(1);
+                        italicButton().click();
+                        await delay(50);
+                        expect(firstLink().closest('strong')).to.exist;
+                        expect(firstLink().closest('em')).to.exist;
+                        expect(firstLink().classList.contains('accent')).to.be.true;
                     });
 
-                    it('only intercepts Bold/Italic on a headless CTA, leaving other marks to toggle normally', async function () {
+                    it('keeps other text-formatting controls working', async function () {
                         rte = await createFromTemplate('rte-headless-cta', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
@@ -995,6 +1070,21 @@
         </template>
         <template id="rte-headless-cta-legacy">
             <rte-field is-headless-cta link><a class="accent" href="#" data-wcs-osi="abm">Buy now</a></rte-field>
+        </template>
+        <template id="rte-headless-cta-wrapped">
+            <rte-field is-headless-cta link>
+                <strong
+                    ><a
+                        href="#"
+                        data-wcs-osi="abm"
+                        data-key="buy"
+                        data-checkout-workflow-step="segmentation"
+                        data-modal="true"
+                        data-extra-options='{"promoid":"test"}'
+                        >Buy now</a
+                    ></strong
+                >
+            </rte-field>
         </template>
         <template id="rte-strong-link">
             <rte-field link

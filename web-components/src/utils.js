@@ -1,6 +1,7 @@
 import { EVENT_TYPE_READY } from './constants.js';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
+const CTA_VARIANT_PATTERN = /^(accent|primary|secondary)(-(outline|link))?$/;
 
 export function debounce(func, delay) {
     let debounceTimer;
@@ -37,6 +38,65 @@ export function createTag(tag, attributes = {}, content = null, is = null) {
         element.setAttribute(key, value);
     }
     return element;
+}
+
+/** Resolves persisted CTA metadata before considering PR #1197's legacy wrapper-only encoding. */
+export function getHeadlessCtaVariant(link) {
+    const variant = [...link.classList].find((value) =>
+        CTA_VARIANT_PATTERN.test(value),
+    );
+    if (variant) return variant;
+    const wrapper = link.closest('strong, em');
+    if (wrapper?.tagName === 'STRONG') return 'primary';
+    if (wrapper?.tagName === 'EM') return 'secondary';
+    return 'secondary-link';
+}
+
+/**
+ * Hydrates fragment-consumed CTAs without requiring Milo to decorate their markup.
+ * Legacy wrapper-only CTAs retain their variant; explicit classes take precedence.
+ * Kept independent of card hydration so standalone mas-field stays lightweight.
+ */
+export function hydrateHeadlessCta(link) {
+    const variant = getHeadlessCtaVariant(link);
+    const source = link.cloneNode(true);
+    if ([...link.classList].some((value) => CTA_VARIANT_PATTERN.test(value))) {
+        let parent = link.parentElement;
+        while (parent?.matches('strong, em')) {
+            source.replaceChildren(
+                createTag(parent.tagName.toLowerCase(), {}, source.innerHTML),
+            );
+            parent = parent.parentElement;
+        }
+    }
+    let button = source;
+    if (link.dataset.wcsOsi) {
+        const CheckoutLink = customElements.get('checkout-link');
+        button = CheckoutLink?.createCheckoutLink(
+            link.dataset,
+            source.innerHTML,
+        );
+        if (!button) {
+            button = document.createElement('a', { is: 'checkout-link' });
+            button.setAttribute('is', 'checkout-link');
+            button.innerHTML = `<span style="pointer-events: none;">${source.innerHTML}</span>`;
+        }
+        for (const { name, value } of link.attributes) {
+            if (['is', 'href'].includes(name)) continue;
+            button.setAttribute(name, value);
+        }
+    }
+    for (const className of [...button.classList]) {
+        if (CTA_VARIANT_PATTERN.test(className))
+            button.classList.remove(className);
+    }
+    if (!variant.endsWith('-link')) {
+        button.classList.add('button', 'con-button');
+        button.classList.add(
+            variant === 'accent' || variant === 'primary' ? 'blue' : 'outline',
+        );
+    }
+    return button;
 }
 
 export function printMeasure(measure) {

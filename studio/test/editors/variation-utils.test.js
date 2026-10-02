@@ -18,9 +18,30 @@ import {
     getCtaKeyIssues,
     summarizeCtaKeyIssues,
     VARIATION_TABS,
+    parseCtas,
 } from '../../src/editors/variation-utils.js';
 
 describe('variation-utils', () => {
+    describe('parseCtas', () => {
+        it('copies CTA emphasis from explicit variants, not text formatting', () => {
+            const ctas = parseCtas(
+                '<strong><a class="secondary" data-key="trial" href="/trial">Trial</a></strong>' +
+                    '<em><a class="primary" data-key="buy" href="/buy">Buy</a></em>' +
+                    '<strong><a class="secondary-link" data-key="details" href="/details">Details</a></strong>',
+            );
+            expect(ctas.map(({ key }) => key)).to.deep.equal(['trial', 'buy', 'details']);
+            expect(ctas.map(({ formattedText }) => formattedText)).to.deep.equal([
+                '<em>Trial</em>',
+                '<strong>Buy</strong>',
+                'Details',
+            ]);
+        });
+
+        it('retains emphasis for legacy wrapper-only CTAs', () => {
+            const ctas = parseCtas('<strong><a href="/buy">Buy</a></strong><em><a href="/trial">Trial</a></em>');
+            expect(ctas.map(({ formattedText }) => formattedText)).to.deep.equal(['<strong>Buy</strong>', '<em>Trial</em>']);
+        });
+    });
     it('effectiveIsVariation requires a parent fragment', () => {
         expect(effectiveIsVariation({ path: '/foo' }, null, true)).to.equal(false);
         expect(effectiveIsVariation({ path: '/foo' }, { path: '/parent' }, true)).to.equal(true);

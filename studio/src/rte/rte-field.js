@@ -11,11 +11,6 @@ import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from '
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import { getCtaKeyIssues } from '../editors/variation-utils.js';
-import {
-    getMarkNameForHeadlessVariant,
-    getHeadlessVariantForMarkName,
-    resolveHeadlessDisplayVariant,
-} from './link-variant-utils.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 import './rte-link-editor.js';
@@ -77,8 +72,7 @@ class LinkNodeView {
         this.dom.addEventListener('click', (e) => e.preventDefault());
     }
 
-    /** Reflects a real strong/em mark wrapping this link node (see rte-field.js's
-     *  #marksForHeadlessVariant) as bold/italic on the atom's own text. */
+    /** Reflects text formatting on the link atom's text. */
     #applyEmphasis(node) {
         const isBold = node.marks?.some((mark) => mark.type.name === 'strong');
         const isItalic = node.marks?.some((mark) => mark.type.name === 'em');
@@ -1163,8 +1157,8 @@ class RteField extends LitElement {
         const plugins = [
             history(),
             keymap({
-                'Mod-b': (state, dispatch) => this.#ctaAwareToggleMark('strong', state, dispatch),
-                'Mod-i': (state, dispatch) => this.#ctaAwareToggleMark('em', state, dispatch),
+                'Mod-b': toggleMark(this.#editorSchema.marks.strong),
+                'Mod-i': toggleMark(this.#editorSchema.marks.em),
                 'Mod-k': () => this.openLinkEditor(),
                 'Mod-s': toggleMark(this.#editorSchema.marks.strikethrough),
                 'Mod-u': toggleMark(this.#editorSchema.marks.underline),
@@ -1290,10 +1284,9 @@ class RteField extends LitElement {
             container.querySelectorAll('div').forEach((div) => {
                 div.replaceWith(...div.childNodes);
             });
-            // Headless CTAs store bold/italic as a real <strong>/<em> wrapper around the anchor
-            // (see LinkNodeView/#handleLinkSave) so Milo's own block decoration can map it to a
-            // style; every other field keeps the legacy defensive unwrap.
-            if (!this.isHeadlessCta) {
+            if (this.isHeadlessCta) {
+                this.#normalizeLegacyCtas(container);
+            } else {
                 container.querySelectorAll('strong > a').forEach((a) => {
                     a.parentElement.replaceWith(a);
                 });
@@ -1341,7 +1334,9 @@ class RteField extends LitElement {
             container.querySelectorAll('div').forEach((div) => {
                 div.replaceWith(...div.childNodes);
             });
-            if (!this.isHeadlessCta) {
+            if (this.isHeadlessCta) {
+                this.#normalizeLegacyCtas(container);
+            } else {
                 container.querySelectorAll('strong > a').forEach((a) => {
                     a.parentElement.replaceWith(a);
                 });
@@ -1454,7 +1449,7 @@ class RteField extends LitElement {
                 title: selection.node.attrs.title || '',
                 text: selection.node.textContent || '',
                 target: selection.node.attrs.target || '_self',
-                variant: this.isHeadlessCta ? this.#headlessVariantFromNode(selection.node) : selection.node.attrs.class || '',
+                variant: selection.node.attrs.class || '',
                 ariaLabel: selection.node.attrs['aria-label'] || '',
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
@@ -1539,9 +1534,7 @@ class RteField extends LitElement {
             title,
             'aria-label': ariaLabel || null,
             target: target || '_self',
-            // Headless CTAs never carry a button-style class - Milo maps the real strong/em
-            // wrapper (see #marksForHeadlessVariant) to the context-appropriate style.
-            class: this.isHeadlessCta ? null : variant || 'primary-outline',
+            class: variant || this.defaultLinkStyle || 'primary-outline',
             tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
             'data-analytics-id': analyticsId || null,
@@ -1554,26 +1547,20 @@ class RteField extends LitElement {
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
-            const classValue = this.isHeadlessCta
-                ? this.#mergeLinkVariantClass(selection.node.attrs.class, '')
-                : linkAttrs.class
-                  ? this.#mergeLinkVariantClass(selection.node.attrs.class, linkAttrs.class)
-                  : selection.node.attrs.class;
+            const classValue = this.#mergeLinkVariantClass(selection.node.attrs.class, linkAttrs.class);
             const mergedAttributes = {
                 ...selection.node.attrs,
                 ...linkAttrs,
                 class: classValue,
             };
-            const nodeMarks = this.isHeadlessCta ? this.#marksForHeadlessVariant(variant) : selection.node?.marks;
-            const updatedNode = linkNodeType.create(mergedAttributes, content, nodeMarks);
+            const updatedNode = linkNodeType.create(mergedAttributes, content, selection.node.marks);
             tr = tr.replaceWith(selection.from, selection.to, updatedNode);
         } else {
             let marks;
             state.doc.nodesBetween(selection.from, selection.to, (node) => {
                 if (node.type === state.schema.nodes.text) marks = node.marks;
             });
-            const nodeMarks = this.isHeadlessCta ? this.#marksForHeadlessVariant(variant) : marks;
-            const linkNode = linkNodeType.create(linkAttrs, content, nodeMarks);
+            const linkNode = linkNodeType.create(linkAttrs, content, marks);
             tr = selection.empty ? tr.insert(selection.from, linkNode) : tr.replaceWith(selection.from, selection.to, linkNode);
         }
 
@@ -1666,53 +1653,24 @@ class RteField extends LitElement {
     #handleToolbarAction(markType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            this.#ctaAwareToggleMark(markType, state, dispatch);
+            toggleMark(this.#editorSchema.marks[markType])(state, dispatch);
         };
     }
 
-    /**
-     * Bold/Italic on a selected headless CTA link changes its variant instead of toggling a
-     * text mark (the link node is an atom with no mark-aware content), keeping the toolbar's
-     * Mod-b/Mod-i shortcuts and buttons working normally everywhere else.
-     */
-    #ctaAwareToggleMark(markType, state, dispatch) {
-        const isBoldOrItalic = markType === 'strong' || markType === 'em';
-        if (
-            isBoldOrItalic &&
-            this.isHeadlessCta &&
-            state.selection instanceof NodeSelection &&
-            state.selection.node?.type.name === 'link'
-        ) {
-            this.#toggleCtaVariantFromMark(markType);
-            return true;
+    #normalizeLegacyCtas(container) {
+        for (const link of container.querySelectorAll('a')) {
+            const hasVariant = [...link.classList].some((value) =>
+                /^(accent|primary|secondary)(-(outline|link))?$/.test(value),
+            );
+            if (hasVariant) continue;
+            const wrapper = link.closest('strong, em');
+            link.classList.add(
+                wrapper?.tagName === 'STRONG' ? 'primary' : wrapper?.tagName === 'EM' ? 'secondary' : 'secondary-link',
+            );
+            if (wrapper && wrapper.textContent === link.textContent) {
+                wrapper.replaceWith(...wrapper.childNodes);
+            }
         }
-        const mark = this.#editorSchema.marks[markType];
-        return mark ? toggleMark(mark)(state, dispatch) : false;
-    }
-
-    #toggleCtaVariantFromMark(markType) {
-        const { selection } = this.editorView.state;
-        const currentVariant = this.#headlessVariantFromNode(selection.node);
-        const targetVariant = markType === 'strong' ? 'primary' : 'secondary';
-        this.#applyLinkVariant(currentVariant === targetVariant ? 'secondary-link' : targetVariant);
-    }
-
-    /** A headless CTA's current variant, derived from its own strong/em node-mark (see
-     *  #marksForHeadlessVariant), falling back to its stored class for CTAs authored before
-     *  real marks existed. */
-    #headlessVariantFromNode(node) {
-        if (!node) return 'secondary-link';
-        const markName = node.marks?.find((mark) => mark.type.name === 'strong' || mark.type.name === 'em')?.type.name;
-        return markName ? getHeadlessVariantForMarkName(markName) : resolveHeadlessDisplayVariant(node.attrs.class);
-    }
-
-    /** The strong/em node-mark (see the link NodeSpec's "marks" - node-level, not content) that
-     *  represents a headless CTA variant, so Milo can map bold/italic to the context-appropriate
-     *  button style without MAS ever setting a style/class itself. */
-    #marksForHeadlessVariant(variant) {
-        const markName = getMarkNameForHeadlessVariant(variant);
-        const markType = markName && this.#editorSchema.marks[markName];
-        return markType ? [markType.create()] : [];
     }
 
     /** Preserves the 'upt-link' persisted class while swapping in a new variant class. */
@@ -1725,24 +1683,6 @@ class RteField extends LitElement {
             }
         }
         return `${persistedClasses}${newClass}`.trim();
-    }
-
-    /** Applies a new headless CTA variant to the selected link node as a real strong/em mark
-     *  (no class), e.g. from the toolbar Bold/Italic sync. */
-    #applyLinkVariant(newVariant) {
-        const { state, dispatch } = this.editorView;
-        const { selection } = state;
-        if (selection.node?.type.name !== 'link') return;
-        const mergedAttributes = {
-            ...selection.node.attrs,
-            class: this.#mergeLinkVariantClass(selection.node.attrs.class, ''),
-        };
-        const updatedNode = state.schema.nodes.link.create(
-            mergedAttributes,
-            selection.node.content,
-            this.#marksForHeadlessVariant(newVariant),
-        );
-        dispatch(state.tr.replaceWith(selection.from, selection.to, updatedNode));
     }
 
     #handleStylingMenuOpen(event) {

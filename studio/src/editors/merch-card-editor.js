@@ -2072,6 +2072,7 @@ class MerchCardEditor extends LitElement {
                         id="ctas"
                         link
                         divider="${this.fragment.variant === 'product' ? '' : nothing}"
+                        .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? [] : undefined}
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}

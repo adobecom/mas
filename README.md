@@ -88,10 +88,18 @@ state rather than fixed stabilization delays; viewport/accordion mutations are r
 with public static-asset caching and per-test request metrics only. API responses, event logs and mask state are not
 shared or replayed. Benchmark and foreground-timeout tests retain their original fixtures and timing behavior.
 
-Public scripts, styles, fonts and images use a bounded worker-local cache with concurrent-load deduplication.
+Each Playwright invocation records fresh public JS/CSS into run-owned HAR files under `nala/.runs/<run-id>/static/`.
+Global setup allocates the run directory; the Docs setup project and authentication setup seed their respective
+assets before dependent workers start. Studio recording covers the editor and both OST modes on separate seed pages,
+waiting for lazy imports to finish before publishing the archive.
+Workers replay only those current-run assets. HAR files are never committed, reused by another invocation/PR, or restored
+from a CI cache, and global setup's teardown removes them after the run (interrupted runs can leave unused files).
+Unrecorded assets fall back to the network and the bounded worker-local static cache; fonts and images also use that cache.
 Documents, authenticated/cookie-bearing requests, API responses, errors and private/no-store responses are not cached.
-The existing EDS pacing policy and worker counts are unchanged. Per-test attachments report static hits, cold/reused
-editor loads and replayed Odin reads; the request summary distinguishes browser requests from upstream authoring traffic.
+Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
+Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
+Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;
+the request summary distinguishes browser requests from upstream authoring traffic.
 
 Use `NALA_STATIC_CACHE_DISABLED=1` or `NALA_EDITOR_BOOTSTRAP_DISABLED=1` for uncached comparisons.
 To make a suite's editor setup always live, leave `reuseEditor` unset. Cleanup uses exact run-owned IDs and live ETags;
@@ -101,7 +109,7 @@ Offline setup regression checks (no IMS, Odin or EDS requests):
 
 ```sh
 node --test nala/tests/setup-cache.unit.js
-npx playwright test --config=nala/tests/setup-cache.config.js
+npx playwright test --config=nala/tests/setup-cache.config.js --workers=3
 ```
 
 # CI/CD

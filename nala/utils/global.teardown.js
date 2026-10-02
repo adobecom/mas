@@ -4,6 +4,7 @@ import { readFragmentLedger, completeFragmentLedger } from './fragment-ledger.js
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
 import RequestCountingReporter from './request-counting-reporter.js';
+import { USER_AGENT_DESKTOP } from '../../playwright.config.js';
 
 /**
  * Delete exact run-owned IDs, verifying ownership and ETags from live responses.
@@ -83,43 +84,76 @@ export async function findRunFragments({ runId, locales, knownIds }) {
 export function printCleanupSummary() {
     const results = global.nalaCleanupResults;
     if (!results) return;
-    console.log(`\nFragment cleanup: ${results.totalDeleted}/${results.totalFound} deleted, ${results.totalFailed} failed.`);
+    console.log('\n    ---------Fragment Cleanup Summary---------');
+    console.log(`    # Total Fragments to delete: ${results.totalFound}`);
+    console.log(`    # Deleted / already absent : ${results.totalDeleted}`);
+    console.log(`    # Failed to clean up       : ${results.totalFailed}`);
 }
 
 /**
  * Clean the current execution only, using one authenticated maintenance page.
  */
 async function globalTeardown() {
-    if (process.env.SKIP_AUTH === 'true') return;
+    console.info('\n---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n');
+    if (process.env.SKIP_AUTH === 'true') {
+        console.info('[NALA teardown] Cleanup skipped: SKIP_AUTH=true.');
+        return;
+    }
     const runId = getCurrentRunId();
-    if (!runId) return;
+    if (!runId) {
+        console.info('[NALA teardown] No run ID found; no fragments to clean up.');
+        return;
+    }
     const ledger = readFragmentLedger();
+    console.info(`[NALA teardown] Run: ${runId}`);
+    console.info(
+        `[NALA teardown] ${ledger.fragments.length} recorded fragments; recovery search ${ledger.recover ? 'required' : 'not required'}.`,
+    );
     global.nalaCleanupResults = { totalFound: ledger.fragments.length, totalDeleted: 0, totalFailed: 0 };
     if (!ledger.fragments.length && !ledger.recover) {
+        console.info('[NALA teardown] No pending fragments; skipping browser startup.');
         printCleanupSummary();
         completeFragmentLedger();
         clearRunId();
         return;
     }
+    console.info('[NALA teardown] Starting authenticated cleanup browser.');
     const browser = await chromium.launch({ args: ['--disable-web-security', '--disable-gpu'] });
     let stopCounting;
     try {
         const context = await browser.newContext({
             ...devices['Desktop Chrome'],
+            userAgent: USER_AGENT_DESKTOP,
+            extraHTTPHeaders: { 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' },
             storageState: './nala/.auth/user.json',
             bypassCSP: true,
+            serviceWorkers: 'block',
         });
         const page = await context.newPage();
+        page.on('pageerror', (error) => console.error(`[NALA teardown] Page error: ${error.message}`));
+        page.on('requestfailed', (request) => {
+            const url = new URL(request.url());
+            console.error(
+                `[NALA teardown] Request failed: ${request.method()} ${url.origin}${url.pathname} (${request.failure().errorText})`,
+            );
+        });
+        page.on('response', (response) => {
+            if (response.status() < 400) return;
+            const url = new URL(response.url());
+            console.error(`[NALA teardown] HTTP ${response.status()}: ${url.origin}${url.pathname}`);
+        });
         await installEdsThrottleOnPage(page);
         stopCounting = await GlobalRequestCounter.init(page);
         const baseURL =
             process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live';
+        console.info(`[NALA teardown] Loading Studio at ${baseURL}; restoring saved authentication.`);
         await page.goto(`${baseURL}/studio.html#page=welcome&path=nala`, { waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('mas-repository')?.aem);
+        console.info('[NALA teardown] Authenticated repository ready.');
 
         const fragments = [...ledger.fragments];
         if (ledger.recover) {
-            console.warn(`[NALA] Recovering unregistered creations for ${runId}`);
+            console.info(`[NALA teardown] Searching Nala locale and translation paths for interrupted creations.`);
             fragments.push(
                 ...(await evaluateCleanup(page, findRunFragments, {
                     runId,
@@ -127,15 +161,24 @@ async function globalTeardown() {
                     knownIds: fragments.map(({ id }) => id),
                 })),
             );
+            console.info(
+                `[NALA teardown] Recovery complete: ${fragments.length - ledger.fragments.length} additional fragments.`,
+            );
         }
         global.nalaCleanupResults.totalFound = fragments.length;
         const failures = [];
         for (let start = 0; start < fragments.length; start += 10) {
+            console.info(
+                `[NALA teardown] Deleting batch ${Math.floor(start / 10) + 1}/${Math.ceil(fragments.length / 10)} (${Math.min(10, fragments.length - start)} fragments).`,
+            );
             const result = await evaluateCleanup(page, deleteOwnedFragments, {
                 fragments: fragments.slice(start, start + 10),
                 runId,
             });
             global.nalaCleanupResults.totalDeleted += result.deletedIds.length + result.alreadyDeletedIds.length;
+            for (const id of result.deletedIds) console.info(`[NALA teardown] Deleted fragment: ${id}`);
+            for (const id of result.alreadyDeletedIds) console.info(`[NALA teardown] Fragment already absent: ${id}`);
+            for (const { id, message } of result.failures) console.error(`[NALA teardown] Failed fragment ${id}: ${message}`);
             failures.push(...result.failures);
         }
         if (failures.length) {
@@ -145,6 +188,7 @@ async function globalTeardown() {
             );
         }
         completeFragmentLedger();
+        console.info('[NALA teardown] Run-owned fragment cleanup completed.');
         clearRunId();
     } catch (error) {
         global.nalaCleanupResults.totalFailed = global.nalaCleanupResults.totalFound - global.nalaCleanupResults.totalDeleted;
@@ -152,6 +196,9 @@ async function globalTeardown() {
     } finally {
         stopCounting?.();
         GlobalRequestCounter.saveCountToFileSync();
+        for (const context of browser.contexts()) {
+            for (const page of context.pages()) await page.unrouteAll({ behavior: 'wait' });
+        }
         await browser.close();
         printCleanupSummary();
         if (process.env.GITHUB_ACTIONS === 'true') new RequestCountingReporter().printRequestSummary();

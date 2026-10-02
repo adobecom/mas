@@ -4,6 +4,8 @@ import { isBranchURLValid } from '../libs/baseurl.js';
 import GlobalRequestCounter, { DEFAULT_TRACKED_URLS } from '../libs/global-request-counter.js';
 import { createRunId } from './fragment-tracker.js';
 import { initializeFragmentLedger } from './fragment-ledger.js';
+import { initializeRunStaticHar } from '../libs/run-static-har.js';
+import { appendFileSync } from 'node:fs';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
@@ -140,6 +142,7 @@ async function globalSetup() {
     // Initialize fragment tracker run ID at the very start of test suite
     const runId = createRunId();
     initializeFragmentLedger();
+    const cleanupHar = initializeRunStaticHar(runId);
     console.info(`🆔 Test suite run ID: ${runId}\n`);
 
     // Store run ID in GitHub environment for cross-step access
@@ -182,6 +185,11 @@ async function globalSetup() {
         console.info('---- Running Nala Tests in the Local environment ----\n');
         await getLocalBranchLiveUrl();
     }
+    if (process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_ENV) {
+        const baseURL = process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || MAIN_BRANCH_LIVE_URL;
+        appendFileSync(process.env.GITHUB_ENV, `PR_BRANCH_LIVE_URL=${baseURL}\n`);
+    }
+    return cleanupHar;
 }
 
 export default globalSetup;

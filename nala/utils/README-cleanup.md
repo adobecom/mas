@@ -18,7 +18,8 @@ and complete the intent. A failure between the write and ID registration therefo
 The Playwright teardown project and existing GitHub `if: always()` steps use `global.teardown.js`.
 
 1. An empty/completed ledger skips browser startup entirely.
-2. Otherwise, one authenticated Studio welcome page initializes the repository.
+2. Otherwise, one authenticated Studio welcome page initializes the repository, using the same Nala browser identity
+   and Chromium headers as the tests so IMS initializes consistently.
 3. Each recorded ID is fetched live. Cleanup verifies the run marker and exact path, then deletes using the live ETag.
    A 404 means the test already deleted its fragment.
 4. Only missing ledgers or unfinished intents trigger recovery searches. Searches filter by the current run marker
@@ -42,6 +43,12 @@ node --input-type=module -e "import teardown from './nala/utils/global.teardown.
 
 Cleanup uses `nala/.auth/user.json`. `SKIP_AUTH=true` skips automatic cleanup; `PR_BRANCH_LIVE_URL` takes precedence
 over `LOCAL_TEST_LIVE_URL`. GitHub setup persists the run ID through `GITHUB_ENV` for the existing follow-up step.
+It also persists the resolved test URL, so that separate cleanup step restores authentication on the same origin.
+GitHub cleanup remains in the separate `Cleanup cloned cards` workflow step; local cleanup runs in the teardown project.
+
+Cleanup logs its start, run ID, repository initialization, recovery searches, deletion batches, each fragment outcome,
+and a final summary. Browser script errors, failed requests and HTTP errors are reported during initialization rather
+than leaving an unexplained wait.
 
 The separate `cleanup-cloned-cards.js` maintenance utility still supports account/date-based manual cleanup and
 dry runs. It is **not** the automatic run-owned cleanup path and can affect other executions using that account:

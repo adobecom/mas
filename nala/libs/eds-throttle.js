@@ -1,4 +1,5 @@
-import { isStaticResource, serveStaticResource } from './static-resource-cache.js';
+import { isStaticResource, serveStaticResource, recordStaticCacheHit } from './static-resource-cache.js';
+import { installRunStaticHar, STATIC_HAR_URLS } from './run-static-har.js';
 
 const installedPages = new WeakSet();
 
@@ -14,7 +15,7 @@ const installedPages = new WeakSet();
  */
 
 /** Default CI cap: 45 rps/worker × 4 workers (studio:3 + docs:1) = 180 rps, under 200 rps EDS limit. */
-const DEFAULT_CI_EDS_MAX_RPS = 45;
+const DEFAULT_EDS_MAX_RPS = 45;
 
 export function resolveEdsMaxRps() {
     if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
@@ -22,7 +23,7 @@ export function resolveEdsMaxRps() {
         const v = Number.parseInt(process.env.NALA_EDS_MAX_RPS, 10);
         return Number.isFinite(v) && v > 0 ? v : 0;
     }
-    return process.env.CI === 'true' ? DEFAULT_CI_EDS_MAX_RPS : 0;
+    return DEFAULT_EDS_MAX_RPS;
 }
 
 export function isEdsEdgeHost(url) {
@@ -30,9 +31,12 @@ export function isEdsEdgeHost(url) {
         const { hostname } = new URL(url);
         return (
             hostname.endsWith('.aem.live') ||
+            hostname.endsWith('.aem.page') ||
             hostname.endsWith('.hlx.page') ||
             hostname.endsWith('.hlx.live') ||
-            hostname === 'aem.live'
+            hostname === 'aem.live' ||
+            hostname === 'mas.adobe.com' ||
+            hostname === 'mas.stage.adobe.com'
         );
     } catch {
         return false;
@@ -67,7 +71,7 @@ export function logEdsThrottleOnce(edsMaxRps) {
     if (edsMaxRps <= 0 || globalThis._edsThrottleLogged) return;
     globalThis._edsThrottleLogged = true;
     console.info(
-        `[NALA] EDS request pacing ~${edsMaxRps} rps per worker for .aem.live / hlx hosts. ` +
+        `[NALA] EDS request pacing ~${edsMaxRps} rps per worker for EDS / Helix hosts. ` +
             `NALA_EDS_THROTTLE_DISABLED=1 disables; NALA_EDS_MAX_RPS sets cap. Pacing is multiplied by worker count.\n`,
     );
 }
@@ -76,14 +80,14 @@ export function logEdsThrottleOnce(edsMaxRps) {
  * Register a route handler that paces EDS-bound requests (auth / any page without GlobalRequestCounter).
  * @param {import('@playwright/test').Page} page
  */
-export async function installEdsThrottleOnPage(page) {
+export async function installEdsThrottleOnPage(page, { replayHar = true, cache = true } = {}) {
     if (installedPages.has(page)) return;
     const edsMaxRps = resolveEdsMaxRps();
-    const cacheEnabled = process.env.NALA_STATIC_CACHE_DISABLED !== '1';
+    const cacheEnabled = cache && process.env.NALA_STATIC_CACHE_DISABLED !== '1';
     if (edsMaxRps <= 0 && !cacheEnabled) return;
     installedPages.add(page);
     logEdsThrottleOnce(edsMaxRps);
-    await page.route('**/*', async (route) => {
+    const handleRoute = async (route) => {
         const url = route.request().url();
         const pace = async () => {
             if (edsMaxRps > 0 && isEdsEdgeHost(url)) await throttleEdsGap(edsMaxRps);
@@ -94,5 +98,19 @@ export async function installEdsThrottleOnPage(page) {
         }
         await pace();
         await route.continue();
-    });
+    };
+    await page.route('**/*', handleRoute);
+    if (cacheEnabled && replayHar) {
+        const harUrls = await installRunStaticHar(page);
+        if (harUrls.size) {
+            await page.route(STATIC_HAR_URLS, async (route) => {
+                if (harUrls.has(route.request().url()) && (await isStaticResource(route.request()))) {
+                    recordStaticCacheHit();
+                    await route.fallback();
+                } else {
+                    await handleRoute(route);
+                }
+            });
+        }
+    }
 }

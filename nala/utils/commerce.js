@@ -357,6 +357,7 @@ function createWorkerPageSetup(config = {}) {
             hasTouch,
             bypassCSP,
             ignoreHTTPSErrors,
+            serviceWorkers: 'block',
             ...contextOptions,
             extraHTTPHeaders,
         });

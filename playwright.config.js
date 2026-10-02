@@ -1,6 +1,7 @@
 import { devices } from '@playwright/test';
 
-const USER_AGENT_DESKTOP =
+/** Desktop browser identity shared by Nala tests and standalone cleanup. */
+export const USER_AGENT_DESKTOP =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS';
 
 /**
@@ -44,6 +45,7 @@ const config = {
         : [['html', { outputFolder: 'test-html-results' }], ['list'], ['./nala/utils/base-reporter.js']],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
+        serviceWorkers: 'block',
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
         actionTimeout: 60000,
 
@@ -54,6 +56,15 @@ const config = {
 
     /* Configure projects for major browsers */
     projects: [
+        {
+            name: 'docs-setup',
+            timeout: 90000,
+            use: {
+                ...devices['Desktop Chrome'],
+                userAgent: USER_AGENT_DESKTOP,
+            },
+            testMatch: /libs\/docs\.setup\.js/,
+        },
         // Setup project for authentication (only runs for studio tests). Teardown runs after all projects that depend on setup.
         {
             name: 'setup',
@@ -105,6 +116,7 @@ const config = {
         {
             name: 'mas-docs-chromium',
             fullyParallel: false,
+            dependencies: ['docs-setup'],
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,
@@ -130,7 +142,7 @@ const config = {
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
-            dependencies: ['setup'],
+            dependencies: ['setup', 'docs-setup'],
         },
     ],
 };

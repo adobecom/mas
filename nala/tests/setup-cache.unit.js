@@ -6,6 +6,7 @@ import { EventEmitter } from 'node:events';
 import { chromium } from '@playwright/test';
 import { isStaticResource, serveStaticResource, getResourceMetrics } from '../libs/static-resource-cache.js';
 import { isBootstrapRead } from '../libs/editor-bootstrap.js';
+import { isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
 import { createRunId, clearRunId, setCurrentTestName, setCurrentTestAttempt, getTitle } from '../utils/fragment-tracker.js';
 import {
     initializeFragmentLedger,
@@ -88,6 +89,34 @@ test('static classification excludes documents, APIs, auth, cookies and writes',
         request('https://main--mas--adobecom.aem.live/app.js', { headers: { cookie: 'session=test' } }),
     ])
         assert.equal(await isStaticResource(candidate), false);
+});
+
+test('EDS pacing covers preview and custom MAS hosts and defaults to 45 RPS outside CI', (t) => {
+    const previous = {
+        CI: process.env.CI,
+        NALA_EDS_MAX_RPS: process.env.NALA_EDS_MAX_RPS,
+        NALA_EDS_THROTTLE_DISABLED: process.env.NALA_EDS_THROTTLE_DISABLED,
+    };
+    t.after(() => {
+        for (const [name, value] of Object.entries(previous)) {
+            if (value === undefined) delete process.env[name];
+            else process.env[name] = value;
+        }
+    });
+    delete process.env.NALA_EDS_MAX_RPS;
+    delete process.env.NALA_EDS_THROTTLE_DISABLED;
+    for (const ci of ['', '1', 'true']) {
+        process.env.CI = ci;
+        assert.equal(resolveEdsMaxRps(), 45);
+    }
+    for (const host of ['main--mas--adobecom.aem.page', 'mas.adobe.com', 'mas.stage.adobe.com']) {
+        assert.equal(isEdsEdgeHost(`https://${host}/app.js`), true);
+    }
+    assert.equal(isEdsEdgeHost('http://localhost/app.js'), false);
+    process.env.NALA_EDS_MAX_RPS = '25';
+    assert.equal(resolveEdsMaxRps(), 25);
+    process.env.NALA_EDS_THROTTLE_DISABLED = '1';
+    assert.equal(resolveEdsMaxRps(), 0);
 });
 
 test('static cache deduplicates concurrent misses, paces once, and strips decoded-body headers', async () => {

@@ -2,7 +2,7 @@ const resources = new Map();
 const metrics = { cacheHits: 0, upstreamRequests: 0 };
 const MAX_ENTRIES = 256;
 const MAX_BODY_BYTES = 256 * 1024;
-const VARY_HEADERS = ['accept', 'accept-language', 'origin', 'user-agent', 'accept-encoding'];
+export const VARY_HEADERS = ['accept', 'accept-language', 'origin', 'user-agent', 'accept-encoding'];
 
 /**
  * Restrict replay to public code/assets, never documents or service responses.
@@ -12,6 +12,8 @@ export async function isStaticResource(request) {
     const publicHost =
         /\.(aem\.live|aem\.page|hlx\.live|hlx\.page)$/.test(url.hostname) ||
         url.hostname === 'milo.adobe.com' ||
+        url.hostname === 'mas.adobe.com' ||
+        url.hostname === 'mas.stage.adobe.com' ||
         url.hostname === 'localhost' ||
         url.hostname === '127.0.0.1';
     const eligible =
@@ -29,6 +31,10 @@ export async function isStaticResource(request) {
  */
 export function getResourceMetrics() {
     return { ...metrics };
+}
+
+export function recordStaticCacheHit() {
+    metrics.cacheHits++;
 }
 
 /**

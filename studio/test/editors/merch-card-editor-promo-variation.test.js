@@ -116,4 +116,61 @@ describe('merch-card-editor promo variation geo tags', () => {
             expect(editor.promoVariationGeoTagsTemplate).to.not.equal(nothing);
         });
     });
+
+    describe('inherited custom fields', () => {
+        const promoFromDefaultFragmentPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+        const defaultFragmentPath = '/content/dam/mas/sandbox/en_US/my-card';
+
+        function makeDefaultFragment(labels, values = labels.map(() => '')) {
+            return new Fragment({
+                path: defaultFragmentPath,
+                fields: [
+                    { name: 'customFieldLabels', values: labels },
+                    { name: 'customFields', values },
+                ],
+                tags: [],
+            });
+        }
+
+        it("returns exactly the default fragment's non-empty labels on a promo variation", () => {
+            const editor = makeEditor(promoFromDefaultFragmentPath, []);
+            editor.localeDefaultFragment = makeDefaultFragment(['Field A', '', 'Field B']);
+            expect(editor.inheritedCustomFieldLabels).to.deep.equal(new Set(['Field A', 'Field B']));
+        });
+
+        it('returns no inherited labels on a default (non-promo) fragment', () => {
+            const editor = makeEditor(defaultFragmentPath, []);
+            editor.localeDefaultFragment = makeDefaultFragment(['Field A']);
+            expect(editor.inheritedCustomFieldLabels).to.deep.equal(new Set());
+        });
+
+        it('marks inherited rows and leaves a locally added label unmarked', () => {
+            const editor = makeEditor(promoFromDefaultFragmentPath, []);
+            editor.localeDefaultFragment = makeDefaultFragment(['Field A']);
+            editor.fragmentStore = new FragmentStore(
+                new Fragment({
+                    path: promoFromDefaultFragmentPath,
+                    fields: [
+                        { name: 'customFieldLabels', values: ['Field A', 'Local Field'] },
+                        { name: 'customFields', values: ['value a', 'value b'] },
+                    ],
+                    tags: [],
+                }),
+            );
+
+            expect(editor.customFieldValues).to.deep.equal([
+                { value: 'value a', label: 'Field A', inherited: true },
+                { value: 'value b', label: 'Local Field' },
+            ]);
+        });
+
+        it('rejects a submission that renames or drops an inherited label', () => {
+            const editor = makeEditor(promoFromDefaultFragmentPath, []);
+            editor.localeDefaultFragment = makeDefaultFragment(['Field A', 'Field B']);
+
+            expect(editor.removesInheritedCustomFieldLabel(['Field A', 'Field B'])).to.be.false;
+            expect(editor.removesInheritedCustomFieldLabel(['Field A', 'Renamed'])).to.be.true;
+            expect(editor.removesInheritedCustomFieldLabel(['Field A'])).to.be.true;
+        });
+    });
 });

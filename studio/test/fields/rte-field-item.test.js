@@ -183,6 +183,43 @@ describe('MasRteFieldItem', () => {
         });
     });
 
+    describe('inherited label', () => {
+        it('renders the label field as readonly', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1" inherited></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
+            const labelField = el.shadowRoot.querySelector('sp-textfield');
+            expect(labelField.hasAttribute('readonly')).to.be.true;
+        });
+
+        it('clicking the label does not open the rename dialog', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1" inherited></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
+            const labelField = el.shadowRoot.querySelector('sp-textfield');
+            labelField.click();
+            await delay(0);
+
+            expect(Store.confirmDialogOptions.get()).to.equal(null);
+            expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('readonly')).to.be.true;
+        });
+
+        it('ignores a dispatched label change', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1" inherited></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
+            const labelField = el.shadowRoot.querySelector('sp-textfield');
+
+            labelField.value = 'Renamed';
+            const event = new CustomEvent('change', { bubbles: true, composed: true });
+            Object.defineProperty(event, 'target', { value: labelField, enumerable: true });
+            labelField.dispatchEvent(event);
+            await el.updateComplete;
+
+            expect(el.label).to.equal('Custom 1');
+        });
+    });
+
     describe('delete', () => {
         it('dispatches delete-field when the delete button is clicked', async () => {
             const el = await fixture(html`<mas-rte-field-item></mas-rte-field-item>`, { parentNode: spTheme() });

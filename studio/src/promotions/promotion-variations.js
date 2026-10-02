@@ -729,3 +729,83 @@ export async function getPublishedAttachedPromoVariations(aem, promotionFragment
 export async function getAllAttachedPromoVariations(aem, promotionFragment) {
     return collectAttachedPromoVariations(aem, promotionFragment);
 }
+
+/**
+ * Reads a fragment's customFields/customFieldLabels field values (parallel, index-aligned arrays).
+ * @param {{ fields?: Array<{ name?: string, values?: unknown[] }> }} fragmentData
+ * @returns {{ customFields: string[], customFieldLabels: string[] }}
+ */
+function readCustomFields(fragmentData) {
+    return {
+        customFields: fragmentData?.fields?.find((field) => field.name === 'customFields')?.values || [],
+        customFieldLabels: fragmentData?.fields?.find((field) => field.name === 'customFieldLabels')?.values || [],
+    };
+}
+
+/**
+ * Merges a default fragment's custom field labels into one promo variation's own arrays: only
+ * labels missing on the variation are appended (empty value, index-aligned). Existing labels,
+ * values and their order — including a label that already diverged — are never modified. A
+ * variation whose own `customFieldLabels` array is empty is inheriting from the default (see
+ * Fragment.getEffectiveFieldValues) and is skipped so its inheritance is not broken.
+ * @param {{ customFields?: string[], customFieldLabels?: string[] }} defaultCustomFields
+ * @param {{ customFields?: string[], customFieldLabels?: string[] }} variationCustomFields
+ * @returns {{ customFields: string[], customFieldLabels: string[] }|null} null when nothing is missing
+ */
+export function mergeMissingCustomFieldLabels(defaultCustomFields, variationCustomFields) {
+    const defaultLabels = (defaultCustomFields?.customFieldLabels || []).filter(Boolean);
+    if (!defaultLabels.length) return null;
+    const variationLabels = variationCustomFields?.customFieldLabels || [];
+    if (!variationLabels.length) return null;
+    const existingLabels = new Set(variationLabels.filter(Boolean));
+    const missingLabels = defaultLabels.filter((label) => !existingLabels.has(label));
+    if (!missingLabels.length) return null;
+    return {
+        customFieldLabels: [...variationLabels, ...missingLabels],
+        customFields: [...(variationCustomFields?.customFields || []), ...missingLabels.map(() => '')],
+    };
+}
+
+/**
+ * Creates every default custom field label missing on each of a default fragment's promo
+ * variations, so renaming logic that keys on the field name keeps working after an author adds
+ * a field to the default and saves. Only missing labels are added (empty value); existing labels,
+ * values and already-diverged names are never modified. Per-variation failures are collected and
+ * returned instead of aborting the batch.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} defaultFragmentData - raw AEM fragment data for the saved default fragment
+ * @param {string[]} promoVariationPaths
+ * @returns {Promise<{ updatedPaths: string[], failures: Array<{ path: string, error: Error }> }>}
+ */
+export async function propagateCustomFieldsToPromoVariations(aem, defaultFragmentData, promoVariationPaths = []) {
+    const defaultCustomFields = readCustomFields(defaultFragmentData);
+    if (!defaultCustomFields.customFieldLabels.filter(Boolean).length || !promoVariationPaths.length) {
+        return { updatedPaths: [], failures: [] };
+    }
+
+    const results = await processConcurrently(
+        promoVariationPaths,
+        async (path) => {
+            try {
+                const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, path);
+                if (!variation) return null;
+                const merged = mergeMissingCustomFieldLabels(defaultCustomFields, readCustomFields(variation));
+                if (!merged) return null;
+                const fields = variation.fields.map((field) => {
+                    if (field.name === 'customFields') return { ...field, values: merged.customFields };
+                    if (field.name === 'customFieldLabels') return { ...field, values: merged.customFieldLabels };
+                    return field;
+                });
+                await aem.sites.cf.fragments.save({ ...variation, fields });
+                return { path };
+            } catch (error) {
+                return { path, error };
+            }
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    const updatedPaths = results.filter((result) => result && !result.error).map((result) => result.path);
+    const failures = results.filter((result) => result?.error).map(({ path, error }) => ({ path, error }));
+    return { updatedPaths, failures };
+}

@@ -2412,11 +2412,11 @@ describe('MasPromotionsItemsTable', () => {
                 'actions',
                 'fragmentTitle',
                 'path',
-                'relatedPages',
+                'applies-to',
                 'country',
                 'offerId',
                 'osi',
-                'applies-to',
+                'relatedPages',
                 'status',
             ]);
             expect(selectItemsTable.variationCells).to.deep.equal([
@@ -2424,11 +2424,11 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Title',
                 'StudioPath',
-                'RelatedPages',
+                'AppliesTo',
                 'Country',
                 'OfferId',
                 'Osi',
-                'AppliesTo',
+                'RelatedPages',
                 'Status',
             ]);
             expect(selectItemsTable.hideVariationExpand).to.be.true;
@@ -2481,11 +2481,11 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Fragment title',
                 'Path',
-                'Related pages',
+                'Applies to',
                 'Country',
                 'Offer ID',
                 'OSI',
-                'Applies to',
+                'Related pages',
                 'Status',
             ]);
             expect(headers.map((header) => header.className)).to.deep.equal([
@@ -2493,11 +2493,11 @@ describe('MasPromotionsItemsTable', () => {
                 'actions-head-cell',
                 'title-head-cell',
                 'path-head-cell',
-                'related-pages-head-cell',
+                'applies-to-head-cell',
                 'country-head-cell',
                 'offer-id-head-cell',
                 'osi-head-cell',
-                'applies-to-head-cell',
+                'related-pages-head-cell',
                 'status-head-cell',
             ]);
         });

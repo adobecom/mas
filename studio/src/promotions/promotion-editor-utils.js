@@ -79,6 +79,8 @@ export const PROMOTION_FIELD_TYPE_MAP = {
     offers: { type: 'text', multiple: true },
     startDate: { type: 'date-time' },
     endDate: { type: 'date-time' },
+    cdtStart: { type: 'date-time' },
+    cdtEnd: { type: 'date-time' },
     tags: { type: 'tag', multiple: true },
     surfaces: { type: 'text', multiple: true },
     geos: { type: 'tag', multiple: true },
@@ -241,6 +243,11 @@ export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEver
     if (itemCount <= 0) {
         return 'Please add at least one fragment or collection.';
     }
+    const cdtStart = fragment.getFieldValue('cdtStart');
+    const cdtEnd = fragment.getFieldValue('cdtEnd');
+    if (Boolean(cdtStart) !== Boolean(cdtEnd)) {
+        return 'Please set both countdown timer start and end dates, or none.';
+    }
     return null;
 }
 
@@ -398,9 +405,9 @@ export function pruneOrphanedPromotionSelectionAfterOfferRemoval({
     };
 }
 
-export function normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode) {
+export function normalizePromotionOfferData(offer, productArrangementCode) {
     const base = offer && typeof offer === 'object' ? { ...offer } : {};
-    const offerId = base.offerId ?? base.offer_id ?? offerSelectorId;
+    const offerId = base.offerId ?? base.offer_id;
     const arrangementCode = productArrangementCode ?? base.product_arrangement_code ?? base.productArrangementCode;
     delete base.offer_id;
     return {
@@ -418,7 +425,8 @@ export function normalizePromotionOfferData(offer, offerSelectorId, productArran
  * @returns {object}
  */
 export function buildPromotionOfferRecord(offerSelectorId, offer, productArrangementCode) {
-    const offerData = normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode);
+    const offerData = normalizePromotionOfferData(offer, productArrangementCode);
+    offerData.offerSelectorIds = [offerSelectorId];
     const tags = buildOfferTags(offer, offerData.product_arrangement_code);
     const mnemonicIcon = resolveOfferMnemonicIconUrl(offer);
     const fields = mnemonicIcon ? [{ name: 'mnemonicIcon', values: [mnemonicIcon] }] : [];
@@ -476,6 +484,7 @@ export async function resolvePromotionOfferRecord(offerSelectorId, country) {
         resolvedOffer = await resolvePromotionWcsOffer(offerSelectorId, country);
     } catch {
         resolvedOffer = null;
+        console.error("Couldn't resolve offer selector id", offerSelectorId);
     }
     const arrangementCode = resolvedOffer?.product_arrangement_code ?? resolvedOffer?.productArrangementCode;
     return buildPromotionOfferRecord(offerSelectorId, resolvedOffer, arrangementCode);
@@ -743,18 +752,11 @@ export function applyPromotionItemSelectionToFragment(
 export function buildPromotionOffersFieldValues(promotionFragment, selectedOfferIds, overrides = {}) {
     const offerValues = promotionFragment?.getField('offers') ? promotionFragment.getFieldValues('offers') : [];
     const parsed = parsePromotionOffersField(offerValues);
-    let promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
-    let offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
-    let ignoredVariations = overrides.ignoredVariations ?? parsed.ignoredVariations;
+    const promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
+    const offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
+    const ignoredVariations = overrides.ignoredVariations ?? parsed.ignoredVariations;
     const geos = promotionFragment?.getFieldValues?.('geos') ?? [];
     const displayToCq = new Map(geos.map((g) => [formatGeoDisplayLabel(g), g]).filter(([label]) => label));
-    if (geos.length) {
-        const valid = new Set(displayToCq.keys());
-        const isValid = (key) => valid.has(key.split('|')[1]);
-        promoExceptions = new Map([...promoExceptions].filter(([k]) => isValid(k)));
-        offerSubstitutions = new Map([...offerSubstitutions].filter(([k]) => isValid(k)));
-        ignoredVariations = new Map([...ignoredVariations].filter(([k]) => isValid(k)));
-    }
     return serializePromotionOffersField(promoExceptions, offerSubstitutions, ignoredVariations, selectedOfferIds, displayToCq);
 }
 
@@ -766,33 +768,14 @@ export function getEffectiveIgnoreVariations(ignoredVariations, offerId, country
     return ignoredVariations?.get(`${offerId}|${country}`) === true;
 }
 
-export function groupOfferSubstitutionsForOffer(offerSubstitutions, offerKeys, countries, resolveOfferLabel) {
-    if (!offerSubstitutions?.size || !Array.isArray(countries) || !countries.length) return [];
+function getEffectiveSubstituteForOfferKeys(offerSubstitutions, offerKeys, country) {
+    if (!offerSubstitutions?.size) return null;
     const keys = Array.isArray(offerKeys) ? offerKeys.filter(Boolean) : [];
-    const groups = new Map();
-
-    for (const country of countries) {
-        let substituteSelectorId = null;
-        for (const key of keys) {
-            const candidate = offerSubstitutions.get(`${key}|${country}`);
-            if (candidate) {
-                substituteSelectorId = candidate;
-                break;
-            }
-        }
-        if (!substituteSelectorId) continue;
-        const label = resolveOfferLabel?.(substituteSelectorId) ?? substituteSelectorId;
-        if (!groups.has(label)) groups.set(label, []);
-        groups.get(label).push(country);
+    for (const key of keys) {
+        const candidate = offerSubstitutions.get(`${key}|${country}`);
+        if (candidate) return candidate;
     }
-
-    return [...groups.entries()]
-        .map(([offerLabel, countryList]) => ({
-            offerLabel,
-            countries: countryList,
-            countriesLabel: countryList.join(', '),
-        }))
-        .sort((a, b) => a.offerLabel.localeCompare(b.offerLabel));
+    return null;
 }
 
 export function getEffectivePromoCode(exceptions, offerId, country, defaultPromoCode) {
@@ -808,68 +791,42 @@ function getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defau
     return defaultPromoCode;
 }
 
-export function groupCountriesByPromoCodeForOffer(exceptions, offerKeys, countries, defaultPromoCode) {
+/**
+ * Groups an offer's countries by the combined (promo code, OSI override) pair that
+ * applies to each country, so a country with both an exception and a substitution
+ * produces one row instead of two.
+ */
+export function groupCountriesByPromoCodeAndOsiOverrideForOffer(
+    exceptions,
+    offerSubstitutions,
+    offerKeys,
+    countries,
+    defaultPromoCode,
+) {
     if (!Array.isArray(countries) || !countries.length) return [];
     const groups = new Map();
 
     for (const country of countries) {
-        const code = getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defaultPromoCode);
-        if (!code) continue;
-        if (!groups.has(code)) groups.set(code, []);
-        groups.get(code).push(country);
+        const promoCode = getEffectivePromoCodeForOfferKeys(exceptions, offerKeys, country, defaultPromoCode);
+        const osiOverrideOfferId = getEffectiveSubstituteForOfferKeys(offerSubstitutions, offerKeys, country);
+        const groupKey = `${promoCode ?? ''}|${osiOverrideOfferId ?? ''}`;
+        if (!groups.has(groupKey)) {
+            groups.set(groupKey, {
+                promoCode: promoCode || null,
+                osiOverrideOfferId,
+                countries: [],
+            });
+        }
+        groups.get(groupKey).countries.push(country);
     }
 
-    return [...groups.entries()]
-        .map(([promoCode, countryList]) => ({
-            promoCode,
-            countries: countryList,
-            countriesLabel: countryList.join(', '),
-        }))
-        .sort((a, b) => a.promoCode.localeCompare(b.promoCode));
-}
-
-function getDistinctPromoCodesForOffer(exceptions, offerId, countries, defaultPromoCode) {
-    if (!offerId) return [];
-    const codes = new Set();
-    const locales = Array.isArray(countries) && countries.length ? countries : [''];
-    for (const country of locales) {
-        const code = getEffectivePromoCode(exceptions, offerId, country, defaultPromoCode);
-        if (code) codes.add(code);
-    }
-    return [...codes];
-}
-
-export function countDistinctPromoCodesForOffer(exceptions, offerId, countries, defaultPromoCode) {
-    const codes = getDistinctPromoCodesForOffer(exceptions, offerId, countries, defaultPromoCode);
-    return codes.length;
-}
-
-export function groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode) {
-    if (!Array.isArray(countries) || !countries.length) return [];
-    const groups = new Map();
-    const offers = Array.isArray(offerIds) && offerIds.length ? offerIds : [null];
-
-    for (const country of countries) {
-        const codes = new Set(
-            offers
-                .map((offerId) =>
-                    offerId ? getEffectivePromoCode(exceptions, offerId, country, defaultPromoCode) : defaultPromoCode,
-                )
-                .filter(Boolean),
+    return [...groups.values()]
+        .map((group) => ({ ...group, countriesLabel: group.countries.join(', ') }))
+        .sort(
+            (a, b) =>
+                (a.promoCode || '').localeCompare(b.promoCode || '') ||
+                (a.osiOverrideOfferId || '').localeCompare(b.osiOverrideOfferId || ''),
         );
-        const code = codes.size ? [...codes][0] : defaultPromoCode;
-        if (!code) continue;
-        if (!groups.has(code)) groups.set(code, []);
-        groups.get(code).push(country);
-    }
-
-    return [...groups.entries()]
-        .map(([promoCode, countryList]) => ({
-            promoCode,
-            countries: countryList,
-            countriesLabel: countryList.join(', '),
-        }))
-        .sort((a, b) => a.promoCode.localeCompare(b.promoCode));
 }
 
 const GEO_LOCALE_PREFIXES = ['mas:locale/', '/content/cq:tags/mas/locale/'];

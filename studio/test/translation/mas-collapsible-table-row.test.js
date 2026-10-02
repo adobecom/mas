@@ -15,6 +15,7 @@ import {
     BASELINE_VARIATION,
 } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
 
@@ -1530,12 +1531,50 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
         };
 
+        const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sandbox, itemsByFolder);
+
         beforeEach(() => {
             sandbox.stub(window, 'fetch').resolves({
                 ok: true,
                 headers: { get: () => null },
                 json: async () => ({ offers: [] }),
             });
+        });
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+        });
+
+        it('wires onlyAttachedGroupedVariations: true through to the grouped-variation probe, excluding an unattached grouped promo copy', async () => {
+            const defaultPath = '/content/dam/mas/acom/en_US/cards/test';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promotionsRoot = '/content/dam/mas/acom/en_US/promotions';
+            const groupedPromoPath = `${promotionsRoot}/black-friday/cards/test/pzn/edu`;
+
+            const search = makeSearchStub({
+                [promotionsRoot]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+            });
+            const project = {
+                tags: [{ id: 'mas:promotion/black-friday' }],
+                getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? [defaultPath] : undefined)),
+            };
+            Store.promotions.list.data.set([{ get: () => project }]);
+
+            const topLevelCard = {
+                ...createMockTopLevelCard({ variationPaths: [groupedPath] }),
+                id: 'frag-grouped-promo',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = {
+                aem: { sites: { cf: { fragments: { search } } } },
+                loadPromotions: sandbox.stub().resolves(),
+            };
+
+            await triggerPromoLoad(el);
+
+            expect(el.promoVariations.map((v) => v.path)).to.not.include(groupedPromoPath);
         });
 
         it('excludes locale references from promoVariations when references contain mixed types', async () => {

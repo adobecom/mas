@@ -20,6 +20,7 @@ class MasPlaceholdersItem extends LitElement {
         toggleEditing: { type: Function, reflect: false },
         toggleDropdown: { type: Function, reflect: false },
         updatePending: { type: Function, reflect: false },
+        onCopyStudioLinks: { type: Function, reflect: false },
     };
 
     createRenderRoot() {
@@ -36,6 +37,7 @@ class MasPlaceholdersItem extends LitElement {
         this.toggleEditing = null;
         this.toggleDropdown = null;
         this.updatePending = null;
+        this.onCopyStudioLinks = null;
 
         this.handleRteValueChange = this.handleRteValueChange.bind(this);
     }
@@ -149,6 +151,11 @@ class MasPlaceholdersItem extends LitElement {
             };
             this.placeholderStore.refreshFrom(updatedPlaceholder);
         }
+    }
+
+    onCopyLink(event) {
+        this.toggleDropdown(this.placeholder.key, event);
+        this.onCopyStudioLinks([this.placeholder.key]);
     }
 
     preventSelection(event) {
@@ -319,6 +326,10 @@ class MasPlaceholdersItem extends LitElement {
                                       >
                                           <sp-icon-publish size="m"></sp-icon-publish>
                                           <span>Publish</span>
+                                      </div>
+                                      <div class="dropdown-item" @click=${this.onCopyLink}>
+                                          <sp-icon-link size="m"></sp-icon-link>
+                                          <span>Copy Link</span>
                                       </div>
                                       <div class="dropdown-item" @click="${this.onDelete}">
                                           <sp-icon-delete size="m"></sp-icon-delete>

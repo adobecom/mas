@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../src/store.js';
-import { canAccessSettings, canEditPromotions, isMasAdmin } from '../src/groups.js';
+import { canAccessSettings, canAccessMasks, canAccessOfferMapping, canEditPromotions, isMasAdmin } from '../src/groups.js';
 
 describe('groups', () => {
     let originalProfile;
@@ -59,6 +59,26 @@ describe('groups', () => {
         Store.users.set([{ userPrincipalName: 'Power.User@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CC-POWERUSERS'] }]);
         Store.profile.set({ email: 'power.user@adobe.com' });
         expect(canAccessSettings('acom-cc')).to.be.true;
+    });
+
+    it('canAccessSettings allows brand-concierge powerusers on their own surface only', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-BRAND-CONCIERGE-POWERUSERS'] }]);
+        expect(canAccessSettings('brand-concierge')).to.be.true;
+        expect(canAccessMasks('brand-concierge')).to.be.true;
+        expect(canAccessOfferMapping('brand-concierge')).to.be.true;
+
+        for (const surface of ['acom', 'ccd', 'commerce']) {
+            expect(canAccessSettings(surface)).to.be.false;
+            expect(canAccessMasks(surface)).to.be.false;
+            expect(canAccessOfferMapping(surface)).to.be.false;
+        }
+    });
+
+    it('canAccessSettings allows global admins on brand-concierge', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canAccessSettings('brand-concierge')).to.be.true;
     });
 
     it('canAccessSettings is false without surface path', () => {

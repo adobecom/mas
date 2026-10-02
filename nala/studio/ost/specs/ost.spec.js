@@ -217,5 +217,17 @@ export default {
             },
             tags: '@mas-studio @ost @ost-e2e',
         },
+        {
+            tcid: '18',
+            name: '@studio-ost-discount-amount',
+            path: '/studio.html',
+            data: {
+                osi: 'KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM',
+                refOsi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                expectedPrice: '€',
+                expectedPercentage: '%',
+            },
+            tags: '@mas-studio @ost @ost-e2e',
+        },
     ],
 };

@@ -293,16 +293,16 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('calls loadPromotions for PROMOTIONS page', async () => {
+        it('calls loadPromotionsFirstPage for PROMOTIONS page', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
             Store.profile.set({ name: 'test-user' });
             repository.page = { value: PAGE_NAMES.PROMOTIONS };
-            repository.loadPromotions = sandbox.stub();
+            repository.loadPromotionsFirstPage = sandbox.stub();
             try {
                 repository.handleSearch();
-                expect(repository.loadPromotions.calledOnce).to.be.true;
+                expect(repository.loadPromotionsFirstPage.calledOnce).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
             }
@@ -539,6 +539,152 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 repository.handleSearch();
                 expect(repository.loadTranslationProjects.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+    });
+
+    describe('promotions pagination', () => {
+        const PROMOTIONS_PATH = `${ROOT_PATH}/promotions`;
+
+        const makePromoFragment = (id) => ({
+            id,
+            etag: 'e',
+            model: { id: 'promotion-model' },
+            path: `${PROMOTIONS_PATH}/${id}`,
+            title: id,
+            description: '',
+            status: 'DRAFT',
+            created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+            modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+            fields: [
+                { name: 'title', type: 'text', values: [id] },
+                { name: 'promoCode', type: 'text', values: ['X'] },
+                { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+                { name: 'endDate', type: 'date-time', values: ['2099-12-31T23:59:59.999Z'] },
+                { name: 'tags', type: 'tag', values: [] },
+                { name: 'surfaces', type: 'text', values: [] },
+            ],
+            tags: [],
+        });
+
+        const createMockCursorFromPages = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
+        const setup = async (pages, aemOverrides = {}) => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages(pages));
+            repository.aem = createAemMock({ fragments: { search: searchStub, ...aemOverrides } });
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.search.set('');
+            return { repository, Store, searchStub };
+        };
+
+        afterEach(async () => {
+            const { default: Store } = await import('../src/store.js');
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.search.set('');
+            Store.promotions.list.loading.set(true);
+        });
+
+        it('first load reads one page of 50 and reports that more pages remain', async () => {
+            const { repository, Store, searchStub } = await setup([[makePromoFragment('p-1')], [makePromoFragment('p-2')]]);
+
+            await repository.loadPromotionsFirstPage();
+
+            expect(searchStub.firstCall.args[0].sort).to.deep.equal([{ on: 'created', order: 'DESC' }]);
+            expect(searchStub.firstCall.args[0]).to.not.have.property('query');
+            expect(searchStub.firstCall.args[1]).to.equal(50);
+            expect(Store.promotions.list.data.get()).to.have.lengthOf(1);
+            expect(repository.promotionsHasMore).to.be.true;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadNextPromotionsPage appends the next page and stamps listFetched on exhaustion', async () => {
+            const { repository, Store, searchStub } = await setup([[makePromoFragment('p-1')], [makePromoFragment('p-2')]]);
+
+            await repository.loadPromotionsFirstPage();
+            await repository.loadNextPromotionsPage();
+            expect(Store.promotions.list.data.get()).to.have.lengthOf(2);
+            expect(repository.promotionsHasMore).to.be.true;
+
+            await repository.loadNextPromotionsPage();
+            expect(repository.promotionsHasMore).to.be.false;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+            expect(searchStub.calledOnce).to.be.true;
+        });
+
+        it('passes the search text to AEM and does not stamp listFetched', async () => {
+            const { repository, Store, searchStub } = await setup([[makePromoFragment('p-1')]]);
+
+            await repository.loadPromotionsFirstPage({ search: 'winter', force: true });
+            await repository.loadNextPromotionsPage();
+
+            expect(searchStub.firstCall.args[0].query).to.equal('winter');
+            expect(Store.promotions.list.data.get()).to.have.lengthOf(1);
+            expect(repository.promotionsHasMore).to.be.false;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+        });
+
+        it('resolves a pasted fragment id through getById with no further pages', async () => {
+            const id = '11111111-2222-4333-8444-555555555555';
+            const getById = sandbox.stub().resolves(makePromoFragment(id));
+            const { repository, Store, searchStub } = await setup([], { getById });
+
+            await repository.loadPromotionsFirstPage({ search: id, force: true });
+
+            expect(getById.calledOnce).to.be.true;
+            expect(searchStub.called).to.be.false;
+            expect(Store.promotions.list.data.get()).to.have.lengthOf(1);
+            expect(repository.promotionsHasMore).to.be.false;
+        });
+
+        it('full-drain loadPromotions still stamps listFetched and clears lazy pagination', async () => {
+            const { repository, Store } = await setup([[makePromoFragment('p-1')], [makePromoFragment('p-2')]]);
+            await repository.loadPromotionsFirstPage();
+            expect(repository.promotionsHasMore).to.be.true;
+
+            repository.searchFragmentList = sandbox.stub().resolves([makePromoFragment('p-1'), makePromoFragment('p-2')]);
+            await repository.loadPromotions();
+
+            expect(repository.promotionsHasMore).to.be.false;
+            expect(Store.promotions.list.data.get()).to.have.lengthOf(2);
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+        });
+
+        it('handleSearch off the Promotions page discards a partial promotions list', async () => {
+            const { repository, Store } = await setup([[makePromoFragment('p-1')], [makePromoFragment('p-2')]]);
+            await repository.loadPromotionsFirstPage();
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.WELCOME };
+            repository.loadRecentlyUpdatedFragments = sandbox.stub();
+            repository.loadPreviewPlaceholders = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(Store.promotions.list.data.get()).to.have.lengthOf(0);
+                expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+                expect(repository.promotionsHasMore).to.be.false;
             } finally {
                 Store.profile.set(originalProfile);
             }

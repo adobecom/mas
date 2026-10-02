@@ -1501,6 +1501,201 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('promo variation row open on double-click / link (promotions-editor only)', () => {
+        const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+        const promoId = 'urn:aaid:aem:promo-card-1';
+
+        const makePromoVariation = (overrides = {}) => ({
+            path: promoPath,
+            id: promoId,
+            title: 'Promo Card',
+            studioPath: 'promo/path',
+            tags: [],
+            offerData: { offerId: 'OFFER-1' },
+            ...overrides,
+        });
+
+        const fixtureInPromotionsContext = async () => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .renderActionsCell=${() => nothing}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation()];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            return el;
+        };
+
+        const fixtureInTranslationContext = async () => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation()];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            return el;
+        };
+
+        it('wraps the row in a link to the fragment editor when renderActionsCell is provided (promotions context)', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const link = row.closest('a');
+            expect(link).to.exist;
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.getAttribute('rel')).to.equal('noopener');
+            expect(link.getAttribute('href')).to.equal(
+                `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
+            );
+        });
+
+        it('derives the surface from the variation path rather than the currently active page path', async () => {
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&path=sandbox';
+            try {
+                const el = await fixtureInPromotionsContext();
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+                const link = row.closest('a');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
+                );
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
+
+        it('falls back to the current page path when the variation path has no extractable surface', async () => {
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&path=sandbox';
+            try {
+                const topLevelCard = createMockTopLevelCard();
+                setupCardVariationsInStore(topLevelCard.path, []);
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                        .renderActionsCell=${() => nothing}
+                    ></mas-collapsible-table-row>`,
+                );
+                el.promoVariations = [makePromoVariation({ path: 'not-an-aem-path' })];
+                el.selectedTabKey = 'promotion';
+                await el.updateComplete;
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="not-an-aem-path"]`);
+                const link = row.closest('a');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=sandbox`,
+                );
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
+
+        it('includes the in-edit promotion id in the fragment edit link when set', async () => {
+            Store.promotions.promotionId.set('promo-project-42');
+            try {
+                const el = await fixtureInPromotionsContext();
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+                const link = row.closest('a');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom&promotionId=promo-project-42`,
+                );
+            } finally {
+                Store.promotions.promotionId.set(null);
+            }
+        });
+
+        it('does not wrap the row in a link when renderActionsCell is not provided (translation context)', async () => {
+            const el = await fixtureInTranslationContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            expect(row.closest('a')).to.not.exist;
+        });
+
+        it('opens the fragment editor in a new tab on row double-click (promotions context)', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            const editUrl = `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`;
+            expect(openStub.calledOnceWith(editUrl, '_blank', 'noopener')).to.be.true;
+        });
+
+        it('does not open the fragment editor on double-click when renderActionsCell is not provided (translation context)', async () => {
+            const el = await fixtureInTranslationContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('does not open the fragment editor when double-clicking the copy-offer-id action button', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
+            expect(copyButton).to.exist;
+            copyButton.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('still copies the offer id to the clipboard when the copy button is clicked inside the wrapping link', async () => {
+            const el = await fixtureInPromotionsContext();
+            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
+            const toastPromise = new Promise((resolve) => {
+                el.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            copyButton.click();
+            await toastPromise;
+            expect(writeTextStub.calledWith('OFFER-1')).to.be.true;
+        });
+
+        it('does not open the fragment editor when double-clicking the row expand button', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const expandButton = row.querySelector('.expand-button');
+            expandButton.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('does not wrap the nested variation-details row in a link', async () => {
+            const el = await fixtureInPromotionsContext();
+            el.expandedVariationsPaths = new Set([promoPath]);
+            await el.updateComplete;
+            const detailsRow = el.shadowRoot.querySelector('.variation-details-row');
+            expect(detailsRow).to.exist;
+            expect(detailsRow.closest('a')).to.not.exist;
+        });
+
+        it('prevents default navigation when the copy-offer-id action button is clicked (single click)', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            copyButton.dispatchEvent(clickEvent);
+            expect(clickEvent.defaultPrevented).to.be.true;
+        });
+
+        it('prevents default navigation when the row expand button is clicked (single click)', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const expandButton = row.querySelector('.expand-button');
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            expandButton.dispatchEvent(clickEvent);
+            expect(clickEvent.defaultPrevented).to.be.true;
+        });
+    });
+
     describe('#loadPromoVariations filter behavior', () => {
         const localeRefPath = '/content/dam/mas/acom/fr_FR/cards/test';
         const promoRefPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';

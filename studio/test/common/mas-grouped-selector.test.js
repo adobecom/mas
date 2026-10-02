@@ -126,7 +126,7 @@ describe('MasGroupedSelector', () => {
         expect(el.showEmptyState).to.be.true;
         query(el, '.selector-dialog').dispatchEvent(new Event('confirm'));
         await el.updateComplete;
-        expect(el.showEmptyState).to.be.false;
+        expect(document.querySelector('mas-grouped-selector').showEmptyState).to.be.false;
     });
 
     it('updates the empty state when selection changes while the dialog is closed', async () => {

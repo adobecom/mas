@@ -17,6 +17,7 @@ import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
 import { isPromoVariationPath } from './promotions/promotion-model.js';
+import { stripRenditionParams } from '../../web-components/src/image-markup.js';
 
 /**
  * @param {string} input
@@ -657,4 +658,13 @@ export function describeVariationsToDelete(fragment, variationsToDelete = []) {
     if (groupedCount) parts.push(`${groupedCount} grouped`);
     if (promoCount) parts.push(`${promoCount} promo`);
     return `${parts.join(', ')} variation(s)`;
+}
+
+/** Extracts the base asset URL back out of picture markup built by buildPictureInnerMarkup
+ *  (web-components/src/image-markup.js), stripping the rendition query params. */
+export function extractImageUrl(html) {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(`<picture>${html}</picture>`, 'text/html');
+    const src = doc.querySelector('img')?.getAttribute('src') ?? doc.querySelector('source')?.getAttribute('srcset');
+    return stripRenditionParams(src);
 }

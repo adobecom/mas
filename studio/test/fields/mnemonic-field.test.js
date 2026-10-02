@@ -99,4 +99,23 @@ describe('Mnemonic field', () => {
             link: 'https://example.com',
         });
     });
+
+    it('should forward extendedIconLibrary to the mnemonic modal', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-field .iconLibrary=${true} .extendedIconLibrary=${true}></mas-mnemonic-field>`,
+            { parentNode: spTheme() },
+        );
+
+        const modal = el.shadowRoot.querySelector('mas-mnemonic-modal');
+        expect(modal.extendedIconLibrary).to.be.true;
+    });
+
+    it('should default extendedIconLibrary to false', async () => {
+        const el = await fixture(html`<mas-mnemonic-field .iconLibrary=${true}></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+
+        const modal = el.shadowRoot.querySelector('mas-mnemonic-modal');
+        expect(modal.extendedIconLibrary).to.be.false;
+    });
 });

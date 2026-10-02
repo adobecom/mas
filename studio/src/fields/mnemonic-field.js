@@ -12,6 +12,7 @@ class MnemonicField extends LitElement {
             modalOpen: { type: Boolean, state: true },
             iconLibrary: { type: Boolean, state: true },
             variant: { type: String },
+            extendedIconLibrary: { type: Boolean },
         };
     }
 
@@ -97,6 +98,7 @@ class MnemonicField extends LitElement {
         this.modalOpen = false;
         this.iconLibrary = false;
         this.variant = '';
+        this.extendedIconLibrary = false;
     }
 
     #handleEditClick() {
@@ -247,6 +249,7 @@ class MnemonicField extends LitElement {
                 .link=${this.link}
                 .variant=${this.variant}
                 .iconLibrary="${this.iconLibrary}"
+                .extendedIconLibrary="${this.extendedIconLibrary}"
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>

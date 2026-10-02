@@ -1344,6 +1344,7 @@ class MerchCardCollectionEditor extends LitElement {
                         id="icon"
                         data-field-state="${this.#getFieldState('icon')}"
                         .iconLibrary="${true}"
+                        .extendedIconLibrary="${true}"
                         .icon="${this.icon}"
                         .variant="${VARIANT_NAMES.PLANS}"
                         @change=${(e) => this.#updateIcon(e, 'icon')}
@@ -1356,6 +1357,7 @@ class MerchCardCollectionEditor extends LitElement {
                         id="iconLight"
                         data-field-state="${this.#getFieldState('iconLight')}"
                         .iconLibrary="${true}"
+                        .extendedIconLibrary="${true}"
                         .icon="${this.iconLight}"
                         .variant="${VARIANT_NAMES.PLANS}"
                         @change=${(e) => this.#updateIcon(e, 'iconLight')}

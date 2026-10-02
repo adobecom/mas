@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
-import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
+import { ICON_LIBRARY, COLLECTION_ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
 import './rte/rte-field.js';
 
 class MasMnemonicModal extends LitElement {
@@ -18,6 +18,7 @@ class MasMnemonicModal extends LitElement {
         iconLibrary: { type: Boolean },
         useRte: { type: Boolean },
         variant: { type: String },
+        extendedIconLibrary: { type: Boolean },
     };
 
     static styles = css`
@@ -180,11 +181,16 @@ class MasMnemonicModal extends LitElement {
         this.useRte = false;
         this.altHtml = '';
         this.variant = '';
+        this.extendedIconLibrary = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.icons = this.iconLibrary ? ICON_LIBRARY : ADOBE_PRODUCTS;
+        if (this.iconLibrary) {
+            this.icons = this.extendedIconLibrary ? COLLECTION_ICON_LIBRARY : ICON_LIBRARY;
+        } else {
+            this.icons = ADOBE_PRODUCTS;
+        }
         this.#initializeFromIcon();
     }
 

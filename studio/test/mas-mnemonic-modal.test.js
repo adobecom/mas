@@ -4,6 +4,7 @@ import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
 import '../src/swc.js';
 import '../src/mas-mnemonic-modal.js';
 import { ADOBE_PRODUCTS } from '../src/constants/adobe-products.js';
+import { ICON_LIBRARY, COLLECTION_ICON_LIBRARY } from '../src/constants/icon-library.js';
 import { spTheme } from './utils.js';
 
 describe('MAS Mnemonic Modal', () => {
@@ -189,5 +190,24 @@ describe('MAS Mnemonic Modal', () => {
         const event = await listener;
 
         expect(event.detail.alt).to.include('icon-button');
+    });
+
+    it('should offer only ICON_LIBRARY when iconLibrary is set without extendedIconLibrary', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open .iconLibrary=${true}></mas-mnemonic-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        expect(el.icons).to.deep.equal(ICON_LIBRARY);
+        expect(el.icons.find((i) => i.id === 'sp-icon-s2-video')).to.not.exist;
+    });
+
+    it('should offer COLLECTION_ICON_LIBRARY when iconLibrary and extendedIconLibrary are both set', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-modal open .iconLibrary=${true} .extendedIconLibrary=${true}></mas-mnemonic-modal>`,
+            { parentNode: spTheme() },
+        );
+
+        expect(el.icons).to.deep.equal(COLLECTION_ICON_LIBRARY);
+        expect(el.icons.find((i) => i.id === 'sp-icon-s2-video')).to.exist;
     });
 });

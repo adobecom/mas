@@ -48,6 +48,7 @@ export class MerchQuantitySelect extends LitElement {
         this.closeMenu = this.closeMenu.bind(this);
         this.openMenu = this.openMenu.bind(this);
         this.handleClickOutside = this.handleClickOutside.bind(this);
+        this.adjustPopoverPlacement = this.adjustPopoverPlacement.bind(this);
         this.boundKeydownListener = this.handleKeydown.bind(this);
         this.handleKeyupDebounced = debounce(this.handleKeyup.bind(this), 500);
         this.debouncedQuantityUpdate = debounce(
@@ -154,6 +155,7 @@ export class MerchQuantitySelect extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         window.removeEventListener('mousedown', this.handleClickOutside);
+        this.stopTrackingViewportChanges();
         this.removeEventListener('keydown', this.boundKeydownListener);
         this.removeEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
@@ -191,6 +193,33 @@ export class MerchQuantitySelect extends LitElement {
         super.update(changedProperties);
     }
 
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        if (!changedProperties.has('closed')) return;
+        if (this.closed) {
+            this.stopTrackingViewportChanges();
+        } else {
+            this.startTrackingViewportChanges();
+            requestAnimationFrame(this.adjustPopoverPlacement);
+        }
+    }
+
+    startTrackingViewportChanges() {
+        window.addEventListener('resize', this.adjustPopoverPlacement);
+        window.addEventListener(
+            'orientationchange',
+            this.adjustPopoverPlacement,
+        );
+    }
+
+    stopTrackingViewportChanges() {
+        window.removeEventListener('resize', this.adjustPopoverPlacement);
+        window.removeEventListener(
+            'orientationchange',
+            this.adjustPopoverPlacement,
+        );
+    }
+
     handleClickOutside(event) {
         const path = event.composedPath();
         if (!path.includes(this)) {
@@ -200,7 +229,6 @@ export class MerchQuantitySelect extends LitElement {
 
     toggleMenu() {
         this.closed = !this.closed;
-        this.adjustPopoverPlacement();
         if (this.closed)
             this.highlightedIndex = this.options.indexOf(this.selectedValue);
     }
@@ -212,17 +240,16 @@ export class MerchQuantitySelect extends LitElement {
 
     openMenu() {
         this.closed = false;
-        this.adjustPopoverPlacement();
     }
 
     adjustPopoverPlacement() {
+        if (this.closed) return;
         const popover = this.shadowRoot.querySelector('.popover');
-        if (
-            this.closed ||
-            popover.getBoundingClientRect().bottom <= window.innerHeight
-        )
-            popover.setAttribute('placement', 'bottom');
-        else popover.setAttribute('placement', 'top');
+        const textField = this.shadowRoot.querySelector('.text-field');
+        const fieldRect = textField.getBoundingClientRect();
+        const fitsBelow =
+            fieldRect.bottom + popover.offsetHeight <= window.innerHeight;
+        popover.setAttribute('placement', fitsBelow ? 'bottom' : 'top');
     }
 
     handleMouseEnter(index) {

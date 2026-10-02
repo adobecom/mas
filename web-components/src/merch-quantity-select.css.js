@@ -26,6 +26,10 @@ export const styles = css`
         line-height: var(--qs-line-height, 2);
     }
 
+    :host(:not([closed])) {
+        z-index: var(--qs-open-z-index, 1000);
+    }
+
     .text-field {
         display: flex;
         align-items: center;
@@ -125,6 +129,7 @@ export const styles = css`
         visibility: visible;
         background: #ffffff;
         border: var(--border-width) solid var(--border-color);
+        overflow: visible;
     }
 
     .popover.closed {

@@ -64,6 +64,10 @@ Ask colleagues/slack for IMS_EMAIL and IMS_PASS values, your user might not work
 Beware that 'npm run nala' runs `node nala/utils/nala.run.js`, it's not the script that GH action does.
 If you want to debug GH action script run sh `nala/utils/gh.run.sh`
 
+GitHub runs use the PR head branch (`prBranch`, then `GITHUB_HEAD_REF` or the workflow's `branch` value).
+Review-triggered runs can have an empty `GITHUB_HEAD_REF`; the PR number in `refs/pull/<number>/merge` is never used
+as an EDS branch. Missing branch metadata or an unavailable branch URL fails setup rather than testing main.
+
 ### Request-efficient setup
 
 Studio tests keep fresh browser contexts. Repeated edit/discard, OST, discount and field-editor setups opt into

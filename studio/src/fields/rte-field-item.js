@@ -6,6 +6,7 @@ class MasRteFieldItem extends LitElement {
     static properties = {
         label: { type: String },
         osi: { type: String },
+        inherited: { type: Boolean },
         _labelLocked: { type: Boolean, state: true },
     };
 
@@ -68,6 +69,7 @@ class MasRteFieldItem extends LitElement {
         super();
         this.label = '';
         this.osi = '';
+        this.inherited = false;
         this._labelLocked = false;
     }
 
@@ -87,7 +89,7 @@ class MasRteFieldItem extends LitElement {
                 <sp-textfield
                     placeholder="Enter title"
                     .value="${this.label || ''}"
-                    ?readonly=${this._labelLocked}
+                    ?readonly=${this._labelLocked || this.inherited}
                     @click=${this.#handleLabelClick}
                     @input=${(e) => e.stopPropagation()}
                     @change=${this.#handleLabelChange}
@@ -112,6 +114,7 @@ class MasRteFieldItem extends LitElement {
     };
 
     #handleLabelClick = async (e) => {
+        if (this.inherited) return;
         if (!this._labelLocked) return;
         e.preventDefault();
         const confirmed = await confirmation({
@@ -129,6 +132,7 @@ class MasRteFieldItem extends LitElement {
 
     #handleLabelChange = (e) => {
         e.stopPropagation();
+        if (this.inherited) return;
         this.label = e.target.value;
         if (this.label) this._labelLocked = true;
         this.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));

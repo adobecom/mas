@@ -2334,16 +2334,32 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
+    /** Non-empty custom field labels inherited from the linked default fragment (promo variations only). */
+    get inheritedCustomFieldLabels() {
+        if (!this.isPromoVariation || !this.localeDefaultFragment) return new Set();
+        return new Set((this.localeDefaultFragment.getFieldValues('customFieldLabels') || []).filter(Boolean));
+    }
+
     get customFieldValues() {
         const values = this.getEffectiveFieldValues('customFields') || [];
         const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
+        const inheritedLabels = this.inheritedCustomFieldLabels;
         const count = Math.max(values.length, labels.length);
         return Array.from({ length: count }, (_, i) => {
             const item = {};
             if (values[i]) item.value = values[i];
             if (labels[i]) item.label = labels[i];
+            if (labels[i] && inheritedLabels.has(labels[i])) item.inherited = true;
             return item;
         });
+    }
+
+    /** True when a submitted custom field label list drops or renames a label inherited from the default fragment. */
+    removesInheritedCustomFieldLabel(labels) {
+        const inheritedLabels = this.inheritedCustomFieldLabels;
+        if (!inheritedLabels.size) return false;
+        const submitted = new Set(labels.filter(Boolean));
+        return [...inheritedLabels].some((label) => !submitted.has(label));
     }
 
     get footerRows() {
@@ -2394,6 +2410,10 @@ class MerchCardEditor extends LitElement {
         const nonEmpty = labels.filter(Boolean);
         if (nonEmpty.length !== new Set(nonEmpty).size) {
             showToast('Custom field labels must be unique', 'negative');
+            return;
+        }
+        if (this.removesInheritedCustomFieldLabel(labels)) {
+            showToast('Custom fields inherited from the default fragment cannot be renamed', 'negative');
             return;
         }
         this.fragmentStore.updateField('customFields', values);

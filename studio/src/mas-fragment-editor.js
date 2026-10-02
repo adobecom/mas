@@ -38,6 +38,7 @@ import {
     isPromoVariationPath,
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
+import { propagateCustomFieldsToPromoVariations } from './promotions/promotion-variations.js';
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
@@ -1677,6 +1678,8 @@ export default class MasFragmentEditor extends LitElement {
             if (this.fragment?.model?.path === CARD_MODEL_PATH) {
                 migrateLegacyVariant(this.fragmentStore);
             }
+            const isDefaultCardSave = this.fragment?.model?.path === CARD_MODEL_PATH && !this.isPromoVariationFragment();
+            const promoVariationPathsToSync = isDefaultCardSave ? await this.#getPromoVariationPathsForSync() : [];
             const compareChartEditor = this.querySelector('mas-compare-chart-editor');
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
@@ -1701,11 +1704,43 @@ export default class MasFragmentEditor extends LitElement {
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');
             }
+            if (savedFragment && promoVariationPathsToSync.length) {
+                this.#syncCustomFieldsToPromoVariations(savedFragment, promoVariationPathsToSync);
+            }
         } catch (error) {
             console.error('Failed to save fragment:', error);
             showToast(`Failed to save fragment: ${error.message}`, 'negative');
             throw error;
         }
+    }
+
+    // Resolves promo variation paths to sync custom fields to, waiting for any in-flight promo
+    // probe first so a variation created just before save isn't missed (same pattern as deleteFragment).
+    async #getPromoVariationPathsForSync() {
+        const fragmentId = this.fragment.id;
+        if (this.#pendingPromoRefresh?.fragmentId === fragmentId) {
+            try {
+                await this.#pendingPromoRefresh.promise;
+            } catch (error) {
+                console.error('Failed to probe promo variations before save:', error);
+                return [];
+            }
+        }
+        return this.fragment.listPromoVariations().map((variation) => variation.path);
+    }
+
+    // Fire-and-forget: a propagation failure must not block the UI or the save result the author sees.
+    #syncCustomFieldsToPromoVariations(defaultFragmentData, promoVariationPaths) {
+        propagateCustomFieldsToPromoVariations(this.repository.aem, defaultFragmentData, promoVariationPaths)
+            .then(({ failures }) => {
+                if (!failures.length) return;
+                console.error('Failed to sync custom fields to promo variations:', failures);
+                showToast('Some promo variations could not be updated with the new custom field.', 'warning');
+            })
+            .catch((error) => {
+                console.error('Failed to sync custom fields to promo variations:', error);
+                showToast('Some promo variations could not be updated with the new custom field.', 'warning');
+            });
     }
 
     async publishFragment() {

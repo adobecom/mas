@@ -6,6 +6,13 @@ export const styles = [
     css`
         :host {
             display: block;
+            padding: 20px;
+            border: 1px solid var(--spectrum-gray-300, #dadada);
+            border-radius: 16px;
+            box-shadow:
+                0 0 2px 0 var(--Alias-drop-shadow-elevated-key, rgba(0, 0, 0, 0.12)),
+                0 2px 6px 0 var(--Alias-drop-shadow-transition, rgba(0, 0, 0, 0.04)),
+                0 4px 12px 0 var(--Alias-drop-shadow-ambient, rgba(0, 0, 0, 0.08));
         }
 
         h2 {

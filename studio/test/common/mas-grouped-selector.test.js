@@ -63,21 +63,21 @@ describe('MasGroupedSelector', () => {
     it('toggles a sorted selected list from the header', async () => {
         const selected = ['fr_FR', 'de_DE'];
         const el = await render(selected);
-        expect(query(el, '.selected-list')).to.be.null;
-        query(el, '.toggle-btn').click();
-        await el.updateComplete;
         expect(query(el, '.selected-list').textContent).to.equal('de_DE, fr_FR');
         expect(selected).to.deep.equal(['fr_FR', 'de_DE']);
         query(el, '.toggle-btn').click();
         await el.updateComplete;
         expect(query(el, '.selected-list')).to.be.null;
+        query(el, '.toggle-btn').click();
+        await el.updateComplete;
+        expect(query(el, '.selected-list')).to.exist;
     });
 
     it('does not toggle the list when the edit trigger is clicked', async () => {
         const el = await render(['fr_FR']);
         query(el, '.edit-button').click();
         await el.updateComplete;
-        expect(el.expanded).to.be.false;
+        expect(el.expanded).to.be.true;
     });
 
     it('projects slotted picker content into the dialog', async () => {

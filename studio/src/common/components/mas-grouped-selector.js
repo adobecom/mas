@@ -29,7 +29,7 @@ class MasGroupedSelector extends LitElement {
         this.readonly = false;
         this.disabled = false;
         this.selected = [];
-        this.expanded = false;
+        this.expanded = true;
         this.showEmptyState = true;
     }
 

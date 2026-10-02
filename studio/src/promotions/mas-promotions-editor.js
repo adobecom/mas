@@ -1812,7 +1812,6 @@ class MasPromotionsEditor extends LitElement {
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
                             </sp-field-group>
-                            ${this.countriesSelector}
                         </div>
                         <sp-divider size="m" class="promotions-form-panel-divider" vertical></sp-divider>
                         <div class="promotions-form-surfaces">
@@ -1874,6 +1873,7 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                     </div>
                 </div>
+                ${this.countriesSelector}
                 <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState

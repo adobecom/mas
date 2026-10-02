@@ -65,10 +65,6 @@ export const styles = [
             padding-top: 12px;
         }
 
-        .promotions-form-fields mas-grouped-selector {
-            padding-top: 24px;
-        }
-
         .promotions-form-fields sp-textfield {
             width: 100%;
         }

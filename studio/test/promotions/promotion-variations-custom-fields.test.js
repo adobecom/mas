@@ -4,6 +4,7 @@ import {
     mergeMissingCustomFieldLabels,
     propagateCustomFieldsToPromoVariations,
 } from '../../src/promotions/promotion-variations.js';
+import { Fragment } from '../../src/aem/fragment.js';
 
 describe('promotion-variations custom fields', () => {
     let sandbox;
@@ -63,6 +64,14 @@ describe('promotion-variations custom fields', () => {
             const result = mergeMissingCustomFieldLabels({ customFieldLabels: [] }, { customFieldLabels: [] });
             expect(result).to.equal(null);
         });
+
+        it('returns null when the variation is inheriting (own customFieldLabels is empty)', () => {
+            const result = mergeMissingCustomFieldLabels(
+                { customFieldLabels: ['Field A', 'Field B'] },
+                { customFieldLabels: [], customFields: [] },
+            );
+            expect(result).to.equal(null);
+        });
     });
 
     describe('propagateCustomFieldsToPromoVariations', () => {
@@ -118,8 +127,8 @@ describe('promotion-variations custom fields', () => {
                 id: 'failing',
                 path: failingPath,
                 fields: [
-                    { name: 'customFieldLabels', values: [] },
-                    { name: 'customFields', values: [] },
+                    { name: 'customFieldLabels', values: ['Field A'] },
+                    { name: 'customFields', values: ['value a'] },
                 ],
             });
             const save = sandbox.stub().rejects(new Error('save failed'));
@@ -140,6 +149,39 @@ describe('promotion-variations custom fields', () => {
             const result = await propagateCustomFieldsToPromoVariations(aem, { fields: [] }, ['/some/path']);
             expect(result).to.deep.equal({ updatedPaths: [], failures: [] });
             expect(aem.sites.cf.fragments.getByPath.called).to.be.false;
+        });
+
+        it('skips a variation that is still inheriting custom fields from the default', async () => {
+            const inheritingPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/inheriting';
+            const inheritingVariationData = {
+                id: 'inheriting',
+                path: inheritingPath,
+                fields: [
+                    { name: 'customFieldLabels', values: [] },
+                    { name: 'customFields', values: [] },
+                ],
+            };
+            const getByPath = sandbox.stub().resolves(inheritingVariationData);
+            const save = sandbox.stub().resolves({});
+            const aem = createAemMock({ fragments: { getByPath, save } });
+
+            const { updatedPaths, failures } = await propagateCustomFieldsToPromoVariations(aem, defaultFragmentData, [
+                inheritingPath,
+            ]);
+
+            expect(updatedPaths).to.deep.equal([]);
+            expect(failures).to.deep.equal([]);
+            expect(save.called).to.be.false;
+
+            const inheritingVariation = new Fragment(inheritingVariationData);
+            expect(inheritingVariation.getFieldValues('customFieldLabels')).to.deep.equal([]);
+            expect(inheritingVariation.getFieldValues('customFields')).to.deep.equal([]);
+
+            const defaultFragment = new Fragment(defaultFragmentData);
+            expect(inheritingVariation.getEffectiveFieldValues('customFieldLabels', defaultFragment, true)).to.deep.equal([
+                'Field A',
+                'Field B',
+            ]);
         });
     });
 });

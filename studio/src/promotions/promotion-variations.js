@@ -745,7 +745,9 @@ function readCustomFields(fragmentData) {
 /**
  * Merges a default fragment's custom field labels into one promo variation's own arrays: only
  * labels missing on the variation are appended (empty value, index-aligned). Existing labels,
- * values and their order — including a label that already diverged — are never modified.
+ * values and their order — including a label that already diverged — are never modified. A
+ * variation whose own `customFieldLabels` array is empty is inheriting from the default (see
+ * Fragment.getEffectiveFieldValues) and is skipped so its inheritance is not broken.
  * @param {{ customFields?: string[], customFieldLabels?: string[] }} defaultCustomFields
  * @param {{ customFields?: string[], customFieldLabels?: string[] }} variationCustomFields
  * @returns {{ customFields: string[], customFieldLabels: string[] }|null} null when nothing is missing
@@ -754,6 +756,7 @@ export function mergeMissingCustomFieldLabels(defaultCustomFields, variationCust
     const defaultLabels = (defaultCustomFields?.customFieldLabels || []).filter(Boolean);
     if (!defaultLabels.length) return null;
     const variationLabels = variationCustomFields?.customFieldLabels || [];
+    if (!variationLabels.length) return null;
     const existingLabels = new Set(variationLabels.filter(Boolean));
     const missingLabels = defaultLabels.filter((label) => !existingLabels.has(label));
     if (!missingLabels.length) return null;

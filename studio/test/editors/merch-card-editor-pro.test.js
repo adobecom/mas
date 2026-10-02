@@ -269,6 +269,61 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect(group.style.display).to.equal('block');
     });
 
+    it('declares the pro CTA layout editor mapping', () => {
+        expect(mapping.ctaLayout).to.deep.equal({
+            attribute: 'cta-layout',
+            editorLabel: 'CTA layout',
+            specialValues: {
+                Stacked: 'stacked',
+                'Side-by-side': 'side-by-side',
+                'Single CTA': 'single',
+            },
+        });
+    });
+
+    it('renders a Stacked/Side-by-side/Single CTA picker, defaulting to Stacked when unset', async () => {
+        const { editor } = makeAppearanceEditor();
+        await finishRendering(editor);
+        const group = editor.querySelector('sp-field-group#ctaLayout');
+        const picker = group.querySelector('sp-picker');
+        expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('CTA layout');
+        expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal([
+            'Stacked',
+            'Side-by-side',
+            'Single CTA',
+        ]);
+        expect(picker.value).to.equal('Stacked');
+    });
+
+    it('does not render the CTA layout field for a non-pro variant', async () => {
+        const { editor } = makeAppearanceEditor(VARIANT_NAMES.HEADLESS);
+        await finishRendering(editor);
+        expect(editor.querySelector('sp-field-group#ctaLayout')).to.not.exist;
+    });
+
+    it('persists the selected CTA layout through the fragment store', async () => {
+        const { editor, store } = makeAppearanceEditor();
+        await finishRendering(editor);
+
+        const picker = editor.querySelector('sp-field-group#ctaLayout sp-picker');
+        picker.value = 'Side-by-side';
+        picker.dispatchEvent(new Event('change'));
+        expect(store.get().getFieldValue('ctaLayout')).to.equal('side-by-side');
+
+        await editor.updateComplete;
+        editor.querySelector('sp-field-group#ctaLayout sp-picker').value = 'Single CTA';
+        editor.querySelector('sp-field-group#ctaLayout sp-picker').dispatchEvent(new Event('change'));
+        expect(store.get().getFieldValue('ctaLayout')).to.equal('single');
+    });
+
+    it('displays a stored CTA layout value back as its selected option', async () => {
+        const { editor, store } = makeAppearanceEditor();
+        store.get().updateField('ctaLayout', ['side-by-side']);
+        await finishRendering(editor);
+        const picker = editor.querySelector('sp-field-group#ctaLayout sp-picker');
+        expect(picker.value).to.equal('Side-by-side');
+    });
+
     it('persists Grey/Default by writing the background attribute onto the authored addon HTML', async () => {
         const { editor, store } = makeAppearanceEditor();
         store.get().updateField('addon', ['<merch-addon>{{addon-placeholder}}</merch-addon>']);

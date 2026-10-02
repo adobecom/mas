@@ -135,7 +135,7 @@ class MerchCardEditor extends LitElement {
         "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
-        Footer: ['ctas'],
+        Footer: ['ctas', 'ctaLayout'],
         'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
         'Custom fields': ['customFields'],
     };
@@ -2084,6 +2084,7 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
                 </sp-field-group>
+                ${this.#renderCtaLayoutPicker()}
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>
                     ${this.settingsRestoreAllTemplate}
@@ -3070,6 +3071,42 @@ class MerchCardEditor extends LitElement {
                     <sp-menu-item value="Grey">Grey</sp-menu-item>
                 </sp-picker>
                 ${this.renderAddonBgFieldStatusIndicator()}
+            </sp-field-group>
+        `;
+    }
+
+    // GWP dual-CTA layout (MWPW-208194): Stacked/Side-by-side/Single CTA picker,
+    // gated to variants that declare the ctaLayout mapping (pro only, same gating
+    // shape as #renderAddonStylePicker). Unset resolves to the mapping's first
+    // option (Stacked).
+    #renderCtaLayoutPicker() {
+        const config = this.currentVariantMapping?.ctaLayout;
+        if (!config?.specialValues) return nothing;
+        const { specialValues } = config;
+        const options = Object.keys(specialValues);
+        const currentValue = this.getEffectiveFieldValue('ctaLayout', 0);
+        const selectedKey =
+            Object.entries(specialValues).find(([, value]) => value === currentValue)?.[0] ?? options[0];
+
+        const handleChange = (e) => {
+            const fragment = this.fragmentStore.get();
+            fragment.updateField('ctaLayout', [specialValues[e.target.value]]);
+            this.fragmentStore.set(fragment);
+        };
+
+        return html`
+            <sp-field-group class="toggle" id="ctaLayout">
+                <sp-field-label for="ctaLayout">${config.editorLabel ?? 'CTA layout'}</sp-field-label>
+                <sp-picker
+                    id="ctaLayout"
+                    data-field="ctaLayout"
+                    data-field-state="${this.getFieldState('ctaLayout')}"
+                    value="${selectedKey}"
+                    @change="${handleChange}"
+                >
+                    ${options.map((key) => html`<sp-menu-item value="${key}">${key}</sp-menu-item>`)}
+                </sp-picker>
+                ${this.renderFieldStatusIndicator('ctaLayout')}
             </sp-field-group>
         `;
     }

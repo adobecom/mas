@@ -974,6 +974,19 @@ function createConsonantButton(
     return button;
 }
 
+// GWP dual-CTA layout (MWPW-208194): projects the authored ctaLayout field onto
+// the host attribute the variant's layout CSS reads. Layout-only — never touches
+// the CTA markup processCTAs below builds, so links/targets/handlers are untouched.
+export function processCtaLayout(fields, merchCard, mapping) {
+    const config = mapping?.ctaLayout;
+    if (!config?.attribute) return;
+    if (fields.ctaLayout) {
+        merchCard.setAttribute(config.attribute, fields.ctaLayout);
+    } else {
+        merchCard.removeAttribute(config.attribute);
+    }
+}
+
 export function processCTAs(
     fields,
     merchCard,
@@ -1089,6 +1102,7 @@ export function cleanup(merchCard) {
         'badge-text',
         'gradient-border',
         'size',
+        'cta-layout',
         ANALYTICS_SECTION_ATTR,
     ];
     attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));
@@ -1171,6 +1185,7 @@ export async function hydrate(fragment, merchCard) {
         mapping.backgroundColor,
     );
     processBorderColor(fields, merchCard, mapping);
+    processCtaLayout(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
     processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);

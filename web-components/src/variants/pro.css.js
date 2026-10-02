@@ -187,6 +187,7 @@ merch-card[variant="pro"] [slot="body-xs"] {
 merch-card[variant="pro"] .price-plan-type .icon-button {
     width: 18px;
     height: 18px;
+    margin-inline-start: 4px;
 }
 
 /* Title / description fields are RTE — authors may save <h3>Title</h3> or
@@ -460,6 +461,23 @@ merch-card[variant="pro"] [slot="footer"] button {
     justify-content: center;
     text-decoration: none;
     white-space: nowrap;
+}
+
+/* CTA layout (MWPW-208194): stacked (the default, unset or cta-layout="stacked")
+   lays each CTA full-width on its own row via the shadow footer's
+   flex-direction:column — the shared flex:1 0 0 basis above is a row-axis rule,
+   so give stacked CTAs their own full-width sizing instead of trying to repurpose
+   it for the column axis. side-by-side restores the original row sizing. */
+merch-card[variant="pro"]:not([cta-layout="side-by-side"]) [slot="footer"] a,
+merch-card[variant="pro"]:not([cta-layout="side-by-side"]) [slot="footer"] button {
+    flex: 0 0 auto;
+    width: 100%;
+}
+
+/* Single CTA: show only the first authored CTA, the same way a layout-only
+   hide works elsewhere in this file — no change to its href/target/handler. */
+merch-card[variant="pro"][cta-layout="single"] [slot="footer"] > :not(:first-child) {
+    display: none;
 }
 
 merch-card[variant="pro"] [slot="footer"] .con-button.blue,

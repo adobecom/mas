@@ -215,6 +215,84 @@ describe('pro appearance mapping', () => {
     });
 });
 
+describe('pro CTA layout mapping', () => {
+    it('exposes the ctaLayout attribute + specialValues in the AEM fragment mapping', async () => {
+        const { PRO_AEM_FRAGMENT_MAPPING } = await import(
+            '../src/variants/pro.js'
+        );
+        expect(PRO_AEM_FRAGMENT_MAPPING.ctaLayout).to.deep.equal({
+            attribute: 'cta-layout',
+            editorLabel: 'CTA layout',
+            specialValues: {
+                Stacked: 'stacked',
+                'Side-by-side': 'side-by-side',
+                'Single CTA': 'single',
+            },
+        });
+    });
+});
+
+describe('pro CTA layout rendering', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const TWO_CTAS =
+        '<div slot="footer">' +
+        '<a class="con-button blue" href="#one">Buy now</a>' +
+        '<a class="con-button outline" href="#two">Learn more</a>' +
+        '</div>';
+
+    const footer = () => card.querySelector('[slot="footer"]');
+    const ctas = () => card.querySelectorAll('[slot="footer"] a');
+
+    it('stacks the CTAs in a column when no cta-layout is authored (default)', async () => {
+        card = await renderCard(TWO_CTAS);
+        expect(getComputedStyle(footer()).flexDirection).to.equal('column');
+        const [first, second] = ctas();
+        expect(getComputedStyle(first).display).to.not.equal('none');
+        expect(getComputedStyle(second).display).to.not.equal('none');
+    });
+
+    it('keeps the stacked column when cta-layout="stacked" is authored explicitly', async () => {
+        card = await renderCard(TWO_CTAS);
+        card.setAttribute('cta-layout', 'stacked');
+        await card.updateComplete;
+        expect(getComputedStyle(footer()).flexDirection).to.equal('column');
+    });
+
+    it('renders both CTAs on one row when cta-layout="side-by-side"', async () => {
+        card = await renderCard(TWO_CTAS);
+        card.setAttribute('cta-layout', 'side-by-side');
+        await card.updateComplete;
+        expect(getComputedStyle(footer()).flexDirection).to.equal('row');
+        const [first, second] = ctas();
+        expect(getComputedStyle(first).display).to.not.equal('none');
+        expect(getComputedStyle(second).display).to.not.equal('none');
+    });
+
+    it('shows only the first CTA when cta-layout="single"', async () => {
+        card = await renderCard(TWO_CTAS);
+        card.setAttribute('cta-layout', 'single');
+        await card.updateComplete;
+        const [first, second] = ctas();
+        expect(getComputedStyle(first).display).to.not.equal('none');
+        expect(getComputedStyle(second).display).to.equal('none');
+        // Layout-only: the hidden CTA keeps its href, nothing in checkout wiring changes.
+        expect(second.getAttribute('href')).to.equal('#two');
+    });
+
+    it('does not alter CTA hrefs across any layout mode', async () => {
+        card = await renderCard(TWO_CTAS);
+        for (const layout of [null, 'stacked', 'side-by-side', 'single']) {
+            if (layout) card.setAttribute('cta-layout', layout);
+            else card.removeAttribute('cta-layout');
+            await card.updateComplete;
+            const [first] = ctas();
+            expect(first.getAttribute('href')).to.equal('#one');
+        }
+    });
+});
+
 describe('pro dark theme rendering', () => {
     let card;
     afterEach(() => card?.remove());

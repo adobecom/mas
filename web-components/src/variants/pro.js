@@ -70,6 +70,18 @@ export const PRO_AEM_FRAGMENT_MAPPING = {
         disableWhenBackgroundColor: 'dark',
     },
     allowedBorderColors: [],
+    // GWP dual-CTA layout (MWPW-208194): author-selectable Stacked / Side-by-side /
+    // Single CTA, mirroring the backgroundColor/borderColor attribute+specialValues
+    // idiom above. Unset resolves to Stacked (see the footer CSS below).
+    ctaLayout: {
+        attribute: 'cta-layout',
+        editorLabel: 'CTA layout',
+        specialValues: {
+            Stacked: 'stacked',
+            'Side-by-side': 'side-by-side',
+            'Single CTA': 'single',
+        },
+    },
     style: 'consonant',
 };
 
@@ -1008,10 +1020,19 @@ export class Pro extends VariantLayout {
             min-height: auto;
         }
 
+        /* CTA layout (MWPW-208194): stacked is the default — unset
+           cta-layout and the explicit 'stacked' value both land here. */
         :host([variant='pro']) footer ::slotted([slot='footer']) {
             display: flex;
+            flex-direction: column;
             gap: 8px;
             flex: 1;
+        }
+
+        :host([variant='pro'][cta-layout='side-by-side'])
+            footer
+            ::slotted([slot='footer']) {
+            flex-direction: row;
         }
 
         :host([variant='pro']) .secure-transaction-label {

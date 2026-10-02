@@ -21,6 +21,7 @@ import {
     getTruncatedTextData,
     processBackgroundColor,
     processBorderColor,
+    processCtaLayout,
     processWhatsIncludedDividerColor,
     appendSlot,
     processImage,
@@ -1673,6 +1674,31 @@ describe('processBorderColor', () => {
                 '--consonant-merch-card-border-color',
             ),
         ).to.be.empty;
+    });
+});
+
+describe('processCtaLayout', () => {
+    let merchCard;
+    const mapping = { ctaLayout: { attribute: 'cta-layout' } };
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    it('sets the cta-layout attribute from the authored field', () => {
+        processCtaLayout({ ctaLayout: 'side-by-side' }, merchCard, mapping);
+        expect(merchCard.getAttribute('cta-layout')).to.equal('side-by-side');
+    });
+
+    it('removes the attribute when the field is unset (defaults to stacked via CSS)', () => {
+        merchCard.setAttribute('cta-layout', 'side-by-side');
+        processCtaLayout({}, merchCard, mapping);
+        expect(merchCard.hasAttribute('cta-layout')).to.be.false;
+    });
+
+    it('does nothing without a ctaLayout mapping (non-pro variants)', () => {
+        processCtaLayout({ ctaLayout: 'single' }, merchCard, {});
+        expect(merchCard.hasAttribute('cta-layout')).to.be.false;
     });
 });
 

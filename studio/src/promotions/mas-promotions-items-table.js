@@ -116,7 +116,6 @@ class MasPromotionsItemsTable extends LitElement {
         this.geos = [];
         this.groupBy = GROUP_BY.NONE;
         this.expandedGroups = new Set();
-        this.expandedPaths = new Set();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }

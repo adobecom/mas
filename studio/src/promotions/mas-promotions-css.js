@@ -5,6 +5,16 @@ export const styles = css`
     ${tableCellBaseStyles}
     ${loadingContainerFlexStyles}
 
+    .loading-more {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        color: var(--spectrum-gray-700);
+        font-size: var(--spectrum-font-size-75);
+    }
+
     .status-cell .status-dot.yellow {
         background-color: var(--spectrum-yellow-600);
     }

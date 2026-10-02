@@ -68,9 +68,11 @@ describe('MasPromotions', () => {
         return {
             getPromotionsPath: () => '/content/dam/mas/promotions',
             createFragment: sandbox.stub().resolves(makePromotion({ id: 'dup-2', title: 'Original copy' })),
-            loadPromotions: sandbox.stub().callsFake(async () => {
+            promotionsHasMore: false,
+            loadPromotionsFirstPage: sandbox.stub().callsFake(async () => {
                 Store.promotions.list.loading.set(false);
             }),
+            loadNextPromotionsPage: sandbox.stub().resolves(),
             clearStagedTag: sandbox.stub().resolves(),
             aem: {
                 tags: {
@@ -162,10 +164,16 @@ describe('MasPromotions', () => {
 
             Store.promotions.list.loading.set(true);
             await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.loading-container--flex')).to.not.exist;
+            expect(el.shadowRoot.querySelector('sp-table.promotions-table')).to.exist;
+            expect(el.shadowRoot.querySelector('.loading-more')).to.exist;
+
+            Store.promotions.list.data.set([]);
+            await el.updateComplete;
             expect(el.shadowRoot.querySelector('.loading-container--flex')).to.exist;
+            expect(el.shadowRoot.querySelector('.loading-more')).to.exist;
 
             Store.promotions.list.loading.set(false);
-            Store.promotions.list.data.set([]);
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('.no-promotions-message')).to.exist;
         });
@@ -174,7 +182,7 @@ describe('MasPromotions', () => {
             const promotion = makePromotion({ id: 'promo-1', title: 'Preloaded' });
             const repo = makeRepo();
             Store.promotions.list.data.set([new FragmentStore(promotion)]);
-            await repo.loadPromotions();
+            await repo.loadPromotionsFirstPage();
 
             const el = document.createElement('mas-promotions');
             sandbox.stub(el, 'repository').get(() => repo);
@@ -445,7 +453,7 @@ describe('MasPromotions', () => {
             await el.updateComplete;
 
             expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
-            expect(repo.loadPromotions.calledTwice).to.be.true;
+            expect(repo.loadPromotionsFirstPage.calledTwice).to.be.true;
         });
 
         it('shows the staged confirmation dialog before publishing and aborts when cancelled', async () => {
@@ -517,7 +525,7 @@ describe('MasPromotions', () => {
             await el.updateComplete;
 
             expect(repo.aem.sites.cf.fragments.unpublish.calledOnce).to.be.true;
-            expect(repo.loadPromotions.calledTwice).to.be.true;
+            expect(repo.loadPromotionsFirstPage.calledTwice).to.be.true;
         });
     });
 
@@ -536,7 +544,7 @@ describe('MasPromotions', () => {
             await el.updateComplete;
 
             expect(repo.createFragment.calledOnce).to.be.true;
-            expect(repo.loadPromotions.calledTwice).to.be.true;
+            expect(repo.loadPromotionsFirstPage.calledTwice).to.be.true;
             expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: 'Project successfully duplicated.' }))).to
                 .be.true;
             expect(el.duplicateDialogOpen).to.be.false;
@@ -597,7 +605,7 @@ describe('MasPromotions', () => {
             await new Promise((resolve) => setTimeout(resolve, 20));
             await el.updateComplete;
 
-            expect(repo.loadPromotions.calledOnce).to.be.true;
+            expect(repo.loadPromotionsFirstPage.calledOnce).to.be.true;
             expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to duplicate project.' }))).to.be
                 .true;
             expect(el.duplicateDialogOpen).to.be.false;
@@ -726,6 +734,44 @@ describe('MasPromotions', () => {
         });
     });
 
+    describe('infinite scroll', () => {
+        it('renders the scroll sentinel only while more pages remain', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el, repo } = await mountWithRepo(promotion);
+            expect(el.shadowRoot.querySelector('.scroll-sentinel')).to.not.exist;
+
+            repo.promotionsHasMore = true;
+            el.requestUpdate();
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.scroll-sentinel')).to.exist;
+            expect(el.shadowRoot.querySelector('button.load-more')).to.not.exist;
+        });
+
+        it('requests the next page when the sentinel intersects and more pages remain', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el, repo } = await mountWithRepo(promotion);
+            repo.promotionsHasMore = true;
+
+            el.__test_handleSentinel([{ isIntersecting: false }]);
+            expect(repo.loadNextPromotionsPage.called).to.be.false;
+
+            el.__test_handleSentinel([{ isIntersecting: true }]);
+            expect(repo.loadNextPromotionsPage.calledOnce).to.be.true;
+        });
+
+        it('does not request the next page while a load is in flight or nothing remains', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el, repo } = await mountWithRepo(promotion);
+
+            el.__test_handleSentinel([{ isIntersecting: true }]);
+            repo.promotionsHasMore = true;
+            Store.promotions.list.loading.set(true);
+            el.__test_handleSentinel([{ isIntersecting: true }]);
+
+            expect(repo.loadNextPromotionsPage.called).to.be.false;
+        });
+    });
+
     describe('search', () => {
         it('filters promotions by the selected environment and shows both environments when cleared', async () => {
             const production = makePromotion({
@@ -755,13 +801,13 @@ describe('MasPromotions', () => {
             expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(2);
         });
 
-        it('disables the search input while promotions are loading and enables it once they finish loading', async () => {
+        it('disables the search input during the initial empty load and enables it once it finishes', async () => {
             let resolveLoad;
             const loadPromise = new Promise((resolve) => {
                 resolveLoad = resolve;
             });
             const repo = makeRepo({
-                loadPromotions: sandbox.stub().callsFake(async () => {
+                loadPromotionsFirstPage: sandbox.stub().callsFake(async () => {
                     Store.promotions.list.loading.set(true);
                     await loadPromise;
                     Store.promotions.list.loading.set(false);
@@ -784,27 +830,29 @@ describe('MasPromotions', () => {
             expect(search.disabled).to.be.false;
         });
 
-        it('filters the visible rows live from an input event, without pressing Enter, and leaves the selected status filter unchanged', async () => {
+        it('runs a debounced server-side query from an input event and renders the rows from the store', async () => {
             const first = makePromotion({ id: 'promo-1', title: 'Black Friday Sale' });
             const second = makePromotion({ id: 'promo-2', title: 'Holiday Bundle' });
-            const { el } = await mountWithRepo(first);
+            const { el, repo } = await mountWithRepo(first);
             Store.promotions.list.data.set([new FragmentStore(first), new FragmentStore(second)]);
             await el.updateComplete;
-
-            expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(2);
+            repo.loadPromotionsFirstPage.resetHistory();
+            const clock = sandbox.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
             const search = el.shadowRoot.querySelector('sp-search');
             search.value = 'black';
             search.dispatchEvent(new Event('input'));
             await el.updateComplete;
 
-            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
-            expect(rows).to.have.lengthOf(1);
-            expect(rows[0].textContent).to.include('Black Friday Sale');
+            expect(repo.loadPromotionsFirstPage.called).to.be.false;
+            clock.tick(300);
+
+            expect(repo.loadPromotionsFirstPage.calledOnceWith({ search: 'black', force: true })).to.be.true;
+            expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(2);
             expect(Store.promotions.list.filter.get()).to.equal('all');
         });
 
-        it("persists the search term when switching status filters and reapplies it to the newly selected filter's list", async () => {
+        it('persists the search term when switching status filters', async () => {
             const draftMatch = makePromotion({
                 id: 'promo-1',
                 title: 'Winter Draft Promo',
@@ -812,16 +860,10 @@ describe('MasPromotions', () => {
                 startDate: '2020-01-01T00:00:00.000Z',
                 endDate: '2099-12-31T00:00:00.000Z',
             });
-            const draftOther = makePromotion({
-                id: 'promo-2',
-                title: 'Spring Draft Promo',
-                status: 'DRAFT',
-                startDate: '2020-01-01T00:00:00.000Z',
-                endDate: '2099-12-31T00:00:00.000Z',
-            });
             const { el } = await mountWithRepo(draftMatch);
-            Store.promotions.list.data.set([new FragmentStore(draftMatch), new FragmentStore(draftOther)]);
+            Store.promotions.list.data.set([new FragmentStore(draftMatch)]);
             await el.updateComplete;
+            sandbox.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
             const search = el.shadowRoot.querySelector('sp-search');
             search.value = 'winter';
@@ -841,7 +883,7 @@ describe('MasPromotions', () => {
             expect(rows[0].textContent).to.include('Winter Draft Promo');
         });
 
-        it('updates status tile counts live as the search term changes', async () => {
+        it('derives status tile counts from the projects currently in the store', async () => {
             const match = makePromotion({ id: 'promo-1', title: 'Matching Promo' });
             const other = makePromotion({ id: 'promo-2', title: 'Other Promo' });
             const { el } = await mountWithRepo(match);
@@ -857,9 +899,7 @@ describe('MasPromotions', () => {
 
             expect(allTileCount()).to.equal('2');
 
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'matching';
-            search.dispatchEvent(new Event('input'));
+            Store.promotions.list.data.set([new FragmentStore(match)]);
             await el.updateComplete;
 
             expect(allTileCount()).to.equal('1');

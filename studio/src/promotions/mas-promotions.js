@@ -7,7 +7,7 @@ import { PAGE_NAMES, PROMOTION_MODEL_ID, STAGED } from '../constants.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { showToast, UserFriendlyError } from '../utils.js';
+import { debounce, showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
@@ -79,6 +79,10 @@ class MasPromotions extends LitElement {
     #duplicateProposedTitle = '';
     #duplicateFragment = null;
     #duplicateExistingTitles = [];
+    #scrollObserver = null;
+    #searchPromotions = debounce((value) => {
+        void this.repository.loadPromotionsFirstPage({ search: value, force: true });
+    }, 300);
 
     /** @type {MasRepository} */
     get repository() {
@@ -113,10 +117,37 @@ class MasPromotions extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
+
+        this.#scrollObserver = new IntersectionObserver(this.#handleSentinel, {
+            // `closest` can't cross the shadow boundary this page lives behind, so fall back
+            // to the single app-level scroll container (as mas-select-items-table does).
+            root: this.closest('.main-container') ?? document.querySelector('.main-container'),
+            rootMargin: '200px',
+        });
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#scrollObserver?.disconnect();
+        this.#scrollObserver = null;
+    }
+
+    updated() {
+        const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
+        this.#scrollObserver?.disconnect();
+        // Re-observing on every render makes the observer report the current intersection again, so a
+        // page that adds no visible rows under the client-side filters still chains into the next load.
+        if (sentinel) this.#scrollObserver?.observe(sentinel);
+    }
+
+    #handleSentinel = (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        if (!this.repository.promotionsHasMore || this.loading) return;
+        void this.repository.loadNextPromotionsPage();
+    };
+
+    __test_handleSentinel(entries) {
+        return this.#handleSentinel(entries);
     }
 
     renderError() {
@@ -139,17 +170,31 @@ class MasPromotions extends LitElement {
     }
 
     async loadPromotions() {
-        await this.repository.loadPromotions();
+        await this.repository.loadPromotionsFirstPage({ force: true });
+    }
+
+    get hasLoadedPromotions() {
+        return (Store.promotions.list.data.get() || []).length > 0;
     }
 
     renderPromotionsContent() {
-        if (this.loading) {
+        if (this.loading && !this.hasLoadedPromotions) {
             return html`<div class="loading-container--flex">
                 <sp-progress-circle indeterminate size="l"></sp-progress-circle>
             </div>`;
         }
 
-        return this.renderPromotionsTable();
+        return html`${this.renderPromotionsTable()}${this.scrollTail}`;
+    }
+
+    get scrollTail() {
+        return html`${this.repository?.promotionsHasMore ? html`<div class="scroll-sentinel"></div>` : nothing}
+        ${this.loading
+            ? html`<div class="loading-more">
+                  <sp-progress-circle indeterminate size="s"></sp-progress-circle>
+                  <span>Loading more projects…</span>
+              </div>`
+            : nothing}`;
     }
 
     renderPromotionsTable() {
@@ -279,7 +324,7 @@ class MasPromotions extends LitElement {
                                 size="m"
                                 placeholder="Search promotions"
                                 .value=${this.searchQuery}
-                                ?disabled=${Store.promotions.list.loading.get()}
+                                ?disabled=${this.loading && !this.hasLoadedPromotions}
                                 @input=${this.#handleSearch}
                                 @change=${this.#handleSearch}
                             ></sp-search>
@@ -574,15 +619,11 @@ class MasPromotions extends LitElement {
     };
 
     /**
-     * Applies status filter, environment filter and search term to the raw promotions list.
-     * Used both for the visible table (current filter) and for each status tile's count
-     * (restricted to that tile's status, with the current search term applied).
+     * Applies status filter and environment filter to the loaded promotions list (search is answered
+     * by the server). Used both for the visible table (current filter) and for each status tile's count
+     * (restricted to that tile's status).
      */
-    #derivePromotions({
-        filterKey = this.filter,
-        environmentFilter = this.environmentFilter,
-        searchQuery = this.searchQuery,
-    } = {}) {
+    #derivePromotions({ filterKey = this.filter, environmentFilter = this.environmentFilter } = {}) {
         let promotions = Store.promotions.list.data.get() || [];
 
         if (filterKey !== 'all') {
@@ -591,16 +632,6 @@ class MasPromotions extends LitElement {
 
         if (environmentFilter?.length) {
             promotions = promotions.filter((promotion) => environmentFilter.includes(promotion.value?.promotionEnvironment));
-        }
-
-        const query = searchQuery?.trim().toLowerCase();
-        if (query) {
-            promotions = promotions.filter((promotion) => {
-                const promo = promotion.get();
-                const title = (promo.title || '').toLowerCase();
-                const id = (promo.id || '').toLowerCase();
-                return title.includes(query) || id.includes(query);
-            });
         }
 
         return promotions;
@@ -628,6 +659,7 @@ class MasPromotions extends LitElement {
         const value = handleSearchInput(e);
         this.searchQuery = value;
         Store.promotions.list.search.set(value);
+        this.#searchPromotions(value);
     }
 
     #handleEnvironmentCheckboxChange(value, e) {

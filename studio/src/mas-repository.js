@@ -169,6 +169,11 @@ export class MasRepository extends LitElement {
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
     #searchCursor = null;
+    /** @type {{ cursor: AsyncIterator, stores: FragmentStore[], query: string } | null} */
+    #promotionsCursor = null;
+    #promotionsHasMore = false;
+    /** Query the current paginated promotions list was loaded with; null when it was not loaded by pagination. */
+    #promotionsQuery = null;
     #addonPlaceholdersRequest = null;
 
     #applyFragmentListFilters(fragmentStores) {
@@ -243,6 +248,7 @@ export class MasRepository extends LitElement {
 
     handleSearch() {
         if (!Store.profile.value) return;
+        if (this.page.value !== PAGE_NAMES.PROMOTIONS) this.#discardPartialPromotions();
         switch (this.page.value) {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
@@ -264,7 +270,7 @@ export class MasRepository extends LitElement {
                 this.loadAddonPlaceholders();
                 break;
             case PAGE_NAMES.PROMOTIONS:
-                this.loadPromotions();
+                this.loadPromotionsFirstPage();
                 break;
             case PAGE_NAMES.TRANSLATIONS:
                 this.loadTranslationProjects();
@@ -1183,24 +1189,18 @@ export class MasRepository extends LitElement {
             if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
             abortController = new AbortController();
             this.#abortControllers.promotions = abortController;
+            this.#resetPromotionsPagination();
 
             Store.promotions.list.loading.set(true);
 
             const fragments = await this.searchFragmentList(searchOptions, 50, abortController);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
-            const signal = abortController.signal;
-            const expiredPublished = promotions.filter((store) => {
-                const p = store.get();
-                return p?.promotionStatus === 'expired' && p.isPromotionPublished;
-            });
 
             Store.promotions.list.data.set(promotions);
             Store.promotions.list.data.setMeta('listFetched', true);
 
-            if (expiredPublished.length) {
-                void this.#unpublishExpiredPromotions(expiredPublished, signal);
-            }
+            void this.#unpublishExpiredPromotions(promotions, abortController.signal);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load promotions.');
@@ -1213,7 +1213,113 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async #unpublishExpiredPromotions(stores, signal) {
+    async loadPromotionsFirstPage({ search, force = false } = {}) {
+        const query = (search ?? Store.promotions.list.search.get() ?? '').trim();
+        const { data, loading } = Store.promotions.list;
+        if (!force && this.#promotionsQuery === query && data.get().length) return;
+
+        let abortController;
+        try {
+            this.#abortControllers.promotions?.abort();
+            abortController = new AbortController();
+            this.#abortControllers.promotions = abortController;
+            this.#resetPromotionsPagination();
+            data.removeMeta('listFetched');
+            loading.set(true);
+
+            if (isUUID(query)) {
+                const fragment = await this.aem.sites.cf.fragments.getById(query, abortController);
+                const inPromotions = fragment?.path?.startsWith(`${this.getPromotionsPath()}/`);
+                const stores = inPromotions ? [new FragmentStore(new Promotion(await this.#addToCache(fragment)))] : [];
+                this.#promotionsQuery = query;
+                data.set(stores);
+                return;
+            }
+
+            const cursor = await this.aem.sites.cf.fragments.search(
+                {
+                    path: this.getPromotionsPath(),
+                    sort: [{ on: 'created', order: 'DESC' }],
+                    ...(query ? { query } : {}),
+                },
+                MasRepository.PROMOTIONS_PAGE_SIZE,
+                abortController,
+            );
+            const snapshot = { cursor, stores: [] };
+            const done = await this.#fillPromotionsPage(snapshot, abortController.signal);
+            if (this.#abortControllers.promotions !== abortController) return;
+            this.#promotionsQuery = query;
+            this.#publishPromotionsPage(snapshot, 0, done, abortController.signal);
+        } catch (error) {
+            this.processError(error, 'Could not load promotions.');
+        } finally {
+            if (this.#abortControllers.promotions === abortController) loading.set(false);
+        }
+    }
+
+    async loadNextPromotionsPage() {
+        const snapshot = this.#promotionsCursor;
+        if (!snapshot || Store.promotions.list.loading.get()) return;
+        const abortController = this.#abortControllers.promotions;
+        Store.promotions.list.loading.set(true);
+        try {
+            const previousCount = snapshot.stores.length;
+            const done = await this.#fillPromotionsPage(snapshot, abortController.signal);
+            if (this.#promotionsCursor !== snapshot) return;
+            this.#publishPromotionsPage(snapshot, previousCount, done, abortController.signal);
+        } catch (error) {
+            this.processError(error, 'Could not load next page.');
+            if (this.#promotionsCursor === snapshot) this.#resetPromotionsPagination();
+        } finally {
+            if (this.#abortControllers.promotions === abortController) Store.promotions.list.loading.set(false);
+        }
+    }
+
+    get promotionsHasMore() {
+        return this.#promotionsHasMore;
+    }
+
+    static PROMOTIONS_PAGE_SIZE = 50;
+
+    #resetPromotionsPagination() {
+        this.#promotionsCursor = null;
+        this.#promotionsHasMore = false;
+        this.#promotionsQuery = null;
+    }
+
+    /** Clears a partial promotions list so probe consumers fall back to the full-drain loader. */
+    #discardPartialPromotions() {
+        const { data } = Store.promotions.list;
+        if (data.hasMeta('listFetched') || !data.get().length) return;
+        this.#resetPromotionsPagination();
+        data.set([]);
+    }
+
+    /** Reads one cursor page into the snapshot; returns whether the cursor is exhausted. */
+    async #fillPromotionsPage(snapshot, signal) {
+        if (signal.aborted) return false;
+        const page = await snapshot.cursor.next();
+        if (page.done) return true;
+        for await (const item of page.value) {
+            const fragment = await this.#addToCache(item);
+            snapshot.stores.push(new FragmentStore(new Promotion(fragment)));
+        }
+        return false;
+    }
+
+    #publishPromotionsPage(snapshot, previousCount, done, signal) {
+        this.#promotionsCursor = done ? null : snapshot;
+        this.#promotionsHasMore = !done;
+        Store.promotions.list.data.set([...snapshot.stores]);
+        if (done && !this.#promotionsQuery) Store.promotions.list.data.setMeta('listFetched', true);
+        void this.#unpublishExpiredPromotions(snapshot.stores.slice(previousCount), signal);
+    }
+
+    async #unpublishExpiredPromotions(allStores, signal) {
+        const stores = allStores.filter((store) => {
+            const p = store.get();
+            return p?.promotionStatus === 'expired' && p.isPromotionPublished;
+        });
         for (const store of stores) {
             if (signal.aborted) break;
             const p = store.get();

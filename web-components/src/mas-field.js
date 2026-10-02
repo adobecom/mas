@@ -14,6 +14,13 @@ import {
     registerContextOptionsProviders,
     resolveContextPromotionCode,
 } from './mas-context.js';
+import {
+    rewriteImageUrlsForProd,
+    sanitizeAssetUrl,
+    sanitizePictureMarkup,
+    buildPictureInnerMarkup,
+    extractBackgroundUrl,
+} from './image-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -45,6 +52,12 @@ const CONTEXT_ATTRIBUTES = [
  * never left with no CTA. For an indexed ref we return null so the single
  * requested slot renders nothing rather than shifting to its neighbour.
  */
+/** Escapes text for safe embedding inside a double-quoted HTML attribute
+ *  (e.g. alt text), before it's parsed via template.innerHTML. */
+function escapeAttr(value) {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
 function stripTrialCtas(html, indexed) {
     const template = document.createElement('template');
     template.innerHTML = html;
@@ -324,6 +337,13 @@ if (!document.querySelector('style[data-mas-field]')) {
     document.head.append(style);
 }
 
+/** Wraps stored image markup (the picture's inner <source>/<img>) in a <picture>
+ *  so the <source>s survive parsing, applying the shared prod asset-URL rewrite. */
+export function renderImageMarkup(inner, location = globalThis.location) {
+    if (typeof inner !== 'string' || !inner) return '';
+    return `<picture>${rewriteImageUrlsForProd(inner, location)}</picture>`;
+}
+
 /**
  * Renders a single field from an AEM fragment inline on the page.
  * Wraps <aem-fragment> and listens for its aem:load event to extract
@@ -416,20 +436,65 @@ class MasField extends HTMLElement {
         return hostOsi(this);
     }
 
-    #ensureContentElement() {
-        if (this.#contentElement?.isConnected) return this.#contentElement;
+    #ensureContentElement(requireSpan = false) {
+        if (
+            this.#contentElement?.isConnected &&
+            this.#contentElement.matches('[data-role="mas-field-content"]') &&
+            (!requireSpan || this.#contentElement.tagName === 'SPAN')
+        ) {
+            return this.#contentElement;
+        }
         const existing = this.querySelector(
-            ':scope > span[data-role="mas-field-content"]',
+            ':scope > [data-role="mas-field-content"]',
         );
-        if (existing) {
+        if (existing && (!requireSpan || existing.tagName === 'SPAN')) {
             this.#contentElement = existing;
             return existing;
         }
+        if (requireSpan) existing?.remove();
         const content = document.createElement('span');
         content.setAttribute('data-role', 'mas-field-content');
         this.append(content);
         this.#contentElement = content;
         return content;
+    }
+
+    #clearContent() {
+        this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        )?.remove();
+        this.#contentElement = null;
+    }
+
+    /** Installs the field's <picture> as the content root, carrying
+     *  data-role="mas-field-content" directly (no wrapping span). */
+    #renderPictureContent(pictureHtml) {
+        const template = document.createElement('template');
+        template.innerHTML = pictureHtml;
+        const picture = template.content.querySelector('picture');
+        if (!picture) return;
+        picture.innerHTML = sanitizePictureMarkup(picture.innerHTML);
+        picture.setAttribute('data-role', 'mas-field-content');
+        const existing = this.querySelector(
+            ':scope > [data-role="mas-field-content"]',
+        );
+        if (existing) existing.replaceWith(picture);
+        else this.append(picture);
+        this.#contentElement = picture;
+        this.#stampContext(picture);
+    }
+
+    /** Real alt text when authored,
+     *  otherwise role="none" (not an empty alt) to mark the image decorative. */
+    #backgroundImageMarkup(url) {
+        const altText = this.#unwrapSingleParagraph(
+            this.#normalizeFieldValue(this.#fields.backgroundImageAltText),
+        );
+        const altAttr =
+            typeof altText === 'string' && altText
+                ? `alt="${escapeAttr(altText)}"`
+                : 'role="none"';
+        return `<img loading="lazy" ${altAttr} src="${sanitizeAssetUrl(url)}">`;
     }
 
     #normalizeFieldValue(value) {
@@ -531,7 +596,7 @@ class MasField extends HTMLElement {
                     }
                 }
                 this.#setFragmentIds();
-                const content = this.#ensureContentElement();
+                const content = this.#ensureContentElement(true);
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
                 this.#upgradeCheckoutLinks(content);
                 this.#decorateTooltips(content);
@@ -546,7 +611,45 @@ class MasField extends HTMLElement {
             return;
         }
         this.#setFragmentIds();
-        const content = this.#ensureContentElement();
+
+        if (
+            index === null &&
+            (fieldName === 'image' ||
+                fieldName === 'backgroundImage' ||
+                fieldName === 'backgrounds')
+        ) {
+            const value = this.#unwrapSingleParagraph(fieldValue);
+            if (typeof value === 'string' && value) {
+                const inner =
+                    fieldName === 'image' || fieldName === 'backgrounds'
+                        ? value
+                        : this.#backgroundImageMarkup(value);
+                this.#renderPictureContent(renderImageMarkup(inner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
+            }
+            return;
+        }
+
+        if (fieldName === 'backgrounds' && index !== null) {
+            const url = this.#unwrapSingleParagraph(
+                extractBackgroundUrl(fieldValue, index),
+            );
+            const pictureInner =
+                typeof url === 'string' && url
+                    ? buildPictureInnerMarkup(url)
+                    : '';
+            if (pictureInner) {
+                this.#renderPictureContent(renderImageMarkup(pictureInner));
+            } else {
+                this.#clearContent();
+                this.hidden = true;
+            }
+            return;
+        }
+
+        const content = this.#ensureContentElement(true);
         let html;
         if (index !== null) {
             html = this.#extractIndexedAnchor(fieldValue, index);

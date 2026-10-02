@@ -2134,6 +2134,58 @@ describe('MasFragmentEditor', () => {
             expect(editor.artifactsDialogOpen).to.equal(true);
         });
 
+        describe('Related pages box', () => {
+            const renderUsage = () => {
+                const editor = withCard();
+                editor.externalUsage = {
+                    available: true,
+                    pages: [
+                        { url: 'https://www.adobe.com/', locale: 'en_US', requests: 5, countries: ['US'], region: 'Global' },
+                    ],
+                };
+                const host = document.createElement('div');
+                render(editor.externalUsageSection, host);
+                return { editor, host };
+            };
+
+            it('renders View pages as a button so keyboard users can reach it', () => {
+                const { host } = renderUsage();
+                expect(host.querySelector('.artifacts-view-link').tagName).to.equal('SP-ACTION-BUTTON');
+            });
+
+            it('opens the page list when View pages is clicked', () => {
+                const { editor, host } = renderUsage();
+                host.querySelector('.artifacts-view-link').click();
+                expect(editor.usageDialogOpen).to.equal(true);
+            });
+        });
+
+        it('closes the page list when a different fragment loads', () => {
+            // The dialog would otherwise sit on a spinner and then show the new fragment's pages
+            // under a title the user opened for the previous one.
+            const meta = document.createElement('meta');
+            meta.name = 'io-base-url';
+            meta.content = 'https://io.example';
+            document.head.append(meta);
+            sessionStorage.setItem('masAccessToken', 'ims-token');
+            sandbox.stub(window, 'fetch').returns(new Promise(() => {}));
+            try {
+                const { editor } = createEditor();
+                let current = { id: 'frag-A', path: '/content/dam/mas/acom/en_US/card-a', model: { path: CARD_MODEL_PATH } };
+                sandbox.stub(editor, 'fragment').get(() => current);
+                editor.willUpdate(new Map());
+                editor.usageDialogOpen = true;
+
+                current = { id: 'frag-B', path: '/content/dam/mas/acom/en_US/card-b', model: { path: CARD_MODEL_PATH } };
+                editor.willUpdate(new Map());
+
+                expect(editor.usageDialogOpen).to.equal(false);
+            } finally {
+                meta.remove();
+                sessionStorage.removeItem('masAccessToken');
+            }
+        });
+
         it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
             let resolveA;
             let resolveB;

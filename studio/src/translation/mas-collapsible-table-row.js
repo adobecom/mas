@@ -114,7 +114,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 this.#loadToken++;
                 this.#referencesLoaded = false;
                 this.promoVariationsLoaded = false;
-                this.promoVariations = [];
+                this.promoVariations = this.promoVariationsFetchedByParent?.get(this.topLevelCard?.path) || [];
                 this.#promoLoadInProgress = false;
                 this.#groupedActiveLoadCount = 0;
                 this.#promoActiveLoadCount = 0;

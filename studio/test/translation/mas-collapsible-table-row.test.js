@@ -2094,6 +2094,20 @@ describe('MasCollapsibleTableRow', () => {
             );
             expect(el.getAttribute('value')).to.equal('');
         });
+
+        it('keeps promo variations from a pre-populated parent map on first render', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'card-1' };
+            const variations = [{ path: '/content/dam/mas/acom/en_US/promo/test', id: 'promo-1' }];
+            const fetchedByParent = new Map([[topLevelCard.path, variations]]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .promoVariationsFetchedByParent=${fetchedByParent}
+                ></mas-collapsible-table-row>`,
+            );
+            expect(el.promoVariations).to.equal(variations);
+        });
     });
 });
 

@@ -71,11 +71,17 @@ jobs:
 
     deploy:
         needs: [preflight, tests, identity]
+        # Same group as io-studio-candidate.yaml, so a bot PR deploy and a Piñata
+        # candidate deploy never write the shared bot workspace at once.
+        concurrency:
+            group: io-studio-merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
+            cancel-in-progress: false
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             run_tests: false
             vault-path: merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
-            odin-bucket-path: merch-at-scale/aio-studio/qa
+            odin-bucket-path: ${{ needs.identity.outputs.odin_bucket_path }}
+            shared-secrets: ${{ fromJSON(needs.identity.outputs.shared_secrets) }}
         secrets: inherit
 
     test-deployed:

@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import yaml
 
@@ -85,20 +85,48 @@ class PreviewPolicyTests(unittest.TestCase):
         cls.gates = yaml.safe_load((CONTRACT / "gates.yaml").read_text())["gates"]
         cls.preview = yaml.safe_load((CONTRACT / "preview.yaml").read_text())
 
-    def test_io_gate_is_first_and_requires_human_review(self):
-        self.assertEqual(next(iter(self.gates)), "io-preview-support")
-        gate = self.gates["io-preview-support"]
+    def test_pipeline_config_gate_is_first(self):
+        self.assertEqual(next(iter(self.gates)), "pipeline-config")
+        gate = self.gates["pipeline-config"]
         self.assertEqual(gate["template"], "protected_paths")
-        self.assertEqual(set(gate["paths"]), {"io/www", "io/studio"})
+        self.assertEqual(set(gate["paths"]), {".github", ".pinata"})
         self.assertIs(gate["blocking"], True)
         self.assertEqual(gate["failure_route"], "escalate_to_human")
 
-    def test_io_files_do_not_select_production_surfaces(self):
-        files = ["io/www/src/fragment/index.js", "io/studio/actions/save.js"]
+    def test_io_www_still_requires_human_review(self):
+        self.assertEqual(list(self.gates).index("io-preview-support"), 1)
+        gate = self.gates["io-preview-support"]
+        self.assertEqual(gate["template"], "protected_paths")
+        self.assertEqual(set(gate["paths"]), {"io/www"})
+        self.assertIs(gate["blocking"], True)
+        self.assertEqual(gate["failure_route"], "escalate_to_human")
+
+    def test_io_studio_candidate_deploys_before_visual(self):
+        order = list(self.gates)
+        gate = self.gates["io-studio-candidate"]
+        self.assertEqual(gate["template"], "command")
+        self.assertEqual(gate["cmd"], "bash .pinata/scripts/deploy-candidate-io.sh {changed_files}")
+        self.assertIs(gate["blocking"], True)
+        self.assertEqual(gate["failure_route"], "escalate_to_human")
+        self.assertLess(order.index("io-studio-candidate"), order.index("visual"))
+
+    def test_io_www_files_select_no_surface(self):
+        path = "io/www/src/fragment/index.js"
         for surface in self.preview["surfaces"]:
-            for path in files:
-                with self.subTest(surface=surface["id"], path=path):
-                    self.assertFalse(fnmatch.fnmatchcase(path, surface.get("match", "")))
+            with self.subTest(surface=surface["id"]):
+                self.assertFalse(fnmatch.fnmatchcase(path, surface.get("match", "")))
+
+    def test_io_studio_files_select_only_the_candidate_surface(self):
+        path = "io/studio/src/custom-field-audit/index.js"
+        selected = [s["id"] for s in self.preview["surfaces"] if fnmatch.fnmatchcase(path, s.get("match", ""))]
+        self.assertEqual(selected, ["studio-io-candidate"])
+
+    def test_candidate_surface_routes_io_to_the_bot_workspace_on_stage(self):
+        surface = next(s for s in self.preview["surfaces"] if s["id"] == "studio-io-candidate")
+        query = parse_qs(urlsplit(surface["url"]).query)
+        self.assertEqual(query["io.project"], ["merchatscale"])
+        self.assertEqual(query["io.studio.env"], ["pinata"])
+        self.assertEqual(query["aem.env"], ["stage"])
 
     def test_pro_mapping_excludes_product_variant(self):
         surface = next(s for s in self.preview["surfaces"] if s["id"] == "dc-bizpro-plans")

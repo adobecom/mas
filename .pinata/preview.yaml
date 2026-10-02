@@ -321,6 +321,22 @@ surfaces:
           - /studio/libs/swc.js
           - /web-components/dist/mas.js
 
+    # io/studio candidates: io-studio-candidate has just deployed this change to
+    # the bot workspace, 14257-merchatscale-pinata. io.project + io.studio.env route
+    # Studio's IO calls there; aem.env=stage keeps the author on the stage content
+    # that deploy reads.
+    - id: studio-io-candidate
+      url: https://mas.adobe.com/studio.html?aem.env=stage&io.project=merchatscale&io.studio.env=pinata#page=content&path=sandbox
+      description: >-
+          M@S Studio content grid of the sandbox folder with its IO calls routed
+          to the candidate io/studio deploy in the Piñata bot workspace. Pick for
+          changes under io/studio: it shows that Studio still loads and works
+          against the changed actions.
+      match: 'io/studio/*'
+      requires:
+          - /studio/libs/swc.js
+          - /web-components/dist/mas.js
+
     # Dedicated Studio pages: the selector prefers these over studio-content for
     # changes under their folders, so the visual gate photographs the page the
     # ticket is about instead of the Fragments grid (2026-08-17/18: MWPW-187985

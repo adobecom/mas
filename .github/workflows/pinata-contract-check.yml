@@ -28,3 +28,4 @@ jobs:
             - run: python .pinata/scripts/check-contract.py --skip-registry
             - run: python -m unittest discover -s .pinata/scripts -p 'test_contract.py' -v
             - run: bash .pinata/scripts/test-preview-supervisor.sh
+            - run: bash .pinata/scripts/test-deploy-candidate-io.sh

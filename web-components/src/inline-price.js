@@ -1,7 +1,17 @@
-import { STATE_FAILED, FF_DEFAULTS, FF_ANNUAL_PRICE } from './constants.js';
+import {
+    STATE_FAILED,
+    FF_DEFAULTS,
+    FF_ANNUAL_PRICE,
+    ERROR_MESSAGE_OFFER_NOT_FOUND,
+} from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { selectOffers, sumOffers, getService } from './utilities.js';
 import { Defaults } from './defaults.js';
+import {
+    defaultLiterals,
+    formatLiteral,
+    renderSpan,
+} from './price/template.js';
 
 const INDIVIDUAL = 'INDIVIDUAL_COM';
 const BUSINESS = 'TEAM_COM';
@@ -233,6 +243,25 @@ export const resolvePriceTaxFlags = async (
     };
 };
 
+/**
+ * Renders the "no price available" fallback shown in the price slot when WCS
+ * resolves an OSI to zero offers (200 OK, empty array) on the public side.
+ * Sourced from price literals (defaultLiterals merged with any authored
+ * override), never hardcoded, so it stays localizable.
+ * @param {Record<string, any>} options - the render options in scope for this offer
+ * @returns {string} markup for the fallback span
+ */
+function renderPriceUnavailable({
+    country,
+    language,
+    literals: priceLiterals = {},
+}) {
+    const literals = { ...defaultLiterals, ...priceLiterals };
+    const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+    const text = formatLiteral(literals, locale, 'priceUnavailableLabel', {});
+    return renderSpan('price-unavailable', text);
+}
+
 export class InlinePrice extends HTMLSpanElement {
     static is = 'inline-price';
     static tag = 'span';
@@ -376,11 +405,13 @@ export class InlinePrice extends HTMLSpanElement {
                 const selected = selectOffers(offerArray, options);
                 return selected?.length ? selected[0] : null;
             });
-            // Check if any offer selection failed
+            // Check if any offer selection failed. `selectOffers` only ever returns an
+            // empty array when its input was already empty (a non-empty offer array always
+            // yields exactly 1 selected offer), so this is the same "WCS resolved this OSI
+            // to zero offers" condition the live-fetch rejection below reports — unify on
+            // the same message so the catch block only has one signal to check.
             if (selectedOffers.some((offer) => !offer)) {
-                throw new Error(
-                    `Failed to select offers for: ${options.wcsOsi}`,
-                );
+                throw new Error(ERROR_MESSAGE_OFFER_NOT_FOUND);
             }
             let offers = selectedOffers;
             const offer = sumOffers(selectedOffers);
@@ -452,7 +483,15 @@ export class InlinePrice extends HTMLSpanElement {
             const finalOffer = sumOffers(offers);
             return this.renderOffers([finalOffer], options, version);
         } catch (error) {
-            this.innerHTML = '';
+            // WCS finding no offer at all (200 OK, empty array) still errors/logs like any
+            // other failure (below, via toggleFailed) - Studio/preview keeps today's blank
+            // placeholder-failed treatment so authors see something is broken, but a genuine
+            // public visitor gets a graceful, localized message instead of a blank price.
+            this.innerHTML =
+                error.message === ERROR_MESSAGE_OFFER_NOT_FOUND &&
+                !service.settings.preview
+                    ? renderPriceUnavailable(options)
+                    : '';
             throw error;
         }
     }

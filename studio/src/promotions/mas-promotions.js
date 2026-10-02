@@ -26,6 +26,7 @@ import {
 import { duplicatePromotionProject, getAllAttachedPromoVariations } from './promotions-repository.js';
 import { buildDuplicatePromotionToastArgs, getPromotionTitles } from './promotion-editor-utils.js';
 import { handleSearchInput } from '../common/utils/selectable-list.js';
+import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 
 const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'production', label: 'Production' },
@@ -43,10 +44,9 @@ class MasPromotions extends LitElement {
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
-        promotionsData: { type: Array, state: true },
-        promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        dialogCheckboxChecked: { type: Boolean, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
     };
@@ -61,10 +61,9 @@ class MasPromotions extends LitElement {
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
-        this.promotionsData = Store.promotions?.list?.data?.get() || [];
-        this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.dialogCheckboxChecked = false;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.reactiveController = new ReactiveController(this, [
@@ -101,7 +100,7 @@ class MasPromotions extends LitElement {
         return repository;
     }
 
-    async connectedCallback() {
+    connectedCallback() {
         super.connectedCallback();
 
         const currentPage = Store.page.get();
@@ -114,10 +113,6 @@ class MasPromotions extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
-        this.promotionsData = Store.promotions?.list?.data?.get() || [];
-
-        Store.promotions.list.loading.set(true);
-        await this.loadPromotions();
     }
 
     disconnectedCallback() {
@@ -136,60 +131,22 @@ class MasPromotions extends LitElement {
     }
 
     get loading() {
-        return this.promotionsLoading;
-    }
-
-    get loadingIndicator() {
-        if (!this.loading) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
+        return Store.promotions.list.loading.get() ?? false;
     }
 
     set loading(value = true) {
-        this.promotionsLoading = value;
         Store.promotions.list.loading.set(value);
     }
 
     async loadPromotions() {
         await this.repository.loadPromotions();
-        this.promotionsData = Store.promotions.list.data.get() || [];
-        this.promotionsLoading = Store.promotions.list.loading.get() || false;
-    }
-
-    /**
-     * Display a dialog for confirmation
-     * @param {string} title - Dialog title
-     * @param {string} message - Dialog message
-     * @param {Object} options - Additional options
-     * @returns {Promise<boolean>} - True if confirmed, false if canceled
-     */
-    async #showDialog(title, message, options = {}) {
-        if (this.isDialogOpen) {
-            return false;
-        }
-
-        this.isDialogOpen = true;
-        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
-
-        return new Promise((resolve) => {
-            this.confirmDialogConfig = {
-                title,
-                message,
-                confirmText,
-                cancelText,
-                variant,
-                onConfirm: () => {
-                    resolve(true);
-                },
-                onCancel: () => {
-                    resolve(false);
-                },
-            };
-        });
     }
 
     renderPromotionsContent() {
-        if (this.promotionsLoading) {
-            return html`<div class="loading-container">${this.loadingIndicator}</div>`;
+        if (this.loading) {
+            return html`<div class="loading-container--flex">
+                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+            </div>`;
         }
 
         return this.renderPromotionsTable();
@@ -219,7 +176,6 @@ class MasPromotions extends LitElement {
             },
             { key: 'actions', label: 'Actions', align: 'center' },
         ];
-
         if (!filteredPromotions || filteredPromotions.length === 0) {
             return html`
                 <div class="no-promotions-message">
@@ -300,7 +256,7 @@ class MasPromotions extends LitElement {
 
                 <div class="promotions-divider"></div>
 
-                ${this.renderConfirmDialog()}
+                ${renderConfirmDialog(this, 'promotion-delete-confirm-dialog')}
                 ${this.duplicating
                     ? html`<div class="duplicating-overlay">
                           <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
@@ -475,42 +431,6 @@ class MasPromotions extends LitElement {
         `;
     }
 
-    /**
-     * Renders a confirmation dialog
-     * @returns {TemplateResult} - HTML template
-     */
-    renderConfirmDialog() {
-        if (!this.confirmDialogConfig) return nothing;
-
-        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
-
-        return html`
-            <div class="confirm-dialog-overlay">
-                <sp-dialog-wrapper
-                    open
-                    underlay
-                    id="promotion-delete-confirm-dialog"
-                    .headline=${title}
-                    .variant=${variant || 'negative'}
-                    .confirmLabel=${confirmText}
-                    .cancelLabel=${cancelText}
-                    @confirm=${() => {
-                        this.confirmDialogConfig = null;
-                        this.isDialogOpen = false;
-                        onConfirm && onConfirm();
-                    }}
-                    @cancel=${() => {
-                        this.confirmDialogConfig = null;
-                        this.isDialogOpen = false;
-                        onCancel && onCancel();
-                    }}
-                >
-                    <div>${message}</div>
-                </sp-dialog-wrapper>
-            </div>
-        `;
-    }
-
     #handleAddPromotion() {
         Store.promotions.inEdit.set(null);
         Store.promotions.promotionId.set('');
@@ -539,7 +459,7 @@ class MasPromotions extends LitElement {
         const fragment = promotion.get();
         const stagedConfirmed =
             !fragment.isStaged ||
-            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
+            (await showConfirmDialog(this, STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
                 confirmText: 'Publish',
                 cancelText: 'Cancel',
                 variant: 'confirmation',
@@ -552,15 +472,15 @@ class MasPromotions extends LitElement {
             }
             return;
         }
-        const { confirmed, variationPaths } = await confirmPublishDespiteUnpublishedPromoVariations(
+        const { confirmed, variationPaths, skippedCount } = await confirmPublishDespiteUnpublishedPromoVariations(
             this.repository.aem,
             fragment,
-            (title, message, options) => this.#showDialog(title, message, options),
+            (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await publishPromotionProject(this.repository, fragment, variationPaths);
+            const ok = await publishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;
@@ -573,15 +493,15 @@ class MasPromotions extends LitElement {
         if (!fragment.isPromotionPublished) {
             return;
         }
-        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+        const { confirmed, variationPaths, skippedCount } = await confirmUnpublishAlongsidePromoVariations(
             this.repository.aem,
             fragment,
-            (title, message, options) => this.#showDialog(title, message, options),
+            (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths);
+            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;
@@ -594,7 +514,8 @@ class MasPromotions extends LitElement {
         }
         const fragment = promotion.get();
         const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, fragment);
-        const confirmed = await this.#showDialog(
+        const confirmed = await showConfirmDialog(
+            this,
             'Confirm Delete',
             promotionDeleteConfirmMessage(fragment.title, attachedVariations.length),
             {
@@ -611,8 +532,7 @@ class MasPromotions extends LitElement {
             showToast('Deleting promotion campaign...');
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
             if (tagPath) await this.repository.aem.tags.delete(tagPath);
-            const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
-            this.promotionsData = updatedPromotions;
+            const updatedPromotions = (Store.promotions.list.data.get() || []).filter((p) => p.get().id !== promotion.get().id);
             Store.promotions.list.data.set(updatedPromotions);
             showToast('Promotion campaign successfully deleted.', 'positive');
         } catch (error) {

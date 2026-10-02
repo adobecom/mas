@@ -2180,6 +2180,10 @@ describe('customize grouped variation scoped to a promo project (promo variation
                         fields: {
                             pznTags: ['mas:audiences/pzn/EDU'],
                             badge: 'EDU badge',
+                            // Only the grouped variation carries these: the promo variation derived
+                            // from it inherits them in Studio and stores nothing of its own.
+                            description: 'EDU description',
+                            ctas: 'EDU buy now',
                         },
                     },
                 },
@@ -2231,6 +2235,26 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
         expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
         expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('keeps grouped variation fields the promo variation does not override', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.description).to.equal('EDU description');
+        expect(result.body.fields.ctas).to.equal('EDU buy now');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
     it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pzn matches', async function () {

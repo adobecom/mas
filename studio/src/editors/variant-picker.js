@@ -66,7 +66,7 @@ export const VARIANTS = [
     {
         label: 'Brand Concierge Product',
         value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
-        surfaces: [SURFACES.SANDBOX],
+        surfaces: [SURFACES.BRAND_CONCIERGE],
     },
     {
         label: 'Product Pricing',
@@ -109,7 +109,7 @@ export const VARIANTS = [
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surfaces: [SURFACES.CCD],
+        surfaces: [SURFACES.CCD, SURFACES.ADOBE_HOME],
     },
     {
         label: 'Image',

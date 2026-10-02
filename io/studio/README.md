@@ -105,6 +105,12 @@ vault kv put cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id> \
 
 Once seeded, opening a PR against `io/studio` deploys to your personal workspace.
 
+### Bot PR authors
+
+`.github/workflows/resolve-aio-identity.yaml` resolves every PR author to the credentials their deploy uses. A GitHub App login carries a `[bot]` suffix (`pinatacode[bot]`) that is not legal in a GitHub secret name, so its `AIO_WWW_ENV_<login>` can never resolve. Bots on the resolver's allowlist deploy `io/www` to the shared **QA** namespace instead. QA is safe to share because no other workflow deploys to it, unlike `STAGE`, which `io-merge.yaml` owns for `main`. Every other author still needs their own secrets, and fails the check without them.
+
+`io/studio` has **no** QA mapping. Its credentials come from Vault, and the `qa` path holds only `odin_bucket`, no `env`/`aio`. The resolver only strips a trailing `[bot]` to produce a legal path segment, so `pinatacode[bot]` reads `cloudtech_wcms/merch-at-scale/aio-studio/pinatacode`, seeded exactly like a developer path above.
+
 ## How the `vault-secrets` action works
 
 CI fetches secrets through the reusable composite action `.github/actions/vault-secrets`, which wraps [`hashicorp/vault-action`](https://github.com/hashicorp/vault-action) (AppRole auth, KV v2, mount `cloudtech_wcms`, `https://vault-amer.adobe.net`). It reads one Vault path and exposes each field in one of two ways, depending on how you request it.

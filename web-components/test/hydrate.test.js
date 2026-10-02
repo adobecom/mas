@@ -23,6 +23,8 @@ import {
     processBorderColor,
     processWhatsIncludedDividerColor,
     appendSlot,
+    processImage,
+    processBackgrounds,
     processAddon,
     processTrialBadge,
     processBadge,
@@ -35,6 +37,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
+import { MARQUEE_AEM_FRAGMENT_MAPPING } from '../src/variants/marquee.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
 import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
@@ -54,13 +57,13 @@ const mockMerchCard = () => {
     document.body.appendChild(merchCard);
 
     const originalAppend = merchCard.append;
-    merchCard.append = sinon.spy(function () {
-        return originalAppend.apply(this, arguments);
+    merchCard.append = sinon.spy(function (...args) {
+        return originalAppend.apply(this, args);
     });
 
     const originalShadowAppend = merchCard.shadowRoot.append;
-    merchCard.shadowRoot.append = sinon.spy(function () {
-        return originalShadowAppend.apply(this, arguments);
+    merchCard.shadowRoot.append = sinon.spy(function (...args) {
+        return originalShadowAppend.apply(this, args);
     });
 
     return merchCard;
@@ -234,7 +237,7 @@ describe('processCTAs', async () => {
     it('should create consonant buttons when merchCard.consonant is true', async () => {
         merchCard.consonant = true;
         const fields = {
-            ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent">Click me</a>',
+            ctas: '<a is="checkout-link" data-wcs-osi="abm" data-replaced-osi="original-abm" class="accent">Click me</a>',
         };
 
         processCTAs(fields, merchCard, aemFragmentMapping);
@@ -245,6 +248,7 @@ describe('processCTAs', async () => {
         const link = footer.firstChild;
         expect(link.classList.contains('con-button')).to.be.true;
         expect(link.classList.contains('blue')).to.be.true;
+        expect(link.getAttribute('data-replaced-osi')).to.equal('original-abm');
     });
 
     it('should preserve authored aria-label on consonant checkout links', async () => {
@@ -1230,6 +1234,84 @@ describe('MerchCard data-promotion-code attribute', () => {
     });
 });
 
+describe('MerchCard data-card-osi attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-card-osi attribute when cardOsi is assigned', () => {
+        card.cardOsi = 'CARD-OSI-123';
+        expect(card.getAttribute('data-card-osi')).to.equal('CARD-OSI-123');
+    });
+
+    it('does not have data-card-osi attribute when cardOsi is not set', () => {
+        expect(card.hasAttribute('data-card-osi')).to.be.false;
+    });
+
+    it('removes data-card-osi attribute when cardOsi is cleared', () => {
+        card.cardOsi = 'CARD-OSI-123';
+        card.cardOsi = undefined;
+        expect(card.hasAttribute('data-card-osi')).to.be.false;
+    });
+
+    it('joins array values with comma when cardOsi is an array', () => {
+        card.cardOsi = ['OSI-A', 'OSI-B'];
+        expect(card.getAttribute('data-card-osi')).to.equal('OSI-A,OSI-B');
+    });
+
+    it('removes data-card-osi attribute when cardOsi is an empty array', () => {
+        card.cardOsi = ['OSI-A'];
+        card.cardOsi = [];
+        expect(card.hasAttribute('data-card-osi')).to.be.false;
+    });
+
+    it('wires fields.osi to data-card-osi via hydrate()', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'card-osi-card',
+            fields: {
+                variant: 'ccd-slice',
+                osi: 'CARD-OSI-789',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.getAttribute('data-card-osi')).to.equal('CARD-OSI-789');
+        litCard.remove();
+    });
+
+    it('wires array fields.osi to data-card-osi as comma-joined string via hydrate()', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'card-osi-array-card',
+            fields: {
+                variant: 'ccd-slice',
+                osi: ['OSI-A', 'OSI-B'],
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.getAttribute('data-card-osi')).to.equal('OSI-A,OSI-B');
+        litCard.remove();
+    });
+});
+
 describe('processDescription', async () => {
     let merchCard;
     let aemFragmentMapping;
@@ -2108,5 +2190,108 @@ describe('appendSlot', () => {
         const appended = el.querySelector('[slot="test-slot"]');
         expect(appended).to.exist;
         expect(appended.textContent).to.equal('This is a...');
+    });
+});
+
+describe('processImage (marquee)', () => {
+    it('slots stored image markup into a <picture slot="image">', () => {
+        const el = document.createElement('div');
+        const fields = {
+            image: '<source srcset="x?width=750"><img src="x?width=750">',
+        };
+
+        processImage(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="image"]');
+        expect(picture).to.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('does not slot anything when the image field is empty', () => {
+        const el = document.createElement('div');
+
+        processImage({ image: '' }, el, MARQUEE_AEM_FRAGMENT_MAPPING);
+
+        expect(el.querySelector('[slot="image"]')).to.not.exist;
+    });
+
+    it('does not append anything for variants where image has no mapping.slot', () => {
+        const el = document.createElement('div');
+        const fields = {
+            image: '<img src="x?width=750">',
+        };
+
+        processImage(fields, el, { image: true });
+
+        expect(el.children).to.have.lengthOf(0);
+    });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered image field', () => {
+        const el = document.createElement('div');
+        const fields = {
+            image: '<img src="x?width=750" data-evil="1"><script>1+1</script>',
+        };
+
+        processImage(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="image"]');
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelector('img').hasAttribute('data-evil')).to.be
+            .false;
+    });
+});
+
+describe('processBackgrounds (marquee)', () => {
+    it('slots stored backgrounds markup into a <picture slot="backgrounds">', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds:
+                '<source srcset="x?width=2000" media="(min-width: 1200px)"><img src="x?width=750">',
+        };
+
+        processBackgrounds(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="backgrounds"]');
+        expect(picture).to.exist;
+        expect(picture.querySelector('source')).to.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('does not slot anything when the backgrounds field is empty', () => {
+        const el = document.createElement('div');
+
+        processBackgrounds(
+            { backgrounds: '' },
+            el,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(el.querySelector('[slot="backgrounds"]')).to.not.exist;
+    });
+
+    it('does not slot anything for variants where backgrounds is a boolean flag', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds: '<img src="x?width=750">',
+        };
+
+        processBackgrounds(fields, el, { backgrounds: true });
+
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered backgrounds field', () => {
+        const el = document.createElement('div');
+        const fields = {
+            backgrounds:
+                '<source srcset="x?width=2000" media="(min-width: 1200px)" data-evil="1"><img src="x?width=750"><script>1+1</script>',
+        };
+
+        processBackgrounds(fields, el, MARQUEE_AEM_FRAGMENT_MAPPING);
+
+        const picture = el.querySelector('picture[slot="backgrounds"]');
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelector('source').hasAttribute('data-evil')).to.be
+            .false;
     });
 });

@@ -4987,6 +4987,16 @@ describe('status filter narrowing', () => {
         expect(narrowed).to.equal(true);
     });
 
+    it('treats a variation change as narrowing only from unset to set', () => {
+        const repository = createRepository();
+        const base = { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] };
+        expect(repository.testOnlyIsNarrowing({ ...base, variation: '' }, { ...base, variation: 'grouped' })).to.equal(true);
+        expect(repository.testOnlyIsNarrowing({ ...base, variation: 'promo' }, { ...base, variation: 'grouped' })).to.equal(
+            false,
+        );
+        expect(repository.testOnlyIsNarrowing({ ...base, variation: 'grouped' }, { ...base, variation: '' })).to.equal(false);
+    });
+
     it('filters in memory on item.status, not tags', () => {
         const repository = createRepository();
         const stores = [

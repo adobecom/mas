@@ -37,10 +37,18 @@ import {
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
+    PROMOTIONS_PATH_PREFIX,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
-import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
+import {
+    fragmentIsPromoVariation,
+    getPromoNameFromPromoVariationPath,
+    getPromoNameFromTag,
+    getPromotionTagFromFragment,
+    resolveDefaultPathFromPromoVariation,
+} from './promotions/promotion-model.js';
+import { VARIATION_FILTER } from './fragments/variation-filter.js';
 import {
     clearDictionaryCache,
     fetchDictionary,
@@ -175,7 +183,49 @@ export class MasRepository extends LitElement {
         return applyFragmentListFilters(fragmentStores, {
             page: this.page.value,
             personalizationFilterEnabled: this.filters.value.personalizationFilterEnabled,
+            variation: this.filters.value.variation,
+            promoParentPaths: this.#promoParentPaths,
         });
+    }
+
+    /** @type {Set<string> | null} default card paths that have promo variations, for the current surface and locale */
+    #promoParentPaths = null;
+    #promoParentKey = null;
+    #promoParentLoadedAt = 0;
+
+    /**
+     * Promo variations are separate copies under <surface>/<locale>/promotions and are not linked from their parent card,
+     * so the "Has variation?" filter needs this lookup to know which cards have one.
+     */
+    async #ensurePromoParentPaths(path, locale) {
+        const variation = this.filters.value.variation;
+        const needsPromoLookup = variation === VARIATION_FILTER.PROMO || variation === VARIATION_FILTER.NONE;
+        if (this.page.value !== PAGE_NAMES.CONTENT || !needsPromoLookup) return;
+        const key = `${path}|${locale}`;
+        const lastEdit = Store.fragments.list.data.getMeta('lastEdit');
+        if (this.#promoParentKey === key && !(lastEdit && lastEdit > this.#promoParentLoadedAt)) return;
+
+        const loadedAt = Date.now();
+        const promoVariations = await this.searchFragmentList(
+            {
+                path: `${getDamPath(path)}/${locale}/${PROMOTIONS_PATH_PREFIX.replace(/\/$/, '')}`,
+                modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            },
+            undefined,
+            this.#abortControllers.search,
+        );
+        const parentPaths = new Set();
+        for (const promoVariation of promoVariations) {
+            const promoName =
+                getPromoNameFromTag(getPromotionTagFromFragment(promoVariation)) ??
+                getPromoNameFromPromoVariationPath(promoVariation.path);
+            for (const parentPath of resolveDefaultPathFromPromoVariation(promoVariation.path, promoName)) {
+                parentPaths.add(parentPath);
+            }
+        }
+        this.#promoParentPaths = parentPaths;
+        this.#promoParentKey = key;
+        this.#promoParentLoadedAt = loadedAt;
     }
 
     /** @type {AEM} */
@@ -371,8 +421,10 @@ export class MasRepository extends LitElement {
         const contentTypesNarrowed =
             prev.contentTypes.length === 0 || (next.contentTypes.length > 0 && isSubset(prev.contentTypes, next.contentTypes));
         const statusNarrowed = prevStatus.length === 0 || (nextStatus.length > 0 && isSubset(prevStatus, nextStatus));
+        const variationNarrowed = !prev.variation || prev.variation === next.variation;
         return (
             queryNarrowed &&
+            variationNarrowed &&
             isSuperset(prev.tags, next.tags) &&
             variantsNarrowed &&
             contentTypesNarrowed &&
@@ -532,8 +584,20 @@ export class MasRepository extends LitElement {
             currentLocale === locale &&
             metaPersonalizationOn === personalizationOn;
 
+        const variation = this.filters.value.variation ?? '';
+        const currentVariation = dataStore.getMeta('variation') ?? '';
+
+        try {
+            await this.#ensurePromoParentPaths(path, locale);
+        } catch (error) {
+            Store.fragments.list.loading.set(false);
+            this.processError(error, 'Could not load fragments.');
+            return;
+        }
+
         const identicalFilters =
             sameSurface &&
+            currentVariation === variation &&
             currentQuery === query &&
             currentTags === tagsString &&
             currentCreatedBy === createdByString &&
@@ -576,22 +640,26 @@ export class MasRepository extends LitElement {
                     contentTypes: prevContentTypes,
                     createdBy: prevCreatedBy,
                     status: prevStatus,
+                    variation: currentVariation,
                 },
-                { query: query || '', tags, variants, contentTypes, createdBy, status },
+                { query: query || '', tags, variants, contentTypes, createdBy, status, variation },
             );
             if (narrowed) {
                 if (tracing) console.time('searchFragments:in-memory');
-                const filtered = this.#applyInMemoryFilter(currentData, {
-                    query,
-                    tags,
-                    variants,
-                    contentTypes,
-                    createdBy,
-                    status,
-                });
+                const filtered = this.#applyFragmentListFilters(
+                    this.#applyInMemoryFilter(currentData, {
+                        query,
+                        tags,
+                        variants,
+                        contentTypes,
+                        createdBy,
+                        status,
+                    }),
+                );
                 if (filtered.length !== currentData.length) {
                     dataStore.set(filtered);
                 }
+                dataStore.setMeta('variation', variation);
                 dataStore.setMeta('query', query);
                 dataStore.setMeta('tags', tagsString);
                 dataStore.setMeta('createdBy', createdByString);
@@ -847,6 +915,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', tagsString);
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('status', statusString);
+            dataStore.setMeta('variation', variation);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
             if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                 dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());

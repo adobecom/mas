@@ -10,6 +10,7 @@ import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
 import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
 import { MasksStore } from './masks/masks-store.js';
+import { VARIATION_FILTER_OPTIONS } from './fragments/variation-filter.js';
 
 let editorContextInstance = null;
 
@@ -306,6 +307,8 @@ function filtersValidator(value) {
         const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
         value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
     }
+
+    if (!VARIATION_FILTER_OPTIONS.some((option) => option.id === value.variation)) value.variation = undefined;
     return value;
 }
 

@@ -180,6 +180,42 @@
                         expect(statusCheckbox(filterPanel, 'DRAFT').checked).to.be.false;
                     });
 
+                    it('Should render the "Has variation?" picker with its three options', async function () {
+                        Store.filters.set({ tags: '' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        const picker = filterPanel.shadowRoot.querySelector('sp-picker[data-filter-type="variation"]');
+                        expect(picker.label).to.equal('Has variation?');
+                        const options = [...picker.querySelectorAll('sp-menu-item')].map((item) => item.textContent.trim());
+                        expect(options).to.deep.equal(['Has promo variation', 'Has grouped variation', 'No variations']);
+                    });
+
+                    it('Should set the variation filter, show a chip, and clear it when the chip is deleted', async function () {
+                        Store.filters.set({ tags: '', status: 'DRAFT' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        const picker = filterPanel.shadowRoot.querySelector('sp-picker[data-filter-type="variation"]');
+                        picker.value = 'grouped';
+                        picker.dispatchEvent(new Event('change', { bubbles: true }));
+                        await filterPanel.updateComplete;
+
+                        expect(Store.filters.get().variation).to.equal('grouped');
+                        expect(Store.filters.get().status).to.equal('DRAFT');
+                        const chip = filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]');
+                        expect(chip.textContent.trim()).to.equal('Has grouped variation');
+
+                        chip.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+                        await filterPanel.updateComplete;
+                        expect(Store.filters.get().variation).to.be.undefined;
+                    });
+
+                    it('Should normalize an invalid variation to undefined', function () {
+                        Store.filters.set({ tags: '', variation: 'bogus' });
+                        expect(Store.filters.get().variation).to.be.undefined;
+                    });
+
                     it('Should update tags when a tag is selected', async function () {
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;

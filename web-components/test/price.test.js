@@ -208,13 +208,45 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.querySelector('span.price')).to.be.null;
     });
 
-    it('does not render missing offer', async () => {
+    it('renders "no price available" fallback for a missing offer on the public side', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('noOffer', 'no-offer');
         await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
+        expect(inlinePrice.masElement.state).to.equal(STATE_FAILED);
+        expect(inlinePrice.innerHTML).to.be.html(
+            '<span class="price-unavailable">No price available</span>',
+        );
+    });
+
+    it('does not render missing offer in preview/Studio context', async () => {
+        await initMasCommerceService({ preview: 'true' });
+        const inlinePrice = mockInlinePrice('noOfferPreview', 'no-offer');
+        await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
+        );
+        expect(inlinePrice.masElement.state).to.equal(STATE_FAILED);
         expect(inlinePrice.innerHTML).to.be.empty;
+    });
+
+    it('renders "no price available" fallback when a prefilled WCS cache entry is empty', async () => {
+        const commerce = await initMasCommerceService();
+        commerce.prefillWcsCache({
+            prod: {
+                'no-offer-prefilled-us-mult': [],
+            },
+        });
+        const inlinePrice = mockInlinePrice(
+            'noOfferPrefilled',
+            'no-offer-prefilled',
+        );
+        await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
+        );
+        expect(inlinePrice.innerHTML).to.be.html(
+            '<span class="price-unavailable">No price available</span>',
+        );
     });
 
     it('does not override missing offer with strikethrough', async () => {
@@ -232,7 +264,9 @@ describe('class "InlinePrice"', () => {
         await expect(failedPrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
-        expect(failedPrice.innerHTML).to.be.empty;
+        expect(failedPrice.innerHTML).to.be.html(
+            '<span class="price-unavailable">No price available</span>',
+        );
     });
 
     it('renders perpetual offer', async () => {

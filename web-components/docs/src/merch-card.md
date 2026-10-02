@@ -10,6 +10,25 @@ A `merch-card` can be rendered using either static html markup or `aem-fragment`
 
 The CTAs styles depend on Spectrum CSS that must be provided by the consumer.
 
+For `headless`, `marquee`, and `banner-blade` fragments, the RTE link dialog
+persists CTA variants as link classes. Hydration uses those variants to render
+primary buttons, secondary buttons, and links in the fragment's authored order.
+Bold and italic remain text formatting, not CTA variant controls.
+
+`<mas-field field="ctas">` hydrates the entire CTA group without requiring Milo
+button decoration. Indexed fields, such as `ctas[1]` or
+`ctas[reference-key]`, use the same variant handling regardless of the fragment's
+card template. Individual copies do not encode CTA variants in the clipboard
+label's bold/italic formatting. Groups and single CTAs inherit the surrounding
+Milo block's button size and utility classes and use its responsive action-area
+layout. An explicitly authored button size is retained. Old copied bold/italic
+wrappers containing only a CTA field are removed so they cannot override the
+fragment's variant; formatting shared with other document content is retained.
+Existing classless CTAs
+saved with `<strong>` or `<em>` wrappers retain their primary or secondary
+variant; an explicit variant always takes precedence. Studio converts that
+legacy encoding to link classes when the CTA field is edited.
+
 Designs:
 
 **ACOM**: https://www.figma.com/design/tiEUQLJ1hVlosqwzAATVXZ/Cards-(Merch)?node-id=1086-17994&t=LeMR0vbaBoEKaKln-1

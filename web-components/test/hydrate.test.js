@@ -430,7 +430,8 @@ describe('processCTAs - headless CTA variant labels', async () => {
 
         const footer = getFooterElement(merchCard);
         const item = footer.querySelector('.headless-cta-item');
-        expect(item.querySelector('strong a')).to.exist;
+        expect(item.querySelector('a.con-button.blue')).to.exist;
+        expect(item.querySelector('strong, em')).to.not.exist;
         expect(
             item.querySelector('.headless-cta-variant-label').textContent,
         ).to.equal('Primary');
@@ -444,7 +445,8 @@ describe('processCTAs - headless CTA variant labels', async () => {
 
         const footer = getFooterElement(merchCard);
         const item = footer.querySelector('.headless-cta-item');
-        expect(item.querySelector('em a')).to.exist;
+        expect(item.querySelector('a.con-button.outline')).to.exist;
+        expect(item.querySelector('strong, em')).to.not.exist;
         expect(
             item.querySelector('.headless-cta-variant-label').textContent,
         ).to.equal('Secondary');
@@ -516,15 +518,95 @@ describe('processCTAs - headless CTA variant labels', async () => {
         expect(link.options.modal).to.be.ok;
     });
 
-    it('does not label CTAs that carry an authored style class, even on a headless card', async () => {
+    it('labels persisted variants on a headless card', async () => {
         merchCard.variant = 'headless';
         const fields = { ctas: '<a href="#" class="accent">Buy now</a>' };
 
         processCTAs(fields, merchCard, aemFragmentMapping);
 
         const footer = getFooterElement(merchCard);
-        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
+        expect(footer.querySelector('.headless-cta-item')).to.exist;
+        expect(
+            footer.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+        expect(footer.querySelector('a.con-button.blue')).to.exist;
     });
+
+    for (const variant of ['headless', 'marquee', 'banner-blade']) {
+        it(`hydrates persisted ${variant} variants in authored order, independently of formatting`, () => {
+            merchCard.variant = variant;
+            const fields = {
+                ctas:
+                    '<strong><a class="secondary" href="/secondary" data-key="secondary">Secondary</a></strong>' +
+                    '<em><a class="primary" href="/primary" data-key="primary">Primary</a></em>' +
+                    '<strong><a class="secondary-link" href="/link" data-key="link">Link</a></strong>',
+            };
+            processCTAs(fields, merchCard, aemFragmentMapping);
+            const links = [
+                ...getFooterElement(merchCard).querySelectorAll('a'),
+            ];
+            expect(links.map((link) => link.dataset.key)).to.deep.equal([
+                'secondary',
+                'primary',
+                'link',
+            ]);
+            expect(links[0].classList.contains('outline')).to.be.true;
+            expect(links[1].classList.contains('blue')).to.be.true;
+            expect(links[2].classList.contains('con-button')).to.be.false;
+            expect(links[0].querySelector('strong')).to.exist;
+            expect(links[1].querySelector('em')).to.exist;
+            expect(links[2].querySelector('strong')).to.exist;
+        });
+
+        it(`preserves ${variant} checkout options and CTA order after asynchronous resolution`, async () => {
+            merchCard.variant = variant;
+            const fields = {
+                ctas:
+                    '<a class="secondary" data-key="trial" data-wcs-osi="stock-m2m-mult">Trial</a>' +
+                    '<a class="primary button-xl" data-key="buy" data-wcs-osi="abm" data-locked-osi="true" ' +
+                    'data-checkout-workflow-step="segmentation" data-modal="true" data-extra-options=\'{"promoid":"test"}\' ' +
+                    'aria-label="Buy Adobe" target="_blank" data-analytics-id="buy-now">Buy</a>',
+            };
+            processCTAs(fields, merchCard, aemFragmentMapping);
+            const links = [
+                ...getFooterElement(merchCard).querySelectorAll('a'),
+            ];
+            await Promise.all(links.map((link) => link.onceSettled()));
+            expect(links.map((link) => link.dataset.key)).to.deep.equal([
+                'trial',
+                'buy',
+            ]);
+            expect(links[1].options.checkoutWorkflowStep).to.equal(
+                'segmentation',
+            );
+            expect(links[1].options.modal).to.be.ok;
+            expect(links[1].dataset.extraOptions).to.equal(
+                '{"promoid":"test"}',
+            );
+            expect(links[1].dataset.lockedOsi).to.equal('true');
+            expect(links[1].dataset.analyticsId).to.equal('buy-now');
+            expect(links[1].getAttribute('aria-label')).to.equal('Buy Adobe');
+            expect(links[1].getAttribute('target')).to.equal('_blank');
+            expect(links[1].classList.contains('button-xl')).to.be.true;
+        });
+
+        it(`continues filtering resolved trial checkout CTAs on ${variant} previews`, async () => {
+            merchCard.variant = variant;
+            const fields = {
+                ctas:
+                    '<a class="primary" data-wcs-osi="abm">Buy</a>' +
+                    '<a class="secondary" data-wcs-osi="stock-m2m-mult">Try</a>',
+            };
+            processCTAs(fields, merchCard, aemFragmentMapping, variant, {
+                hideTrialCTAs: true,
+            });
+            const footer = getFooterElement(merchCard);
+            const items = [...footer.children];
+            await Promise.all(items.map((item) => item.source.onceSettled()));
+            expect(footer.children).to.have.lengthOf(1);
+            expect(footer.querySelector('a').textContent).to.equal('Buy');
+        });
+    }
 
     it('does not label CTAs on variants outside the headless-style set', async () => {
         merchCard.variant = 'plans';

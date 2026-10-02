@@ -711,13 +711,7 @@ class MasSideNav extends LitElement {
                                             (cta, i) => html`
                                                 ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
                                                 <sp-menu-item
-                                                    @click=${() =>
-                                                        this.copyCtaItem(
-                                                            cta.text,
-                                                            cta.index,
-                                                            cta.sourceFragment,
-                                                            cta.formattedText,
-                                                        )}
+                                                    @click=${() => this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
                                                 >
                                                     <div class="field-entry field-entry-filled">
                                                         <span class="field-label"
@@ -841,10 +835,8 @@ class MasSideNav extends LitElement {
         return cta.getAttribute('data-key') || index;
     }
 
-    /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format).
-     *  `formattedText` (from parseCtas) carries the CTA's variant-derived bold/italic markup
-     *  and is used only for the richText/clipboard label, never the plain-text one. */
-    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment, formattedText) {
+    /** Copies an indexed CTA reference; the fragment supplies its variant during hydration. */
+    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
         const fragment = sourceFragment;
         if (!fragment) return;
         const ctaId = this.#getCtaKey(fragment, index);
@@ -853,7 +845,7 @@ class MasSideNav extends LitElement {
         const ctaInfo = this.getCtaInfo(ctaId);
         const dashCtaInfo = ctaInfo ? ` - ${ctaInfo}` : '';
         const fieldText = `ctas[${text}${dashCtaInfo}]`;
-        const fieldMarkup = formattedText && formattedText !== text ? `ctas[${formattedText}${dashCtaInfo}]` : undefined;
+        const fieldMarkup = fieldText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText, fieldMarkup);
         if (!link) return;
         try {

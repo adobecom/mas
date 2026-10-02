@@ -5,7 +5,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
 } from './constants.js';
-import { getService } from './utils.js';
+import { getService, hydrateHeadlessCta } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
 import {
     applyDisplayAnnualDefault,
@@ -23,7 +23,6 @@ import {
 } from './image-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
-const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 const CONTEXT_ATTRIBUTES = [
     'fragment-id',
     'variation-id',
@@ -520,7 +519,7 @@ class MasField extends HTMLElement {
         return { fieldName: field, index: null };
     }
 
-    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
+    /** Extracts one CTA without reordering the field or discarding its variant and text formatting.
      *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
      *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
     #extractIndexedAnchor(html, index) {
@@ -536,8 +535,14 @@ class MasField extends HTMLElement {
             anchor = template.content.querySelector(`a[data-key="${index}"]`);
         }
         if (!anchor) return null;
-        anchor.removeAttribute('class');
-        return anchor.outerHTML;
+        let markup = anchor.outerHTML;
+        let parent = anchor.parentElement;
+        while (parent?.matches('strong, em')) {
+            const tag = parent.tagName.toLowerCase();
+            markup = `<${tag}>${markup}</${tag}>`;
+            parent = parent.parentElement;
+        }
+        return markup;
     }
 
     #setFragmentIds() {
@@ -668,9 +673,10 @@ class MasField extends HTMLElement {
                     return;
                 }
             }
-            if (this.#field === 'ctas') {
-                const ctaEl = this.#renderCtaField(html);
+            if (fieldName === 'ctas') {
+                const ctaEl = this.#renderCtaField(html, index !== null);
                 if (ctaEl) {
+                    this.#applyCtaPresentation(ctaEl);
                     content.replaceChildren(ctaEl);
                     this.#stampContext(content);
                     return;
@@ -883,73 +889,89 @@ class MasField extends HTMLElement {
         stamp('data-promotion-code', resolveContextPromotionCode(this));
     }
 
-    /**
-     * Converts a single CTA anchor from the AEM fragment into a checkout-button
-     * (or styled anchor for non-commerce links) using the same Spectrum CSS
-     * classes that merch-card hydration applies.
-     */
-    #buildCtaButton(link) {
-        const isCheckout = !!link.getAttribute('data-wcs-osi');
-        if (!isCheckout) return link.cloneNode(true);
-
-        const CheckoutLink = customElements.get('checkout-link');
-        const button =
-            CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
-            (() => {
-                const el = document.createElement('a', { is: 'checkout-link' });
-                el.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
-                return el;
-            })();
-
-        for (const { name, value } of link.attributes) {
-            if (['class', 'is', 'href'].includes(name)) continue;
-            button.setAttribute(name, value);
+    #applyCtaPresentation(content) {
+        // Group fields bypass Milo's inline CTA decorator, so both field shapes inherit block presentation here.
+        const section = this.closest('.section');
+        if (!section) return;
+        let wrapper = this.parentElement;
+        while (
+            wrapper.matches('strong, em') &&
+            wrapper.childElementCount === 1 &&
+            wrapper.firstElementChild === this &&
+            wrapper.textContent.trim() === this.textContent.trim()
+        ) {
+            wrapper.replaceWith(...wrapper.childNodes);
+            wrapper = this.parentElement;
         }
-        button.firstElementChild?.classList.add('spectrum-Button-label');
-
-        if (link.className) {
-            // Legacy class-driven system: non-headless CTAs, or headless CTAs authored before
-            // real bold/italic wrapping existed.
-            const styleMatch =
-                CHECKOUT_STYLE_PATTERN.exec(link.className)?.[0] ?? 'accent';
-            const isAccent = styleMatch.startsWith('accent');
-            if (!styleMatch.includes('-link')) {
-                button.classList.add('button', 'con-button');
-                if (isAccent) button.classList.add('blue');
-                else if (
-                    styleMatch.startsWith('primary') &&
-                    !styleMatch.includes('-outline')
-                )
-                    button.classList.add('fill');
+        let block = this;
+        while (block.parentElement !== section) {
+            block = block.parentElement;
+        }
+        const sizePattern = /^button-(s|m|l|xl|xxl)$/;
+        const sibling = [...block.querySelectorAll('.con-button')].find(
+            (button) =>
+                !this.contains(button) &&
+                [...button.classList].some((value) => sizePattern.test(value)),
+        );
+        let size;
+        let utilities = [];
+        if (sibling) {
+            size = [...sibling.classList].find((value) =>
+                sizePattern.test(value),
+            );
+            utilities = [...sibling.classList].filter(
+                (value) =>
+                    value.startsWith('button-') && !sizePattern.test(value),
+            );
+        } else {
+            const authoredSize = [...block.classList].find((value) =>
+                /^(s|m|l|xl|xxl)-button$/.test(value),
+            );
+            if (authoredSize) {
+                size = `button-${authoredSize.split('-')[0]}`;
+            } else if (block.classList.contains('hero-marquee')) {
+                size = 'button-xl';
+                utilities = ['button-justified-mobile'];
+            } else if (!block.matches('.accordion, .media')) {
+                size = block.matches('.large, .xlarge')
+                    ? 'button-xl'
+                    : 'button-l';
             }
-            return button;
         }
-
-        // Headless CTAs authored via the 3-option picker never carry a button-style class,
-        // and MAS must not add one either - preserve the real <strong>/<em> wrapper (see
-        // rte-field.js's #marksForHeadlessVariant) around the checkout-link unchanged, so
-        // whatever decorates the surrounding page content is what determines the button style.
-        const parentTag = link.parentElement?.tagName;
-        if (parentTag === 'STRONG' || parentTag === 'EM') {
-            const wrapper = document.createElement(parentTag.toLowerCase());
-            wrapper.append(button);
-            return wrapper;
+        for (const match of this.merchLink?.matchAll(
+            /(?:&|#)_button-([a-zA-Z-]+)/g,
+        ) ?? []) {
+            utilities.push(match[1]);
         }
-        return button;
+        const buttons = content.matches('.con-button')
+            ? [content]
+            : content.querySelectorAll('.con-button');
+        for (const button of buttons) {
+            if (
+                size &&
+                ![...button.classList].some((value) => sizePattern.test(value))
+            ) {
+                button.classList.add(size);
+            }
+            button.classList.add(...utilities);
+        }
+        this.closest('p')?.classList.add('action-area');
     }
 
     /**
      * Parses the raw CTA field HTML, converts each anchor to a hydrated
-     * checkout-button, and returns a <div slot="footer"> ready to render.
+     * checkout link, and returns a group or indexed CTA ready to render.
      * Returns null if there are no anchor elements in the field value.
      */
-    #renderCtaField(html) {
+    #renderCtaField(html, indexed = false) {
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const links = [...doc.body.querySelectorAll('a')];
         if (!links.length) return null;
+        if (indexed) return hydrateHeadlessCta(links[0]);
         const footer = document.createElement('div');
         footer.setAttribute('slot', 'footer');
-        footer.append(...links.map((link) => this.#buildCtaButton(link)));
+        footer.classList.add('action-area');
+        footer.append(...links.map((link) => hydrateHeadlessCta(link)));
         return footer;
     }
 

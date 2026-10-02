@@ -125,6 +125,9 @@ class MasToolbar extends LitElement {
         sp-search {
             flex-grow: 1;
             max-width: 400px;
+            --mod-search-border-radius: 100px;
+            --mod-search-border-color-default: var(--spectrum-gray-300);
+            --mod-search-background-color: var(--spectrum-gray-75);
         }
 
         #search-results-label {
@@ -172,10 +175,6 @@ class MasToolbar extends LitElement {
         }
     }
 
-    update() {
-        super.update();
-    }
-
     updateFilterCount() {
         const filters = Store.filters.get();
         if (!filters || !filters.tags) {
@@ -198,13 +197,6 @@ class MasToolbar extends LitElement {
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
         Store.renderMode.set(ev.target.value);
-    }
-
-    clearUuidResolutionState() {
-        Store.search.removeMeta('uuid-query');
-        Store.search.removeMeta('uuid-path');
-        Store.filters.removeMeta('uuid-query');
-        Store.filters.removeMeta('uuid-locale');
     }
 
     updateQuery(value) {
@@ -236,13 +228,11 @@ class MasToolbar extends LitElement {
 
     handleSearchSubmit(ev) {
         ev.preventDefault();
-        this.clearUuidResolutionState();
         this.updateQuery(ev.target.value);
     }
 
     handleChange(ev) {
         if (ev.target.value === '') {
-            this.clearUuidResolutionState();
             this.updateQuery('');
         }
     }

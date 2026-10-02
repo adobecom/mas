@@ -6,3 +6,4 @@ export * from 'prosemirror-schema-basic';
 export * from 'prosemirror-schema-list';
 export * from 'prosemirror-commands';
 export * from 'prosemirror-history';
+export * from 'prosemirror-placeholder';

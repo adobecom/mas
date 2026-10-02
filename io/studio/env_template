@@ -30,3 +30,12 @@ WORKER_CONCURRENCY=2
 # translation state TTLs (package-level inputs)
 TRANSLATION_JOB_PAYLOAD_TTL=
 TRANSLATION_PROJECT_SUMMARY_TTL=
+
+# IMS Server-to-Server (client_credentials) service account, used to PATCH the
+# translation-project CF from the Hoolihan webhook independent of any user session
+IMS_CLIENT_ID=
+IMS_CLIENT_SECRET=
+# comma-separated, e.g. AdobeID,openid,read_organizations
+IMS_SCOPES=
+# optional override; defaults to https://ims-na1.adobelogin.com/ims/token/v3
+IMS_TOKEN_URL=

@@ -74,6 +74,53 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('initialization', () => {
+        for (const type of ['locale', 'promotion', 'grouped']) {
+            it(`exposes the ${type} variation's own editor link`, async () => {
+                const path =
+                    type === 'locale'
+                        ? '/content/dam/mas/acom/en_CA/cards/test'
+                        : `/content/dam/mas/acom/en_US/cards/test/${type === 'grouped' ? 'pzn' : 'promotions'}/example`;
+                const variation = {
+                    ...createMockTopLevelCard({ path, title: `${type} variation` }),
+                    id: `${type}-1`,
+                };
+                const topLevelCard = {
+                    ...createMockTopLevelCard({ variationPaths: [path], references: [variation] }),
+                    id: 'parent-1',
+                };
+                setupCardVariationsInStore(topLevelCard.path, [variation]);
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                if (type === 'promotion') {
+                    el.promoVariations = [variation];
+                    el.requestUpdate();
+                }
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector(`sp-tab-panel[value="${type}"]`);
+                const link = panel.querySelector('sp-table-row a');
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('fragmentId')).to.equal(`${type}-1`);
+                expect(params.get('region')).to.equal(type === 'locale' ? 'en_CA' : 'en_US');
+            });
+        }
+
+        it('renders native fragment-editor links in translation and promotion title cells', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'top-level-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const link = el.shadowRoot.querySelector('sp-table-row a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('fragment-editor');
+            expect(params.get('fragmentId')).to.equal('top-level-1');
+        });
+
         it('should initialize with default values', async () => {
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(

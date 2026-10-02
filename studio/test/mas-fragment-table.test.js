@@ -88,6 +88,38 @@ describe('MasFragmentTable', () => {
     });
 
     describe('handleEditFragment', () => {
+        it('keeps fragments with an empty title openable through the name cell', async () => {
+            const fragmentStore = createFragmentStore({
+                title: '',
+                path: '/content/dam/mas/acom/en_US/cards/untitled-card',
+            });
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            const link = el.querySelector('.name a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('fragmentId')).to.equal('fragment-1');
+        });
+
+        it('exposes the edit fragment as a native title link rather than the merged preview fragment', async () => {
+            const fragmentStore = createFragmentStore();
+            const editFragmentStore = createFragmentStore({
+                id: 'variation-1',
+                path: '/content/dam/mas/acom/fr_FR/cards/variation',
+            });
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .editFragmentStore=${editFragmentStore}
+                    .nested=${true}
+                ></mas-fragment-table>`,
+            );
+            const link = el.querySelector('.title a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('fragmentId')).to.equal('variation-1');
+            expect(params.get('region')).to.equal('fr_FR');
+        });
+
         it('stops propagation and calls editFragment', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);

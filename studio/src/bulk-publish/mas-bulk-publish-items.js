@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 import { STAGED } from '../constants.js';
+import { buildEditorHref } from '../common/utils/editor-link.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
@@ -79,6 +80,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     itemHref(item) {
+        if (item.fragmentId) return buildEditorHref({ id: item.fragmentId, path: item.path });
         const target = item.href ?? item.url;
         return /^https?:\/\//.test(target) ? target : null;
     }
@@ -145,6 +147,16 @@ class MasBulkPublishItems extends LitElement {
                                                 >${this.itemLabel(item)}</a
                                             >`
                                           : html`<span class="item-label">${this.itemLabel(item)}</span>`}
+                                      ${this.itemHref(item)
+                                          ? html`<a
+                                                class="row-link-overlay"
+                                                tabindex="-1"
+                                                aria-hidden="true"
+                                                href=${this.itemHref(item)}
+                                                target="_blank"
+                                                rel="noopener"
+                                            ></a>`
+                                          : nothing}
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
                                       ${this.isPublished

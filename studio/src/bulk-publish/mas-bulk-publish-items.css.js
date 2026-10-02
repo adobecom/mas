@@ -87,6 +87,7 @@ export const styles = css`
         padding: 0;
     }
     li {
+        position: relative;
         display: flex;
         align-items: center;
         padding: 8px 12px;
@@ -97,13 +98,24 @@ export const styles = css`
         border-bottom: none;
     }
     li a {
+        position: relative;
         color: var(--spectrum-gray-800, #292929);
-        text-decoration: underline;
+        text-decoration: none;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: var(--spectrum-font-size-100);
         min-width: 0;
+        z-index: 1;
+    }
+    li a.row-link-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+    }
+    li sp-action-button {
+        position: relative;
+        z-index: 1;
     }
     li .url-spacer {
         flex: 1;

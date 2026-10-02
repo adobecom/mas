@@ -2862,6 +2862,10 @@ merch-card[variant^="plans"] [slot="quantity-select"] {
     padding-top: 8px;
 }
 
+merch-card[variant^="plans"]:has(merch-quantity-select:not([closed])) {
+    z-index: 100;
+}
+
 merch-card[variant^="plans"]:has([slot="quantity-select"]) merch-addon {
     margin: 0;
 }

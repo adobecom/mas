@@ -25,6 +25,8 @@ import {
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
     pruneOrphanedGroupedVariationSelection,
+    groupPromotionFragments,
+    GROUP_BY,
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
@@ -79,6 +81,8 @@ class MasPromotionsItemsTable extends LitElement {
         promoVariationSelectedGeos: { type: Array, state: true },
         promoVariationDisabledGeos: { type: Array, state: true },
         fragmentHasEmptyGeosVariation: { type: Boolean, state: true },
+        groupBy: { type: String },
+        expandedGroups: { type: Object, state: true },
         offersSortDirection: { type: String, state: true },
     };
 
@@ -90,6 +94,7 @@ class MasPromotionsItemsTable extends LitElement {
     #visibleCount = 0;
     #offerRecordsHydratedSeen = 0;
     #promoVariationProbe = null;
+    #selectedLoadingEmitted = null;
 
     constructor() {
         super();
@@ -109,6 +114,8 @@ class MasPromotionsItemsTable extends LitElement {
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
+        this.groupBy = GROUP_BY.NONE;
+        this.expandedGroups = new Set();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }
@@ -214,6 +221,16 @@ class MasPromotionsItemsTable extends LitElement {
             this.#loadSelectedOffers(this.selectedPaths);
             return;
         }
+        // A requested grouping needs the full set: pull remaining windows eagerly instead of on scroll.
+        if (
+            this.type === TABLE_TYPE.CARDS &&
+            this.groupBy !== GROUP_BY.NONE &&
+            this.#hasMoreSelected &&
+            !this.viewOnlyLoading
+        ) {
+            this.#loadMore();
+        }
+        this.#emitSelectedLoadingChange();
         const paths = this.selectedPaths;
         const keySource = this.type === TABLE_TYPE.CARDS ? this.itemsSelection.value.selectedCards.value : paths;
         const key = `${this.#promotionTagId ?? ''}|${keySource.slice().sort().join('|')}`;
@@ -247,6 +264,19 @@ class MasPromotionsItemsTable extends LitElement {
 
     get #hasMoreSelected() {
         return this.#visibleCount < this.#allSelectedPaths.length;
+    }
+
+    get #selectedItemsLoading() {
+        if (this.type !== TABLE_TYPE.CARDS) return false;
+        if (this.viewOnlyLoading || this.#hasMoreSelected) return true;
+        return this.selectedPaths.length > 0 && this.#allSelectedPaths.length === 0;
+    }
+
+    #emitSelectedLoadingChange() {
+        const loading = this.#selectedItemsLoading;
+        if (loading === this.#selectedLoadingEmitted) return;
+        this.#selectedLoadingEmitted = loading;
+        this.dispatchEvent(new CustomEvent('view-only-loading-change', { detail: { loading }, bubbles: true, composed: true }));
     }
 
     async #loadSelected(paths) {
@@ -766,6 +796,16 @@ class MasPromotionsItemsTable extends LitElement {
         </sp-table-cell>`;
     }
 
+    #toggleGroup(key) {
+        const next = new Set(this.expandedGroups);
+        if (next.has(key)) {
+            next.delete(key);
+        } else {
+            next.add(key);
+        }
+        this.expandedGroups = next;
+    }
+
     #renderTagCell(item, tagKey, className) {
         const title = item?.getTagTitle?.(tagKey) || '-';
         return html`<sp-table-cell class=${className}>${title}</sp-table-cell>`;
@@ -974,10 +1014,10 @@ class MasPromotionsItemsTable extends LitElement {
         </div>`;
     }
 
-    #renderCardsTable() {
+    #renderCardsSelectTable(items, hasMore) {
         return html`<mas-select-items-table
             .viewOnly=${true}
-            .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragments=${items}
             .viewOnlyFragmentsFetchedByParent=${true}
             .viewOnlyLoading=${this.viewOnlyLoading}
             .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
@@ -990,11 +1030,57 @@ class MasPromotionsItemsTable extends LitElement {
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
-            .viewOnlyHasMore=${this.#hasMoreSelected}
+            .viewOnlyHasMore=${hasMore}
             @view-only-load-more=${() => this.#loadMore()}
             @show-toast=${this.#showToast}
         >
         </mas-select-items-table>`;
+    }
+
+    #renderGroupSection(group) {
+        const collapsed = !this.expandedGroups.has(group.key);
+        return html`<div class="group-section">
+            <button
+                class="group-header-row"
+                aria-expanded=${collapsed ? 'false' : 'true'}
+                @click=${() => this.#toggleGroup(group.key)}
+            >
+                <span class="group-name">${group.label}</span>
+                <sp-icon-chevron-down class=${collapsed ? '' : 'expanded'}></sp-icon-chevron-down>
+            </button>
+            ${collapsed
+                ? nothing
+                : html`<div class="scrollable-table-container">${this.#renderCardsSelectTable(group.items, false)}</div>`}
+        </div>`;
+    }
+
+    #cancelGrouping = () => {
+        this.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+    };
+
+    #renderCardsTable() {
+        if (this.groupBy === GROUP_BY.NONE) {
+            return this.#renderCardsSelectTable(this.viewOnlyFragments, this.#hasMoreSelected);
+        }
+        if (this.#hasMoreSelected) {
+            return html`<div class="grouping-pending" role="status">
+                    <sp-progress-circle size="s" indeterminate label="Grouping"></sp-progress-circle>
+                    <span>
+                        Grouping will apply once all items have loaded (${this.viewOnlyFragments.length} of
+                        ${this.#allSelectedPaths.length}).
+                    </span>
+                    <sp-action-button quiet size="s" @click=${this.#cancelGrouping}>Cancel</sp-action-button>
+                </div>
+                ${this.#renderCardsSelectTable(this.viewOnlyFragments, true)}`;
+        }
+        const groups = groupPromotionFragments(this.viewOnlyFragments, this.groupBy);
+        return html`<div class="grouped-tables">
+            ${repeat(
+                groups,
+                (group) => group.key,
+                (group) => this.#renderGroupSection(group),
+            )}
+        </div>`;
     }
 
     #renderCollectionsTable() {

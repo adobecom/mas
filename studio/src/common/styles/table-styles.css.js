@@ -48,7 +48,7 @@ export const tableColumnIconStyles = css`
     }
 
     .table-icon-cell--chevron {
-        padding: 29px;
+        padding: 35px;
     }
 
     .table-icon-cell--checkbox {

@@ -114,7 +114,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 this.#loadToken++;
                 this.#referencesLoaded = false;
                 this.promoVariationsLoaded = false;
-                this.promoVariations = [];
+                this.promoVariations = this.promoVariationsFetchedByParent?.get(this.topLevelCard?.path) || [];
                 this.#promoLoadInProgress = false;
                 this.#groupedActiveLoadCount = 0;
                 this.#promoActiveLoadCount = 0;
@@ -224,9 +224,8 @@ export class MasCollapsibleTableRow extends LitElement {
                         >
                             <sp-table-cell class="table-icon-cell">
                                 <sp-button
-                                    class="expand-button"
+                                    class="ghost-button"
                                     icon-only
-                                    quiet
                                     variant="secondary"
                                     @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
                                 >
@@ -326,9 +325,8 @@ export class MasCollapsibleTableRow extends LitElement {
                               >
                                   <sp-table-cell class="table-icon-cell">
                                       <sp-button
-                                          class="expand-button"
+                                          class="ghost-button"
                                           icon-only
-                                          quiet
                                           variant="secondary"
                                           @click=${(e) => this.#toggleExpandVariation(e, path)}
                                       >
@@ -360,7 +358,7 @@ export class MasCollapsibleTableRow extends LitElement {
         const topLevelRow = html`<sp-table-row value=${this.topLevelCard.path}>
             ${this.isGroupedVariation || this.viewOnlyTabs?.length
                 ? html`<sp-table-cell class="table-icon-cell">
-                      <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
+                      <sp-button class="ghost-button" icon-only variant="secondary" @click=${this.#toggleExpandTopLevel}>
                           ${this.isTopLevelExpanded
                               ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                               : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
@@ -698,7 +696,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 @click=${(e) => this.#onRowClickForSelection(e, this.topLevelCard.path)}
             >
                 <sp-table-cell class="table-icon-cell">
-                    <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
+                    <sp-button class="ghost-button" icon-only variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
                             ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                             : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}

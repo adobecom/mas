@@ -5,6 +5,7 @@ import {
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     textWithTooltipStyles,
+    ghostButtonStyles,
 } from '../common/styles/table-styles.css.js';
 
 export const styles = [
@@ -13,6 +14,7 @@ export const styles = [
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     textWithTooltipStyles,
+    ghostButtonStyles,
     css`
         :host {
             display: block;
@@ -49,11 +51,6 @@ export const styles = [
 
         .tags-label {
             margin-left: 6px;
-        }
-
-        .expand-button {
-            background: none;
-            border: none;
         }
 
         sp-tabs {
@@ -171,6 +168,11 @@ export const styles = [
                 --mod-tag-background-color: var(--spectrum-gray-100);
                 --mod-tag-border-color: transparent;
             }
+        }
+
+        .ghost-button {
+            width: 40px;
+            height: 40px;
         }
     `,
 ];

@@ -36,6 +36,7 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
+import '../common/components/mas-group-by-select.js';
 import './mas-promotions-items-table.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
@@ -62,6 +63,7 @@ import {
     buildDuplicatePromotionToastArgs,
     getPromotionTitles,
     PROMOTION_FIELD_TYPE_MAP,
+    GROUP_BY,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import './mas-promo-codes-manager.js';
@@ -104,6 +106,12 @@ const PROMOTION_VIEW_TABS = [
     { value: TABLE_TYPE.OFFERS, label: 'Offers' },
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
     { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
+];
+
+const PROMOTION_GROUP_BY_OPTIONS = [
+    { value: GROUP_BY.TEMPLATE, label: 'Template' },
+    { value: GROUP_BY.OFFER, label: 'Offer' },
+    { value: GROUP_BY.NONE, label: 'None' },
 ];
 
 const PROMOTION_ITEM_PICKER_ALLOWED_TYPES = [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS];
@@ -149,6 +157,8 @@ class MasPromotionsEditor extends LitElement {
         promotionItemsAddButtonLabel: { type: String, state: true },
         promotionEmptyItemsTab: { type: String, state: true },
         selectedItemsViewTab: { type: String, state: true },
+        promotionGroupBy: { type: String, state: true },
+        promotionItemsLoading: { type: Boolean, state: true },
         promotionPublish: { type: Boolean, state: true },
         promotionPublishAction: { type: String, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
@@ -189,6 +199,8 @@ class MasPromotionsEditor extends LitElement {
         this.promoManagerOffers = [];
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
         this.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
+        this.promotionGroupBy = GROUP_BY.NONE;
+        this.promotionItemsLoading = true;
         this.selectedItemsViewTab = TABLE_TYPE.OFFERS;
         this.promotionPublish = false;
         this.promotionPublishAction = null;
@@ -1279,14 +1291,35 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #renderPromotionViewTable = (tab, host) => {
-        return html`<mas-promotions-items-table
-            .type=${tab.value}
-            .getDisplayName=${host.getDisplayName}
-            .renderFragmentStatusCell=${host.renderFragmentStatusCell}
-            @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
-            @promotion-offer-removed=${() =>
-                host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
-        ></mas-promotions-items-table>`;
+        const groupByEnabled = tab.value === TABLE_TYPE.CARDS;
+        return html`${groupByEnabled
+                ? html`<mas-group-by-select
+                      .options=${PROMOTION_GROUP_BY_OPTIONS}
+                      .value=${this.promotionGroupBy}
+                      ?pending=${this.promotionItemsLoading && this.promotionGroupBy !== GROUP_BY.NONE}
+                      @change=${this.#onPromotionGroupByChange}
+                  ></mas-group-by-select>`
+                : nothing}
+            <mas-promotions-items-table
+                .type=${tab.value}
+                .groupBy=${groupByEnabled ? this.promotionGroupBy : GROUP_BY.NONE}
+                .getDisplayName=${host.getDisplayName}
+                .renderFragmentStatusCell=${host.renderFragmentStatusCell}
+                @view-only-loading-change=${this.#onPromotionItemsLoadingChange}
+                @group-by-cancel=${() => (this.promotionGroupBy = GROUP_BY.NONE)}
+                @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
+                @promotion-offer-removed=${() =>
+                    host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
+            ></mas-promotions-items-table>`;
+    };
+
+    #onPromotionGroupByChange = (e) => {
+        this.promotionGroupBy = e.detail.value ?? GROUP_BY.NONE;
+    };
+
+    #onPromotionItemsLoadingChange = (e) => {
+        if (e.target.type !== TABLE_TYPE.CARDS) return;
+        this.promotionItemsLoading = e.detail.loading;
     };
 
     #onPromotionOfferRemoved = () => {
@@ -1880,6 +1913,10 @@ class MasPromotionsEditor extends LitElement {
                                             .getDisplayName=${getPromotionPickerFragmentLabel}
                                             .renderFragmentStatusCell=${renderFragmentStatusCell}
                                             .renderTable=${this.#renderPromotionViewTable}
+                                            .renderData=${{
+                                                groupBy: this.promotionGroupBy,
+                                                loading: this.promotionItemsLoading,
+                                            }}
                                             .onTabChange=${this.#onSelectedItemsViewTabChange}
                                             @promotion-offer-removed=${this.#onPromotionOfferRemoved}
                                         ></mas-items-selector>`

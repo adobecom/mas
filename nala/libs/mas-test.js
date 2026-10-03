@@ -1,7 +1,8 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
 import { installEdsThrottleOnPage } from './eds-throttle.js';
-import { setCurrentTestName } from '../utils/fragment-tracker.js';
+import { setCurrentTestName, setCurrentTestAttempt } from '../utils/fragment-tracker.js';
+import { trackFragmentResponses } from '../utils/fragment-ledger.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
 import CCDSlicePage from '../studio/ccd/slice/slice.page.js';
@@ -20,6 +21,8 @@ import TranslationEditorPage from '../studio/translations/translation-editor.pag
 import BulkPublishPage from '../studio/bulk-publish/bulk-publish.page.js';
 import OSTPage from '../studio/ost.page.js';
 import WebUtil from './webutil.js';
+import { EditorBootstrapCache } from './editor-bootstrap.js';
+import { getResourceMetrics } from './static-resource-cache.js';
 
 // Global variables that all tests can access - recreated per test
 let studio;
@@ -50,7 +53,14 @@ const masIOUrl = process.env.MAS_IO_URL || '';
  * Extended Playwright test that automatically handles common MAS test operations
  */
 const masTest = base.extend({
-    page: async ({ page, browserName }, use, testInfo) => {
+    reuseEditor: [false, { option: true }],
+    editorBootstrapCache: [
+        async ({}, use) => {
+            await use(new EditorBootstrapCache());
+        },
+        { scope: 'worker' },
+    ],
+    page: async ({ page, browserName, reuseEditor, editorBootstrapCache }, use, testInfo) => {
         // Multiply default timeout by 3 (same as test.slow())
         const currentTimeout = testInfo.timeout;
         testInfo.setTimeout(currentTimeout * 3);
@@ -69,6 +79,7 @@ const masTest = base.extend({
         // Set current test name only (no tags) so fragment title can include it (createFragment / cloneCard)
         const nameOnly = testInfo.title.includes(',') ? testInfo.title.split(',')[0].trim() : testInfo.title;
         setCurrentTestName(nameOnly);
+        setCurrentTestAttempt(testInfo.workerIndex, testInfo.retry);
 
         // Create fresh page objects for every test
         studio = new StudioPage(page);
@@ -91,11 +102,19 @@ const masTest = base.extend({
         placeholders = new PlaceholdersPage(page);
 
         await installEdsThrottleOnPage(page);
-        await GlobalRequestCounter.init(page);
+        const stopCounting = await GlobalRequestCounter.init(page);
+        const stopTrackingFragments = trackFragmentResponses(page);
+        const resourcesBefore = getResourceMetrics();
+        const bootstrapBefore = { ...editorBootstrapCache.metrics };
+        if (reuseEditor) {
+            await editorBootstrapCache.install(page);
+            studio.openPage = (url) => editorBootstrapCache.open(page, url);
+        }
 
         try {
             await use(page);
         } finally {
+            await page.unrouteAll({ behavior: 'wait' });
             // Store test page in testInfo for base reporter if test failed
             if (testInfo.status === 'failed' && currentTestPage) {
                 testInfo.annotations.push({
@@ -105,7 +124,20 @@ const masTest = base.extend({
             }
 
             // Always save request count
+            stopCounting();
             GlobalRequestCounter.saveCountToFileSync();
+            const resources = getResourceMetrics();
+            await testInfo.attach('Setup request savings', {
+                body: JSON.stringify({
+                    staticCacheHits: resources.cacheHits - resourcesBefore.cacheHits,
+                    staticUpstreamRequests: resources.upstreamRequests - resourcesBefore.upstreamRequests,
+                    coldEditorLoads: editorBootstrapCache.metrics.coldLoads - bootstrapBefore.coldLoads,
+                    reusedEditorLoads: editorBootstrapCache.metrics.reusedLoads - bootstrapBefore.reusedLoads,
+                    replayedOdinReads: editorBootstrapCache.metrics.replayedReads - bootstrapBefore.replayedReads,
+                }),
+                contentType: 'application/json',
+            });
+            await stopTrackingFragments();
         }
     },
 });

@@ -3,6 +3,8 @@ import BrandConciergeSpec from '../specs/brand_concierge_edit_and_discard.spec.j
 
 const { features } = BrandConciergeSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Sandbox Brand Concierge Product card test suite', () => {
     // @studio-brand-concierge-edit-discard-editor-fields - Validate editor fields rendering for brand concierge product card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -12,7 +14,7 @@ test.describe('M@S Studio Sandbox Brand Concierge Product card test suite', () =
         const card = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();
@@ -46,7 +48,7 @@ test.describe('M@S Studio Sandbox Brand Concierge Product card test suite', () =
         let originalTitle;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();
@@ -82,7 +84,7 @@ test.describe('M@S Studio Sandbox Brand Concierge Product card test suite', () =
         let originalDescription;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();

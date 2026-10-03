@@ -17,6 +17,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('ACOM MAS cards feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -25,8 +26,12 @@ test.describe('ACOM MAS cards feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     // *** PLANS CARDS: ***
@@ -36,7 +41,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Plans Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -76,7 +81,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[1];
 
         await test.step('step-1: Go to Plans Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -115,7 +120,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[3];
 
         await test.step('step-1: Go to Plans CA Visitor Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('CA_VISITOR');
+            const page = await workerSetup.getPage('CA_VISITOR');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -146,7 +151,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[2];
 
         await test.step('step-1: Go to Plans Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -162,7 +167,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
 
     // @MAS-Plans-Row-Height-Sync
     test(`${features[4].name},${features[4].tags}`, async () => {
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
 
         try {
             await test.step('step-1: Go to Plans page and wait for cards to render', async () => {

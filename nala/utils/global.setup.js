@@ -3,6 +3,9 @@ import { execSync } from 'child_process';
 import { isBranchURLValid } from '../libs/baseurl.js';
 import GlobalRequestCounter, { DEFAULT_TRACKED_URLS } from '../libs/global-request-counter.js';
 import { createRunId } from './fragment-tracker.js';
+import { initializeFragmentLedger } from './fragment-ledger.js';
+import { initializeRunStaticHar } from '../libs/run-static-har.js';
+import { appendFileSync } from 'node:fs';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
 const STAGE_URL = 'https://mas.stage.adobe.com';
@@ -14,8 +17,15 @@ async function getGitHubPRBranchLiveUrl() {
     const prNumber = prReference.split('/')[2];
 
     // get the pr branch name
-    const branch = process.env.GITHUB_HEAD_REF;
-    const prBranch = branch ? branch.replace(/\//g, '-') : prReference.split('/')[2].replace(/\//g, '-');
+    const branch =
+        process.env.prBranch ||
+        process.env.GITHUB_HEAD_REF ||
+        process.env.branch ||
+        (prReference.startsWith('refs/heads/') ? prReference.slice('refs/heads/'.length) : '');
+    if (!branch) {
+        throw new Error('GitHub test branch is missing: provide the PR head branch, not a PR merge ref.');
+    }
+    const prBranch = branch.replace(/\//g, '-');
 
     // get the org and repo
     const repository = process.env.GITHUB_REPOSITORY;
@@ -24,29 +34,24 @@ async function getGitHubPRBranchLiveUrl() {
     const toRepoName = repoParts[1];
 
     // Get the org and repo from the environment variables
-    const prFromOrg = process.env.prOrg;
-    const prFromRepoName = process.env.prRepo;
+    const prFromOrg = process.env.prOrg || toRepoOrg;
+    const prFromRepoName = process.env.prRepo || toRepoName;
 
     const prBranchLiveUrl = `https://${prBranch}--${prFromRepoName}--${prFromOrg}.aem.live`;
 
-    try {
-        if (await isBranchURLValid(prBranchLiveUrl)) {
-            process.env.PR_BRANCH_LIVE_URL = prBranchLiveUrl;
-        }
-        console.info('PR Repository : ', repository);
-        console.info('PR TO ORG     : ', toRepoOrg);
-        console.info('PR TO REPO    : ', toRepoName);
-        console.info('PR From ORG   : ', prFromOrg);
-        console.info('PR From REPO  : ', prFromRepoName);
-        console.info('PR Branch     : ', branch);
-        console.info('PR Branch(U)  : ', prBranch);
-        console.info('PR Number     : ', prNumber);
-        console.info('PR From Branch live url : ', prBranchLiveUrl);
-    } catch (err) {
-        console.error(`Error => Error in setting PR Branch test URL : ${prBranchLiveUrl}`);
-        console.info(`Note: PR branch test url  ${prBranchLiveUrl} is not valid, Exiting test execution.`);
-        process.exit(1);
+    if (!(await isBranchURLValid(prBranchLiveUrl))) {
+        throw new Error(`PR branch test URL is unavailable: ${prBranchLiveUrl}`);
     }
+    process.env.PR_BRANCH_LIVE_URL = prBranchLiveUrl;
+    console.info('PR Repository : ', repository);
+    console.info('PR TO ORG     : ', toRepoOrg);
+    console.info('PR TO REPO    : ', toRepoName);
+    console.info('PR From ORG   : ', prFromOrg);
+    console.info('PR From REPO  : ', prFromRepoName);
+    console.info('PR Branch     : ', branch);
+    console.info('PR Branch(U)  : ', prBranch);
+    console.info('PR Number     : ', prNumber);
+    console.info('PR From Branch live url : ', prBranchLiveUrl);
 }
 
 async function getGitHubMiloLibsBranchLiveUrl() {
@@ -138,6 +143,8 @@ async function globalSetup() {
 
     // Initialize fragment tracker run ID at the very start of test suite
     const runId = createRunId();
+    initializeFragmentLedger();
+    const cleanupHar = initializeRunStaticHar(runId);
     console.info(`🆔 Test suite run ID: ${runId}\n`);
 
     // Store run ID in GitHub environment for cross-step access
@@ -180,6 +187,11 @@ async function globalSetup() {
         console.info('---- Running Nala Tests in the Local environment ----\n');
         await getLocalBranchLiveUrl();
     }
+    if (process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_ENV) {
+        const baseURL = process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || MAIN_BRANCH_LIVE_URL;
+        appendFileSync(process.env.GITHUB_ENV, `PR_BRANCH_LIVE_URL=${baseURL}\n`);
+    }
+    return cleanupHar;
 }
 
 export default globalSetup;

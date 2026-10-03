@@ -3,6 +3,8 @@ import ACOMProSpec from '../specs/pro_edit_and_discard.spec.js';
 
 const { features } = ACOMProSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio ACOM Pro card test suite', () => {
     // @studio-pro-edit-discard-editor-fields - Validate editor fields rendering for pro card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -12,7 +14,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
         const proCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await proCard).toBeVisible();
@@ -51,7 +53,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
         let originalTitle;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await proCard).toBeVisible();
@@ -87,7 +89,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
         let originalDescription;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await proCard).toBeVisible();
@@ -123,7 +125,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
         let originalLabel;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await proCard).toBeVisible();

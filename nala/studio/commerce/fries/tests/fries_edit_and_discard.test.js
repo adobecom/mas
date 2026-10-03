@@ -3,6 +3,8 @@ import COMFriesSpec from '../specs/fries_edit_and_discard.spec.js';
 
 const { features } = COMFriesSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-edit-discard-trial-badge - Validate edit trial badge for fries card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -11,7 +13,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -58,7 +60,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         const friesCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -103,7 +105,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         const friesCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });

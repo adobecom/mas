@@ -2,10 +2,14 @@
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
 import { installEdsThrottleOnPage } from './eds-throttle.js';
+import { recordRunStaticHar } from './run-static-har.js';
+import { waitForEditorReady } from './editor-bootstrap.js';
+import individualsSpec from '../studio/acom/plans/individuals/specs/individuals_edit_and_discard.spec.js';
 
 const authFile = path.join(__dirname, '../../nala/.auth/user.json');
 
-setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
+setup('authenticate, @mas-studio', async ({ page, browser, baseURL, browserName }, testInfo) => {
+    testInfo.setTimeout(180000);
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({
             'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
@@ -63,4 +67,23 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
     // End of authentication steps.
 
     await page.context().storageState({ path: authFile });
+    const fragmentId = individualsSpec.features[0].data.cardid;
+    const url = new URL('/studio.html', baseURL);
+    for (const override of [process.env.MILO_LIBS, process.env.MAS_LIBS, process.env.MAS_IO_URL]) {
+        for (const [name, value] of new URLSearchParams(override)) url.searchParams.set(name, value);
+    }
+    url.hash = `page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
+    const newOstUrl = new URL(url);
+    newOstUrl.searchParams.set('ost', 'new');
+    await recordRunStaticHar({
+        browser,
+        name: 'studio',
+        urls: [url.href, newOstUrl.href],
+        contextOptions: {
+            storageState: authFile,
+            userAgent: testInfo.project.use.userAgent,
+            extraHTTPHeaders: { 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' },
+        },
+        ready: (page) => waitForEditorReady(page, fragmentId),
+    });
 });

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features } from './masks.spec.js';
 import MasksPage from './masks.page.js';
 import { constructTestUrl } from '../../utils/commerce.js';

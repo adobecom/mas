@@ -17,6 +17,8 @@ import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost.spec.js';
 
 const { features } = OSTSpec;
 
+test.use({ reuseEditor: true });
+
 const editorUrl = (baseURL, feature, fragmentId) => {
     const libs = miloLibs ? `&${miloLibs.replace(/^[?&]/, '')}` : '';
     return `${baseURL}${feature.path}?ost=new${libs}#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
@@ -25,7 +27,7 @@ const editorUrl = (baseURL, feature, fragmentId) => {
 const openEditor = async (page, baseURL, feature, fragmentId) => {
     const testPage = editorUrl(baseURL, feature, fragmentId);
     setTestPage(testPage);
-    await page.goto(testPage);
+    await studio.openPage(testPage);
     await page.waitForLoadState('domcontentloaded');
     await expect(await editor.panel).toBeVisible();
     await expect(await studio.getCard(fragmentId)).toBeVisible();

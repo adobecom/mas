@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { getTitle } from '../../utils/fragment-tracker.js';
+import { beginFragmentCreation, completeFragmentCreation } from '../../utils/fragment-ledger.js';
 
 export default class TranslationEditorPage {
     constructor(page) {
@@ -129,8 +130,10 @@ export default class TranslationEditorPage {
 
     async saveTranslationProject() {
         await expect(this.saveButton).toBeEnabled({ timeout: 10000 });
+        const creation = beginFragmentCreation('translation');
         await this.saveButton.click();
-        await this.page.waitForTimeout(2000);
+        await expect(this.page.locator('mas-toast sp-toast[variant="positive"]')).toBeVisible();
+        await completeFragmentCreation(creation, this.page, 'mas-translation-editor', 'translationProject');
     }
 
     async pasteImportUrl(url) {

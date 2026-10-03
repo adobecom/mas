@@ -19,6 +19,7 @@ test.describe.configure({
 });
 
 test.describe('Merch AH Try Buy Widget test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -27,8 +28,12 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     const verifyWidgetCSS = async (widget, testData) => {
@@ -52,7 +57,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[0];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -197,7 +202,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[1];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -259,7 +264,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[2];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -275,7 +280,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[3];
         console.log(`Running API validation test with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -343,7 +348,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[4];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id} - Badge validation`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 

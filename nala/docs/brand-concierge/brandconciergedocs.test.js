@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('Brand Concierge gallery feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -20,15 +21,19 @@ test.describe('Brand Concierge gallery feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     test(`${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Brand Concierge gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasBrandConcierge(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.BRAND_CONCIERGE, expect);
         });
@@ -49,7 +54,7 @@ test.describe('Brand Concierge gallery feature test suite', () => {
         const { data } = features[1];
 
         await test.step('step-1: Go to Brand Concierge gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasBrandConcierge(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.BRAND_CONCIERGE, expect);
         });
@@ -73,7 +78,7 @@ test.describe('Brand Concierge gallery feature test suite', () => {
         const { data } = features[2];
 
         await test.step('step-1: Go to Brand Concierge gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasBrandConcierge(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.BRAND_CONCIERGE, expect);
         });

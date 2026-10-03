@@ -66,6 +66,56 @@ export function appendSlot(fieldName, fields, el, mapping) {
     }
 }
 
+/**
+ * Splits a "What's included" `<li>` whose only content is two or more `<p>`
+ * paragraphs into one sibling `<li>` per paragraph. This undoes placeholder
+ * expansion: an authored row that references a multi-paragraph placeholder
+ * ends up as `<li><p>A</p><p>B</p></li>` once the backend inlines the
+ * placeholder's rich text, instead of Studio's one-`<li>`-per-paragraph shape.
+ * Items that aren't exclusively paragraphs (plain text, a single paragraph,
+ * mixed content, nested lists) are left untouched, and the original string is
+ * returned unchanged when nothing qualifies.
+ * @param {string} html - The whatsIncluded field value.
+ * @returns {string} The normalized markup, or the input unchanged.
+ */
+export function normalizeWhatsIncludedParagraphs(html) {
+    if (typeof html !== 'string' || !html.includes('<li')) return html;
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    let changed = false;
+
+    doc.querySelectorAll('li').forEach((li) => {
+        const children = Array.from(li.childNodes).filter(
+            (node) =>
+                node.nodeType !== Node.TEXT_NODE || node.textContent.trim(),
+        );
+        const isAllParagraphs = children.every(
+            (node) =>
+                node.nodeType === Node.ELEMENT_NODE && node.tagName === 'P',
+        );
+        if (children.length < 2 || !isAllParagraphs) return;
+
+        changed = true;
+        children.forEach((p) => {
+            const item = doc.createElement('li');
+            item.append(...p.childNodes);
+            li.before(item);
+        });
+        li.remove();
+    });
+
+    return changed ? doc.body.innerHTML : html;
+}
+
+export function processWhatsIncluded(fields, merchCard, mapping) {
+    if (mapping.whatsIncluded && typeof fields.whatsIncluded === 'string') {
+        fields.whatsIncluded = normalizeWhatsIncludedParagraphs(
+            fields.whatsIncluded,
+        );
+    }
+    appendSlot('whatsIncluded', fields, merchCard, mapping);
+}
+
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     // Filter out empty string sentinel values (indicates explicitly cleared)
     const icons = (fields.mnemonicIcon || []).filter((icon) => icon);
@@ -676,7 +726,7 @@ export function processDescription(fields, merchCard, mapping, settings) {
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
     processQuantitySelect(fields, merchCard, mapping, settings);
-    appendSlot('whatsIncluded', fields, merchCard, mapping);
+    processWhatsIncluded(fields, merchCard, mapping);
 }
 
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {

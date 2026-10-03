@@ -30,6 +30,8 @@ import {
     processBadge,
     processFeatures,
     normalizeVariant,
+    normalizeWhatsIncludedParagraphs,
+    processWhatsIncluded,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -43,6 +45,8 @@ import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compa
 import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
 import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
+import { PRO_AEM_FRAGMENT_MAPPING } from '../src/variants/pro.js';
+import { PRODUCT_AEM_FRAGMENT_MAPPING } from '../src/variants/product.js';
 
 function getFooterElement(merchCard) {
     return merchCard.querySelector('div[slot="footer"]');
@@ -2190,6 +2194,170 @@ describe('appendSlot', () => {
         const appended = el.querySelector('[slot="test-slot"]');
         expect(appended).to.exist;
         expect(appended.textContent).to.equal('This is a...');
+    });
+});
+
+describe('normalizeWhatsIncludedParagraphs', () => {
+    it('splits a multi-paragraph list item into sibling items, preserving order, empty paragraphs, links and inline formatting', () => {
+        const html =
+            '<ul><li><p>A</p><p></p><p>B <a href="#">link</a> <strong>bold</strong></p></li></ul>';
+
+        const result = normalizeWhatsIncludedParagraphs(html);
+
+        const doc = new DOMParser().parseFromString(result, 'text/html');
+        const items = doc.querySelectorAll('li');
+        expect(items.length).to.equal(3);
+        expect(items[0].innerHTML).to.equal('A');
+        expect(items[1].innerHTML).to.equal('');
+        expect(items[2].innerHTML).to.equal(
+            'B <a href="#">link</a> <strong>bold</strong>',
+        );
+    });
+
+    it('leaves a single-paragraph item byte-identical', () => {
+        const html = '<ul><li><p>Only one</p></li></ul>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('leaves a plain-text item unchanged', () => {
+        const html = '<ul><li>Plain text</li></ul>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('leaves a mixed-content item (paragraph plus trailing text) unchanged', () => {
+        const html = '<ul><li><p>A</p>Trailing text</li></ul>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('leaves a mixed-content item (paragraph plus image) unchanged', () => {
+        const html = '<ul><li><p>A</p><img src="x.png"></li></ul>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('leaves an item containing a nested list unchanged', () => {
+        const html =
+            '<ul><li><p>A</p><ul><li><p>Nested</p></li></ul></li></ul>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('leaves an already correctly structured list unchanged', () => {
+        const html = '<ul><li>Item A</li><li>Item B</li></ul>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('returns non-string values unchanged', () => {
+        expect(normalizeWhatsIncludedParagraphs(null)).to.equal(null);
+        expect(normalizeWhatsIncludedParagraphs(undefined)).to.equal(undefined);
+        const obj = { key: 'value' };
+        expect(normalizeWhatsIncludedParagraphs(obj)).to.equal(obj);
+    });
+
+    it('returns strings without any <li> unchanged', () => {
+        const html = '<p>No list here</p>';
+        expect(normalizeWhatsIncludedParagraphs(html)).to.equal(html);
+    });
+
+    it('is idempotent: re-applying to already-split markup changes nothing', () => {
+        const html = '<ul><li><p>A</p><p>B</p><p>C</p></li></ul>';
+        const once = normalizeWhatsIncludedParagraphs(html);
+        const twice = normalizeWhatsIncludedParagraphs(once);
+        expect(twice).to.equal(once);
+    });
+});
+
+describe('processWhatsIncluded', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    it('splits a placeholder-expanded multi-paragraph row into sibling list items (pro mapping)', () => {
+        const fields = {
+            whatsIncluded:
+                '<div class="section"><h4>Title</h4><ul><li><p>Item A</p><p>Item B</p><p>Item C</p></li></ul></div>',
+        };
+
+        processWhatsIncluded(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+
+        const items = merchCard.querySelectorAll('[slot="whats-included"] li');
+        expect(items.length).to.equal(3);
+        expect(Array.from(items).map((li) => li.textContent)).to.deep.equal([
+            'Item A',
+            'Item B',
+            'Item C',
+        ]);
+    });
+
+    it('applies the same split through a second variant mapping (product)', () => {
+        const fields = {
+            whatsIncluded: '<ul><li><p>Item A</p><p>Item B</p></li></ul>',
+        };
+
+        processWhatsIncluded(fields, merchCard, PRODUCT_AEM_FRAGMENT_MAPPING);
+
+        const items = merchCard.querySelectorAll('[slot="whats-included"] li');
+        expect(items.length).to.equal(2);
+    });
+
+    it('leaves an already correctly structured list unchanged', () => {
+        const fields = {
+            whatsIncluded: '<ul><li>Item A</li><li>Item B</li></ul>',
+        };
+
+        processWhatsIncluded(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+
+        const slotted = merchCard.querySelector('[slot="whats-included"]');
+        expect(slotted.innerHTML).to.equal(fields.whatsIncluded);
+    });
+
+    it('does not touch whatsIncluded when the mapping does not declare it', () => {
+        const fields = {
+            whatsIncluded: '<ul><li><p>A</p><p>B</p></li></ul>',
+        };
+
+        processWhatsIncluded(fields, merchCard, MARQUEE_AEM_FRAGMENT_MAPPING);
+
+        expect(merchCard.querySelector('[slot="whats-included"]')).to.not.exist;
+        expect(fields.whatsIncluded).to.equal(
+            '<ul><li><p>A</p><p>B</p></li></ul>',
+        );
+    });
+
+    it('re-rendering does not duplicate items within a single render', () => {
+        const fields = {
+            whatsIncluded: '<ul><li><p>A</p><p>B</p><p>C</p></li></ul>',
+        };
+
+        processWhatsIncluded(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        processWhatsIncluded(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+
+        const slots = merchCard.querySelectorAll('[slot="whats-included"]');
+        expect(slots.length).to.equal(2);
+        slots.forEach((slot) => {
+            expect(slot.querySelectorAll('li').length).to.equal(3);
+        });
+    });
+
+    it('leaves an unrelated description field with multiple paragraphs in a list item unaffected', () => {
+        const fields = {
+            description: '<ul><li><p>A</p><p>B</p></li></ul>',
+            whatsIncluded: '<ul><li><p>X</p><p>Y</p></li></ul>',
+        };
+        const mapping = {
+            ...PRO_AEM_FRAGMENT_MAPPING,
+            description: { tag: 'div', slot: 'body-xs' },
+        };
+
+        processDescription(fields, merchCard, mapping);
+
+        expect(fields.description).to.equal(
+            '<ul><li><p>A</p><p>B</p></li></ul>',
+        );
+        const includedItems = merchCard.querySelectorAll(
+            '[slot="whats-included"] li',
+        );
+        expect(includedItems.length).to.equal(2);
     });
 });
 

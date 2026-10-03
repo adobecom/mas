@@ -9,6 +9,7 @@ import {
     copyToClipboardWithToast,
     getItemTypeLabel,
     getItemTitle,
+    getOfferName,
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
     renderInheritedTagsNotice,
@@ -264,6 +265,22 @@ describe('render-utils', () => {
 
         it('returns Default for card model', () => {
             expect(getItemTypeLabel({ model: { path: CARD_MODEL_PATH } })).to.equal('Default');
+        });
+    });
+
+    describe('getOfferName', () => {
+        it('returns the product code tag title', () => {
+            const item = {
+                tags: [
+                    { id: 'mas:plan_type/abm', title: 'ABM' },
+                    { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                ],
+            };
+            expect(getOfferName(item)).to.equal('Photoshop');
+        });
+
+        it('returns an empty string without a product code tag', () => {
+            expect(getOfferName(null)).to.equal('');
         });
     });
 

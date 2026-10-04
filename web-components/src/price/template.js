@@ -308,7 +308,7 @@ const createPriceTemplate =
                       promotion,
                   })
                 : undefined;
-        const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
+        const { recurrenceTerm, ...formattedPrice } = method({
             commitment,
             formatString,
             instant,

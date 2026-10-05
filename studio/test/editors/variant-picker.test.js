@@ -201,6 +201,14 @@ describe('VariantPicker', () => {
             expect(names.length).to.equal(14);
         });
 
+        it('should return the Mini template for adobe-home surface', () => {
+            const result = getVariantTreeData('adobe-home');
+            const names = result.map((v) => v.name);
+            expect(names).to.include('mini');
+            const mini = result.find((v) => v.name === 'mini');
+            expect(mini.label).to.equal('Mini');
+        });
+
         it('should return all variants for sandbox surface', () => {
             const result = getVariantTreeData('sandbox');
             const names = result.map((v) => v.name);

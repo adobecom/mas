@@ -112,6 +112,10 @@ export const promotionsItemsTableStyles = [
             }
         }
 
+        .cards-table {
+            flex: 1 0 80rem;
+        }
+
         .empty-state {
             width: 100%;
         }

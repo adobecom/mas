@@ -68,7 +68,7 @@ export async function findPlaceholderReferences(aem, { key, surface, locale, exc
 
     for (const path of scopes) {
         const cursor = await aem.sites.cf.fragments.search(
-            { path, modelIds, query: key, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+            { path, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
             null,
             signal ? { signal } : undefined,
         );

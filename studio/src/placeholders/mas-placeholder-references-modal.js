@@ -79,7 +79,7 @@ class MasPlaceholderReferencesModal extends LitElement {
                 cancel-label="Cancel"
                 confirm-label=${showProceed ? 'Proceed' : nothing}
                 underlay
-                size="m"
+                size="l"
                 no-divider
                 @cancel=${this.cancel}
                 @confirm=${showProceed ? this.proceed : nothing}

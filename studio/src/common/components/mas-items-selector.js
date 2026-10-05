@@ -46,6 +46,9 @@ class MasItemsSelector extends LitElement {
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         selectableTabs: { type: Array, attribute: 'selectable-tabs' },
         variationTabs: { type: Array },
+        variationColumns: { type: Array, attribute: false },
+        variationCells: { type: Array, attribute: false },
+        hideVariationExpand: { type: Boolean, attribute: false },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -93,6 +96,9 @@ class MasItemsSelector extends LitElement {
         this.onSearchChange = () => {};
         this.onTabChange = () => {};
         this.renderData = null;
+        this.variationColumns = null;
+        this.variationCells = null;
+        this.hideVariationExpand = false;
     }
 
     connectedCallback() {
@@ -505,6 +511,9 @@ class MasItemsSelector extends LitElement {
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                 .hidePromoVariations=${this.hidePromoVariations}
                 .hideGroupedVariations=${this.hideGroupedVariations}
+                .variationColumns=${this.variationColumns}
+                .variationCells=${this.variationCells}
+                .hideVariationExpand=${this.hideVariationExpand}
                 @show-toast=${this.#showToast}
             ></mas-select-items-table>
         `;

@@ -5,6 +5,7 @@ import GlobalRequestCounter, { DEFAULT_TRACKED_URLS } from '../libs/global-reque
 import { createRunId } from './fragment-tracker.js';
 import { initializeFragmentLedger } from './fragment-ledger.js';
 import { initializeRunStaticHar } from '../libs/run-static-har.js';
+import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
 import { appendFileSync } from 'node:fs';
 
 const MAIN_BRANCH_LIVE_URL = 'https://main--mas--adobecom.aem.live';
@@ -191,7 +192,14 @@ async function globalSetup() {
         const baseURL = process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || MAIN_BRANCH_LIVE_URL;
         appendFileSync(process.env.GITHUB_ENV, `PR_BRANCH_LIVE_URL=${baseURL}\n`);
     }
-    return cleanupHar;
+    const stopCoordinator = await initializeRateLimitCoordinator();
+    return async () => {
+        try {
+            await stopCoordinator();
+        } finally {
+            cleanupHar();
+        }
+    };
 }
 
 export default globalSetup;

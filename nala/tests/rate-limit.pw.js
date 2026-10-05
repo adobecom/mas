@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 import { installEdsThrottleOnPage, throttleEdsGap } from '../libs/eds-throttle.js';
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
 import { signIn } from '../libs/ims-auth.js';
+import { getRateLimitMetrics } from '../libs/rate-limit.js';
 
 let server;
 let baseURL;
@@ -16,6 +17,10 @@ test.beforeAll(async () => {
         const calls = requests.get(pathname) ?? [];
         calls.push({ time: Date.now(), method: request.method });
         requests.set(pathname, calls);
+        if (pathname === '/reset-read') {
+            request.socket.destroy();
+            return;
+        }
         if (pathname === '/login') {
             response.writeHead(200, { 'content-type': 'text/html' });
             response.end(`
@@ -53,13 +58,18 @@ test.beforeAll(async () => {
         const limited =
             pathname === '/persistent.js' ||
             pathname === '/write' ||
+            pathname === '/persistent-read' ||
+            pathname === '/cookie-read' ||
             pathname === '/signin/v1/audit' ||
             pathname === '/signin/v1/password-audit' ||
+            (pathname === '/read-once' && calls.length === 1) ||
             (pathname.endsWith('.js') && calls.length === 1);
         const headers = { 'content-type': pathname.endsWith('.js') ? 'application/javascript' : 'text/html' };
         if (pathname !== '/fallback.js') headers['retry-after'] = pathname === '/persistent.js' ? '0' : '1';
         if (pathname === '/signin/v1/audit') headers['retry-after'] = '60';
         if (pathname === '/signin/v1/password-audit') headers['retry-after'] = '6';
+        if (pathname === '/persistent-read' || pathname === '/cookie-read') headers['retry-after'] = '0';
+        if (pathname === '/cookie-read') headers['set-cookie'] = 'limited=test; Path=/';
         response.writeHead(limited ? 429 : 200, headers);
         response.end(limited ? 'rate limited' : 'window.rateLimitRecovered = true;');
     });
@@ -106,6 +116,17 @@ for (const [path, delay] of [
     });
 }
 
+test('authentication static assets still honor cooldowns with native cooldowns disabled', async ({ page }) => {
+    await installEdsThrottleOnPage(page, { nativeCooldowns: false });
+    await page.goto(baseURL);
+    await page.addScriptTag({ url: `${baseURL}/auth-static.js` });
+    const calls = requests.get('/auth-static.js');
+    expect(calls).toHaveLength(2);
+    expect(calls[1].time - calls[0].time).toBeGreaterThanOrEqual(1000);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('cooldown 1s');
+});
+
 test('persistent 429s reach the browser unchanged, log each attempt once and are never cached', async ({ page }) => {
     await installEdsThrottleOnPage(page);
     await page.goto(baseURL);
@@ -151,26 +172,121 @@ test('already queued EDS requests preserve spacing after a cooldown', async ({ p
     expect(times[2] - times[1]).toBeGreaterThanOrEqual(50);
 });
 
-test('sign-in honors a 60s audit cooldown without resubmitting either form', async ({ page }) => {
-    test.setTimeout(75000);
-    await installEdsThrottleOnPage(page, { cache: false });
-    await page.goto(`${baseURL}/login`);
-    await signIn(page, {
-        email: 'nala@example.test',
-        password: 'not-a-real-password',
-        welcomeUrlPattern: /\/login#page=welcome$/,
-        timeout: 70000,
-    });
-    await expect(page.locator('#welcome')).toBeVisible();
-    const audit = requests.get('/signin/v1/audit');
-    const email = requests.get('/email');
-    const password = requests.get('/password');
-    expect(audit).toHaveLength(1);
-    expect(email).toHaveLength(1);
-    expect(password).toHaveLength(1);
-    expect(requests.get('/skip')).toHaveLength(1);
-    expect(email[0].time - audit[0].time).toBeGreaterThanOrEqual(60000);
-    expect(password[0].time - requests.get('/signin/v1/password-audit')[0].time).toBeGreaterThanOrEqual(6000);
-    expect(warnings).toHaveLength(2);
-    expect(warnings[0]).toContain(`HTTP 429 POST ${baseURL}/signin/v1/audit; Retry-After: 60; cooldown 60s.`);
+test('live API reads retry once after cooldown, preserve headers and are never cached', async ({ page }) => {
+    await installEdsThrottleOnPage(page);
+    await page.goto(baseURL);
+    const before = getRateLimitMetrics()[baseURL] ?? { responses429: 0, retries: 0, waitMs: 0 };
+    const read = () =>
+        page.evaluate(async () => {
+            const response = await fetch('/read-once?token=do-not-log');
+            return { status: response.status, body: await response.text(), retryAfter: response.headers.get('retry-after') };
+        });
+    expect(await read()).toEqual({ status: 200, body: 'window.rateLimitRecovered = true;', retryAfter: '1' });
+    const calls = requests.get('/read-once');
+    expect(calls).toHaveLength(2);
+    expect(calls[1].time - calls[0].time).toBeGreaterThanOrEqual(1000);
+    expect((await read()).status).toBe(200);
+    expect(calls).toHaveLength(3);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).not.toContain('do-not-log');
+    const after = getRateLimitMetrics()[baseURL];
+    expect(after.responses429 - before.responses429).toBe(1);
+    expect(after.retries - before.retries).toBe(1);
+    expect(after.waitMs - before.waitMs).toBeGreaterThanOrEqual(1000);
 });
+
+test('persistent API 429s return unchanged and cookie-setting reads are not retried', async ({ page }) => {
+    await installEdsThrottleOnPage(page);
+    await page.goto(baseURL);
+    for (const [path, attempts] of [
+        ['/persistent-read', 2],
+        ['/cookie-read', 1],
+    ]) {
+        const response = await page.evaluate(async (path) => {
+            const response = await fetch(path);
+            return { status: response.status, body: await response.text() };
+        }, path);
+        expect(response).toEqual({ status: 429, body: 'rate limited' });
+        expect(requests.get(path)).toHaveLength(attempts);
+    }
+    expect(warnings).toHaveLength(3);
+    expect(await page.context().cookies(baseURL)).toEqual([expect.objectContaining({ name: 'limited', value: 'test' })]);
+});
+
+test('contexts share a cooldown and release queued API reads without a recovery burst', async ({ browser }) => {
+    const contexts = await Promise.all([browser.newContext(), browser.newContext(), browser.newContext()]);
+    try {
+        const pages = await Promise.all(contexts.map((context) => context.newPage()));
+        for (const page of pages) {
+            await installEdsThrottleOnPage(page);
+            await page.goto(baseURL);
+        }
+        await pages[0].evaluate(() => fetch('/write', { method: 'POST' }));
+        const limitedAt = requests.get('/write').at(-1).time;
+        await Promise.all(pages.map((page, index) => page.evaluate((index) => fetch(`/queued-read-${index}`), index)));
+        const times = pages.map((_, index) => requests.get(`/queued-read-${index}`)[0].time).sort((a, b) => a - b);
+        expect(times[0] - limitedAt).toBeGreaterThanOrEqual(1000);
+        for (let index = 1; index < times.length; index++) {
+            expect(times[index] - times[index - 1]).toBeGreaterThanOrEqual(90);
+        }
+    } finally {
+        await Promise.all(contexts.map((context) => context.close()));
+    }
+});
+
+test('API transport failures remain browser failures without leaking headers or retrying', async ({ page }) => {
+    await installEdsThrottleOnPage(page);
+    await page.goto(baseURL);
+    const failure = page.waitForEvent('requestfailed', (request) => request.url().includes('/reset-read'));
+    const result = await page.evaluate(async () => {
+        try {
+            await fetch('/reset-read?token=do-not-log', { headers: { authorization: 'do-not-log-authorization' } });
+            return 'unexpected success';
+        } catch {
+            return 'browser network failure';
+        }
+    });
+    expect(result).toBe('browser network failure');
+    await failure;
+    expect(requests.get('/reset-read')).toHaveLength(1);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('GET network failure');
+    expect(warnings[0]).not.toContain('do-not-log');
+});
+
+for (const nativeCooldowns of [true, false]) {
+    const mode = nativeCooldowns ? 'test cooldowns' : 'authentication logging only';
+    test(`sign-in with ${mode} submits each form once and logs audit 429s`, async ({ page }) => {
+        test.setTimeout(nativeCooldowns ? 75000 : 10000);
+        const before = new Map([...requests].map(([path, calls]) => [path, calls.length]));
+        await installEdsThrottleOnPage(page, { cache: false, nativeCooldowns });
+        await page.goto(`${baseURL}/login`);
+        await signIn(page, {
+            email: 'nala@example.test',
+            password: 'not-a-real-password',
+            welcomeUrlPattern: /\/login#page=welcome$/,
+            timeout: nativeCooldowns ? 70000 : 5000,
+        });
+        await expect(page.locator('#welcome')).toBeVisible();
+        const calls = (path) => requests.get(path).slice(before.get(path) ?? 0);
+        const audit = calls('/signin/v1/audit');
+        const email = calls('/email');
+        const password = calls('/password');
+        expect(audit).toHaveLength(1);
+        expect(email).toHaveLength(1);
+        expect(password).toHaveLength(1);
+        expect(calls('/skip')).toHaveLength(1);
+        const emailDelay = email[0].time - audit[0].time;
+        const passwordDelay = password[0].time - calls('/signin/v1/password-audit')[0].time;
+        if (nativeCooldowns) {
+            expect(emailDelay).toBeGreaterThanOrEqual(60000);
+            expect(passwordDelay).toBeGreaterThanOrEqual(6000);
+        } else {
+            expect(emailDelay).toBeLessThan(5000);
+            expect(passwordDelay).toBeLessThan(5000);
+        }
+        expect(warnings).toHaveLength(2);
+        const policy = nativeCooldowns ? 'cooldown 60s' : 'logging only (no Nala cooldown)';
+        expect(warnings[0]).toContain(`HTTP 429 POST ${baseURL}/signin/v1/audit; Retry-After: 60; ${policy}.`);
+    });
+}

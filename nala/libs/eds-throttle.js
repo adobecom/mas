@@ -1,6 +1,6 @@
 import { isStaticResource, serveStaticResource, recordStaticCacheHit } from './static-resource-cache.js';
 import { installRunStaticHar, STATIC_HAR_URLS } from './run-static-har.js';
-import { fetchWithRateLimitRetry, logRateLimitedResponses, waitForRateLimit } from './rate-limit.js';
+import { fetchWithRateLimitRetry, isRetryableRead, logRateLimitedResponses, waitForRateLimit } from './rate-limit.js';
 
 const installedPages = new WeakSet();
 let throttleChain = Promise.resolve();
@@ -47,7 +47,6 @@ export function isEdsEdgeHost(url) {
 export function throttleEdsGap(maxRps, url) {
     const minGapMs = 1000 / maxRps;
     const next = throttleChain.then(async () => {
-        await waitForRateLimit(url);
         const now = Date.now();
         const wait = Math.max(0, Math.ceil(minGapMs - (now - lastRequestAt)));
         if (wait > 0) {
@@ -74,32 +73,54 @@ export function logEdsThrottleOnce(edsMaxRps) {
  * Register a route handler that paces EDS-bound requests (auth / any page without GlobalRequestCounter).
  * @param {import('@playwright/test').Page} page
  */
-export async function installEdsThrottleOnPage(page, { replayHar = true, cache = true } = {}) {
+export async function installEdsThrottleOnPage(page, { replayHar = true, cache = true, nativeCooldowns = true } = {}) {
     if (installedPages.has(page)) return;
     const edsMaxRps = resolveEdsMaxRps();
     const cacheEnabled = cache && process.env.NALA_STATIC_CACHE_DISABLED !== '1';
     installedPages.add(page);
-    logRateLimitedResponses(page);
+    logRateLimitedResponses(page, nativeCooldowns);
     logEdsThrottleOnce(edsMaxRps);
     const handleRoute = async (route) => {
         const url = route.request().url();
-        const pace = async () => {
+        const pace = async (enforceCooldown = nativeCooldowns) => {
             if (edsMaxRps > 0 && isEdsEdgeHost(url)) {
                 await throttleEdsGap(edsMaxRps, url);
-            } else {
+            } else if (enforceCooldown) {
                 await waitForRateLimit(url);
             }
         };
         if (await isStaticResource(route.request())) {
             if (cacheEnabled) {
-                await serveStaticResource(route, pace);
+                await serveStaticResource(route, () => pace(true));
             } else {
-                const response = await fetchWithRateLimitRetry(route, pace);
+                const response = await fetchWithRateLimitRetry(route, () => pace(true));
                 try {
                     await route.fulfill({ response });
                 } finally {
                     await response.dispose();
                 }
+            }
+            return;
+        }
+        if (nativeCooldowns && (await isRetryableRead(route.request()))) {
+            let response;
+            try {
+                response = await fetchWithRateLimitRetry(route, pace);
+            } catch (error) {
+                const message = error.message.split('\n')[0];
+                const networkFailure = message.match(
+                    /\b(?:ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ETIMEDOUT)\b|socket hang up|Timeout \d+ms exceeded/,
+                )?.[0];
+                if (!message.startsWith('route.fetch:') || !networkFailure) throw error;
+                const { origin, pathname } = new URL(url);
+                console.warn(`[NALA] GET network failure ${origin}${pathname}: ${networkFailure}; returning a failed request.`);
+                await route.abort('failed');
+                return;
+            }
+            try {
+                await route.fulfill({ response });
+            } finally {
+                await response.dispose();
             }
             return;
         }

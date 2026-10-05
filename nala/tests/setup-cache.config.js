@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
     testDir: '.',
     testMatch: '*.pw.js',
+    globalSetup: '../libs/rate-limit-coordinator.js',
     fullyParallel: false,
     workers: 1,
     retries: 0,

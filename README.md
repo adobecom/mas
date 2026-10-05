@@ -114,16 +114,25 @@ Missing (HTTP 404) seed assets are reported and excluded from HAR; their test re
 block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
 
 Nala logs observed HTTP 429s with the method, origin/path and `Retry-After`. `Retry-After` seconds or HTTP dates take priority;
-missing or invalid values use 10 seconds. Subsequent requests to the same origin wait for the cooldown within the worker,
-including IMS, Odin and third-party services; no hosts are excluded.
+missing or invalid values use 10 seconds. A fresh loopback coordinator shares origin cooldowns across this invocation's workers;
+it stops at teardown and is never reused between runs or PRs. Subsequent requests to the same origin wait for the cooldown,
+including IMS, Odin and third-party services on test and HAR seed pages; no hosts are excluded.
+After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
+This recovery spacing is not an assumption about the service's published limit; unrelated origins remain independent.
+The authentication page logs native 429s without adding cooldowns, leaving IMS's login request timing unchanged.
+Its public static asset requests still honor cooldowns and the existing EDS pacing.
 Authentication submits each form once and waits within the existing 180-second setup budget, including cooldowns.
-Public static GETs retry once, including HAR seed assets; persistent 429s still fail normally and are never cached.
-Cookie-setting responses are neither retried nor cached.
-Documents, API reads and writes are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
+Public static GETs and eligible fetch/XHR GETs retry a 429 once after cooldown, including live Odin reads.
+API responses are never cached; persistent 429s reach the browser unchanged.
+Transport failures on intercepted API reads are logged and returned as failed browser requests, not successful responses.
+Cookie-setting responses are neither retried nor cached. Authentication endpoints, streaming/range reads, documents and writes
+are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
 Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;
-the request summary distinguishes browser requests from upstream authoring traffic.
+the request summary includes AEM author and Odin preview separately, with retries included in upstream totals.
+A separate per-origin rate-limit summary reports every observed 429, GET retries and summed request recovery waits
+(not wall-clock time). Native authentication 429s remain visible in the console.
 
 Use `NALA_STATIC_CACHE_DISABLED=1` or `NALA_EDITOR_BOOTSTRAP_DISABLED=1` for uncached comparisons.
 To make a suite's editor setup always live, leave `reuseEditor` unset. Cleanup uses exact run-owned IDs and live ETags;

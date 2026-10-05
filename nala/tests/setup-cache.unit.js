@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test';
 import { isStaticResource, serveStaticResource, getResourceMetrics } from '../libs/static-resource-cache.js';
 import { isBootstrapRead } from '../libs/editor-bootstrap.js';
 import { installEdsThrottleOnPage, isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
-import { retryAfterMs } from '../libs/rate-limit.js';
+import { isRetryableRead, retryAfterMs } from '../libs/rate-limit.js';
 import { createRunId, clearRunId, setCurrentTestName, setCurrentTestAttempt, getTitle } from '../utils/fragment-tracker.js';
 import {
     initializeFragmentLedger,
@@ -162,6 +162,60 @@ test('Retry-After honors seconds and HTTP dates, with a 10s fallback for invalid
     for (const value of [undefined, '', ' ', '-1', 'invalid']) assert.equal(retryAfterMs(value, now), 10000);
 });
 
+test('read retries exclude writes, documents, authentication, streams and ranges', async () => {
+    assert.equal(
+        await isRetryableRead(
+            request('https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath', {
+                type: 'fetch',
+                headers: { authorization: 'test-only' },
+            }),
+        ),
+        true,
+    );
+    for (const candidate of [
+        request('https://service.example/data', { type: 'fetch', method: 'POST' }),
+        request('https://service.example/data', { type: 'document' }),
+        request('https://service.example/signin/continue', { type: 'fetch' }),
+        request('https://service.example/oauth/authorize', { type: 'xhr' }),
+        request('https://service.example/data', { type: 'fetch', headers: { range: 'bytes=0-100' } }),
+        request('https://service.example/events', { type: 'fetch', headers: { accept: 'text/event-stream' } }),
+    ])
+        assert.equal(await isRetryableRead(candidate), false);
+});
+
+test('authentication logs native 429s without blocking subsequent sign-in requests', async (t) => {
+    t.mock.method(globalThis, 'setTimeout', () => assert.fail('Authentication must not wait for a native cooldown'));
+    const warnings = t.mock.method(console, 'warn', () => {});
+    const page = new EventEmitter();
+    let handleRoute;
+    page.route = async (pattern, handler) => {
+        handleRoute = handler;
+    };
+    await installEdsThrottleOnPage(page, { cache: false, replayHar: false, nativeCooldowns: false });
+    const limited = request('https://auth.services.adobe.com/signin/v1/audit?token=do-not-log', {
+        method: 'POST',
+        type: 'fetch',
+    });
+    page.emit('response', {
+        status: () => 429,
+        request: () => limited,
+        headers: () => ({ 'retry-after': '60' }),
+    });
+    let continued = 0;
+    await handleRoute({
+        request: () => request('https://auth.services.adobe.com/signin/v1/continue', { method: 'POST', type: 'fetch' }),
+        continue: async () => {
+            continued++;
+        },
+    });
+    assert.equal(continued, 1);
+    assert.equal(warnings.mock.calls.length, 1);
+    const message = warnings.mock.calls[0].arguments[0];
+    assert.match(message, /HTTP 429 POST .*signin\/v1\/audit; Retry-After: 60/);
+    assert.match(message, /logging only \(no Nala cooldown\)/);
+    assert.doesNotMatch(message, /do-not-log/);
+});
+
 test('native 429 cooldowns apply to every origin, including IMS and other third-party services', async (t) => {
     let now = Date.now();
     t.mock.method(Date, 'now', () => now);
@@ -210,7 +264,7 @@ test('native 429 cooldowns apply to every origin, including IMS and other third-
         const before = delays.length;
         for (const [path, method, type] of [
             ['/signin/v1/continue', 'POST', 'fetch'],
-            ['/en_US/config', 'GET', 'fetch'],
+            ['/en_US/config', 'GET', 'document'],
         ]) {
             await handleRoute({
                 request: () => request(`${origin}${path}`, { method, type }),
@@ -220,7 +274,7 @@ test('native 429 cooldowns apply to every origin, including IMS and other third-
             });
         }
         assert.equal(continued, 2);
-        assert.deepEqual(delays.slice(before), [60000], `${origin}: cooldown must honor Retry-After`);
+        assert.deepEqual(delays.slice(before), [60000, 100], `${origin}: honor Retry-After and stagger recovery`);
         const message = warnings.mock.calls.at(-1).arguments[0];
         assert.match(message, /HTTP 429 POST/);
         assert.match(message, /Retry-After: 60/);

@@ -5,9 +5,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getRateLimitMetrics, getReadRetryCounts } from './rate-limit.js';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
+    ODIN_PREVIEW: 'https://odinpreview.corp.adobe.com',
     // Future: Add more services
     // WCS: 'https://www.adobe.com/web_commerce_artifact',
     // MAS_IO: 'https://mas.adobe.com/io',
@@ -23,6 +25,8 @@ if (!globalThis.requestCounter) {
         serviceCounts: {}, // { serviceName: { totalRequests: 0, methods: {} } }
         trackedUrls: { ...DEFAULT_TRACKED_URLS },
         counterFile: './test-results/request-count.json',
+        rateLimitsBefore: {},
+        retriesBefore: new Map(),
     };
 } else {
     // Merge defaults with any runtime additions (preserves addTrackedUrl calls)
@@ -40,6 +44,8 @@ class GlobalRequestCounter {
     static async init(page) {
         // Reset counters for this individual test
         globalThis.requestCounter.serviceCounts = {};
+        globalThis.requestCounter.rateLimitsBefore = getRateLimitMetrics();
+        globalThis.requestCounter.retriesBefore = getReadRetryCounts();
 
         // Initialize each tracked service
         for (const serviceName of Object.keys(globalThis.requestCounter.trackedUrls)) {
@@ -104,8 +110,33 @@ class GlobalRequestCounter {
 
         // Write this test's counts and methods as JSON
         const data = {
-            serviceCounts: globalThis.requestCounter.serviceCounts,
+            serviceCounts: Object.fromEntries(
+                Object.entries(globalThis.requestCounter.serviceCounts).map(([service, counts]) => [
+                    service,
+                    {
+                        ...counts,
+                        upstreamRetries: [...getReadRetryCounts()]
+                            .filter(([url]) => url.startsWith(globalThis.requestCounter.trackedUrls[service]))
+                            .reduce(
+                                (total, [url, count]) =>
+                                    total + count - (globalThis.requestCounter.retriesBefore.get(url) ?? 0),
+                                0,
+                            ),
+                    },
+                ]),
+            ),
             trackedUrls: globalThis.requestCounter.trackedUrls,
+            rateLimits: Object.fromEntries(
+                Object.entries(getRateLimitMetrics()).map(([origin, counts]) => [
+                    origin,
+                    Object.fromEntries(
+                        Object.entries(counts).map(([name, count]) => [
+                            name,
+                            count - (globalThis.requestCounter.rateLimitsBefore[origin]?.[name] ?? 0),
+                        ]),
+                    ),
+                ]),
+            ),
         };
 
         fs.writeFileSync(individualFile, JSON.stringify(data));
@@ -137,6 +168,8 @@ class GlobalRequestCounter {
      */
     static reset() {
         globalThis.requestCounter.serviceCounts = {};
+        globalThis.requestCounter.rateLimitsBefore = getRateLimitMetrics();
+        globalThis.requestCounter.retriesBefore = getReadRetryCounts();
         this.saveCountToFileSync();
     }
 

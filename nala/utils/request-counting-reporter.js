@@ -24,6 +24,8 @@ export default class RequestCountingReporter {
         const serviceTotals = {};
         const serviceMethodCounts = {};
         const serviceCacheHits = {};
+        const serviceRetries = {};
+        const rateLimits = {};
         const trackedUrls = {};
         const testResultsDir = './test-results';
 
@@ -42,6 +44,10 @@ export default class RequestCountingReporter {
 
                         // Store tracked URLs (should be consistent across tests)
                         Object.assign(trackedUrls, data.trackedUrls || {});
+                        for (const [origin, counts] of Object.entries(data.rateLimits || {})) {
+                            rateLimits[origin] ??= { responses429: 0, retries: 0, waitMs: 0 };
+                            for (const [name, count] of Object.entries(counts)) rateLimits[origin][name] += count;
+                        }
 
                         // Aggregate service counts
                         for (const [serviceName, serviceData] of Object.entries(data.serviceCounts || {})) {
@@ -54,6 +60,8 @@ export default class RequestCountingReporter {
                             // Add total requests
                             serviceTotals[serviceName] += serviceData.totalRequests || 0;
                             serviceCacheHits[serviceName] = (serviceCacheHits[serviceName] || 0) + (serviceData.cacheHits || 0);
+                            serviceRetries[serviceName] =
+                                (serviceRetries[serviceName] || 0) + (serviceData.upstreamRetries || 0);
 
                             // Aggregate method counts
                             for (const [method, count] of Object.entries(serviceData.methods || {})) {
@@ -82,7 +90,8 @@ export default class RequestCountingReporter {
                 const serviceLabel = `# Total ${serviceName} Requests`;
                 const servicePadding = ' '.repeat(Math.max(0, 25 - serviceLabel.length));
                 console.log(`    \x1b[1m\x1b[33m${serviceLabel}${servicePadding}: \x1b[0m\x1b[32m${total}\x1b[0m`);
-                console.log(`        # Upstream requests: ${total - (serviceCacheHits[serviceName] || 0)}`);
+                const retryCount = serviceRetries[serviceName] || 0;
+                console.log(`        # Upstream requests: ${total - (serviceCacheHits[serviceName] || 0) + retryCount}`);
                 console.log(`        # Replayed setup reads: ${serviceCacheHits[serviceName] || 0}`);
 
                 // Method breakdown for this service
@@ -102,6 +111,17 @@ export default class RequestCountingReporter {
         } else {
             console.log('\n    \x1b[1m\x1b[34m---------Request Summary------------------\x1b[0m');
             console.log('    \x1b[1m\x1b[33mNo requests tracked\x1b[0m');
+        }
+        const limitedOrigins = Object.entries(rateLimits).filter(([, counts]) => Object.values(counts).some(Boolean));
+        if (limitedOrigins.length) {
+            console.log('\n    \x1b[1m\x1b[34m---------Rate Limit Summary---------------\x1b[0m');
+            for (const [origin, counts] of limitedOrigins.sort()) {
+                console.log(`    \x1b[1m\x1b[33m${origin}\x1b[0m`);
+                console.log(
+                    `        # HTTP 429s: ${counts.responses429}; GET retries: ${counts.retries}; ` +
+                        `recovery wait: ${(counts.waitMs / 1000).toFixed(2)}s (summed request waits)`,
+                );
+            }
         }
     }
 }

@@ -854,8 +854,8 @@ describe('MasTranslation', () => {
             querySelectorStub.restore();
         });
 
-        it('opens the duplicate dialog with a proposed "<title> copy" title', async () => {
-            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+        it('opens the duplicate dialog with a valid proposed "<title>-copy" title', async () => {
+            const mockProject = createMockTranslationProject('dup-1', 'Project-1');
             Store.translationProjects.list.data.value = [mockProject];
             const el = await fixture(html`<mas-translation></mas-translation>`);
             await el.updateComplete;
@@ -865,11 +865,12 @@ describe('MasTranslation', () => {
             await el.updateComplete;
             const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
             expect(dialog.open).to.be.true;
-            expect(dialog.proposedTitle).to.equal('Project 1 copy');
+            expect(dialog.proposedTitle).to.equal('Project-1-copy');
+            expect(dialog.isTitleInvalid).to.be.false;
         });
 
-        it('creates the duplicate and reloads the list on confirm', async () => {
-            const mockProject = createMockTranslationProject('dup-1', 'Project 1');
+        it('creates the duplicate with the proposed title unchanged and reloads the list', async () => {
+            const mockProject = createMockTranslationProject('dup-1', 'Project-1');
             Store.translationProjects.list.data.value = [mockProject];
             const el = await fixture(html`<mas-translation></mas-translation>`);
             await el.updateComplete;
@@ -878,11 +879,11 @@ describe('MasTranslation', () => {
             duplicateItem.click();
             await el.updateComplete;
             const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
-            dialog.dispatchEvent(
-                new CustomEvent('duplicate-confirmed', { detail: { title: 'Project 1 copy' }, bubbles: true, composed: true }),
-            );
+            await dialog.updateComplete;
+            dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
             await waitUntil(() => !el.duplicating, 'duplication should finish');
             expect(createFragmentStub.calledOnce).to.be.true;
+            expect(createFragmentStub.firstCall.args[0].title).to.equal('Project-1-copy');
             expect(loadTranslationProjectsStub.calledOnce).to.be.true;
             expect(el.duplicateDialogOpen).to.be.false;
             expect(el.duplicating).to.be.false;

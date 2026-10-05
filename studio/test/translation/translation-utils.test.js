@@ -7,6 +7,7 @@ import { Fragment } from '../../src/aem/fragment.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
 import {
     buildTranslationProjectDuplicatePayload,
+    canDuplicateTranslationProject,
     duplicateTranslationProject,
     getFragmentName,
     getOdinLocTaskNameValidationError,
@@ -31,6 +32,21 @@ describe('translation-utils', () => {
         fixtureCleanup();
         sandbox.restore();
         Store.search.set(originalSearchValue);
+    });
+
+    describe('canDuplicateTranslationProject', () => {
+        for (const { status, allowed } of [
+            { status: undefined, allowed: true },
+            { status: '', allowed: true },
+            { status: 'ASYNC_PROCESSING', allowed: true },
+            { status: 'FAILED', allowed: true },
+            { status: 'QUEUED', allowed: false },
+            { status: 'RUNNING', allowed: false },
+        ]) {
+            it(`${allowed ? 'allows' : 'blocks'} duplication for status ${status ?? 'Draft'}`, () => {
+                expect(canDuplicateTranslationProject(status)).to.equal(allowed);
+            });
+        }
     });
 
     describe('getFragmentName', () => {

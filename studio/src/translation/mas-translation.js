@@ -7,7 +7,11 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES } from '../constants.js';
 import { showToast, UserFriendlyError } from '../utils.js';
 import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
-import { duplicateTranslationProject, getTranslationProjectTitles } from './translation-utils.js';
+import {
+    canDuplicateTranslationProject,
+    duplicateTranslationProject,
+    getTranslationProjectTitles,
+} from './translation-utils.js';
 import './mas-translation-duplicate-dialog.js';
 
 const translationSkeletonRow = () =>
@@ -159,7 +163,10 @@ class MasTranslation extends LitElement {
                                                 Edit
                                             </sp-menu-item>
                                             <sp-menu-item
-                                                ?disabled=${this.duplicating || !this.#canDuplicateProject(translationProject)}
+                                                ?disabled=${this.duplicating ||
+                                                !canDuplicateTranslationProject(
+                                                    translationProject.get().getFieldValue('status'),
+                                                )}
                                                 @click=${() =>
                                                     this.#handleDuplicateTranslationProjectFromList(translationProject)}
                                             >
@@ -290,16 +297,10 @@ class MasTranslation extends LitElement {
         });
     }
 
-    // Duplicate is allowed for Sent to loc, Failed and Draft.
-    #canDuplicateProject(translationProject) {
-        const status = translationProject.get().getFieldValue('status');
-        return status !== 'QUEUED' && status !== 'RUNNING';
-    }
-
     #handleDuplicateTranslationProjectFromList(translationProject) {
         if (this.duplicating) return;
         const fragment = translationProject.get();
-        this.#duplicateProposedTitle = `${fragment.title} copy`;
+        this.#duplicateProposedTitle = `${fragment.title}-copy`;
         this.#duplicateProject = fragment;
         this.#duplicateExistingTitles = getTranslationProjectTitles(
             this.#allTranslationProjectsData.map((project) => project.get()),

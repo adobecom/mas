@@ -18,6 +18,7 @@ import {
     getOdinLocTaskNameValidationError,
     duplicateTranslationProject,
     getTranslationProjectTitles,
+    canDuplicateTranslationProject,
 } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
 import './mas-translation-duplicate-dialog.js';
@@ -163,13 +164,11 @@ class MasTranslationEditor extends LitElement {
         return Store.translationProjects.targetLocales.value.sort().join(', ');
     }
 
-    // Duplicate is allowed for Sent to loc, Failed and Draft.
     get #canDuplicateTranslationProject() {
         if (this.isNewTranslationProject || this.duplicating) return false;
         const hasUnsavedChanges = !this.disabledActions.has(QUICK_ACTION.SAVE);
         if (hasUnsavedChanges) return false;
-        const status = this.translationProject?.getFieldValue('status');
-        return status !== 'QUEUED' && status !== 'RUNNING';
+        return canDuplicateTranslationProject(this.translationProject?.getFieldValue('status'));
     }
 
     get #quickActionsDisabled() {
@@ -189,7 +188,7 @@ class MasTranslationEditor extends LitElement {
         if (!this.#canDuplicateTranslationProject) return;
         this.duplicating = true;
         try {
-            this.#duplicateProposedTitle = `${this.translationProject.title} copy`;
+            this.#duplicateProposedTitle = `${this.translationProject.title}-copy`;
             await this.repository.loadTranslationProjects();
             this.#duplicateExistingTitles = getTranslationProjectTitles(
                 Store.translationProjects.list.data.get().map((project) => project.get()),

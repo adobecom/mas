@@ -1872,7 +1872,7 @@ describe('MasTranslationEditor', () => {
             expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
         });
 
-        it('opens the duplicate dialog with a proposed "<title> copy" title and existing titles', async () => {
+        it('opens the duplicate dialog with a valid proposed "<title>-copy" title and existing titles', async () => {
             Store.translationProjects.list.data.value = [
                 new FragmentStore(new Fragment(createMockFragment({ id: 'other-id', title: 'Other-Project' }))),
             ];
@@ -1882,7 +1882,8 @@ describe('MasTranslationEditor', () => {
             await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
             const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
             expect(dialog.open).to.be.true;
-            expect(dialog.proposedTitle).to.equal('Test-Translation-Project copy');
+            expect(dialog.proposedTitle).to.equal('Test-Translation-Project-copy');
+            expect(dialog.isTitleInvalid).to.be.false;
             expect(dialog.existingTitles).to.include('Other-Project');
             expect(mockRepository.loadTranslationProjects.calledOnce).to.be.true;
         });
@@ -1896,31 +1897,27 @@ describe('MasTranslationEditor', () => {
             expect(el.duplicateDialogOpen).to.be.false;
         });
 
-        it('duplicates the project and switches the editor to the new project on confirm', async () => {
+        it('duplicates with the proposed title unchanged and switches the editor to the new project', async () => {
             const el = await loadExistingProject();
             mockRepository.createFragment = sandbox
                 .stub()
-                .resolves(new Fragment(createMockFragment({ id: 'new-id', title: 'Test-Translation-Project copy' })));
+                .resolves(new Fragment(createMockFragment({ id: 'new-id', title: 'Test-Translation-Project-copy' })));
             mockRepository.aem.sites.cf.fragments.getById.resolves(
-                createMockFragment({ id: 'new-id', title: 'Test-Translation-Project copy' }),
+                createMockFragment({ id: 'new-id', title: 'Test-Translation-Project-copy' }),
             );
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
             quickActions.dispatchEvent(new CustomEvent('duplicate'));
             await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
             const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
-            dialog.dispatchEvent(
-                new CustomEvent('duplicate-confirmed', {
-                    detail: { title: 'Test-Translation-Project copy' },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
+            await dialog.updateComplete;
+            dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
             await waitUntil(() => !el.duplicating, 'duplication should finish');
             expect(mockRepository.createFragment.calledOnce).to.be.true;
+            expect(mockRepository.createFragment.firstCall.args[0].title).to.equal('Test-Translation-Project-copy');
             expect(el.duplicateDialogOpen).to.be.false;
             expect(Store.translationProjects.translationProjectId.get()).to.equal('new-id');
             expect(el.isNewTranslationProject).to.be.false;
-            expect(el.translationProject.title).to.equal('Test-Translation-Project copy');
+            expect(el.translationProject.title).to.equal('Test-Translation-Project-copy');
         });
 
         it('shows a single error toast and does not switch project when duplication fails', async () => {

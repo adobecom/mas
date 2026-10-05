@@ -16,6 +16,15 @@ const TRANSLATION_PROJECT_FIELD_TYPE_MAP = {
 };
 
 /**
+ * Allows duplication unless the translation project is queued or running.
+ * @param {string} [status]
+ * @returns {boolean}
+ */
+export function canDuplicateTranslationProject(status) {
+    return status !== 'QUEUED' && status !== 'RUNNING';
+}
+
+/**
  * True when title's normalizeKey slug collides with an existing one.
  * @param {string} title
  * @param {string[]} [existingTitles]

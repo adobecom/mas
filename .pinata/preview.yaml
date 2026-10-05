@@ -339,35 +339,11 @@ surfaces:
           M@S Studio Placeholders page for the sandbox folder: the placeholders
           table with row checkboxes and the selection action bar (Copy Code,
           delete, publish). Pick for changes under studio/src/placeholders or
-          the selection panel/action bar as used by placeholders. Also captures
-          the row menu open and the first row in editing state, so criteria about
-          what the action cell shows are observable instead of an evidence gap.
+          the selection panel/action bar as used by placeholders.
       match: 'studio/src/placeholders/*'
       requires:
           - /studio/libs/swc.js
           - /web-components/dist/mas.js
-      # Row editing is client-side until Save; these steps never save, so the
-      # sandbox content is untouched. Selectors are the action cell's own
-      # aria-labels (light DOM, like the version-history surface).
-      states:
-          # BEFORE row-editing: a row being edited swaps its action cell to
-          # Save/Cancel, so the More button this state clicks would be gone.
-          # Opening the menu mutates nothing — it is render-only until an item
-          # is clicked, and these steps click none.
-          - name: row-menu-open
-            steps:
-                - wait_for: 'mas-placeholders-item button[aria-label="More options"]'
-                - click: 'mas-placeholders-item button[aria-label="More options"]'
-                - wait_for: '.dropdown-menu .dropdown-item'
-                # the menu is plain conditional render; a beat for icons/fonts
-                - wait_ms: 300
-          - name: row-editing
-            steps:
-                - wait_for: 'mas-placeholders-item button[aria-label="Edit placeholder"]'
-                - click: 'mas-placeholders-item button[aria-label="Edit placeholder"]'
-                - wait_for: 'button[aria-label="Save changes"]'
-                # the edit fields (and the RTE, for rich-text rows) settle in
-                - wait_ms: 800
 
     - id: studio-translations
       url: https://mas.adobe.com/studio.html?aem.env=stage#page=translations&path=sandbox

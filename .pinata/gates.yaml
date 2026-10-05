@@ -102,6 +102,9 @@ gates:
             neighboring cards are not regressed.
         require_human: false
         blocking: false
+        # Lets Piñata click through the page (open a menu, edit a row) when a
+        # screenshot alone can't show what the ticket asks for. Off by default.
+        # https://studious-waffle-1v53m45.pages.github.io/tenants/reference/gates/#each-gate
         explore: true
 
     # Last on purpose: the adversary reviews the code together with every

@@ -29,18 +29,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.cloneCard(data.cardid);
-            const clonedCardOne = await studio.getCard(data.cardid, 'cloned');
-            const clonedCardOneID = await clonedCardOne.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardOneID = await clonedCardOneID;
-            await studio.cloneCard(clonedCardOneID);
-
-            const clonedCardTwo = await studio.getCard(data.cardid, 'cloned', data.clonedCardOneID);
-
+            data.clonedCardOneID = await studio.cloneCard(data.cardid);
+            data.clonedCardTwoID = await studio.cloneCard(data.clonedCardOneID);
+            const clonedCardTwo = await studio.getCard(data.clonedCardTwoID);
             await expect(await clonedCardTwo).toBeVisible();
-
-            const clonedCardTwoID = await clonedCardTwo.locator('aem-fragment').getAttribute('fragment');
-            data.clonedCardTwoID = clonedCardTwoID;
         });
 
         await test.step('step-3: Delete cloned cards', async () => {
@@ -49,9 +41,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await expect(await studio.fragmentsTable).toBeVisible();
             await studio.fragmentsTable.click();
-            await page.waitForTimeout(2000);
+            await studio.searchInput.fill(data.clonedCardOneID);
+            await studio.searchInput.press('Enter');
             await expect(await clonedCardOne).toBeVisible();
-            await expect(await clonedCardTwo).toBeVisible();
 
             await clonedCardOne.dblclick();
             await expect(await editor.panel).toBeVisible();
@@ -59,6 +51,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.deleteCard(data.clonedCardOneID);
             await expect(await clonedCardOne).not.toBeVisible();
 
+            await studio.searchInput.fill(data.clonedCardTwoID);
+            await studio.searchInput.press('Enter');
             await expect(await clonedCardTwo).toBeVisible();
             await clonedCardTwo.dblclick();
             await expect(await editor.panel).toBeVisible();

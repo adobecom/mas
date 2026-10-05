@@ -13,6 +13,8 @@ let cleanup;
 let directory;
 let previousDirectory;
 let styleRequests = 0;
+let retryRequests = 0;
+let mixedRequests = 0;
 const counts = { scripts: 0, documents: 0, content: 0, misses: 0 };
 
 test.beforeAll(async () => {
@@ -37,8 +39,21 @@ test.beforeAll(async () => {
             response.writeHead(200, { 'content-type': 'application/json' });
             response.end(JSON.stringify({ sequence: counts.content }));
         } else if (request.url === '/failed.js') {
-            response.writeHead(429, { 'content-type': 'application/javascript' });
+            response.writeHead(429, { 'content-type': 'application/javascript', 'retry-after': '0' });
             response.end('rate limited');
+        } else if (request.url === '/retry.js') {
+            retryRequests++;
+            response.writeHead(retryRequests === 1 ? 429 : 200, {
+                'content-type': 'application/javascript',
+                'retry-after': '0',
+            });
+            response.end(retryRequests === 1 ? 'rate limited' : 'window.retryLoaded = true;');
+        } else if (request.url === '/mixed.js') {
+            mixedRequests++;
+            const headers = { 'content-type': 'application/javascript' };
+            if (mixedRequests === 2) headers['set-cookie'] = 'private=test; path=/';
+            response.writeHead(200, headers);
+            response.end('window.mixedLoaded = true;');
         } else if (request.url === '/not-found.js') {
             response.writeHead(404, { 'content-type': 'text/html' });
             response.end('not found');
@@ -224,7 +239,25 @@ test('missing static assets are reported, excluded from HAR, and remain live in 
     }
 });
 
-test('rate-limited static seed responses fail setup and remove the raw archive', async ({ browser }) => {
+test('a transient static seed 429 is retried and only success is recorded', async ({ browser }) => {
+    await recordRunStaticHar({
+        browser,
+        name: 'studio',
+        urls: [baseURL],
+        ready: async (page) => {
+            await ready(page);
+            await page.addScriptTag({ url: `${baseURL}/retry.js` });
+            expect(await page.evaluate(() => window.retryLoaded)).toBe(true);
+        },
+    });
+    expect(retryRequests).toBe(2);
+    const har = JSON.parse(readFileSync(join(directory, 'studio.har'), 'utf8'));
+    expect(har.log.entries.filter(({ request }) => request.url === `${baseURL}/retry.js`)).toHaveLength(1);
+    expect(har.log.entries.every(({ response }) => response.status === 200)).toBe(true);
+    unlinkSync(join(directory, 'studio.har'));
+});
+
+test('persistent rate-limited static seed responses fail setup and remove the raw archive', async ({ browser }) => {
     await expect(
         recordRunStaticHar({
             browser,
@@ -289,10 +322,31 @@ test('recording excludes private responses, unsupported Vary, cookies, and autho
             await page.addScriptTag({ url: `${baseURL}/excluded.js?policy=authorization` });
         },
     });
+
     const source = readFileSync(join(directory, 'studio.har'), 'utf8');
     const har = JSON.parse(source);
+    expect(
+        har.log.entries.filter(({ request }) => request.url.includes('/excluded.js')).map(({ request }) => request.url),
+    ).toEqual([]);
     expect(har.log.entries).toHaveLength(120);
     expect(source).not.toContain('excluded.js');
     expect(source).not.toContain('synthetic-test-token');
     expect(har.log.entries.every(({ request, response }) => !request.cookies.length && !response.cookies.length)).toBe(true);
+});
+
+test('a URL that returns a cookie-bearing response is excluded even if an earlier response was public', async ({ browser }) => {
+    await recordRunStaticHar({
+        browser,
+        name: 'studio',
+        urls: [baseURL],
+        ready: async (page) => {
+            await ready(page);
+            await page.addScriptTag({ url: `${baseURL}/mixed.js` });
+            await page.addScriptTag({ url: `${baseURL}/mixed.js` });
+        },
+    });
+    expect(mixedRequests).toBe(2);
+    const har = JSON.parse(readFileSync(join(directory, 'studio.har'), 'utf8'));
+    expect(har.log.entries).toHaveLength(120);
+    expect(har.log.entries.some(({ request }) => request.url === `${baseURL}/mixed.js`)).toBe(false);
 });

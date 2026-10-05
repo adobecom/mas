@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { isStaticResource, VARY_HEADERS } from './static-resource-cache.js';
+import { isPublicStaticResponse, isStaticResource, VARY_HEADERS } from './static-resource-cache.js';
 import { installEdsThrottleOnPage } from './eds-throttle.js';
 
 export const STATIC_HAR_URLS = /^https?:\/\/.*\.(?:js|css)(?:\?.*)?$/;
@@ -65,6 +65,7 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
     const rawPath = join(directory, `${name}.recording.har`);
     const path = join(directory, `${name}.har`);
     const allowed = new Set();
+    const excluded = new Set();
     const pending = [];
     const errors = [];
     const context = await browser.newContext({
@@ -80,6 +81,7 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
                     (async () => {
                         if (!(await isStaticResource(response.request()))) return;
                         if (response.status() === 404) {
+                            excluded.add(response.url());
                             console.warn(
                                 `[NALA] Static HAR miss: HTTP 404 ${response.url()}; excluded from replay, test requests remain live.`,
                             );
@@ -87,7 +89,11 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
                         }
                         if (response.status() >= 400)
                             throw new Error(`Static HAR seed failed: HTTP ${response.status()} ${response.url()}`);
-                        allowed.add(response.url());
+                        if (isPublicStaticResponse(response.status(), await response.allHeaders())) {
+                            allowed.add(response.url());
+                        } else {
+                            excluded.add(response.url());
+                        }
                     })().catch((error) => errors.push(error)),
                 );
             });
@@ -122,22 +128,25 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
             await context.close();
         }
         const har = JSON.parse(readFileSync(rawPath, 'utf8'));
-        har.log.entries = har.log.entries.filter((entry) => {
-            const headers = Object.fromEntries(entry.response.headers.map(({ name, value }) => [name.toLowerCase(), value]));
-            return (
+        const responseHeaders = (entry) =>
+            Object.fromEntries(entry.response.headers.map(({ name, value }) => [name.toLowerCase(), value]));
+        // Fulfilled browser responses omit Set-Cookie; inspect their upstream API entries too.
+        for (const entry of har.log.entries) {
+            if (entry._apiRequest && entry.response.status === 200 && !isPublicStaticResponse(200, responseHeaders(entry))) {
+                excluded.add(entry.request.url);
+            }
+        }
+        // route.fetch() adds API entries; replay only the final browser response.
+        har.log.entries = har.log.entries.filter(
+            (entry) =>
+                !entry._apiRequest &&
                 allowed.has(entry.request.url) &&
+                !excluded.has(entry.request.url) &&
                 entry.request.method === 'GET' &&
-                entry.response.status === 200 &&
+                isPublicStaticResponse(entry.response.status, responseHeaders(entry)) &&
                 !entry.request.cookies?.length &&
-                !entry.request.headers.some(({ name }) => /^(authorization|cookie)$/i.test(name)) &&
-                !headers['set-cookie'] &&
-                !/no-store|private/i.test(headers['cache-control'] || '') &&
-                (headers.vary || '')
-                    .toLowerCase()
-                    .split(',')
-                    .every((name) => !name.trim() || VARY_HEADERS.includes(name.trim()))
-            );
-        });
+                !entry.request.headers.some(({ name }) => /^(authorization|cookie)$/i.test(name)),
+        );
         if (!har.log.entries.length) throw new Error(`Static HAR seed captured no public JS/CSS: ${name}`);
         for (const entry of har.log.entries) {
             entry.request.headers = entry.request.headers.filter(({ name }) => VARY_HEADERS.includes(name.toLowerCase()));

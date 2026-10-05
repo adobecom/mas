@@ -7,6 +7,7 @@ import { chromium } from '@playwright/test';
 import { isStaticResource, serveStaticResource, getResourceMetrics } from '../libs/static-resource-cache.js';
 import { isBootstrapRead } from '../libs/editor-bootstrap.js';
 import { isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
+import { retryAfterMs } from '../libs/rate-limit.js';
 import { createRunId, clearRunId, setCurrentTestName, setCurrentTestAttempt, getTitle } from '../utils/fragment-tracker.js';
 import {
     initializeFragmentLedger,
@@ -142,14 +143,37 @@ test('uncacheable static responses are not shared, even by concurrent contexts',
         { headers: { 'set-cookie': 'session=test' } },
         { headers: { vary: '*' } },
         { headers: { vary: 'Cookie' } },
-        { status: 429 },
+        { status: 429, headers: { 'retry-after': '0' } },
     ].entries()) {
         const { route, pace, stats } = routes(`https://localhost/excluded-${index}.js`, options);
         await Promise.all([serveStaticResource(route(), pace), serveStaticResource(route(), pace)]);
         await serveStaticResource(route(), pace);
-        assert.equal(stats.fetches, 3);
-        assert.equal(stats.paces, 3);
+        assert.equal(stats.fetches, options.status === 429 ? 6 : 3);
+        assert.equal(stats.paces, options.status === 429 ? 6 : 3);
     }
+});
+
+test('Retry-After honors seconds and HTTP dates, with a 10s fallback for invalid or missing values', () => {
+    const now = Date.parse('2026-10-02T16:00:00Z');
+    assert.equal(retryAfterMs('3', now), 3000);
+    assert.equal(retryAfterMs('0', now), 0);
+    assert.equal(retryAfterMs('Fri, 02 Oct 2026 16:00:04 GMT', now), 4000);
+    assert.equal(retryAfterMs('Fri, 02 Oct 2026 15:59:59 GMT', now), 0);
+    for (const value of [undefined, '', ' ', '-1', 'invalid']) assert.equal(retryAfterMs(value, now), 10000);
+});
+
+test('cookie-setting 429s are neither retried nor cached across contexts', async () => {
+    const { route, pace, stats } = routes('https://localhost/cookie-limited.js', {
+        status: 429,
+        headers: { 'retry-after': '0', 'set-cookie': 'session=test' },
+    });
+    await serveStaticResource(route(), pace);
+    await serveStaticResource(route(), pace);
+    assert.equal(stats.fetches, 2);
+    assert.equal(stats.paces, 2);
+    assert.equal(stats.disposed, 2);
+    assert.equal(stats.bodies.length, 2);
+    assert.ok(stats.bodies.every(({ status }) => status === 429));
 });
 
 test('failed static requests propagate and do not poison the cache', async () => {

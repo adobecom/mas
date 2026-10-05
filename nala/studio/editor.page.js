@@ -103,8 +103,6 @@ export default class EditorPage {
         this.whatsIncludedAddBullet = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add bullet")');
 
         // Discard dialog
-        // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
-        // this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
@@ -155,6 +153,20 @@ export default class EditorPage {
 
     overrideRestoreIn(fieldGroupLocator) {
         return fieldGroupLocator.locator(this.overrideRestoreLink);
+    }
+
+    async selectPickerOption(picker, label) {
+        const button = picker.locator('button#button');
+        await button.scrollIntoViewIfNeeded();
+        await expect(async () => {
+            await button.press('ArrowDown');
+            await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+        }).toPass({ timeout: 10000 });
+        const option = picker.getByRole('option', { name: label, exact: true });
+        await expect(option).toBeVisible();
+        await option.press('Enter');
+        await expect(picker).toHaveJSProperty('open', false);
+        await expect(button).toContainText(label);
     }
 
     async getLinkVariant(variant) {

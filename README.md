@@ -87,6 +87,10 @@ so refreshed data cannot overwrite test input. New fragments wait for editor ini
 their preview is checked after a template exists.
 Each test retains its own commerce assertions. Save completion uses the live response and refreshed editor state,
 not the lifetime of a transient toast. Cached routes finish before their owning page/context closes.
+Clone/save/delete helpers perform one UI operation and verify its live response; they do not retry writes internally.
+Discard waits for unsaved fragment state before navigating. Spectrum pickers wait for a completed overlay transition
+and use keyboard selection; only opening the menu can be retried, never the edit.
+Rich-text badge deletion verifies the editor selection and stored field, not just transient DOM text.
 Different fragment IDs, locales and URL overrides have separate snapshots. Writer and dedicated navigation/editor
 coverage stays cold; no writable fragment or loaded editor tab is shared across tests or executions.
 
@@ -108,6 +112,12 @@ Unrecorded assets fall back to the network and the bounded worker-local static c
 Documents, authenticated/cookie-bearing requests, API responses, errors and private/no-store responses are not cached.
 Missing (HTTP 404) seed assets are reported and excluded from HAR; their test requests stay live, so caching does not
 block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
+
+Nala logs observed HTTP 429s with the method, origin/path and cooldown. `Retry-After` seconds or HTTP dates take priority;
+missing or invalid values use 10 seconds. Subsequent requests to that origin wait for the cooldown within the worker.
+Public static GETs retry once, including HAR seed assets; persistent 429s still fail normally and are never cached.
+Cookie-setting responses are neither retried nor cached.
+Documents, API reads and writes are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
 Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;

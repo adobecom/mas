@@ -56,10 +56,23 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         });
 
         await test.step('step-3: Clear badge field', async () => {
-            await editor.badge.click();
-            await expect(editor.badge).toBeFocused();
-            await page.keyboard.press('ControlOrMeta+A');
-            await page.keyboard.press('Backspace');
+            await editor.badge.focus();
+            await editor.badge.press('ControlOrMeta+A');
+            await expect
+                .poll(() =>
+                    editor.badge.evaluate((element) => {
+                        const { selection, doc } = element.getRootNode().host.editorView.state;
+                        return selection.from === 0 && selection.to === doc.content.size;
+                    }),
+                )
+                .toBe(true);
+            await editor.badge.press('Backspace');
+            await expect(editor.badge).toHaveText('');
+            await expect
+                .poll(() =>
+                    page.locator('mas-fragment-editor').evaluate((element) => element.fragment.getField('badge').values[0]),
+                )
+                .toBe('');
         });
 
         await test.step('step-4: Validate badge is removed from card', async () => {

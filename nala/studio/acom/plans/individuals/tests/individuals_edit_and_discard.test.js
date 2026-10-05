@@ -1011,20 +1011,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Edit card border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.borderColor).toContainText(data.color.original);
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-3: Validate card border color field updated', async () => {
             await expect(await editor.borderColor).toContainText(data.color.updated);
-            expect(
-                await webUtil.verifyCSS(individualsCard, {
-                    'background-color': data.colorCSS.updated,
-                }),
-            ).toBeTruthy();
+            await expect(individualsCard).toHaveCSS('background-color', data.colorCSS.updated);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -1032,11 +1024,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Verify card border color is unchanged', async () => {
-            expect(
-                await webUtil.verifyCSS(individualsCard, {
-                    'background-color': data.colorCSS.original,
-                }),
-            ).toBeTruthy();
+            await expect(individualsCard).toHaveCSS('background-color', data.colorCSS.original);
         });
     });
 
@@ -1340,7 +1328,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 .click();
             await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.updated.workflowStep);
             await ost.checkoutLinkUse.click();
-            await page.waitForTimeout(1000);
+            await expect(ost.popup).not.toBeVisible();
         });
 
         await test.step('step-3: Validate edited CTA in Editor panel', async () => {
@@ -1356,6 +1344,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 data.cta.updated.workflowStep,
             );
 
+            await expect
+                .poll(() => individualsCard.locator(plans.cardCTA).getAttribute('href'))
+                .toContain(data.cta.updated.ucv3);
             const CTAhref = await individualsCard.locator(plans.cardCTA).getAttribute('href');
             const workflowStep = decodeURI(CTAhref).split('?')[0];
             const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);

@@ -1,8 +1,22 @@
+import { fetchWithRateLimitRetry } from './rate-limit.js';
+
 const resources = new Map();
 const metrics = { cacheHits: 0, upstreamRequests: 0 };
 const MAX_ENTRIES = 256;
 const MAX_BODY_BYTES = 256 * 1024;
 export const VARY_HEADERS = ['accept', 'accept-language', 'origin', 'user-agent', 'accept-encoding'];
+
+export function isPublicStaticResponse(status, headers) {
+    return (
+        status === 200 &&
+        !headers['set-cookie'] &&
+        !/no-store|private/i.test(headers['cache-control'] || '') &&
+        (headers.vary || '')
+            .toLowerCase()
+            .split(',')
+            .every((name) => !name.trim() || VARY_HEADERS.includes(name.trim()))
+    );
+}
 
 /**
  * Restrict replay to public code/assets, never documents or service responses.
@@ -45,24 +59,17 @@ export async function serveStaticResource(route, beforeFetch) {
     const requestHeaders = await request.allHeaders();
     const key = JSON.stringify([request.url(), ...VARY_HEADERS.map((name) => requestHeaders[name])]);
     const fetchResource = async () => {
-        await beforeFetch();
-        metrics.upstreamRequests++;
-        const response = await route.fetch({ maxRedirects: 0 });
+        const response = await fetchWithRateLimitRetry(route, async () => {
+            await beforeFetch();
+            metrics.upstreamRequests++;
+        });
         try {
             const headers = response.headers();
             const body = await response.body();
             delete headers['content-encoding'];
             delete headers['content-length'];
             delete headers['transfer-encoding'];
-            const cacheable =
-                response.status() === 200 &&
-                body.length <= MAX_BODY_BYTES &&
-                !headers['set-cookie'] &&
-                !/no-store|private/i.test(headers['cache-control'] || '') &&
-                (headers.vary || '')
-                    .toLowerCase()
-                    .split(',')
-                    .every((name) => !name.trim() || VARY_HEADERS.includes(name.trim()));
+            const cacheable = body.length <= MAX_BODY_BYTES && isPublicStaticResponse(response.status(), headers);
             return { result: { status: response.status(), headers, body }, cacheable };
         } finally {
             await response.dispose();

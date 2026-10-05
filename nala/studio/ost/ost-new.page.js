@@ -1,22 +1,13 @@
-// Page object for the new Lit OST (behind ?ost=new). Distinct from
-// ../ost.page.js, which targets the legacy tacocat OST that ships as the
-// default — the two OSTs render entirely different DOM, so they cannot share
-// one set of locators.
+// Lit OST (?ost=new) has different locators from the legacy OST.
 import { expect } from '@playwright/test';
 
 export default class OSTNewPage {
     constructor(page) {
-        // The OST is a Lit web component (ost-app) with shadow DOM.
-        // Playwright pierces shadow DOM with CSS selectors but NOT with XPath,
-        // so every selector below is CSS-based and targets a stable data-testid.
         this.rootPage = page;
         this.page = page.locator('[data-testid="ost-modal"]');
         this.popup = this.page;
 
-        // Search + product list.
-        // ost-search-input is the data-testid on the <sp-search> wrapper; the
-        // editable element is the <input> inside its shadow root, so drill into
-        // it for .fill()/.type() (Playwright CSS pierces shadow DOM).
+        // Inputs are inside Spectrum components' shadow roots.
         this.searchField = this.page.locator('[data-testid="ost-search-input"] input');
         this.productList = this.page.locator('[data-testid="ost-product-name"]');
         this.productCard = this.page.locator('[data-testid="ost-product-card"]');
@@ -136,10 +127,7 @@ export default class OSTNewPage {
         this.cancelPromo = this.page.locator('[data-testid="ost-promo-clear"]');
     }
 
-    // On the offer step, select the first offer card. The placeholder panel
-    // (price rows + live preview) only renders once an offer is selected — the
-    // old chip flow had no separate offer-select step, so legacy tests skipped
-    // this and never reached the preview.
+    // Preserve carried selections; clicking a filled bundle offer toggles it off.
     async selectFirstOffer() {
         const offer = this.offerCard.first();
         await expect(offer).toBeVisible();
@@ -151,20 +139,13 @@ export default class OSTNewPage {
         await expect.poll(() => offer.evaluate((card) => card.resolving)).toBe(false);
     }
 
-    // From the product step (where openEditorAndOST leaves the OST after backing
-    // out of the deep link), advance to the offer step using the deep-linked
-    // product that is still selected, then pick an offer so the price rows +
-    // live preview render. Searching for a *different* product would fight the
-    // persisted deep-link selection (Bug-7 contract) and may land on a product
-    // with no offers.
+    // Advance using the currently selected product.
     async advanceToOfferStep() {
         await this.nextButton.click();
         await this.selectFirstOffer();
     }
 
-    // Soft bundle: the OST opens narrowed to the fragment's own OSI, so its
-    // offer list holds that one offer and nothing else to pair with. Go back,
-    // search another product and add its first offer as the second one.
+    // Add a second product without clearing the first bundle slot.
     async addBundleOfferFromSearch(productName) {
         await this.backButton.click();
         await this.searchField.fill(productName);
@@ -172,10 +153,7 @@ export default class OSTNewPage {
         await product.click();
         await expect(product).toHaveAttribute('selected', '');
         await this.nextButton.click();
-        // The offer list keeps rendering the previous product's card until the
-        // new product's fetch resolves. Clicking that stale card would toggle
-        // the offer already in the bundle back off (addOffer matches on osi),
-        // so target the new product's own card by name and let Playwright wait.
+        // The previous product's offer remains visible while new offers load.
         const offer = this.offerCard.filter({ hasText: productName }).first();
         await offer.click();
         await expect.poll(() => offer.evaluate((card) => card.resolving)).toBe(false);
@@ -189,20 +167,10 @@ export default class OSTNewPage {
         await this.termCheckbox.first().waitFor({ state: 'visible', timeout: 5000 });
     }
 
-    // The legal-disclaimer preview renders an unresolved placeholder first, then
-    // WCS resolves it (adding the `placeholder-resolved` class) a beat later.
-    // Reading its textContent before that settles makes a conditional
-    // "is the right option already on?" toggle decide on a transient value and
-    // flip to the wrong state — the root of the fr_FR legal-literal flake. Wait
-    // for resolution before any such decision.
+    // Placeholder resolution must finish before reading the legal text.
     async waitForLegalResolved() {
         const legal = this.legalDisclaimer.first();
         await legal.waitFor({ state: 'visible', timeout: 30000 });
-        // mas-commerce-service stamps `placeholder-resolved` on the inline-price
-        // host once WCS resolves it — a template-agnostic "settled" signal.
-        // Waiting for it means a subsequent toggle decision reads the real
-        // current state, not the transient loading placeholder (the root of the
-        // fr_FR legal-literal flake).
         await legal.and(this.page.locator('.placeholder-resolved')).first().waitFor({ state: 'visible', timeout: 30000 });
     }
 }

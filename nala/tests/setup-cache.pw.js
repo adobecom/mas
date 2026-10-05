@@ -372,23 +372,30 @@ for (const [name, fixtureTest] of [
 
 for (const status of [200, 500]) {
     test(`save waits for the live response and refreshed state without a toast (HTTP ${status})`, async ({ page }) => {
+        let writes = 0;
         await page.goto(baseURL);
         await page.setContent(
             '<mas-repository></mas-repository><mas-fragment-editor></mas-fragment-editor>' +
                 '<mas-side-nav><mas-side-nav-item label="Save">Save</mas-side-nav-item></mas-side-nav>',
         );
-        await page.route('**/adobe/sites/cf/fragments/saved', (route) =>
-            route.fulfill({ status, contentType: 'application/json', body: '{}' }),
-        );
+        await page.route('**/adobe/sites/cf/fragments/saved', (route) => {
+            writes++;
+            return route.fulfill({ status, contentType: 'application/json', body: '{}' });
+        });
         await page.evaluate(() => {
-            const fragment = { id: 'saved', hasChanges: true };
+            const fragment = { id: 'saved', hasChanges: false };
             const repo = document.querySelector('mas-repository');
             const editor = document.querySelector('mas-fragment-editor');
             let saving = false;
             repo.fragmentInEdit = fragment;
             repo.operation = { get: () => saving };
             editor.fragment = fragment;
+            window.dirtyAtSave = [];
+            setTimeout(() => {
+                fragment.hasChanges = true;
+            }, 150);
             document.querySelector('mas-side-nav-item').addEventListener('click', async () => {
+                window.dirtyAtSave.push(fragment.hasChanges);
                 saving = true;
                 const response = await fetch('/adobe/sites/cf/fragments/saved', { method: 'PUT' });
                 if (response.ok) fragment.hasChanges = false;
@@ -402,8 +409,149 @@ for (const status of [200, 500]) {
         } else {
             await expect(studio.saveCard()).rejects.toThrow('Fragment save must succeed');
         }
+        expect(writes).toBe(1);
+        expect(await page.evaluate(() => window.dirtyAtSave)).toEqual([true]);
     });
 }
+
+for (const status of [200, 500]) {
+    test(`delete performs one mutation and verifies its response without a toast (HTTP ${status})`, async ({ page }) => {
+        await page.goto(baseURL);
+        await page.setContent(
+            '<mas-repository></mas-repository><mas-fragment-editor><div id="fragment-editor">' +
+                '<div id="editor-content">Editor</div></div></mas-fragment-editor>' +
+                '<merch-card><aem-fragment fragment="deleted">Card</aem-fragment></merch-card>' +
+                '<mas-side-nav><mas-side-nav-item label="Delete">Delete</mas-side-nav-item></mas-side-nav>' +
+                '<sp-dialog variant="confirmation" hidden><sp-button>Delete</sp-button></sp-dialog>',
+        );
+        let writes = 0;
+        await page.route('**/fragments/deleted/deleteAndUnpublish', (route) => {
+            writes++;
+            return route.fulfill({ status, contentType: 'application/json', body: '{}' });
+        });
+        await page.evaluate(() => {
+            const fragment = { id: 'deleted' };
+            const repo = document.querySelector('mas-repository');
+            const editor = document.querySelector('mas-fragment-editor');
+            let deleting = false;
+            repo.fragmentInEdit = fragment;
+            repo.operation = { get: () => deleting };
+            editor.fragmentStore = { get: () => fragment };
+            editor.initState = 'ready';
+            editor.previewResolved = true;
+            document.querySelector('mas-side-nav-item').addEventListener('click', () => {
+                document.querySelector('sp-dialog').hidden = false;
+            });
+            document.querySelector('sp-button').addEventListener('click', async () => {
+                deleting = true;
+                await fetch('/adobe/sites/cf/fragments/deleted/deleteAndUnpublish', { method: 'DELETE' });
+                deleting = false;
+            });
+        });
+        const studio = new StudioPage(page);
+        if (status === 200) await studio.deleteCard('deleted');
+        else await expect(studio.deleteCard('deleted')).rejects.toThrow('Fragment deletion must succeed');
+        expect(writes).toBe(1);
+    });
+}
+
+test('discard waits for persisted dirty state before opening confirmation and reloads the original fragment', async ({
+    browser,
+}) => {
+    const cache = new EditorBootstrapCache();
+    const calls = [];
+    const clicks = [];
+    const { page, context } = await seedPage(browser, cache, calls);
+    try {
+        const studio = new StudioPage(page);
+        await page.exposeFunction('recordDiscard', (dirty) => clicks.push(dirty));
+        await cache.open(page, `${baseURL}/editor#fragmentId=seed-a`);
+        await page.evaluate(() => {
+            const fragment = document.querySelector('mas-repository').fragmentInEdit;
+            fragment.hasChanges = false;
+            document.querySelector('mas-fragment-editor').innerHTML =
+                '<div id="fragment-editor"><div id="editor-content">Editor</div></div>';
+            document.body.insertAdjacentHTML(
+                'beforeend',
+                '<div class="nav-breadcrumbs"><sp-breadcrumb-item>Fragments</sp-breadcrumb-item></div>' +
+                    '<sp-dialog variant="confirmation" hidden><sp-button>Discard</sp-button></sp-dialog>',
+            );
+            document.querySelector('sp-breadcrumb-item').addEventListener('click', async () => {
+                await window.recordDiscard(fragment.hasChanges);
+                if (fragment.hasChanges) document.querySelector('sp-dialog').hidden = false;
+            });
+            document.querySelector('sp-button').addEventListener('click', () => {
+                fragment.hasChanges = false;
+                document.querySelector('#editor-content').hidden = true;
+                document.querySelector('sp-dialog').hidden = true;
+                document.querySelector('merch-card').remove();
+                document.querySelector('mas-fragment-editor').initState = 'loading';
+                history.replaceState(null, '', '#page=content');
+                window.addEventListener('hashchange', () => window.start(), { once: true });
+            });
+            setTimeout(() => {
+                fragment.title = 'Unsaved local edit';
+                fragment.hasChanges = true;
+            }, 150);
+        });
+        await studio.discardEditorChanges(studio.editor);
+        expect(clicks).toEqual([true]);
+        expect(calls).toHaveLength(6);
+        expect(await page.locator('mas-repository').evaluate((repo) => repo.fragmentInEdit.title)).toBe('Original seed');
+    } finally {
+        await context.close();
+    }
+});
+
+test('picker selection recovers a closed initial transition, scopes its option and waits for the selected label', async ({
+    page,
+}) => {
+    await page.setContent(
+        '<sp-picker><button id="button">Select color</button><sp-overlay></sp-overlay>' +
+            '<span role="option" tabindex="-1" hidden>Default</span></sp-picker>' +
+            '<span role="option">Default</span>',
+    );
+    await page.evaluate(() => {
+        const picker = document.querySelector('sp-picker');
+        const button = picker.querySelector('button');
+        const overlay = picker.querySelector('sp-overlay');
+        const option = picker.querySelector('[role="option"]');
+        picker.open = false;
+        overlay.state = 'closed';
+        window.pickerOpens = 0;
+        button.addEventListener('keydown', (event) => {
+            event.preventDefault();
+            window.pickerKey = event.key;
+            window.pickerOpens++;
+            const first = window.pickerOpens === 1;
+            picker.open = true;
+            option.hidden = false;
+            overlay.state = 'opening';
+            setTimeout(() => {
+                if (first) {
+                    picker.open = false;
+                    option.hidden = true;
+                }
+                overlay.state = first ? 'closed' : 'opened';
+            }, 100);
+        });
+        option.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            picker.open = false;
+            overlay.state = 'closed';
+            option.hidden = true;
+            setTimeout(() => {
+                button.textContent = 'Default';
+            }, 100);
+        });
+    });
+    await new StudioPage(page).editor.selectPickerOption(page.locator('sp-picker'), 'Default');
+    expect(await page.evaluate(() => ({ key: window.pickerKey, opens: window.pickerOpens }))).toEqual({
+        key: 'ArrowDown',
+        opens: 2,
+    });
+    await expect(page.locator('sp-picker button')).toHaveText('Default');
+});
 
 test('bootstrap disable flag keeps warm seeds live with the same readiness boundary', async ({ browser }) => {
     const cache = new EditorBootstrapCache();

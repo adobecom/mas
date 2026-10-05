@@ -189,7 +189,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expect(expandButton).to.exist;
         });
 
@@ -198,7 +198,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expect(expandButton).to.be.null;
         });
 
@@ -663,7 +663,7 @@ describe('MasCollapsibleTableRow', () => {
             );
             expect(el.isTopLevelExpanded).to.be.false;
 
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expandButton.click();
             await el.updateComplete;
             expect(el.isTopLevelExpanded).to.be.true;
@@ -682,7 +682,7 @@ describe('MasCollapsibleTableRow', () => {
             el.repository = { aem: { getFragmentByPath: sandbox.stub().resolves(null) } };
             expect(el.isLoadingGroupedVariations).to.not.be.true;
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             expect(el.isLoadingGroupedVariations).to.be.true;
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
@@ -701,7 +701,7 @@ describe('MasCollapsibleTableRow', () => {
             el.repository = { aem: { getFragmentByPath: sandbox.stub().resolves(null) } };
             expect(el.isLoadingGroupedVariations).to.not.be.true;
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             expect(el.isLoadingGroupedVariations).to.be.true;
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
@@ -754,7 +754,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expandButton.click();
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
@@ -1080,7 +1080,7 @@ describe('MasCollapsibleTableRow', () => {
             );
             const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
             el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             expect(getById.calledOnceWith('frag-1')).to.be.true;
         });
@@ -1137,7 +1137,7 @@ describe('MasCollapsibleTableRow', () => {
             );
             await el.updateComplete;
 
-            const variationExpandButtons = el.shadowRoot.querySelectorAll('sp-table-row .expand-button');
+            const variationExpandButtons = el.shadowRoot.querySelectorAll('sp-table-row .ghost-button');
             const variationExpandBtn = [...variationExpandButtons].find((btn) => btn.closest('sp-table-row'));
             if (variationExpandBtn) {
                 variationExpandBtn.click();
@@ -1169,7 +1169,7 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
 
             const variationRow = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
-            const variationBtn = variationRow?.querySelector('.expand-button');
+            const variationBtn = variationRow?.querySelector('.ghost-button');
             expect(variationBtn).to.exist;
             variationBtn.click(); // collapse (was expanded)
             await el.updateComplete;
@@ -1200,7 +1200,7 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.expandedVariationsPaths.has(varPath)).to.be.false;
 
             const variationRow = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
-            const variationBtn = variationRow?.querySelector('.expand-button');
+            const variationBtn = variationRow?.querySelector('.ghost-button');
             expect(variationBtn).to.exist;
             variationBtn.click();
             await el.updateComplete;
@@ -1323,7 +1323,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expect(expandButton).to.exist;
         });
 
@@ -1754,7 +1754,7 @@ describe('MasCollapsibleTableRow', () => {
 
         const triggerPromoLoad = async (el) => {
             el.selectedTabKey = 'promotion';
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 50));
             await el.updateComplete;
@@ -1843,14 +1843,14 @@ describe('MasCollapsibleTableRow', () => {
             getById.onSecondCall().resolves({ ...topLevelCard, references: [] });
             el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
             expect(getById.calledOnce).to.be.true;
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
             expect(getById.calledTwice).to.be.true;
@@ -1870,7 +1870,7 @@ describe('MasCollapsibleTableRow', () => {
             el.addEventListener('show-toast', toastListener);
 
             el.selectedTabKey = 'promotion';
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 50));
             await el.updateComplete;
@@ -2322,6 +2322,20 @@ describe('MasCollapsibleTableRow', () => {
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
             expect(el.getAttribute('value')).to.equal('');
+        });
+
+        it('keeps promo variations from a pre-populated parent map on first render', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'card-1' };
+            const variations = [{ path: '/content/dam/mas/acom/en_US/promo/test', id: 'promo-1' }];
+            const fetchedByParent = new Map([[topLevelCard.path, variations]]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .promoVariationsFetchedByParent=${fetchedByParent}
+                ></mas-collapsible-table-row>`,
+            );
+            expect(el.promoVariations).to.equal(variations);
         });
     });
 });

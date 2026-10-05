@@ -79,6 +79,15 @@ function getPageWcsConfiguration(serviceElement) {
     return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
 }
 
+async function loadRequestMetadata(context) {
+    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
+    return { requestKey, cachedMetadata, metadataContext: extractContextFromMetadata(cachedMetadata) };
+}
+
+async function saveRequestMetadata(context, requestKey, cachedMetadata) {
+    return storeRequestMetadata(context, requestKey, cachedMetadata, 'nohash');
+}
+
 async function previewFragment(id, options) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
@@ -93,8 +102,7 @@ async function previewFragment(id, options) {
     context = await loadConfiguration(context, now);
     const pageWcsConfiguration = getPageWcsConfiguration(serviceElement);
     if (pageWcsConfiguration) context.wcsConfiguration = pageWcsConfiguration;
-    const cachedMetadata = await getRequestMetadata(context);
-    const metadataContext = extractContextFromMetadata(cachedMetadata);
+    const { requestKey, cachedMetadata, metadataContext } = await loadRequestMetadata(context);
     context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
     try {    
@@ -130,7 +138,7 @@ async function previewFragment(id, options) {
         logError(message, context);
         context.body = { message };
     } else {
-        await storeRequestMetadata(context, cachedMetadata, 'nohash');
+        await saveRequestMetadata(context, requestKey, cachedMetadata);
     }
     return options.fullContext ? context : context.body;
 }
@@ -185,4 +193,16 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { DEFAULT_CONTEXT, clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export {
+    DEFAULT_CONTEXT,
+    clearCaches,
+    previewFragment,
+    previewStudioFragment,
+    loadRequestMetadata,
+    saveRequestMetadata,
+    customize,
+    settings,
+    replace,
+    getDictionary,
+    corrector,
+};

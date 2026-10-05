@@ -416,12 +416,14 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
 /**
  * Rebuilds the referencesTree to match the cards/collections order and membership
  * of the customized root fragment. Non-cards/collections entries (tags, variations)
- * are preserved. New IDs not present in the original tree get a stub entry.
+ * are preserved. New IDs not present in the original tree take their entry from the promo
+ * variation's hydrated tree (so their own subtree is customized too), or a stub entry otherwise.
  * @param {Array} referencesTree
  * @param {Object} customizedRoot
+ * @param {Array} [variationReferencesTree] hydrated referencesTree of the merged promo variation
  * @returns {Array}
  */
-function adaptReferencesTree(referencesTree, customizedRoot) {
+function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
     const customizedCards = customizedRoot.fields?.cards;
     const customizedCollections = customizedRoot.fields?.collections;
     if (!Array.isArray(customizedCards) && !Array.isArray(customizedCollections)) {
@@ -430,6 +432,13 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
     const cardTreeMap = new Map();
     const collectionTreeMap = new Map();
     const otherEntries = [];
+    for (const entry of variationReferencesTree) {
+        if (entry.fieldName === 'cards') {
+            cardTreeMap.set(entry.identifier, entry);
+        } else if (entry.fieldName === 'collections') {
+            collectionTreeMap.set(entry.identifier, entry);
+        }
+    }
     for (const entry of referencesTree) {
         if (entry.fieldName === 'cards') {
             cardTreeMap.set(entry.identifier, entry);
@@ -463,7 +472,16 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
-    const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    const {
+        references: variationReferences,
+        referencesTree: variationReferencesTree,
+        ...customizedRoot
+    } = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (variationReferences) {
+        // Hydrated collection promo variation: make fragments it adds resolvable. Existing references
+        // win, since they may already hold customized values.
+        customizeContext.references = { ...variationReferences, ...customizeContext.references };
+    }
     customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
@@ -480,7 +498,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     }
 
     //adapt referencesTree to match the customized root's cards/collections
-    const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot);
+    const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree);
 
     //now we look into referenced fragments to customize them as well
     for (let i = 0; i < adaptedTree.length; i++) {

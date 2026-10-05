@@ -70,6 +70,9 @@ function clearCaches() {
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    Object.keys(window.localStorage)
+        .filter((key) => key.startsWith('req-'))
+        .forEach((key) => window.localStorage.removeItem(key));
 }
 
 function getPageWcsConfiguration(serviceElement) {
@@ -79,12 +82,19 @@ function getPageWcsConfiguration(serviceElement) {
     return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
 }
 
-async function loadRequestMetadata(context) {
-    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
-    return { requestKey, cachedMetadata, metadataContext: extractContextFromMetadata(cachedMetadata) };
+const REQUEST_METADATA_TTL = 5 * 60 * 1000;
+
+function isFreshMetadata(metadata) {
+    return Date.now() - Date.parse(metadata?.lastModified) < REQUEST_METADATA_TTL;
 }
 
-async function saveRequestMetadata(context, requestKey, cachedMetadata) {
+async function loadRequestMetadata(context) {
+    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
+    const freshMetadata = isFreshMetadata(cachedMetadata) ? cachedMetadata : null;
+    return { requestKey, cachedMetadata: freshMetadata, metadataContext: extractContextFromMetadata(freshMetadata) };
+}
+
+function saveRequestMetadata(context, requestKey, cachedMetadata) {
     return storeRequestMetadata(context, requestKey, cachedMetadata, 'nohash');
 }
 

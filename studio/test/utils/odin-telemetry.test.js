@@ -1,18 +1,14 @@
 import { expect } from '@esm-bundle/chai';
 import { createOdinTelemetry } from '../../src/utils/odin-telemetry.js';
-
-const ORIGIN = 'https://odinpreview.corp.adobe.com';
+import { ODIN_PREVIEW_ORIGIN } from '../../src/constants.js';
 
 function odinEntry(status, path = '/adobe/contentFragments/byPath?path=/content/dam/mas/acom/settings/index') {
-    return { name: `${ORIGIN}${path}`, responseStatus: status };
+    return { name: `${ODIN_PREVIEW_ORIGIN}${path}`, responseStatus: status };
 }
 
 function setup() {
     const calls = [];
-    const telemetry = createOdinTelemetry({
-        origin: ORIGIN,
-        log: (message, options) => calls.push({ message, options }),
-    });
+    const telemetry = createOdinTelemetry({ log: (message, options) => calls.push({ message, options }) });
     return { telemetry, calls };
 }
 
@@ -55,7 +51,7 @@ describe('createOdinTelemetry', () => {
 
     it('treats a missing responseStatus as status 0', () => {
         const { telemetry, calls } = setup();
-        telemetry.observe([{ name: `${ORIGIN}/adobe/contentFragments/abc` }]);
+        telemetry.observe([{ name: `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments/abc` }]);
         telemetry.flush();
         expect(calls[0].message).to.equal('Odin preview requests¶total=1¶429=0¶statuses=0:1');
     });
@@ -79,5 +75,19 @@ describe('createOdinTelemetry', () => {
         telemetry.observe([odinEntry(200)]);
         telemetry.flush();
         expect(calls[0].options.tags).to.equal('studio,odin-preview');
+    });
+
+    it('sends every summary instead of the LANA default 1% sample', () => {
+        const { telemetry, calls } = setup();
+        telemetry.observe([odinEntry(200)]);
+        telemetry.flush();
+        expect(calls[0].options.sampleRate).to.equal(100);
+    });
+
+    it('does not mark the summary as an implicit (unhandled) error', () => {
+        const { telemetry, calls } = setup();
+        telemetry.observe([odinEntry(200)]);
+        telemetry.flush();
+        expect(calls[0].options).to.not.have.property('errorType');
     });
 });

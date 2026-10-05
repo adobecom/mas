@@ -52,7 +52,7 @@ export const tableColumnIconStyles = css`
     }
 
     .table-icon-cell--checkbox {
-        padding: 22px;
+        padding: 15px;
     }
 `;
 

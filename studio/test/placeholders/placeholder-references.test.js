@@ -134,42 +134,5 @@ describe('placeholder-references', () => {
             });
             expect(references).to.deep.equal([]);
         });
-/*
-        it('computes allowProceed against the 15s threshold using elapsed time', async () => {
-            const fastClock = sandbox.useFakeTimers();
-            const fastAem = {
-                sites: {
-                    cf: {
-                        fragments: {
-                            search: sandbox.stub().callsFake(async () => {
-                                fastClock.tick(100);
-                                return makeCursor([]);
-                            }),
-                        },
-                    },
-                },
-            };
-            const fast = await findPlaceholderReferences(fastAem, { key: 'buy-now', surface: 'sandbox', locale: 'en_US' });
-            expect(fast.allowProceed).to.be.true;
-            fastClock.restore();
-
-            const slowClock = sandbox.useFakeTimers();
-            const slowAem = {
-                sites: {
-                    cf: {
-                        fragments: {
-                            search: sandbox.stub().callsFake(async () => {
-                                slowClock.tick(REFERENCE_CHECK_PROCEED_THRESHOLD_MS);
-                                return makeCursor([]);
-                            }),
-                        },
-                    },
-                },
-            };
-            const slow = await findPlaceholderReferences(slowAem, { key: 'buy-now', surface: 'sandbox', locale: 'en_US' });
-            expect(slow.allowProceed).to.be.false;
-            expect(slow.durationMs).to.be.at.least(REFERENCE_CHECK_PROCEED_THRESHOLD_MS);
-            slowClock.restore();
-        }); */
     });
 });

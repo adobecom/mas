@@ -57,7 +57,6 @@ export function matchesPlaceholderKey(fragmentLike, key) {
  * @returns {Promise<{ references: object[], durationMs: number, allowProceed: boolean }>}
  */
 export async function findPlaceholderReferences(aem, { key, surface, locale, excludePath, signal } = {}) {
-    const startedAt = Date.now();
     const scopes = buildPlaceholderReferenceScopes({ surface, locale });
     const modelIds = [
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
@@ -84,6 +83,24 @@ export async function findPlaceholderReferences(aem, { key, surface, locale, exc
         }
     }
 
-    const durationMs = Date.now() - startedAt;
-    return { references, durationMs, allowProceed: durationMs < REFERENCE_CHECK_PROCEED_THRESHOLD_MS };
+    return { references };
+}
+
+export async function findPlaceholderReferencesWithTimeout(aem, args) {
+    const startedAt = Date.now();
+    const refsPromise = findPlaceholderReferences(aem, args);
+
+    let timeoutId;
+    const timeoutPromise = new Promise((resolve) => {
+        timeoutId = setTimeout(() => resolve({ references: [] }), REFERENCE_CHECK_PROCEED_THRESHOLD_MS);
+    });
+
+    const promises = [refsPromise];
+    if (args.mode === 'publish') promises.push(timeoutPromise);
+    const result = await Promise.race(promises);
+    clearTimeout(timeoutId);
+    result.durationMs = Date.now() - startedAt;
+    result.allowProceed =
+        args.mode === 'publish' ? result.durationMs < REFERENCE_CHECK_PROCEED_THRESHOLD_MS : result.references.length === 0;
+    return result;
 }

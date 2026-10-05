@@ -5,7 +5,6 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
 import { confirmPlaceholderReferences } from './placeholder-reference-guard.js';
-import { confirmation } from '../mas-confirm-dialog.js';
 import { showToast, normalizeKey, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
@@ -107,12 +106,6 @@ class MasPlaceholdersItem extends LitElement {
     async onDelete(event) {
         this.updatePending(true);
         this.toggleDropdown(this.placeholder.key, event);
-        const confirmed = await confirmation({
-            title: 'Delete placeholder',
-            content: `Are you sure you want to delete the placeholder "${this.placeholder.key}"? This action cannot be undone.`,
-            confirmLabel: 'Delete',
-        });
-        if (!confirmed) return;
         const shouldProceed = await confirmPlaceholderReferences({
             aem: this.repository.aem,
             key: this.placeholder.key,
@@ -121,13 +114,20 @@ class MasPlaceholdersItem extends LitElement {
             excludePath: this.placeholder.path,
             mode: 'remove',
         });
-        if (!shouldProceed) return;
+        if (!shouldProceed) {
+            this.updatePending(false);
+            return;
+        }
         showToast('Deleting placeholder...');
-        if (!(await removeFromIndexFragment(this.placeholder))) return;
-        this.repository.deleteFragment(this.placeholder, {
+        if (!(await removeFromIndexFragment(this.placeholder))) {
+            this.updatePending(false);
+            return;
+        }
+        await this.repository.deleteFragment(this.placeholder, {
             startToast: false,
             endToast: false,
         });
+        this.updatePending(false);
     }
 
     async onPublish(event) {

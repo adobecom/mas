@@ -5,11 +5,8 @@ export const styles = css`
         display: contents;
     }
 
-    .dialog-content {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        max-width: 480px;
+    .modal-content > p:first-child {
+        margin-top: 0;
     }
 
     .reference-list {
@@ -37,12 +34,5 @@ export const styles = css`
 
     .reference-warning {
         color: var(--spectrum-negative-color, #d7373f);
-    }
-
-    .dialog-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        padding-top: 8px;
     }
 `;

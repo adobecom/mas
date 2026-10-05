@@ -58,9 +58,11 @@ describe('placeholder-reference-guard', () => {
         });
 
         const modal = await waitForOpenModal();
-        expect(buttonLabels(modal)).to.deep.equal(['Cancel']);
+        const wrapper = modal.shadowRoot.querySelector('sp-dialog-wrapper');
+        expect(wrapper.getAttribute('cancel-label')).to.equal('Cancel');
+        expect(wrapper.getAttribute('confirm-label')).to.equal(null);
 
-        modal.shadowRoot.querySelector('sp-button').click();
+        modal.cancel();
         expect(await resultPromise).to.be.false;
     });
 
@@ -76,10 +78,7 @@ describe('placeholder-reference-guard', () => {
         });
 
         const modal = await waitForOpenModal();
-        const proceedButton = [...modal.shadowRoot.querySelectorAll('sp-button')].find(
-            (button) => button.textContent.trim() === 'Proceed',
-        );
-        proceedButton.click();
+        modal.proceed();
         expect(await resultPromise).to.be.true;
     });
 

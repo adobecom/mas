@@ -289,6 +289,7 @@ class MasSelectionPanel extends LitElement {
                       slot="buttons"
                       class="button-staged"
                       label="Mark as Staged"
+                      ?disabled=${!this.repository}
                       @click=${this.handleMarkStaged}
                   >
                       ${privacyServicesIcon}

@@ -1,17 +1,8 @@
-import { findPlaceholderReferences } from './placeholder-references.js';
+import { findPlaceholderReferencesWithTimeout } from './placeholder-references.js';
 import { showToast } from '../utils.js';
 import './mas-placeholder-references-modal.js';
 
 export const PLACEHOLDER_REFERENCES_MODAL_TAG_NAME = 'mas-placeholder-references-modal';
-
-function getModal() {
-    let modal = document.querySelector(PLACEHOLDER_REFERENCES_MODAL_TAG_NAME);
-    if (!modal) {
-        modal = document.createElement(PLACEHOLDER_REFERENCES_MODAL_TAG_NAME);
-        document.body.appendChild(modal);
-    }
-    return modal;
-}
 
 /**
  * Runs the author-side placeholder reference check and, if needed, shows the reference modal.
@@ -24,7 +15,7 @@ function getModal() {
 export async function confirmPlaceholderReferences({ aem, key, surface, locale, mode, excludePath, signal }) {
     let checkResult;
     try {
-        checkResult = await findPlaceholderReferences(aem, { key, surface, locale, excludePath, signal });
+        checkResult = await findPlaceholderReferencesWithTimeout(aem, { key, surface, locale, excludePath, signal, mode });
     } catch (error) {
         if (error?.name === 'AbortError') return false;
         showToast('Could not check placeholder references.', 'negative');
@@ -32,31 +23,9 @@ export async function confirmPlaceholderReferences({ aem, key, surface, locale, 
     }
 
     const { references, allowProceed } = checkResult;
+    references.sort((a, b) => a.model.id.localeCompare(b.model.id));
     const modalAllowProceed = mode === 'remove' ? false : allowProceed;
-
-    return new Promise((resolve) => {
-        const modal = getModal();
-
-        const cleanup = () => {
-            modal.removeEventListener('proceed', onProceed);
-            modal.removeEventListener('cancel', onCancel);
-            modal.open = false;
-        };
-        const onProceed = () => {
-            cleanup();
-            resolve(true);
-        };
-        const onCancel = () => {
-            cleanup();
-            resolve(false);
-        };
-
-        modal.addEventListener('proceed', onProceed);
-        modal.addEventListener('cancel', onCancel);
-        modal.mode = mode;
-        modal.placeholderKey = key;
-        modal.references = references;
-        modal.allowProceed = modalAllowProceed;
-        modal.open = true;
-    });
+    const { MasPlaceholderReferencesModal } = await import('./mas-placeholder-references-modal.js');
+    const result = await MasPlaceholderReferencesModal.show(key, references, modalAllowProceed, mode);
+    return result.confirmed;
 }

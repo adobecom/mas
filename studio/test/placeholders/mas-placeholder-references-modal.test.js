@@ -34,7 +34,9 @@ describe('mas-placeholder-references-modal', () => {
         await el.updateComplete;
 
         expect(el.shadowRoot.querySelectorAll('a')).to.have.lengthOf(2);
-        expect(buttonLabels(el)).to.deep.equal(['Cancel']);
+        const wrapper = el.shadowRoot.querySelector('sp-dialog-wrapper');
+        expect(wrapper.getAttribute('cancel-label')).to.equal('Cancel');
+        expect(wrapper.getAttribute('confirm-label')).to.equal(null);
     });
 
     it('renders Cancel and Proceed for publish mode when allowProceed is true', async () => {
@@ -49,7 +51,9 @@ describe('mas-placeholder-references-modal', () => {
         `);
         await el.updateComplete;
 
-        expect(buttonLabels(el)).to.deep.equal(['Cancel', 'Proceed']);
+        const wrapper = el.shadowRoot.querySelector('sp-dialog-wrapper');
+        expect(wrapper.getAttribute('cancel-label')).to.equal('Cancel');
+        expect(wrapper.getAttribute('confirm-label')).to.equal('Proceed');
     });
 
     it('renders Cancel only for publish mode when allowProceed is false', async () => {
@@ -64,7 +68,9 @@ describe('mas-placeholder-references-modal', () => {
         `);
         await el.updateComplete;
 
-        expect(buttonLabels(el)).to.deep.equal(['Cancel']);
+        const wrapper = el.shadowRoot.querySelector('sp-dialog-wrapper');
+        expect(wrapper.getAttribute('cancel-label')).to.equal('Cancel');
+        expect(wrapper.getAttribute('confirm-label')).to.equal(null);
     });
 
     it('renders "No usage detected" with a Proceed button when there are no references', async () => {
@@ -80,7 +86,9 @@ describe('mas-placeholder-references-modal', () => {
         await el.updateComplete;
 
         expect(el.shadowRoot.textContent).to.include('No usage detected');
-        expect(buttonLabels(el)).to.deep.equal(['Cancel', 'Proceed']);
+        const wrapper = el.shadowRoot.querySelector('sp-dialog-wrapper');
+        expect(wrapper.getAttribute('cancel-label')).to.equal('Cancel');
+        expect(wrapper.getAttribute('confirm-label')).to.equal('Proceed');
     });
 
     it('renders nothing when open is false', async () => {
@@ -102,10 +110,8 @@ describe('mas-placeholder-references-modal', () => {
         `);
         await el.updateComplete;
 
-        const proceedButton = [...el.shadowRoot.querySelectorAll('sp-button')].find(
-            (button) => button.textContent.trim() === 'Proceed',
-        );
-        setTimeout(() => proceedButton.click());
+        setTimeout(() => el.proceed());
+
         const event = await oneEvent(el, 'proceed');
         expect(event.bubbles).to.be.true;
         expect(event.composed).to.be.true;
@@ -123,8 +129,8 @@ describe('mas-placeholder-references-modal', () => {
         `);
         await el.updateComplete;
 
-        const cancelButton = el.shadowRoot.querySelector('sp-button');
-        setTimeout(() => cancelButton.click());
+        setTimeout(() => el.cancel());
+
         const event = await oneEvent(el, 'cancel');
         expect(event.bubbles).to.be.true;
         expect(event.composed).to.be.true;

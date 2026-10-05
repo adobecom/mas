@@ -192,17 +192,20 @@ export const styles = [
                 border-bottom: 1px solid var(--spectrum-gray-300);
             }
 
-            sp-table-head-cell:first-of-type {
+            sp-table-head-cell:first-of-type,
+            .select-all-row {
                 border-top-left-radius: 12px;
             }
 
-            sp-table-head-cell:last-of-type {
+            sp-table-head-cell:last-of-type,
+            .select-all-row {
                 border-top-right-radius: 12px;
             }
         }
 
         .related-pages sp-action-button {
             --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
+            --mod-actionbutton-edge-to-text: 0;
         }
 
         .country {
@@ -235,7 +238,13 @@ export const styles = [
             width: 100%;
         }
 
-        .nested-content sp-table-body sp-table-row:first-of-type:not(.variation-details-row) {
+        .nested-content .promo-variations-table {
+            width: max-content;
+            min-width: 100%;
+            flex-shrink: 0;
+        }
+
+        .nested-content sp-table-body sp-table-row:first-of-type {
             sp-table-cell:first-of-type {
                 border-top-left-radius: 12px;
             }
@@ -245,7 +254,7 @@ export const styles = [
             }
         }
 
-        .nested-content sp-table-body sp-table-row:last-of-type:not(.variation-details-row) {
+        .nested-content sp-table-body sp-table-row:last-of-type {
             sp-table-cell:first-of-type {
                 border-bottom-left-radius: 12px;
             }
@@ -309,7 +318,7 @@ export const styles = [
 
         .actions-head-cell,
         .actions-cell {
-            max-width: 80px;
+            max-width: 86px;
         }
 
         .actions-cell {

@@ -72,7 +72,7 @@ const cardsTableColumns = [
 
 const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
 
-const promoVariationColumns = [
+export const promoVariationColumns = [
     { label: 'Offer', key: 'offer', class: 'offer-head-cell' },
     { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
     { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
@@ -85,7 +85,7 @@ const promoVariationColumns = [
     { label: 'Status', key: 'status', class: 'status-head-cell' },
 ];
 
-const promoVariationCells = [
+export const promoVariationCells = [
     'OfferName',
     'Actions',
     'Title',

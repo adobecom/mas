@@ -26,10 +26,6 @@ env:
 
 jobs:
     identity:
-        # Pure recompute, safe to supersede.
-        concurrency:
-            group: nala-identity-${{ github.event.pull_request.number }}
-            cancel-in-progress: true
         uses: ./.github/workflows/resolve-aio-identity.yaml
         with:
             login: ${{ github.event.pull_request.user.login }}
@@ -37,10 +33,7 @@ jobs:
     check-paths:
         name: Check Changed Paths
         runs-on: ubuntu-latest
-        # Pure recompute, safe to supersede.
-        concurrency:
-            group: nala-check-paths-${{ github.event.pull_request.number }}
-            cancel-in-progress: true
+        # No concurrency group: a cancelled result would stick to a gate re-run.
         outputs:
             is-trivial: ${{ steps.filter.outputs.trivial }}
         steps:
@@ -352,7 +345,8 @@ jobs:
                       echo "Nala E2E passed"
                       exit 0
                   fi
-                  if [ "$STUDIO_RESULT" = "failure" ] || [ "$DOCS_RESULT" = "failure" ]; then
+                  # A re-run gate keeps its original needs results, so a newer passing run on this SHA overrides them.
+                  if { [ "$STUDIO_RESULT" = "failure" ] || [ "$DOCS_RESULT" = "failure" ]; } && [ "$NALA_CONCLUSION" != "success" ]; then
                       echo "::error::Nala E2E did not pass (studio: ${STUDIO_RESULT}, docs: ${DOCS_RESULT})"
                       exit 1
                   fi

@@ -17,6 +17,7 @@ class MasGroupedSelector extends LitElement {
     };
 
     #dialogOpen = false;
+    #confirmed = false;
 
     constructor() {
         super();
@@ -48,6 +49,7 @@ class MasGroupedSelector extends LitElement {
     }
 
     #open = () => {
+        this.#confirmed = false;
         this.#dialogOpen = true;
         this.dispatchEvent(new Event('open'));
     };
@@ -57,18 +59,22 @@ class MasGroupedSelector extends LitElement {
     }
 
     #confirm = ({ target }) => {
+        this.#confirmed = true;
         this.dispatchEvent(new Event('confirm'));
         this.#closeDialog(target);
     };
 
     #cancel = ({ target }) => {
-        this.dispatchEvent(new Event('cancel'));
         this.#closeDialog(target);
     };
 
     #handleClose = () => {
+        if (!this.#confirmed) {
+            this.#confirmed = true;
+            this.dispatchEvent(new Event('cancel'));
+        }
         this.#dialogOpen = false;
-        this.#syncEmptyState();
+        this.requestUpdate('selected');
     };
 
     #toggleExpanded = (event) => {
@@ -141,7 +147,7 @@ class MasGroupedSelector extends LitElement {
                                   Edit
                               </sp-action-button>
                           `)}
-                    <sp-button icon-only class="toggle-btn ghost-button">
+                    <sp-button icon-only class="toggle-btn ghost-button" aria-expanded=${this.expanded}>
                         <sp-icon-chevron-down slot="icon" label=${this.expanded ? 'Close' : 'Open'}></sp-icon-chevron-down>
                     </sp-button>
                 </div>

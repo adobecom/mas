@@ -1532,7 +1532,7 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('language selection dialog', () => {
-        it('should enable save and discard when language selection is confirmed', async () => {
+        it('should emit open when adding languages', async () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             const selector = getLangSelector(el);
@@ -1541,6 +1541,14 @@ describe('MasTranslationEditor', () => {
             await selector.updateComplete;
             selector.shadowRoot.querySelector('.add-button').click();
             expect(openSpy.calledOnce).to.be.true;
+        });
+
+        it('should enable save and discard when language selection is confirmed', async () => {
+            Store.translationProjects.targetLocales.set([]);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const selector = getLangSelector(el);
+            await selector.updateComplete;
+            selector.shadowRoot.querySelector('.add-button').click();
             Store.translationProjects.targetLocales.set(['en_US']);
             selector.shadowRoot.querySelector('.selector-dialog').dispatchEvent(new Event('confirm'));
             await el.updateComplete;

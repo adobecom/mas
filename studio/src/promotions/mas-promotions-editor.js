@@ -36,7 +36,7 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
-import './mas-promotions-items-table.js';
+import { promoVariationColumns, promoVariationCells } from './mas-promotions-items-table.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 import {
@@ -109,6 +109,8 @@ const PROMOTION_VIEW_TABS = [
 const PROMOTION_ITEM_PICKER_ALLOWED_TYPES = [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS];
 const PROMOTION_ITEM_VARIATION_TABS = [VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED];
 const PROMOTION_ITEM_SELECTABLE_TABS = [VARIATION_TAB_NAME.GROUPED];
+const PROMOTION_ITEM_VARIATION_COLUMNS = promoVariationColumns.filter(({ key }) => !['actions', 'relatedPages'].includes(key));
+const PROMOTION_ITEM_VARIATION_CELLS = promoVariationCells.filter((cell) => !['Actions', 'RelatedPages'].includes(cell));
 
 const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
@@ -1573,6 +1575,9 @@ class MasPromotionsEditor extends LitElement {
                     .hideGroupedVariations=${true}
                     .variationTabs=${PROMOTION_ITEM_VARIATION_TABS}
                     .selectableTabs=${PROMOTION_ITEM_SELECTABLE_TABS}
+                    .variationColumns=${PROMOTION_ITEM_VARIATION_COLUMNS}
+                    .variationCells=${PROMOTION_ITEM_VARIATION_CELLS}
+                    .hideVariationExpand=${true}
                     .restrictImportSurface=${this.promotionPickerSurfaces}
                     .validateImportFragment=${this.#validatePromotionImportFragment}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}

@@ -139,7 +139,7 @@ async function getLocalBranchLiveUrl() {
     }
 }
 
-async function globalSetup() {
+async function globalSetup(config) {
     console.info('---- Executing Nala Global setup ----\n');
 
     // Initialize fragment tracker run ID at the very start of test suite
@@ -192,7 +192,7 @@ async function globalSetup() {
         const baseURL = process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || MAIN_BRANCH_LIVE_URL;
         appendFileSync(process.env.GITHUB_ENV, `PR_BRANCH_LIVE_URL=${baseURL}\n`);
     }
-    const stopCoordinator = await initializeRateLimitCoordinator();
+    const stopCoordinator = await initializeRateLimitCoordinator(config);
     return async () => {
         try {
             await stopCoordinator();

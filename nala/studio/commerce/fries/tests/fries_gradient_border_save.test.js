@@ -3,6 +3,8 @@ import COMFriesGradientBorderSaveSpec from '../specs/fries_gradient_border_save.
 
 const { features } = COMFriesGradientBorderSaveSpec;
 
+test.use({ reuseEditor: true });
+
 const verifyGradientApplied = async (card, stops) => {
     const background = await card.evaluate((el) => window.getComputedStyle(el).backgroundImage);
     expect(background).toContain('linear-gradient');
@@ -24,7 +26,7 @@ test.describe('M@S Studio Commerce Fries gradient border save test suite', () =>
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -70,7 +72,7 @@ test.describe('M@S Studio Commerce Fries gradient border save test suite', () =>
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

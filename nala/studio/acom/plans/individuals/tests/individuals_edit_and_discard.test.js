@@ -913,11 +913,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Edit badge color field', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await expect(await editor.badgeColor).toContainText(data.color.original);
-            await editor.badgeColor.scrollIntoViewIfNeeded();
-            await editor.badgeColor.click();
-            await expect(await editor.badgeColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.badgeColor, data.color.updated);
         });
 
         await test.step('step-3: Validate badge color field updated', async () => {
@@ -960,11 +956,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Edit badge border color field', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await expect(await editor.badgeBorderColor).toContainText(data.color.original);
-            await editor.badgeBorderColor.scrollIntoViewIfNeeded();
-            await editor.badgeBorderColor.click();
-            await expect(await editor.badgeBorderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.badgeBorderColor, data.color.updated);
         });
 
         await test.step('step-3: Validate badge border color field updated', async () => {

@@ -15,6 +15,8 @@ import ACOMPlansIndividualsSpec from '../specs/individuals_save.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-save-edited-variant-change - Validate saving card after variant change to suggested
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -24,7 +26,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -60,7 +62,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -99,7 +101,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -350,7 +352,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -390,7 +392,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -424,7 +426,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -519,7 +521,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -584,7 +586,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });

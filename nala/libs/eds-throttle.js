@@ -95,18 +95,18 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
     logEdsThrottleOnce(edsMaxRps);
     const handleRoute = async (route) => {
         const url = route.request().url();
-        const pace = async (enforceCooldown = nativeCooldowns) => {
+        const pace = async (enforceCooldown = nativeCooldowns, reservePreview = true) => {
             if (edsMaxRps > 0 && isEdsEdgeHost(url)) {
                 await throttleEdsGap(edsMaxRps, url);
             } else if (enforceCooldown) {
-                await waitForRateLimit(url);
+                await waitForRateLimit(url, { reservePreview });
             }
         };
         if (await isStaticResource(route.request())) {
             if (cacheEnabled) {
-                await serveStaticResource(route, () => pace(true));
+                await serveStaticResource(route, () => pace(true, false));
             } else {
-                const response = await fetchWithRateLimitRetry(route, () => pace(true));
+                const response = await fetchWithRateLimitRetry(route, () => pace(true, false));
                 try {
                     await route.fulfill({ response });
                 } finally {
@@ -118,7 +118,7 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         if (nativeCooldowns && (await isRetryableRead(route.request()))) {
             let response;
             try {
-                response = await fetchWithRateLimitRetry(route, pace);
+                response = await fetchWithRateLimitRetry(route, () => pace(nativeCooldowns, false));
             } catch (error) {
                 const message = error.message.split('\n')[0];
                 const networkFailure = message.match(

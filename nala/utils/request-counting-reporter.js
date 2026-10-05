@@ -119,9 +119,34 @@ export default class RequestCountingReporter {
                 console.log(`    \x1b[1m\x1b[33m${origin}\x1b[0m`);
                 console.log(
                     `        # HTTP 429s: ${counts.responses429}; GET retries: ${counts.retries}; ` +
-                        `recovery wait: ${(counts.waitMs / 1000).toFixed(2)}s (summed request waits)`,
+                        `pacing/cooldown wait: ${(counts.waitMs / 1000).toFixed(2)}s (summed request waits)`,
                 );
             }
+        }
+        const pressureFile = join(testResultsDir, 'odin-pressure.json');
+        if (existsSync(pressureFile)) {
+            const pressure = JSON.parse(readFileSync(pressureFile, 'utf8'));
+            console.log('\n    \x1b[1m\x1b[34m---------Odin Preview Pressure------------\x1b[0m');
+            console.log(`    ${pressure.origin} (entire run, including setup)`);
+            console.log(`        # Observation window: ${(pressure.elapsedMs / 1000).toFixed(2)}s (wall-clock)`);
+            console.log(`        # Upstream reads: ${pressure.starts}; peak in-flight: ${pressure.peakInFlight}`);
+            console.log(
+                `        # Peak scheduled starts in 1s: ${pressure.peakStartsPerSecond}; ` +
+                    `configured cap: ${pressure.maxRps} rps / ${pressure.maxInFlight} in-flight`,
+            );
+            console.log(`        # Current adaptive rate: ${pressure.currentRps.toFixed(2)} rps`);
+            console.log(
+                `        # Mean/max read latency: ` +
+                    `${(pressure.completed ? pressure.latencyMs / pressure.completed : 0).toFixed(0)}/${pressure.maxLatencyMs}ms`,
+            );
+            console.log(`        # Queue wait: ${(pressure.waitMs / 1000).toFixed(2)}s (summed request waits)`);
+            console.log(`        # User agents: ${pressure.userAgents.join(' | ') || 'no reads'}`);
+            for (const [path, count] of Object.entries(pressure.paths)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)) {
+                console.log(`        # ${path}: ${count} upstream reads`);
+            }
+            console.log(`        # Complete endpoint counts: ${pressureFile}`);
         }
     }
 }

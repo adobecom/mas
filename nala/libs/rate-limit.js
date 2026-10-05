@@ -1,4 +1,4 @@
-import { coordinateRateLimit } from './rate-limit-coordinator.js';
+import { coordinateRateLimit, isPreviewOrigin } from './rate-limit-coordinator.js';
 
 const loggedRequests = new WeakSet();
 const metrics = new Map();
@@ -57,10 +57,11 @@ export function logRateLimitedResponses(page, applyCooldown = true) {
     });
 }
 
-export async function waitForRateLimit(url) {
+export async function waitForRateLimit(url, { reservePreview = true } = {}) {
     const { origin } = new URL(url);
     if (coordinatorError) throw coordinatorError;
     await Promise.all(pendingReports);
+    if (!reservePreview && isPreviewOrigin(url)) return;
     const waitMs = await coordinateRateLimit('wait', origin);
     if (waitMs > 0) originMetrics(url).waitMs += waitMs;
 }
@@ -78,14 +79,37 @@ export async function isRetryableRead(request) {
 export async function fetchWithRateLimitRetry(route, beforeFetch) {
     for (let attempt = 0; attempt < 2; attempt++) {
         await beforeFetch();
-        const response = await route.fetch({ maxRedirects: 0 });
+        const request = route.request();
+        const url = new URL(request.url());
+        const permit = isPreviewOrigin(request.url())
+            ? await coordinateRateLimit('acquire', url.origin, undefined, {
+                  path: url.pathname,
+                  userAgent: await request.headerValue('user-agent'),
+              })
+            : null;
+        if (permit) originMetrics(request.url()).waitMs += permit.waitMs;
+        const started = Date.now();
+        let finished;
+        let response;
+        try {
+            response = await route.fetch({ maxRedirects: 0, timeout: permit ? 60000 : undefined });
+            finished = Date.now();
+            if (response.status() === 429) await logRateLimit(route.request(), response.headers());
+        } finally {
+            if (permit) {
+                await coordinateRateLimit('release', url.origin, undefined, {
+                    id: permit.id,
+                    status: response?.status() ?? 0,
+                    latencyMs: (finished ?? Date.now()) - started,
+                });
+            }
+        }
         if (response.status() !== 429) return response;
-        await logRateLimit(route.request(), response.headers());
         if (attempt === 1 || response.headers()['set-cookie']) return response;
         await response.dispose();
         originMetrics(route.request().url()).retries++;
-        const url = route.request().url();
-        retryCounts.set(url, (retryCounts.get(url) ?? 0) + 1);
+        const requestUrl = route.request().url();
+        retryCounts.set(requestUrl, (retryCounts.get(requestUrl) ?? 0) + 1);
         const { origin, pathname } = new URL(route.request().url());
         console.info(`[NALA] Retrying GET ${origin}${pathname} once after the origin cooldown.`);
     }

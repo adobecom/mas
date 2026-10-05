@@ -4,12 +4,16 @@ import { installEdsThrottleOnPage, throttleEdsGap } from '../libs/eds-throttle.j
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
 import { signIn } from '../libs/ims-auth.js';
 import { getRateLimitMetrics } from '../libs/rate-limit.js';
+import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
 
 let server;
 let baseURL;
 const requests = new Map();
 let warnings;
 let originalWarn;
+let pressureActive = 0;
+let pressurePeak = 0;
+const pressureUserAgents = new Set();
 
 test.beforeAll(async () => {
     server = createServer((request, response) => {
@@ -17,6 +21,17 @@ test.beforeAll(async () => {
         const calls = requests.get(pathname) ?? [];
         calls.push({ time: Date.now(), method: request.method });
         requests.set(pathname, calls);
+        if (pathname.startsWith('/pressure/slow')) {
+            pressureUserAgents.add(request.headers['user-agent']);
+            pressureActive++;
+            pressurePeak = Math.max(pressurePeak, pressureActive);
+            setTimeout(() => {
+                pressureActive--;
+                response.writeHead(200, { 'content-type': 'application/json' });
+                response.end('{}');
+            }, 200);
+            return;
+        }
         if (pathname === '/reset-read') {
             request.socket.destroy();
             return;
@@ -89,6 +104,43 @@ test.beforeEach(() => {
 
 test.afterEach(() => {
     console.warn = originalWarn;
+});
+
+test('preview pressure is bounded across fresh contexts before any 429', async ({ browser }) => {
+    const previousOrigin = process.env.NALA_ODIN_PREVIEW_ORIGIN;
+    const previousEndpoint = process.env.NALA_RATE_LIMIT_COORDINATOR;
+    process.env.NALA_ODIN_PREVIEW_ORIGIN = baseURL;
+    const stop = await initializeRateLimitCoordinator(undefined, { maxRps: 100, maxInFlight: 2 });
+    const contexts = [];
+    try {
+        const pages = [];
+        for (let index = 0; index < 3; index++) {
+            const context = await browser.newContext({ userAgent: 'Nala pressure regression' });
+            contexts.push(context);
+            const page = await context.newPage();
+            await installEdsThrottleOnPage(page);
+            await page.goto(baseURL);
+            pages.push(page);
+        }
+        await Promise.all(
+            pages.map((page, index) =>
+                page.evaluate(async (index) => {
+                    await Promise.all(Array.from({ length: 4 }, (_, read) => fetch(`/pressure/slow-${index}-${read}`)));
+                }, index),
+            ),
+        );
+        expect(pressurePeak).toBe(2);
+        expect(pressureActive).toBe(0);
+        expect([...pressureUserAgents]).toEqual(['Nala pressure regression']);
+        expect(warnings).toHaveLength(0);
+        expect([...requests.keys()].filter((path) => path.startsWith('/pressure/slow'))).toHaveLength(12);
+    } finally {
+        await Promise.all(contexts.map((context) => context.close()));
+        await stop();
+        if (previousOrigin === undefined) delete process.env.NALA_ODIN_PREVIEW_ORIGIN;
+        else process.env.NALA_ODIN_PREVIEW_ORIGIN = previousOrigin;
+        process.env.NALA_RATE_LIMIT_COORDINATOR = previousEndpoint;
+    }
 });
 
 for (const [path, delay] of [

@@ -16,6 +16,8 @@ import {
 import CCDSuggestedSpec from '../specs/suggested_save.spec.js';
 const { features } = CCDSuggestedSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio CCD Suggested card test suite', () => {
     // @studio-suggested-remove-correct-fragment - Clone card then delete, verify the correct card is removed from screen
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -24,7 +26,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -69,7 +71,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -115,7 +117,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

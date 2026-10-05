@@ -121,6 +121,20 @@ it stops at teardown and is never reused between runs or PRs. Subsequent request
 including IMS, Odin and third-party services on test and HAR seed pages; no hosts are excluded.
 After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
 This recovery spacing is not an assumption about the service's published limit; unrelated origins remain independent.
+Odin preview is paced from the first upstream request across the entire run, initially at 10 request starts/second.
+Intercepted preview reads additionally share three in-flight permits across workers; cached assets use neither budget.
+`NALA_ODIN_PREVIEW_MAX_RPS` and `NALA_ODIN_PREVIEW_MAX_IN_FLIGHT` tune these positive, run-wide budgets, not per-worker limits.
+These are benchmark starting points, not published Odin limits. One 429 burst halves the preview rate once;
+repeated responses extend the shared cooldown without repeatedly halving it. Adaptive spacing is bounded at 1 second
+(or the configured spacing if already slower). After at least 20 successful reads and 10 seconds of recovery,
+the rate increases gradually, never above its configured maximum. Other origins retain their existing recovery spacing.
+Permits cover the upstream fetch only: they are released on success or transport failure and before retry waiting.
+Intercepted preview fetches are bounded at 60 seconds; other hosts keep their existing fetch timeout.
+Abandoned permits expire with a logged warning after 90 seconds.
+Native documents, writes and streaming/range requests remain browser-managed and are start-paced rather than buffered
+to enforce the read-concurrency limit. Writes are never automatically retried.
+The existing user agent is unchanged. A possible UA-based upstream bucket is respected, not bypassed by rotating identities;
+separate CI runs using the same bucket can still affect one another.
 The authentication page logs native 429s without adding cooldowns, leaving IMS's login request timing unchanged.
 Its public static asset requests still honor cooldowns and the existing EDS pacing.
 Authentication submits each form once and waits within the existing 180-second setup budget, including cooldowns.
@@ -133,12 +147,24 @@ Remaining EDS requests are paced at 45 RPS per worker locally and in CI, includi
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;
 the request summary includes AEM author and Odin preview separately, with retries included in upstream totals.
-A separate per-origin rate-limit summary reports every observed 429, GET retries and summed request recovery waits
+A separate per-origin rate-limit summary reports every observed 429, GET retries and summed request pacing/cooldown waits
 (not wall-clock time). Native authentication 429s remain visible in the console.
+An Odin pressure summary and `test-results/odin-pressure.json` also record the entire run, including setup:
+the coordinator's wall-clock observation window, scheduled upstream reads, peak scheduled starts/second,
+peak read concurrency, mean/max fetch latency, summed queue waiting,
+sanitized endpoint counts and observed user agents. No query strings, credentials or response bodies are retained.
 
 Use `NALA_STATIC_CACHE_DISABLED=1` or `NALA_EDITOR_BOOTSTRAP_DISABLED=1` for uncached comparisons.
 To make a suite's editor setup always live, leave `reuseEditor` unset. Cleanup uses exact run-owned IDs and live ETags;
 see [Nala cleanup](nala/utils/README-cleanup.md).
+All eight clone/save suites now opt into the same worker-local seed-bootstrap snapshots as editor/discard suites.
+Most save routes already opened the editor directly; the French legal-disclaimer route now does so too, preserving its locale.
+Contexts, pages and fragment stores remain fresh per test. Only successful initial source reads are replayed;
+each clone, its initialization, subsequent edits, saves, reads and deletions stay live. Grid/search/navigation tests keep
+their existing routes and coverage; mutated clones are never shared between tests.
+
+Version tests wait for loaded history, hydrated previews, rendered search results and completed breadcrumb navigation;
+these waits add no polling HTTP requests. Live edits, commerce reads and mutations remain uncached.
 
 Offline setup regression checks (no IMS, Odin or EDS requests):
 

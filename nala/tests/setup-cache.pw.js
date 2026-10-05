@@ -16,6 +16,7 @@ import { resolve, join } from 'node:path';
 import { test as studioTest } from '../libs/mas-test.js';
 import { test as docsTest } from '../libs/docs-test.js';
 import StudioPage from '../studio/studio.page.js';
+import VersionPage from '../studio/versions/versions.page.js';
 
 const AUTHOR = 'http://author-test.adobeaemcloud.com';
 let server;
@@ -176,6 +177,45 @@ test('repeated seed bootstrap is isolated; all post-setup reads and writes stay 
     } finally {
         await second.context.close();
     }
+});
+
+test('save setup reuses only the source snapshot; each fresh context clones and saves live', async ({ browser }) => {
+    const cache = new EditorBootstrapCache();
+    const calls = [];
+    const clones = [];
+    for (let index = 0; index < 2; index++) {
+        const { page, context } = await seedPage(browser, cache, calls);
+        try {
+            await page.route(`${AUTHOR}/bin/wcmcommand`, async (route) => {
+                clones.push(route.request().postData());
+                await route.fulfill({
+                    status: 200,
+                    headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+                    body: JSON.stringify({ id: `clone-${clones.length}` }),
+                });
+            });
+            await cache.open(page, `${baseURL}/editor#page=fragment-editor&fragmentId=seed-a`);
+            expect(await page.locator('mas-fragment-editor').evaluate((editor) => editor.fragmentStore.get().title)).toBe(
+                'Original seed',
+            );
+            const cloned = await page.evaluate(async (author) => {
+                const clone = await fetch(`${author}/bin/wcmcommand`, { method: 'POST', body: 'clone seed-a' });
+                const { id } = await clone.json();
+                await fetch(`${author}/adobe/sites/cf/fragments/${id}`);
+                await fetch(`${author}/adobe/sites/cf/fragments/${id}`, { method: 'PUT', body: 'save clone' });
+                return id;
+            }, AUTHOR);
+            expect(cloned).toBe(`clone-${index + 1}`);
+            await page.locator('mas-fragment-editor').evaluate((editor) => {
+                editor.fragmentStore.get().title = 'Dirty clone state';
+            });
+        } finally {
+            await context.close();
+        }
+    }
+    expect(clones).toEqual(['clone seed-a', 'clone seed-a']);
+    expect(cache.metrics).toEqual({ coldLoads: 1, reusedLoads: 1, replayedReads: 3 });
+    expect(calls.filter(({ url }) => /\/clone-[12]$/.test(url))).toHaveLength(4);
 });
 
 test('static routing reuses public assets but keeps cookie-bearing contexts live', async ({ browser }) => {
@@ -623,6 +663,91 @@ test('picker selection recovers a closed initial transition, scopes its option a
         opens: 2,
     });
     await expect(page.locator('sp-picker button')).toHaveText('Default');
+});
+
+test('version readiness waits for history, selected data and preview hydration', async ({ page }) => {
+    await page.setContent(
+        '<version-page><div class="version-item" hidden>Current</div>' +
+            '<div class="preview-content"><sp-progress-circle></sp-progress-circle>' +
+            '<div class="preview-column" hidden>Preview</div></div></version-page>',
+    );
+    await page.evaluate(() => {
+        const view = document.querySelector('version-page');
+        view.loading = true;
+        view.loadingVersionData = true;
+        setTimeout(() => {
+            view.fragment = { id: 'seed' };
+            view.loading = false;
+            view.querySelector('.version-item').hidden = false;
+        }, 100);
+        setTimeout(() => {
+            view.selectedVersionData = { id: 'selected' };
+            view.loadingVersionData = false;
+        }, 200);
+        setTimeout(() => {
+            view.querySelector('sp-progress-circle').remove();
+            view.querySelector('.preview-column').hidden = false;
+        }, 300);
+    });
+    const versions = new VersionPage(page);
+    await versions.waitForVersionPageLoaded();
+    await expect(versions.previewColumns).toBeVisible();
+    await expect(versions.loadingSpinner).toHaveCount(0);
+});
+
+test('version search waits for filtered DOM rendering before returning', async ({ page }) => {
+    await page.setContent(
+        '<version-page><sp-search><input></sp-search>' +
+            '<div class="version-list-content"><div class="version-item">Alice</div>' +
+            '<div class="version-item">Bob</div></div></version-page>',
+    );
+    await page.evaluate(() => {
+        const view = document.querySelector('version-page');
+        view.searchQuery = '';
+        view.updateComplete = Promise.resolve();
+        view.querySelector('input').addEventListener('input', (event) => {
+            view.searchQuery = event.target.value.toLowerCase();
+            view.updateComplete = new Promise((resolve) => {
+                setTimeout(() => {
+                    view.querySelector('.version-list-content').innerHTML = ['Alice', 'Bob']
+                        .filter((author) => author.toLowerCase().includes(view.searchQuery))
+                        .map((author) => `<div class="version-item">${author}</div>`)
+                        .join('');
+                    resolve();
+                }, 150);
+            });
+        });
+    });
+    const versions = new VersionPage(page);
+    await versions.searchVersions('ALICE');
+    await expect(versions.versionItems).toHaveText(['Alice']);
+    await versions.clearSearch();
+    await expect(versions.versionItems).toHaveText(['Alice', 'Bob']);
+});
+
+test('version breadcrumbs wait for completed navigation and click once', async ({ page }) => {
+    await page.goto(baseURL);
+    await page.setContent(
+        '<div class="nav-breadcrumbs"><sp-breadcrumb-item>Fragments</sp-breadcrumb-item>' +
+            '<sp-breadcrumb-item>Editor</sp-breadcrumb-item></div>',
+    );
+    await page.evaluate(() => {
+        window.breadcrumbClicks = 0;
+        for (const [index, item] of [...document.querySelectorAll('sp-breadcrumb-item')].entries()) {
+            item.addEventListener('click', () => {
+                window.breadcrumbClicks++;
+                setTimeout(() => {
+                    location.hash = `page=${index ? 'fragment-editor' : 'content'}`;
+                }, 150);
+            });
+        }
+    });
+    const versions = new VersionPage(page);
+    await versions.clickBreadcrumbEditor();
+    expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).get('page')).toBe('fragment-editor');
+    await versions.clickBreadcrumbFragmentsTable();
+    expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).get('page')).toBe('content');
+    expect(await page.evaluate(() => window.breadcrumbClicks)).toBe(2);
 });
 
 test('bootstrap disable flag keeps warm seeds live with the same readiness boundary', async ({ browser }) => {

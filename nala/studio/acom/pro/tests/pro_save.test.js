@@ -13,6 +13,8 @@ import ACOMProSpec from '../specs/pro_save.spec.js';
 
 const { features } = ACOMProSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio ACOM Pro card test suite', () => {
     // @studio-pro-save-edited-fields - Validate edits and save for pro card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -22,7 +24,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

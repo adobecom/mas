@@ -71,11 +71,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Edit border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-3: Validate border color of the card', async () => {

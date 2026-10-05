@@ -13,6 +13,8 @@ import COMFriesSpec from '../specs/fries_save.spec.js';
 
 const { features } = COMFriesSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-save-edited-trial-badge - Validate edit trial badge for fries card in mas studio
     // combines: text, color and border color
@@ -23,7 +25,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

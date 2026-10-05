@@ -226,7 +226,7 @@ export default class StudioPage {
             ),
             this.confirmationDialog.locator('sp-button:has-text("Clone")').click(),
         ]);
-        expect(response.ok(), 'Fragment copy must succeed').toBe(true);
+        expect(response.ok(), `Fragment copy must succeed (HTTP ${response.status()})`).toBe(true);
         await expect
             .poll(() => {
                 const id = new URLSearchParams(new URL(this.page.url()).hash.slice(1)).get('fragmentId');
@@ -320,8 +320,23 @@ export default class StudioPage {
         await this.page.waitForFunction(() => document.querySelector('mas-repository').fragmentInEdit?.hasChanges);
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();
+        const navigationState = () => {
+            const panel = document.querySelector('mas-fragment-editor');
+            return {
+                page: new URLSearchParams(location.hash.slice(1)).get('page'),
+                fragmentId: panel?.fragmentStore?.get()?.id,
+                hasChanges: panel?.fragmentStore?.get()?.hasChanges,
+                loading: panel?.fragmentStore?.loading,
+                discardRequested: panel?.showDiscardDialog,
+            };
+        };
+        const before = await this.page.evaluate(navigationState);
         await this.fragmentsTable.click();
-        await expect(await this.confirmationDialog).toBeVisible();
+        const after = await this.page.evaluate(navigationState);
+        await expect(
+            this.confirmationDialog,
+            `Discard confirmation must open after navigation; state: ${JSON.stringify({ before, after })}`,
+        ).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
         await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');

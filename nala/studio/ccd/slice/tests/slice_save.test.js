@@ -17,6 +17,8 @@ import CCDSliceSpec from '../specs/slice_save.spec.js';
 
 const { features } = CCDSliceSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio CCD Slice card test suite', () => {
     // @studio-slice-save-variant-change-to-suggested - Validate saving card after variant change to ccd suggested
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -25,7 +27,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -71,7 +73,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

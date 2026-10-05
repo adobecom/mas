@@ -17,6 +17,7 @@ import Store from './store.js';
 import router from './router.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
+import { startOdinTelemetry } from './utils/odin-telemetry.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -25,6 +26,7 @@ const BUCKET_TO_ENV = {
 };
 
 router.start();
+startOdinTelemetry();
 
 class MasStudio extends LitElement {
     static properties = {

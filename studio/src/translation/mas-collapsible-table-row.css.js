@@ -101,6 +101,10 @@ export const styles = [
         sp-table-row.select-all-row {
             background: var(--spectrum-gray-50);
 
+            sp-table-cell:first-of-type {
+                padding: 10px 28px;
+            }
+
             sp-table-cell {
                 background-color: transparent;
             }

@@ -52,7 +52,7 @@ export const tableColumnIconStyles = css`
     }
 
     .table-icon-cell--checkbox {
-        padding: 22px;
+        padding: 14px;
     }
 `;
 
@@ -115,6 +115,7 @@ export const tableCellBaseStyles = css`
 
         sp-action-button {
             flex: 0 0 auto;
+            margin: 4px;
             --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
 
             &:hover {

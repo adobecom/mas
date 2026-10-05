@@ -4,7 +4,8 @@ import { styles as tableStyles } from '../common/components/mas-select-items-tab
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
-import { applySearchSurfaceFromPath, renderCopyableValueCell } from '../common/utils/render-utils.js';
+import { applySearchSurfaceFromPath, getOfferName, renderCopyableValueCell } from '../common/utils/render-utils.js';
+import { OFFER_DATA_CONCURRENCY_LIMIT, processConcurrently } from '../common/utils/item-loading.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
@@ -25,6 +26,8 @@ import {
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
     pruneOrphanedGroupedVariationSelection,
+    groupPromotionFragments,
+    GROUP_BY,
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
@@ -57,6 +60,46 @@ const offersTableHeaders = [
     { label: 'Market segment', key: 'marketSegment', class: 'segment-head-cell' },
 ];
 
+const cardsTableColumns = [
+    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
+    { label: 'Offer', key: 'offer', sortable: true },
+    { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle' },
+    { label: 'Path', key: 'path' },
+    { label: 'Related pages', key: 'relatedPages' },
+    { label: 'Offer ID', key: 'offerId' },
+    { label: 'OSI', key: 'osi' },
+    { label: 'Status', key: 'status' },
+];
+
+const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
+
+export const promoVariationColumns = [
+    { label: 'Offer', key: 'offer', class: 'offer-head-cell' },
+    { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
+    { label: 'Path', key: 'path', class: 'path-head-cell' },
+    { label: 'Applies to', key: 'applies-to', class: 'applies-to-head-cell' },
+    { label: 'Country', key: 'country', class: 'country-head-cell' },
+    { label: 'Offer ID', key: 'offerId', class: 'offer-id-head-cell' },
+    { label: 'OSI', key: 'osi', class: 'osi-head-cell' },
+    { label: 'Related pages', key: 'relatedPages', class: 'related-pages-head-cell' },
+    { label: 'Status', key: 'status', class: 'status-head-cell' },
+];
+
+export const promoVariationCells = [
+    'OfferName',
+    'Actions',
+    'Title',
+    'StudioPath',
+    'AppliesTo',
+    'Country',
+    'OfferId',
+    'Osi',
+    'RelatedPages',
+    'Status',
+];
+
 class MasPromotionsItemsTable extends LitElement {
     static styles = [tableStyles, promotionsItemsTableStyles];
 
@@ -79,7 +122,11 @@ class MasPromotionsItemsTable extends LitElement {
         promoVariationSelectedGeos: { type: Array, state: true },
         promoVariationDisabledGeos: { type: Array, state: true },
         fragmentHasEmptyGeosVariation: { type: Boolean, state: true },
+        groupBy: { type: String },
+        expandedGroups: { type: Object, state: true },
+        relatedPagesDialogOpen: { type: Boolean, state: true },
         offersSortDirection: { type: String, state: true },
+        cardsSortDirection: { type: String, state: true },
     };
 
     #loadedPathsKey = null;
@@ -88,8 +135,12 @@ class MasPromotionsItemsTable extends LitElement {
     itemsSelection = new ItemsSelectionController(this);
     #allSelectedPaths = [];
     #visibleCount = 0;
+    #loadedByPath = new Map();
+    #prefetchedByPath = new Map();
+    #offerNameByPath = new Map();
     #offerRecordsHydratedSeen = 0;
     #promoVariationProbe = null;
+    #selectedLoadingEmitted = null;
 
     constructor() {
         super();
@@ -105,10 +156,14 @@ class MasPromotionsItemsTable extends LitElement {
         this.promoVariationSelectedGeos = [];
         this.promoVariationDisabledGeos = [];
         this.fragmentHasEmptyGeosVariation = false;
+        this.relatedPagesDialogOpen = false;
         this.offersSortDirection = 'asc';
+        this.cardsSortDirection = 'asc';
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
+        this.groupBy = GROUP_BY.NONE;
+        this.expandedGroups = new Set();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }
@@ -214,6 +269,16 @@ class MasPromotionsItemsTable extends LitElement {
             this.#loadSelectedOffers(this.selectedPaths);
             return;
         }
+        // A requested grouping needs the full set: pull remaining windows eagerly instead of on scroll.
+        if (
+            this.type === TABLE_TYPE.CARDS &&
+            this.groupBy !== GROUP_BY.NONE &&
+            this.#hasMoreSelected &&
+            !this.viewOnlyLoading
+        ) {
+            this.#loadMore();
+        }
+        this.#emitSelectedLoadingChange();
         const paths = this.selectedPaths;
         const keySource = this.type === TABLE_TYPE.CARDS ? this.itemsSelection.value.selectedCards.value : paths;
         const key = `${this.#promotionTagId ?? ''}|${keySource.slice().sort().join('|')}`;
@@ -249,9 +314,24 @@ class MasPromotionsItemsTable extends LitElement {
         return this.#visibleCount < this.#allSelectedPaths.length;
     }
 
+    get #selectedItemsLoading() {
+        if (this.type !== TABLE_TYPE.CARDS) return false;
+        if (this.viewOnlyLoading || this.#hasMoreSelected) return true;
+        return this.selectedPaths.length > 0 && this.#allSelectedPaths.length === 0;
+    }
+
+    #emitSelectedLoadingChange() {
+        const loading = this.#selectedItemsLoading;
+        if (loading === this.#selectedLoadingEmitted) return;
+        this.#selectedLoadingEmitted = loading;
+        this.dispatchEvent(new CustomEvent('view-only-loading-change', { detail: { loading }, bubbles: true, composed: true }));
+    }
+
     async #loadSelected(paths) {
         this.#processAbortController?.abort();
         this.#allSelectedPaths = paths;
+        this.#loadedByPath = new Map();
+        this.#prefetchedByPath = new Map();
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
         // Probe every selected card's promo variations in a single recursive folder search
@@ -263,7 +343,43 @@ class MasPromotionsItemsTable extends LitElement {
             this.viewOnlyLoading = false;
             return;
         }
+        await this.#loadSelectedInOrder();
+    }
+
+    #onViewOnlySort({ detail: { sortKey, sortDirection } }) {
+        if (sortKey !== 'offer') return;
+        this.cardsSortDirection = sortDirection;
+        void this.#loadSelectedInOrder();
+    }
+
+    // Offer names are known before loading windows so each window lands at the bottom in order.
+    async #loadSelectedInOrder() {
+        if (this.type === TABLE_TYPE.CARDS && this.cardsSortDirection) {
+            this.#processAbortController?.abort();
+            this.#processAbortController = new AbortController();
+            const signal = this.#processAbortController.signal;
+            this.viewOnlyLoading = true;
+            const sortedPaths = await this.#sortPathsByOfferName(this.#allSelectedPaths);
+            if (signal.aborted) return;
+            this.#allSelectedPaths = sortedPaths;
+        }
+        this.#visibleCount = 0;
         await this.#loadNextSelectedWindow();
+    }
+
+    async #sortPathsByOfferName(paths) {
+        const unnamed = paths.filter((path) => !this.#offerNameByPath.has(path));
+        await processConcurrently(
+            unnamed,
+            async (path) => {
+                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path)).catch(() => null);
+                if (fragment) this.#prefetchedByPath.set(path, fragment);
+                this.#offerNameByPath.set(path, getOfferName(fragment));
+            },
+            OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+        const direction = this.cardsSortDirection === 'desc' ? -1 : 1;
+        return [...paths].sort((a, b) => this.#offerNameByPath.get(a).localeCompare(this.#offerNameByPath.get(b)) * direction);
     }
 
     async #probeAllPromoVariations(paths) {
@@ -290,11 +406,18 @@ class MasPromotionsItemsTable extends LitElement {
         this.#processAbortController = new AbortController();
         const signal = this.#processAbortController.signal;
         this.viewOnlyLoading = true;
-        await loadSelectedFragments(slice, this.type, this.repository, {
+        const unloaded = slice.filter((path) => !this.#loadedByPath.has(path));
+        await loadSelectedFragments(unloaded, this.type, this.repository, {
             signal,
+            prefetched: this.#prefetchedByPath,
             onItems: (items) => {
                 if (signal.aborted) return;
-                this.viewOnlyFragments = start === 0 ? items : [...this.viewOnlyFragments, ...items];
+                for (const item of items) {
+                    this.#loadedByPath.set(item.path, item);
+                    this.#offerNameByPath.set(item.path, getOfferName(item));
+                }
+                const windowItems = slice.map((path) => this.#loadedByPath.get(path)).filter(Boolean);
+                this.viewOnlyFragments = start === 0 ? windowItems : [...this.viewOnlyFragments, ...windowItems];
                 this.#visibleCount = end;
                 if (this.type === TABLE_TYPE.CARDS) {
                     this.#syncExistingPromoVariations(items, signal);
@@ -700,6 +823,24 @@ class MasPromotionsItemsTable extends LitElement {
         `;
     }
 
+    get relatedPagesDialogTemplate() {
+        if (!this.relatedPagesDialogOpen) return nothing;
+        return html`
+            <sp-dialog-wrapper
+                class="related-pages-dialog"
+                open
+                underlay
+                dismissable
+                headline="Related pages"
+                @close=${() => {
+                    this.relatedPagesDialogOpen = false;
+                }}
+            >
+                <div>To be implemented</div>
+            </sp-dialog-wrapper>
+        `;
+    }
+
     get promoVariationGeosDialogTemplate() {
         if (!this.promoVariationGeosDialogItem) return nothing;
         return html`
@@ -728,6 +869,19 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderActionsCell(item) {
+        if (this.type === TABLE_TYPE.CARDS && isPromoVariationPath(item?.path)) {
+            return html`<sp-table-cell class="actions-cell">
+                <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
+                    <sp-icon-more slot="icon"></sp-icon-more>
+                    <sp-menu-item>
+                        <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                        <sp-link quiet variant="secondary" href=${this.#getSearchUrl(item)} target="_blank" rel="noopener">
+                            View variation
+                        </sp-link>
+                    </sp-menu-item>
+                </sp-action-menu>
+            </sp-table-cell>`;
+        }
         const showCreatePromo = this.type === TABLE_TYPE.CARDS && this.#canCreatePromoVariation(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
@@ -764,6 +918,16 @@ class MasPromotionsItemsTable extends LitElement {
                           </sp-menu-item>`}
             </sp-action-menu>
         </sp-table-cell>`;
+    }
+
+    #toggleGroup(key) {
+        const next = new Set(this.expandedGroups);
+        if (next.has(key)) {
+            next.delete(key);
+        } else {
+            next.add(key);
+        }
+        this.expandedGroups = next;
     }
 
     #renderTagCell(item, tagKey, className) {
@@ -859,20 +1023,6 @@ class MasPromotionsItemsTable extends LitElement {
         return rows.sort(
             (a, b) => nameRank.get(a.offerName) - nameRank.get(b.offerName) || a.countriesLabel.localeCompare(b.countriesLabel),
         );
-    }
-
-    #renderPreviewCell(item) {
-        const canPreview = item?.model?.path === CARD_MODEL_PATH && item?.id;
-        if (!canPreview) {
-            return html`<sp-table-cell class="preview-cell"></sp-table-cell>`;
-        }
-        return html`<sp-table-cell
-            class="preview-cell"
-            @mouseover=${() => openPreview(item.id, { left: '50' })}
-            @mouseout=${closePreview}
-        >
-            <sp-icon-preview label="Preview card"></sp-icon-preview>
-        </sp-table-cell>`;
     }
 
     #renderCountriesCell(item) {
@@ -974,10 +1124,11 @@ class MasPromotionsItemsTable extends LitElement {
         </div>`;
     }
 
-    #renderCardsTable() {
+    #renderCardsSelectTable(items, hasMore) {
         return html`<mas-select-items-table
+            class="cards-table"
             .viewOnly=${true}
-            .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragments=${items}
             .viewOnlyFragmentsFetchedByParent=${true}
             .viewOnlyLoading=${this.viewOnlyLoading}
             .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
@@ -987,14 +1138,74 @@ class MasPromotionsItemsTable extends LitElement {
             .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
             .selectableTabs=${[]}
             .groupedVariationsManageOnly=${true}
+            .columnsOverride=${cardsTableColumns}
+            .cellsOverride=${cardsTableCells}
+            .variationColumns=${promoVariationColumns}
+            .variationCells=${promoVariationCells}
+            .hideVariationExpand=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
-            .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
-            .viewOnlyHasMore=${this.#hasMoreSelected}
+            .viewOnlyHasMore=${hasMore}
+            .sortBy=${'offer'}
+            .sortDirection=${this.cardsSortDirection}
             @view-only-load-more=${() => this.#loadMore()}
+            @view-only-sort=${(e) => this.#onViewOnlySort(e)}
+            @view-related-pages=${() => this.#openRelatedPagesDialog()}
             @show-toast=${this.#showToast}
         >
         </mas-select-items-table>`;
+    }
+
+    #openRelatedPagesDialog() {
+        this.relatedPagesDialogOpen = true;
+    }
+
+    #renderGroupSection(group) {
+        const collapsed = !this.expandedGroups.has(group.key);
+        return html`<div class="group-section">
+            <button
+                class="group-header-row"
+                aria-expanded=${collapsed ? 'false' : 'true'}
+                @click=${() => this.#toggleGroup(group.key)}
+            >
+                <span class="group-name">${group.label}</span>
+                <sp-icon-chevron-down class=${collapsed ? '' : 'expanded'}></sp-icon-chevron-down>
+            </button>
+            ${collapsed
+                ? nothing
+                : html`<div class="scrollable-table-container">${this.#renderCardsSelectTable(group.items, false)}</div>`}
+        </div>`;
+    }
+
+    #cancelGrouping = () => {
+        this.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+    };
+
+    #renderCardsTable() {
+        if (this.groupBy === GROUP_BY.NONE) {
+            return html`<div class="scrollable-table-container">
+                ${this.#renderCardsSelectTable(this.viewOnlyFragments, this.#hasMoreSelected)}
+            </div>`;
+        }
+        if (this.#hasMoreSelected) {
+            return html`<div class="grouping-pending" role="status">
+                    <sp-progress-circle size="s" indeterminate label="Grouping"></sp-progress-circle>
+                    <span>
+                        Grouping will apply once all items have loaded (${this.viewOnlyFragments.length} of
+                        ${this.#allSelectedPaths.length}).
+                    </span>
+                    <sp-action-button quiet size="s" @click=${this.#cancelGrouping}>Cancel</sp-action-button>
+                </div>
+                ${this.#renderCardsSelectTable(this.viewOnlyFragments, true)}`;
+        }
+        const groups = groupPromotionFragments(this.viewOnlyFragments, this.groupBy);
+        return html`<div class="grouped-tables">
+            ${repeat(
+                groups,
+                (group) => group.key,
+                (group) => this.#renderGroupSection(group),
+            )}
+        </div>`;
     }
 
     #renderCollectionsTable() {
@@ -1036,11 +1247,10 @@ class MasPromotionsItemsTable extends LitElement {
                       <sp-progress-circle size="l" indeterminate label="Creating promo variation"></sp-progress-circle>
                   </div>`
                 : nothing}
-            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender}
+            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${this.relatedPagesDialogTemplate}
+            ${tableToRender}
         `;
     }
 }
 
-export default MasPromotionsItemsTable;
-export { MasPromotionsItemsTable };
 customElements.define('mas-promotions-items-table', MasPromotionsItemsTable);

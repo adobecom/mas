@@ -253,8 +253,6 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
     const { project, label } = selectedPromoProject;
     const { regionLocale, country } = customizeContext;
     const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
-    // Paths of pzn variations added to this promo project (e.g. set(['PA-123/pzn/edu'])).
-    const groupedVariationPaths = selectedPromoProject.groupedVariationPaths;
     // The added pzn variations' own fragments (path -> fragment), carrying their pznTags.
     const groupedVariationReferences = selectedPromoProject.groupedVariationReferences;
     // First find root's own pzn variation from root.fields.variations, then check if that same
@@ -284,15 +282,9 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
             }
         }
     }
+    if (rawMatch) return {};
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
-    // No promo variation for the default fragment.
-    // If the visitor's pzn variation was not added to this promo project, then variation is empty.
-    if (!variation) {
-        if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
-            return { variation: {}, label };
-        }
-        return {};
-    }
+    if (!variation) return {};
     logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
     return { variation, label };
 }
@@ -302,7 +294,9 @@ function findPromoMapsForFragment(root, customizeContext) {
     if (!promoProjects?.length) return [];
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return [];
-    const { fragmentPath } = match.groups;
+    const variations = root.fields?.variations;
+    const personalizationVariation = variations?.length ? findPersonalizationVariation(variations, customizeContext) : null;
+    const { fragmentPath } = personalizationVariation ? PATH_TOKENS.exec(personalizationVariation.path).groups : match.groups;
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
@@ -358,10 +352,6 @@ function selectPromoProjectForFragment(root, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
-    // Promo variation (checking the pzn variation first, see `findPromoVariation`) takes
-    // priority, independent of fields.variations — unless the fragment's offer is flagged
-    // "ignore variations" for this geo, in which case we fall through so regional and pzn
-    // variations still apply.
     const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);

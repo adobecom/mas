@@ -1533,11 +1533,16 @@ describe('MasTranslationEditor', () => {
 
     describe('language selection dialog', () => {
         it('should enable save and discard when language selection is confirmed', async () => {
-            Store.translationProjects.targetLocales.set(['en_US']);
+            Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             const selector = getLangSelector(el);
-            selector.dispatchEvent(new Event('open'));
-            selector.dispatchEvent(new Event('confirm'));
+            const openSpy = sandbox.spy();
+            selector.addEventListener('open', openSpy);
+            await selector.updateComplete;
+            selector.shadowRoot.querySelector('.add-button').click();
+            expect(openSpy.calledOnce).to.be.true;
+            Store.translationProjects.targetLocales.set(['en_US']);
+            selector.shadowRoot.querySelector('.selector-dialog').dispatchEvent(new Event('confirm'));
             await el.updateComplete;
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
             expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.false;
@@ -1547,9 +1552,10 @@ describe('MasTranslationEditor', () => {
             Store.translationProjects.targetLocales.set(['en_US']);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             const selector = getLangSelector(el);
-            selector.dispatchEvent(new Event('open'));
+            await selector.updateComplete;
+            selector.shadowRoot.querySelector('.edit-button').click();
             Store.translationProjects.targetLocales.set(['fr_FR', 'de_DE']);
-            selector.dispatchEvent(new Event('cancel'));
+            selector.shadowRoot.querySelector('.selector-dialog').dispatchEvent(new Event('cancel'));
             await el.updateComplete;
             expect(Store.translationProjects.targetLocales.get()).to.deep.equal(['en_US']);
         });

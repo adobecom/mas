@@ -1,4 +1,4 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
@@ -65,6 +65,33 @@ describe('MasFragmentVariations', () => {
         it('returns empty string when promoCode field is missing', () => {
             const variation = createVariationFragment({ fields: [] });
             expect(getPromotionCode(variation)).to.equal('');
+        });
+    });
+
+    describe('promotion editor links', () => {
+        it('loads promotion projects once so rendered variation links include their promotion context', async () => {
+            const promoVariation = createVariationFragment({
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+            });
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/back-to-school' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.fragment = { ...createFragmentMock(), listPromoVariations: () => [promoVariation] };
+
+            await waitUntil(
+                () => el.querySelector('mas-fragment-table')?.editorLinkOptions.promotionId === 'promo-project-1',
+                'The promotion variation link should include its project',
+            );
+            el.requestUpdate();
+            await el.updateComplete;
+
+            expect(loadPromotions.calledOnce).to.be.true;
         });
     });
 

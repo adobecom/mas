@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, nothing } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -49,6 +49,9 @@ describe('MasCollapsibleTableRow', () => {
     const createMockRepository = () => {
         const repo = document.createElement('mas-repository');
         repo.setAttribute('base-url', 'http://test');
+        repo.loadPromotions = sandbox.stub().callsFake(async () => {
+            Store.promotions.list.data.setMeta('listFetched', true);
+        });
         document.body.appendChild(repo);
         return repo;
     };
@@ -71,9 +74,55 @@ describe('MasCollapsibleTableRow', () => {
         resetStore();
         removeMockRepository();
         setItemsSelectionStore(null);
+        Store.promotions.list.data.set([]);
+        Store.promotions.list.data.removeMeta('listFetched');
     });
 
     describe('initialization', () => {
+        for (const source of ['top-level card', 'prefetched variations']) {
+            it(`loads promotion context for links from ${source} without opening the editor`, async () => {
+                Store.promotions.list.data.set([]);
+                Store.promotions.list.data.removeMeta('listFetched');
+                const variation = {
+                    ...createMockTopLevelCard({
+                        path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                    }),
+                    id: 'promo-var-1',
+                };
+                const topLevelCard = source === 'top-level card' ? variation : createMockTopLevelCard();
+                const loadPromotions = sandbox.stub().callsFake(async () => {
+                    Store.promotions.list.data.set([
+                        { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                    ]);
+                    Store.promotions.list.data.setMeta('listFetched', true);
+                });
+                document.querySelector('mas-repository').loadPromotions = loadPromotions;
+                const el = await fixture(
+                    html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                );
+                if (source === 'prefetched variations') {
+                    el.isTopLevelExpanded = true;
+                    el.promoVariationsFetchedByParent = new Map([[topLevelCard.path, [variation]]]);
+                }
+
+                await waitUntil(
+                    () =>
+                        [...el.shadowRoot.querySelectorAll('a.row-link-overlay')].some(
+                            (link) =>
+                                new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1',
+                        ),
+                    'The promotion variation link should include its project',
+                );
+                el.requestUpdate();
+                await el.updateComplete;
+
+                expect(loadPromotions.calledOnce).to.be.true;
+                Store.promotions.list.data.set([]);
+                Store.promotions.list.data.removeMeta('listFetched');
+            });
+        }
+
         for (const type of ['locale', 'promotion', 'grouped']) {
             it(`exposes the ${type} variation's own editor link`, async () => {
                 const path =

@@ -33,6 +33,25 @@ describe('promotions-repository', () => {
     });
 
     describe('getPromotionProjectsForProbe', () => {
+        it('shares the initial load between concurrent callers instead of superseding the request', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            let completeLoad;
+            const loadPromotions = sandbox.stub().returns(
+                new Promise((resolve) => {
+                    completeLoad = resolve;
+                }),
+            );
+            const first = getPromotionProjectsForProbe(loadPromotions);
+            const second = getPromotionProjectsForProbe(loadPromotions);
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            Store.promotions.list.data.set([{ get: () => project }]);
+            completeLoad();
+
+            expect(await Promise.all([first, second])).to.deep.equal([[project], [project]]);
+            expect(loadPromotions.calledOnce).to.be.true;
+        });
+
         it('loads promotions when list was never fetched', async () => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');
@@ -52,6 +71,38 @@ describe('promotions-repository', () => {
 
             expect(loadPromotions.calledOnce).to.be.true;
             expect(projects).to.have.lengthOf(1);
+        });
+
+        it('supports a synchronous loader that populates the promotion store', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+
+            const projects = await getPromotionProjectsForProbe(() => {
+                Store.promotions.list.data.set([{ get: () => project }]);
+            });
+
+            expect(projects).to.deep.equal([project]);
+        });
+
+        it('allows another load after the initial request rejects', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            const error = new Error('Promotions unavailable');
+            const loadPromotions = sandbox.stub().rejects(error);
+            let failure;
+            try {
+                await getPromotionProjectsForProbe(loadPromotions);
+            } catch (caught) {
+                failure = caught;
+            }
+            expect(failure).to.equal(error);
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            loadPromotions.callsFake(async () => {
+                Store.promotions.list.data.set([{ get: () => project }]);
+            });
+
+            expect(await getPromotionProjectsForProbe(loadPromotions)).to.deep.equal([project]);
         });
 
         it('does not load when promotions list was already fetched empty', async () => {

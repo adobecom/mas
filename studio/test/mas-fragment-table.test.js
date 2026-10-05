@@ -1,4 +1,4 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-fragment-table.js';
@@ -430,6 +430,28 @@ describe('MasFragmentTable', () => {
     });
 
     describe('validationStatus indicator', () => {
+        for (const selector of ['.validation-error-indicator', '.offer-id-text']) {
+            it(`keeps ${selector} tooltip above the row link overlay`, async () => {
+                const stylesheet = await (await fetch(new URL('../style.css', import.meta.url))).text();
+                fixtureSync(
+                    html`<style>
+                        ${stylesheet}
+                    </style>`,
+                );
+                const fragmentStore = createFragmentStore({
+                    getValidationErrors: sandbox.stub().returns([{ message: 'is not valid HTML' }]),
+                });
+                const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+                el.offerData = { offerId: '1234567890' };
+                await el.updateComplete;
+                const tooltipStyle = getComputedStyle(el.querySelector(selector));
+                const overlayStyle = getComputedStyle(el.querySelector('.row-link-overlay'));
+
+                expect(tooltipStyle.position).to.not.equal('static');
+                expect(Number(tooltipStyle.zIndex)).to.be.greaterThan(Number(overlayStyle.zIndex));
+            });
+        }
+
         it('renders no indicator when the fragment has no validation errors', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);

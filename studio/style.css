@@ -1359,6 +1359,8 @@ mas-fragment-table sp-checkbox,
 mas-fragment-table sp-action-menu,
 mas-fragment-table sp-button,
 mas-fragment-table button,
+mas-fragment-table .validation-error-indicator,
+mas-fragment-table .offer-id-text,
 mas-fragment-table sp-table-cell.preview {
     position: relative;
     z-index: 2;

@@ -52,6 +52,7 @@ class MasFragmentVariations extends LitElement {
     reactiveController = new ReactiveController(this, [
         Store.fragments.highlightedVariationId,
         Store.fragments.variationSearchTab,
+        Store.promotions.list.data,
     ]);
 
     constructor() {
@@ -70,6 +71,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     #orphanPromoVariationsLoader = createKeyedAsyncLoader();
+    #promotionProjectsRequested = false;
 
     createRenderRoot() {
         return this;
@@ -102,6 +104,15 @@ class MasFragmentVariations extends LitElement {
             this.scrollToHighlightedVariation();
         }
         void this.#loadOrphanPromoVariationsFallback();
+        if (
+            !this.#promotionProjectsRequested &&
+            this.repository &&
+            this.fragment &&
+            this.promoVariations.some((variation) => getPromotionTagFromFragment(variation))
+        ) {
+            this.#promotionProjectsRequested = true;
+            void getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+        }
     }
 
     async #loadOrphanPromoVariationsFallback() {

@@ -11,7 +11,7 @@ import {
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';
-import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
+import { getPromotionProjectsForProbe, mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
 import {
     getPromotionInfo,
     getPromotionTagFromFragment,
@@ -57,7 +57,9 @@ export class MasCollapsibleTableRow extends LitElement {
     #promoLoadInProgress = false;
     #loadToken = 0;
     #referencesLoaded = false;
+    #promotionProjectsRequested = false;
     itemsSelection = new ItemsSelectionController(this);
+    promotionProjectsController = new ReactiveController(this, [Store.promotions.list.data]);
     variationsController = null;
     selectedCardsController = null;
 
@@ -122,6 +124,15 @@ export class MasCollapsibleTableRow extends LitElement {
                 this.isLoadingGroupedVariations = false;
                 this.isLoadingPromoVariations = false;
             }
+        }
+        if (
+            !this.#promotionProjectsRequested &&
+            this.repository &&
+            (getPromotionTagFromFragment(this.topLevelCard) ||
+                this.promoVariations.some((variation) => getPromotionTagFromFragment(variation)))
+        ) {
+            this.#promotionProjectsRequested = true;
+            void getPromotionProjectsForProbe(() => this.repository.loadPromotions());
         }
     }
 

@@ -9,7 +9,6 @@ import {
     TAG_MODEL_ID_MAPPING,
 } from '../../src/constants.js';
 import {
-    REFERENCE_CHECK_PROCEED_THRESHOLD_MS,
     buildPlaceholderReferenceScopes,
     matchesPlaceholderKey,
     findPlaceholderReferences,

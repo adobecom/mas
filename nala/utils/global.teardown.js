@@ -2,7 +2,7 @@ import { chromium, devices } from '@playwright/test';
 import { getCurrentRunId, clearRunId } from './fragment-tracker.js';
 import { readFragmentLedger, completeFragmentLedger } from './fragment-ledger.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
-import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
 import RequestCountingReporter from './request-counting-reporter.js';
 import { USER_AGENT_DESKTOP } from '../../playwright.config.js';
 
@@ -238,11 +238,11 @@ async function globalTeardown() {
         for (const path of global.nalaCleanupResults.paths ?? []) path.failed = path.found - path.deleted;
         throw error;
     } finally {
+        for (const context of browser.contexts()) {
+            for (const page of context.pages()) await removePageRoutes(page);
+        }
         stopCounting?.();
         GlobalRequestCounter.saveCountToFileSync();
-        for (const context of browser.contexts()) {
-            for (const page of context.pages()) await page.unrouteAll({ behavior: 'wait' });
-        }
         await browser.close();
         printCleanupSummary();
         if (process.env.GITHUB_ACTIONS === 'true') new RequestCountingReporter().printRequestSummary();

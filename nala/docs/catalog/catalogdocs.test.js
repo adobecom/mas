@@ -73,6 +73,16 @@ test.describe('Catalog gallery feature test suite', () => {
         await test.step('step-2: Verify all CTA buttons have the same top (bounding box y)', async () => {
             const tolerancePx = 0;
             const buttons = galleryPage.getGalleryFooterCtas();
+            await expect(galleryPage.getCatalogCards()).toHaveCount(CATALOG_FRAGMENT_IDS.length);
+            for (const id of CATALOG_FRAGMENT_IDS) {
+                const ready = await galleryPage.getCard(id).evaluate(async (card) => {
+                    await customElements.whenDefined('merch-card');
+                    await card.checkReady();
+                    return !card.failed;
+                });
+                expect(ready, `Catalog card ${id} must resolve before comparing CTA positions`).toBe(true);
+            }
+            await expect(buttons.first()).toBeVisible();
             const count = await buttons.count();
             expect(count).toBeGreaterThan(0);
             for (let i = 0; i < count; i += 1) {

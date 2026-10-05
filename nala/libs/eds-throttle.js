@@ -2,10 +2,22 @@ import { isStaticResource, serveStaticResource, recordStaticCacheHit } from './s
 import { installRunStaticHar, STATIC_HAR_URLS } from './run-static-har.js';
 import { fetchWithRateLimitRetry, isRetryableRead, logRateLimitedResponses, waitForRateLimit } from './rate-limit.js';
 
-const installedPages = new WeakSet();
+const pendingPageRoutes = new WeakMap();
 let throttleChain = Promise.resolve();
 let lastRequestAt = 0;
 let throttleLogged = false;
+
+export async function drainPageRoutes(page) {
+    const pending = pendingPageRoutes.get(page);
+    if (!pending) return;
+    while (pending.size) await Promise.all(pending);
+}
+
+/** Drain before unrouteAll: removing handlers can continue other in-flight requests. */
+export async function removePageRoutes(page) {
+    await drainPageRoutes(page);
+    await page.unrouteAll({ behavior: 'wait' });
+}
 
 /**
  * Pace EDS requests per worker; aggregate traffic scales with worker count.
@@ -74,10 +86,11 @@ export function logEdsThrottleOnce(edsMaxRps) {
  * @param {import('@playwright/test').Page} page
  */
 export async function installEdsThrottleOnPage(page, { replayHar = true, cache = true, nativeCooldowns = true } = {}) {
-    if (installedPages.has(page)) return;
+    if (pendingPageRoutes.has(page)) return;
     const edsMaxRps = resolveEdsMaxRps();
     const cacheEnabled = cache && process.env.NALA_STATIC_CACHE_DISABLED !== '1';
-    installedPages.add(page);
+    const pending = new Set();
+    pendingPageRoutes.set(page, pending);
     logRateLimitedResponses(page, nativeCooldowns);
     logEdsThrottleOnce(edsMaxRps);
     const handleRoute = async (route) => {
@@ -127,18 +140,30 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         await pace();
         await route.continue();
     };
-    await page.route('**/*', handleRoute);
+    const trackRoute = (handler) => async (route) => {
+        const operation = handler(route);
+        pending.add(operation);
+        try {
+            await operation;
+        } finally {
+            pending.delete(operation);
+        }
+    };
+    await page.route('**/*', trackRoute(handleRoute));
     if (cacheEnabled && replayHar) {
         const harUrls = await installRunStaticHar(page);
         if (harUrls.size) {
-            await page.route(STATIC_HAR_URLS, async (route) => {
-                if (harUrls.has(route.request().url()) && (await isStaticResource(route.request()))) {
-                    recordStaticCacheHit();
-                    await route.fallback();
-                } else {
-                    await handleRoute(route);
-                }
-            });
+            await page.route(
+                STATIC_HAR_URLS,
+                trackRoute(async (route) => {
+                    if (harUrls.has(route.request().url()) && (await isStaticResource(route.request()))) {
+                        recordStaticCacheHit();
+                        await route.fallback();
+                    } else {
+                        await handleRoute(route);
+                    }
+                }),
+            );
         }
     }
 }

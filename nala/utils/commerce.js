@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { drainPageRoutes, installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
 
@@ -436,7 +436,7 @@ function createWorkerPageSetup(config = {}) {
 
         // Clean up worker context
         if (workerContext) {
-            for (const page of workerContext.pages()) await page.unrouteAll({ behavior: 'wait' });
+            for (const page of workerContext.pages()) await removePageRoutes(page);
             stopCounting?.();
             await workerContext.close();
             workerContext = null;
@@ -478,6 +478,7 @@ function createWorkerPageSetup(config = {}) {
     }
 
     async function finishTest(testInfo) {
+        for (const page of workerContext.pages()) await drainPageRoutes(page);
         attachWorkerErrorsToFailure(testInfo);
         stopCounting?.();
         GlobalRequestCounter.saveCountToFileSync();

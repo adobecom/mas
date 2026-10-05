@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { isPublicStaticResponse, isStaticResource, VARY_HEADERS } from './static-resource-cache.js';
-import { installEdsThrottleOnPage } from './eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes } from './eds-throttle.js';
 
 export const STATIC_HAR_URLS = /^https?:\/\/.*\.(?:js|css)(?:\?.*)?$/;
 const ARCHIVES = ['docs', 'studio'];
@@ -125,7 +125,11 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
                 );
             }
         } finally {
-            await context.close();
+            try {
+                for (const page of context.pages()) await removePageRoutes(page);
+            } finally {
+                await context.close();
+            }
         }
         const har = JSON.parse(readFileSync(rawPath, 'utf8'));
         const responseHeaders = (entry) =>

@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { test, expect } from '@playwright/test';
 import { EditorBootstrapCache, waitForEditorReady } from '../libs/editor-bootstrap.js';
 import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { getResourceMetrics } from '../libs/static-resource-cache.js';
 import { createWorkerPageSetup } from '../utils/commerce.js';
 import {
     beginFragmentCreation,
@@ -21,6 +22,7 @@ let server;
 let baseURL;
 let documentLoads;
 let slowAssetStarted;
+const slowRequestsFinished = new Set();
 
 const editorHTML = `<!doctype html>
 <mas-repository></mas-repository><mas-fragment-editor></mas-fragment-editor>
@@ -77,12 +79,17 @@ test.beforeAll(async () => {
     documentLoads = [];
     server = createServer((request, response) => {
         documentLoads.push(request.url);
-        if (request.url.startsWith('/slow-asset')) {
+        if (request.url.startsWith('/slow-asset') || request.url.startsWith('/slow-read')) {
             slowAssetStarted();
-            setTimeout(() => {
-                response.writeHead(200, { 'content-type': 'image/svg+xml' });
-                response.end('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>');
-            }, 200);
+            setTimeout(
+                () => {
+                    const read = request.url.startsWith('/slow-read');
+                    response.writeHead(200, { 'content-type': read ? 'application/json' : 'image/svg+xml' });
+                    response.end(read ? '{}' : '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>');
+                    slowRequestsFinished.add(request.url);
+                },
+                request.url.includes('-second') ? 600 : 200,
+            );
             return;
         }
         const asset = request.url.startsWith('/asset');
@@ -368,6 +375,37 @@ for (const [name, fixtureTest] of [
         }, `${baseURL}/slow-asset-${name}.svg`);
         await started;
     });
+    for (const kind of ['asset', 'read']) {
+        fixtureTest(
+            `${name} fixture drains two pending ${kind} handlers before removing routes`,
+            async ({ page }, testInfo) => {
+                globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
+                let requestsStarted = 0;
+                const started = new Promise((resolve) => {
+                    slowAssetStarted = () => {
+                        if (++requestsStarted === 2) resolve();
+                    };
+                });
+                await page.goto(baseURL);
+                await page.evaluate(
+                    ({ baseURL, name, kind }) => {
+                        for (const suffix of ['first', 'second']) {
+                            const url = `${baseURL}/slow-${kind}-${name}-${suffix}${kind === 'asset' ? '.svg' : ''}`;
+                            if (kind === 'asset') {
+                                const image = new Image();
+                                image.src = url;
+                                document.body.append(image);
+                            } else {
+                                fetch(url).then((response) => response.json());
+                            }
+                        }
+                    },
+                    { baseURL, name, kind },
+                );
+                await started;
+            },
+        );
+    }
 }
 
 for (const status of [200, 500]) {
@@ -620,6 +658,7 @@ test('Docs loads only requested named pages and shares concurrent initialization
             { name: 'dark', url: '/docs?theme=dark' },
         ],
     });
+
     const before = documentLoads.length;
     await setup.setupWorkerPages({ browser, baseURL });
     expect(documentLoads.length).toBe(before);
@@ -640,3 +679,46 @@ test('Docs loads only requested named pages and shares concurrent initialization
         await setup.cleanupWorkerPages();
     }
 });
+
+for (const kind of ['asset', 'read']) {
+    test(`worker Docs pages drain ${kind} handlers at the per-test boundary without removing routes`, async ({
+        browser,
+    }, testInfo) => {
+        globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
+        const setup = createWorkerPageSetup({ pages: [{ name: 'US', url: '/docs' }] });
+        await setup.setupWorkerPages({ browser, baseURL });
+        await setup.beginTest();
+        let requestsStarted = 0;
+        const started = new Promise((resolve) => {
+            slowAssetStarted = () => {
+                if (++requestsStarted === 2) resolve();
+            };
+        });
+        try {
+            const page = await setup.getPage('US');
+            await page.evaluate(
+                ({ baseURL, kind }) => {
+                    for (const suffix of ['first', 'second']) {
+                        const url = `${baseURL}/slow-${kind}-Worker-${suffix}${kind === 'asset' ? '.svg' : ''}`;
+                        if (kind === 'asset') {
+                            const image = new Image();
+                            image.src = url;
+                            document.body.append(image);
+                        } else {
+                            fetch(url).then((response) => response.json());
+                        }
+                    }
+                },
+                { baseURL, kind },
+            );
+            await started;
+            await setup.finishTest(testInfo);
+            expect(slowRequestsFinished.has(`/slow-${kind}-Worker-second${kind === 'asset' ? '.svg' : ''}`)).toBe(true);
+            const before = getResourceMetrics().upstreamRequests;
+            await page.addScriptTag({ url: `${baseURL}/asset-worker-boundary-${kind}.js` });
+            expect(getResourceMetrics().upstreamRequests).toBe(before + 1);
+        } finally {
+            await setup.cleanupWorkerPages();
+        }
+    });
+}

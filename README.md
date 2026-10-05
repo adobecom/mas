@@ -110,6 +110,8 @@ Workers replay only those current-run assets. HAR files are never committed, reu
 from a CI cache, and global setup's teardown removes them after the run (interrupted runs can leave unused files).
 Unrecorded assets fall back to the network and the bounded worker-local static cache; fonts and images also use that cache.
 Documents, authenticated/cookie-bearing requests, API responses, errors and private/no-store responses are not cached.
+Nala drains its active static/API route handlers before removing interception or closing pages.
+Worker-scoped Docs pages also drain handlers between tests so background requests remain attributed to the owning test.
 Missing (HTTP 404) seed assets are reported and excluded from HAR; their test requests stay live, so caching does not
 block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
 

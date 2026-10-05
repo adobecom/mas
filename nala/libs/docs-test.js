@@ -1,5 +1,5 @@
 import { test as base } from '@playwright/test';
-import { installEdsThrottleOnPage } from './eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes } from './eds-throttle.js';
 import GlobalRequestCounter from './global-request-counter.js';
 import { getResourceMetrics } from './static-resource-cache.js';
 
@@ -11,7 +11,7 @@ export const test = base.extend({
         try {
             await use(page);
         } finally {
-            await page.unrouteAll({ behavior: 'wait' });
+            await removePageRoutes(page);
             stopCounting();
             GlobalRequestCounter.saveCountToFileSync();
             const after = getResourceMetrics();

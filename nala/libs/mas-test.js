@@ -1,6 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
-import { installEdsThrottleOnPage } from './eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes } from './eds-throttle.js';
 import { setCurrentTestName, setCurrentTestAttempt } from '../utils/fragment-tracker.js';
 import { trackFragmentResponses } from '../utils/fragment-ledger.js';
 import StudioPage from '../studio/studio.page.js';
@@ -114,7 +114,7 @@ const masTest = base.extend({
         try {
             await use(page);
         } finally {
-            await page.unrouteAll({ behavior: 'wait' });
+            await removePageRoutes(page);
             // Store test page in testInfo for base reporter if test failed
             if (testInfo.status === 'failed' && currentTestPage) {
                 testInfo.annotations.push({

@@ -56,18 +56,7 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         });
 
         await test.step('step-3: Clear badge field', async () => {
-            await editor.badge.focus();
-            await editor.badge.press('ControlOrMeta+A');
-            await expect
-                .poll(() =>
-                    editor.badge.evaluate((element) => {
-                        const { selection, doc } = element.getRootNode().host.editorView.state;
-                        return selection.from === 0 && selection.to === doc.content.size;
-                    }),
-                )
-                .toBe(true);
-            await editor.badge.press('Backspace');
-            await expect(editor.badge).toHaveText('');
+            await editor.clearRteField(editor.badge);
             await expect
                 .poll(() =>
                     page.locator('mas-fragment-editor').evaluate((element) => element.fragment.getField('badge').values[0]),

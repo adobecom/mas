@@ -155,6 +155,25 @@ export default class EditorPage {
         return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
+    async clearRteField(field) {
+        await expect(async () => {
+            await field.click();
+            await field.press('ControlOrMeta+A');
+            await expect
+                .poll(
+                    () =>
+                        field.evaluate((element) => {
+                            const { selection, doc } = element.getRootNode().host.editorView.state;
+                            return selection.from === 0 && selection.to === doc.content.size;
+                        }),
+                    { timeout: 1000 },
+                )
+                .toBe(true);
+        }).toPass({ timeout: 10000 });
+        await field.press('Backspace');
+        await expect(field).toHaveText('');
+    }
+
     async selectPickerOption(picker, label) {
         const button = picker.locator('button#button');
         await button.scrollIntoViewIfNeeded();

@@ -324,6 +324,7 @@ export default class StudioPage {
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
+        await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');
         await this.page.goto(fragmentUrl);
         const fragmentId = new URLSearchParams(new URL(fragmentUrl).hash.slice(1)).get('fragmentId');
         await waitForEditorReady(this.page, fragmentId);

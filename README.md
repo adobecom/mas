@@ -113,8 +113,10 @@ Documents, authenticated/cookie-bearing requests, API responses, errors and priv
 Missing (HTTP 404) seed assets are reported and excluded from HAR; their test requests stay live, so caching does not
 block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
 
-Nala logs observed HTTP 429s with the method, origin/path and cooldown. `Retry-After` seconds or HTTP dates take priority;
-missing or invalid values use 10 seconds. Subsequent requests to that origin wait for the cooldown within the worker.
+Nala logs observed HTTP 429s with the method, origin/path and `Retry-After`. `Retry-After` seconds or HTTP dates take priority;
+missing or invalid values use 10 seconds. Subsequent requests to the same origin wait for the cooldown within the worker,
+including IMS, Odin and third-party services; no hosts are excluded.
+Authentication submits each form once and waits within the existing 180-second setup budget, including cooldowns.
 Public static GETs retry once, including HAR seed assets; persistent 429s still fail normally and are never cached.
 Cookie-setting responses are neither retried nor cached.
 Documents, API reads and writes are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.

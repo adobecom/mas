@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { test, expect } from '@playwright/test';
 import { installEdsThrottleOnPage, throttleEdsGap } from '../libs/eds-throttle.js';
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
+import { signIn } from '../libs/ims-auth.js';
 
 let server;
 let baseURL;
@@ -15,10 +16,50 @@ test.beforeAll(async () => {
         const calls = requests.get(pathname) ?? [];
         calls.push({ time: Date.now(), method: request.method });
         requests.set(pathname, calls);
+        if (pathname === '/login') {
+            response.writeHead(200, { 'content-type': 'text/html' });
+            response.end(`
+                <input id="EmailPage-EmailField">
+                <button data-id="EmailPage-ContinueButton">Continue</button>
+                <section id="password" hidden>
+                    <a>Reset your password</a>
+                    <input id="PasswordPage-PasswordField">
+                    <button data-id="PasswordPage-ContinueButton">Sign in</button>
+                </section>
+                <section id="passkey" hidden>
+                    <button data-id="PasskeyNudgePage-SkipButton">Skip</button>
+                </section>
+                <div id="welcome" hidden>Welcome</div>
+                <script>
+                    document.querySelector('[data-id=EmailPage-ContinueButton]').addEventListener('click', async () => {
+                        await fetch('/signin/v1/audit', { method: 'POST' });
+                        const response = await fetch('/email', { method: 'POST' });
+                        if (response.ok) document.querySelector('#password').hidden = false;
+                    });
+                    document.querySelector('[data-id=PasswordPage-ContinueButton]').addEventListener('click', async () => {
+                        await fetch('/signin/v1/password-audit', { method: 'POST' });
+                        const response = await fetch('/password', { method: 'POST' });
+                        if (response.ok) document.querySelector('#passkey').hidden = false;
+                    });
+                    document.querySelector('[data-id=PasskeyNudgePage-SkipButton]').addEventListener('click', async () => {
+                        const response = await fetch('/skip', { method: 'POST' });
+                        if (response.ok) document.querySelector('#welcome').hidden = false;
+                        if (response.ok) location.hash = 'page=welcome';
+                    });
+                </script>
+            `);
+            return;
+        }
         const limited =
-            pathname === '/persistent.js' || pathname === '/write' || (pathname.endsWith('.js') && calls.length === 1);
+            pathname === '/persistent.js' ||
+            pathname === '/write' ||
+            pathname === '/signin/v1/audit' ||
+            pathname === '/signin/v1/password-audit' ||
+            (pathname.endsWith('.js') && calls.length === 1);
         const headers = { 'content-type': pathname.endsWith('.js') ? 'application/javascript' : 'text/html' };
         if (pathname !== '/fallback.js') headers['retry-after'] = pathname === '/persistent.js' ? '0' : '1';
+        if (pathname === '/signin/v1/audit') headers['retry-after'] = '60';
+        if (pathname === '/signin/v1/password-audit') headers['retry-after'] = '6';
         response.writeHead(limited ? 429 : 200, headers);
         response.end(limited ? 'rate limited' : 'window.rateLimitRecovered = true;');
     });
@@ -108,4 +149,28 @@ test('already queued EDS requests preserve spacing after a cooldown', async ({ p
     expect(times[0] - first).toBeGreaterThanOrEqual(1000);
     expect(times[1] - times[0]).toBeGreaterThanOrEqual(50);
     expect(times[2] - times[1]).toBeGreaterThanOrEqual(50);
+});
+
+test('sign-in honors a 60s audit cooldown without resubmitting either form', async ({ page }) => {
+    test.setTimeout(75000);
+    await installEdsThrottleOnPage(page, { cache: false });
+    await page.goto(`${baseURL}/login`);
+    await signIn(page, {
+        email: 'nala@example.test',
+        password: 'not-a-real-password',
+        welcomeUrlPattern: /\/login#page=welcome$/,
+        timeout: 70000,
+    });
+    await expect(page.locator('#welcome')).toBeVisible();
+    const audit = requests.get('/signin/v1/audit');
+    const email = requests.get('/email');
+    const password = requests.get('/password');
+    expect(audit).toHaveLength(1);
+    expect(email).toHaveLength(1);
+    expect(password).toHaveLength(1);
+    expect(requests.get('/skip')).toHaveLength(1);
+    expect(email[0].time - audit[0].time).toBeGreaterThanOrEqual(60000);
+    expect(password[0].time - requests.get('/signin/v1/password-audit')[0].time).toBeGreaterThanOrEqual(6000);
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain(`HTTP 429 POST ${baseURL}/signin/v1/audit; Retry-After: 60; cooldown 60s.`);
 });

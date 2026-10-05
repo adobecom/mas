@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events';
 import { chromium } from '@playwright/test';
 import { isStaticResource, serveStaticResource, getResourceMetrics } from '../libs/static-resource-cache.js';
 import { isBootstrapRead } from '../libs/editor-bootstrap.js';
-import { isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
+import { installEdsThrottleOnPage, isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
 import { retryAfterMs } from '../libs/rate-limit.js';
 import { createRunId, clearRunId, setCurrentTestName, setCurrentTestAttempt, getTitle } from '../utils/fragment-tracker.js';
 import {
@@ -160,6 +160,73 @@ test('Retry-After honors seconds and HTTP dates, with a 10s fallback for invalid
     assert.equal(retryAfterMs('Fri, 02 Oct 2026 16:00:04 GMT', now), 4000);
     assert.equal(retryAfterMs('Fri, 02 Oct 2026 15:59:59 GMT', now), 0);
     for (const value of [undefined, '', ' ', '-1', 'invalid']) assert.equal(retryAfterMs(value, now), 10000);
+});
+
+test('native 429 cooldowns apply to every origin, including IMS and other third-party services', async (t) => {
+    let now = Date.now();
+    t.mock.method(Date, 'now', () => now);
+    const delays = [];
+    t.mock.method(globalThis, 'setTimeout', (done, delay) => {
+        delays.push(delay);
+        now += delay;
+        done();
+    });
+    const warnings = t.mock.method(console, 'warn', () => {});
+    const previous = process.env.NALA_EDS_THROTTLE_DISABLED;
+    process.env.NALA_EDS_THROTTLE_DISABLED = '1';
+    t.after(() => {
+        if (previous === undefined) delete process.env.NALA_EDS_THROTTLE_DISABLED;
+        else process.env.NALA_EDS_THROTTLE_DISABLED = previous;
+    });
+
+    for (const origin of [
+        'https://auth.services.adobe.com',
+        'https://ims-na1.adobelogin.com',
+        'https://commerce.adobe.com',
+        'https://external.example',
+        'https://rate-limit-test--mas--adobecom.aem.live',
+        'https://rate-limit-test--mas--adobecom.aem.page',
+        'https://author-rate-limit-test.adobeaemcloud.com',
+        'https://milo.adobe.com',
+        'https://mas.adobe.com',
+        'http://localhost:54321',
+        'http://127.0.0.1:54321',
+    ]) {
+        const page = new EventEmitter();
+        let handleRoute;
+        page.route = async (pattern, handler) => {
+            handleRoute = handler;
+        };
+        await installEdsThrottleOnPage(page, { cache: false, replayHar: false });
+        const limited = request(`${origin}/signin/v1/audit?token=do-not-log`, { method: 'POST', type: 'fetch' });
+        page.emit('response', {
+            status: () => 429,
+            url: () => limited.url(),
+            request: () => limited,
+            headers: () => ({ 'retry-after': '60' }),
+        });
+
+        let continued = 0;
+        const before = delays.length;
+        for (const [path, method, type] of [
+            ['/signin/v1/continue', 'POST', 'fetch'],
+            ['/en_US/config', 'GET', 'fetch'],
+        ]) {
+            await handleRoute({
+                request: () => request(`${origin}${path}`, { method, type }),
+                continue: async () => {
+                    continued++;
+                },
+            });
+        }
+        assert.equal(continued, 2);
+        assert.deepEqual(delays.slice(before), [60000], `${origin}: cooldown must honor Retry-After`);
+        const message = warnings.mock.calls.at(-1).arguments[0];
+        assert.match(message, /HTTP 429 POST/);
+        assert.match(message, /Retry-After: 60/);
+        assert.doesNotMatch(message, /do-not-log/);
+        assert.match(message, /cooldown 60s/);
+    }
 });
 
 test('cookie-setting 429s are neither retried nor cached across contexts', async () => {

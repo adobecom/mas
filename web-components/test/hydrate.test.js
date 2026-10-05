@@ -891,6 +891,39 @@ describe('hydrate', () => {
         ).to.equal('Layout Experiment A');
     });
 
+    for (const [field, attribute] of [
+        ['promoProject', 'data-promotion-project'],
+        ['promoVariationProject', 'data-promotion-variation-project'],
+    ]) {
+        it(`removes stale ${attribute} when rehydrating without ${field}`, async () => {
+            const fragment = {
+                promoProject: 'Summer Sale 2026',
+                promoVariationProject: 'Layout Experiment A',
+                fields: { variant: 'ccd-slice' },
+            };
+            merchCard.variantLayout = {
+                aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+            };
+            await hydrate(fragment, merchCard);
+            expect(merchCard.hasAttribute(attribute)).to.be.true;
+
+            const refreshedFragment = { ...fragment };
+            delete refreshedFragment[field];
+            await hydrate(refreshedFragment, merchCard);
+
+            expect(merchCard.hasAttribute(attribute)).to.be.false;
+            const retainedAttribute =
+                field === 'promoProject'
+                    ? 'data-promotion-variation-project'
+                    : 'data-promotion-project';
+            expect(merchCard.getAttribute(retainedAttribute)).to.equal(
+                field === 'promoProject'
+                    ? 'Layout Experiment A'
+                    : 'Summer Sale 2026',
+            );
+        });
+    }
+
     it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);

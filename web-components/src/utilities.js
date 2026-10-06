@@ -40,7 +40,13 @@ export function selectOffers(offers, { country, forceTaxExclusive }) {
         selected = [offers[0]];
     }
     if (forceTaxExclusive) {
-        selected = selected.map(forceTaxExclusivePrice);
+        selected = selected.map((offer) => {
+            const amended = forceTaxExclusivePrice(offer);
+            // Net rewrite invalidates the gross priceInfo tree; drop it.
+            return amended === offer
+                ? offer
+                : { ...amended, priceInfo: undefined };
+        });
     }
     return selected;
 }
@@ -143,6 +149,8 @@ export function sumOffers(offers) {
     return {
         ...firstOffer,
         offerSelectorIds: offers.flatMap((o) => o.offerSelectorIds || []),
+        // Summed price has no WCS string → drop priceInfo, render numeric sum.
+        priceInfo: undefined,
         priceDetails: {
             ...firstOffer.priceDetails,
             ...summedPrices,

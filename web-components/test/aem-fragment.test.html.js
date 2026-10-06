@@ -543,7 +543,7 @@ runTests(async () => {
                 addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
                 );
             });
             it('fetches fragment from freyja on publish with overriden country', async () => {
@@ -557,7 +557,7 @@ runTests(async () => {
                 const aemFragment = addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
             });
 
@@ -583,7 +583,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
                     );
                 } finally {
                     publishService.remove();
@@ -612,7 +612,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
                     );
                 } finally {
                     publishService.remove();

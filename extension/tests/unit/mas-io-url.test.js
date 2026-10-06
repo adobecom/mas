@@ -62,22 +62,23 @@ test('returns an empty config when the page has no commerce service', () => {
     assert.deepEqual(new CardDetector().getServiceConfig(), {});
 });
 
-test('builds IO bases from runtime workspaces and adobe.com hosts', () => {
-    const runtime = '.adobeioruntime.net/api/v1/web/MerchAtScale';
-    assert.equal(resolveMasIOUrl('axel'), `https://14257-merchatscale-axel${runtime}`);
-    assert.equal(resolveMasIOUrl('14257-merchatscale-qa'), `https://14257-merchatscale-qa${runtime}`);
+test('builds IO bases from the adobe.com hosts allowed by the manifest', () => {
+    assert.equal(resolveMasIOUrl('mas.adobe.com'), 'https://mas.adobe.com/mas/io');
     assert.equal(resolveMasIOUrl('www.adobe.com'), 'https://www.adobe.com/mas/io');
     assert.equal(resolveMasIOUrl('www.stage.adobe.com'), 'https://www.stage.adobe.com/mas/io');
 });
 
 test('keeps accepting full urls with an allowed host', () => {
-    const runtime = '.adobeioruntime.net/api/v1/web/MerchAtScale';
-    assert.equal(resolveMasIOUrl(`https://14257-merchatscale-axel${runtime}`), `https://14257-merchatscale-axel${runtime}`);
     assert.equal(resolveMasIOUrl('https://www.adobe.com/mas/io'), 'https://www.adobe.com/mas/io');
+    assert.equal(resolveMasIOUrl('https://www.stage.adobe.com/mas/io/'), 'https://www.stage.adobe.com/mas/io');
 });
 
-test('rejects foreign hosts, localhost and malformed IO bases', () => {
+test('rejects hosts the extension cannot reach, foreign hosts and malformed IO bases', () => {
     for (const value of [
+        'axel',
+        '14257-merchatscale-axel',
+        'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScale',
+        'main.stage.adobe.com',
         'http://www.adobe.com/mas/io',
         'https://12345-evil.adobeioruntime.net/api/v1/web/MerchAtScale',
         'https://www.adobe.com@evil.com/mas/io',

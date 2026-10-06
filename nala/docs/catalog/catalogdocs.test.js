@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { CATALOG_FRAGMENT_IDS, features } from './catalogdocs.spec.js';
 import MasCatalog from './catalog.page.js';
+import WebUtil from '../../libs/webutil.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
 
 let galleryPage;
@@ -71,41 +72,11 @@ test.describe('Catalog gallery feature test suite', () => {
         });
 
         await test.step('step-2: Verify all CTA buttons have the same top (bounding box y)', async () => {
-            const tolerancePx = 0;
-            const buttons = galleryPage.getGalleryFooterCtas();
             await expect(galleryPage.getCatalogCards()).toHaveCount(CATALOG_FRAGMENT_IDS.length);
             for (const id of CATALOG_FRAGMENT_IDS) {
-                const ready = await galleryPage.getCard(id).evaluate(async (card) => {
-                    await customElements.whenDefined('merch-card');
-                    await card.checkReady();
-                    return !card.failed;
-                });
-                expect(ready, `Catalog card ${id} must resolve before comparing CTA positions`).toBe(true);
+                await expect(galleryPage.getCard(id)).toHaveCount(1);
             }
-            await expect(buttons.first()).toBeVisible();
-            const count = await buttons.count();
-            expect(count).toBeGreaterThan(0);
-            for (let i = 0; i < count; i += 1) {
-                const btn = buttons.nth(i);
-                await btn.scrollIntoViewIfNeeded();
-                await expect(btn).toBeVisible();
-            }
-            const boxes = await Promise.all([...Array(count)].map((_, i) => buttons.nth(i).boundingBox()));
-            const tops = boxes.map((b) => b?.y);
-            expect(tops.every((y) => typeof y === 'number')).toBe(true);
-
-            const sorted = [...tops].sort((a, b) => a - b);
-            const sameTopGroups = [];
-            let start = 0;
-            for (let i = 1; i <= sorted.length; i += 1) {
-                if (i === sorted.length || sorted[i] - sorted[i - 1] > tolerancePx) {
-                    sameTopGroups.push(sorted.slice(start, i));
-                    start = i;
-                }
-            }
-            for (const group of sameTopGroups) {
-                expect(Math.max(...group) - Math.min(...group)).toBeLessThanOrEqual(tolerancePx);
-            }
+            await WebUtil.expectGalleryFooterAlignment(galleryPage.getCatalogCards(), galleryPage.getGalleryFooterCtas());
         });
     });
 });

@@ -1,13 +1,14 @@
 import { expect } from '@playwright/test';
 import { getTitle } from '../utils/fragment-tracker.js';
 import { beginFragmentCreation, completeFragmentCreation } from '../utils/fragment-ledger.js';
-import { trackEditorReads, waitForEditorReady } from '../libs/editor-bootstrap.js';
+import { loadEditorDocument, trackEditorReads, waitForEditorReady } from '../libs/editor-bootstrap.js';
 import OSTPage from './ost.page';
 import EditorPage from './editor.page';
 
 export default class StudioPage {
-    constructor(page) {
+    constructor(page, cloneSourceCache) {
         this.page = page;
+        this.cloneSourceCache = cloneSourceCache;
         trackEditorReads(page);
         this.ost = new OSTPage(page);
         this.editor = new EditorPage(page);
@@ -126,7 +127,13 @@ export default class StudioPage {
      * Open a test's starting route; eligible editor suites override only setup.
      */
     async openPage(url) {
-        await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+        const fragmentId = new URLSearchParams(new URL(url).hash.slice(1)).get('fragmentId');
+        if (fragmentId) {
+            await loadEditorDocument(this.page, url);
+            await waitForEditorReady(this.page, fragmentId);
+        } else {
+            await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+        }
     }
 
     /**
@@ -215,6 +222,14 @@ export default class StudioPage {
             await card.dblclick();
         }
         await waitForEditorReady(this.page, cardId);
+        const sourceId = await this.cloneSourceCache.get(this.page, cardId);
+        if (sourceId !== cardId) {
+            const url = new URL(this.page.url());
+            const params = new URLSearchParams(url.hash.slice(1));
+            params.set('fragmentId', sourceId);
+            url.hash = params.toString();
+            await this.openPage(url.href);
+        }
         await expect(this.cloneCardButton).not.toHaveAttribute('disabled');
         await this.cloneCardButton.click();
         await expect(this.confirmationDialog).toBeVisible();
@@ -230,7 +245,7 @@ export default class StudioPage {
         await expect
             .poll(() => {
                 const id = new URLSearchParams(new URL(this.page.url()).hash.slice(1)).get('fragmentId');
-                return !!id && id !== cardId;
+                return !!id && id !== sourceId;
             })
             .toBe(true);
         const id = await completeFragmentCreation(creation, this.page);
@@ -332,11 +347,15 @@ export default class StudioPage {
         };
         const before = await this.page.evaluate(navigationState);
         await this.fragmentsTable.click();
-        const after = await this.page.evaluate(navigationState);
-        await expect(
-            this.confirmationDialog,
-            `Discard confirmation must open after navigation; state: ${JSON.stringify({ before, after })}`,
-        ).toBeVisible();
+        await expect
+            .poll(
+                async () => ({
+                    ...(await this.page.evaluate(navigationState)),
+                    confirmationVisible: await this.confirmationDialog.isVisible(),
+                }),
+                { message: `Discard confirmation must open after navigation; before: ${JSON.stringify(before)}` },
+            )
+            .toMatchObject({ confirmationVisible: true });
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
         await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');
@@ -424,8 +443,7 @@ export default class StudioPage {
         await waitForEditorReady(this.page, fragmentId, { preview: false });
 
         await expect(this.editor.variant).toBeVisible({ timeout: 10000 });
-        await this.editor.variant.click();
-        await this.page.locator(`sp-menu-item[value="${variant}"]`).first().click();
+        await this.editor.selectPickerValue(this.editor.variant, variant);
         await expect(this.editor.variant).toHaveJSProperty('value', variant);
 
         await expect(this.deleteCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
@@ -433,7 +451,7 @@ export default class StudioPage {
 
         // Enter card title (auto-generated with run ID, same as fragment title)
         await expect(this.editor.title).toBeVisible({ timeout: 10000 });
-        await this.editor.title.fill(titleWithRunId);
+        await this.editor.fillRteField(this.editor.title, titleWithRunId);
 
         await expect(this.editor.prices).toBeVisible({ timeout: 10000 });
         const pricesOSTButton = this.editor.prices.locator(this.editor.OSTButton);

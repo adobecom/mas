@@ -3,6 +3,11 @@ import GlobalRequestCounter from './global-request-counter.js';
 
 const pendingEditorReads = new WeakMap();
 
+export async function loadEditorDocument(page, url) {
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
+    if (!response) await page.reload({ waitUntil: 'domcontentloaded' });
+}
+
 export function trackEditorReads(page) {
     if (pendingEditorReads.has(page)) return;
     const pending = new Set();
@@ -116,7 +121,7 @@ export class EditorBootstrapCache {
         }
         if (process.env.NALA_EDITOR_BOOTSTRAP_DISABLED === '1') {
             this.metrics.coldLoads++;
-            await page.goto(url, { waitUntil: 'domcontentloaded' });
+            await loadEditorDocument(page, url);
             await waitForEditorReady(page, fragmentId);
             return;
         }
@@ -126,7 +131,7 @@ export class EditorBootstrapCache {
         state.active = active;
         this.metrics[active.snapshot ? 'reusedLoads' : 'coldLoads']++;
         try {
-            await page.goto(url, { waitUntil: 'domcontentloaded' });
+            await loadEditorDocument(page, url);
             await waitForEditorReady(page, fragmentId);
             state.active = null;
             await Promise.all(active.pending);

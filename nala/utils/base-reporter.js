@@ -1,7 +1,3 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-
-const deferredSummaryFile = './test-results/nala-summary.json';
-
 // Playwright will include ANSI color characters and regex from below
 // https://github.com/microsoft/playwright/issues/13522
 // https://github.com/chalk/ansi-regex/blob/main/index.js#L3
@@ -182,11 +178,6 @@ export default class BaseReporter {
             failures.push('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
         }
         const failedSummary = failures.join('\n');
-        if (process.env.GITHUB_ACTIONS === 'true' && process.env.NALA_DEFER_SUMMARY === '1') {
-            mkdirSync('./test-results', { recursive: true });
-            writeFileSync(deferredSummaryFile, JSON.stringify({ summary, failedSummary }));
-            return summary;
-        }
         console.log(summary);
         const { printCleanupSummary } = await import('./global.teardown.js');
         printCleanupSummary();
@@ -274,15 +265,4 @@ export default class BaseReporter {
             timestamp: currTime,
         };
     }
-}
-
-export async function printDeferredSummary() {
-    const result = existsSync(deferredSummaryFile) ? JSON.parse(readFileSync(deferredSummaryFile, 'utf8')) : null;
-    if (result) console.log(result.summary);
-    const { printCleanupSummary } = await import('./global.teardown.js');
-    printCleanupSummary();
-    const { default: RequestCountingReporter } = await import('./request-counting-reporter.js');
-    new RequestCountingReporter({}).printRequestSummary();
-    if (result?.failedSummary) console.log(result.failedSummary);
-    if (result) unlinkSync(deferredSummaryFile);
 }

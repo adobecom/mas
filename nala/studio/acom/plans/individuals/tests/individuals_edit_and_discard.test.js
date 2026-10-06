@@ -216,7 +216,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
             await expect(await editor.title).toContainText(data.title.original);
-            await editor.title.fill(data.title.updated);
+            await editor.fillRteField(editor.title, data.title.updated);
         });
 
         await test.step('step-3: Validate title field updated', async () => {
@@ -251,12 +251,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Remove badge field', async () => {
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.badge).toHaveText(data.badge.original);
-            await editor.badge.click();
-            await page.waitForTimeout(500);
-            await page.keyboard.press('ControlOrMeta+A');
-            await page.keyboard.press('Backspace');
-            await page.waitForTimeout(1000);
-            await expect(await editor.badge).toHaveText('');
+            await editor.clearRteField(editor.badge);
         });
 
         await test.step('step-3: Validate badge field is removed', async () => {
@@ -265,7 +260,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Enter new value in the badge field', async () => {
-            await editor.badge.fill(data.badge.updated);
+            await editor.fillRteField(editor.badge, data.badge.updated);
         });
 
         await test.step('step-5: Validate badge field updated', async () => {
@@ -343,7 +338,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description).toContainText(data.description.original);
-            await editor.description.fill(data.description.updated);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-3: Validate description field updated', async () => {
@@ -415,15 +410,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Remove callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
-            await editor.calloutRTE.scrollIntoViewIfNeeded();
-            await page.waitForTimeout(500);
             await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
-            await editor.calloutRTE.click();
-            await page.waitForTimeout(500);
-            await page.keyboard.press('ControlOrMeta+A');
-            await page.keyboard.press('Backspace');
-            await page.waitForTimeout(1000);
-            await expect(await editor.calloutRTE).toHaveText('');
+            await editor.clearRteField(editor.calloutRTE);
         });
 
         await test.step('step-3: Validate callout field is removed', async () => {
@@ -431,8 +419,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Enter new value in the callout field', async () => {
-            await editor.calloutRTE.fill(data.calloutText.updated);
-            await page.waitForTimeout(1000);
+            await editor.fillRteField(editor.calloutRTE, data.calloutText.updated);
         });
 
         await test.step('step-5: Validate callout field updated', async () => {
@@ -498,12 +485,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.promoText).toHaveText(data.promoText.original);
             await editor.promoText.scrollIntoViewIfNeeded();
             await page.waitForTimeout(500);
-            await editor.promoText.click();
-            await page.waitForTimeout(500);
-            await page.keyboard.press('ControlOrMeta+A');
-            await page.keyboard.press('Backspace');
-            await page.waitForTimeout(1000);
-            await expect(await editor.promoText).toHaveText('');
+            await editor.clearRteField(editor.promoText);
         });
 
         await test.step('step-3: Validate promo text field is removed', async () => {
@@ -511,7 +493,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Enter new value in the promo text field', async () => {
-            await editor.promoText.fill(data.promoText.updated);
+            await editor.fillRteField(editor.promoText, data.promoText.updated);
         });
 
         await test.step('step-5: Validate promo text field updated', async () => {
@@ -677,6 +659,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         setTestPage(testPage);
+        const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await studio.openPage(testPage);

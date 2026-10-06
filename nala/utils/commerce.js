@@ -69,9 +69,7 @@ const DOCS_GALLERY_PATH = {
     BRAND_CONCIERGE: '/web-components/docs/brand-concierge.html',
 };
 
-async function setupMasConsoleListener(consoleErrors) {
-    const seenErrors = new Set();
-
+async function setupMasConsoleListener(consoleErrors, seenErrors = new Set()) {
     return (msg) => {
         if (msg.type() === 'error') {
             const errorText = msg.text();
@@ -235,9 +233,7 @@ function constructTestUrl(baseURL, path, browserParams = '') {
     return fullUrl;
 }
 
-async function setupMasRequestLogger(masRequestErrors) {
-    const seenRequests = new Set();
-
+async function setupMasRequestLogger(masRequestErrors, seenRequests = new Set()) {
     return {
         responseListener: async (response) => {
             const url = response.url();
@@ -332,6 +328,8 @@ function createWorkerPageSetup(config = {}) {
     const pageLoads = new Map();
     let consoleErrors = [];
     let masRequestErrors = [];
+    const consoleErrorKeys = new Set();
+    const requestErrorKeys = new Set();
     let resourceMetrics = getResourceMetrics();
     let stopCounting;
 
@@ -383,12 +381,12 @@ function createWorkerPageSetup(config = {}) {
         workerPages[name] = page;
 
         // Set up MAS request logger
-        const masRequestLogger = await setupMasRequestLogger(masRequestErrors);
+        const masRequestLogger = await setupMasRequestLogger(masRequestErrors, requestErrorKeys);
         page.on('response', masRequestLogger.responseListener);
         page.on('requestfailed', masRequestLogger.requestFailedListener);
 
         // Set up console listener
-        const consoleListener = await setupMasConsoleListener(consoleErrors);
+        const consoleListener = await setupMasConsoleListener(consoleErrors, consoleErrorKeys);
         page.on('console', consoleListener);
 
         await installEdsThrottleOnPage(page);
@@ -472,6 +470,10 @@ function createWorkerPageSetup(config = {}) {
     }
 
     async function beginTest() {
+        consoleErrors.length = 0;
+        masRequestErrors.length = 0;
+        consoleErrorKeys.clear();
+        requestErrorKeys.clear();
         stopCounting?.();
         stopCounting = await GlobalRequestCounter.init(workerContext);
         resourceMetrics = getResourceMetrics();

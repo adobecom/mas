@@ -7,7 +7,7 @@ import { join } from 'path';
  */
 export default class RequestCountingReporter {
     constructor(options) {
-        this.options = options;
+        this.options = options ?? {};
     }
 
     // Playwright reporter interface methods
@@ -33,7 +33,12 @@ export default class RequestCountingReporter {
             if (existsSync(testResultsDir)) {
                 // Find all request-count-*.json files
                 const files = readdirSync(testResultsDir);
-                const countFiles = files.filter((file) => file.startsWith('request-count-') && file.endsWith('.json'));
+                const countFiles = files.filter(
+                    (file) =>
+                        file.startsWith('request-count-') &&
+                        file.endsWith('.json') &&
+                        file.startsWith('request-count-cleanup') === (this.options.phase === 'cleanup'),
+                );
 
                 // Process each test's data
                 for (const file of countFiles) {
@@ -123,10 +128,11 @@ export default class RequestCountingReporter {
                 );
             }
         }
-        const pressureFiles = [
-            ['odin-pressure.json', 'tests, including setup and inline teardown'],
-            ['odin-pressure-cleanup.json', 'separate CI cleanup'],
-        ].filter(([file]) => existsSync(join(testResultsDir, file)));
+        const pressureFiles = (
+            this.options.phase === 'cleanup'
+                ? [['odin-pressure-cleanup.json', 'separate CI cleanup']]
+                : [['odin-pressure.json', 'tests, including setup and inline teardown']]
+        ).filter(([file]) => existsSync(join(testResultsDir, file)));
         if (pressureFiles.length) console.log('\n    \x1b[1m\x1b[34m---------Odin Preview Pressure------------\x1b[0m');
         for (const [file, phase] of pressureFiles) {
             const pressureFile = join(testResultsDir, file);

@@ -46,9 +46,10 @@ Cleanup uses `nala/.auth/user.json`. `SKIP_AUTH=true` skips automatic cleanup; `
 over `LOCAL_TEST_LIVE_URL`. GitHub setup persists the run ID through `GITHUB_ENV` for the existing follow-up step.
 It also persists the resolved test URL, so that separate cleanup step restores authentication on the same origin.
 GitHub cleanup remains in the separate `Cleanup cloned cards` workflow step; local cleanup runs in the teardown project.
-Studio CI sets `NALA_DEFER_SUMMARY=1` on both steps. The test reporter saves its styled summary without consuming
-request counters; cleanup emits that summary once, after cleanup, with combined test and maintenance request totals.
-Cleanup failures still fail the step, and skipped/empty cleanup still finalizes reporting.
+The test summary and test-only request totals print immediately after the suite. Cleanup prints its own outcomes
+and maintenance-only request totals after its work completes; it never reprints or combines the test report.
+CI cleanup is explicitly non-blocking (`continue-on-error: true`): errors and failed counts remain visible,
+and the command exits unsuccessfully while leaving the test job result unchanged. Failed cleanup retains its ledger.
 Test pressure (`test-results/odin-pressure.json`) and standalone cleanup pressure
 (`test-results/odin-pressure-cleanup.json`) are measured with separate fresh coordinators and labelled by phase.
 

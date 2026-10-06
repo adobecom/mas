@@ -24,7 +24,6 @@ export default {
             name: '@translation-editor-search-filters',
             path: '/studio.html',
             data: {
-                searchTerm: 'grouped',
                 filters: {
                     template: 'Plans',
                     marketSegment: 'com',

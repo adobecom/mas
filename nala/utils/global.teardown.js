@@ -6,7 +6,6 @@ import { installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle
 import RequestCountingReporter from './request-counting-reporter.js';
 import { USER_AGENT_DESKTOP } from '../../playwright.config.js';
 import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
-import { printDeferredSummary } from './base-reporter.js';
 import { resolve } from 'node:path';
 
 /**
@@ -114,7 +113,7 @@ export function printCleanupSummary() {
  */
 async function cleanupRun() {
     console.info('\n---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n');
-    const deferred = process.env.GITHUB_ACTIONS === 'true' && process.env.NALA_DEFER_SUMMARY === '1';
+    const ci = process.env.GITHUB_ACTIONS === 'true';
     if (process.env.SKIP_AUTH === 'true') {
         console.info('[NALA teardown] Cleanup skipped: SKIP_AUTH=true.');
         return;
@@ -132,7 +131,7 @@ async function cleanupRun() {
     global.nalaCleanupResults = { totalFound: ledger.fragments.length, totalDeleted: 0, totalFailed: 0 };
     if (!ledger.fragments.length && !ledger.recover) {
         console.info('[NALA teardown] No pending fragments; skipping browser startup.');
-        if (!deferred) printCleanupSummary();
+        if (!ci) printCleanupSummary();
         completeFragmentLedger();
         clearRunId();
         return;
@@ -246,9 +245,9 @@ async function cleanupRun() {
             for (const page of context.pages()) await removePageRoutes(page);
         }
         stopCounting?.();
-        GlobalRequestCounter.saveCountToFileSync();
+        GlobalRequestCounter.saveCountToFileSync(ci ? 'cleanup' : 'tests');
         await browser.close();
-        if (!deferred) {
+        if (!ci) {
             printCleanupSummary();
         }
     }
@@ -276,8 +275,11 @@ async function globalTeardown() {
         try {
             if (stopCoordinator) await stopCoordinator();
         } finally {
-            if (ci && process.env.NALA_DEFER_SUMMARY === '1') await printDeferredSummary();
-            else if (ci) new RequestCountingReporter().printRequestSummary();
+            if (ci) {
+                printCleanupSummary();
+                new RequestCountingReporter({ phase: 'cleanup' }).printRequestSummary();
+                await new Promise((resolve) => process.stdout.write('', resolve));
+            }
         }
     }
 }

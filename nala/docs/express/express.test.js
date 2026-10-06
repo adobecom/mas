@@ -107,6 +107,7 @@ test.describe('MAS Express Cards test suite', () => {
 
         await test.step('step-3: Verify mobile accordion functionality', async () => {
             const card = new ExpressCard(page, data.id);
+            const originalViewport = page.viewportSize();
 
             try {
                 await page.setViewportSize({ width: 375, height: 812 });
@@ -120,8 +121,11 @@ test.describe('MAS Express Cards test suite', () => {
                     expect(await card.isExpanded()).toBe('false');
                 }
             } finally {
-                await card.ensureExpanded();
-                await page.setViewportSize({ width: 1920, height: 1080 });
+                try {
+                    await card.ensureExpanded();
+                } finally {
+                    await page.setViewportSize(originalViewport);
+                }
             }
         });
 
@@ -337,6 +341,7 @@ test.describe('MAS Express Cards test suite', () => {
 
         await test.step('step-3: Verify mobile view behavior', async () => {
             const card = new ExpressCard(page, data.id);
+            const originalViewport = page.viewportSize();
 
             try {
                 await page.setViewportSize({ width: 375, height: 812 });
@@ -345,7 +350,7 @@ test.describe('MAS Express Cards test suite', () => {
                 expect(mobileCheck.isMobile).toBeTruthy();
                 expect(mobileCheck.buttonVisible).toBeTruthy();
             } finally {
-                await page.setViewportSize({ width: 1920, height: 1080 });
+                await page.setViewportSize(originalViewport);
             }
         });
 

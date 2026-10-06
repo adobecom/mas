@@ -19,7 +19,7 @@ import { chromium } from '@playwright/test';
 const coordinatorModule = new URL('../libs/rate-limit-coordinator.js', import.meta.url).href;
 
 for (const cleanup of ['skipped', 'empty', 'failed']) {
-    test(`CI summary waits for ${cleanup} cleanup and combines test and cleanup counters once`, async (t) => {
+    test(`CI reports tests before ${cleanup} cleanup with independent counters and pressure`, async (t) => {
         const directory = mkdtempSync(join(tmpdir(), 'nala-final-summary-'));
         const cwd = process.cwd();
         const previousCleanup = global.nalaCleanupResults;
@@ -28,7 +28,6 @@ for (const cleanup of ['skipped', 'empty', 'failed']) {
             GITHUB_REPOSITORY: 'adobecom/mas',
             GITHUB_REF: 'refs/pull/1357/merge',
             GITHUB_RUN_ID: '42',
-            NALA_DEFER_SUMMARY: '1',
             SKIP_AUTH: cleanup === 'skipped' ? 'true' : 'false',
             NALA_RUN_ID: undefined,
         };
@@ -71,18 +70,46 @@ for (const cleanup of ['skipped', 'empty', 'failed']) {
                 trackedUrls: { ODIN_AEM: 'https://author-test.adobeaemcloud.com' },
             });
             writeFileSync('test-results/request-count-tests.json', JSON.stringify(counts(3)));
+            writeFileSync(
+                'test-results/odin-pressure.json',
+                JSON.stringify({
+                    origin: 'https://odinpreview.corp.adobe.com',
+                    elapsedMs: 1000,
+                    starts: 3,
+                    peakInFlight: 1,
+                    peakStartsPerSecond: 3,
+                    maxRps: 10,
+                    maxInFlight: 3,
+                    currentRps: 10,
+                    completed: 3,
+                    latencyMs: 300,
+                    maxLatencyMs: 100,
+                    waitMs: 0,
+                    userAgents: ['Nala test'],
+                    paths: {},
+                }),
+            );
             await reporter.onEnd();
-            assert.ok(existsSync('test-results/request-count-tests.json'));
-            assert.doesNotMatch(logs.join('\n'), /Nala Test Run Summary|Request Summary/);
+            assert.equal(existsSync('test-results/request-count-tests.json'), false);
+            const testOutput = logs.join('\n');
+            assert.match(testOutput, /Nala Test Run Summary/);
+            assert.match(testOutput, /ODIN_AEM Requests[^:]*:.*3/);
+            assert.match(testOutput, /tests, including setup and inline teardown/);
+            assert.doesNotMatch(testOutput, /separate CI cleanup/);
+            const cleanupStart = logs.length;
+            writeFileSync('test-results/request-count-unreported-tests.json', JSON.stringify(counts(9)));
             writeFileSync('test-results/request-count-cleanup.json', JSON.stringify(counts(2)));
             if (cleanup === 'failed') await assert.rejects(globalTeardown(), /cleanup browser unavailable/);
             else await globalTeardown();
             const output = logs.join('\n');
             assert.equal(output.match(/Nala Test Run Summary/g).length, 1);
-            assert.equal(output.match(/---------Request Summary/g).length, 1);
-            assert.match(output, /ODIN_AEM Requests[^:]*:.*5/);
-            assert.match(output, /separate CI cleanup/);
-            assert.ok(output.indexOf('Nala Global Teardown') < output.indexOf('Nala Test Run Summary'));
+            assert.equal(output.match(/---------Request Summary/g).length, 2);
+            const cleanupOutput = logs.slice(cleanupStart).join('\n');
+            assert.match(cleanupOutput, /ODIN_AEM Requests[^:]*:.*2/);
+            assert.match(cleanupOutput, /separate CI cleanup/);
+            assert.doesNotMatch(cleanupOutput, /tests, including setup and inline teardown|Nala Test Run Summary/);
+            assert.ok(existsSync('test-results/request-count-unreported-tests.json'));
+            assert.ok(output.indexOf('Nala Test Run Summary') < output.indexOf('Nala Global Teardown'));
             if (cleanup !== 'skipped') {
                 assert.ok(output.indexOf('Request Summary') < output.indexOf('Failed Tests Summary'));
             }

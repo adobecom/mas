@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { getTitle } from '../../utils/fragment-tracker.js';
+import { getCurrentRunId, getTitle } from '../../utils/fragment-tracker.js';
 import { beginFragmentCreation, completeFragmentCreation } from '../../utils/fragment-ledger.js';
 
 export default class TranslationEditorPage {
@@ -24,19 +24,19 @@ export default class TranslationEditorPage {
         this.selectedItemsExpandedPanel = page
             .locator('mas-translation-editor mas-items-selector')
             .filter({ hasText: /Fragments\s*\(\d+\)/ });
+        this.addItemsSelector = page.locator('#add-items-overlay sp-dialog-wrapper.add-items-dialog mas-items-selector');
 
         // Tabs
-        this.cardsTab = page.locator('mas-items-selector sp-tab[value="cards"]');
-        this.collectionsTab = page.locator('mas-items-selector sp-tab[value="collections"]');
-        this.placeholdersTab = page.locator('mas-items-selector sp-tab[value="placeholders"]');
+        this.cardsTab = this.addItemsSelector.locator('sp-tab[value="cards"]');
+        this.collectionsTab = this.addItemsSelector.locator('sp-tab[value="collections"]');
+        this.placeholdersTab = this.addItemsSelector.locator('sp-tab[value="placeholders"]');
 
         // Table
-        const fragmentsTab = page.getByRole('tabpanel', { name: 'Fragments' });
+        const fragmentsTab = this.addItemsSelector.getByRole('tabpanel', { name: 'Fragments' });
         this.selectItemsTable = fragmentsTab.locator('mas-select-items-table');
         this.cardsTable = fragmentsTab.locator('mas-select-items-table');
-        this.tableRows = this.cardsTable.locator('sp-table-body sp-table-row');
-        this.tableRowCheckbox = (index) =>
-            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-checkbox');
+        this.tableRows = this.cardsTable.locator('sp-table-body > mas-collapsible-table-row > sp-table-row');
+        this.tableRowCheckbox = (index) => this.tableRows.nth(index).locator('sp-checkbox');
 
         // Quick actions
         this.saveButton = page.locator('mas-quick-actions sp-action-button[title="Save"]');
@@ -45,33 +45,34 @@ export default class TranslationEditorPage {
         // Select items dialog
         this.selectItemsDialog = page.getByRole('dialog', { name: 'Select items' });
         this.addSelectedItemsButton = this.selectItemsDialog.getByRole('button', { name: 'Add selected items' });
-        this.selectedItemsButton = page.locator('mas-items-selector .selected-items-count sp-button');
-        this.addItemsSelector = page.locator('#add-items-overlay sp-dialog-wrapper.add-items-dialog mas-items-selector');
+        this.selectedItemsButton = this.addItemsSelector.locator('.selected-items-count sp-button');
         this.importUrlButton = this.addItemsSelector.locator('sp-button.import-url-btn');
         this.importUrlInput = this.addItemsSelector.locator('textarea.import-url-input');
         this.importedUrlRows = this.addItemsSelector.locator('.import-item-row');
         this.importToastPositive = this.addItemsSelector.locator('.import-url-view sp-toast[variant="positive"]');
         this.importToastNegative = this.addItemsSelector.locator('.import-url-view sp-toast[variant="negative"]');
 
-        this.searchInput = fragmentsTab.locator(
-            'mas-search-and-filters sp-search input, mas-search-and-filters input[type="search"]',
-        );
+        this.searchInput = this.addItemsSelector.locator('.dialog-header sp-search input');
         this.fragmentsResultCount = fragmentsTab.locator('mas-search-and-filters .result-count');
         this.appliedFilterTags = fragmentsTab.locator('mas-search-and-filters .applied-filters sp-tag');
 
         // Filters
-        this.filterButtons = page.locator('sp-action-button.filter-trigger');
-        this.filterPopover = page.locator('sp-popover.filter-popover[open]').first();
+        this.filterPicker = (label) =>
+            label === 'Template'
+                ? fragmentsTab
+                      .locator('overlay-trigger')
+                      .filter({ has: page.getByRole('button', { name: /^Template(?:\s|$)/ }) })
+                : fragmentsTab.locator(`aem-tag-picker-field[label="${label}"]`);
 
         // Collections tab
-        const collectionsTabPanel = page.getByRole('tabpanel', { name: 'Collections' });
+        const collectionsTabPanel = this.addItemsSelector.getByRole('tabpanel', { name: 'Collections' });
         this.selectItemsTableCollections = collectionsTabPanel.locator('mas-select-items-table');
         this.tableRowsCollections = this.selectItemsTableCollections.locator('sp-table-body sp-table-row');
         this.tableRowCheckboxCollections = (index) =>
             this.selectItemsTableCollections.locator('sp-table-body sp-table-row').nth(index).locator('sp-checkbox');
 
         // Placeholders tab
-        const placeholdersTabPanel = page.getByRole('tabpanel', { name: 'Placeholders' });
+        const placeholdersTabPanel = this.addItemsSelector.getByRole('tabpanel', { name: 'Placeholders' });
         this.selectItemsTablePlaceholders = placeholdersTabPanel.locator('mas-select-items-table');
         this.tableRowsPlaceholders = this.selectItemsTablePlaceholders.locator('sp-table-body sp-table-row');
         this.tableRowCheckboxPlaceholders = (index) =>
@@ -81,8 +82,7 @@ export default class TranslationEditorPage {
         this.copyOfferIdButton = this.cardsTable.locator('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
 
         // Expand/collapse button
-        this.expandRowButton = (index) =>
-            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.ghost-button').first();
+        this.expandRowButton = (index) => this.tableRows.nth(index).locator('sp-button.ghost-button').first();
 
         // View-only mode
         this.viewOnlyCardsTab = page.getByRole('tabpanel', { name: /Fragments\s*\(\d+\)/ }).first();
@@ -144,37 +144,86 @@ export default class TranslationEditorPage {
         }, url);
     }
 
+    async selectFilter(label, option) {
+        const picker = this.filterPicker(label);
+        const trigger = picker.locator('sp-action-button[slot="trigger"]');
+        const popover = picker.locator('sp-popover');
+        await trigger.click();
+        await expect(popover).toBeVisible();
+        await popover.getByRole('checkbox', { name: option, exact: true }).check();
+        if (label === 'Template') {
+            await trigger.click();
+        } else {
+            const selectedPath = await popover
+                .locator('sp-checkbox')
+                .filter({ has: this.page.getByRole('checkbox', { name: option, exact: true }) })
+                .getAttribute('value');
+            await expect.poll(() => picker.evaluate((field) => field.tempValue)).toContain(selectedPath);
+            await popover.getByRole('button', { name: 'Apply', exact: true }).click();
+            await expect.poll(() => picker.evaluate((field) => field.value)).toContain(selectedPath);
+        }
+        await expect(popover).toBeHidden();
+    }
+
+    async getSearchSourceTitle() {
+        const table = await this.cardsTable.elementHandle();
+        const title = await this.page.waitForFunction(
+            ({ table, runId }) =>
+                table.itemsToDisplay.find(
+                    ({ title }) =>
+                        title &&
+                        (!title.startsWith('MAS.Nala.Automation.') ||
+                            (runId && title.startsWith(`MAS.Nala.Automation.${runId}.source.`))),
+                )?.title,
+            { table, runId: getCurrentRunId() },
+        );
+        return (await title.jsonValue()).trim();
+    }
+
     async expectCardRowsMatchSearchTerm(term) {
         const rows = this.tableRows;
         const q = term.toLowerCase();
-        const count = await rows.count();
-        expect(count).toBeGreaterThan(0);
-        for (let i = 0; i < count; i++) {
-            const row = rows.nth(i);
-            const title = (await row.locator('sp-table-cell').nth(this.COLUMNS.FRAGMENT_TITLE).textContent()).toLowerCase();
-            const offer = (await row.locator('sp-table-cell').nth(this.COLUMNS.OFFER).textContent()).toLowerCase();
-            const offerId = (await row.locator('sp-table-cell').nth(this.COLUMNS.OFFER_ID).textContent()).toLowerCase();
-            const matches = title.includes(q) || offer.includes(q) || offerId.includes(q);
-            expect(matches).toBe(true);
-        }
+        await expect(async () => {
+            const count = await rows.count();
+            expect(count).toBeGreaterThan(0);
+            for (let i = 0; i < count; i++) {
+                const row = rows.nth(i);
+                const title = (await row.locator('sp-table-cell').nth(this.COLUMNS.FRAGMENT_TITLE).textContent()).toLowerCase();
+                const offer = (await row.locator('sp-table-cell').nth(this.COLUMNS.OFFER).textContent()).toLowerCase();
+                const offerId = (await row.locator('sp-table-cell').nth(this.COLUMNS.OFFER_ID).textContent()).toLowerCase();
+                const matches = title.includes(q) || offer.includes(q) || offerId.includes(q);
+                expect(matches).toBe(true);
+            }
+        }).toPass({ timeout: 30000 });
     }
 
     async expectResultCountMatchesTableRows() {
         await expect(this.fragmentsResultCount).toHaveText(/\d+\s+result/i, { timeout: 30000 });
-        await expect(async () => {
-            const text = await this.fragmentsResultCount.textContent();
-            const m = text?.match(/(\d+)/);
-            const expected = m ? parseInt(m[1], 10) : 0;
-            await expect(this.tableRows).toHaveCount(expected);
-        }).toPass({ intervals: [500], timeout: 30000 });
+        await expect
+            .poll(
+                async () => {
+                    const [text, rows] = await Promise.all([
+                        this.fragmentsResultCount.textContent(),
+                        this.cardsTable.locator('sp-table-body > mas-collapsible-table-row').count(),
+                    ]);
+                    const counter = Number.parseInt(text, 10);
+                    return { counter, rows, agrees: counter === rows };
+                },
+                { timeout: 30000 },
+            )
+            .toMatchObject({ agrees: true });
     }
 
     async expectCardRowsColumnContains(columnIndex, substring) {
         const rows = this.tableRows;
-        const count = await rows.count();
-        expect(count).toBeGreaterThan(0);
-        for (let i = 0; i < count; i++) {
-            await expect(rows.nth(i).locator('sp-table-cell').nth(columnIndex)).toContainText(substring, { ignoreCase: true });
-        }
+        await expect(async () => {
+            const count = await rows.count();
+            expect(count).toBeGreaterThan(0);
+            for (let i = 0; i < count; i++) {
+                await expect(rows.nth(i).locator('sp-table-cell').nth(columnIndex)).toContainText(substring, {
+                    ignoreCase: true,
+                });
+            }
+        }).toPass({ timeout: 30000 });
     }
 }

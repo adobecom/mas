@@ -50,6 +50,13 @@ export function recordCreatedFragment(fragment) {
     });
 }
 
+export function finishFragmentCreation(token, fragment) {
+    recordCreatedFragment(fragment);
+    writeEntry(token, { type: 'creation', complete: true, id: fragment.id });
+    activeCreations.delete(token);
+    return fragment.id;
+}
+
 /**
  * Finish a creation using the editor's authoritative ID, not a broad card selector.
  */
@@ -71,10 +78,7 @@ export async function completeFragmentCreation(token, page, selector = 'mas-repo
         },
         { selector, property },
     );
-    recordCreatedFragment(fragment);
-    writeEntry(token, { type: 'creation', complete: true, id: fragment.id });
-    activeCreations.delete(token);
-    return fragment.id;
+    return finishFragmentCreation(token, fragment);
 }
 
 /**

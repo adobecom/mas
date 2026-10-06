@@ -58,7 +58,7 @@ test.describe('M@S Studio Sandbox Brand Concierge Product card test suite', () =
 
         await test.step('step-2: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title.updated);
+            await editor.fillRteField(editor.title, data.title.updated);
         });
 
         await test.step('step-3: Validate title field updated', async () => {
@@ -94,7 +94,7 @@ test.describe('M@S Studio Sandbox Brand Concierge Product card test suite', () =
 
         await test.step('step-2: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description.updated);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-3: Validate description field updated', async () => {

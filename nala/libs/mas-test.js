@@ -22,6 +22,7 @@ import BulkPublishPage from '../studio/bulk-publish/bulk-publish.page.js';
 import OSTPage from '../studio/ost.page.js';
 import WebUtil from './webutil.js';
 import { EditorBootstrapCache } from './editor-bootstrap.js';
+import { CloneSourceCache } from './clone-source-cache.js';
 import { getResourceMetrics } from './static-resource-cache.js';
 
 // Global variables that all tests can access - recreated per test
@@ -60,7 +61,13 @@ const masTest = base.extend({
         },
         { scope: 'worker' },
     ],
-    page: async ({ page, browserName, reuseEditor, editorBootstrapCache }, use, testInfo) => {
+    cloneSourceCache: [
+        async ({}, use, workerInfo) => {
+            await use(new CloneSourceCache(workerInfo.workerIndex));
+        },
+        { scope: 'worker' },
+    ],
+    page: async ({ page, browserName, reuseEditor, editorBootstrapCache, cloneSourceCache }, use, testInfo) => {
         // Multiply default timeout by 3 (same as test.slow())
         const currentTimeout = testInfo.timeout;
         testInfo.setTimeout(currentTimeout * 3);
@@ -82,7 +89,7 @@ const masTest = base.extend({
         setCurrentTestAttempt(testInfo.workerIndex, testInfo.retry);
 
         // Create fresh page objects for every test
-        studio = new StudioPage(page);
+        studio = new StudioPage(page, cloneSourceCache);
         editor = new EditorPage(page);
         slice = new CCDSlicePage(page);
         suggested = new CCDSuggestedPage(page);
@@ -106,6 +113,7 @@ const masTest = base.extend({
         const stopTrackingFragments = trackFragmentResponses(page);
         const resourcesBefore = getResourceMetrics();
         const bootstrapBefore = { ...editorBootstrapCache.metrics };
+        const cloneSourcesBefore = { ...cloneSourceCache.metrics };
         if (reuseEditor) {
             await editorBootstrapCache.install(page);
             studio.openPage = (url) => editorBootstrapCache.open(page, url);
@@ -134,6 +142,8 @@ const masTest = base.extend({
                     coldEditorLoads: editorBootstrapCache.metrics.coldLoads - bootstrapBefore.coldLoads,
                     reusedEditorLoads: editorBootstrapCache.metrics.reusedLoads - bootstrapBefore.reusedLoads,
                     replayedOdinReads: editorBootstrapCache.metrics.replayedReads - bootstrapBefore.replayedReads,
+                    cloneSourcesCreated: cloneSourceCache.metrics.created - cloneSourcesBefore.created,
+                    cloneSourcesReused: cloneSourceCache.metrics.reused - cloneSourcesBefore.reused,
                 }),
                 contentType: 'application/json',
             });

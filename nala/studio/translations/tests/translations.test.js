@@ -156,72 +156,44 @@ test.describe('M@S Studio Translations Test Suite', () => {
 
         // @translation-editor-search
         await test.step('step-2: Enter search term, verify results update', async () => {
-            await translationEditor.searchInput.fill(data.searchTerm);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(1000);
-            await translationEditor.expectCardRowsMatchSearchTerm(data.searchTerm);
+            const searchTerm = await translationEditor.getSearchSourceTitle();
+            expect(searchTerm, 'The immutable source fixture must have a searchable title').toBeTruthy();
+            await translationEditor.searchInput.fill(searchTerm);
+            await expect(translationEditor.addItemsSelector).toHaveJSProperty('searchQuery', searchTerm);
+            await expect(translationEditor.cardsTable).toHaveJSProperty('isLoading', false);
+            await translationEditor.expectCardRowsMatchSearchTerm(searchTerm);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.searchInput.fill('');
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(1000);
+            await expect(translationEditor.addItemsSelector).toHaveJSProperty('searchQuery', '');
+            await expect(translationEditor.cardsTable).toHaveJSProperty('isLoading', false);
             await expect(translationEditor.tableRows.first()).toBeVisible({ timeout: 30000 });
             await translationEditor.expectResultCountMatchesTableRows();
         });
 
         // @translation-editor-filters
         await test.step('step-3: Apply Template filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(0);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.template, { exact: true });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Template', data.filters.template);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.template })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.template);
         });
 
         await test.step('step-4: Apply Market Segment filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(1);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.marketSegment, { exact: true });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Market Segment', data.filters.marketSegment);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.marketSegment })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.marketSegment);
         });
 
         await test.step('step-5: Apply Customer Segment filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(2);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.customerSegment, {
-                exact: true,
-            });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Customer Segment', data.filters.customerSegment);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.customerSegment })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.customerSegment);
         });
 
         await test.step('step-6: Apply Product filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(3);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.product, { exact: true });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Product Code', data.filters.product);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.product })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.OFFER, data.filters.product);

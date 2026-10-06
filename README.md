@@ -145,6 +145,17 @@ Cookie-setting responses are neither retried nor cached. Authentication endpoint
 are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
 Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
+Studio rich-text edits wait for the editor model to commit, not only the editable DOM. Shared picker selection
+uses scoped keyboard navigation and verifies the selected value without selecting intermediate options.
+These checks preserve live saves and mandatory discard confirmations; they do not retry writes or force clicks.
+Accessibility scans wait for finite animations in the tested section to finish, so accordion fades are not
+mistaken for permanent contrast failures. Infinite animations do not block scans; accessibility thresholds are unchanged.
+Translation search uses an already-loaded baseline card or this run's immutable source, never another run's temporary cards.
+Filter checks verify both pending and committed picker selections, rather than treating a closed popover as success.
+Inventory updates that reset selections still fail these checks; application behavior is not changed or retried.
+Gallery CTA alignment waits for resolved cards and fonts, then compares footer positions within each gallery row at zero-pixel
+tolerance. Grouping is based on gallery membership and card rows, not the CTA positions being asserted.
+The coordinator is local to one invocation: separate machines do not share service budgets or cooldowns.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;
 the request summary includes AEM author and Odin preview separately, with retries included in upstream totals.
 A separate per-origin rate-limit summary reports every observed 429, GET retries and summed request pacing/cooldown waits
@@ -153,12 +164,12 @@ An Odin pressure summary and `test-results/odin-pressure.json` also record the e
 the coordinator's wall-clock observation window, scheduled upstream reads, peak scheduled starts/second,
 peak read concurrency, mean/max fetch latency, summed queue waiting,
 sanitized endpoint counts and observed user agents. No query strings, credentials or response bodies are retained.
-Studio CI jobs set `NALA_DEFER_SUMMARY=1` on both execution and cleanup steps: the styled Nala summary is emitted
-after cleanup, with test and cleanup request counts combined rather than consumed by an earlier report.
+Studio CI prints the styled Nala summary and test-only request/pressure totals immediately after the test suite.
+The independent cleanup step prints its own outcomes and maintenance-only request/pressure totals.
 CI cleanup uses its own fresh coordinator and records `test-results/odin-pressure-cleanup.json`; pressure measurements
 are labelled by phase, so the completed test snapshot is not presented as cleanup traffic.
-Skipped or failed cleanup still emits the deferred summary, without concealing cleanup failure. Docs and local runs
-keep their existing end-of-test reporting.
+Cleanup errors remain visible and retain the run ledger for recovery, but cannot fail an otherwise passing CI job.
+Docs and local runs keep their existing end-of-test reporting.
 
 Use `NALA_STATIC_CACHE_DISABLED=1` or `NALA_EDITOR_BOOTSTRAP_DISABLED=1` for uncached comparisons.
 To make a suite's editor setup always live, leave `reuseEditor` unset. Cleanup uses exact run-owned IDs and live ETags;
@@ -168,6 +179,12 @@ Most save routes already opened the editor directly; the French legal-disclaimer
 Contexts, pages and fragment stores remain fresh per test. Only successful initial source reads are replayed;
 each clone, its initialization, subsequent edits, saves, reads and deletions stay live. Grid/search/navigation tests keep
 their existing routes and coverage; mutated clones are never shared between tests.
+UI clone tests provision an immutable source with an explicitly unique name for each run, worker and source fixture.
+Only its ID is reused within that worker; each test still creates and edits its own clone through the live UI.
+This isolates AEM's automatic copy-name allocation across workers and machines without rewriting clone requests or retrying writes.
+Source fixtures preserve the model, content and tags, omit variations as normal copies do, and join the run-owned cleanup ledger.
+Attachments include source creation/reuse counts. This is test isolation, not a fix for the application's concurrent-copy behavior;
+separate machines still need an explicit aggregate Odin/EDS traffic budget.
 
 Version tests wait for loaded history, hydrated previews, rendered search results and completed breadcrumb navigation;
 these waits add no polling HTTP requests. Live edits, commerce reads and mutations remain uncached.

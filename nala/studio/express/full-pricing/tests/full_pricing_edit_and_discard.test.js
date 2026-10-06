@@ -67,7 +67,7 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         await test.step('step-2: Edit shortDescription field', async () => {
             await expect(await editor.shortDescription).toBeVisible();
             await expect(await editor.shortDescription).toContainText(data.shortDescription.original);
-            await editor.shortDescription.fill(data.shortDescription.updated);
+            await editor.fillRteField(editor.shortDescription, data.shortDescription.updated);
         });
 
         await test.step('step-3: Validate shortDescription field updated', async () => {

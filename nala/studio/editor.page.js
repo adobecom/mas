@@ -155,6 +155,14 @@ export default class EditorPage {
         return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
+    async fillRteField(field, value) {
+        await field.fill(value);
+        await expect
+            .poll(() => field.evaluate((element) => element.getRootNode().host.editorView.state.doc.textContent))
+            .toBe(value);
+        await expect(field).toHaveText(value);
+    }
+
     async clearRteField(field) {
         await expect(async () => {
             await field.click();
@@ -171,20 +179,45 @@ export default class EditorPage {
                 .toBe(true);
         }).toPass({ timeout: 10000 });
         await field.press('Backspace');
+        await expect
+            .poll(() => field.evaluate((element) => element.getRootNode().host.editorView.state.doc.textContent))
+            .toBe('');
         await expect(field).toHaveText('');
+    }
+
+    async selectPickerValue(picker, value) {
+        const label = await picker.locator(`sp-menu-item[value="${value}"]`).textContent();
+        await this.selectPickerOption(picker, label.trim().replace(/\s+/g, ' '));
     }
 
     async selectPickerOption(picker, label) {
         const button = picker.locator('button#button');
+        const option = picker.getByRole('option', { name: label, exact: true });
+        const options = picker.getByRole('option', { disabled: false, includeHidden: true });
+        let value;
+        let index;
         await button.scrollIntoViewIfNeeded();
         await expect(async () => {
             await button.press('ArrowDown');
             await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+            await expect(option).toBeVisible({ timeout: 1000 });
+            value = await option.evaluate((element) => element.value);
+            const values = await options.evaluateAll((elements) => elements.map((element) => element.value));
+            index = values.indexOf(value);
+            expect(index, `Picker must contain an enabled option named "${label}"`).toBeGreaterThanOrEqual(0);
+            await expect
+                .poll(() => picker.evaluate((element) => element.optionsMenu.matches(':focus-within')), { timeout: 1000 })
+                .toBe(true);
         }).toPass({ timeout: 10000 });
-        const option = picker.getByRole('option', { name: label, exact: true });
-        await expect(option).toBeVisible();
-        await option.press('Enter');
+        await this.page.keyboard.press('Home');
+        await expect(options.first()).toBeFocused();
+        for (let position = 1; position <= index; position++) {
+            await this.page.keyboard.press('ArrowDown');
+            await expect(options.nth(position)).toBeFocused();
+        }
+        await this.page.keyboard.press('Enter');
         await expect(picker).toHaveJSProperty('open', false);
+        await expect(picker).toHaveJSProperty('value', value);
         await expect(button).toContainText(label);
     }
 

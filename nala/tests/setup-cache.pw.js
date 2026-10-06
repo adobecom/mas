@@ -137,6 +137,26 @@ async function seedPage(browser, cache, calls, failed = false) {
     return { page, context };
 }
 
+for (const cached of [false, true]) {
+    test(`same-document editor navigation loads the new fragment with bootstrap caching ${cached}`, async ({ browser }) => {
+        const cache = new EditorBootstrapCache();
+        const calls = [];
+        const { page, context } = await seedPage(browser, cache, calls);
+        const studio = new StudioPage(page);
+        const open = (url) => (cached ? cache.open(page, url) : studio.openPage(url));
+        try {
+            await open(`${baseURL}/editor#page=fragment-editor&fragmentId=source-a`);
+            await open(`${baseURL}/editor#page=fragment-editor&fragmentId=source-b`);
+            expect(await page.locator('mas-fragment-editor').evaluate((editor) => editor.fragmentStore.get().id)).toBe(
+                'source-b',
+            );
+            expect(calls).toHaveLength(6);
+        } finally {
+            await context.close();
+        }
+    });
+}
+
 test('repeated seed bootstrap is isolated; all post-setup reads and writes stay live', async ({ browser }) => {
     const cache = new EditorBootstrapCache();
     const calls = [];
@@ -602,7 +622,10 @@ test('RTE clearing retries a missed select-all and deletes once', async ({ page 
                 event.preventDefault();
                 window.deletions++;
                 const { selection } = field.editorView.state;
-                if (selection.from === 0 && selection.to === 8) editor.textContent = '';
+                if (selection.from === 0 && selection.to === 8) {
+                    editor.textContent = '';
+                    field.editorView.state.doc.textContent = '';
+                }
             }
         });
     });
@@ -619,8 +642,8 @@ test('picker selection recovers a closed initial transition, scopes its option a
     page,
 }) => {
     await page.setContent(
-        '<sp-picker><button id="button">Select color</button><sp-overlay></sp-overlay>' +
-            '<span role="option" tabindex="-1" hidden>Default</span></sp-picker>' +
+        '<sp-picker><button id="button">Select color</button><sp-overlay></sp-overlay><sp-menu>' +
+            '<span role="option" value="default" tabindex="-1" hidden>Default</span></sp-menu></sp-picker>' +
             '<span role="option">Default</span>',
     );
     await page.evaluate(() => {
@@ -628,6 +651,8 @@ test('picker selection recovers a closed initial transition, scopes its option a
         const button = picker.querySelector('button');
         const overlay = picker.querySelector('sp-overlay');
         const option = picker.querySelector('[role="option"]');
+        option.value = 'default';
+        picker.optionsMenu = picker.querySelector('sp-menu');
         picker.open = false;
         overlay.state = 'closed';
         window.pickerOpens = 0;
@@ -645,11 +670,13 @@ test('picker selection recovers a closed initial transition, scopes its option a
                     option.hidden = true;
                 }
                 overlay.state = first ? 'closed' : 'opened';
+                if (!first) option.focus();
             }, 100);
         });
         option.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
             picker.open = false;
+            picker.value = 'default';
             overlay.state = 'closed';
             option.hidden = true;
             setTimeout(() => {
@@ -771,6 +798,39 @@ test('bootstrap disable flag keeps warm seeds live with the same readiness bound
         if (previous === undefined) delete process.env.NALA_EDITOR_BOOTSTRAP_DISABLED;
         else process.env.NALA_EDITOR_BOOTSTRAP_DISABLED = previous;
         await second.context.close();
+    }
+});
+
+test('Docs diagnostics do not leak earlier errors or suppress recurring errors across test boundaries', async ({
+    browser,
+}, testInfo) => {
+    globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
+    const setup = createWorkerPageSetup({ pages: [{ name: 'US', url: '/docs' }] });
+    await setup.setupWorkerPages({ browser, baseURL });
+    try {
+        for (const message of ['Earlier failure', null, 'Recurring failure']) {
+            await setup.beginTest();
+            const page = await setup.getPage('US');
+            if (message) {
+                await Promise.all([
+                    page.waitForEvent('console', (event) => event.text() === `MAS Error: ${message}`),
+                    page.evaluate((message) => console.error(`MAS Error: ${message}`), message),
+                ]);
+            }
+            const failure = {
+                status: 'failed',
+                error: { message: 'Synthetic assertion' },
+                attach: async () => {},
+            };
+            await setup.finishTest(failure);
+            if (message) expect(failure.error.message).toContain(message);
+            else expect(failure.error.message).toBe('Synthetic assertion');
+            expect(failure.error.message).not.toContain(
+                message === 'Earlier failure' ? 'Recurring failure' : 'Earlier failure',
+            );
+        }
+    } finally {
+        await setup.cleanupWorkerPages();
     }
 });
 

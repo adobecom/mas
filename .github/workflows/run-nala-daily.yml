@@ -69,19 +69,18 @@ jobs:
                   # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
                   # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
                   NALA_PLAYWRIGHT_WORKERS: 4
-                  NALA_DEFER_SUMMARY: '1'
 
             - name: Cleanup cloned cards
               if: always()
+              continue-on-error: true
               run: node -e "
                   import('./nala/utils/global.teardown.js')
                   .then(module => module.default())
                   .catch(err => {
-                  console.error('Cleanup failed:', err.message);
-                  process.exit(1);
+                  console.error('::warning::Cleanup failed:', err.message);
+                  process.exitCode = 1;
                   });"
               env:
-                  NALA_DEFER_SUMMARY: '1'
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}

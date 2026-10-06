@@ -77,9 +77,9 @@ class GlobalRequestCounter {
     /**
      * Save count to individual file per test to avoid race conditions completely
      */
-    static saveCountToFileSync() {
+    static saveCountToFileSync(phase = 'tests') {
         try {
-            this._saveToIndividualFile();
+            this._saveToIndividualFile(phase);
         } catch (error) {
             console.log(`\x1b[31m✘\x1b[0m Failed to save request count: ${error.message}`);
         }
@@ -88,7 +88,7 @@ class GlobalRequestCounter {
     /**
      * Write this test's count to a unique file - reporter will sum them all
      */
-    static _saveToIndividualFile() {
+    static _saveToIndividualFile(phase = 'tests') {
         const fs = globalThis._fsModule;
         const path = globalThis._pathModule;
 
@@ -106,7 +106,10 @@ class GlobalRequestCounter {
         // Create unique filename for this test execution
         const timestamp = Date.now();
         const random = Math.random().toString(36).substring(7);
-        const individualFile = path.join(dir, `request-count-${timestamp}-${random}.json`);
+        const individualFile = path.join(
+            dir,
+            `request-count-${phase === 'cleanup' ? 'cleanup-' : ''}${timestamp}-${random}.json`,
+        );
 
         // Write this test's counts and methods as JSON
         const data = {

@@ -116,17 +116,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title);
+            await editor.fillRteField(editor.title, data.title);
         });
 
         await test.step('step-4: Edit badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await editor.badge.fill(data.badge);
+            await editor.fillRteField(editor.badge, data.badge);
         });
 
         await test.step('step-5: Edit promocode and description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description);
+            await editor.fillRteField(editor.description, data.description);
             await editor.promoCode.fill(data.promoCode);
             await editor.descriptionFieldGroup.locator(editor.UPTButton).click();
         });
@@ -141,12 +141,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-7: Edit callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
-            await editor.calloutRTE.fill(data.callout);
+            await editor.fillRteField(editor.calloutRTE, data.callout);
         });
 
         await test.step('step-8: Edit promo text field', async () => {
             await expect(await editor.promoText).toBeVisible();
-            await editor.promoText.fill(data.promoText);
+            await editor.fillRteField(editor.promoText, data.promoText);
         });
 
         await test.step('step-9: Edit OSI', async () => {

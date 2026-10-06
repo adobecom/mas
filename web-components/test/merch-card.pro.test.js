@@ -382,6 +382,70 @@ describe('pro edu size', () => {
     });
 });
 
+describe('pro edu heading semantics (MWPW-205138)', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const SECTION =
+        '<div class="section"><h4>Apps</h4><ul><li>Desktop, web, and mobile</li></ul></div>';
+
+    async function renderEduCard(promoText) {
+        const rendered = await renderCard(
+            '<h3 slot="heading-xs">Creative Cloud Pro</h3>' +
+                `<div slot="whats-included"><p class="whats-included-label">${promoText}</p>${SECTION}</div>`,
+        );
+        rendered.setAttribute('size', 'edu');
+        rendered.placeholders = { whatsIncludedLabel: "What's included:" };
+        rendered.requestUpdate();
+        await rendered.updateComplete;
+        return rendered;
+    }
+
+    it('keeps the card title an H3, gives "What\'s included" real H4 semantics, and strips the heading off the promo line', async () => {
+        card = await renderEduCard(
+            'Students and teachers save 7% for the first year',
+        );
+
+        const title = card.querySelector('[slot="heading-xs"]');
+        expect(title.tagName).to.equal('H3');
+
+        const slot = card.querySelector('[slot="whats-included"]');
+        // Only the "What's included" label is a heading; the per-app section
+        // title (demoted to <p> by adjustEduWhatsIncluded) is excluded.
+        const headings = slot.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        expect(headings.length).to.equal(1);
+        expect(headings[0].classList.contains('whats-included-label')).to.be
+            .true;
+        expect(headings[0].textContent.trim()).to.equal("What's included:");
+
+        const promo = slot.querySelector('.whats-included-title');
+        expect(promo.tagName).to.equal('P');
+        expect(promo.textContent.trim()).to.equal(
+            'Students and teachers save 7% for the first year',
+        );
+    });
+
+    it('keeps the promo line and the "What\'s included" label typography unchanged by the tag swap', async () => {
+        card = await renderEduCard('Save 7% for the first year');
+
+        const promoStyles = getComputedStyle(
+            card.querySelector('.whats-included-title'),
+        );
+        expect(promoStyles.fontWeight).to.equal('900');
+        expect(promoStyles.marginTop).to.equal('0px');
+        expect(promoStyles.marginBottom).to.equal('0px');
+
+        const labelStyles = getComputedStyle(
+            card.querySelector('h4.whats-included-label'),
+        );
+        expect(labelStyles.fontWeight).to.equal('700');
+        expect(labelStyles.fontSize).to.equal('16px');
+        expect(labelStyles.lineHeight).to.equal('20px');
+        expect(labelStyles.marginTop).to.equal('0px');
+        expect(labelStyles.marginBottom).to.equal('0px');
+    });
+});
+
 describe('pro edu disclaimer', () => {
     let card;
     afterEach(() => card?.remove());

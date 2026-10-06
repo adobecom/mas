@@ -501,7 +501,10 @@ describe('ChatSessionManager', () => {
                             {
                                 role: 'assistant',
                                 content: 'ok',
-                                studioOperation: { operationName: 'bulk_update_cards', operationParams: { fragmentIds: ['x', 'y'] } },
+                                studioOperation: {
+                                    operationName: 'bulk_update_cards',
+                                    operationParams: { fragmentIds: ['x', 'y'] },
+                                },
                                 operationType: 'studio_operation',
                                 confirmationRequired: false,
                             },

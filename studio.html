@@ -76,7 +76,9 @@
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
             const authorBucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
-            document.querySelector('meta[name="aem-author-url"]')?.setAttribute('content', `https://author-p22655-${authorBucket}.adobeaemcloud.com`);
+            document
+                .querySelector('meta[name="aem-author-url"]')
+                ?.setAttribute('content', `https://author-p22655-${authorBucket}.adobeaemcloud.com`);
             // The env is interpolated into a URL, so keep it to a bare label: a value
             // carrying '/' or '.' would move the host off adobeioruntime.
             const ioLabel = (value) => (/^[a-z0-9-]{1,40}$/.test(value ?? '') ? value : '');

@@ -40,9 +40,7 @@ export class MasOstPlaceholderOptions extends LitElement {
 
     get controller() {
         const root = this.getRootNode();
-        const panel = root?.host?.tagName === 'MAS-OST-PLACEHOLDER-PANEL'
-            ? root.host
-            : null;
+        const panel = root?.host?.tagName === 'MAS-OST-PLACEHOLDER-PANEL' ? root.host : null;
         return panel?.placeholderCtrl;
     }
 

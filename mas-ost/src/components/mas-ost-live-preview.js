@@ -84,7 +84,7 @@ export class MasOstLivePreview extends LitElement {
 
         .placeholder-container .price-unit-type:not(.disabled)::before,
         .placeholder-container .price-tax-inclusivity:not(.disabled)::before {
-            content: "\u00a0";
+            content: '\u00a0';
         }
     `;
 
@@ -111,9 +111,7 @@ export class MasOstLivePreview extends LitElement {
 
     getPanel() {
         const root = this.getRootNode();
-        return root?.host?.tagName === 'MAS-OST-PLACEHOLDER-PANEL'
-            ? root.host
-            : null;
+        return root?.host?.tagName === 'MAS-OST-PLACEHOLDER-PANEL' ? root.host : null;
     }
 
     buildPlaceholderOptions() {
@@ -126,17 +124,13 @@ export class MasOstLivePreview extends LitElement {
         if (typeof service.createInlinePrice !== 'function') return null;
 
         const ctrl = panel.placeholderCtrl;
-        const checkoutCtrl = panel.shadowRoot
-            ?.querySelector('mas-ost-checkout-options')
-            ?.checkout;
+        const checkoutCtrl = panel.shadowRoot?.querySelector('mas-ost-checkout-options')?.checkout;
         const type = this.placeholderType || ctrl.selectedType;
         const options = ctrl.getEffectiveOptions();
         const promoStatus = store.storedPromoOverride;
         const promotionCode = store.promotionCode;
 
-        const wcsOsi = type === 'discount' && this.referenceOsi
-            ? [osi, this.referenceOsi]
-            : [osi];
+        const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : [osi];
 
         const placeholderOptions = {
             ...options,
@@ -149,8 +143,7 @@ export class MasOstLivePreview extends LitElement {
 
         if (checkoutCtrl) {
             placeholderOptions.workflowStep = checkoutCtrl.workflowStep;
-            placeholderOptions.checkoutWorkflowStep =
-                checkoutCtrl.workflowStep;
+            placeholderOptions.checkoutWorkflowStep = checkoutCtrl.workflowStep;
             if (checkoutCtrl.enableModal) {
                 placeholderOptions.modal = checkoutCtrl.modalType;
             }
@@ -164,16 +157,13 @@ export class MasOstLivePreview extends LitElement {
         }
 
         placeholderOptions.workflow = 'UCv3';
-        placeholderOptions.marketSegment =
-            store.aosParams.marketSegment || 'COM';
+        placeholderOptions.marketSegment = store.aosParams.marketSegment || 'COM';
 
         return { type, placeholderOptions, service };
     }
 
     renderPreview() {
-        const container = this.shadowRoot?.querySelector(
-            '.placeholder-container',
-        );
+        const container = this.shadowRoot?.querySelector('.placeholder-container');
         if (!container) return;
 
         while (container.firstChild) {
@@ -189,15 +179,9 @@ export class MasOstLivePreview extends LitElement {
         if (type === 'checkoutUrl') {
             const ctaLabel = placeholderOptions.ctaText || 'Buy now';
             if (typeof service.createCheckoutButton === 'function') {
-                placeholder = service.createCheckoutButton(
-                    placeholderOptions,
-                    ctaLabel,
-                );
+                placeholder = service.createCheckoutButton(placeholderOptions, ctaLabel);
             } else {
-                placeholder = service.createCheckoutLink(
-                    placeholderOptions,
-                    ctaLabel,
-                );
+                placeholder = service.createCheckoutLink(placeholderOptions, ctaLabel);
             }
         } else {
             placeholder = service.createInlinePrice(placeholderOptions);
@@ -230,12 +214,7 @@ export class MasOstLivePreview extends LitElement {
         const typeName = this.getTypeName();
         return html`
             <div class="preview-card">
-                <div class="label">
-                    Live Preview
-                    ${typeName
-                        ? html`<span class="type-badge">${typeName}</span>`
-                        : ''}
-                </div>
+                <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : ''}</div>
                 <div class="placeholder-container"></div>
             </div>
         `;

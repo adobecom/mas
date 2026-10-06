@@ -2,6 +2,7 @@
 topic: studio-pages
 keywords: fragment editor, advanced tools, masks, mask, global settings, locale picker, region picker, rollout, roll out, rollout project, preview, preview on page, render view, table view, permission, gated, access, side rail, breadcrumb
 ---
+
 # Studio pages and editors
 
 ## What does the fragment editor do?

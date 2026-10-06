@@ -1,8 +1,7 @@
 # Operations Runtime Deployment Guide
 
 > **Note (MWPW-183572):** the Studio frontend has already been migrated
-> to call Runtime actions directly — see `studio/src/constants.js`
-> `OPERATIONS_SERVICE_URL` and `getOperationsServiceURL()`. The post-deployment steps
+> to call Runtime actions directly — see `studio/src/constants.js` > `OPERATIONS_SERVICE_URL` and `getOperationsServiceURL()`. The post-deployment steps
 > below describe that historical migration; treat them as reference
 > material, not a current checklist. The retired Express bridge on
 > port 3001 has been removed.
@@ -20,6 +19,7 @@ aio runtime action get publish-card --url
 ```
 
 The URL will look like:
+
 ```
 https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/publish-card
 ```
@@ -29,15 +29,19 @@ https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/publish
 Edit [`studio/src/constants.js`](../../studio/src/constants.js) line 150:
 
 **Before:**
+
 ```javascript
-export const OPERATIONS_SERVICE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://mas-mcp.adobe.com';
+export const OPERATIONS_SERVICE_URL =
+    window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://mas-mcp.adobe.com';
 ```
 
 **After:**
+
 ```javascript
-export const OPERATIONS_SERVICE_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3001'
-    : 'https://adobeioruntime.net/api/v1/web/<your-namespace>/MerchAtScaleOperations';
+export const OPERATIONS_SERVICE_URL =
+    window.location.hostname === 'localhost'
+        ? 'http://localhost:3001'
+        : 'https://adobeioruntime.net/api/v1/web/<your-namespace>/MerchAtScaleOperations';
 ```
 
 ### 3. Update MCP Client
@@ -45,6 +49,7 @@ export const OPERATIONS_SERVICE_URL = window.location.hostname === 'localhost'
 The Studio operations client ([`studio/src/services/operations-client.js`](../../studio/src/services/operations-client.js)) will need to use the Runtime action names instead of the `/tools/:toolName` pattern:
 
 **Current:**
+
 ```javascript
 const response = await fetch(`${OPERATIONS_SERVICE_URL}/tools/${toolName}`, {
     method: 'POST',
@@ -54,6 +59,7 @@ const response = await fetch(`${OPERATIONS_SERVICE_URL}/tools/${toolName}`, {
 ```
 
 **Update to:**
+
 ```javascript
 const response = await fetch(`${OPERATIONS_SERVICE_URL}/${toolName.replace('studio_', '')}`, {
     method: 'POST',
@@ -63,6 +69,7 @@ const response = await fetch(`${OPERATIONS_SERVICE_URL}/${toolName.replace('stud
 ```
 
 This maps:
+
 - `studio_publish_card` → `publish-card`
 - `studio_search_cards` → `search-cards`
 - etc.
@@ -72,28 +79,31 @@ This maps:
 1. Deploy the Runtime actions
 2. Update Studio constants with the Runtime URL
 3. Test each operation in Studio AI chat:
-   - "publish this card"
-   - "search for fries cards"
-   - "copy this card"
-   - etc.
+    - "publish this card"
+    - "search for fries cards"
+    - "copy this card"
+    - etc.
 
 ### 5. Environment-Specific URLs
 
 For different environments:
 
 **Development (localhost):**
+
 ```javascript
-OPERATIONS_SERVICE_URL = 'http://localhost:3001'
+OPERATIONS_SERVICE_URL = 'http://localhost:3001';
 ```
 
 **Staging:**
+
 ```javascript
-OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/stage-namespace/MerchAtScaleOperations'
+OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/stage-namespace/MerchAtScaleOperations';
 ```
 
 **Production:**
+
 ```javascript
-OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations'
+OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations';
 ```
 
 ## Rollback Plan
@@ -101,37 +111,42 @@ OPERATIONS_SERVICE_URL = 'https://adobeioruntime.net/api/v1/web/prod-namespace/M
 If Runtime actions have issues, rollback to the Express server:
 
 1. Start the Express MCP server:
-   ```bash
-   cd mas-mcp-server
-   npm run http
-   ```
+
+    ```bash
+    cd mas-mcp-server
+    npm run http
+    ```
 
 2. Revert Studio constants to point to `https://mas-mcp.adobe.com`
 
 3. Investigate Runtime issues using action logs:
-   ```bash
-   aio runtime activation list
-   aio runtime activation logs <activation-id>
-   ```
+    ```bash
+    aio runtime activation list
+    aio runtime activation logs <activation-id>
+    ```
 
 ## Monitoring
 
 ### Check Action Status
+
 ```bash
 aio runtime action list
 ```
 
 ### View Recent Activations
+
 ```bash
 aio runtime activation list --limit 10
 ```
 
 ### Get Action Logs
+
 ```bash
 aio runtime activation logs <activation-id>
 ```
 
 ### Action Metrics
+
 View in Adobe I/O Console → Runtime → Actions → Select action → Metrics
 
 ## Security

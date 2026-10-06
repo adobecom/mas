@@ -4,7 +4,9 @@ import { SearchController } from '../../src/controllers/search-controller.js';
 function createMockHost() {
     return {
         controllers: [],
-        addController(c) { this.controllers.push(c); },
+        addController(c) {
+            this.controllers.push(c);
+        },
         removeController() {},
         requestUpdate() {},
     };
@@ -61,7 +63,9 @@ describe('SearchController', () => {
 
     it('debounces input handling', async () => {
         let updateCount = 0;
-        host.requestUpdate = () => { updateCount++; };
+        host.requestUpdate = () => {
+            updateCount++;
+        };
         ctrl.handleInput('A');
         ctrl.handleInput('Ab');
         ctrl.handleInput('Abc');

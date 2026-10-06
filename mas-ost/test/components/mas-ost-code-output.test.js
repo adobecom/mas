@@ -35,13 +35,9 @@ describe('mas-ost-code-output', () => {
     });
 
     it('renders code string with OSI when inside placeholder panel', async () => {
-        const panel = await fixture(
-            html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`,
-        );
+        const panel = await fixture(html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`);
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector(
-            'mas-ost-code-output',
-        );
+        const codeOutput = panel.shadowRoot.querySelector('mas-ost-code-output');
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');
         expect(code).to.exist;
@@ -49,12 +45,8 @@ describe('mas-ost-code-output', () => {
     });
 
     it('renders Use button', async () => {
-        const panel = await fixture(
-            html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`,
-        );
-        const codeOutput = panel.shadowRoot.querySelector(
-            'mas-ost-code-output',
-        );
+        const panel = await fixture(html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`);
+        const codeOutput = panel.shadowRoot.querySelector('mas-ost-code-output');
         await codeOutput.updateComplete;
         const button = codeOutput.shadowRoot.querySelector('sp-button');
         expect(button).to.exist;
@@ -63,26 +55,18 @@ describe('mas-ost-code-output', () => {
 
     it('disables Use button when no OSI is selected', async () => {
         store.selectedOsi = undefined;
-        const panel = await fixture(
-            html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`,
-        );
-        const codeOutput = panel.shadowRoot.querySelector(
-            'mas-ost-code-output',
-        );
+        const panel = await fixture(html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`);
+        const codeOutput = panel.shadowRoot.querySelector('mas-ost-code-output');
         await codeOutput.updateComplete;
         const button = codeOutput.shadowRoot.querySelector('sp-button');
         expect(button.hasAttribute('disabled')).to.be.true;
     });
 
     it('includes type in code string for non-price types', async () => {
-        const panel = await fixture(
-            html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`,
-        );
+        const panel = await fixture(html`<mas-ost-placeholder-panel></mas-ost-placeholder-panel>`);
         panel.placeholderCtrl.setType('optical');
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector(
-            'mas-ost-code-output',
-        );
+        const codeOutput = panel.shadowRoot.querySelector('mas-ost-code-output');
         codeOutput.requestUpdate();
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');

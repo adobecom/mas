@@ -146,8 +146,7 @@ export class MasOstFilterBar extends LitElement {
     syncPickerValues() {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                const pickers =
-                    this.renderRoot.querySelectorAll('sp-picker');
+                const pickers = this.renderRoot.querySelectorAll('sp-picker');
                 const values = [
                     this.currentPlanKey,
                     store.aosParams.customerSegment || 'ALL',
@@ -167,42 +166,33 @@ export class MasOstFilterBar extends LitElement {
         const filters = [];
         const { aosParams } = store;
         if (aosParams.customerSegment) {
-            const match = CUSTOMER_SEGMENTS.find(
-                (s) => s.key === aosParams.customerSegment,
-            );
+            const match = CUSTOMER_SEGMENTS.find((s) => s.key === aosParams.customerSegment);
             filters.push({
                 label: match?.label || aosParams.customerSegment,
                 clear: () => store.setAosParams({ customerSegment: '' }),
             });
         }
         if (aosParams.marketSegment) {
-            const match = MARKET_SEGMENTS.find(
-                (s) => s.key === aosParams.marketSegment,
-            );
+            const match = MARKET_SEGMENTS.find((s) => s.key === aosParams.marketSegment);
             filters.push({
                 label: match?.label || aosParams.marketSegment,
                 clear: () => store.setAosParams({ marketSegment: '' }),
             });
         }
         if (aosParams.offerType) {
-            const match = OFFER_TYPES.find(
-                (s) => s.key === aosParams.offerType,
-            );
+            const match = OFFER_TYPES.find((s) => s.key === aosParams.offerType);
             filters.push({
                 label: match?.label || aosParams.offerType,
                 clear: () => store.setAosParams({ offerType: '' }),
             });
         }
         if (aosParams.commitment || aosParams.term) {
-            const planKey = [aosParams.commitment, aosParams.term]
-                .filter(Boolean)
-                .join('-');
+            const planKey = [aosParams.commitment, aosParams.term].filter(Boolean).join('-');
             const match = PLAN_TYPES.find((p) => p.key === planKey);
             if (match && match.key !== 'ALL') {
                 filters.push({
                     label: match.label,
-                    clear: () =>
-                        store.setAosParams({ commitment: '', term: '' }),
+                    clear: () => store.setAosParams({ commitment: '', term: '' }),
                 });
             }
         }
@@ -248,39 +238,25 @@ export class MasOstFilterBar extends LitElement {
         return html`
             <div class="filter-header">
                 <span class="filter-title">Filters</span>
-                ${tags.length > 0
-                    ? html`<span class="filter-count">${tags.length}</span>`
-                    : ''}
+                ${tags.length > 0 ? html`<span class="filter-count">${tags.length}</span>` : ''}
             </div>
             <div class="filters-grid">
                 <div>
                     <div class="field-label">Plan <mas-ost-help-icon text="${HELP_TOOLTIPS.planType}"></mas-ost-help-icon></div>
-                    <sp-picker
-                        size="s"
-                        .value=${this.currentPlanKey}
-                        @change=${this.handlePlanChange}
-                    >
-                        ${PLAN_TYPES.map(
-                            (pt) =>
-                                html`<sp-menu-item value=${pt.key}
-                                    >${pt.label}</sp-menu-item
-                                >`,
-                        )}
+                    <sp-picker size="s" .value=${this.currentPlanKey} @change=${this.handlePlanChange}>
+                        ${PLAN_TYPES.map((pt) => html`<sp-menu-item value=${pt.key}>${pt.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Segment <mas-ost-help-icon text="${HELP_TOOLTIPS.segment}"></mas-ost-help-icon></div>
+                    <div class="field-label">
+                        Segment <mas-ost-help-icon text="${HELP_TOOLTIPS.segment}"></mas-ost-help-icon>
+                    </div>
                     <sp-picker
                         size="s"
                         .value=${store.aosParams.customerSegment || 'ALL'}
                         @change=${this.handleCustomerSegmentChange}
                     >
-                        ${CUSTOMER_SEGMENTS.map(
-                            (seg) =>
-                                html`<sp-menu-item value=${seg.key}
-                                    >${seg.label}</sp-menu-item
-                                >`,
-                        )}
+                        ${CUSTOMER_SEGMENTS.map((seg) => html`<sp-menu-item value=${seg.key}>${seg.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
@@ -290,27 +266,15 @@ export class MasOstFilterBar extends LitElement {
                         .value=${store.aosParams.marketSegment || 'ALL'}
                         @change=${this.handleMarketSegmentChange}
                     >
-                        ${MARKET_SEGMENTS.map(
-                            (seg) =>
-                                html`<sp-menu-item value=${seg.key}
-                                    >${seg.label}</sp-menu-item
-                                >`,
-                        )}
+                        ${MARKET_SEGMENTS.map((seg) => html`<sp-menu-item value=${seg.key}>${seg.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Offer type <mas-ost-help-icon text="${HELP_TOOLTIPS.offerType}"></mas-ost-help-icon></div>
-                    <sp-picker
-                        size="s"
-                        .value=${store.aosParams.offerType || 'ALL'}
-                        @change=${this.handleOfferTypeChange}
-                    >
-                        ${OFFER_TYPES.map(
-                            (t) =>
-                                html`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`,
-                        )}
+                    <div class="field-label">
+                        Offer type <mas-ost-help-icon text="${HELP_TOOLTIPS.offerType}"></mas-ost-help-icon>
+                    </div>
+                    <sp-picker size="s" .value=${store.aosParams.offerType || 'ALL'} @change=${this.handleOfferTypeChange}>
+                        ${OFFER_TYPES.map((t) => html`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
             </div>

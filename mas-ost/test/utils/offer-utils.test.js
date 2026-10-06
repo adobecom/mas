@@ -1,30 +1,21 @@
 import { expect } from '@open-wc/testing';
-import {
-    OFFER_ID_PATTERN,
-    OFFER_SELECTOR_ID_PATTERN,
-    isOfferId,
-    isOfferSelectorId,
-} from '../../src/utils/offer-utils.js';
+import { OFFER_ID_PATTERN, OFFER_SELECTOR_ID_PATTERN, isOfferId, isOfferSelectorId } from '../../src/utils/offer-utils.js';
 
 describe('OFFER_ID_PATTERN', () => {
     it('matches a valid 32-char hex string', () => {
-        expect(OFFER_ID_PATTERN.test('257E1D82082387D152029F93C1030624')).to.be
-            .true;
+        expect(OFFER_ID_PATTERN.test('257E1D82082387D152029F93C1030624')).to.be.true;
     });
 
     it('rejects lowercase hex', () => {
-        expect(OFFER_ID_PATTERN.test('257e1d82082387d152029f93c1030624')).to.be
-            .false;
+        expect(OFFER_ID_PATTERN.test('257e1d82082387d152029f93c1030624')).to.be.false;
     });
 
     it('rejects strings shorter than 32 chars', () => {
-        expect(OFFER_ID_PATTERN.test('257E1D82082387D152029F93C103062')).to.be
-            .false;
+        expect(OFFER_ID_PATTERN.test('257E1D82082387D152029F93C103062')).to.be.false;
     });
 
     it('rejects strings longer than 32 chars', () => {
-        expect(OFFER_ID_PATTERN.test('257E1D82082387D152029F93C10306240')).to.be
-            .false;
+        expect(OFFER_ID_PATTERN.test('257E1D82082387D152029F93C10306240')).to.be.false;
     });
 });
 

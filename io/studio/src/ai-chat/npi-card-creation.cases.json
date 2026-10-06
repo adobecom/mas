@@ -25,9 +25,7 @@
             "flow": "npi-card-creation",
             "description": "Model jumps to create_release_cards with an arrangement_code no tool result ever returned.",
             "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
-            "conversationHistory": [
-                { "role": "user", "content": "create a card for Acrobat" }
-            ],
+            "conversationHistory": [{ "role": "user", "content": "create a card for Acrobat" }],
             "user_message": "create a card for Acrobat",
             "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"create_release_cards\",\n  \"operationParams\": { \"arrangement_code\": \"acro_direct_individual\", \"variants\": [\"plans\"], \"parentPath\": \"/content/dam/mas/sandbox/en_US\" },\n  \"message\": \"Creating release cards for Acrobat...\"\n}\n```",
             "expect": { "violates": true, "violation_includes": "fabricated" }
@@ -62,7 +60,10 @@
             "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
             "conversationHistory": [
                 { "role": "user", "content": "RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8" },
-                { "role": "assistant", "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF" }
+                {
+                    "role": "assistant",
+                    "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF"
+                }
             ],
             "user_message": "",
             "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"phsp_direct_individual\" },\n  \"message\": \"Looking up phsp_direct_individual in the catalog...\"\n}\n```",
@@ -76,7 +77,10 @@
             "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
             "conversationHistory": [
                 { "role": "user", "content": "RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8" },
-                { "role": "assistant", "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF" }
+                {
+                    "role": "assistant",
+                    "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF"
+                }
             ],
             "user_message": "",
             "mockModelResponse": "```json\n{\n  \"type\": \"guided_step\",\n  \"message\": \"I resolved that OSI to Photoshop. What would you like to do next?\"\n}\n```",
@@ -90,7 +94,10 @@
             "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
             "conversationHistory": [
                 { "role": "user", "content": "RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8" },
-                { "role": "assistant", "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF" }
+                {
+                    "role": "assistant",
+                    "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF"
+                }
             ],
             "user_message": "",
             "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8\" },\n  \"message\": \"Looking up that offer in the catalog...\"\n}\n```",
@@ -101,7 +108,10 @@
             "invariant": 4,
             "flow": "npi-card-creation",
             "description": "Turn carries a selected product; model goes straight to Step 4 offering-type without re-looking-up.",
-            "context": { "flow": { "active": "release_create", "step": "awaiting_product" }, "selectedProduct": { "arrangement_code": "phsp_direct_individual" } },
+            "context": {
+                "flow": { "active": "release_create", "step": "awaiting_product" },
+                "selectedProduct": { "arrangement_code": "phsp_direct_individual" }
+            },
             "conversationHistory": [],
             "user_message": "Selected product: Photoshop Single App arrangement_code: phsp_direct_individual",
             "mockModelResponse": "```json\n{\n  \"type\": \"guided_step\",\n  \"message\": \"What type of offering should this card feature?\",\n  \"buttonGroup\": {\n    \"label\": \"Offering Type\",\n    \"options\": [\n      { \"label\": \"Monthly\", \"value\": \"MONTH|MONTHLY\" },\n      { \"label\": \"Annual, billed monthly\", \"value\": \"YEAR|MONTHLY\" },\n      { \"label\": \"Annual, prepaid\", \"value\": \"YEAR|ANNUAL\" }\n    ]\n  }\n}\n```",
@@ -112,7 +122,10 @@
             "invariant": 4,
             "flow": "npi-card-creation",
             "description": "Model re-runs list_products although the product is already selected in the turn.",
-            "context": { "flow": { "active": "release_create", "step": "awaiting_product" }, "selectedProduct": { "arrangement_code": "phsp_direct_individual" } },
+            "context": {
+                "flow": { "active": "release_create", "step": "awaiting_product" },
+                "selectedProduct": { "arrangement_code": "phsp_direct_individual" }
+            },
             "conversationHistory": [],
             "user_message": "Selected product: Photoshop Single App arrangement_code: phsp_direct_individual",
             "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"phsp_direct_individual\" },\n  \"message\": \"Looking up phsp_direct_individual in the catalog...\"\n}\n```",
@@ -123,7 +136,10 @@
             "invariant": 4,
             "flow": "npi-card-creation",
             "description": "Model re-renders productCards although the product is already selected in the turn.",
-            "context": { "flow": { "active": "release_create", "step": "awaiting_product" }, "selectedProduct": { "arrangement_code": "phsp_direct_individual" } },
+            "context": {
+                "flow": { "active": "release_create", "step": "awaiting_product" },
+                "selectedProduct": { "arrangement_code": "phsp_direct_individual" }
+            },
             "conversationHistory": [],
             "user_message": "Selected product: Photoshop Single App arrangement_code: phsp_direct_individual",
             "mockModelResponse": "```json\n{\n  \"type\": \"guided_step\",\n  \"message\": \"Found your product:\",\n  \"productCards\": [\n    { \"label\": \"Photoshop Single App\", \"value\": \"phsp_direct_individual\", \"arrangement_code\": \"phsp_direct_individual\", \"product_code\": \"PHSP\" }\n  ]\n}\n```",

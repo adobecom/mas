@@ -27,16 +27,18 @@ This is the production deployment of the MAS Operations Service using Adobe I/O 
 ### Setup
 
 1. Install dependencies:
-   ```bash
-   cd io/operations
-   npm install
-   ```
+
+    ```bash
+    cd io/operations
+    npm install
+    ```
 
 2. Configure Adobe I/O CLI:
-   ```bash
-   aio config:set runtime.namespace <your-namespace>
-   aio config:set runtime.auth <your-auth-token>
-   ```
+
+    ```bash
+    aio config:set runtime.namespace <your-namespace>
+    aio config:set runtime.auth <your-auth-token>
+    ```
 
 3. Shared libraries (auth-manager, aem-client, studio-url-builder,
    studio-operations) now live directly in `src/lib/`. The previous
@@ -45,11 +47,13 @@ This is the production deployment of the MAS Operations Service using Adobe I/O 
 ### Deploy
 
 Deploy all actions:
+
 ```bash
 aio app deploy --all
 ```
 
 Deploy specific action:
+
 ```bash
 aio app deploy -a publish-card
 ```
@@ -57,11 +61,13 @@ aio app deploy -a publish-card
 ### Test
 
 List deployed actions:
+
 ```bash
 aio runtime action list
 ```
 
 Invoke action directly:
+
 ```bash
 aio runtime action invoke publish-card --param id <card-id> --result
 ```
@@ -82,11 +88,13 @@ Configure these in GitHub repository settings:
 ## Runtime URLs
 
 After deployment, actions are available at:
+
 ```
 https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/<action-name>
 ```
 
 Example:
+
 ```
 https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations/publish-card
 ```
@@ -108,18 +116,21 @@ stays for Claude Code / Cursor clients.
 ## Troubleshooting
 
 ### View action logs
+
 ```bash
 aio runtime activation list
 aio runtime activation logs <activation-id>
 ```
 
 ### Test authentication
+
 ```bash
 curl -H "Authorization: Bearer <token>" \
   https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/get-card?id=<card-id>
 ```
 
 ### Undeploy actions
+
 ```bash
 aio app undeploy
 ```

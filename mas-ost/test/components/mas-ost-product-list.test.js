@@ -45,18 +45,14 @@ describe('mas-ost-product-list', () => {
     });
 
     it('renders product cards from store', async () => {
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const cards = el.shadowRoot.querySelectorAll('.product-card');
         expect(cards.length).to.equal(2);
     });
 
     it('shows draft products when landscape is DRAFT', async () => {
         store.landscape = 'DRAFT';
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const cards = el.shadowRoot.querySelectorAll('.product-card');
         expect(cards.length).to.equal(3);
         const draftBadge = el.shadowRoot.querySelector('.draft-dot');
@@ -64,9 +60,7 @@ describe('mas-ost-product-list', () => {
     });
 
     it('displays product name and code', async () => {
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const names = el.shadowRoot.querySelectorAll('.product-name');
         expect(names[0].textContent).to.equal('Photoshop');
         const codes = el.shadowRoot.querySelectorAll('.product-code');
@@ -75,12 +69,8 @@ describe('mas-ost-product-list', () => {
 
     it('highlights selected product', async () => {
         store.aosParams.arrangementCode = 'phsp';
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
-        const selected = el.shadowRoot.querySelector(
-            '.product-card[selected]',
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
+        const selected = el.shadowRoot.querySelector('.product-card[selected]');
         expect(selected).to.exist;
         const name = selected.querySelector('.product-name');
         expect(name.textContent).to.equal('Photoshop');
@@ -99,9 +89,7 @@ describe('mas-ost-product-list', () => {
             aosCalls.push(val);
             origSetAosParams(val);
         };
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const card = el.shadowRoot.querySelector('.product-card');
         card.click();
         expect(productCalls.length).to.equal(1);
@@ -113,9 +101,7 @@ describe('mas-ost-product-list', () => {
 
     it('shows empty state when no products match', async () => {
         store.allProducts = [];
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const empty = el.shadowRoot.querySelector('.empty-state');
         expect(empty).to.exist;
         expect(empty.textContent).to.include('No products found');
@@ -124,9 +110,7 @@ describe('mas-ost-product-list', () => {
     it('renders skeleton cards when loading', async () => {
         store.productsLoading = true;
         store.allProducts = [];
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const skeletons = el.shadowRoot.querySelectorAll('.skeleton-card');
         expect(skeletons.length).to.equal(8);
         store.productsLoading = false;
@@ -135,9 +119,7 @@ describe('mas-ost-product-list', () => {
     it('replaces skeletons with real cards after loading', async () => {
         store.productsLoading = true;
         store.allProducts = [];
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         expect(el.shadowRoot.querySelectorAll('.skeleton-card').length).to.equal(8);
 
         store.productsLoading = false;
@@ -152,9 +134,7 @@ describe('mas-ost-product-list', () => {
     it('filters by search query', async () => {
         store.searchQuery = 'Photo';
         store.searchType = 'product';
-        const el = await fixture(
-            html`<mas-ost-product-list></mas-ost-product-list>`,
-        );
+        const el = await fixture(html`<mas-ost-product-list></mas-ost-product-list>`);
         const cards = el.shadowRoot.querySelectorAll('.product-card');
         expect(cards.length).to.equal(1);
         const name = cards[0].querySelector('.product-name');

@@ -2,6 +2,7 @@
 topic: collections-and-variations
 keywords: collection, merch card collection, variation, locale variation, grouped variation, pzn, personalization, locale default, parent fragment, translation
 ---
+
 # Collections and Variations in MAS Studio
 
 ## What is a card collection?

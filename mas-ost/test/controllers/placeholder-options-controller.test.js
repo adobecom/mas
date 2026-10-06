@@ -5,7 +5,9 @@ import { OstStore } from '../../src/store/ost-store.js';
 function createMockHost() {
     return {
         controllers: [],
-        addController(c) { this.controllers.push(c); },
+        addController(c) {
+            this.controllers.push(c);
+        },
         removeController() {},
         requestUpdate() {},
     };

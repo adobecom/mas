@@ -2,6 +2,7 @@
 topic: variants
 keywords: variant, variants, template, templates, card type, which template, catalog, plans, plans-v2, pro, product, segment, mini, slice, suggested, fries, special offers, compare chart, express, ccd, picker
 ---
+
 # Card variants (templates)
 
 ## What card variants are available in MAS Studio?

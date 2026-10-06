@@ -2,6 +2,7 @@
 topic: promotions
 keywords: promotion, promo, promo code, campaign, project, discount, offer substitution, promo variation, schedule, publish promotion
 ---
+
 # Promotions in MAS Studio
 
 ## What is a promotion in MAS Studio?
@@ -9,9 +10,11 @@ keywords: promotion, promo, promo code, campaign, project, discount, offer subst
 A promotion (called a "project" in parts of the UI) is an AEM content fragment managed from the Promotions area of MAS Studio. It carries a title, a promo code, a start date and an end date, one or more promotion tags (mas:promotion), target geos (country tags), target surfaces, a list of attached offers (offer selector IDs), and attached fragments — merch cards and card collections. Dates entered in the editor are stored as UTC ISO timestamps. The promotions list can be filtered by lifecycle status such as draft, scheduled, active and expired.
 
 ## Why don't I see the Promotions page?
+
 The Promotions entry in the side navigation is only rendered for members of the MAS admins group; for everyone else the page is hidden entirely. If you need to manage promotions and the page is missing, request MAS admin access and sign out of Studio and back in so the membership is picked up. The Promo Codes Manager inside the promotion editor is additionally permission-gated, so promo code exceptions can be unavailable even when you can edit the promotion itself.
 
 ## What does the promotions list show?
+
 The Promotions page lists promotions in a table with columns for the promotion title, its timeline (sortable by dates), status, owner, and an actions menu. The actions menu always offers Edit; Publish appears for unpublished or modified promotions and is disabled for expired ones; Unpublish appears only for published promotions. Double-clicking a row opens the promotion in the editor, and opening a promotion that is published but already expired automatically unpublishes it. Duplicating requires saved changes and proposes the current title plus "copy" as the new name; deleting asks for confirmation first.
 
 ## How do I create a promotion?

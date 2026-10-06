@@ -76,7 +76,8 @@ describe('ai-chat/operations-handler', () => {
         });
 
         it('parses a JSON code block containing an operation', () => {
-            const text = '```json\n{"type":"studio_operation","operationName":"publish_card","operationParams":{"id":"frag-1"}}\n```';
+            const text =
+                '```json\n{"type":"studio_operation","operationName":"publish_card","operationParams":{"id":"frag-1"}}\n```';
             const result = parseOperationRequest(text);
             expect(result).to.not.equal(null);
             expect(result.type).to.equal('studio_operation');

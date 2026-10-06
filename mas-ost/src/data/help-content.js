@@ -21,8 +21,7 @@ export const HELP_TOOLTIPS = {
         'How the customer pays. ABM = Annual Billed Monthly (12-month contract, billed each month). PUF = Pay Up Front (12 months, paid in full). M2M = Month-to-Month (cancel anytime). P3Y = 3-Year Term License. Perpetual = one-time purchase, no recurring billing.',
     segment:
         'Who the offer is licensed for. Individual = single consumer subscription. Team = small/medium business, seat-based. Enterprise = large organization / VIP contracts.',
-    market:
-        'What vertical the offer targets. COM = Commercial (business/consumer). EDU = Education (students, faculty, schools). GOV = Government.',
+    market: 'What vertical the offer targets. COM = Commercial (business/consumer). EDU = Education (students, faculty, schools). GOV = Government.',
     offerType:
         'The variant of the offer. Base = standard regular-price offer. Trial = free or reduced-price introductory period. Promotion = discounted or special-pricing variant.',
     planBadge:
@@ -30,7 +29,7 @@ export const HELP_TOOLTIPS = {
     offerId:
         "A unique 32-character identifier for this specific offer. Used internally by Adobe's commerce system — not shown to customers.",
     placeholderType:
-        "Controls what the placeholder outputs on the page. Price = formatted price text. Optical = annual price shown as monthly equivalent. Discount = strikethrough comparison with a reference offer. Checkout URL = a buy-now link/button. Legal = legal disclaimers for the offer.",
+        'Controls what the placeholder outputs on the page. Price = formatted price text. Optical = annual price shown as monthly equivalent. Discount = strikethrough comparison with a reference offer. Checkout URL = a buy-now link/button. Legal = legal disclaimers for the offer.',
     options:
         'Display toggles that control price formatting: whether to show currency formatting, recurrence label (/mo, /yr), per-unit pricing, tax, or old/strikethrough price.',
     checkoutOptions:

@@ -29,7 +29,10 @@ export class MasOstProductList extends LitElement {
             border-radius: 6px;
             background: transparent;
             cursor: pointer;
-            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+            transition:
+                border-color 0.15s,
+                background 0.15s,
+                box-shadow 0.15s;
             flex-shrink: 0;
             min-height: 56px;
         }
@@ -189,25 +192,27 @@ export class MasOstProductList extends LitElement {
             }
         }
 
-        return products.map((entry) => {
-            // Handle both [code, product] tuples and flat product objects
-            const product = Array.isArray(entry) ? entry[1] : entry;
-            return product;
-        }).filter((product) => {
-            const code = product.arrangement_code || product.code || '';
-            const name = product.name || '';
-            const customerSegments = product.customerSegments || {};
-            const marketSegments = product.marketSegments || {};
-            const draft = product.draft || false;
+        return products
+            .map((entry) => {
+                // Handle both [code, product] tuples and flat product objects
+                const product = Array.isArray(entry) ? entry[1] : entry;
+                return product;
+            })
+            .filter((product) => {
+                const code = product.arrangement_code || product.code || '';
+                const name = product.name || '';
+                const customerSegments = product.customerSegments || {};
+                const marketSegments = product.marketSegments || {};
+                const draft = product.draft || false;
 
-            return offerFilter(criteria, store.landscape, store.aosParams, {
-                customerSegments,
-                marketSegments,
-                arrangement_code: code,
-                name,
-                draft,
+                return offerFilter(criteria, store.landscape, store.aosParams, {
+                    customerSegments,
+                    marketSegments,
+                    arrangement_code: code,
+                    name,
+                    draft,
+                });
             });
-        });
     }
 
     handleProductClick(product) {
@@ -219,15 +224,18 @@ export class MasOstProductList extends LitElement {
     renderSkeletons() {
         return html`
             <div class="product-scroll">
-                ${Array.from({ length: 8 }, () => html`
-                    <div class="skeleton-card" aria-hidden="true">
-                        <div class="skeleton-bar skeleton-icon"></div>
-                        <div class="skeleton-info">
-                            <div class="skeleton-bar skeleton-name"></div>
-                            <div class="skeleton-bar skeleton-code"></div>
+                ${Array.from(
+                    { length: 8 },
+                    () => html`
+                        <div class="skeleton-card" aria-hidden="true">
+                            <div class="skeleton-bar skeleton-icon"></div>
+                            <div class="skeleton-info">
+                                <div class="skeleton-bar skeleton-name"></div>
+                                <div class="skeleton-bar skeleton-code"></div>
+                            </div>
                         </div>
-                    </div>
-                `)}
+                    `,
+                )}
             </div>
         `;
     }
@@ -248,8 +256,7 @@ export class MasOstProductList extends LitElement {
         return html`
             <div class="product-scroll">
                 ${products.map((product) => {
-                    const code =
-                        product.arrangement_code || product.code || '';
+                    const code = product.arrangement_code || product.code || '';
                     const isSelected = code === selectedCode;
                     return html`
                         <div
@@ -258,20 +265,12 @@ export class MasOstProductList extends LitElement {
                             ?selected=${isSelected}
                             @click=${() => this.handleProductClick(product)}
                         >
-                            ${product.icon
-                                ? html`<img
-                                      class="product-icon"
-                                      src=${product.icon}
-                                      alt=""
-                                  />`
-                                : nothing}
+                            ${product.icon ? html`<img class="product-icon" src=${product.icon} alt="" />` : nothing}
                             <div class="product-info">
                                 <div class="product-name">${product.name}</div>
                                 <div class="product-code">${code}</div>
                             </div>
-                            ${product.draft
-                                ? html`<span class="draft-dot" title="Draft"></span>`
-                                : nothing}
+                            ${product.draft ? html`<span class="draft-dot" title="Draft"></span>` : nothing}
                         </div>
                     `;
                 })}

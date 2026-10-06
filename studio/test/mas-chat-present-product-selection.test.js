@@ -29,7 +29,9 @@ describe('MasChat presentProductSelection (deterministic step 3)', () => {
     beforeEach(() => {
         el = document.createElement('mas-chat');
         el.messages = [];
-        el.conversationHistory = [{ role: 'assistant', content: '{"type":"studio_operation","operationName":"list_products"}' }];
+        el.conversationHistory = [
+            { role: 'assistant', content: '{"type":"studio_operation","operationName":"list_products"}' },
+        ];
         sendStub = sinon.stub(el, 'handleSendMessage').resolves();
     });
 

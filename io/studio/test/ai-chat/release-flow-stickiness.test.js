@@ -64,14 +64,20 @@ describe('ai-chat/release flow stickiness', () => {
         it('still ends the flow on a lookup turn with no flowId, so termination is not broken', () => {
             const history = [
                 { role: 'user', content: 'create cards for illustrator' },
-                recordedTurn({ type: 'studio_operation', operationName: 'list_products', operationParams: { searchText: 'illustrator' } }),
+                recordedTurn({
+                    type: 'studio_operation',
+                    operationName: 'list_products',
+                    operationParams: { searchText: 'illustrator' },
+                }),
             ];
             expect(inferGuidedFlowFromHistory(history)).to.equal(null);
         });
 
         it('tells the model to carry flowId through the lookup', () => {
             expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.include('emit_studio_operation');
-            expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.match(/flowId[^.]*emit_studio_operation|emit_studio_operation[^.]*flowId/);
+            expect(GUIDED_CARD_CREATION_TOOL_PROMPT).to.match(
+                /flowId[^.]*emit_studio_operation|emit_studio_operation[^.]*flowId/,
+            );
         });
     });
 

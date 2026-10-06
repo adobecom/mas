@@ -2,6 +2,7 @@
 topic: translations
 keywords: translation, translate, localize, localization, locale, language, translation project, rollout
 ---
+
 # Translations in MAS Studio
 
 ## How do I create a translation project?
@@ -13,6 +14,7 @@ Open the Translations page from the MAS Studio side navigation and click the "Cr
 A translation project is stored as a content fragment with these fields: title, status, fragments (the card paths to translate), placeholders, collections, targetLocales, submissionDate, and projectType. Target locales use the underscore format such as fr_FR, de_DE, or ja_JP. The projectType is "translation" by default; a second type, "rollout", exists for rollout-only projects that copy content to target locales without sending it for translation. The Translations page lists all projects in a table showing title, status, who last modified the project, and the "Sent on" date (the submission date, sortable). From the row action menu you can edit or delete a project; deleting is permanent. Duplicate and Archive also appear in the menu but are currently disabled.
 
 ## How do I add content and locales to a translation project?
+
 In the translation project editor, "Add items" opens an overlay with tabs for cards, placeholders, and collections; search and filters (template, market segment, customer segment, product) help find the content, and Cancel reverts to the selection you had when the overlay opened. "Add languages" opens the target-locale picker the same way. The editor's quick-action bar offers Save, the send-for-localization action, Copy, Discard, and Delete. You can also start a pre-filled project from the fragment editor: the missing-variation panel routes to a new translation project with that card and the missing locale already selected. Studio has no dedicated translation coverage page — the fragment editor's variations panel shows which locales a card has. The AI assistant cannot produce coverage reports; ask it to list a card's variation locales instead.
 
 ## How do I send a translation project for localization?

@@ -244,7 +244,11 @@ function validateStudioOperation(operation) {
             break;
 
         case 'search_cards':
-            if (!operation.operationParams.surface && !operation.operationParams.osi && !operation.operationParams.titleSearch) {
+            if (
+                !operation.operationParams.surface &&
+                !operation.operationParams.osi &&
+                !operation.operationParams.titleSearch
+            ) {
                 return {
                     valid: false,
                     error:

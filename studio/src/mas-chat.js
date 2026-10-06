@@ -974,7 +974,8 @@ export class MasChat extends LitElement {
 
             const operationName = envelope.intent;
             const operationParams = envelope.slots ?? {};
-            const requiresConfirmation = category === 'operation-state-changing' || shouldRequireConfirmation(operationName, false);
+            const requiresConfirmation =
+                category === 'operation-state-changing' || shouldRequireConfirmation(operationName, false);
 
             if (operationName === 'search_cards') {
                 this.autoInjectSearchCardsContext(operationParams);
@@ -2103,14 +2104,21 @@ export class MasChat extends LitElement {
                     fresh: true,
                 };
                 if (response.type === 'studio_operation') {
-                    messageData.studioOperation = { operationName: response.operationName, operationParams: response.operationParams };
+                    messageData.studioOperation = {
+                        operationName: response.operationName,
+                        operationParams: response.operationParams,
+                    };
                     messageData.operationType = 'studio_operation';
                 }
                 this.messages = [...this.messages, messageData];
                 if (!requiresConfirmation) {
                     const op =
                         response.type === 'studio_operation'
-                            ? { type: 'studio_operation', operationName: response.operationName, operationParams: response.operationParams }
+                            ? {
+                                  type: 'studio_operation',
+                                  operationName: response.operationName,
+                                  operationParams: response.operationParams,
+                              }
                             : response.data;
                     await this.executeOperation(op);
                 }

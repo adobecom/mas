@@ -482,7 +482,6 @@ describe('mcp-client', () => {
                 expect(result.newFragmentTitle).to.equal('Copied');
                 expect(result.newFragmentPath).to.equal('/x');
             });
-
         });
     });
 });

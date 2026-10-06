@@ -28,8 +28,7 @@ describe('ai-operations-executor', () => {
             expect(shouldRequireConfirmation('create_release_cards', false)).to.be.true;
         });
 
-        it('returns true for destructive tools when backend flag is undefined', () => {
-        });
+        it('returns true for destructive tools when backend flag is undefined', () => {});
 
         it('returns false for read-only tools when backend flag is false', () => {
             expect(shouldRequireConfirmation('get_card', false)).to.be.false;

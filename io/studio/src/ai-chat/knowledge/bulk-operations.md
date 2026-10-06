@@ -2,6 +2,7 @@
 topic: bulk-operations
 keywords: bulk, bulk update, bulk publish, bulk unpublish, publish multiple, batch, mass update, find and replace, preview
 ---
+
 # Bulk Operations in MAS Studio
 
 ## Can the AI assistant update or publish many cards at once?

@@ -54,9 +54,7 @@ export class MasOstSearch extends LitElement {
     }
 
     render() {
-        const label = this.search.query
-            ? TYPE_LABELS[this.search.resultType]
-            : '';
+        const label = this.search.query ? TYPE_LABELS[this.search.resultType] : '';
         return html`
             <div class="search-wrapper">
                 <sp-search
@@ -65,14 +63,7 @@ export class MasOstSearch extends LitElement {
                     @input=${this.handleInput}
                     @submit=${this.handleSubmit}
                 ></sp-search>
-                ${label
-                    ? html`<sp-badge
-                          class="type-badge"
-                          size="s"
-                          variant="informative"
-                          >${label}</sp-badge
-                      >`
-                    : ''}
+                ${label ? html`<sp-badge class="type-badge" size="s" variant="informative">${label}</sp-badge>` : ''}
             </div>
         `;
     }

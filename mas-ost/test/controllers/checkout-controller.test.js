@@ -9,7 +9,9 @@ import {
 function createMockHost() {
     return {
         controllers: [],
-        addController(c) { this.controllers.push(c); },
+        addController(c) {
+            this.controllers.push(c);
+        },
         removeController() {},
         requestUpdate() {},
     };
@@ -79,7 +81,9 @@ describe('CheckoutController', () => {
 
     it('calls host.requestUpdate on each setter', () => {
         let count = 0;
-        host.requestUpdate = () => { count++; };
+        host.requestUpdate = () => {
+            count++;
+        };
         ctrl.setWorkflowStep('bundle');
         ctrl.setCtaText('Go');
         ctrl.toggleModal(true);

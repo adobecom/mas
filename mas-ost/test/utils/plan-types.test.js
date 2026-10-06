@@ -1,9 +1,5 @@
 import { expect } from '@open-wc/testing';
-import {
-    PlanType,
-    computePlanType,
-    applyPlanType,
-} from '../../src/utils/plan-types.js';
+import { PlanType, computePlanType, applyPlanType } from '../../src/utils/plan-types.js';
 
 describe('PlanType enum', () => {
     it('exposes all plan type constants', () => {
@@ -37,9 +33,7 @@ describe('computePlanType', () => {
     });
 
     it('returns empty string for undefined commitment', () => {
-        expect(computePlanType(undefined, 'MONTHLY')).to.equal(
-            'Value is not an offer',
-        );
+        expect(computePlanType(undefined, 'MONTHLY')).to.equal('Value is not an offer');
     });
 
     it('returns empty string for empty commitment', () => {
@@ -79,9 +73,7 @@ describe('applyPlanType', () => {
     });
 
     it('returns error string for non-object input', () => {
-        expect(applyPlanType('not an object')).to.equal(
-            'Value is not an offer',
-        );
+        expect(applyPlanType('not an object')).to.equal('Value is not an offer');
         expect(applyPlanType(42)).to.equal('Value is not an offer');
         expect(applyPlanType(null)).to.equal('Value is not an offer');
     });

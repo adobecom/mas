@@ -24,7 +24,8 @@ describe('ai-chat/arrangement code injection', () => {
         { role: 'user', content: 'Create cards for firefly standard' },
         {
             role: 'assistant',
-            content: '{"type":"studio_operation","operationName":"list_products","operationParams":{"searchText":"firefly standard"}}',
+            content:
+                '{"type":"studio_operation","operationName":"list_products","operationParams":{"searchText":"firefly standard"}}',
         },
         { role: 'user', content: 'Selected product: Adobe Firefly Standard (arrangement_code: PA-1930)' },
         { role: 'user', content: 'Offer ID: F5B3D59867BC5B6020EFA0763C3AE92A' },
@@ -76,7 +77,11 @@ describe('ai-chat/arrangement code injection', () => {
     });
 
     it('touches nothing else', () => {
-        const operation = { type: 'studio_operation', operationName: 'list_products', operationParams: { searchText: 'firefly' } };
+        const operation = {
+            type: 'studio_operation',
+            operationName: 'list_products',
+            operationParams: { searchText: 'firefly' },
+        };
 
         expect(withResolvedArrangementCode(operation, history)).to.deep.equal(operation);
     });
@@ -153,11 +158,17 @@ describe('ai-chat/arrangement code injection — the OST-first flow', () => {
     });
 
     it('fills the lookup the transcript cannot answer', () => {
-        const operation = { type: 'studio_operation', operationName: 'get_offer_by_id', operationParams: { offerId: OFFER_ID } };
+        const operation = {
+            type: 'studio_operation',
+            operationName: 'get_offer_by_id',
+            operationParams: { offerId: OFFER_ID },
+        };
 
         const filled = withResolvedArrangementCode(operation, ostHistory, { offer: ostOffer });
 
-        expect(filled.operationParams.arrangementCode, 'the turn that reported "not in the unfiltered results"').to.equal('PA-1930');
+        expect(filled.operationParams.arrangementCode, 'the turn that reported "not in the unfiltered results"').to.equal(
+            'PA-1930',
+        );
         expect(filled.operationParams.offerId).to.equal(OFFER_ID);
     });
 
@@ -165,7 +176,11 @@ describe('ai-chat/arrangement code injection — the OST-first flow', () => {
         // The user picked this offer seconds ago; a product named earlier in the
         // conversation is older, and the lookup is for this offer.
         const history = [{ role: 'user', content: 'Selected product: Photoshop (arrangement_code: PA-2244)' }];
-        const operation = { type: 'studio_operation', operationName: 'get_offer_by_id', operationParams: { offerId: OFFER_ID } };
+        const operation = {
+            type: 'studio_operation',
+            operationName: 'get_offer_by_id',
+            operationParams: { offerId: OFFER_ID },
+        };
 
         expect(withResolvedArrangementCode(operation, history, { offer: ostOffer }).operationParams.arrangementCode).to.equal(
             'PA-1930',
@@ -177,7 +192,11 @@ describe('ai-chat/arrangement code injection — the OST-first flow', () => {
         // its product would filter AOS to the wrong arrangement entirely.
         const stale = { offer_id: 'DEADBEEFDEADBEEFDEADBEEFDEADBEEF', product_arrangement_code: 'PA-9999' };
         const history = [{ role: 'user', content: 'Selected product: Photoshop (arrangement_code: PA-2244)' }];
-        const operation = { type: 'studio_operation', operationName: 'get_offer_by_id', operationParams: { offerId: OFFER_ID } };
+        const operation = {
+            type: 'studio_operation',
+            operationName: 'get_offer_by_id',
+            operationParams: { offerId: OFFER_ID },
+        };
 
         expect(
             withResolvedArrangementCode(operation, history, { offer: stale }).operationParams.arrangementCode,
@@ -192,14 +211,18 @@ describe('ai-chat/arrangement code injection — the OST-first flow', () => {
             operationParams: { offerId: OFFER_ID, arrangementCode: 'PA-1111' },
         };
 
-        expect(withResolvedArrangementCode(operation, ostHistory, { offer: ostOffer }).operationParams.arrangementCode).to.equal(
-            'PA-1111',
-        );
+        expect(
+            withResolvedArrangementCode(operation, ostHistory, { offer: ostOffer }).operationParams.arrangementCode,
+        ).to.equal('PA-1111');
     });
 
     it('still reads the transcript when no context comes with the turn', () => {
         // Every other flow keeps working: context is optional.
-        const operation = { type: 'studio_operation', operationName: 'get_offer_by_id', operationParams: { offerId: OFFER_ID } };
+        const operation = {
+            type: 'studio_operation',
+            operationName: 'get_offer_by_id',
+            operationParams: { offerId: OFFER_ID },
+        };
         const history = [{ role: 'user', content: 'Selected product: Adobe Firefly Standard (arrangement_code: PA-1930)' }];
 
         expect(withResolvedArrangementCode(operation, history).operationParams.arrangementCode).to.equal('PA-1930');

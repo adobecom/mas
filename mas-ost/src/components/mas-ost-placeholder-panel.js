@@ -123,16 +123,16 @@ export class MasOstPlaceholderPanel extends LitElement {
 
     render() {
         if (!store.selectedOffer) {
-            return html`<span class="empty-state"
-                >Select an offer to see placeholder options.</span
-            >`;
+            return html`<span class="empty-state">Select an offer to see placeholder options.</span>`;
         }
 
         const types = store.placeholderTypes;
         const selected = this.selectedType;
 
         return html`
-            <div class="section-label">Placeholder Type <mas-ost-help-icon text="${HELP_TOOLTIPS.placeholderType}"></mas-ost-help-icon></div>
+            <div class="section-label">
+                Placeholder Type <mas-ost-help-icon text="${HELP_TOOLTIPS.placeholderType}"></mas-ost-help-icon>
+            </div>
             <div class="type-chips">
                 ${types.map(
                     (t) => html`
@@ -154,23 +154,27 @@ export class MasOstPlaceholderPanel extends LitElement {
             <div class="options-section">
                 ${this.isCheckoutUrl
                     ? html`
-                        <div class="section-label">Checkout Options <mas-ost-help-icon text="${HELP_TOOLTIPS.checkoutOptions}"></mas-ost-help-icon></div>
-                        <mas-ost-checkout-options></mas-ost-checkout-options>
-                    `
+                          <div class="section-label">
+                              Checkout Options <mas-ost-help-icon text="${HELP_TOOLTIPS.checkoutOptions}"></mas-ost-help-icon>
+                          </div>
+                          <mas-ost-checkout-options></mas-ost-checkout-options>
+                      `
                     : html`<mas-ost-placeholder-options></mas-ost-placeholder-options>`}
             </div>
 
-            ${this.isDiscount ? html`
-                <div class="reference-osi-field">
-                    <sp-field-label size="s">Reference offer OSI</sp-field-label>
-                    <sp-textfield
-                        size="s"
-                        placeholder="e.g. base price OSI for comparison"
-                        .value=${this.referenceOsi}
-                        @input=${this.handleReferenceOsiInput}
-                    ></sp-textfield>
-                </div>
-            ` : nothing}
+            ${this.isDiscount
+                ? html`
+                      <div class="reference-osi-field">
+                          <sp-field-label size="s">Reference offer OSI</sp-field-label>
+                          <sp-textfield
+                              size="s"
+                              placeholder="e.g. base price OSI for comparison"
+                              .value=${this.referenceOsi}
+                              @input=${this.handleReferenceOsiInput}
+                          ></sp-textfield>
+                      </div>
+                  `
+                : nothing}
 
             <mas-ost-live-preview
                 .placeholderType=${selected}

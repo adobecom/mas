@@ -1512,7 +1512,8 @@ export function inferGuidedFlowFromHistory(conversationHistory) {
         return null;
     }
     const knownFlows = ['guided_search', 'guided_offer_search', 'guided_help', 'release'];
-    const terminalPattern = /"(?:operationName|cardConfigs?)"\s*:|"type"\s*:\s*"(?:studio_operation|card|collection|release_cards)"/;
+    const terminalPattern =
+        /"(?:operationName|cardConfigs?)"\s*:|"type"\s*:\s*"(?:studio_operation|card|collection|release_cards)"/;
     let scanned = 0;
     for (let i = conversationHistory.length - 1; i >= 0 && scanned < 4; i -= 1) {
         const msg = conversationHistory[i];

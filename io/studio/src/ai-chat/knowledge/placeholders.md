@@ -2,6 +2,7 @@
 topic: placeholders
 keywords: placeholder, dictionary, key, value, rich text, locale string, translation string, token, substitution
 ---
+
 # Placeholders in MAS Studio
 
 ## What are placeholders in MAS Studio?

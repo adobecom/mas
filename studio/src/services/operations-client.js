@@ -171,7 +171,8 @@ export async function executeStudioOperation(operationName, operationParams) {
                 product,
                 arrangementCode: result.arrangementCode || operationParams.arrangementCode,
                 message:
-                    result.message || (product ? `Found product for ${operationParams.arrangementCode}` : 'No MCS product match.'),
+                    result.message ||
+                    (product ? `Found product for ${operationParams.arrangementCode}` : 'No MCS product match.'),
                 rawResult: result,
             };
         }
@@ -219,7 +220,8 @@ export async function executeStudioOperation(operationName, operationParams) {
                 operation: 'get_offer_by_id',
                 offer,
                 studioLinks: result.studioLinks,
-                message: result.message || (offer ? `Found offer ${offer.offerId || operationParams.offerId}` : 'Offer not found'),
+                message:
+                    result.message || (offer ? `Found offer ${offer.offerId || operationParams.offerId}` : 'Offer not found'),
                 rawResult: result,
             };
         }

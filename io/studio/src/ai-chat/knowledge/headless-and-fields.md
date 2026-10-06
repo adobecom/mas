@@ -2,6 +2,7 @@
 topic: headless
 keywords: mas-field, headless, field, single field, inline, copy field, field link, embed, reuse, one field, price inline, cta inline, headless variant, consumer page, autoblock, jsonld
 ---
+
 # Headless cards and single fields (mas-field)
 
 ## What is mas-field?

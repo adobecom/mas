@@ -93,7 +93,12 @@ describe('ai-chat/inferGuidedFlowFromHistory', () => {
         const serialized = {
             role: 'assistant',
             content: `\`\`\`json\n${JSON.stringify(
-                { operationName: 'list_products', operationParams: { searchText: 'x' }, message: 'Looking up…', type: 'studio_operation' },
+                {
+                    operationName: 'list_products',
+                    operationParams: { searchText: 'x' },
+                    message: 'Looking up…',
+                    type: 'studio_operation',
+                },
                 null,
                 2,
             )}\n\`\`\``,

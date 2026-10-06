@@ -28,92 +28,47 @@ describe('offerFilter', () => {
     });
 
     it('treats missing segment filters as wildcards', () => {
-        const result = offerFilter(
-            null,
-            'PUBLISHED',
-            makeAos({ customerSegment: '', marketSegment: '' }),
-            makeOffer(),
-        );
+        const result = offerFilter(null, 'PUBLISHED', makeAos({ customerSegment: '', marketSegment: '' }), makeOffer());
         expect(result).to.be.true;
     });
 
     it('filters out non-matching customer segment', () => {
-        const result = offerFilter(
-            null,
-            'PUBLISHED',
-            makeAos({ customerSegment: 'TEAM' }),
-            makeOffer(),
-        );
+        const result = offerFilter(null, 'PUBLISHED', makeAos({ customerSegment: 'TEAM' }), makeOffer());
         expect(result).to.be.false;
     });
 
     it('filters out non-matching market segment', () => {
-        const result = offerFilter(
-            null,
-            'PUBLISHED',
-            makeAos({ marketSegment: 'EDU' }),
-            makeOffer(),
-        );
+        const result = offerFilter(null, 'PUBLISHED', makeAos({ marketSegment: 'EDU' }), makeOffer());
         expect(result).to.be.false;
     });
 
     it('hides draft offers when landscape is PUBLISHED', () => {
-        const result = offerFilter(
-            null,
-            'PUBLISHED',
-            makeAos(),
-            makeOffer({ draft: true }),
-        );
+        const result = offerFilter(null, 'PUBLISHED', makeAos(), makeOffer({ draft: true }));
         expect(result).to.be.false;
     });
 
     it('shows draft offers when landscape is DRAFT', () => {
-        const result = offerFilter(
-            null,
-            'DRAFT',
-            makeAos(),
-            makeOffer({ draft: true }),
-        );
+        const result = offerFilter(null, 'DRAFT', makeAos(), makeOffer({ draft: true }));
         expect(result).to.be.true;
     });
 
     it('matches arrangement code even when criteria does not match name', () => {
-        const result = offerFilter(
-            /nomatch/,
-            'PUBLISHED',
-            makeAos(),
-            makeOffer(),
-        );
+        const result = offerFilter(/nomatch/, 'PUBLISHED', makeAos(), makeOffer());
         expect(result).to.be.true;
     });
 
     it('matches when search criteria matches name', () => {
-        const result = offerFilter(
-            /Creative/i,
-            'PUBLISHED',
-            makeAos({ arrangementCode: 'OTHER' }),
-            makeOffer(),
-        );
+        const result = offerFilter(/Creative/i, 'PUBLISHED', makeAos({ arrangementCode: 'OTHER' }), makeOffer());
         expect(result).to.be.true;
     });
 
     it('matches when search criteria matches arrangement_code', () => {
-        const result = offerFilter(
-            /ARRANGEMENT_1/,
-            'PUBLISHED',
-            makeAos({ arrangementCode: 'OTHER' }),
-            makeOffer(),
-        );
+        const result = offerFilter(/ARRANGEMENT_1/, 'PUBLISHED', makeAos({ arrangementCode: 'OTHER' }), makeOffer());
         expect(result).to.be.true;
     });
 
     it('filters out when criteria does not match and arrangement codes differ', () => {
-        const result = offerFilter(
-            /nomatch/,
-            'PUBLISHED',
-            makeAos({ arrangementCode: 'OTHER' }),
-            makeOffer(),
-        );
+        const result = offerFilter(/nomatch/, 'PUBLISHED', makeAos({ arrangementCode: 'OTHER' }), makeOffer());
         expect(result).to.be.false;
     });
 });

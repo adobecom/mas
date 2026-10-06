@@ -27,9 +27,7 @@ export class PlaceholderOptionsController {
     }
 
     getEffectiveOptions() {
-        const typeConfig = this.store.placeholderTypes.find(
-            (t) => t.type === this.selectedType,
-        );
+        const typeConfig = this.store.placeholderTypes.find((t) => t.type === this.selectedType);
         const overrides = typeConfig?.overrides || {};
         return { ...this.options, ...overrides };
     }

@@ -98,12 +98,19 @@ function buildKeptParamsSql() {
  * countries keeps the ones that actually characterise it. The page total is summed separately,
  * before the slice, so that tail still counts towards it.
  *
+ * Only 2xx and 304 responses count. A made-up fragment id gets a 404, so this is what keeps junk
+ * ids out of State; a 304 is a real page revalidating a fragment it already has.
+ *
+ * Only adobe.com referers count. The referer is client-controlled and Studio renders it as a link,
+ * so another host must never take a page slot. Studio applies the same rule to stored pages.
+ *
  * @param {number} fromSec window start, epoch seconds, inclusive
  * @param {number} toSec window end, epoch seconds, exclusive
  * @returns {string} fully literal SQL
  */
 function buildPagesQuery(fromSec, toSec) {
     const kept = buildKeptParamsSql();
+    const host = "lower(domain(ifNull(referer, '')))";
     return (
         'SELECT bucket, fragmentId, page, locale, countries, counts, requests FROM (' +
         'SELECT bucket, fragmentId, page, locale, ' +
@@ -120,6 +127,8 @@ function buildPagesQuery(fromSec, toSec) {
         'count() AS hits ' +
         `FROM ${USAGE_TABLE} ` +
         `WHERE reqPath = '${MAS_FRAGMENT_ENDPOINT}' ` +
+        'AND ((statusCode >= 200 AND statusCode < 300) OR statusCode = 304) ' +
+        `AND (${host} = 'adobe.com' OR endsWith(${host}, '.adobe.com')) ` +
         `AND reqTimeSec >= toDateTime(${fromSec}) ` +
         `AND reqTimeSec < toDateTime(${toSec}) ` +
         'AND fragmentId IS NOT NULL ' +

@@ -152,6 +152,27 @@ describe('usage-repository', () => {
             expect(result.pages).to.deep.equal([]);
         });
 
+        it('keeps adobe.com and its subdomains', () => {
+            const result = parseWith([
+                { url: 'https://adobe.com/', requests: 5 },
+                { url: 'https://helpx.adobe.com/express.html', requests: 1 },
+            ]);
+            expect(result.pages).to.have.lengthOf(2);
+        });
+
+        it('drops a page on another host, since the referer is client-controlled', () => {
+            const result = parseWith([{ url: 'https://evil.example/login', requests: 5 }]);
+            expect(result.pages).to.deep.equal([]);
+        });
+
+        it('drops a host that only ends in adobe.com', () => {
+            const result = parseWith([
+                { url: 'https://evil-adobe.com/', requests: 5 },
+                { url: 'https://adobe.com.evil.example/', requests: 1 },
+            ]);
+            expect(result.pages).to.deep.equal([]);
+        });
+
         it('drops relative and malformed urls', () => {
             const result = parseWith([
                 { url: '/express', requests: 5 },

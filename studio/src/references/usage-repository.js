@@ -108,29 +108,33 @@ export function groupPagesByRegion(pages) {
         .filter((group) => group.pages.length > 0);
 }
 
+/** adobe.com or any of its subdomains. */
+const TRUSTED_HOST = /(^|\.)adobe\.com$/;
+
 /**
- * Whether a value is an absolute http(s) URL, and so safe to render as an href.
+ * Whether a value is an absolute http(s) URL on an adobe.com host, and so safe to render as an href.
  * @param {*} url candidate url
- * @returns {boolean} true when the value parses to an http or https URL
+ * @returns {boolean} true when the value parses to an http or https URL on adobe.com
  */
-function isLinkableUrl(url) {
+function isTrustedUrl(url) {
     try {
-        const { protocol } = new URL(String(url ?? ''));
-        return protocol === 'http:' || protocol === 'https:';
+        const { protocol, hostname } = new URL(String(url ?? ''));
+        return (protocol === 'http:' || protocol === 'https:') && TRUSTED_HOST.test(hostname);
     } catch {
         return false;
     }
 }
 
 /**
- * Keeps only entries with a usable absolute http(s) URL, and files each under a region.
+ * Keeps only entries with a trusted URL, and files each under a region.
  *
  * Rows are page-and-locale, not page: the same URL serves several locales and those are separate
  * audiences, so two rows can share a url and differ only in locale.
  *
- * The list is rendered as clickable links, so anything that is not an absolute http(s) URL is
- * dropped rather than shown as a dead row -- and this is the guard that stops a hostile referer
- * value (`javascript:`, `data:`) from ever reaching an href.
+ * The list is rendered as clickable links, and the url is the request's referer, which any client
+ * can set. So anything that is not an absolute http(s) URL on adobe.com is dropped: this is the
+ * guard that keeps a hostile value (`javascript:`, `data:`, a phishing host) out of an href. The
+ * rollup query applies the same host rule, so this only matters for pages stored before it did.
  *
  * @param {Array} raw pages from the action
  * @returns {Array<{ url: string, locale: string, requests: number, countries: Array<string>, region: string }>} rows
@@ -138,7 +142,7 @@ function isLinkableUrl(url) {
 function normalizePages(raw) {
     if (!Array.isArray(raw)) return [];
     return raw
-        .filter((page) => isLinkableUrl(page?.url))
+        .filter((page) => isTrustedUrl(page?.url))
         .map((page) => ({
             url: String(page.url),
             locale: String(page.locale ?? ''),

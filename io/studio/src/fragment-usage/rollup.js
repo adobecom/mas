@@ -1,8 +1,8 @@
 /**
  * Hourly usage rollup (MWPW-185891).
  *
- * Runs on a schedule (once per hour). The Grafana queries cover EVERY fragment for the window, so
- * the cost does not grow with the number of fragments in Studio.
+ * Runs on a schedule (once per hour). Grafana queries all successful fragment requests for the
+ * window in shared scans; per-fragment storage work is bounded by count and elapsed time.
  *
  * This exists because querying live per fragment is not viable: a single fragment's referer
  * breakdown rescans a very large number of rows. Pre-aggregating turns the read path into a State
@@ -24,6 +24,12 @@ const { readUsage, writeUsage, emptyRecord } = require('./state');
  * the previous hour, and so the hour that was still in progress last time gets its final count.
  */
 const LOOKBACK_HOURS = 2;
+
+/** Headroom above the ~1,600 active fragments without unbounded State work. */
+const MAX_FRAGMENTS_PER_RUN = 2000;
+
+/** Leave a minute before the action's 300-second timeout for in-flight State work and the summary. */
+const MAX_RUN_MS = 240000;
 
 /**
  * Aggregates a window of Grafana data into the stored records.
@@ -58,7 +64,10 @@ async function main(params) {
         let pages = 0;
         let failures = 0;
 
-        for (const [fragmentId, hourlyPages] of Object.entries(pagesByFragment)) {
+        const fragmentEntries = Object.entries(pagesByFragment);
+        for (const [fragmentId, hourlyPages] of fragmentEntries) {
+            if (fragments + failures >= MAX_FRAGMENTS_PER_RUN || Date.now() - startedAt >= MAX_RUN_MS) break;
+
             // One unreadable or unwritable record must not cost every other fragment its update.
             try {
                 const stored = (await readUsage(fragmentId, state)) || emptyRecord();
@@ -78,7 +87,9 @@ async function main(params) {
             }
         }
 
-        const summary = { fragments, pages, failures, durationMs: Date.now() - startedAt };
+        const skipped = fragmentEntries.length - fragments - failures;
+        if (skipped) logger.warn(`fragment usage rollup reached its workload limit: ${skipped} fragments skipped`);
+        const summary = { fragments, pages, failures, skipped, durationMs: Date.now() - startedAt };
         logger.info('fragment usage rollup complete', summary);
 
         // Only a summary is returned. Returning the per-fragment grid would approach the 1MB

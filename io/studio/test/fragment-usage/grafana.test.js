@@ -32,6 +32,16 @@ describe('fragment-usage grafana', () => {
             expect(sql).to.contain("reqPath = '/mas/io/fragment'");
         });
 
+        it('counts only successful responses so failed fragment requests cannot create usage records', () => {
+            expect(sql).to.contain('AND ((statusCode >= 200 AND statusCode < 300) OR statusCode = 304) ');
+        });
+
+        it('keeps only adobe.com referers so a third-party page cannot take a page slot', () => {
+            expect(sql).to.contain(
+                "AND (lower(domain(ifNull(referer, ''))) = 'adobe.com' OR endsWith(lower(domain(ifNull(referer, ''))), '.adobe.com')) ",
+            );
+        });
+
         it('excludes rows with no referer rather than bucketing them as an unknown page', () => {
             expect(sql).to.contain('referer IS NOT NULL');
             expect(sql).to.contain("referer != ''");

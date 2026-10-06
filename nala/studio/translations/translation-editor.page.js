@@ -45,6 +45,12 @@ export default class TranslationEditorPage {
         this.selectItemsDialog = page.getByRole('dialog', { name: 'Select items' });
         this.addSelectedItemsButton = this.selectItemsDialog.getByRole('button', { name: 'Add selected items' });
         this.selectedItemsButton = page.locator('mas-items-selector .selected-items-count sp-button');
+        this.addItemsSelector = page.locator('#add-items-overlay sp-dialog-wrapper.add-items-dialog mas-items-selector');
+        this.importUrlButton = this.addItemsSelector.locator('sp-button.import-url-btn');
+        this.importUrlInput = this.addItemsSelector.locator('textarea.import-url-input');
+        this.importedUrlRows = this.addItemsSelector.locator('.import-item-row');
+        this.importToastPositive = this.addItemsSelector.locator('.import-url-view sp-toast[variant="positive"]');
+        this.importToastNegative = this.addItemsSelector.locator('.import-url-view sp-toast[variant="negative"]');
 
         this.searchInput = fragmentsTab.locator(
             'mas-search-and-filters sp-search input, mas-search-and-filters input[type="search"]',
@@ -75,7 +81,7 @@ export default class TranslationEditorPage {
 
         // Expand/collapse button
         this.expandRowButton = (index) =>
-            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.expand-button').first();
+            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.ghost-button').first();
 
         // View-only mode
         this.viewOnlyCardsTab = page.getByRole('tabpanel', { name: /Fragments\s*\(\d+\)/ }).first();
@@ -125,6 +131,14 @@ export default class TranslationEditorPage {
         await expect(this.saveButton).toBeEnabled({ timeout: 10000 });
         await this.saveButton.click();
         await this.page.waitForTimeout(2000);
+    }
+
+    async pasteImportUrl(url) {
+        await this.importUrlInput.evaluate((input, text) => {
+            const clipboardData = new DataTransfer();
+            clipboardData.setData('text/plain', text);
+            input.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData }));
+        }, url);
     }
 
     async expectCardRowsMatchSearchTerm(term) {

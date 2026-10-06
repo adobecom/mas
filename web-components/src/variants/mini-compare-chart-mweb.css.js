@@ -77,9 +77,7 @@ export const CSS = `
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [is="inline-price"] {
-    display: inline-block;
-    min-height: 30px;
-    min-width: 1px;
+    display: inline;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] merch-badge span,
@@ -121,9 +119,7 @@ export const CSS = `
     padding: 0;
   }
 
-  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-recurrence,
-  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] span[data-template="recurrence"] {
-    text-transform: lowercase;
+  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-recurrence {
     line-height: 1.4;
   }
 

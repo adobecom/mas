@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { AEMClient } = require('../../api/aem-client.js');
-const { isAllowedMasIOUrl } = require('../../utils/validators.js');
+const { resolveMasIOUrl } = require('../../utils/validators.js');
 
 global.window = { MASLocales: require('../../utils/locales.js') };
 const { CardDetector } = require('../../utils/card-detector.js');
@@ -26,14 +26,14 @@ test('falls back to the production IO base when the page supplies none', async (
 
 test('uses the IO base the page declares', async () => {
     const captured = captureUrl();
-    const client = new AEMClient({ masIOUrl: 'https://www.stage.adobe.com/mas/io' });
+    const client = new AEMClient({ masIOUrl: 'www.stage.adobe.com' });
     await client.fetchFragmentData(FRAGMENT_ID, 'en_US');
     assert.ok(captured.url.startsWith('https://www.stage.adobe.com/mas/io/fragment'));
 });
 
 test('ignores an IO base that is not an allowed Adobe host', async () => {
     const captured = captureUrl();
-    const client = new AEMClient({ masIOUrl: 'https://evil.example.com/mas/io' });
+    const client = new AEMClient({ masIOUrl: 'main--evil--repo.aem.page' });
     await client.fetchFragmentData(FRAGMENT_ID, 'en_US');
     assert.ok(captured.url.startsWith('https://www.adobe.com/mas/io/fragment'));
 });
@@ -48,12 +48,11 @@ test('uses the WCS api key the page declares', async () => {
 test('reads the IO base and api key off mas-commerce-service', () => {
     global.document = {
         querySelector: () => ({
-            getAttribute: (name) =>
-                ({ 'mas-io-url': 'https://www.stage.adobe.com/mas/io', 'wcs-api-key': 'some-key' })[name] || null,
+            getAttribute: (name) => ({ 'mas-io-url': 'www.stage.adobe.com', 'wcs-api-key': 'some-key' })[name] || null,
         }),
     };
     assert.deepEqual(new CardDetector().getServiceConfig(), {
-        masIOUrl: 'https://www.stage.adobe.com/mas/io',
+        masIOUrl: 'www.stage.adobe.com',
         wcsApiKey: 'some-key',
     });
 });
@@ -63,15 +62,33 @@ test('returns an empty config when the page has no commerce service', () => {
     assert.deepEqual(new CardDetector().getServiceConfig(), {});
 });
 
-test('accepts adobe.com IO bases over https', () => {
-    assert.equal(isAllowedMasIOUrl('https://www.adobe.com/mas/io'), true);
-    assert.equal(isAllowedMasIOUrl('https://www.stage.adobe.com/mas/io'), true);
+test('builds IO bases from runtime workspaces and adobe.com hosts', () => {
+    const runtime = '.adobeioruntime.net/api/v1/web/MerchAtScale';
+    assert.equal(resolveMasIOUrl('axel'), `https://14257-merchatscale-axel${runtime}`);
+    assert.equal(resolveMasIOUrl('14257-merchatscale-qa'), `https://14257-merchatscale-qa${runtime}`);
+    assert.equal(resolveMasIOUrl('www.adobe.com'), 'https://www.adobe.com/mas/io');
+    assert.equal(resolveMasIOUrl('www.stage.adobe.com'), 'https://www.stage.adobe.com/mas/io');
 });
 
-test('rejects look-alike hosts, non-https and malformed IO bases', () => {
-    assert.equal(isAllowedMasIOUrl('https://adobe.com.evil.net/mas/io'), false);
-    assert.equal(isAllowedMasIOUrl('http://www.adobe.com/mas/io'), false);
-    assert.equal(isAllowedMasIOUrl('not-a-url'), false);
-    assert.equal(isAllowedMasIOUrl(''), false);
-    assert.equal(isAllowedMasIOUrl(null), false);
+test('keeps accepting full urls with an allowed host', () => {
+    const runtime = '.adobeioruntime.net/api/v1/web/MerchAtScale';
+    assert.equal(resolveMasIOUrl(`https://14257-merchatscale-axel${runtime}`), `https://14257-merchatscale-axel${runtime}`);
+    assert.equal(resolveMasIOUrl('https://www.adobe.com/mas/io'), 'https://www.adobe.com/mas/io');
+});
+
+test('rejects foreign hosts, localhost and malformed IO bases', () => {
+    for (const value of [
+        'http://www.adobe.com/mas/io',
+        'https://12345-evil.adobeioruntime.net/api/v1/web/MerchAtScale',
+        'https://www.adobe.com@evil.com/mas/io',
+        'main--evil--repo.aem.page',
+        'adobe.com.evil.net',
+        'evil.com/.adobe.com',
+        '12345-evil.adobeioruntime.net',
+        'localhost:2023',
+        '',
+        null,
+    ]) {
+        assert.equal(resolveMasIOUrl(value), undefined, String(value));
+    }
 });

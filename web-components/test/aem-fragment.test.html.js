@@ -524,7 +524,7 @@ runTests(async () => {
                 expect(aemFragment.fetchInfo).to.include({
                     'aem-fragment:status': 404,
                     'aem-fragment:url':
-                        'http://localhost:2023/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                        'https://www.adobe.com/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
                     'aem-fragment:serverTiming':
                         'cdn-cache|desc=HIT|edge|dur=1|sis|desc=0|ak_p|desc="1748272422155_390603879_647296830_1088_9412_44_0_219"|dur=1',
                 });

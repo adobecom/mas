@@ -390,6 +390,35 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderOfferId', () => {
+        it('keeps the locale variation Offer ID hover trigger accessible above the row link overlay', async () => {
+            const variation = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_CA/cards/test',
+                    offerData: { offerId: '68C33F4BD35E1D1CD843BBD90D526D2A' },
+                }),
+                id: 'locale-variation-1',
+            };
+            const topLevelCard = {
+                ...createMockTopLevelCard({ variationPaths: [variation.path], references: [variation] }),
+                id: 'parent-1',
+            };
+            setupCardVariationsInStore(topLevelCard.path, [variation]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            const panel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            const trigger = panel.querySelector('.offer-id [slot="trigger"]');
+            await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'Offer ID text should be visible');
+            trigger.scrollIntoView({ block: 'center', inline: 'center' });
+            const { x, y, width, height } = trigger.getBoundingClientRect();
+            const target = el.shadowRoot.elementFromPoint(x + width / 2, y + height / 2);
+
+            expect(target === trigger, 'Offer ID text should receive hover instead of the row link').to.be.true;
+        });
+
         it('should render offer ID when offerData is present', async () => {
             const topLevelCard = createMockTopLevelCard({
                 offerData: { offerId: 'ABC-123' },

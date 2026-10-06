@@ -127,6 +127,11 @@ export const styles = [
             gap: 8px;
         }
 
+        .offer-id overlay-trigger {
+            position: relative;
+            z-index: 2;
+        }
+
         .mnemonic-icon {
             width: 32px;
             height: 32px;

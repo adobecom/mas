@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 import { STAGED } from '../constants.js';
 import { buildEditorHref } from '../common/utils/editor-link.js';
+import { itemTypeFromPath } from './bulk-publish-utils.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
@@ -80,7 +81,9 @@ class MasBulkPublishItems extends LitElement {
     }
 
     itemHref(item) {
-        if (item.fragmentId) return buildEditorHref({ id: item.fragmentId, path: item.path });
+        if (item.fragmentId && (item.type ?? itemTypeFromPath(item.path)) !== 'placeholder') {
+            return buildEditorHref({ id: item.fragmentId, path: item.path });
+        }
         const target = item.href ?? item.url;
         return /^https?:\/\//.test(target) ? target : null;
     }

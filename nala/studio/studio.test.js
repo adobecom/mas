@@ -482,4 +482,34 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.renderView.locator('merch-card').nth(1)).toBeVisible();
         });
     });
+
+    // @studio-brand-concierge-surface - Validate brand-concierge surface is onboarded in mas studio
+    // Deep-links to the surface: the folder picker only lists AEM folders already provisioned in Odin
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.query}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio brand-concierge page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate brand-concierge surface is selected', async () => {
+            await expect(await studio.topnav).toBeVisible();
+            await expect(await studio.surfacePicker).toHaveAttribute('value', data.surface);
+            await expect(await studio.sideNav).toBeVisible();
+            await expect(await studio.homeButton).toBeVisible();
+            await expect(await studio.fragmentsButton).toBeVisible();
+            await expect(await studio.placeholdersButton).toBeVisible();
+        });
+
+        await test.step('step-3: Validate ACOM locales are available on brand-concierge', async () => {
+            await expect(await studio.localePicker).toBeVisible();
+            await studio.localePicker.click();
+            await page.waitForTimeout(500);
+            await expect(page.getByRole('menuitem', { name: data.localePicker })).toBeVisible();
+            await page.keyboard.press('Escape');
+        });
+    });
 });

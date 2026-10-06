@@ -13,7 +13,11 @@ import {
     loadSelectedPlaceholders,
     loadSelectedFragments,
 } from '../utils/items-loader.js';
-import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import {
+    shouldIgnoreRowClickForSelection,
+    getStudioFragmentDisplayPath,
+    getOfferName,
+} from '../utils/render-utils.js';
 import { renderEditorLink } from '../utils/editor-link.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 import { Fragment } from '../../aem/fragment.js';
@@ -41,6 +45,13 @@ class MasSelectItemsTable extends LitElement {
         groupedVariationsManageOnly: { type: Boolean },
         hideGroupedVariations: { type: Boolean },
         viewOnlyHasMore: { type: Boolean },
+        columnsOverride: { type: Array },
+        cellsOverride: { type: Array },
+        variationCells: { type: Array },
+        variationColumns: { type: Array },
+        hideVariationExpand: { type: Boolean },
+        sortBy: { type: String },
+        sortDirection: { type: String },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -74,6 +85,13 @@ class MasSelectItemsTable extends LitElement {
         this.groupedVariationsManageOnly = false;
         this.hideGroupedVariations = false;
         this.viewOnlyHasMore = false;
+        this.columnsOverride = null;
+        this.cellsOverride = null;
+        this.variationCells = null;
+        this.variationColumns = null;
+        this.hideVariationExpand = false;
+        this.sortBy = null;
+        this.sortDirection = 'asc';
     }
 
     // Lazy "load more" for the viewOnly (already-selected) list: observe a sentinel and
@@ -254,7 +272,23 @@ class MasSelectItemsTable extends LitElement {
         const store = this.itemsSelection.value;
         if (!store) return [];
         const items = this.viewOnly ? this.viewOnlyFragments : store[`display${this.typeUppercased}`].value;
-        return this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
+        const visible = this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
+        return this.#sortItems(visible);
+    }
+
+    #sortItems(items) {
+        if (this.sortBy !== 'offer' || this.viewOnlyFragmentsFetchedByParent) return items;
+        const direction = this.sortDirection === 'desc' ? -1 : 1;
+        return [...items].sort((a, b) => getOfferName(a).localeCompare(getOfferName(b)) * direction);
+    }
+
+    #onSorted({ detail: { sortKey, sortDirection } }) {
+        this.sortBy = sortKey;
+        this.sortDirection = sortDirection;
+        if (!this.viewOnlyFragmentsFetchedByParent) return;
+        this.dispatchEvent(
+            new CustomEvent('view-only-sort', { detail: { sortKey, sortDirection }, bubbles: true, composed: true }),
+        );
     }
 
     get selectedInTable() {
@@ -298,6 +332,8 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get tableColumns() {
+        if (this.columnsOverride?.length) return this.columnsOverride;
+
         const TABLE_COLUMNS = {
             cards: {
                 selectable: [
@@ -391,6 +427,10 @@ class MasSelectItemsTable extends LitElement {
                             .renderPreviewCell=${this.renderPreviewCell}
                             .promoVariationsFetchedByParent=${this.promoVariationsFetchedByParent}
                             .groupedVariationsManageOnly=${this.groupedVariationsManageOnly}
+                            .cellsOverride=${this.cellsOverride}
+                            .variationCells=${this.variationCells}
+                            .variationColumns=${this.variationColumns}
+                            .hideVariationExpand=${this.hideVariationExpand}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -516,7 +556,13 @@ class MasSelectItemsTable extends LitElement {
                                                 aria-label="Select all loaded items"
                                             ></sp-checkbox>
                                         </sp-table-head-cell>`
-                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
+                                      : html`<sp-table-head-cell
+                                            class=${column.class ?? ''}
+                                            .sortable=${!!column.sortable}
+                                            sort-key=${column.key}
+                                            sort-direction=${this.sortBy === column.key ? this.sortDirection : nothing}
+                                            @sorted=${(e) => this.#onSorted(e)}
+                                        >
                                             ${column.label}
                                         </sp-table-head-cell>`,
                           )}

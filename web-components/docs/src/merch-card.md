@@ -16,18 +16,26 @@ primary buttons, secondary buttons, and links in the fragment's authored order.
 Bold and italic remain text formatting, not CTA variant controls.
 
 `<mas-field field="ctas">` hydrates the entire CTA group without requiring Milo
-button decoration. Indexed fields, such as `ctas[1]` or
-`ctas[reference-key]`, use the same variant handling regardless of the fragment's
-card template. Individual copies do not encode CTA variants in the clipboard
-label's bold/italic formatting. Groups and single CTAs inherit the surrounding
-Milo block's button size and utility classes and use its responsive action-area
-layout. An explicitly authored button size is retained. Old copied bold/italic
-wrappers containing only a CTA field are removed so they cannot override the
-fragment's variant; formatting shared with other document content is retained.
-Existing classless CTAs
-saved with `<strong>` or `<em>` wrappers retain their primary or secondary
-variant; an explicit variant always takes precedence. Studio converts that
-legacy encoding to link classes when the CTA field is edited.
+button decoration. Groups inherit the surrounding Milo block's button size,
+utility classes, and responsive action-area layout, retaining explicitly
+authored button sizes.
+
+Indexed fields, such as `ctas[1]` or `ctas[reference-key]`, use Studio variants
+by default, with the same sizing and utility-class handling as full groups. Page-authored
+bold/italic wrappers around an individual reference explicitly override that
+presentation: MAS preserves those wrappers, skips fragment styling, and lets
+Milo decorate the CTA. Existing formatted references keep their page-owned styles.
+An unformatted reference inherits Studio, including when the stored variant is Link;
+absence of formatting does not override a Studio button to Link.
+
+Individual Copy Field links do not add variant-derived emphasis, so newly copied
+references inherit subsequent Studio changes rather than creating a page override.
+
+For Studio-owned CTAs and previews, existing classless CTAs saved with
+`<strong>` or `<em>` wrappers retain their primary or secondary variant; an
+explicit variant always takes precedence. Studio converts that legacy encoding
+to link classes when the CTA field is edited. Change the fragment's variant to update
+inheriting references, or the page's CTA reference formatting to set an explicit override.
 
 Designs:
 

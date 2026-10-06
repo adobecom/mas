@@ -835,7 +835,7 @@ class MasSideNav extends LitElement {
         return cta.getAttribute('data-key') || index;
     }
 
-    /** Copies an indexed CTA reference; the fragment supplies its variant during hydration. */
+    /** Copies an indexed CTA reference that inherits Studio presentation unless the page overrides it. */
     async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
         const fragment = sourceFragment;
         if (!fragment) return;

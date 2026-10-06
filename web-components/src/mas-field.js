@@ -519,10 +519,10 @@ class MasField extends HTMLElement {
         return { fieldName: field, index: null };
     }
 
-    /** Extracts one CTA without reordering the field or discarding its variant and text formatting.
+    /** Extracts one anchor without reordering the field, stripping presentation only for page-owned CTAs.
      *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
      *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
-    #extractIndexedAnchor(html, index) {
+    #extractIndexedAnchor(html, index, pageOwnsCta) {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
         template.innerHTML = html;
@@ -535,6 +535,10 @@ class MasField extends HTMLElement {
             anchor = template.content.querySelector(`a[data-key="${index}"]`);
         }
         if (!anchor) return null;
+        if (pageOwnsCta) {
+            anchor.removeAttribute('class');
+            return anchor.outerHTML;
+        }
         let markup = anchor.outerHTML;
         let parent = anchor.parentElement;
         while (parent?.matches('strong, em')) {
@@ -569,6 +573,14 @@ class MasField extends HTMLElement {
         if (!this.#fields || !this.#field) return;
         this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
+        // Milo can hoist the page's emphasis wrappers inside mas-field after the first render.
+        const pageOwnsCta =
+            fieldName === 'ctas' &&
+            index !== null &&
+            !!(
+                this.closest('strong, em') ||
+                this.querySelector(':scope > strong, :scope > em')
+            );
 
         if (index !== null && isNaN(index)) {
             const labelsFieldName = `${fieldName.replace(/s$/, '')}Labels`;
@@ -657,7 +669,7 @@ class MasField extends HTMLElement {
         const content = this.#ensureContentElement(true);
         let html;
         if (index !== null) {
-            html = this.#extractIndexedAnchor(fieldValue, index);
+            html = this.#extractIndexedAnchor(fieldValue, index, pageOwnsCta);
             if (html === null) {
                 this.hidden = true;
                 return;
@@ -673,7 +685,7 @@ class MasField extends HTMLElement {
                     return;
                 }
             }
-            if (fieldName === 'ctas') {
+            if (fieldName === 'ctas' && !pageOwnsCta) {
                 const ctaEl = this.#renderCtaField(html, index !== null);
                 if (ctaEl) {
                     this.#applyCtaPresentation(ctaEl);
@@ -890,7 +902,7 @@ class MasField extends HTMLElement {
     }
 
     #applyCtaPresentation(content) {
-        // Group fields bypass Milo's inline CTA decorator, so both field shapes inherit block presentation here.
+        // Studio-owned CTAs bypass Milo's inline CTA decorator and inherit block presentation here.
         const section = this.closest('.section');
         if (!section) return;
         let wrapper = this.parentElement;

@@ -5053,12 +5053,6 @@ merch-card[variant="pro"] [slot="heading-m"] .price-recurrence {
     color: var(--consonant-merch-card-pro-text-color);
 }
 
-/* WCS recurrence dictionary returns abbreviations uppercased ("/MO");
-   Figma's pricing typography presents it lowercase ("/mo"). */
-merch-card[variant="pro"] [slot="heading-m"] .price-recurrence {
-    text-transform: lowercase;
-}
-
 /* Strikethrough (regular) price \u2014 Figma 988:14784: 14px regular muted, struck,
    on its own line ABOVE the current price (988:14785). Out-specifies the
    18px/900 .price rules above. Covers both markup shapes:

@@ -208,7 +208,7 @@ export const styles = css`
     }
 
     .promotions-table sp-table-head sp-table-head-cell:nth-child(3),
-    .promotions-table sp-table-row sp-table-cell:nth-child(3) {
+    .promotions-table sp-table-row sp-table-cell:nth-of-type(3) {
         max-width: 150px;
     }
 

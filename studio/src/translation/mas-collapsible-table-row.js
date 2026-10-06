@@ -371,7 +371,9 @@ export class MasCollapsibleTableRow extends LitElement {
                                       aria-selected=${isSelected ? 'true' : 'false'}
                                       @click=${(event) => isSelectable && this.#onRowClickForSelection(event, path)}
                                   >
-${renderRowLinkOverlay(variation, { promotionId: this.#getPromotionIdForItem(variation) })}
+                                      ${renderRowLinkOverlay(variation, {
+                                          promotionId: this.#getPromotionIdForItem(variation),
+                                      })}
                                       ${showExpand
                                           ? html`<sp-table-cell class="table-icon-cell">
                                                 <sp-button
@@ -453,18 +455,16 @@ ${renderRowLinkOverlay(variation, { promotionId: this.#getPromotionIdForItem(var
         return html`${topLevelRow}${nestedContent}`;
     }
 
-renderTitle(item) {
-    const title = item.title || 'no title';
-    const promotionId = this.#getPromotionIdForItem(item);
-    return html`<sp-table-cell class="title">
-        <overlay-trigger triggered-by="hover">
-            <div slot="trigger">
-                ${renderEditorLink(item, title, promotionId ? { promotionId } : {})}
-            </div>
-            <sp-tooltip slot="hover-content" placement="bottom">${title}</sp-tooltip>
-        </overlay-trigger>
-    </sp-table-cell>`;
-}
+    renderTitle(item) {
+        const title = item.title || 'no title';
+        const promotionId = this.#getPromotionIdForItem(item);
+        return html`<sp-table-cell class="title">
+            <overlay-trigger triggered-by="hover">
+                <div slot="trigger">${renderEditorLink(item, title, promotionId ? { promotionId } : {})}</div>
+                <sp-tooltip slot="hover-content" placement="bottom">${title}</sp-tooltip>
+            </overlay-trigger>
+        </sp-table-cell>`;
+    }
 
     renderOfferName(item) {
         const iconSrc =

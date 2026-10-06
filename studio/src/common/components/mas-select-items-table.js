@@ -13,11 +13,7 @@ import {
     loadSelectedPlaceholders,
     loadSelectedFragments,
 } from '../utils/items-loader.js';
-import {
-    shouldIgnoreRowClickForSelection,
-    getStudioFragmentDisplayPath,
-    getOfferName,
-} from '../utils/render-utils.js';
+import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath, getOfferName } from '../utils/render-utils.js';
 import { renderEditorLink } from '../utils/editor-link.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 import { Fragment } from '../../aem/fragment.js';

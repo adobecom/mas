@@ -494,6 +494,38 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderOsi', () => {
+        it('shows the full OSI tooltip on hover above the row link overlay', async () => {
+            const osi = 'OSI-FULL-VALUE-FOR-HOVER-REGRESSION';
+            const topLevelCard = {
+                ...createMockTopLevelCard({ fields: [{ name: 'osi', values: [osi] }] }),
+                id: 'osi-card-1',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                    .viewOnly=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            const overlay = el.shadowRoot.querySelector('.osi overlay-trigger');
+            const trigger = overlay.querySelector('[slot="trigger"]');
+            const tooltip = overlay.querySelector('sp-tooltip');
+            await overlay.updateComplete;
+            const hoverOverlay = overlay.shadowRoot.querySelector('#hover-overlay');
+            await hoverOverlay.updateComplete;
+            await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'OSI text should be visible');
+            trigger.scrollIntoView({ block: 'center', inline: 'center' });
+            const { x, y, width, height } = trigger.getBoundingClientRect();
+            const position = [Math.round(x + width / 2), Math.round(y + height / 2)];
+            const target = el.shadowRoot.elementFromPoint(...position);
+
+            expect(target === trigger, 'OSI text should receive hover instead of the row link').to.be.true;
+            target.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+            await waitUntil(() => hoverOverlay.open, 'The full OSI tooltip should open on hover');
+            expect(tooltip.textContent.trim()).to.equal(osi);
+            target.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+        });
+
         it('should render osi from the osi field', async () => {
             const topLevelCard = createMockTopLevelCard({
                 fields: [{ name: 'osi', values: ['OSI-FIELD-1'] }],

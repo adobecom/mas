@@ -301,7 +301,8 @@ export const styles = [
             gap: 8px;
         }
 
-        .offer-id overlay-trigger {
+        .offer-id overlay-trigger,
+        .osi overlay-trigger {
             position: relative;
             z-index: 2;
         }

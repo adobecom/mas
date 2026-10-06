@@ -6,14 +6,15 @@ import {
     toBoolean,
     createLog,
 } from '@dexter/tacocat-core';
-import IntlMessageFormat from 'intl-messageformat';
 import {
     formatOpticalPrice,
     formatRegularPrice,
     formatAnnualPrice,
     makeSpacesAroundNonBreaking,
     isPromotionActive,
+    selectPreformattedPrice,
 } from './utilities.js';
+import { formatMessage } from './message-format.js';
 
 export const defaultLiterals = {
     recurrenceLabel:
@@ -32,6 +33,7 @@ export const defaultLiterals = {
     strikethroughAriaLabel: 'Regularly at',
     planTypeLabel: '{planType, select, ABM {Annual, billed monthly} other {}}',
     discountLabel: '{discount}%',
+    priceUnavailableLabel: 'no price available',
 };
 
 const log = createLog('ConsonantTemplates/price');
@@ -146,9 +148,7 @@ export function formatLiteral(literals, locale, key, parameters) {
     try {
         literal = hasLinks ? encodeLinks(literal) : literal;
         literal = hasHtml ? literal.replace(htmlPattern, '') : literal;
-        const formattedLiteral = new IntlMessageFormat(literal, locale).format(
-            parameters,
-        );
+        const formattedLiteral = formatMessage(literal, locale, parameters);
         return hasLinks ? decodeLinks(formattedLiteral) : formattedLiteral;
     } catch {
         /* c8 ignore next 2 */
@@ -244,6 +244,7 @@ const createPriceTemplate =
             term,
             usePrecision,
             promotion,
+            priceInfo,
         } = {},
         attributes = {},
     ) => {
@@ -280,16 +281,38 @@ const createPriceTemplate =
         } else {
             displayPrice = price;
         }
+        // `!displayOptical`: optical divides `price` (discounted leaf), not
+        // `displayPrice`, so keep that leaf even under strikethrough.
+        const showWithoutDiscount =
+            !displayOptical && displayPrice === priceWithoutDiscount;
 
         let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
         if (displayAnnual) {
             method = formatAnnualPrice;
         }
-        const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
+
+        // India regroups digits client-side (lakh/crore) on the numeric path.
+        // WCS already groups them ("1,11,744"), so this only guards the fallback.
+        const isIndianPrice = country === 'IN';
+
+        // WCS pre-split parts; undefined leaf → numeric fallback below.
+        const preformatted =
+            priceInfo && toBoolean(displayFormatted)
+                ? selectPreformattedPrice({
+                      priceInfo,
+                      showWithoutDiscount,
+                      displayAnnual,
+                      displayOptical,
+                      commitment,
+                      term,
+                      promotion,
+                  })
+                : undefined;
+        const { recurrenceTerm, ...formattedPrice } = method({
             commitment,
             formatString,
             instant,
-            isIndianPrice: country === 'IN',
+            isIndianPrice,
             originalPrice: price,
             priceWithoutDiscount,
             price: displayOptical ? price : displayPrice,
@@ -297,6 +320,8 @@ const createPriceTemplate =
             quantity,
             term,
             usePrecision,
+            preformatted,
+            priceInfoFormat: priceInfo?.format,
         });
 
         let accessibleLabel = '',

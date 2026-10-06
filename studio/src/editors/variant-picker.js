@@ -11,6 +11,7 @@ export const VARIANT_NAMES = {
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
     BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
+    PRODUCT_PRICING: 'product-pricing',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -65,7 +66,12 @@ export const VARIANTS = [
     {
         label: 'Brand Concierge Product',
         value: VARIANT_NAMES.BRAND_CONCIERGE_PRODUCT,
-        surfaces: [SURFACES.SANDBOX],
+        surfaces: [SURFACES.BRAND_CONCIERGE],
+    },
+    {
+        label: 'Product Pricing',
+        value: VARIANT_NAMES.PRODUCT_PRICING,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'Segment',
@@ -103,7 +109,7 @@ export const VARIANTS = [
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surfaces: [SURFACES.CCD],
+        surfaces: [SURFACES.CCD, SURFACES.ADOBE_HOME],
     },
     {
         label: 'Image',

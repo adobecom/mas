@@ -3,6 +3,8 @@ import { build } from 'esbuild';
 
 const outfolder = './dist';
 
+// Note: minifyIdentifiers can differ between macOS arm64 and Linux x64.
+// Always run this build on Linux (ubuntu-latest) before committing dist files.
 const defaults = {
     bundle: true,
     format: 'esm',

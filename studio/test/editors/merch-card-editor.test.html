@@ -428,6 +428,45 @@
                         expect(statusEl.getAttribute('variant')).to.equal('draft');
                     });
 
+                    it('authors a badge with colors on the compare chart column template', async () => {
+                        await setupTestEnvironment(
+                            { variant: ['compare-chart-column'], badge: [''], isVariation: false },
+                            'compare-chart-badge',
+                        );
+                        await editor.toggleFields();
+
+                        const badgeSection = editor.querySelector('badge-section[field="badge"]');
+                        expect(badgeSection).to.exist;
+                        await badgeSection.updateComplete;
+                        const badgeText = badgeSection.querySelector('rte-field#card-badge');
+                        expect(getComputedStyle(badgeText.closest('sp-field-group')).display).to.not.equal('none');
+                        await badgeText.updateComplete;
+                        expect(badgeText.shadowRoot.querySelector('[title="Offer Selector Tool"]')).to.exist;
+                        expect(badgeSection.querySelector('#badgeColor')).to.not.exist;
+                        expect(badgeSection.querySelector('#badgeBorderColor')).to.not.exist;
+
+                        badgeText.value = 'Special offer';
+                        badgeText.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+                        await badgeSection.updateComplete;
+
+                        const badgeColor = badgeSection.querySelector('sp-picker#badgeColor');
+                        const badgeBorderColor = badgeSection.querySelector('sp-picker#badgeBorderColor');
+                        expect(badgeColor).to.exist;
+                        expect(badgeBorderColor).to.exist;
+                        expect(getComputedStyle(badgeColor.closest('sp-field-group')).display).to.not.equal('none');
+                        expect(getComputedStyle(badgeBorderColor.closest('sp-field-group')).display).to.not.equal('none');
+                        badgeColor.value = 'spectrum-yellow-300-plans';
+                        badgeColor.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        badgeBorderColor.value = 'spectrum-gray-700-plans';
+                        badgeBorderColor.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValue('badge')).to.equal(
+                            '<merch-badge background-color="spectrum-yellow-300-plans" border-color="spectrum-gray-700-plans" variant="compare-chart-column">Special offer</merch-badge>',
+                        );
+                    });
+
                     it('removes inherited badge values and restores it via override indicator', async () => {
                         await setupTestEnvironment();
                         expect(editor.getFieldState('badge')).to.equal('inherited');

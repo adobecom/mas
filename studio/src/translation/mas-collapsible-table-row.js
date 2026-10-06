@@ -478,9 +478,10 @@ export class MasCollapsibleTableRow extends LitElement {
 
     renderStudioPath(item) {
         const path = item?.studioPath || 'no path';
+        const promotionId = this.#getPromotionIdForItem(item);
         return html`<sp-table-cell class="path">
             <overlay-trigger triggered-by="hover">
-                <div slot="trigger"><div>${path}</div></div>
+                <div slot="trigger"><div>${renderEditorLink(item, path, promotionId ? { promotionId } : {})}</div></div>
                 <sp-tooltip slot="hover-content" placement="bottom">${path}</sp-tooltip>
             </overlay-trigger>
         </sp-table-cell>`;

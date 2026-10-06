@@ -344,6 +344,54 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('title and path link hover', () => {
+        for (const [cell, selector, field] of [
+            ['Title', '.title', 'title'],
+            ['StudioPath', '.path', 'studioPath'],
+        ]) {
+            it(`keeps the full ${field} tooltip accessible above the row link overlay`, async () => {
+                const value = 'Full fragment value for the row overlay hover regression';
+                const topLevelCard = { ...createMockTopLevelCard({ [field]: value }), id: 'hover-card-1' };
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .cellsOverride=${[cell]}
+                        .viewOnly=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                const overlay = el.shadowRoot.querySelector(`${selector} overlay-trigger`);
+                const trigger = overlay.querySelector('[slot="trigger"]');
+                await overlay.updateComplete;
+                const hoverOverlay = overlay.shadowRoot.querySelector('#hover-overlay');
+                await hoverOverlay.updateComplete;
+                await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'The hover trigger should be visible');
+                trigger.scrollIntoView({ block: 'center', inline: 'center' });
+                const { x, y, width, height } = trigger.getBoundingClientRect();
+                const target = el.shadowRoot.elementFromPoint(x + width / 2, y + height / 2);
+
+                expect(trigger.contains(target), 'The tooltip trigger should receive hover instead of the row link').to.be.true;
+                trigger.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+                await waitUntil(() => hoverOverlay.open, 'The full value tooltip should open on hover');
+                expect(overlay.querySelector('sp-tooltip').textContent.trim()).to.equal(value);
+                trigger.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+            });
+        }
+
+        it('keeps a native editor link on the path text above the row overlay', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'path-card-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const link = el.shadowRoot.querySelector('.path [slot="trigger"] a');
+
+            expect(link).to.exist;
+            expect(link.textContent).to.equal(topLevelCard.studioPath);
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('fragment-editor');
+            expect(params.get('fragmentId')).to.equal('path-card-1');
+        });
+    });
+
     describe('renderTitle', () => {
         it('should render item title', async () => {
             const topLevelCard = createMockTopLevelCard({ title: 'My Title' });

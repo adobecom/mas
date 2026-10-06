@@ -140,5 +140,17 @@ export default {
             browserParams: '#page=content&path=sandbox',
             tags: '@mas-studio @nopr',
         },
+        {
+            tcid: '15',
+            name: '@studio-brand-concierge-surface',
+            path: '/studio.html',
+            data: {
+                surface: 'brand-concierge',
+                localePicker: 'French (FR)',
+                query: 'nala',
+            },
+            browserParams: '#page=content&path=brand-concierge&query=',
+            tags: '@mas-studio @brand-concierge',
+        },
     ],
 };

@@ -208,13 +208,45 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.querySelector('span.price')).to.be.null;
     });
 
-    it('does not render missing offer', async () => {
+    it('renders "no price available" fallback for a missing offer on the public side', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('noOffer', 'no-offer');
         await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
+        expect(inlinePrice.masElement.state).to.equal(STATE_FAILED);
+        expect(inlinePrice.innerHTML).to.be.html(
+            '<span class="price-unavailable">No price available</span>',
+        );
+    });
+
+    it('does not render missing offer in preview/Studio context', async () => {
+        await initMasCommerceService({ preview: 'true' });
+        const inlinePrice = mockInlinePrice('noOfferPreview', 'no-offer');
+        await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
+        );
+        expect(inlinePrice.masElement.state).to.equal(STATE_FAILED);
         expect(inlinePrice.innerHTML).to.be.empty;
+    });
+
+    it('renders "no price available" fallback when a prefilled WCS cache entry is empty', async () => {
+        const commerce = await initMasCommerceService();
+        commerce.prefillWcsCache({
+            prod: {
+                'no-offer-prefilled-us-mult': [],
+            },
+        });
+        const inlinePrice = mockInlinePrice(
+            'noOfferPrefilled',
+            'no-offer-prefilled',
+        );
+        await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
+        );
+        expect(inlinePrice.innerHTML).to.be.html(
+            '<span class="price-unavailable">No price available</span>',
+        );
     });
 
     it('does not override missing offer with strikethrough', async () => {
@@ -232,7 +264,9 @@ describe('class "InlinePrice"', () => {
         await expect(failedPrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
-        expect(failedPrice.innerHTML).to.be.empty;
+        expect(failedPrice.innerHTML).to.be.html(
+            '<span class="price-unavailable">No price available</span>',
+        );
     });
 
     it('renders perpetual offer', async () => {
@@ -326,6 +360,42 @@ describe('class "InlinePrice"', () => {
             await inlinePrice2.onceSettled();
             const srOnlyLabels = p.querySelectorAll('sr-only');
             expect(srOnlyLabels.length).to.equal(2);
+        });
+
+        it('alternativePrice survives a legal-template sibling and a forced re-render (MWPW-198041)', async () => {
+            await initMasCommerceService();
+            const p = document.createElement('p');
+            document.body.append(p);
+            const inlinePrice = mockInlinePrice('roundBStrike', 'puf');
+            const strikeWrapper = inlinePrice.parentElement;
+            Object.assign(inlinePrice.dataset, { template: 'strikethrough' });
+            const inlinePrice2 = mockInlinePrice('roundBMain', 'abm');
+            const mainWrapper = inlinePrice2.parentElement;
+            p.append(inlinePrice, inlinePrice2);
+            strikeWrapper.remove();
+            mainWrapper.remove();
+            await inlinePrice.onceSettled();
+            await inlinePrice2.onceSettled();
+
+            const legal = inlinePrice2.cloneNode(true);
+            legal.setAttribute('data-template', 'legal');
+            inlinePrice2.parentNode.insertBefore(
+                legal,
+                inlinePrice2.nextSibling,
+            );
+            await legal.onceSettled();
+
+            inlinePrice2.requestUpdate(true);
+            await inlinePrice2.onceSettled();
+
+            expect(
+                inlinePrice2.querySelectorAll('.alt-aria-label').length,
+            ).to.equal(1);
+            const priceIntegerEl = inlinePrice2.querySelector('.price-integer');
+            expect(priceIntegerEl).to.exist;
+            expect(priceIntegerEl.textContent).to.equal('54');
+
+            p.remove();
         });
     });
 

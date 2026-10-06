@@ -115,6 +115,9 @@ test.describe('MAS Express Cards test suite', () => {
                 await card.chevronButton.click();
                 await page.waitForTimeout(300);
                 expect(await card.isExpanded()).toBe('false');
+
+                // Restore expanded state so later tests reusing this shared page don't inherit a collapsed card
+                await card.ensureExpanded();
             }
 
             await page.setViewportSize({ width: 1920, height: 1080 });

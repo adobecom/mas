@@ -373,6 +373,23 @@ describe('MasTranslation', () => {
             expect(duplicateItem).to.exist;
             expect(duplicateItem.disabled).to.be.true;
         });
+
+        for (const { status, allowed } of [
+            { status: 'COMPLETED', allowed: true },
+            { status: 'CANCELLED', allowed: true },
+            { status: 'UNKNOWN', allowed: false },
+        ]) {
+            it(`should ${allowed ? 'enable' : 'disable'} Duplicate menu item for a project with status ${status}`, async () => {
+                Store.translationProjects.list.data.value = [
+                    createMockTranslationProject('1', 'Project 1', 'John Doe', null, status),
+                ];
+                const el = await fixture(html`<mas-translation></mas-translation>`);
+                const duplicateItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+                    item.textContent.trim().includes('Duplicate'),
+                );
+                expect(duplicateItem.disabled).to.equal(!allowed);
+            });
+        }
     });
 
     describe('formatSubmissionDate', () => {

@@ -42,8 +42,12 @@ describe('translation-utils', () => {
             { status: 'FAILED', allowed: true },
             { status: 'QUEUED', allowed: false },
             { status: 'RUNNING', allowed: false },
+            { status: 'COMPLETED', allowed: true },
+            { status: 'CANCELLED', allowed: true },
+            { status: 'UNKNOWN', allowed: false },
+            { status: null, allowed: false },
         ]) {
-            it(`${allowed ? 'allows' : 'blocks'} duplication for status ${status ?? 'Draft'}`, () => {
+            it(`${allowed ? 'allows' : 'blocks'} duplication for status ${status === undefined ? 'Draft' : status}`, () => {
                 expect(canDuplicateTranslationProject(status)).to.equal(allowed);
             });
         }
@@ -287,6 +291,7 @@ describe('translation-utils', () => {
                 { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: ['fr_FR', 'de_DE'] },
+                { name: 'completedLocales', values: ['fr_FR'] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: ['2026-01-01T00:00:00.000Z'] },
                 { name: 'projectType', type: 'enumeration', multiple: false, values: ['translation'] },
             ],
@@ -307,6 +312,17 @@ describe('translation-utils', () => {
             const payload = buildTranslationProjectDuplicatePayload(sourceFragment, 'Spring Campaign copy');
             expect(payload.fields.find((f) => f.name === 'status').values).to.deep.equal([]);
             expect(payload.fields.find((f) => f.name === 'submissionDate').values).to.deep.equal([]);
+        });
+
+        it('clears completed locales when duplicating a partially completed project without changing the source', () => {
+            const payload = buildTranslationProjectDuplicatePayload(sourceFragment, 'Spring-Campaign-copy');
+            expect(payload.fields.find((field) => field.name === 'completedLocales')).to.deep.equal({
+                name: 'completedLocales',
+                type: 'text',
+                multiple: true,
+                values: [],
+            });
+            expect(sourceFragment.getFieldValues('completedLocales')).to.deep.equal(['fr_FR']);
         });
 
         it('carries over fragments, targetLocales, and projectType unchanged', () => {

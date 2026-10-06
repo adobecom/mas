@@ -1822,7 +1822,7 @@ describe('MasTranslationEditor', () => {
             ),
         });
 
-        const loadExistingProject = async (fragmentData = createMockFragment()) => {
+        const loadExistingProject = async (fragmentData = withStatus(createMockFragment(), undefined)) => {
             Store.translationProjects.translationProjectId.set('test-fragment-id');
             mockRepository = createMockRepository();
             mockRepository.aem.sites.cf.fragments.getById.resolves(fragmentData);
@@ -1870,6 +1870,23 @@ describe('MasTranslationEditor', () => {
             const el = await loadExistingProject(withStatus(createMockFragment(), 'RUNNING'));
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
             expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+        });
+
+        for (const status of ['ASYNC_PROCESSING', 'FAILED', 'COMPLETED', 'CANCELLED']) {
+            it(`enables the Duplicate quick action for ${status} projects`, async () => {
+                const el = await loadExistingProject(withStatus(createMockFragment(), status));
+                const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+                expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.false;
+            });
+        }
+
+        it('disables duplication for unknown project statuses even when the action is triggered', async () => {
+            const el = await loadExistingProject(withStatus(createMockFragment(), 'UNKNOWN'));
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+            quickActions.dispatchEvent(new CustomEvent('duplicate'));
+            await el.updateComplete;
+            expect(el.duplicateDialogOpen).to.be.false;
         });
 
         it('opens the duplicate dialog with a valid proposed "<title>-copy" title and existing titles', async () => {

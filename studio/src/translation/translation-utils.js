@@ -3,7 +3,7 @@ import { FRAGMENT_STATUS, TRANSLATION_PROJECT_MODEL_ID } from '../constants.js';
 import Store from '../store.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING, normalizeKey } from '../utils.js';
 
-/** Fields carried over verbatim when duplicating a translation project; `title`, `status`, and `submissionDate` are reset. */
+/** Field types for duplication; `title` is replaced and `status`, `submissionDate`, and `completedLocales` are reset. */
 const TRANSLATION_PROJECT_FIELD_TYPE_MAP = {
     title: { type: 'text', multiple: false },
     status: { type: 'text', multiple: false },
@@ -11,17 +11,18 @@ const TRANSLATION_PROJECT_FIELD_TYPE_MAP = {
     placeholders: { type: 'content-fragment', multiple: true },
     collections: { type: 'content-fragment', multiple: true },
     targetLocales: { type: 'text', multiple: true },
+    completedLocales: { type: 'text', multiple: true },
     submissionDate: { type: 'date-time', multiple: false },
     projectType: { type: 'enumeration', multiple: false },
 };
 
 /**
- * Allows duplication unless the translation project is queued or running.
+ * Allows duplication for Draft (empty status), Sent to loc, Failed, Completed, and Cancelled projects.
  * @param {string} [status]
  * @returns {boolean}
  */
 export function canDuplicateTranslationProject(status) {
-    return status !== 'QUEUED' && status !== 'RUNNING';
+    return [undefined, '', 'ASYNC_PROCESSING', 'FAILED', 'COMPLETED', 'CANCELLED'].includes(status);
 }
 
 /**
@@ -62,7 +63,7 @@ export function buildTranslationProjectDuplicatePayload(sourceFragment, title) {
             values:
                 field.name === 'title'
                     ? [title]
-                    : field.name === 'status' || field.name === 'submissionDate'
+                    : ['status', 'submissionDate', 'completedLocales'].includes(field.name)
                       ? []
                       : field.values,
         })),

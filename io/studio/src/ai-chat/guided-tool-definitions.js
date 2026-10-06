@@ -163,11 +163,6 @@ export function buildGuidedTools() {
 }
 
 /**
- * Convert a guided tool call into the legacy text-path payload shape.
- * The tool name owns the type field; the schema-validated input carries
- * everything else. Returns null when the response is not a guided tool call.
- */
-/**
  * A button group offering neither options nor an input hint renders as a
  * question with nothing to answer it: the schema cannot say "Step 4 needs
  * options" without also breaking Step 1, which legitimately asks the user to

@@ -236,11 +236,6 @@ function describeParseFailure(responseText) {
 }
 
 /**
- * Parse AI response into structured format
- * @param {string} responseText - Raw AI response from the model
- * @returns {Object} - {type, message, cardConfig, collectionConfig, fragmentIds}
- */
-/**
  * Carry the guided flow's id through a rebuild.
  *
  * The model's payload is rebuilt three times on its way to the client: here,
@@ -398,9 +393,3 @@ export function parseAIResponse(responseText) {
         message: responseText,
     };
 }
-
-/**
- * Validate that collection config has required structure
- * @param {Object} collectionConfig - Parsed collection configuration
- * @returns {Object} - {valid: boolean, error?: string}
- */

@@ -51,16 +51,6 @@ function getFieldType(fieldName) {
 }
 
 /**
- * Returns the text label for a release CTA anchor, mirroring OST's path-based
- * placeholder logic from `studio/src/rte/ost.js:153-157`.
- * On acom/sandbox/nala surfaces the RTE placeholder token is used (resolved at
- * render time by commerce-service); on all other surfaces literal text is used.
- *
- * @param {'buy-now'|'free-trial'} analyticsId
- * @param {string} currentPath - surface path (e.g. 'acom', 'sandbox', 'nala')
- * @returns {string}
- */
-/**
  * Builds the `ctas` HTML for a release card.
  * Free trial anchor comes first (if present) with secondary style, Buy now second.
  *

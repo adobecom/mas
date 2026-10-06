@@ -15,6 +15,25 @@ export default class MasChatPage {
         this.errorMessage = page.locator('mas-chat-message[role="error"]');
         this.cardPreview = page.locator('merch-card');
         this.sessionSelector = page.locator('mas-chat-session-selector');
+
+        // Guided "create cards with AI" (NPI release) flow. The chat is multi-turn
+        // and prior controls stay in the DOM, so interactive locators target the
+        // LAST rendered instance (the current step). Tags/classes are source-grounded
+        // in studio/src/mas-chat-*.js and mas-operation-result.js.
+        this.productCards = page.locator('mas-chat-product-cards');
+        this.lastProductCard = this.productCards.last().locator('.product-card');
+        this.selectedProductCard = page.locator('mas-chat-product-cards .product-card.selected');
+        this.lastButtonGroupOption = page.locator('mas-chat-button-group').last().locator('.chat-option-pill');
+        this.selectOfferButton = page.locator('mas-chat-message sp-button:has-text("Select Offer")');
+        this.confirmationSummary = page.locator('mas-chat-confirmation-summary');
+        this.selectTemplateButton = this.confirmationSummary.locator('sp-button:has-text("Select template")');
+        this.templateDialog = this.confirmationSummary.locator('.create-dialog');
+        this.templateCard = this.templateDialog.locator('.template-card');
+        this.templateConfirmButton = this.templateDialog.locator('sp-button:has-text("Confirm")');
+        this.createCardsButton = this.confirmationSummary
+            .locator('sp-button[variant="accent"]')
+            .filter({ hasText: /Create Cards?/ });
+        this.releaseCardsResult = page.locator('mas-operation-result .operation-result.success');
     }
 
     async open() {
@@ -128,5 +147,19 @@ export default class MasChatPage {
 
     async getConsoleErrors() {
         return this.consoleErrors || [];
+    }
+
+    async allMessageTexts() {
+        return (await this.messages.allTextContents()).join('\n');
+    }
+
+    async firstSignal(signals) {
+        const combined = await this.allMessageTexts();
+        return signals.find((signal) => combined.includes(signal)) ?? null;
+    }
+
+    async createCardsButtonDisabled() {
+        if ((await this.createCardsButton.count()) === 0) return true;
+        return (await this.createCardsButton.getAttribute('disabled')) !== null;
     }
 }

@@ -728,6 +728,111 @@ describe('ai-card-mapper', () => {
         });
     });
 
+    describe('enrichConfigWithMcsMnemonic — partial product detail', () => {
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        function stubDetail(body) {
+            sessionStorage.setItem('masAccessToken', 'test-token');
+            sinon.stub(window, 'fetch').resolves({ ok: true, status: 200, json: body });
+        }
+
+        afterEach(() => {
+            sessionStorage.removeItem('masAccessToken');
+        });
+
+        it('reads icon and name from a bare detail with no product wrapper', async () => {
+            stubDetail(() => Promise.resolve({ assets: { icons: { svg: 'https://mcs.example/a.svg' } }, copy: { name: 'A' } }));
+
+            const result = await enrichConfigWithMcsMnemonic({ arrangementCode: 'a_direct' }, null);
+
+            expect(result.mnemonics).to.deep.equal([{ icon: 'https://mcs.example/a.svg', alt: 'A', link: '' }]);
+        });
+
+        it('returns config unchanged when the detail response body is empty', async () => {
+            stubDetail(() => Promise.reject(new SyntaxError('Unexpected end of JSON input')));
+            const config = { arrangementCode: 'a_direct' };
+
+            expect(await enrichConfigWithMcsMnemonic(config, null)).to.equal(config);
+        });
+
+        it('returns config unchanged when the detail is an empty object', async () => {
+            stubDetail(() => Promise.resolve({}));
+            const config = { arrangementCode: 'a_direct' };
+
+            expect(await enrichConfigWithMcsMnemonic(config, null)).to.equal(config);
+        });
+
+        it('returns config unchanged when the detail is null', async () => {
+            stubDetail(() => Promise.resolve(null));
+            const config = { arrangementCode: 'a_direct' };
+
+            expect(await enrichConfigWithMcsMnemonic(config, null)).to.equal(config);
+        });
+
+        it('returns config unchanged when the arrangement code is malformed, without fetching', async () => {
+            const fetchStub = sinon.stub(window, 'fetch');
+            const config = { arrangementCode: 'bad code!' };
+
+            expect(await enrichConfigWithMcsMnemonic(config, null)).to.equal(config);
+            expect(fetchStub.called).to.be.false;
+        });
+
+        it('uses an empty alt when the product has an icon but no name', async () => {
+            const result = await enrichConfigWithMcsMnemonic({}, { icon: 'https://x/i.svg' });
+
+            expect(result.mnemonics).to.deep.equal([{ icon: 'https://x/i.svg', alt: '', link: '' }]);
+        });
+
+        it('does not mutate the input config', async () => {
+            const config = { arrangementCode: 'a' };
+
+            await enrichConfigWithMcsMnemonic(config, { icon: 'https://x/i.svg', name: 'A' });
+
+            expect(config).to.deep.equal({ arrangementCode: 'a' });
+        });
+    });
+
+    describe('buildReleaseTags', () => {
+        it('maps a full MCS product to mas: tags', () => {
+            const tags = buildReleaseTags({
+                product_code: 'PHSP',
+                arrangement_code: 'phsp_direct_individual',
+                product_family: 'PHOTOSHOP',
+                customer_segment: 'INDIVIDUAL',
+                market_segments: ['COM', 'EDU'],
+            });
+
+            expect(tags).to.deep.equal([
+                'mas:product_code/PHSP',
+                'mas:pa/phsp_direct_individual',
+                'mas:product_family/PHOTOSHOP',
+                'mas:customer_segment/INDIVIDUAL',
+                'mas:market_segments/COM',
+                'mas:market_segments/EDU',
+            ]);
+        });
+
+        it('falls back to value for the PA and to the first segment for the customer segment', () => {
+            const tags = buildReleaseTags({ value: 'PA-1930', segments: ['TEAM', 'INDIVIDUAL'] });
+
+            expect(tags).to.deep.equal(['mas:pa/PA-1930', 'mas:customer_segment/TEAM']);
+        });
+
+        it('keeps only the truthy keys of a marketSegments flag map', () => {
+            const tags = buildReleaseTags({ marketSegments: { COM: true, EDU: false, GOV: true } });
+
+            expect(tags).to.deep.equal(['mas:market_segments/COM', 'mas:market_segments/GOV']);
+        });
+
+        it('returns no tags for a missing or empty product', () => {
+            expect(buildReleaseTags(null)).to.deep.equal([]);
+            expect(buildReleaseTags(undefined)).to.deep.equal([]);
+            expect(buildReleaseTags({})).to.deep.equal([]);
+        });
+    });
+
     describe('validateAIConfig — variant-specific required fields', () => {
         it('plans: requires title, prices, description, ctas, osi', () => {
             const result = validateAIConfig({ variant: 'plans' }, { requiredFields: [] });

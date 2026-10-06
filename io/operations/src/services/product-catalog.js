@@ -53,7 +53,19 @@ export class ProductCatalog {
             throw new Error(`Failed to load products: ${response.statusText}`);
         }
 
-        const data = await response.json();
+        // A 2xx does not guarantee a body: ost-products-read answers 200 with an
+        // empty body in any workspace whose OST cache was never populated, and
+        // response.json() then throws "Unexpected end of JSON input", naming
+        // neither the catalog nor the cause. Translate it into something the
+        // assistant (and the author) can act on.
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            throw new Error(
+                `Empty response from the product catalog (HTTP ${response.status}). The OST product cache is not populated for this environment.`,
+            );
+        }
         const productsObj = data.combinedProducts || {};
 
         return new Map(Object.entries(productsObj));

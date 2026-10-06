@@ -4,7 +4,7 @@ import {
     getOperationsServiceURL,
     getKnowledgeServiceURL,
     getIoMcpURL,
-    getIoStudioURL,
+    getProdStudioURL,
 } from '../src/mas-chat/config.js';
 
 /**
@@ -18,12 +18,16 @@ import {
  * and bulk-publish all read it. These URLs read it too, so a personal namespace
  * can only ever be selected the same way every other environment is.
  *
- * All four assistant packages resolve to that ONE namespace:
+ * The three code packages resolve to that ONE namespace:
  *
- *   MerchAtScaleStudio/ai-chat            the assistant
- *   MerchAtScaleStudio/ost-products-read  the OST product catalog
- *   MerchAtScaleOperations/*                     the tools the assistant executes
- *   MerchAtScaleKnowledge/query           the docs corpus
+ *   MerchAtScaleStudio/ai-chat     the assistant
+ *   MerchAtScaleOperations/*       the tools the assistant executes
+ *   MerchAtScaleKnowledge/query    the docs corpus
+ *
+ * MerchAtScaleStudio/ost-products-read is the exception: it reads shared,
+ * read-only catalog data seeded only in the prod workspace, so it targets prod
+ * (getProdStudioURL) regardless of env — a personal/stage namespace has no
+ * cache and would 404.
  *
  * That is a deployment requirement, not just a client one. When a package is
  * missing from the selected namespace, OpenWhisk answers with a 404 that
@@ -73,12 +77,10 @@ describe('mas-chat IO namespace resolution', () => {
             expect(getAIChatBaseURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(DEV);
         });
 
-        it('uses it for the OST product catalog', () => {
-            expect(getIoStudioURL()).to.equal(DEV);
-        });
-
         it('keeps MCP on the same namespace rather than a second hardcoded one', () => {
-            expect(getOperationsServiceURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(`${DEV_NAMESPACE}/MerchAtScaleOperations`);
+            expect(getOperationsServiceURL(loc('mwpw-183572--mas--adobecom.aem.page'))).to.equal(
+                `${DEV_NAMESPACE}/MerchAtScaleOperations`,
+            );
         });
 
         it('keeps the knowledge service on it too', () => {
@@ -91,17 +93,28 @@ describe('mas-chat IO namespace resolution', () => {
             expect(getIoMcpURL()).to.equal(`${DEV_NAMESPACE}/MerchAtScaleOperations`);
         });
 
-        it('puts every assistant package in one namespace, so one deploy target serves them all', () => {
+        it('puts every assistant code package in one namespace, so one deploy target serves them all', () => {
             const hosts = new Set(
                 [
                     getAIChatBaseURL(loc('mas.adobe.com')),
-                    getIoStudioURL(),
                     getOperationsServiceURL(loc('mas.adobe.com')),
                     getKnowledgeServiceURL(loc('mas.adobe.com')),
                     getIoMcpURL(),
                 ].map((url) => new URL(url).host),
             );
             expect([...hosts]).to.deep.equal(['14257-masstudio-axel.adobeioruntime.net']);
+        });
+    });
+
+    describe('the OST product catalog is pinned to prod, not the page env', () => {
+        it('returns the prod masStudio base even when the meta tag points to a personal workspace', () => {
+            setMeta(DEV);
+            expect(getProdStudioURL()).to.equal('https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio');
+        });
+
+        it('returns the prod masStudio base when there is no meta tag', () => {
+            setMeta(null);
+            expect(getProdStudioURL()).to.equal('https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio');
         });
     });
 
@@ -144,9 +157,9 @@ describe('mas-chat IO namespace resolution', () => {
         });
 
         it('ignores ?mcp.server off localhost', () => {
-            expect(getOperationsServiceURL(loc('mas.adobe.com', '?mcp.server=https%3A%2F%2Fattacker.example%2Fmcp'))).to.not.include(
-                'attacker.example',
-            );
+            expect(
+                getOperationsServiceURL(loc('mas.adobe.com', '?mcp.server=https%3A%2F%2Fattacker.example%2Fmcp')),
+            ).to.not.include('attacker.example');
         });
     });
 

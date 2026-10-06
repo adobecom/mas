@@ -1,0 +1,161 @@
+{
+    "about": "Deterministic NPI (create-cards-with-AI) guided-flow invariants. Each case mocks one model turn (mockModelResponse) plus any tool results it depends on (conversationHistory / context), and the harness runs it through the real exported deterministic functions (parseOperationRequest, validateOperation, resolveArrangementCodeFromHistory/Context) plus per-invariant detectors. `expect.violates` declares whether the mocked turn is a clean example (false) or a freelancing one the detector MUST catch (true). This mirrors the --mock-llm philosophy: mock the model, assert the deterministic layer. The live model is exercised by --live-llm.",
+    "invariants": {
+        "1": "A PA / arrangement code must come from a resolve_offer_selector or list_products tool result (or context) — never invented from the conversation.",
+        "2": "A 32-char hex Offer ID is NEVER passed as list_products searchText; it must go through resolve/get_offer_by_id first.",
+        "3": "resolve/get_offer_by_id -> list_products(searchText = resolved PA code) chaining is mandatory for Offer-ID and OSI inputs; the flow must not stop at the resolve step nor pass the raw identifier.",
+        "4": "Already-selected-product short-circuit: when the turn carries arrangement_code: / 'Selected product:' / context.selectedProduct.arrangement_code, do NOT re-run list_products or re-render productCards — go straight to offering-type.",
+        "5": "Empty list_products -> a legible 'couldn't find that product' message, NOT a crash and NOT a fabricated product."
+    },
+    "cases": [
+        {
+            "id": "npi-inv1-name-searchtext-is-not-fabrication-good",
+            "invariant": 1,
+            "flow": "npi-card-creation",
+            "description": "A product NAME passed as list_products searchText is not a fabricated code — names are legal lookup input.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [],
+            "user_message": "create a card for Acrobat",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"Acrobat\" },\n  \"message\": \"Looking up Acrobat in the catalog...\"\n}\n```",
+            "expect": { "violates": false }
+        },
+        {
+            "id": "npi-inv1-invented-arrangement-code-bad",
+            "invariant": 1,
+            "flow": "npi-card-creation",
+            "description": "Model jumps to create_release_cards with an arrangement_code no tool result ever returned.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [
+                { "role": "user", "content": "create a card for Acrobat" }
+            ],
+            "user_message": "create a card for Acrobat",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"create_release_cards\",\n  \"operationParams\": { \"arrangement_code\": \"acro_direct_individual\", \"variants\": [\"plans\"], \"parentPath\": \"/content/dam/mas/sandbox/en_US\" },\n  \"message\": \"Creating release cards for Acrobat...\"\n}\n```",
+            "expect": { "violates": true, "violation_includes": "fabricated" }
+        },
+        {
+            "id": "npi-inv2-32hex-routes-to-get-offer-good",
+            "invariant": 2,
+            "flow": "npi-card-creation",
+            "description": "A bare 32-hex Offer ID resolves via get_offer_by_id, never list_products.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [],
+            "user_message": "0023AAF707BAB9D43C64E5990B5C51FF",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"get_offer_by_id\",\n  \"operationParams\": { \"offerId\": \"0023AAF707BAB9D43C64E5990B5C51FF\" },\n  \"message\": \"Resolving offer 0023AAF707BAB9D43C64E5990B5C51FF to its product...\"\n}\n```",
+            "expect": { "violates": false }
+        },
+        {
+            "id": "npi-inv2-32hex-as-searchtext-bad",
+            "invariant": 2,
+            "flow": "npi-card-creation",
+            "description": "A 32-hex Offer ID passed as list_products searchText returns garbage fuzzy matches and must be caught.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [],
+            "user_message": "0023AAF707BAB9D43C64E5990B5C51FF",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"0023AAF707BAB9D43C64E5990B5C51FF\" },\n  \"message\": \"Looking up 0023AAF707BAB9D43C64E5990B5C51FF in the catalog...\"\n}\n```",
+            "expect": { "violates": true, "violation_includes": "32-hex" }
+        },
+        {
+            "id": "npi-inv3-resolve-then-list-products-good",
+            "invariant": 3,
+            "flow": "npi-card-creation",
+            "description": "After a resolve result carrying product_arrangement_code, the next turn chains list_products with that exact PA code.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [
+                { "role": "user", "content": "RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8" },
+                { "role": "assistant", "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF" }
+            ],
+            "user_message": "",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"phsp_direct_individual\" },\n  \"message\": \"Looking up phsp_direct_individual in the catalog...\"\n}\n```",
+            "expect": { "violates": false }
+        },
+        {
+            "id": "npi-inv3-stops-at-resolve-bad",
+            "invariant": 3,
+            "flow": "npi-card-creation",
+            "description": "Model stops after resolve (emits a guided_step ack) instead of chaining the mandatory list_products.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [
+                { "role": "user", "content": "RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8" },
+                { "role": "assistant", "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF" }
+            ],
+            "user_message": "",
+            "mockModelResponse": "```json\n{\n  \"type\": \"guided_step\",\n  \"message\": \"I resolved that OSI to Photoshop. What would you like to do next?\"\n}\n```",
+            "expect": { "violates": true, "violation_includes": "chaining broken" }
+        },
+        {
+            "id": "npi-inv3-raw-osi-as-searchtext-bad",
+            "invariant": 3,
+            "flow": "npi-card-creation",
+            "description": "Model chains list_products but passes the raw OSI instead of the resolved PA code.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [
+                { "role": "user", "content": "RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8" },
+                { "role": "assistant", "content": "resolve_offer_selector returned 1 offer. product_arrangement_code: phsp_direct_individual, offer_id: 0023AAF707BAB9D43C64E5990B5C51FF" }
+            ],
+            "user_message": "",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8\" },\n  \"message\": \"Looking up that offer in the catalog...\"\n}\n```",
+            "expect": { "violates": true, "violation_includes": "not the resolved PA code" }
+        },
+        {
+            "id": "npi-inv4-selected-product-short-circuits-good",
+            "invariant": 4,
+            "flow": "npi-card-creation",
+            "description": "Turn carries a selected product; model goes straight to Step 4 offering-type without re-looking-up.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" }, "selectedProduct": { "arrangement_code": "phsp_direct_individual" } },
+            "conversationHistory": [],
+            "user_message": "Selected product: Photoshop Single App arrangement_code: phsp_direct_individual",
+            "mockModelResponse": "```json\n{\n  \"type\": \"guided_step\",\n  \"message\": \"What type of offering should this card feature?\",\n  \"buttonGroup\": {\n    \"label\": \"Offering Type\",\n    \"options\": [\n      { \"label\": \"Monthly\", \"value\": \"MONTH|MONTHLY\" },\n      { \"label\": \"Annual, billed monthly\", \"value\": \"YEAR|MONTHLY\" },\n      { \"label\": \"Annual, prepaid\", \"value\": \"YEAR|ANNUAL\" }\n    ]\n  }\n}\n```",
+            "expect": { "violates": false }
+        },
+        {
+            "id": "npi-inv4-reruns-list-products-bad",
+            "invariant": 4,
+            "flow": "npi-card-creation",
+            "description": "Model re-runs list_products although the product is already selected in the turn.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" }, "selectedProduct": { "arrangement_code": "phsp_direct_individual" } },
+            "conversationHistory": [],
+            "user_message": "Selected product: Photoshop Single App arrangement_code: phsp_direct_individual",
+            "mockModelResponse": "```json\n{\n  \"type\": \"studio_operation\",\n  \"operationName\": \"list_products\",\n  \"operationParams\": { \"searchText\": \"phsp_direct_individual\" },\n  \"message\": \"Looking up phsp_direct_individual in the catalog...\"\n}\n```",
+            "expect": { "violates": true, "violation_includes": "re-ran list_products" }
+        },
+        {
+            "id": "npi-inv4-rerenders-productcards-bad",
+            "invariant": 4,
+            "flow": "npi-card-creation",
+            "description": "Model re-renders productCards although the product is already selected in the turn.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" }, "selectedProduct": { "arrangement_code": "phsp_direct_individual" } },
+            "conversationHistory": [],
+            "user_message": "Selected product: Photoshop Single App arrangement_code: phsp_direct_individual",
+            "mockModelResponse": "```json\n{\n  \"type\": \"guided_step\",\n  \"message\": \"Found your product:\",\n  \"productCards\": [\n    { \"label\": \"Photoshop Single App\", \"value\": \"phsp_direct_individual\", \"arrangement_code\": \"phsp_direct_individual\", \"product_code\": \"PHSP\" }\n  ]\n}\n```",
+            "expect": { "violates": true, "violation_includes": "re-rendered productCards" }
+        },
+        {
+            "id": "npi-inv5-empty-products-legible-message-good",
+            "invariant": 5,
+            "flow": "npi-card-creation",
+            "description": "list_products returned no products; model replies with a plain legible not-found message.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [
+                { "role": "user", "content": "create a card for Floobar Pro" },
+                { "role": "assistant", "content": "list_products returned 0 products for searchText \"Floobar Pro\"." }
+            ],
+            "user_message": "",
+            "mockModelResponse": "I couldn't find a product matching that. Please try a different product name, PA code, or offer ID.",
+            "expect": { "violates": false, "message_includes": ["couldn't find", "try"] }
+        },
+        {
+            "id": "npi-inv5-fabricates-cards-on-empty-bad",
+            "invariant": 5,
+            "flow": "npi-card-creation",
+            "description": "list_products returned no products; model barrels ahead to card generation instead of reporting not-found.",
+            "context": { "flow": { "active": "release_create", "step": "awaiting_product" } },
+            "conversationHistory": [
+                { "role": "user", "content": "create a card for Floobar Pro" },
+                { "role": "assistant", "content": "list_products returned 0 products for searchText \"Floobar Pro\"." }
+            ],
+            "user_message": "",
+            "mockModelResponse": "```json\n{\n  \"type\": \"release_cards\",\n  \"message\": \"Creating release cards for Floobar Pro...\",\n  \"parentPath\": \"/content/dam/mas/sandbox/en_US\",\n  \"cardConfigs\": [ { \"variant\": \"plans\" } ]\n}\n```",
+            "expect": { "violates": true, "violation_includes": "release_cards" }
+        }
+    ]
+}

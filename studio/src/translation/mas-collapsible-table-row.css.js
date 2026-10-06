@@ -5,6 +5,7 @@ import {
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     textWithTooltipStyles,
+    ghostButtonStyles,
     scrollableTableStyles,
 } from '../common/styles/table-styles.css.js';
 
@@ -14,6 +15,7 @@ export const styles = [
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     textWithTooltipStyles,
+    ghostButtonStyles,
     scrollableTableStyles,
     css`
         :host {
@@ -134,11 +136,6 @@ export const styles = [
 
         .tags-label {
             margin-left: 6px;
-        }
-
-        .expand-button {
-            background: none;
-            border: none;
         }
 
         .promo-variations-table {
@@ -277,6 +274,10 @@ export const styles = [
         sp-table-row.select-all-row {
             background: var(--spectrum-gray-50);
 
+            sp-table-cell:first-of-type {
+                padding: 10px 28px;
+            }
+
             sp-table-cell {
                 background-color: transparent;
             }
@@ -349,6 +350,11 @@ export const styles = [
                 --mod-tag-background-color: var(--spectrum-gray-100);
                 --mod-tag-border-color: transparent;
             }
+        }
+
+        .ghost-button {
+            width: 40px;
+            height: 40px;
         }
     `,
 ];

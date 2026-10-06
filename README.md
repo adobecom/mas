@@ -153,6 +153,12 @@ An Odin pressure summary and `test-results/odin-pressure.json` also record the e
 the coordinator's wall-clock observation window, scheduled upstream reads, peak scheduled starts/second,
 peak read concurrency, mean/max fetch latency, summed queue waiting,
 sanitized endpoint counts and observed user agents. No query strings, credentials or response bodies are retained.
+Studio CI jobs set `NALA_DEFER_SUMMARY=1` on both execution and cleanup steps: the styled Nala summary is emitted
+after cleanup, with test and cleanup request counts combined rather than consumed by an earlier report.
+CI cleanup uses its own fresh coordinator and records `test-results/odin-pressure-cleanup.json`; pressure measurements
+are labelled by phase, so the completed test snapshot is not presented as cleanup traffic.
+Skipped or failed cleanup still emits the deferred summary, without concealing cleanup failure. Docs and local runs
+keep their existing end-of-test reporting.
 
 Use `NALA_STATIC_CACHE_DISABLED=1` or `NALA_EDITOR_BOOTSTRAP_DISABLED=1` for uncached comparisons.
 To make a suite's editor setup always live, leave `reuseEditor` unset. Cleanup uses exact run-owned IDs and live ETags;

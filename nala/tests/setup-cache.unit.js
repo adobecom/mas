@@ -511,7 +511,7 @@ test('cleanup summary preserves colored totals and exposes per-path outcomes', (
     printCleanupSummary();
     const output = lines.join('\n');
     assert.match(output, /\x1b\[1m\x1b\[34m---------Fragment Cleanup Summary---------/);
-    assert.match(output, /Successfully deleted/);
+    assert.match(output, /Deleted\/already absent/);
     assert.match(output, /Failed to delete/);
     assert.match(output, /nala\/en_US/);
     assert.match(output, /nala\/en_GB/);

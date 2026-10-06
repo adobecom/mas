@@ -3,15 +3,111 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { EventEmitter } from 'node:events';
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, unlinkSync, rmdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, unlinkSync, rmdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import initializeRateLimitCoordinator, { coordinateRateLimit, OriginRateLimits } from '../libs/rate-limit-coordinator.js';
 import { logRateLimitedResponses, waitForRateLimit, fetchWithRateLimitRetry } from '../libs/rate-limit.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import RequestCountingReporter from '../utils/request-counting-reporter.js';
+import BaseReporter from '../utils/base-reporter.js';
+import globalTeardown from '../utils/global.teardown.js';
+import { createRunId } from '../utils/fragment-tracker.js';
+import { initializeFragmentLedger, recordCreatedFragment } from '../utils/fragment-ledger.js';
+import { chromium } from '@playwright/test';
 
 const coordinatorModule = new URL('../libs/rate-limit-coordinator.js', import.meta.url).href;
+
+for (const cleanup of ['skipped', 'empty', 'failed']) {
+    test(`CI summary waits for ${cleanup} cleanup and combines test and cleanup counters once`, async (t) => {
+        const directory = mkdtempSync(join(tmpdir(), 'nala-final-summary-'));
+        const cwd = process.cwd();
+        const previousCleanup = global.nalaCleanupResults;
+        const env = {
+            GITHUB_ACTIONS: 'true',
+            GITHUB_REPOSITORY: 'adobecom/mas',
+            GITHUB_REF: 'refs/pull/1357/merge',
+            GITHUB_RUN_ID: '42',
+            NALA_DEFER_SUMMARY: '1',
+            SKIP_AUTH: cleanup === 'skipped' ? 'true' : 'false',
+            NALA_RUN_ID: undefined,
+        };
+        const previous = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]));
+        const logs = [];
+        t.mock.method(console, 'log', (message) => logs.push(message));
+        t.mock.method(console, 'info', (message) => logs.push(message));
+        t.mock.method(chromium, 'launch', async () => {
+            throw new Error('cleanup browser unavailable');
+        });
+        process.chdir(directory);
+        for (const [key, value] of Object.entries(env)) {
+            if (value === undefined) delete process.env[key];
+            else process.env[key] = value;
+        }
+        let ledgerDirectory;
+        try {
+            if (cleanup !== 'skipped') {
+                ledgerDirectory = join(directory, 'nala', '.runs', createRunId());
+                initializeFragmentLedger();
+                if (cleanup === 'failed') {
+                    recordCreatedFragment({
+                        id: 'owned',
+                        path: '/content/dam/mas/nala/en_US/owned',
+                        title: process.env.NALA_RUN_ID,
+                    });
+                }
+            }
+            const reporter = new BaseReporter({});
+            reporter.onBegin({ projects: [{ name: 'studio', use: { baseURL: 'https://test--mas--adobecom.aem.live' } }] });
+            if (cleanup !== 'skipped') {
+                await reporter.onTestEnd(
+                    { title: '@example,@mas-studio', retries: 0, _projectId: 'studio', annotations: [] },
+                    { status: 'failed', retry: 0, duration: 1, error: { message: 'example failure' } },
+                );
+            }
+            mkdirSync('test-results');
+            const counts = (totalRequests) => ({
+                serviceCounts: { ODIN_AEM: { totalRequests, methods: { GET: totalRequests } } },
+                trackedUrls: { ODIN_AEM: 'https://author-test.adobeaemcloud.com' },
+            });
+            writeFileSync('test-results/request-count-tests.json', JSON.stringify(counts(3)));
+            await reporter.onEnd();
+            assert.ok(existsSync('test-results/request-count-tests.json'));
+            assert.doesNotMatch(logs.join('\n'), /Nala Test Run Summary|Request Summary/);
+            writeFileSync('test-results/request-count-cleanup.json', JSON.stringify(counts(2)));
+            if (cleanup === 'failed') await assert.rejects(globalTeardown(), /cleanup browser unavailable/);
+            else await globalTeardown();
+            const output = logs.join('\n');
+            assert.equal(output.match(/Nala Test Run Summary/g).length, 1);
+            assert.equal(output.match(/---------Request Summary/g).length, 1);
+            assert.match(output, /ODIN_AEM Requests[^:]*:.*5/);
+            assert.match(output, /separate CI cleanup/);
+            assert.ok(output.indexOf('Nala Global Teardown') < output.indexOf('Nala Test Run Summary'));
+            if (cleanup !== 'skipped') {
+                assert.ok(output.indexOf('Request Summary') < output.indexOf('Failed Tests Summary'));
+            }
+            assert.doesNotMatch(output, /NaN/);
+            assert.equal(existsSync('test-results/nala-summary.json'), false);
+            if (cleanup === 'failed') assert.match(output, /Failed to delete.*1\/1/);
+        } finally {
+            for (const file of readdirSync('test-results')) unlinkSync(join('test-results', file));
+            rmdirSync('test-results');
+            if (ledgerDirectory) {
+                for (const file of readdirSync(ledgerDirectory)) unlinkSync(join(ledgerDirectory, file));
+                rmdirSync(ledgerDirectory);
+                rmdirSync(join(directory, 'nala', '.runs'));
+                rmdirSync(join(directory, 'nala'));
+            }
+            process.chdir(cwd);
+            rmdirSync(directory);
+            global.nalaCleanupResults = previousCleanup;
+            for (const [key, value] of Object.entries(previous)) {
+                if (value === undefined) delete process.env[key];
+                else process.env[key] = value;
+            }
+        }
+    });
+}
 
 test('preview starts are spaced globally before the first 429', async (t) => {
     let now = 1000;

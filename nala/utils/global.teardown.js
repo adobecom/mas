@@ -5,6 +5,9 @@ import GlobalRequestCounter from '../libs/global-request-counter.js';
 import { installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
 import RequestCountingReporter from './request-counting-reporter.js';
 import { USER_AGENT_DESKTOP } from '../../playwright.config.js';
+import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
+import { printDeferredSummary } from './base-reporter.js';
+import { resolve } from 'node:path';
 
 /**
  * Delete exact run-owned IDs, verifying ownership and ETags from live responses.
@@ -88,7 +91,7 @@ export function printCleanupSummary() {
     console.log(`    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${results.totalFound}\x1b[0m`);
     if (results.totalDeleted > 0) {
         console.log(
-            `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Successfully deleted     :\x1b[0m \x1b[32m${results.totalDeleted}\x1b[0m`,
+            `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Deleted/already absent   :\x1b[0m \x1b[32m${results.totalDeleted}\x1b[0m`,
         );
     } else if (results.totalFound === 0) {
         console.log('    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m');
@@ -109,8 +112,9 @@ export function printCleanupSummary() {
 /**
  * Clean the current execution only, using one authenticated maintenance page.
  */
-async function globalTeardown() {
+async function cleanupRun() {
     console.info('\n---- Executing Nala Global Teardown: Cleaning up cloned cards ----\n');
+    const deferred = process.env.GITHUB_ACTIONS === 'true' && process.env.NALA_DEFER_SUMMARY === '1';
     if (process.env.SKIP_AUTH === 'true') {
         console.info('[NALA teardown] Cleanup skipped: SKIP_AUTH=true.');
         return;
@@ -128,7 +132,7 @@ async function globalTeardown() {
     global.nalaCleanupResults = { totalFound: ledger.fragments.length, totalDeleted: 0, totalFailed: 0 };
     if (!ledger.fragments.length && !ledger.recover) {
         console.info('[NALA teardown] No pending fragments; skipping browser startup.');
-        printCleanupSummary();
+        if (!deferred) printCleanupSummary();
         completeFragmentLedger();
         clearRunId();
         return;
@@ -244,8 +248,37 @@ async function globalTeardown() {
         stopCounting?.();
         GlobalRequestCounter.saveCountToFileSync();
         await browser.close();
-        printCleanupSummary();
-        if (process.env.GITHUB_ACTIONS === 'true') new RequestCountingReporter().printRequestSummary();
+        if (!deferred) {
+            printCleanupSummary();
+        }
+    }
+}
+
+async function globalTeardown() {
+    delete global.nalaCleanupResults;
+    const ci = process.env.GITHUB_ACTIONS === 'true';
+    const stopCoordinator = ci
+        ? await initializeRateLimitCoordinator(
+              { projects: [{ outputDir: resolve('test-results') }] },
+              undefined,
+              'odin-pressure-cleanup.json',
+          )
+        : null;
+    try {
+        await cleanupRun();
+    } catch (error) {
+        if (global.nalaCleanupResults) {
+            global.nalaCleanupResults.totalFailed =
+                global.nalaCleanupResults.totalFound - global.nalaCleanupResults.totalDeleted;
+        }
+        throw error;
+    } finally {
+        try {
+            if (stopCoordinator) await stopCoordinator();
+        } finally {
+            if (ci && process.env.NALA_DEFER_SUMMARY === '1') await printDeferredSummary();
+            else if (ci) new RequestCountingReporter().printRequestSummary();
+        }
     }
 }
 

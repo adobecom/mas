@@ -123,11 +123,15 @@ export default class RequestCountingReporter {
                 );
             }
         }
-        const pressureFile = join(testResultsDir, 'odin-pressure.json');
-        if (existsSync(pressureFile)) {
+        const pressureFiles = [
+            ['odin-pressure.json', 'tests, including setup and inline teardown'],
+            ['odin-pressure-cleanup.json', 'separate CI cleanup'],
+        ].filter(([file]) => existsSync(join(testResultsDir, file)));
+        if (pressureFiles.length) console.log('\n    \x1b[1m\x1b[34m---------Odin Preview Pressure------------\x1b[0m');
+        for (const [file, phase] of pressureFiles) {
+            const pressureFile = join(testResultsDir, file);
             const pressure = JSON.parse(readFileSync(pressureFile, 'utf8'));
-            console.log('\n    \x1b[1m\x1b[34m---------Odin Preview Pressure------------\x1b[0m');
-            console.log(`    ${pressure.origin} (entire run, including setup)`);
+            console.log(`    ${pressure.origin} (${phase})`);
             console.log(`        # Observation window: ${(pressure.elapsedMs / 1000).toFixed(2)}s (wall-clock)`);
             console.log(`        # Upstream reads: ${pressure.starts}; peak in-flight: ${pressure.peakInFlight}`);
             console.log(

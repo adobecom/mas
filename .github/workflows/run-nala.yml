@@ -221,6 +221,7 @@ jobs:
                   # studio:3 + docs:1 = 4 workers × 45 RPS = 180 RPS, safely under 200 RPS EDS limit.
                   # Both jobs share the same self-hosted runner pool — 4 total workers = 4 vCPUs.
                   NALA_PLAYWRIGHT_WORKERS: 3
+                  NALA_DEFER_SUMMARY: '1'
 
             - name: Cleanup cloned cards
               if: always()
@@ -232,6 +233,7 @@ jobs:
                   process.exit(1);
                   });"
               env:
+                  NALA_DEFER_SUMMARY: '1'
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}

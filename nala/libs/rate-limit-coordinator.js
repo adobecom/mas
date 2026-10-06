@@ -170,7 +170,7 @@ export async function coordinateRateLimit(action, origin, deadline, details = {}
 }
 
 /** A fresh loopback coordinator belongs to this invocation, never another run or PR. */
-export default async function initializeRateLimitCoordinator(config, options) {
+export default async function initializeRateLimitCoordinator(config, options, pressureFile = 'odin-pressure.json') {
     const limits = new OriginRateLimits(options);
     const token = randomUUID();
     const handle = async (request, response) => {
@@ -211,7 +211,7 @@ export default async function initializeRateLimitCoordinator(config, options) {
         const outputDir = config?.projects?.[0]?.outputDir;
         if (outputDir) {
             mkdirSync(outputDir, { recursive: true });
-            writeFileSync(join(outputDir, 'odin-pressure.json'), JSON.stringify(limits.snapshot()));
+            writeFileSync(join(outputDir, pressureFile), JSON.stringify(limits.snapshot()));
         }
         delete process.env.NALA_RATE_LIMIT_COORDINATOR;
         await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

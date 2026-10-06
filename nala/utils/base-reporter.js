@@ -1,3 +1,7 @@
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+
+const deferredSummaryFile = './test-results/nala-summary.json';
+
 // Playwright will include ANSI color characters and regex from below
 // https://github.com/microsoft/playwright/issues/13522
 // https://github.com/chalk/ansi-regex/blob/main/index.js#L3
@@ -115,8 +119,8 @@ export default class BaseReporter {
 
     async printResultSummary() {
         const totalTests = this.results.length;
-        const passPercentage = ((this.passedTests / totalTests) * 100).toFixed(2);
-        const failPercentage = ((this.failedTests / totalTests) * 100).toFixed(2);
+        const passPercentage = (totalTests ? (this.passedTests / totalTests) * 100 : 0).toFixed(2);
+        const failPercentage = (totalTests ? (this.failedTests / totalTests) * 100 : 0).toFixed(2);
         const miloLibs = process.env.MILO_LIBS || '';
         const masIOUrl = process.env.MAS_IO_URL || '';
         const prBranchUrl = process.env.PR_BRANCH_LIVE_URL ? process.env.PR_BRANCH_LIVE_URL + miloLibs : undefined;
@@ -154,41 +158,40 @@ export default class BaseReporter {
     \x1b[1m\x1b[33m** Execution details :\x1b[0m \x1b[32m${runUrl}\x1b[0m
     \x1b[1m\x1b[33m** Workflow name     :\x1b[0m \x1b[32m${runName}\x1b[0m`;
 
-        console.log(summary);
+        const failures = [];
+        if (this.failedTests > 0) {
+            failures.push('\n    \x1b[1m\x1b[34m---------Failed Tests Summary-------------\x1b[0m');
+            for (const [index, failedTest] of this.results.filter((result) => result.status === 'failed').entries()) {
+                // Get first tag (main test identifier) and keep the @ symbol
+                const titleParts = failedTest.title.split('@');
+                const testName = titleParts[1]?.split(',')[0]?.trim() || titleParts[1]?.trim();
 
-        // Print cleanup summary
+                // Get pre-extracted data from results
+                const testPageUrl = failedTest.testPageUrl;
+                const lineNumber = failedTest.failedLineNumber;
+                const lineContent = failedTest.failedLineContent;
+
+                failures.push(`    ${index + 1}. \x1b[31m\x1b[1m@${testName}\x1b[0m`);
+                if (testPageUrl) {
+                    failures.push(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
+                }
+                if (lineNumber) {
+                    failures.push(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? `: ${lineContent}` : ''}\x1b[0m`);
+                }
+            }
+            failures.push('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
+        }
+        const failedSummary = failures.join('\n');
+        if (process.env.GITHUB_ACTIONS === 'true' && process.env.NALA_DEFER_SUMMARY === '1') {
+            mkdirSync('./test-results', { recursive: true });
+            writeFileSync(deferredSummaryFile, JSON.stringify({ summary, failedSummary }));
+            return summary;
+        }
+        console.log(summary);
         const { printCleanupSummary } = await import('./global.teardown.js');
         printCleanupSummary();
-
-        // Print request summary
         await this.printRequestSummary();
-
-        // Print failed tests summary (last)
-        if (this.failedTests > 0) {
-            console.log('\n    \x1b[1m\x1b[34m---------Failed Tests Summary-------------\x1b[0m');
-            this.results
-                .filter((result) => result.status === 'failed')
-                .forEach((failedTest, index) => {
-                    // Get first tag (main test identifier) and keep the @ symbol
-                    const titleParts = failedTest.title.split('@');
-                    const testName = titleParts[1]?.split(',')[0]?.trim() || titleParts[1]?.trim();
-
-                    // Get pre-extracted data from results
-                    const testPageUrl = failedTest.testPageUrl;
-                    const lineNumber = failedTest.failedLineNumber;
-                    const lineContent = failedTest.failedLineContent;
-
-                    console.log(`    ${index + 1}. \x1b[31m\x1b[1m@${testName}\x1b[0m`);
-                    if (testPageUrl) {
-                        console.log(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
-                    }
-                    if (lineNumber) {
-                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? `: ${lineContent}` : ''}\x1b[0m`);
-                    }
-                });
-            console.log('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
-        }
-
+        if (failedSummary) console.log(failedSummary);
         return summary;
     }
 
@@ -271,4 +274,15 @@ export default class BaseReporter {
             timestamp: currTime,
         };
     }
+}
+
+export async function printDeferredSummary() {
+    const result = existsSync(deferredSummaryFile) ? JSON.parse(readFileSync(deferredSummaryFile, 'utf8')) : null;
+    if (result) console.log(result.summary);
+    const { printCleanupSummary } = await import('./global.teardown.js');
+    printCleanupSummary();
+    const { default: RequestCountingReporter } = await import('./request-counting-reporter.js');
+    new RequestCountingReporter({}).printRequestSummary();
+    if (result?.failedSummary) console.log(result.failedSummary);
+    if (result) unlinkSync(deferredSummaryFile);
 }

@@ -5,7 +5,7 @@ import router from '../router.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES } from '../constants.js';
-import { showToast, UserFriendlyError } from '../utils.js';
+import { showToast, getCreateProjectErrorMessage, UserFriendlyError } from '../utils.js';
 import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
 import {
     canDuplicateTranslationProject,
@@ -320,7 +320,7 @@ class MasTranslation extends LitElement {
         } catch (error) {
             console.error('Error duplicating translation project:', error);
             if (!error.alreadyToasted) {
-                showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
+                showToast(error instanceof UserFriendlyError ? error.message : getCreateProjectErrorMessage(error), 'negative');
             }
         } finally {
             this.duplicating = false;

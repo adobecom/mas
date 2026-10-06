@@ -1939,8 +1939,37 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.translationProjectId.get()).to.equal('test-fragment-id');
             const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
             expect(negativeToasts).to.have.lengthOf(1);
-            expect(negativeToasts[0].args[0].content).to.equal('Failed to duplicate project.');
+            expect(negativeToasts[0].args[0].content).to.equal('Failed to create project.');
             consoleErrorStub.restore();
+        });
+
+        it('shows a duplicate-name error when AEM rejects a title that passes dialog validation', async () => {
+            Store.translationProjects.list.data.value = [
+                new FragmentStore(
+                    new Fragment(
+                        createMockFragment({
+                            id: 'other-id',
+                            title: 'Renamed-Project',
+                            path: '/content/dam/mas/acom/translations/Test-Translation-Project-copy',
+                        }),
+                    ),
+                ),
+            ];
+            const el = await loadExistingProject();
+            sandbox.stub(console, 'error');
+            mockRepository.createFragment.rejects(new Error('Failed to create fragment: 409 Conflict'));
+            el.shadowRoot.querySelector('mas-quick-actions').dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            await dialog.updateComplete;
+            expect(dialog.isTitleInvalid).to.be.false;
+
+            dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(1);
+            expect(negativeToasts[0].args[0].content).to.equal('Project with this name already exists.');
         });
 
         it('does not show a second toast when the repository already toasted the failure', async () => {

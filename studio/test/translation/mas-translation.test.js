@@ -891,7 +891,7 @@ describe('MasTranslation', () => {
 
         it('shows a single error toast and does not reload the list when duplication fails', async () => {
             createFragmentStub.rejects(new Error('Failed to duplicate project.'));
-            const consoleErrorStub = sinon.stub(console, 'error');
+            const consoleErrorStub = sandbox.stub(console, 'error');
             const mockProject = createMockTranslationProject('dup-1', 'Project 1');
             Store.translationProjects.list.data.value = [mockProject];
             const el = await fixture(html`<mas-translation></mas-translation>`);
@@ -909,8 +909,33 @@ describe('MasTranslation', () => {
             expect(el.duplicating).to.be.false;
             const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
             expect(negativeToasts).to.have.lengthOf(1);
-            expect(negativeToasts[0].args[0].content).to.equal('Failed to duplicate project.');
+            expect(negativeToasts[0].args[0].content).to.equal('Failed to create project.');
             consoleErrorStub.restore();
+        });
+
+        it('shows a duplicate-name error when AEM rejects a title that passes dialog validation', async () => {
+            createFragmentStub.rejects(new Error('Failed to create fragment: 409 Conflict'));
+            sandbox.stub(console, 'error');
+            Store.translationProjects.list.data.value = [
+                createMockTranslationProject('dup-1', 'Project-1'),
+                createMockTranslationProject('Project-1-copy', 'Renamed-Project'),
+            ];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const duplicateItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+                item.textContent.trim().includes('Duplicate'),
+            );
+            duplicateItem.click();
+            await el.updateComplete;
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            await dialog.updateComplete;
+            expect(dialog.isTitleInvalid).to.be.false;
+
+            dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+
+            const negativeToasts = toastEmitStub.getCalls().filter((call) => call.args[0].variant === 'negative');
+            expect(negativeToasts).to.have.lengthOf(1);
+            expect(negativeToasts[0].args[0].content).to.equal('Project with this name already exists.');
         });
 
         it('does not show a second toast when the repository already toasted the failure', async () => {

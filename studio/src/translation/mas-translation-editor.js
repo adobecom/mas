@@ -221,7 +221,7 @@ class MasTranslationEditor extends LitElement {
         } catch (error) {
             console.error('Error duplicating translation project:', error);
             if (!error.alreadyToasted) {
-                showToast(error instanceof UserFriendlyError ? error.message : 'Failed to duplicate project.', 'negative');
+                showToast(error instanceof UserFriendlyError ? error.message : getCreateProjectErrorMessage(error), 'negative');
             }
         } finally {
             this.duplicating = false;

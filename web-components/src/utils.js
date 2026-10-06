@@ -252,33 +252,44 @@ export function toRelativeAssetUrl(
     }
 }
 
-const MAS_IO_ALLOWED_HOSTS = [
-    'adobe.com',
-    'adobeioruntime.net',
-    'aem.live',
-    'aem.page',
-];
-const MAS_IO_LOCAL_HOSTS = ['localhost', '127.0.0.1'];
+const MAS_IO_RUNTIME_NAMESPACE = /^14257-merchatscale(-[a-z0-9-]+)?$/;
+const MAS_IO_RUNTIME_HOST =
+    /^(14257-merchatscale(-[a-z0-9-]+)?)\.adobeioruntime\.net$/;
+const MAS_IO_RUNTIME_WORKSPACE = /^[a-z0-9-]+$/;
+const MAS_IO_ADOBE_HOST = /^([a-z0-9-]+\.)+adobe\.com$/;
+const MAS_IO_RUNTIME_PATH = '/api/v1/web/MerchAtScale';
+
+const runtimeUrl = (namespace) =>
+    `https://${namespace}.adobeioruntime.net${MAS_IO_RUNTIME_PATH}`;
+
+function resolveMasIOHost(host) {
+    const namespace = MAS_IO_RUNTIME_HOST.exec(host)?.[1];
+    if (namespace) return runtimeUrl(namespace);
+    if (MAS_IO_ADOBE_HOST.test(host)) return `https://${host}/mas/io`;
+    return undefined;
+}
 
 /**
- * Checks that a mas-io-url value points to an Adobe-controlled host.
- * The URL becomes the base of fragment requests carrying the WCS api key,
- * so an attacker-controlled host would leak the key.
- * @param {string} urlString
- * @returns {boolean}
+ * Builds the MAS IO base url from a mas-io-url value. Only the host is kept,
+ * protocol and path are always added here, so the fragment payload (rendered as card HTML)
+ * can only come from an Adobe-controlled origin.
+ * Accepted values (full https urls with one of these hosts are accepted too):
+ * - `axel`, `14257-merchatscale-axel` or `14257-merchatscale-axel.adobeioruntime.net` (I/O Runtime workspace)
+ * - `www.stage.adobe.com` (I/O Runtime behind the adobe.com CDN)
+ * @param {string} value
+ * @returns {string|undefined} the resolved url, or undefined if the value is not allowed
  */
-export function isAllowedMasIOUrl(urlString) {
-    try {
-        const url = new URL(urlString);
-        if (MAS_IO_LOCAL_HOSTS.includes(url.hostname)) {
-            return url.protocol === 'http:' || url.protocol === 'https:';
+export function resolveMasIOUrl(value) {
+    if (!value) return undefined;
+    if (value.startsWith('https://')) {
+        try {
+            return resolveMasIOHost(new URL(value).hostname);
+        } catch {
+            return undefined;
         }
-        if (url.protocol !== 'https:') return false;
-        return MAS_IO_ALLOWED_HOSTS.some(
-            (host) =>
-                url.hostname === host || url.hostname.endsWith(`.${host}`),
-        );
-    } catch {
-        return false;
     }
+    if (MAS_IO_RUNTIME_NAMESPACE.test(value)) return runtimeUrl(value);
+    if (MAS_IO_RUNTIME_WORKSPACE.test(value))
+        return runtimeUrl(`14257-merchatscale-${value}`);
+    return resolveMasIOHost(value);
 }

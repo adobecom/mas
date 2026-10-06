@@ -5,7 +5,7 @@ const {
     historyPushState,
     shouldHideStPriceLabels,
     getValidatedMasLibsUrl,
-    isAllowedMasIOUrl,
+    resolveMasIOUrl,
     toRelativeAssetUrl,
     setForegroundTimeout,
     clearForegroundTimeout,
@@ -179,52 +179,67 @@ describe('function "getValidatedMasLibsUrl"', () => {
     });
 });
 
-describe('function "isAllowedMasIOUrl"', () => {
-    it('accepts adobe, runtime, aem and localhost urls', () => {
-        const allowed = [
-            'https://www.adobe.com/mas/io',
-            'https://www.stage.adobe.com/mas/io',
-            'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScale',
-            'https://main--mas--adobecom.aem.live/mas/io',
-            'https://main--mas--adobecom.aem.page/mas/io',
-            'http://localhost:2023/mas/io',
-            'http://127.0.0.1:3000/mas/io',
-        ];
-        for (const url of allowed) {
-            expect(isAllowedMasIOUrl(url), url).to.be.true;
+describe('function "resolveMasIOUrl"', () => {
+    const RUNTIME = '.adobeioruntime.net/api/v1/web/MerchAtScale';
+    it('builds urls from allowed values', () => {
+        const cases = {
+            axel: `https://14257-merchatscale-axel${RUNTIME}`,
+            '14257-merchatscale-axel': `https://14257-merchatscale-axel${RUNTIME}`,
+            '14257-merchatscale': `https://14257-merchatscale${RUNTIME}`,
+            '14257-merchatscale-john-doe': `https://14257-merchatscale-john-doe${RUNTIME}`,
+            'john-doe': `https://14257-merchatscale-john-doe${RUNTIME}`,
+            'www.adobe.com': 'https://www.adobe.com/mas/io',
+            'www.stage.adobe.com': 'https://www.stage.adobe.com/mas/io',
+            '14257-merchatscale-axel.adobeioruntime.net': `https://14257-merchatscale-axel${RUNTIME}`,
+            [`https://14257-merchatscale-axel${RUNTIME}`]: `https://14257-merchatscale-axel${RUNTIME}`,
+            [`https://14257-merchatscale-john-doe${RUNTIME}/`]: `https://14257-merchatscale-john-doe${RUNTIME}`,
+            [`https://14257-merchatscale${RUNTIME}`]: `https://14257-merchatscale${RUNTIME}`,
+            'https://www.adobe.com/mas/io': 'https://www.adobe.com/mas/io',
+            'https://www.stage.adobe.com/mas/io':
+                'https://www.stage.adobe.com/mas/io',
+            'https://www.adobe.com/evil/path?x=1':
+                'https://www.adobe.com/mas/io',
+        };
+        for (const [value, expected] of Object.entries(cases)) {
+            expect(resolveMasIOUrl(value), value).to.equal(expected);
         }
     });
 
-    it('rejects attacker-controlled urls', () => {
+    it('rejects anything else', () => {
         const rejected = [
+            'https://main--test--eu-andrei.aem.page/json.json?',
+            'http://www.adobe.com/mas/io',
             'https://mycustomurl',
-            'https://evil-adobe.com',
-            'https://adobe.com.evil.io',
-            'https://user:pass@adobe.com.evil.io',
-            'https://evil.com/@adobe.com',
+            'https://axel',
+            'https://12345-evil.adobeioruntime.net/api/v1/web/MerchAtScale',
+            'https://evil.adobeioruntime.net/api/v1/web/MerchAtScale',
+            'https://www.adobe.com.evil.io/mas/io',
+            'https://www.adobe.com@evil.com/mas/io',
+            'https://',
+            'main--test--eu-andrei.aem.page',
+            'main--mas--adobecom.aem.live',
+            '12345-evil.adobeioruntime.net',
+            'adobe.com',
+            'adobe.com.evil.io',
+            'evil-adobe.com',
+            'www.adobe.com/evil',
+            'www.adobe.com:8080',
+            'evil.com#.adobe.com',
+            'evil.com/.adobe.com',
+            'evil.com?.adobe.com',
+            'user@www.adobe.com',
+            'localhost.evil.com',
+            'localhost:2023',
+            '127.0.0.1:3000',
+            'AXEL',
+            'axel/../x',
             'javascript:alert(1)',
-            'not a url',
             '',
             undefined,
+            null,
         ];
-        for (const url of rejected) {
-            expect(isAllowedMasIOUrl(url), url).to.be.false;
-        }
-    });
-
-    it('rejects non-localhost http', () => {
-        expect(isAllowedMasIOUrl('http://evil.com/mas/io')).to.be.false;
-    });
-
-    it('rejects non-http protocols on localhost', () => {
-        const rejected = [
-            'ftp://localhost/mas/io',
-            'ws://localhost:2023/mas/io',
-            'file://localhost/etc/passwd',
-            'ftp://127.0.0.1/mas/io',
-        ];
-        for (const url of rejected) {
-            expect(isAllowedMasIOUrl(url), url).to.be.false;
+        for (const value of rejected) {
+            expect(resolveMasIOUrl(value), value).to.be.undefined;
         }
     });
 });

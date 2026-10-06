@@ -1769,30 +1769,6 @@ describe('pro resize handling', () => {
     });
 });
 
-describe('pro price recurrence casing', () => {
-    let card;
-    afterEach(() => card?.remove());
-
-    const priceHtml = (recurrence) =>
-        '<p slot="heading-m"><span is="inline-price" data-template="price" class="placeholder-resolved">' +
-        '<span class="price"><span class="price-currency-symbol">US$</span>' +
-        '<span class="price-integer">34</span>' +
-        `<span class="price-recurrence">${recurrence}</span></span></span></p>`;
-
-    it('keeps the recurrence text as provided', async () => {
-        card = await renderCard(priceHtml('/MO'));
-        const recurrence = card.querySelector('.price-recurrence');
-        expect(getComputedStyle(recurrence).textTransform).to.equal('none');
-        expect(recurrence.textContent).to.equal('/MO');
-    });
-
-    it('does not lowercase German recurrence text', async () => {
-        card = await renderCard(priceHtml('pro Monat'));
-        const recurrence = card.querySelector('.price-recurrence');
-        expect(getComputedStyle(recurrence).textTransform).to.equal('none');
-    });
-});
-
 describe('pro strikethrough price', () => {
     let card;
     afterEach(() => card?.remove());

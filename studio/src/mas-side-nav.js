@@ -946,7 +946,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
             <mas-side-nav-item
-                label="Product Catalog"
+                label="Offers"
                 ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)}"
             >
@@ -968,9 +968,6 @@ class MasSideNav extends LitElement {
                 @nav-click="${router.navigateToPage(PAGE_NAMES.PROMOTIONS)}"
             >
                 <sp-icon-promote slot="icon"></sp-icon-promote>
-            </mas-side-nav-item>
-            <mas-side-nav-item label="Offers" disabled>
-                <sp-icon-market slot="icon"></sp-icon-market>
             </mas-side-nav-item>
             <mas-side-nav-item
                 label="Placeholders"

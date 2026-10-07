@@ -207,7 +207,7 @@ class MasProductDetail extends LitElement {
         return html`<div class="product-detail-breadcrumb">
             <sp-action-button quiet size="s" @click=${() => this.navigateBack()}>
                 <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
-                Product Catalog
+                Offers
             </sp-action-button>
         </div>`;
     }

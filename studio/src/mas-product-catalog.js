@@ -396,7 +396,7 @@ class MasProductCatalog extends LitElement {
         return html`
             <div class="product-catalog">
                 <div class="product-catalog-header">
-                    <h2>Product Catalog</h2>
+                    <h2>Offers</h2>
                     <span class="product-count">${this.filteredProducts.length} products</span>
                     ${this.products.length > 0 ? this.filtersTemplate : nothing}
                 </div>

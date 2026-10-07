@@ -130,18 +130,6 @@ class CardOverlay {
                   : ''
           }
           ${this.renderPromotionField(promotion)}
-          ${
-              !sourceFragmentId
-                  ? ''
-                  : `
-          <div class="mas-ext-field">
-            <span class="mas-ext-field-label">Path</span>
-            <span class="mas-ext-field-value mas-ext-mono mas-ext-path-value">Loading…</span>
-            <button class="mas-ext-icon-btn mas-ext-copy-btn mas-ext-copy-path-btn" data-value="" aria-label="Copy Path" style="visibility:hidden">
-              ${icons.get('Copy', 'S')}
-            </button>
-          </div>`
-          }
         </section>
         ${
             !sourceFragmentId
@@ -298,7 +286,6 @@ class CardOverlay {
 
         if (this.fragmentDataCache.has(key)) {
             const cachedData = this.fragmentDataCache.get(key);
-            this.updateBasicInfoPath(fragmentId, cachedData.path);
             this.renderVariationInfo(fragmentId, cachedData, cardData?.locale);
             this.renderFragmentDetails(fragmentId, cachedData);
             return;
@@ -317,11 +304,9 @@ class CardOverlay {
                     if (chrome.runtime.lastError) return;
                     if (response && response.success && response.data) {
                         this.fragmentDataCache.set(key, response.data);
-                        this.updateBasicInfoPath(fragmentId, response.data.path);
                         this.renderVariationInfo(fragmentId, response.data, cardData?.locale);
                         this.renderFragmentDetails(fragmentId, response.data);
                     } else {
-                        this.updateBasicInfoPath(fragmentId, null);
                         const message = this.formatFragmentError(response?.error);
                         contentDiv.innerHTML = `<div class="mas-ext-error">${this.escapeHtml(message)}</div>`;
                     }
@@ -490,22 +475,6 @@ class CardOverlay {
         });
     }
 
-    updateBasicInfoPath(fragmentId, path) {
-        const overlayData = this.overlays.get(fragmentId);
-        if (!overlayData || !overlayData.panel) return;
-
-        const pathValue = overlayData.panel.querySelector('.mas-ext-path-value');
-        const copyPathBtn = overlayData.panel.querySelector('.mas-ext-copy-path-btn');
-
-        if (pathValue) {
-            pathValue.textContent = path || 'N/A';
-        }
-        if (copyPathBtn && path) {
-            copyPathBtn.dataset.value = path;
-            copyPathBtn.style.visibility = 'visible';
-        }
-    }
-
     renderVariationBucket(title, entries, labelFor) {
         const rows = entries
             .map(
@@ -553,7 +522,7 @@ class CardOverlay {
         let html = `
       <div class="mas-ext-field">
         <label>Locale:</label>
-        <span class="mas-ext-value">${this.escapeHtml(localeName)} (${variationInfo.locale})</span>
+        <span class="mas-ext-value">${this.escapeHtml(localeName)} (${this.escapeHtml(variationInfo.locale)})</span>
       </div>
     `;
 
@@ -568,7 +537,7 @@ class CardOverlay {
           <label>Parent:</label>
           <span class="mas-ext-value">
             <a href="#" class="mas-ext-parent-link" data-locale="${this.escapeAttr(variationInfo.localeDefaultLocale)}" data-surface="${this.escapeAttr(variationInfo.surface)}">
-              ${this.escapeHtml(parentLocaleName)} (${variationInfo.localeDefaultLocale}) →
+              ${this.escapeHtml(parentLocaleName)} (${this.escapeHtml(variationInfo.localeDefaultLocale)}) →
             </a>
           </span>
         </div>

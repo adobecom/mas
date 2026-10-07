@@ -299,15 +299,6 @@ export function parseAIResponse(responseText) {
     }
 
     if (cardConfig) {
-        if (cardConfig.type === 'collection-preview') {
-            return {
-                type: 'collection-preview',
-                message: conversationalText || cardConfig.message || 'Preview collection',
-                fragmentIds: cardConfig.fragmentIds || [],
-                suggestedTitle: cardConfig.suggestedTitle || null,
-            };
-        }
-
         if (cardConfig.type === 'guided_step') {
             return {
                 type: 'guided_step',

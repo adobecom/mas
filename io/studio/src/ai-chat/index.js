@@ -1192,28 +1192,6 @@ async function main(params) {
             };
         }
 
-        if (parsedResponse.type === 'collection-preview') {
-            return {
-                statusCode: 200,
-                headers: {
-                    ...getResponseHeaders(),
-                },
-                body: {
-                    ...envelopePayload,
-                    type: 'collection-preview',
-                    message: parsedResponse.message,
-                    fragmentIds: parsedResponse.fragmentIds,
-                    suggestedTitle: parsedResponse.suggestedTitle,
-                    usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
-                },
-            };
-        }
-
         if (parsedResponse.type === 'guided_step') {
             return {
                 statusCode: 200,

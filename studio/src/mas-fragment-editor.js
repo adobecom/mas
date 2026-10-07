@@ -49,6 +49,9 @@ import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
 
+const LOCALE_VARIATION_DEPRECATION_MESSAGE =
+    'Local variations are deprecated in favour of Grouped Variation. Locale variation will show up as usual until they are migrated. If you can, migrate this variation to become a Grouped variation';
+
 // Preview locale codes from the fragment's pznTags — country tags map to the surface locale so
 // they stay in sync with the grouped-preview selector (shared normalizer, see variation-utils).
 export function getGroupedPreviewLocaleCodes(fragment) {
@@ -324,6 +327,10 @@ export default class MasFragmentEditor extends LitElement {
             margin: 16px 16px 0;
         }
 
+        .section.compare-chart-section .locale-variation-deprecation-notice {
+            margin: 16px 16px 0;
+        }
+
         .section.compare-chart-section mas-compare-chart-editor {
             flex: 1 1 auto;
             min-height: 0;
@@ -424,6 +431,19 @@ export default class MasFragmentEditor extends LitElement {
 
         .card-variant-change-warning sp-icon {
             color: var(--spectrum-global-color-yellow-700);
+        }
+
+        .locale-variation-deprecation-notice {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            background: var(--spectrum-global-color-blue-100);
+            border-left: 4px solid var(--spectrum-global-color-blue-400);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--spectrum-global-color-gray-800);
         }
 
         #orphan-grouped-variation-panel {
@@ -2033,7 +2053,17 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
         }
-        return this.variationTypeHeader('locale-variation-header');
+        const header = this.variationTypeHeader('locale-variation-header');
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return header;
+        }
+        return html`${header}${this.localeVariationDeprecationNotice}`;
+    }
+
+    get localeVariationDeprecationNotice() {
+        return html`<div class="locale-variation-deprecation-notice" role="status">
+            <span>${LOCALE_VARIATION_DEPRECATION_MESSAGE}</span>
+        </div>`;
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {

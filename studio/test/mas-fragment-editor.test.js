@@ -1717,6 +1717,52 @@ describe('MasFragmentEditor', () => {
             expect(container.textContent).to.not.include('Promo variation');
         });
 
+        it('renders the deprecation notice for regional variations only in the locale header', () => {
+            const fragment = new Fragment({
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.localeVariationHeader, container);
+            const notice = container.querySelector('.locale-variation-deprecation-notice');
+            expect(notice).to.exist;
+            expect(notice.textContent.trim()).to.equal(
+                'Local variations are deprecated in favour of Grouped Variation. Locale variation will show up as usual until they are migrated. If you can, migrate this variation to become a Grouped variation',
+            );
+            expect(notice.querySelector('a, button, sp-button')).to.not.exist;
+            expect(container.textContent).to.include('Regional variation:');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+        });
+
+        it('does not render the deprecation notice for grouped or non-variation fragments', () => {
+            const grouped = new Fragment({
+                id: 'grouped-var-id',
+                path: '/content/dam/mas/sandbox/en_US/pzn/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'pznTags', type: 'tag', values: ['mas:locale/fr_FR'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => grouped };
+            const isVariation = sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.localeVariationHeader, container);
+            expect(container.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+
+            isVariation.returns(false);
+            render(el.localeVariationHeader, container);
+            expect(container.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+        });
+
         it('renders derived from container', async () => {
             el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/s/en_US/f', title: 'Parent' };
             const container = el.derivedFromContainer;

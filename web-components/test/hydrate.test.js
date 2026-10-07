@@ -1024,7 +1024,8 @@ describe('hydrate', () => {
 
         await hydrate(fragment, merchCard);
 
-        expect(merchCard.getAttribute('consonant')).to.equal('true');
+        expect(merchCard.hasAttribute('consonant')).to.be.false;
+        expect(merchCard.querySelector('[slot="footer"] .con-button')).to.exist;
         expect(
             merchCard.querySelector('[slot="heading-s"]').textContent,
         ).to.equal('Photoshop');
@@ -1123,7 +1124,7 @@ describe('hydrate rendering mode (consonant vs spectrum)', () => {
     it('defaults a consonant variant to Consonant CTAs', async () => {
         await createCard();
         await hydrate(brandConciergeFragment(), card);
-        expect(card.getAttribute('consonant')).to.equal('true');
+        expect(card.hasAttribute('consonant')).to.be.false;
         expect(footerCta().classList.contains('con-button')).to.be.true;
     });
 
@@ -1155,13 +1156,12 @@ describe('hydrate rendering mode (consonant vs spectrum)', () => {
         expect(footerCta().classList.contains('con-button')).to.be.true;
     });
 
-    it('drops the variant consonant default when re-hydrated with a non-consonant variant', async () => {
+    it('re-evaluates the variant default when re-hydrated with a non-consonant variant', async () => {
         await createCard();
         await hydrate(brandConciergeFragment(), card);
-        expect(card.consonant).to.be.true;
+        expect(footerCta().classList.contains('con-button')).to.be.true;
         await hydrate(ccdSliceFragment(), card);
         expect(card.hasAttribute('consonant')).to.be.false;
-        expect(card.consonant).to.be.false;
         expect(footerCta().classList.contains('spectrum-Button')).to.be.true;
     });
 

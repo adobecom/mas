@@ -1,14 +1,11 @@
 /**
  * Authentication Manager
- * Handles Adobe IMS authentication and token management
+ * Handles Adobe IMS access-token management
  */
 export class AuthManager {
-    constructor(clientId, clientSecret) {
+    constructor() {
         this.accessToken = null;
-        this.refreshToken = null;
         this.expiresAt = null;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
 
         this.loadFromEnvironment();
     }
@@ -37,15 +34,6 @@ export class AuthManager {
     }
 
     /**
-     * Set tokens from OAuth response
-     */
-    setTokens(tokens) {
-        this.accessToken = tokens.accessToken;
-        this.refreshToken = tokens.refreshToken || null;
-        this.expiresAt = tokens.expiresAt || null;
-    }
-
-    /**
      * Get current access token
      */
     async getAccessToken() {
@@ -54,33 +42,10 @@ export class AuthManager {
         }
 
         if (this.expiresAt && Date.now() >= this.expiresAt) {
-            if (this.refreshToken) {
-                await this.refreshAccessToken();
-            } else {
-                throw new Error('Access token expired and no refresh token available');
-            }
+            throw new Error('Access token expired');
         }
 
         return this.accessToken;
-    }
-
-    /**
-     * Refresh the access token using refresh token
-     */
-    async refreshAccessToken() {
-        throw new Error('Token refresh not implemented. Please provide a valid access token.');
-    }
-
-    /**
-     * Validate that authentication is configured
-     */
-    async validateAuth() {
-        try {
-            await this.getAccessToken();
-            return true;
-        } catch {
-            return false;
-        }
     }
 
     /**

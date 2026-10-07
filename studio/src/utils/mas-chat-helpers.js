@@ -175,3 +175,31 @@ export function composeChatRequestSignal(timeoutMs, ...signals) {
 export function isChatRequestTimeout(error) {
     return error?.name === 'TimeoutError';
 }
+
+/**
+ * Fields stripped from an AI-authored release card config before save: the
+ * io/www settings transformer fills these per-surface, so model-supplied
+ * values must not leak into the fragment. callout/promoText/whatsIncluded are
+ * HTML-bearing content slots — keeping them out also prevents a model-invented
+ * offer/checkout reference from surviving in release card content.
+ */
+export const RELEASE_FIELDS_TO_STRIP = [
+    'subtitle',
+    'badge',
+    'prices',
+    'description',
+    'title',
+    'mnemonics',
+    'ctas',
+    'osi',
+    'trialOsi',
+    'callout',
+    'promoText',
+    'whatsIncluded',
+];
+
+export function stripReleaseConfig(cardConfig) {
+    const stripped = { ...cardConfig };
+    for (const field of RELEASE_FIELDS_TO_STRIP) delete stripped[field];
+    return stripped;
+}

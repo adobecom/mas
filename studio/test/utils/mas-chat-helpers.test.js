@@ -9,6 +9,8 @@ import {
     isSegmentSelectionStep,
     getAutoSelectedSegmentOption,
     extractKnownSurfaceFromPath,
+    stripReleaseConfig,
+    RELEASE_FIELDS_TO_STRIP,
 } from '../../src/utils/mas-chat-helpers.js';
 
 describe('mas-chat-helpers', () => {
@@ -281,5 +283,35 @@ describe('chat request timeout helpers', () => {
     it('exposes a friendly timeout message', () => {
         expect(CHAT_TIMEOUT_MESSAGE).to.not.include('TimeoutError');
         expect(CHAT_TIMEOUT_MESSAGE.length).to.be.greaterThan(10);
+    });
+});
+
+describe('stripReleaseConfig', () => {
+    it('strips model-authored content fields the surface transformer owns, including callout/promoText/whatsIncluded', () => {
+        const input = {
+            variant: 'plans',
+            title: 'Model title',
+            osi: 'ABC123',
+            trialOsi: 'DEF456',
+            callout: '<div data-wcs-osi="MadeUpOsi">buy</div>',
+            promoText: '<p>limited offer</p>',
+            whatsIncluded: '<div>everything</div>',
+        };
+        const out = stripReleaseConfig(input);
+        for (const field of ['title', 'osi', 'trialOsi', 'callout', 'promoText', 'whatsIncluded']) {
+            expect(out[field], field).to.be.undefined;
+        }
+    });
+
+    it('preserves the variant and any non-stripped field', () => {
+        const out = stripReleaseConfig({ variant: 'catalog', badgeColor: 'blue' });
+        expect(out.variant).to.equal('catalog');
+        expect(out.badgeColor).to.equal('blue');
+    });
+
+    it('covers the three previously-leaking content fields in the strip list', () => {
+        for (const field of ['callout', 'promoText', 'whatsIncluded']) {
+            expect(RELEASE_FIELDS_TO_STRIP, field).to.include(field);
+        }
     });
 });

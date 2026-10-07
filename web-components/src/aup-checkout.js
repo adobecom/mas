@@ -1,5 +1,9 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { AUP_CHECKOUT_CLIENT_IDS, MODAL_TYPE_3_IN_1 } from './constants.js';
+import {
+    AUP_CHECKOUT_CLIENT_IDS,
+    CheckoutWorkflowStep,
+    MODAL_TYPE_3_IN_1,
+} from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
@@ -40,6 +44,23 @@ export function isAupCheckoutSupported(
         !options.perpetual &&
         !offers.some((offer) => offer.commitment === 'PERPETUAL')
     );
+}
+
+// Same rule as the segmentation checkout URL: the first offer is the primary
+// one, any offer with a different product arrangement is the addon (Stock).
+function getAddonProductArrangementCode(offers, options) {
+    if (options.addonProductArrangementCode != null) {
+        return options.addonProductArrangementCode;
+    }
+    if (options.checkoutWorkflowStep !== CheckoutWorkflowStep.SEGMENTATION) {
+        return undefined;
+    }
+    const primary = offers[0]?.productArrangementCode;
+    return (
+        primary
+            ? offers.find((offer) => offer.productArrangementCode !== primary)
+            : offers[1]
+    )?.productArrangementCode;
 }
 
 function getRequest(offers, options, hasUpgradeAction) {
@@ -85,7 +106,7 @@ function getRequest(offers, options, hasUpgradeAction) {
     for (const [key, value] of Object.entries({
         step: options.checkoutWorkflowStep,
         apc: options.promotionCode,
-        ao: options.addonProductArrangementCode,
+        ao: getAddonProductArrangementCode(offers, options),
         code: options.authCode,
         soSu: options['so.su'],
         soCa: options['so.ca'],

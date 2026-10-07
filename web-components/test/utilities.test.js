@@ -121,6 +121,47 @@ describe('function "selectWcsOffers"', () => {
         expect(offers[0].priceDetails.priceWithoutDiscount).to.equal(4);
     });
 
+    it('drops stale gross priceInfo when forceTaxExclusive rewrites the price', () => {
+        const offers = selectOffers(
+            [
+                {
+                    priceDetails: {
+                        price: 120,
+                        priceWithoutTax: 100,
+                        priceWithoutDiscount: 240,
+                        priceWithoutDiscountAndTax: 200,
+                        taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                    },
+                    priceInfo: {
+                        asIs: { withDiscount: { withTax: { full: '£120' } } },
+                    },
+                },
+            ],
+            { forceTaxExclusive: true },
+        );
+        expect(offers[0].priceDetails.price).to.equal(100);
+        expect(offers[0].priceInfo).to.equal(undefined);
+    });
+
+    it('keeps priceInfo when forceTaxExclusive leaves the offer unchanged', () => {
+        const priceInfo = {
+            asIs: { withDiscount: { withTax: { full: '£100' } } },
+        };
+        const offers = selectOffers(
+            [
+                {
+                    priceDetails: {
+                        price: 100,
+                        taxDisplay: 'TAX_EXCLUSIVE',
+                    },
+                    priceInfo,
+                },
+            ],
+            { forceTaxExclusive: true },
+        );
+        expect(offers[0].priceInfo).to.equal(priceInfo);
+    });
+
     it('selects MULT language offer over EN when country is not GB', () => {
         const offers = selectOffers(
             [

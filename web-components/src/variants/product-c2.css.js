@@ -1,74 +1,77 @@
+import { MOBILE_LANDSCAPE } from '../media.js';
 export const CSS = `
+:root {
+  --consonant-merch-card-productc2-width: 370px;
+  --s2a-font-letter-spacing-4xl: -.48px;
+  --gray: var(--color-gray-100, #f8f8f8);
+  --transparent: transparent;
+}
+
+merch-card[variant="product-c2"] {
+  max-width: var(--consonant-merch-card-productc2-width);
+}
+
+merch-card[variant="product-c2"] [slot="subtitle"] {
+    font-size: var(--consonant-merch-card-body-s-font-size);
+}
+
 merch-card[variant="product-c2"] {
     width: 100%;
 }
 
-merch-card[variant="product-c2"] [slot="heading-xs"] {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-    line-height: 30px;
-}
-
-merch-card[variant="product-c2"] [slot="body-xs"] {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 24px;
+merch-card[variant="product-c2"] [slot="heading-m"] span[is="inline-price"] {
+    font-weight: 900;
 }
 
 merch-card[variant="product-c2"] [slot="heading-m"] {
     margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-    line-height: 30px;
+    font-size: var(--consonant-merch-card-body-xxl-font-size);
+    font-weight: 900;
+    line-height: var(--consonant-merch-card-body-l-line-height);
 }
 
-merch-card[variant="product-c2"] [slot="heading-m"] p {
-    margin: 0;
-}
-
-merch-card[variant="product-c2"] [slot="promo-text"] {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 18px;
-}
-
-merch-card[variant="product-c2"] [slot="body-xxs"] {
-    margin: 0;
-    font-size: 12px;
+merch-card[variant="product-c2"] [slot="heading-m"] .price-legal {
+    font-size: var(--consonant-merch-card-body-s-font-size);
     font-weight: 400;
-    line-height: 18px;
+    line-height: var(--consonant-merch-card-heading-xxs-line-height);
+    color: #000000a3;
 }
 
-merch-card[variant="product-c2"] [slot="footer"] {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+merch-card[variant="product-c2"] [slot="heading-m"] [data-template="price"] {
+    letter-spacing: var(--s2a-font-letter-spacing-4xl);
+}
+
+merch-card[variant="product-c2"] [slot="heading-m"] [data-template="legal"] {
+    display: block;
+    line-height: var(--consonant-merch-card-heading-xxs-line-height);
+}
+
+merch-card[variant="product-c2"] [slot="body-xs"],
+merch-card[variant="product-c2"] [slot="short-description"] {
+    font-size: var(--consonant-merch-card-body-s-font-size);
+    line-height: var(--consonant-merch-card-heading-xxs-line-height);
 }
 
 merch-card[variant="product-c2"] [slot="footer"] a {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     box-sizing: border-box;
-    border-radius: 999px;
+    border-radius: 20px;
     min-height: 40px;
     padding: 0 24px;
-    font-size: 16px;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-    background: #3b63fb;
-    color: #fff;
-    border: 2px solid #3b63fb;
+    font-size: var(--consonant-merch-card-body-xs-font-size);
 }
 
-merch-card[variant="product-c2"] [slot="footer"] a.con-button.outline,
-merch-card[variant="product-c2"] [slot="footer"] a.outline {
-    background: transparent;
-    color: inherit;
-    border-color: currentColor;
+@media screen and ${MOBILE_LANDSCAPE} {
+    merch-card[variant="product-c2"] {
+        background-color: #fff;
+    }
 }
+
+@media screen and (max-width: 900px) {
+    merch-card[variant="product-c2"] {
+        max-width: unset;
+    }
+}
+
 `;

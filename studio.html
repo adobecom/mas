@@ -19,28 +19,6 @@
                 window.location.replace(url.toString());
             }
         </script>
-        <script type="importmap">
-            {
-                "imports": {
-                    "lit": "/web-components/dist/lit-all.min.js",
-                    "lit/directives/unsafe-html.js": "/web-components/dist/lit-all.min.js",
-                    "lit/directives/style-map.js": "/web-components/dist/lit-all.min.js",
-                    "lit/directives/class-map.js": "/web-components/dist/lit-all.min.js",
-                    "lit/directives/repeat.js": "/web-components/dist/lit-all.min.js",
-                    "lit/directives/until.js": "/web-components/dist/lit-all.min.js",
-                    "lit/directives/keyed.js": "/web-components/dist/lit-all.min.js",
-                    "prosemirror-state": "/studio/libs/prosemirror.js",
-                    "prosemirror-model": "/studio/libs/prosemirror.js",
-                    "prosemirror-view": "/studio/libs/prosemirror.js",
-                    "prosemirror-keymap": "/studio/libs/prosemirror.js",
-                    "prosemirror-schema-basic": "/studio/libs/prosemirror.js",
-                    "prosemirror-commands": "/studio/libs/prosemirror.js",
-                    "prosemirror-schema-list": "/studio/libs/prosemirror.js",
-                    "prosemirror-history": "/studio/libs/prosemirror.js",
-                    "fragment-client": "/studio/libs/fragment-client.js"
-                }
-            }
-        </script>
         <script>
             const BUCKETS = {
                 qa: 'e155390',
@@ -68,29 +46,355 @@
             const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
             document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
         </script>
-        <script src="../web-components/dist/mas.js" type="module"></script>
-        <script src="studio/libs/swc.js" type="module"></script>
-
-        <!-- OST: legacy tacocat bundle by default; ?ost=new (or #ost=new) loads the new Lit OST from the same deployment. -->
-        <script>
+        <script type="application/json" id="studio-versions">
+            {
+                "/io/www/src/fragment/locales.js": "74816ff2",
+                "/io/www/src/fragment/transformers/corrector.js": "d1b9d2f8",
+                "/io/www/src/fragment/transformers/customize.js": "40cb93e9",
+                "/io/www/src/fragment/transformers/defaultLanguage.js": "83700a9b",
+                "/io/www/src/fragment/transformers/fetchFragment.js": "fcdbaa69",
+                "/io/www/src/fragment/transformers/mask.js": "16113848",
+                "/io/www/src/fragment/transformers/promotions.js": "ff1629fe",
+                "/io/www/src/fragment/transformers/replace.js": "259ee97c",
+                "/io/www/src/fragment/transformers/settings.js": "c3b2451d",
+                "/io/www/src/fragment/transformers/wcs.js": "24840905",
+                "/io/www/src/fragment/utils/cache.js": "7f2e67ec",
+                "/io/www/src/fragment/utils/common.js": "235bc714",
+                "/io/www/src/fragment/utils/configuration.js": "11380d82",
+                "/io/www/src/fragment/utils/explicit-empty.js": "e76e4a8b",
+                "/io/www/src/fragment/utils/log.js": "a491d9a8",
+                "/io/www/src/fragment/utils/odinSchemaTransform.js": "ff5c35bd",
+                "/io/www/src/fragment/utils/paths.js": "23c59af9",
+                "/io/www/src/fragment/utils/swr-cache.js": "f3b63b37",
+                "/studio/con-button.css": "dacc0f62",
+                "/studio/libs/fragment-client.js": "9227a0d9",
+                "/studio/libs/prosemirror.js": "ff6ca622",
+                "/studio/libs/spectrum.css": "ca5364ab",
+                "/studio/libs/swc.js": "6e183ec8",
+                "/studio/mas-fragment-render.css": "dfd97c48",
+                "/studio/merch-card.css": "b9c4a757",
+                "/studio/ost/index.css": "1b224aa4",
+                "/studio/ost/index.js": "7bf9fdf9",
+                "/studio/ost/ost-new.js": "609d6c1e",
+                "/studio/src/aem/aem-tag-picker-field.js": "655e96b0",
+                "/studio/src/aem/aem.js": "f6a8cf6a",
+                "/studio/src/aem/fragment.js": "7a2c31fa",
+                "/studio/src/aem/mas-filter-panel.js": "0794c348",
+                "/studio/src/aem/placeholder.js": "36bc24fe",
+                "/studio/src/aem/promotion.js": "9fc8cea5",
+                "/studio/src/aem/tag-cache.js": "3544a34f",
+                "/studio/src/aem/tag-id-utils.js": "084555e2",
+                "/studio/src/aem/tag-path-utils.js": "30207e54",
+                "/studio/src/aem/variation-utils.js": "be9886eb",
+                "/studio/src/bulk-publish/bulk-publish-client.js": "47331057",
+                "/studio/src/bulk-publish/bulk-publish-icons.js": "08dd4ae3",
+                "/studio/src/bulk-publish/bulk-publish-store.js": "2aedfbbe",
+                "/studio/src/bulk-publish/bulk-publish-utils.js": "4802006c",
+                "/studio/src/bulk-publish/mas-bulk-publish-confirm-dialog.js": "d3bf1f54",
+                "/studio/src/bulk-publish/mas-bulk-publish-delete-dialog.js": "ded5ba19",
+                "/studio/src/bulk-publish/mas-bulk-publish-duplicate-dialog.js": "318fc688",
+                "/studio/src/bulk-publish/mas-bulk-publish-editor.css.js": "4682e832",
+                "/studio/src/bulk-publish/mas-bulk-publish-editor.js": "1570dbb6",
+                "/studio/src/bulk-publish/mas-bulk-publish-items.css.js": "574b56dd",
+                "/studio/src/bulk-publish/mas-bulk-publish-items.js": "0d186ac0",
+                "/studio/src/bulk-publish/mas-bulk-publish-locales.css.js": "f3b4ae4a",
+                "/studio/src/bulk-publish/mas-bulk-publish-locales.js": "4b8676d6",
+                "/studio/src/bulk-publish/mas-bulk-publish-reset-dialog.js": "575662b1",
+                "/studio/src/bulk-publish/mas-bulk-publish-revert-dialog.js": "2a0ccb79",
+                "/studio/src/bulk-publish/mas-bulk-publish-success-banner.js": "280f770f",
+                "/studio/src/bulk-publish/mas-bulk-publish.css.js": "83bd1ab5",
+                "/studio/src/bulk-publish/mas-bulk-publish.js": "906ea3e8",
+                "/studio/src/bulk-publish/url-to-path.js": "76c6ad8c",
+                "/studio/src/common/components/mas-items-selector.css.js": "8e70cfb4",
+                "/studio/src/common/components/mas-items-selector.js": "9c7f0a95",
+                "/studio/src/common/components/mas-search-and-filters.css.js": "858ec3e5",
+                "/studio/src/common/components/mas-search-and-filters.js": "9361cbf5",
+                "/studio/src/common/components/mas-select-items-table.css.js": "1bd6a36d",
+                "/studio/src/common/components/mas-select-items-table.js": "888923ce",
+                "/studio/src/common/components/mas-selected-items.css.js": "ec3820ff",
+                "/studio/src/common/components/mas-selected-items.js": "11710765",
+                "/studio/src/common/fields/field-status.css.js": "90fcba7e",
+                "/studio/src/common/fields/quantity-select.js": "34e12476",
+                "/studio/src/common/fields/tree-picker-field.js": "46ac4ec6",
+                "/studio/src/common/items-selection-store.js": "446b9322",
+                "/studio/src/common/skeleton-styles.css.js": "1e34a394",
+                "/studio/src/common/styles/table-styles.css.js": "03f4f517",
+                "/studio/src/common/utils/fragment-selection-utils.js": "85591df8",
+                "/studio/src/common/utils/item-loading-browser.js": "ae780225",
+                "/studio/src/common/utils/item-loading.js": "849f14e4",
+                "/studio/src/common/utils/items-loader.js": "72dad3e5",
+                "/studio/src/common/utils/personalization-utils.js": "f36ff0f3",
+                "/studio/src/common/utils/render-utils.js": "40cd1396",
+                "/studio/src/common/utils/selectable-list.js": "e2ee52dc",
+                "/studio/src/constants.js": "4b44986f",
+                "/studio/src/constants/adobe-products.js": "2a032be5",
+                "/studio/src/constants/icon-library.js": "9f686a91",
+                "/studio/src/editor-panel.js": "36f91ca8",
+                "/studio/src/editors/backgrounds-url.js": "39824c82",
+                "/studio/src/editors/mas-compare-chart-editor.css.js": "956ddb62",
+                "/studio/src/editors/mas-compare-chart-editor.js": "a7d21c2d",
+                "/studio/src/editors/merch-card-collection-editor.css.js": "bf0532bc",
+                "/studio/src/editors/merch-card-collection-editor.js": "2f90cc46",
+                "/studio/src/editors/merch-card-editor.js": "0153a118",
+                "/studio/src/editors/variant-picker.js": "ab5eafdf",
+                "/studio/src/editors/variation-utils.js": "80f58e33",
+                "/studio/src/events.js": "8eeab15c",
+                "/studio/src/fields/addon-field.js": "58bc2401",
+                "/studio/src/fields/badge-section.js": "9c76317e",
+                "/studio/src/fields/icon-picker-field.js": "13b47aa8",
+                "/studio/src/fields/included-field.js": "7526728c",
+                "/studio/src/fields/mnemonic-field.js": "848ba95c",
+                "/studio/src/fields/multifield.js": "0399bbc0",
+                "/studio/src/fields/plan-type-field.js": "6ec89cab",
+                "/studio/src/fields/quantity-select-settings-field.js": "69d31840",
+                "/studio/src/fields/rte-field-item.js": "91fc6eb3",
+                "/studio/src/fields/secure-text-field.js": "52e0c392",
+                "/studio/src/fields/user-picker.js": "796bb724",
+                "/studio/src/fields/variable-field.js": "7031c0bb",
+                "/studio/src/fragments/fragment-list-filters.js": "eee5faf5",
+                "/studio/src/groups.js": "c0d4caec",
+                "/studio/src/icons.js": "ba7cef3a",
+                "/studio/src/img/content-icon.js": "dba93e91",
+                "/studio/src/img/ost-icon.js": "08ea644f",
+                "/studio/src/locales.js": "c7c3396d",
+                "/studio/src/mas-add-items-dialog.css.js": "2811f42e",
+                "/studio/src/mas-add-items-dialog.js": "eefef5aa",
+                "/studio/src/mas-advanced-tools.js": "d431b391",
+                "/studio/src/mas-card-preview.js": "0ce72840",
+                "/studio/src/mas-confirm-dialog.js": "f562a20d",
+                "/studio/src/mas-content-table-selection.js": "bad85009",
+                "/studio/src/mas-content.js": "7c64718c",
+                "/studio/src/mas-copy-dialog.js": "821c7468",
+                "/studio/src/mas-create-dialog.js": "3a7765cd",
+                "/studio/src/mas-folder-picker.js": "c860c07c",
+                "/studio/src/mas-fragment-editor.js": "2ab31087",
+                "/studio/src/mas-fragment-render.js": "25600e12",
+                "/studio/src/mas-fragment-status.js": "af990343",
+                "/studio/src/mas-fragment-table.js": "b663e210",
+                "/studio/src/mas-fragment-variations.css.js": "98c1cb2b",
+                "/studio/src/mas-fragment-variations.js": "dce1073f",
+                "/studio/src/mas-fragment.css.js": "bb54dad3",
+                "/studio/src/mas-fragment.js": "28a9617a",
+                "/studio/src/mas-icon-picker-modal.js": "57f699b9",
+                "/studio/src/mas-locale-picker.js": "4f454bc8",
+                "/studio/src/mas-mnemonic-modal.js": "adae6b14",
+                "/studio/src/mas-nav-folder-picker.js": "0ce43575",
+                "/studio/src/mas-quick-actions.css.js": "88ec1185",
+                "/studio/src/mas-quick-actions.js": "1117a3d9",
+                "/studio/src/mas-recently-updated.js": "01fe9620",
+                "/studio/src/mas-related-variations.css.js": "44512b83",
+                "/studio/src/mas-related-variations.js": "cdc73265",
+                "/studio/src/mas-repository.js": "d626d821",
+                "/studio/src/mas-selection-panel.js": "9ff88145",
+                "/studio/src/mas-side-nav-item.js": "7b06575c",
+                "/studio/src/mas-side-nav.js": "a1063f5f",
+                "/studio/src/mas-splash-screen.js": "1daeb29c",
+                "/studio/src/mas-toast.js": "1e1f1226",
+                "/studio/src/mas-toolbar.js": "5e61dcef",
+                "/studio/src/mas-top-nav.js": "d15dfe8c",
+                "/studio/src/mas-variation-dialog.js": "de258f67",
+                "/studio/src/masks/mas-mask-editor.js": "65194e82",
+                "/studio/src/masks/mas-masks.js": "f40a353d",
+                "/studio/src/masks/masks-store.js": "1e88cfec",
+                "/studio/src/offer-mapping/mas-offer-mapping-item.js": "9f03d597",
+                "/studio/src/offer-mapping/mas-offer-mapping.css.js": "5012f92d",
+                "/studio/src/offer-mapping/mas-offer-mapping.js": "ecb809be",
+                "/studio/src/offer-mapping/offer-mapping-store.js": "3fbe6bec",
+                "/studio/src/placeholders/mas-placeholders-creation-modal.js": "6b97bea8",
+                "/studio/src/placeholders/mas-placeholders-item.js": "36b477bf",
+                "/studio/src/placeholders/mas-placeholders-repository.js": "377c13b0",
+                "/studio/src/placeholders/mas-placeholders.css.js": "12f245d6",
+                "/studio/src/placeholders/mas-placeholders.js": "26dc936b",
+                "/studio/src/placeholders/placeholder-studio-link.js": "86bfecf2",
+                "/studio/src/promotions/confirm-dialog-utils.js": "9b7b0553",
+                "/studio/src/promotions/mas-promo-codes-manager.css.js": "621403ce",
+                "/studio/src/promotions/mas-promo-codes-manager.js": "ca1b5c38",
+                "/studio/src/promotions/mas-promo-variation-geos.css.js": "4109b099",
+                "/studio/src/promotions/mas-promo-variation-geos.js": "f3c190e4",
+                "/studio/src/promotions/mas-promotion-duplicate-dialog.js": "3e96b758",
+                "/studio/src/promotions/mas-promotions-css.js": "80f069f0",
+                "/studio/src/promotions/mas-promotions-editor-css.js": "faf5429c",
+                "/studio/src/promotions/mas-promotions-editor.js": "fef88d58",
+                "/studio/src/promotions/mas-promotions-items-table.css.js": "2b8d1554",
+                "/studio/src/promotions/mas-promotions-items-table.js": "401b4682",
+                "/studio/src/promotions/mas-promotions.js": "0dce41b1",
+                "/studio/src/promotions/offer-utils.js": "b07f6ef1",
+                "/studio/src/promotions/promotion-editor-utils.js": "c2407c0c",
+                "/studio/src/promotions/promotion-model.js": "153092a8",
+                "/studio/src/promotions/promotion-publish-utils.js": "0890e5d0",
+                "/studio/src/promotions/promotion-variations.js": "f0d58ac1",
+                "/studio/src/promotions/promotions-repository.js": "7b2d033e",
+                "/studio/src/publish/mas-publish-dialog.css.js": "f16ab5ab",
+                "/studio/src/publish/mas-publish-dialog.js": "931bde4b",
+                "/studio/src/publish/mas-publish-staged-dialog.js": "4cf8dbb0",
+                "/studio/src/reactivity/editor-context-store.js": "63efe9c3",
+                "/studio/src/reactivity/fragment-store.js": "1819f191",
+                "/studio/src/reactivity/items-selection-controller.js": "0759dcf5",
+                "/studio/src/reactivity/mas-event.js": "57121168",
+                "/studio/src/reactivity/preview-fragment-store.js": "f9f2c849",
+                "/studio/src/reactivity/reactive-controller.js": "c24d1b8c",
+                "/studio/src/reactivity/reactive-store.js": "a533254d",
+                "/studio/src/reactivity/source-fragment-store.js": "08e2d692",
+                "/studio/src/reactivity/store-controller.js": "81ec011b",
+                "/studio/src/router.js": "bca50b5e",
+                "/studio/src/rte/link-variant-utils.js": "460cb63d",
+                "/studio/src/rte/osi-field.js": "d1d73957",
+                "/studio/src/rte/ost.js": "59f294b6",
+                "/studio/src/rte/prosemirror.css.js": "bca3a5ba",
+                "/studio/src/rte/rte-field.js": "9d7aca19",
+                "/studio/src/rte/rte-icon-editor.js": "56762815",
+                "/studio/src/rte/rte-link-editor.js": "282be851",
+                "/studio/src/rte/rte-mnemonic-editor.js": "23e03e4f",
+                "/studio/src/settings/mas-settings-table.css.js": "c41734b4",
+                "/studio/src/settings/mas-settings-table.js": "cd8dab2b",
+                "/studio/src/settings/mas-settings.js": "c93c8ce1",
+                "/studio/src/settings/settings-store.js": "ad944605",
+                "/studio/src/store.js": "b80cfa45",
+                "/studio/src/studio.js": "d28fc1ac",
+                "/studio/src/translation/mas-collapsible-table-row.css.js": "c7a3c565",
+                "/studio/src/translation/mas-collapsible-table-row.js": "920a37d4",
+                "/studio/src/translation/mas-translation-editor.css.js": "e90a911c",
+                "/studio/src/translation/mas-translation-editor.js": "9891edec",
+                "/studio/src/translation/mas-translation-languages.css.js": "918eec05",
+                "/studio/src/translation/mas-translation-languages.js": "c6b8a605",
+                "/studio/src/translation/mas-translation.css.js": "99fbfb93",
+                "/studio/src/translation/mas-translation.js": "bf8717cd",
+                "/studio/src/translation/translation-common-styles.css.js": "8ee6d093",
+                "/studio/src/translation/translation-utils.js": "313b28a8",
+                "/studio/src/users.js": "4978d403",
+                "/studio/src/utils.js": "010a296b",
+                "/studio/src/utils/corrector-helper.js": "0378def4",
+                "/studio/src/utils/field-state.js": "2567733d",
+                "/studio/src/utils/price-error-handler.js": "a73ad610",
+                "/studio/src/utils/pro-whats-included.js": "5b44440d",
+                "/studio/src/utils/spectrum-colors.js": "6af7166c",
+                "/studio/src/utils/throttle.js": "4daa39ca",
+                "/studio/src/utils/variation-search.js": "77d664c4",
+                "/studio/src/utils/version-transformer.js": "b93a9bd3",
+                "/studio/src/version-page.js": "0869cb97",
+                "/studio/src/version-repository.js": "cbcbf503",
+                "/studio/style.css": "ff545297",
+                "/web-components/dist/lit-all.min.js": "8b2f8cbe",
+                "/web-components/dist/mas.js": "f1b408c1",
+                "/web-components/src/compare-chart-table-parser.js": "c60dc9d9",
+                "/web-components/src/compat-version.js": "d43bc285",
+                "/web-components/src/constants.js": "a9ee7543",
+                "/web-components/src/image-markup.js": "e361c9dd"
+            }
+        </script>
+        <!-- Boot: writes one import map and every Studio asset tag with a content version (?v=), so Akamai never mixes old and new files. studio/build-versions.mjs reads the quoted paths below. -->
+        <script id="studio-boot">
             (function () {
-                const search = new URLSearchParams(location.search).get('ost');
-                const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
-                const useNew = (search || hash) === 'new';
-                const newJs = 'studio/ost/ost-new.js';
-                const newCss = './studio/ost/index.css';
-                const legacyJs = 'studio/ost/index.js';
-                const legacyCss = 'studio/ost/index.css';
-                const js = useNew ? newJs : legacyJs;
-                const css = useNew ? newCss : legacyCss;
-                document.write(`<script src="${js}" defer><\/script>`);
-                document.write(`<link rel="stylesheet" href="${css}" />`);
+                const params = new URLSearchParams(location.search);
+                const cacheSalt = /^\d{1,9}$/.test(params.get('cb') ?? '') ? params.get('cb') : '';
+                let versions = {};
+                try {
+                    versions = JSON.parse(document.getElementById('studio-versions').textContent);
+                } catch (error) {
+                    console.error('[M@S Studio] invalid studio-versions block, loading unversioned assets', error);
+                }
+                const unversioned = new Set();
+                const versioned = (path) => {
+                    const hash = versions[path];
+                    if (!hash) {
+                        unversioned.add(path);
+                        return path;
+                    }
+                    return cacheSalt ? `${path}?v=${hash}-${cacheSalt}` : `${path}?v=${hash}`;
+                };
+
+                const bootAssetPath = /^\/(studio|web-components|io)\//;
+                const isBootAsset = (url) => {
+                    if (!url) return false;
+                    const parsed = new URL(url, location.href);
+                    return parsed.origin === location.origin && bootAssetPath.test(parsed.pathname);
+                };
+                let scriptLoadFailed = false;
+                const revealBootError = () => {
+                    document.querySelector('.studio-boot')?.remove();
+                    document.querySelector('.studio-boot-error')?.removeAttribute('hidden');
+                };
+                const onBootError = (event) => {
+                    const { target } = event;
+                    const element = target instanceof HTMLScriptElement || target instanceof HTMLLinkElement ? target : null;
+                    const url = element ? element.src || element.href : event.filename;
+                    if (!isBootAsset(url) && event.error?.name !== 'SyntaxError') return;
+                    console.error('[M@S Studio] boot failed', url);
+                    if (target instanceof HTMLScriptElement && isBootAsset(url)) scriptLoadFailed = true;
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', revealBootError, { once: true });
+                    } else {
+                        revealBootError();
+                    }
+                };
+                const onReloadClick = (event) => {
+                    if (!event.target.closest?.('.studio-boot-error button')) return;
+                    const url = new URL(location.href);
+                    url.searchParams.set('cb', String(Number(cacheSalt || 0) + 1));
+                    location.assign(url.href);
+                };
+                window.addEventListener('error', onBootError, true);
+                document.addEventListener('click', onReloadClick);
+                Promise.all(
+                    ['mas-studio', 'mas-commerce-service', 'sp-theme'].map((name) => customElements.whenDefined(name)),
+                ).then(() => {
+                    window.removeEventListener('error', onBootError, true);
+                    document.removeEventListener('DOMContentLoaded', revealBootError);
+                    if (!scriptLoadFailed) document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
+                });
+
+                const lit = '/web-components/dist/lit-all.min.js';
+                const prosemirror = '/studio/libs/prosemirror.js';
+                const imports = {
+                    lit: versioned(lit),
+                    'lit/directives/unsafe-html.js': versioned(lit),
+                    'lit/directives/style-map.js': versioned(lit),
+                    'lit/directives/class-map.js': versioned(lit),
+                    'lit/directives/repeat.js': versioned(lit),
+                    'lit/directives/until.js': versioned(lit),
+                    'lit/directives/keyed.js': versioned(lit),
+                    'prosemirror-state': versioned(prosemirror),
+                    'prosemirror-model': versioned(prosemirror),
+                    'prosemirror-view': versioned(prosemirror),
+                    'prosemirror-keymap': versioned(prosemirror),
+                    'prosemirror-schema-basic': versioned(prosemirror),
+                    'prosemirror-commands': versioned(prosemirror),
+                    'prosemirror-schema-list': versioned(prosemirror),
+                    'prosemirror-history': versioned(prosemirror),
+                    'fragment-client': versioned('/studio/libs/fragment-client.js'),
+                };
+                Object.keys(versions)
+                    .filter((path) => path.endsWith('.js'))
+                    .forEach((path) => {
+                        imports[path] = versioned(path);
+                    });
+
+                // OST: legacy tacocat bundle by default; ?ost=new (or #ost=new) loads the new Lit OST.
+                const ost = params.get('ost') || (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
+                const ostScript = ost === 'new' ? '/studio/ost/ost-new.js' : '/studio/ost/index.js';
+
+                document.write(
+                    [
+                        `<script type="importmap">${JSON.stringify({ imports })}<\/script>`,
+                        `<script src="${versioned('/web-components/dist/mas.js')}" type="module"><\/script>`,
+                        `<script src="${versioned('/studio/libs/swc.js')}" type="module"><\/script>`,
+                        `<script src="${versioned(ostScript)}" defer><\/script>`,
+                        `<link rel="stylesheet" href="${versioned('/studio/ost/index.css')}" />`,
+                        `<link rel="stylesheet" href="${versioned('/studio/libs/spectrum.css')}" />`,
+                        `<link rel="stylesheet" href="${versioned('/studio/mas-fragment-render.css')}" />`,
+                        `<link rel="stylesheet" href="${versioned('/studio/style.css')}" />`,
+                        `<link rel="stylesheet" href="${versioned('/studio/merch-card.css')}" />`,
+                        `<link rel="stylesheet" href="${versioned('/studio/con-button.css')}" />`,
+                        `<script src="${versioned('/studio/src/studio.js')}" type="module"><\/script>`,
+                    ].join(''),
+                );
+                if (unversioned.size) {
+                    console.warn('[M@S Studio] assets without a version, run npm run build:versions -w studio:', [
+                        ...unversioned,
+                    ]);
+                }
             })();
         </script>
-        <link rel="stylesheet" href="studio/libs/spectrum.css" />
-        <link rel="stylesheet" href="./studio/style.css" />
-        <link rel="stylesheet" href="./studio/merch-card.css" />
-        <link rel="stylesheet" href="./studio/con-button.css" />
         <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
         <script>
             function initMasStudio() {
@@ -100,6 +404,7 @@
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
                 if (envOverride) studio.aemEnv = envOverride;
+                customElements.whenDefined('mas-studio').then(() => document.querySelector('.studio-boot')?.remove());
             }
             const context = {
                 profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
@@ -139,9 +444,16 @@
             };
         </script>
         <script src="https://www.adobe.com/libs/deps/imslib.min.js"></script>
-        <script src="studio/src/studio.js" type="module"></script>
     </head>
     <body class="spectrum spectrum--medium spectrum--light">
+        <div class="studio-boot" role="status">
+            <div class="studio-boot-spinner"></div>
+            <span class="studio-boot-label">Loading Studio…</span>
+        </div>
+        <div class="studio-boot-error" role="alert" hidden>
+            <p>Studio couldn't load. This can happen right after an update.</p>
+            <button type="button">Reload</button>
+        </div>
         <mas-commerce-service></mas-commerce-service>
         <main>
             <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>

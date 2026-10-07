@@ -1,29 +1,26 @@
 ---
 topic: placeholders
-keywords: placeholder, dictionary, key, value, rich text, locale string, translation string, token, substitution
+keywords: platform, authoring, placeholders, placeholder, dictionary, key, value, rich text, locale string, translation string, token, substitution
 ---
-# Placeholders in MAS Studio
+<!-- ported from the MASA knowledge corpus -->
+# Placeholders
 
-## What are placeholders in MAS Studio?
+## What is a placeholder?
 
-Placeholders are reusable key/value text entries scoped to a surface and a locale. Each placeholder is stored as its own AEM content fragment (a dictionary entry) inside that surface and locale's dictionary folder, for example the dictionary folder under the surface's locale path. A placeholder fragment has a key, a plain text value, a rich text value, and a locReady flag. A special index fragment in the same dictionary folder keeps an entries list referencing every placeholder, and consumers resolve placeholders through that index. The Placeholders page in Studio shows the placeholders for the currently selected surface and locale in a searchable, sortable table with inline editing, publish, delete, and bulk delete.
+A placeholder is a reusable key and value text entry scoped to a surface and a locale, stored as its own AEM content fragment in that surface and locale's dictionary folder. Card fields reference a placeholder with a `{{key}}` token, and keys allow only word characters, hyphens and underscores. The Placeholders page in Studio manages the placeholders for the currently selected surface and locale.
 
-## How do I create a placeholder?
+## Where the dictionary index lives
 
-Use the Create New Placeholder dialog on the Placeholders page. It asks for a Key, a Locale (a region picker that defaults to the current locale), an optional Rich Text toggle, and a Value. Key and Value are required, and the key is normalized as you type. On create, Studio creates the dictionary entry fragment under the surface and locale's dictionary path, tags it as draft, and registers it in the dictionary index fragment so it can be resolved; if updating the index fails, the creation is reported as failed. New placeholders start in draft status and must be published to go live. The AI assistant does not currently create or edit placeholders; use the Placeholders page.
+Each surface and locale pair has one dictionary index fragment, holding references to every placeholder authored for that pair, on the Odin author tier at `/content/dam/mas/<surface>/<locale>/dictionary/index`. Reading the index directly is the fastest way to confirm whether a placeholder exists for a given surface and locale before looking further downstream.
 
-## How do rich text placeholders work?
+## Why does a card show English text on a non-English page?
 
-When the Rich Text toggle is enabled, the value is edited with a rich text editor that supports links and allows up to 500 characters, and the content is stored in the fragment's rich text value field instead of the plain value field. When a placeholder is resolved for a card, the plain value is used if present, otherwise the rich text value. Rich text lets a placeholder carry formatted content, such as a link inside card copy.
+Two different fallbacks look the same on the page. A card with no locale variation renders its locale-default parent fragment, which is usually the English content. Placeholder text is resolved separately, from three dictionary layers merged lowest to highest priority: the `acom` dictionary for the page's default locale, the card's own surface dictionary for that same default locale, and the region overlay (for example `fr_BE`). A key missing from the region overlay falls back to the default-locale value, `fr_FR` for a `fr_BE` page, not to English. English placeholder text on a French page therefore means the French dictionary entry itself holds English text, or the key is missing everywhere and is showing as its bare key name. Prices and checkout links are resolved by the commerce backend from the offer and are never translated, so they are not evidence of a localization problem.
 
-## How do I edit, publish, or delete a placeholder?
+## What a page shows when a placeholder key does not resolve
 
-Rows on the Placeholders page can be edited inline: key, value, and rich text value. Saving an edit marks the placeholder as draft again, so it must be republished for the change to go live. The publish action publishes the placeholder fragment and then republishes the dictionary index fragment so consumers pick up the change; a placeholder that is already published is skipped. Delete asks for confirmation and warns the action cannot be undone; it removes the placeholder from the dictionary index first, then deletes the fragment. Bulk delete works on the current table selection.
+A well-formed key that no dictionary layer holds is replaced by the key itself, with the braces removed: `{{buy-now}}` renders as `buy-now`. A word that looks like a key sitting in the card text therefore means the key is missing for that surface and locale. The same happens when spaces pad the key inside the braces, as in `{{ buy-now }}`, because the spaces become part of the key that is looked up.
 
-## How are placeholders resolved on cards?
+A literal token with its braces, such as `{{buy now}}` inside a heading or on a button, means IO did not replace it. There are two causes. The key is malformed: keys allow only word characters, hyphens and underscores, so a token containing a space or a dot never matches the placeholder pattern and is left untouched. Authors hit this when they type a label the way it reads, `{{buy now}}`, instead of the authored key, `{{buy-now}}`. Or no dictionary loaded at all: when every layer comes back empty or fails to load, IO skips replacement and every token stays as written.
 
-Card fields may contain tokens like {{key}}, where the key consists of letters, digits, hyphens and underscores. When the fragment pipeline serves a card, its replace step loads the dictionary for the request's surface and regional locale by fetching the dictionary index fragment and its references, builds a key-to-value map, and substitutes each token. Dictionaries can chain to a parent dictionary, and the child's entries take precedence over the parent's. A placeholder that exists with an empty value is treated as intentionally empty, which is different from a missing key.
-
-## Why is my placeholder not showing up on a card?
-
-Common causes verified in the implementation: the placeholder or the dictionary index was not published — publishing a placeholder must also republish the index, which Studio's publish action does automatically; the placeholder was created in a different surface or locale than the one the card is served for, since dictionaries are resolved per surface and per regional locale; the resolved dictionary is cached for about five minutes, so a just-published placeholder can take a short time to appear; or the token in the card copy does not exactly match the key — tokens only allow word characters, hyphens and underscores inside double curly braces.
+Confirm by reading the dictionary index for the surface and locale and checking the key exists exactly as the token spells it, including hyphens. If the key is there and tokens still show with braces, the dictionaries did not load for that request.

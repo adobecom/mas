@@ -82,6 +82,7 @@ describe('MasSideNav – Copy Field', () => {
                 { name: 'shortDescription', values: ['Short summary'] },
                 { name: 'promoText', values: ['Save 50%'] },
                 { name: 'callout', values: ['Limited time'] },
+                { name: 'badge', values: ['Special offer'] },
                 { name: 'subtitle', values: ['For teams'] },
                 { name: 'ctas', values: ['<a>Buy</a>'] },
                 { name: 'cta', values: ['Buy now'] },
@@ -99,6 +100,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.include('shortDescription');
             expect(names).to.include('promoText');
             expect(names).to.include('callout');
+            expect(names).to.include('badge');
             expect(names).to.include('subtitle');
             expect(names).to.include('ctas');
             expect(names).to.not.include('cta');
@@ -106,6 +108,88 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('perUnitLabel');
             expect(names).to.not.include('variant');
             expect(names).to.not.include('osi');
+        });
+
+        it('includes compare chart badges with a text preview or an empty placeholder', () => {
+            for (const value of [
+                '<merch-badge background-color="spectrum-yellow-300-plans" border-color="spectrum-gray-700-plans" variant="compare-chart-column">Special offer</merch-badge>',
+                '',
+            ]) {
+                const fragment = mockFragment([
+                    { name: 'variant', values: ['compare-chart-column'] },
+                    { name: 'badge', values: [value] },
+                ]);
+                editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+                const badge = el.copyableFields.find((field) => field.name === 'badge');
+                expect(badge).to.exist;
+                expect(badge.displayName).to.equal('Badge');
+                expect(badge.preview).to.equal(value ? 'Special offer' : '');
+                expect(badge.sourceFragment).to.equal(fragment);
+            }
+        });
+
+        it('includes the image field with the source URL as preview', () => {
+            const url = 'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png';
+            const picture =
+                `<source type="image/webp" srcset="${url}?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">` +
+                `<img loading="lazy" alt="" src="${url}?width=750&format=png&optimize=medium">`;
+            const fragment = mockFragment([{ name: 'image', values: [picture] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const image = el.copyableFields.find((f) => f.name === 'image');
+            expect(image).to.exist;
+            expect(image.displayName).to.equal('Image');
+            expect(image.preview).to.equal(url);
+        });
+
+        it('includes the backgroundImage field with the URL as preview', () => {
+            const url = 'https://www.adobe.com/media/bg.png';
+            const fragment = mockFragment([{ name: 'backgroundImage', values: [url] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const bg = el.copyableFields.find((f) => f.name === 'backgroundImage');
+            expect(bg).to.exist;
+            expect(bg.displayName).to.equal('Background Image');
+            expect(bg.preview).to.equal(url);
+        });
+
+        it('splits the backgrounds field into three separate copyable rows, one per breakpoint', () => {
+            const desktop = 'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+            const tablet = 'https://main--mas-test--adobecom.aem.page/media_tablet.png';
+            const mobile = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
+            const html =
+                `<source srcset="${desktop}" media="(min-width: 1200px)">` +
+                `<source srcset="${tablet}" media="(min-width: 600px)">` +
+                `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
+            const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const rows = el.copyableFields.filter((f) => f.name.startsWith('backgrounds'));
+
+            expect(rows).to.have.lengthOf(3);
+            expect(rows[0]).to.deep.include({
+                name: 'backgrounds[desktop]',
+                displayName: 'Background Desktop',
+                preview: desktop,
+            });
+            expect(rows[1]).to.deep.include({
+                name: 'backgrounds[tablet]',
+                displayName: 'Background Tablet',
+                preview: tablet,
+            });
+            expect(rows[2]).to.deep.include({
+                name: 'backgrounds[mobile]',
+                displayName: 'Background Mobile',
+                preview: mobile,
+            });
+        });
+
+        it('leaves the preview empty for a breakpoint row that is not filled', () => {
+            const mobile = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
+            const html = `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
+            const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const rows = el.copyableFields.filter((f) => f.name.startsWith('backgrounds'));
+
+            expect(rows.find((r) => r.name === 'backgrounds[desktop]').preview).to.equal('');
+            expect(rows.find((r) => r.name === 'backgrounds[mobile]').preview).to.equal(mobile);
         });
 
         it('should not include mapped fields that are not allowlisted', () => {
@@ -709,6 +793,36 @@ describe('MasSideNav – Copy Field', () => {
             expect(clipboardStub.write.calledOnce).to.be.true;
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+        });
+
+        it('copies a badge field link from the compare chart Copy Field menu', async () => {
+            const fragment = mockFragment([
+                { name: 'variant', values: ['compare-chart-column'] },
+                {
+                    name: 'badge',
+                    values: ['<merch-badge background-color="spectrum-yellow-300-plans">Special offer</merch-badge>'],
+                },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const badgeLabel = [...container.querySelectorAll('.field-label')].find((label) => label.textContent === 'Badge');
+            expect(badgeLabel).to.exist;
+            expect(badgeLabel.closest('sp-menu-item').querySelector('.field-value').textContent).to.equal('Special offer');
+            badgeLabel.closest('sp-menu-item').click();
+            await Promise.resolve();
+
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const text = await (await item.getType('text/plain')).text();
+            const html = await (await item.getType('text/html')).text();
+            expect(text).to.include('→ Badge');
+            expect(html).to.include('field=badge');
+            expect(html).to.include('query=frag-123');
+            expect(toastStub.firstCall.args[0]).to.deep.equal({
+                variant: 'positive',
+                content: 'Copied Badge field link',
+            });
         });
 
         it("should use the variant's editorLabel in the copied text and toast for FAQ", async () => {

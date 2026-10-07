@@ -19,7 +19,6 @@ import { classifyEnvelopeIntent, renderConfirmationTemplate, META_INTENTS } from
 import {
     getProductName,
     extractCardTitle,
-    capitalize as capitalizeStr,
     mapProductToChatCard as mapProductToChatCardFn,
     getPreferredProductDescription as getPreferredProductDescriptionFn,
     getAutoSelectedSegmentOption as getAutoSelectedSegmentOptionFn,
@@ -36,7 +35,6 @@ import { validateFragmentIds, fragmentIdGuardMessage } from './utils/fragment-id
 import { extractFragmentIdsFromMessage, extractFragmentSummariesFromMessage } from './utils/operation-result-extractors.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, normalizeFragmentForCache, logError } from './utils.js';
-import { TAG_MODEL_ID_MAPPING } from './constants.js';
 import { AI_CHAT_BASE_URL } from './mas-chat/config.js';
 import { getDamPath } from './mas-repository.js';
 import { openOfferSelectorTool } from './rte/ost.js';
@@ -150,7 +148,6 @@ export class MasChat extends LitElement {
         super.connectedCallback();
         this.abortController = new AbortController();
         this.loadActiveSession();
-        this.addEventListener('cards-selected', this.handleCardsSelected);
         this.addEventListener('prompt-selected', this.handlePromptSelected);
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
@@ -169,7 +166,6 @@ export class MasChat extends LitElement {
         this.#turn?.controller.abort();
         this.#turn = null;
         this.saveCurrentSession();
-        this.removeEventListener('cards-selected', this.handleCardsSelected);
         this.removeEventListener('prompt-selected', this.handlePromptSelected);
         this.removeEventListener('operation-action', this.handleOperationAction);
         this.removeEventListener('open-card', this.handleOpenCardFromOperation);
@@ -1600,62 +1596,6 @@ export class MasChat extends LitElement {
 
     extractTitle(cardConfig) {
         return extractCardTitle(cardConfig);
-    }
-
-    capitalize(str) {
-        return capitalizeStr(str);
-    }
-
-    async handleCardsSelected(event) {
-        const { cardIds } = event.detail;
-        await this.createCollection(cardIds, 'Selected Cards Collection');
-    }
-
-    async createCollection(cardIds, title) {
-        this.isLoading = true;
-
-        try {
-            const repository = this.repository;
-            if (!repository) throw new Error('Repository not found');
-
-            const collectionData = {
-                modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'],
-                title,
-                parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
-                fields: [
-                    { name: 'cards', type: 'content-fragment', multiple: true, values: cardIds },
-                    { name: 'label', type: 'text', values: [title] },
-                ],
-            };
-
-            await repository.aem.sites.cf.fragments.create(collectionData);
-
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'assistant',
-                    content: `Collection "${title}" created with ${cardIds.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
-                    timestamp: Date.now(),
-                    fresh: true,
-                },
-            ];
-
-            showToast('Collection created successfully!', 'positive');
-        } catch (error) {
-            logError('Failed to create collection', error);
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'error',
-                    content: `Failed to create collection: ${error.message}`,
-                    timestamp: Date.now(),
-                    fresh: true,
-                },
-            ];
-            showToast(`Failed to create collection: ${error.message}`, 'negative');
-        } finally {
-            this.isLoading = false;
-        }
     }
 
     async handleOperationAction(event) {

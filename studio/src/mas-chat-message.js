@@ -1,6 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import './mas-card-selection-dialog.js';
 import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
 import './mas-chat-button-group.js';
@@ -379,7 +378,6 @@ export class MasChatMessage extends LitElement {
             isLoading,
             osi,
             offer,
-            cards,
             operation,
             operationResult,
             operationType,
@@ -401,7 +399,6 @@ export class MasChatMessage extends LitElement {
             content ||
             isLoading ||
             osi ||
-            (cards && cards.length > 0) ||
             cardConfig ||
             fragmentId ||
             operation ||
@@ -450,22 +447,6 @@ export class MasChatMessage extends LitElement {
                                           <span class="message-offer-product">${this.getOfferProductName(offer)}</span>
                                           <span class="message-offer-osi">${osi}</span>
                                       </div>
-                                  </div>
-                              </div>
-                          `
-                        : nothing}
-                    ${cards && cards.length > 0
-                        ? html`
-                              <div class="message-cards-context">
-                                  <div class="message-cards-header">
-                                      <sp-icon-select-multi size="s"></sp-icon-select-multi>
-                                      <span>Selected ${cards.length} card${cards.length !== 1 ? 's' : ''} for context</span>
-                                  </div>
-                                  <div class="message-cards-list">
-                                      ${cards.map((card) => {
-                                          const cardId = typeof card === 'string' ? card : card.id;
-                                          return html` <sp-tag size="s"> ${cardId.split('/').pop()} </sp-tag> `;
-                                      })}
                                   </div>
                               </div>
                           `

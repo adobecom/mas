@@ -560,15 +560,9 @@ function transformLinkToButton(
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
-    // The variant's Consonant style is only a default: a consumer-set `consonant` or `spectrum` wins.
-    const isConsonant =
-        merchCard.consonant ||
-        (aemFragmentMapping?.style === 'consonant' &&
-            !merchCard.hasAttribute('spectrum'));
-
     let newButtonElement;
 
-    if (isConsonant) {
+    if (merchCard.consonant) {
         newButtonElement = createConsonantButton(
             linkElement,
             isAccent,
@@ -1156,6 +1150,17 @@ export async function hydrate(fragment, merchCard) {
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 
+    // A consumer-declared `consonant` or `spectrum` wins; otherwise the variant metadata decides.
+    if (
+        !merchCard.hasAttribute('consonant') &&
+        !merchCard.hasAttribute('spectrum')
+    ) {
+        if (mapping.style === 'consonant') {
+            merchCard.setAttribute('consonant', true);
+        } else {
+            merchCard.setAttribute('spectrum', 'css');
+        }
+    }
     processMnemonics(fields, merchCard, mapping.mnemonics);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);

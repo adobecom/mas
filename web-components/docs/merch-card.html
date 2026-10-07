@@ -124,15 +124,15 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 </tr>
 <tr>
 <td><code>consonant</code></td>
-<td>Uses Consonant for the CTA styles during hydration from an aem fragment. Variants such as <code>plans</code>, <code>product</code> or <code>brand-concierge-product</code> default to Consonant unless the consumer sets <code>spectrum</code>. An explicit <code>consonant</code> wins over <code>spectrum</code>.</td>
-<td><code>false</code></td>
+<td>Uses Consonant for the CTA styles during hydration from an aem fragment. Wins over <code>spectrum</code>. If neither <code>consonant</code> nor <code>spectrum</code> is declared, hydration sets <code>consonant</code> for Consonant variants (e.g. <code>plans</code>, <code>product</code>, <code>brand-concierge-product</code>).</td>
+<td></td>
 <td></td>
 <td>mas.js</td>
 </tr>
 <tr>
 <td><code>spectrum</code></td>
-<td>Uses Spectrum for the CTA styles during hydration from an aem fragment (options: <code>css</code>, <code>swc</code>). Setting it opts out of a variant’s Consonant default, e.g. <code>spectrum=&quot;swc&quot;</code> for isolated iframes without Consonant styles.</td>
-<td><code>css</code></td>
+<td>Uses Spectrum for the CTA styles during hydration from an aem fragment (options: <code>css</code>, <code>swc</code>), even on Consonant variants, e.g. <code>spectrum=&quot;swc&quot;</code> for isolated iframes. If neither <code>consonant</code> nor <code>spectrum</code> is declared, hydration sets <code>spectrum=&quot;css&quot;</code> for non-Consonant variants.</td>
+<td></td>
 <td></td>
 <td>mas.js</td>
 </tr>

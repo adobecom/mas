@@ -102,11 +102,6 @@ export class ProductC2 extends VariantLayout {
             );
         }
 
-        :host([variant='product-c2'][background-color='dark']) {
-            background: #000;
-            color: #fff;
-        }
-
         :host([variant='product-c2']) .body {
             padding: 0;
         }

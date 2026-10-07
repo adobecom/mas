@@ -1314,7 +1314,6 @@ export class MasChat extends LitElement {
             this.handleSendMessage({
                 detail: {
                     message: regenerateMessage,
-                    context: { previousCard: config },
                 },
             });
         }

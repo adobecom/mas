@@ -3,6 +3,7 @@ import {
     CHECKOUT_CTA_TEXTS,
     EVENT_OST_SELECT,
     EVENT_OST_OFFER_SELECT,
+    EVENT_OST_MULTI_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
     PLACEHOLDER_CTA_SURFACES,
 } from '../constants.js';
@@ -11,6 +12,29 @@ import { getLocaleByCode } from '../locales.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
+let newOstLoadPromise = null;
+
+// The new Lit OST (ost-app) is loaded on demand only when a MASA surface opens
+// it, so the legacy bundle stays the default window.ost for RTE authoring. The
+// bundle exposes window.ostNew (and shares studio/ost/index.css, already loaded
+// by the default bundle). studio.html serves it at this path.
+function ensureNewOstLoaded() {
+    if (window.ostNew) return Promise.resolve(window.ostNew);
+    if (!newOstLoadPromise) {
+        newOstLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'studio/ost/ost-new.js';
+            script.defer = true;
+            script.addEventListener('load', () => resolve(window.ostNew));
+            script.addEventListener('error', () => {
+                newOstLoadPromise = null;
+                reject(new Error('Failed to load the new OST bundle'));
+            });
+            document.head.appendChild(script);
+        });
+    }
+    return newOstLoadPromise;
+}
 
 function handleEscape(e) {
     if (e.key === 'Escape') closeOfferSelectorTool();
@@ -178,7 +202,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
 
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_SELECT, {
-            detail: attributes,
+            detail: { ...attributes, offer },
             bubbles: true,
         }),
     );
@@ -196,6 +220,22 @@ export function onOfferSelect(offerSelectorId, type, offer, options, promoOverri
     );
 }
 
+export function onMultiOfferSelect(detail) {
+    // Multi-select OST callback. `detail.base` and `detail.trial` are each
+    // either { osi, offer } or null. Trial is optional — only base is
+    // guaranteed to be present.
+    ostRoot.dispatchEvent(
+        new CustomEvent(EVENT_OST_MULTI_OFFER_SELECT, {
+            detail: {
+                base: detail?.base || null,
+                trial: detail?.trial || null,
+            },
+            bubbles: true,
+        }),
+    );
+    closeOfferSelectorTool();
+}
+
 export function getOffferSelectorTool() {
     return html`
         <sp-overlay id="ostDialog" type="modal">
@@ -206,7 +246,7 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(triggerElement, offerElement) {
+export async function openOfferSelectorTool(triggerElement, offerElement, initialSearchParams = null) {
     const masCommerceService = document.querySelector('mas-commerce-service');
     try {
         const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
@@ -217,25 +257,30 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         let searchOfferSelectorId;
         let initialReferenceOsi;
         let bundleOsis;
+        const freshImsToken = window.adobeIMS?.getAccessToken?.()?.token;
         const aosAccessToken =
-            localStorage.getItem('masAccessToken') ??
+            freshImsToken ??
             sessionStorage.getItem('masAccessToken') ??
-            window.adobeIMS?.getAccessToken()?.token ??
+            localStorage.getItem('masAccessToken') ??
             window.adobeid?.authorize?.();
+
+        if (freshImsToken) {
+            sessionStorage.setItem('masAccessToken', freshImsToken);
+            localStorage.setItem('masAccessToken', freshImsToken);
+        }
+
         const searchParameters = new URLSearchParams();
-        const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
+        // MASA opens (product catalog/detail) pass a synthetic trigger object
+        // with no DOM methods, so guard closest() rather than assume an Element.
+        const cardEditor = typeof triggerElement?.closest === 'function' ? triggerElement.closest('merch-card-editor') : null;
+        const promotionCode = cardEditor?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
-        // Opening a new OST (no placeholder double-clicked) still has a target:
-        // the card's own OSI field. Deep-link to it so the author lands on that
-        // offer instead of an empty plate. Single-valued by construction — the
-        // "OSI Search" field holds one offerSelectorId (osi-field.js), unlike a
-        // placeholder's comma-joined data-wcs-osi — so no bundle/discount split.
-        if (!offerElement) {
-            searchOfferSelectorId =
-                triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('osi', 0)?.trim() || undefined;
-        } else {
-            searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkoutUrl');
+        // A placeholder was double-clicked: reopen OST on that offer.
+        if (offerElement) {
+            const template = offerElement.getAttribute('data-template');
+            const baseType = offerElement.isInlinePrice ? 'price' : 'checkoutUrl';
+            searchParameters.append('type', template || baseType);
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
@@ -280,10 +325,46 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
             });
+        } else if (initialSearchParams) {
+            for (const [key, value] of Object.entries(initialSearchParams)) {
+                // `mode` (e.g. 'plans-base-and-trial') and `ostVariant` ('new',
+                // routing to the Lit OST) are studio-only flags, not AOS search
+                // parameters, so they must not flow into the URL.
+                if (key === 'mode' || key === 'ostVariant') continue;
+                if (value) searchParameters.append(key, value);
+            }
+        } else {
+            // Opening a new OST with no placeholder and no preset params still
+            // has a target: the card's own OSI field. Deep-link to it so the
+            // author lands on that offer instead of an empty plate. Single-valued
+            // by construction — the "OSI Search" field holds one offerSelectorId
+            // (osi-field.js), unlike a placeholder's comma-joined data-wcs-osi.
+            searchOfferSelectorId = cardEditor?.getEffectiveFieldValue('osi', 0)?.trim() || undefined;
         }
+        const isMultiSelectRequested = initialSearchParams?.mode === 'plans-base-and-trial';
+        // MASA surfaces opt into the new Lit OST with ostVariant:'new'. RTE
+        // authoring (placeholder double-click, OSI field) keeps the default
+        // legacy bundle (window.ost).
+        const useNewOst = initialSearchParams?.ostVariant === 'new';
+        // AI-chat opens OST as a read-only consult flow so authors can look
+        // up an offer without committing to try/buy authoring. Both entry
+        // points (MAS-CHAT-INPUT's Attach button, MAS-CHAT's release-flow
+        // "Browse offers" button) count; the release-flow multi-select path
+        // is the only chat-origin case that must stay in try/buy.
+        const chatTag = triggerElement?.tagName;
+        const isChatSurface = chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT';
+        const isChatOsiAttach = isChatSurface && !isMultiSelectRequested;
+        // AI-chat surfaces benefit from seeing both DRAFT + PUBLISHED offers at
+        // once. Studio-side Store.landscape is 2-state (Published/Draft); only
+        // the new Lit OST (studio/ost/ost-new.js) understands the merged 'BOTH'
+        // value — the legacy tacocat bundle passes it straight to AOS, which
+        // rejects it with a 400 and the offer list comes back empty. MASA opens
+        // (useNewOst) run on the new OST, so they can request BOTH.
+        const chatLandscape = useNewOst && isChatSurface ? 'BOTH' : landscape;
         const authoringLocale = Store.localeOrRegion();
         const localeMeta = getLocaleByCode(authoringLocale);
-        const ostCloseFunction = window.ost.openOfferSelectorTool({
+        const ost = useNewOst ? await ensureNewOstLoaded() : window.ost;
+        const ostCloseFunction = ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
             environment: 'PROD',
@@ -317,7 +398,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             rootElement: ostRoot,
             zIndex: 2000,
             aosAccessToken,
-            landscape,
+            landscape: chatLandscape,
             searchParameters,
             searchOfferSelectorId,
             initialReferenceOsi,
@@ -329,6 +410,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
+            multiSelect: isMultiSelectRequested,
+            ...(isChatOsiAttach ? { authoringFlow: 'consult' } : {}),
+            onMultiSelect: onMultiOfferSelect,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });

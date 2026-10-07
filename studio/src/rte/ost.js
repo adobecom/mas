@@ -12,6 +12,29 @@ import { getLocaleByCode } from '../locales.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
+let newOstLoadPromise = null;
+
+// The new Lit OST (ost-app) is loaded on demand only when a MASA surface opens
+// it, so the legacy bundle stays the default window.ost for RTE authoring. The
+// bundle exposes window.ostNew (and shares studio/ost/index.css, already loaded
+// by the default bundle). studio.html serves it at this path.
+function ensureNewOstLoaded() {
+    if (window.ostNew) return Promise.resolve(window.ostNew);
+    if (!newOstLoadPromise) {
+        newOstLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'studio/ost/ost-new.js';
+            script.defer = true;
+            script.addEventListener('load', () => resolve(window.ostNew));
+            script.addEventListener('error', () => {
+                newOstLoadPromise = null;
+                reject(new Error('Failed to load the new OST bundle'));
+            });
+            document.head.appendChild(script);
+        });
+    }
+    return newOstLoadPromise;
+}
 
 function handleEscape(e) {
     if (e.key === 'Escape') closeOfferSelectorTool();
@@ -223,7 +246,7 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(triggerElement, offerElement, initialSearchParams = null) {
+export async function openOfferSelectorTool(triggerElement, offerElement, initialSearchParams = null) {
     const masCommerceService = document.querySelector('mas-commerce-service');
     try {
         const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
@@ -247,7 +270,10 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         }
 
         const searchParameters = new URLSearchParams();
-        const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
+        // MASA opens (product catalog/detail) pass a synthetic trigger object
+        // with no DOM methods, so guard closest() rather than assume an Element.
+        const cardEditor = typeof triggerElement?.closest === 'function' ? triggerElement.closest('merch-card-editor') : null;
+        const promotionCode = cardEditor?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
         // A placeholder was double-clicked: reopen OST on that offer.
@@ -301,10 +327,10 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             });
         } else if (initialSearchParams) {
             for (const [key, value] of Object.entries(initialSearchParams)) {
-                // `mode` is a studio-only flag (e.g. 'plans-base-and-trial') that
-                // tells us to open OST in multi-select mode. It is not an AOS
-                // search parameter so it must not flow into the URL.
-                if (key === 'mode') continue;
+                // `mode` (e.g. 'plans-base-and-trial') and `ostVariant` ('new',
+                // routing to the Lit OST) are studio-only flags, not AOS search
+                // parameters, so they must not flow into the URL.
+                if (key === 'mode' || key === 'ostVariant') continue;
                 if (value) searchParameters.append(key, value);
             }
         } else {
@@ -313,10 +339,13 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             // author lands on that offer instead of an empty plate. Single-valued
             // by construction — the "OSI Search" field holds one offerSelectorId
             // (osi-field.js), unlike a placeholder's comma-joined data-wcs-osi.
-            searchOfferSelectorId =
-                triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('osi', 0)?.trim() || undefined;
+            searchOfferSelectorId = cardEditor?.getEffectiveFieldValue('osi', 0)?.trim() || undefined;
         }
         const isMultiSelectRequested = initialSearchParams?.mode === 'plans-base-and-trial';
+        // MASA surfaces opt into the new Lit OST with ostVariant:'new'. RTE
+        // authoring (placeholder double-click, OSI field) keeps the default
+        // legacy bundle (window.ost).
+        const useNewOst = initialSearchParams?.ostVariant === 'new';
         // AI-chat opens OST as a read-only consult flow so authors can look
         // up an offer without committing to try/buy authoring. Both entry
         // points (MAS-CHAT-INPUT's Attach button, MAS-CHAT's release-flow
@@ -324,18 +353,19 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         // is the only chat-origin case that must stay in try/buy.
         const chatTag = triggerElement?.tagName;
         const isChatOsiAttach = (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') && !isMultiSelectRequested;
-        // AI-chat surfaces benefit from seeing both DRAFT + PUBLISHED offers
-        // at once. Studio-side Store.landscape is 2-state (Published/Draft);
-        // only the Spectrum 2 OST (studio/ost/ost-new.js, detected via its
-        // mas-ost-app element) understands the merged 'BOTH' value — the
-        // legacy tacocat bundle passes it straight to AOS, which rejects it
-        // with a 400 and the offer list comes back empty.
-        const supportsMergedLandscape = Boolean(customElements.get('mas-ost-app'));
+        // AI-chat surfaces benefit from seeing both DRAFT + PUBLISHED offers at
+        // once. Studio-side Store.landscape is 2-state (Published/Draft); only
+        // the new Lit OST (studio/ost/ost-new.js) understands the merged 'BOTH'
+        // value — the legacy tacocat bundle passes it straight to AOS, which
+        // rejects it with a 400 and the offer list comes back empty. MASA opens
+        // (useNewOst) run on the new OST, so they can request BOTH.
+        const supportsMergedLandscape = useNewOst;
         const chatLandscape =
             supportsMergedLandscape && (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') ? 'BOTH' : landscape;
         const authoringLocale = Store.localeOrRegion();
         const localeMeta = getLocaleByCode(authoringLocale);
-        const ostCloseFunction = window.ost.openOfferSelectorTool({
+        const ost = useNewOst ? await ensureNewOstLoaded() : window.ost;
+        const ostCloseFunction = ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
             environment: 'PROD',

@@ -356,6 +356,7 @@ class MasProductCatalog extends LitElement {
         this.closeCreateDialog();
         openOfferSelectorTool({ tagName: 'OSI-FIELD' }, null, {
             arrangement_code: product.arrangement_code,
+            ostVariant: 'new',
         });
     }
 

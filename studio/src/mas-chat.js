@@ -1298,7 +1298,7 @@ export class MasChat extends LitElement {
     handleOpenOstFromResponse(event) {
         const chatInput = this.querySelector('mas-chat-input');
         if (chatInput) chatInput.autoSendOnSelect = true;
-        openOfferSelectorTool(this, null, event.detail.searchParams);
+        openOfferSelectorTool(this, null, { ...(event.detail.searchParams ?? {}), ostVariant: 'new' });
     }
 
     async handleCardAction(event) {

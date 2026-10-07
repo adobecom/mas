@@ -409,6 +409,26 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
 
         localeOrRegionStub.restore();
     });
+
+    it('routes a MASA open (ostVariant:new) to window.ostNew and keeps the sentinel out of AOS params', async () => {
+        const ostNewStub = sinon.stub().returns(() => {});
+        const originalWindowOstNew = window.ostNew;
+        window.ostNew = { openOfferSelectorTool: ostNewStub };
+        try {
+            await openOfferSelectorTool({ tagName: 'OSI-FIELD' }, null, {
+                arrangement_code: 'phsp_direct_individual',
+                ostVariant: 'new',
+            });
+
+            expect(ostNewStub.calledOnce, 'new OST used').to.be.true;
+            expect(openOstStub.called, 'legacy OST not used').to.be.false;
+            const params = ostNewStub.getCall(0).args[0].searchParameters;
+            expect(params.get('ostVariant'), 'sentinel stripped from AOS params').to.be.null;
+            expect(params.get('arrangement_code')).to.equal('phsp_direct_individual');
+        } finally {
+            window.ostNew = originalWindowOstNew;
+        }
+    });
 });
 
 describe('closeOfferSelectorTool', () => {

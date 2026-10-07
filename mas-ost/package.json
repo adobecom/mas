@@ -14,7 +14,7 @@
     ],
     "scripts": {
         "dev": "vite",
-        "build": "vite build --mode global && cp dist/mas-ost.iife.js ../studio/ost/index.js",
+        "build": "vite build --mode global",
         "build:esm": "vite build",
         "test": "web-test-runner",
         "test:ci": "web-test-runner",

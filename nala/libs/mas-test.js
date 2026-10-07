@@ -93,6 +93,42 @@ const masTest = base.extend({
         await installEdsThrottleOnPage(page);
         await GlobalRequestCounter.init(page);
 
+        const diagnostics = process.env.NALA_DIAGNOSTICS === 'true';
+        const browserErrors = [];
+        if (diagnostics) {
+            page.on('pageerror', (error) => browserErrors.push(error.message));
+            await page.addInitScript(() => {
+                window.nalaDiagnosticEvents = [];
+                for (const type of ['pointerdown', 'pointerup', 'click', 'focusin']) {
+                    for (const capture of [true, false]) {
+                        document.addEventListener(
+                            type,
+                            (event) => {
+                                const editor = document.querySelector('mas-fragment-editor');
+                                const breadcrumb = document.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+                                window.nalaDiagnosticEvents.push({
+                                    type,
+                                    capture,
+                                    time: performance.now(),
+                                    target: event.target.tagName,
+                                    path: event
+                                        .composedPath()
+                                        .slice(0, 8)
+                                        .map((node) => node.tagName),
+                                    defaultPrevented: event.defaultPrevented,
+                                    fragmentDirty: editor?.fragment?.hasChanges,
+                                    discardDialog: editor?.showDiscardDialog,
+                                    activeElement: document.activeElement.tagName,
+                                    breadcrumb: breadcrumb?.getBoundingClientRect().toJSON(),
+                                });
+                            },
+                            capture,
+                        );
+                    }
+                }
+            });
+        }
+
         try {
             await use(page);
         } finally {
@@ -102,6 +138,31 @@ const masTest = base.extend({
                     type: 'test-page-url',
                     description: currentTestPage,
                 });
+            }
+            if (diagnostics && testInfo.status !== 'passed') {
+                const state = await page.evaluate(async () => {
+                    const { default: Store } = await import('/studio/src/store.js');
+                    const { default: router } = await import('/studio/src/router.js');
+                    const editor = document.querySelector('mas-fragment-editor');
+                    const activeEditor = router.getActiveEditor();
+                    return {
+                        url: location.href,
+                        page: Store.page.get(),
+                        dirty: Store.editor.hasChanges,
+                        fragmentDirty: editor?.fragment?.hasChanges,
+                        discardDialog: editor?.showDiscardDialog,
+                        activeEditorDirty: activeEditor.hasChanges,
+                        shouldCheckUnsavedChanges: activeEditor.shouldCheckUnsavedChanges,
+                        dialogs: [...document.querySelectorAll('sp-dialog, [role="dialog"]')].map((node) => ({
+                            element: node.tagName,
+                            text: node.innerText,
+                        })),
+                        events: window.nalaDiagnosticEvents.slice(-80),
+                    };
+                });
+                const body = JSON.stringify({ test: testInfo.title, browserErrors, state }, null, 2);
+                console.log(`NALA DIAGNOSTICS:\n${body}`);
+                await testInfo.attach('nala-diagnostics', { body: Buffer.from(body), contentType: 'application/json' });
             }
 
             // Always save request count

@@ -77,7 +77,38 @@ jobs:
                   FORCE_COLOR: 3 # Force color output
                   # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
                   # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
-                  NALA_PLAYWRIGHT_WORKERS: 4
+                  NALA_PLAYWRIGHT_WORKERS: 3
+                  NALA_DIAGNOSTICS: 'true'
+
+            - name: Strip network data from diagnostic traces
+              if: always()
+              run: |
+                  python3 - <<'PY'
+                  from pathlib import Path
+                  from zipfile import ZipFile, ZIP_DEFLATED
+                  for path in Path('test-results').rglob('trace.zip'):
+                      sanitized = path.with_name('sanitized-trace.zip')
+                      with ZipFile(path) as source, ZipFile(sanitized, 'w', ZIP_DEFLATED) as target:
+                          for item in source.infolist():
+                              if item.filename.endswith('.network'):
+                                  continue
+                              if item.filename.startswith('resources/') and not item.filename.endswith(('.jpeg', '.png')):
+                                  continue
+                              target.writestr(item, source.read(item.filename))
+                      sanitized.replace(path)
+                  PY
+
+            - name: Upload diagnostic evidence
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: nala-discard-diagnostics
+                  retention-days: 1
+                  path: |
+                      test-results/**/trace.zip
+                      test-results/**/test-failed-*.png
+                      test-results/**/error-context.md
+                      test-results/**/attachments/*.json
 
             - name: Cleanup cloned cards
               if: always()

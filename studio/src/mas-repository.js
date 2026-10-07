@@ -6,6 +6,7 @@ import Store from './store.js';
 import router from './router.js';
 import { AEM, filterByTags } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
+import { MasReferenceDiagnosisDialog } from './publish/mas-reference-diagnosis-dialog.js';
 import Events from './events.js';
 import {
     debounce,
@@ -1577,6 +1578,11 @@ export class MasRepository extends LitElement {
         const { selectedRefIds = null, allSelected = false } = options;
         try {
             this.operation.set(OPERATIONS.PUBLISH);
+            const roots = [
+                fragment,
+                ...(selectedRefIds ?? []).filter((id) => id !== fragment.id).map((id) => ({ id, path: '' })),
+            ];
+            if (!(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
 
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
@@ -1667,6 +1673,8 @@ export class MasRepository extends LitElement {
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
             const listStores = Store.fragments.list.data.get();
+            const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
+            if (!(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
             const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);

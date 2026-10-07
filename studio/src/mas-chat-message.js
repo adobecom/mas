@@ -526,7 +526,7 @@ export class MasChatMessage extends LitElement {
                         ? html`<mas-chat-confirmation-summary
                               .summary=${this.message.confirmationSummary}
                               ?confirmed=${this.message.confirmed}
-                              surface=${Store.search?.value?.path || ''}
+                              surface=${this.message.confirmationSummary.surface || ''}
                           ></mas-chat-confirmation-summary>`
                         : nothing}
                     ${cardConfig || fragmentId ? this.renderCardPreview() : nothing}

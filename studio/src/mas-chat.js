@@ -2519,6 +2519,11 @@ export class MasChat extends LitElement {
                 description,
             },
             segment,
+            // Resolve the surface canonically here (hash fallback + extractSurfaceFromPath)
+            // so the confirmation summary's Select Template step renders regardless of how
+            // the session was entered. The message template reads it from the summary rather
+            // than the raw router path, which can be empty or an unnormalized full path.
+            surface: this.getCurrentSurface(),
             // OST handed these back; the model is only restating them from the
             // transcript, and it has been seen restating the wrong one — echoing
             // the offer id out of "Offer ID: <hex>" as though it were the OSI.

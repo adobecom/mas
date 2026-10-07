@@ -965,12 +965,7 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
                     @input=${this.handleInput}
                     @submit=${this.handleSubmit}
                 ></sp-search>
-                ${e?d`<sp-badge
-                          class="type-badge"
-                          size="s"
-                          variant="informative"
-                          >${e}</sp-badge
-                      >`:""}
+                ${e?d`<sp-badge class="type-badge" size="s" variant="informative">${e}</sp-badge>`:""}
             </div>
         `}}k(Gr,"properties",{}),k(Gr,"styles",S`
         :host {
@@ -1006,26 +1001,20 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             <div class="filters-grid">
                 <div>
                     <div class="field-label">Plan <mas-ost-help-icon text="${be.planType}"></mas-ost-help-icon></div>
-                    <sp-picker
-                        size="s"
-                        .value=${this.currentPlanKey}
-                        @change=${this.handlePlanChange}
-                    >
-                        ${xs.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                    <sp-picker size="s" .value=${this.currentPlanKey} @change=${this.handlePlanChange}>
+                        ${xs.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Segment <mas-ost-help-icon text="${be.segment}"></mas-ost-help-icon></div>
+                    <div class="field-label">
+                        Segment <mas-ost-help-icon text="${be.segment}"></mas-ost-help-icon>
+                    </div>
                     <sp-picker
                         size="s"
                         .value=${n.aosParams.customerSegment||"ALL"}
                         @change=${this.handleCustomerSegmentChange}
                     >
-                        ${ws.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                        ${ws.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
@@ -1035,21 +1024,15 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
                         .value=${n.aosParams.marketSegment||"ALL"}
                         @change=${this.handleMarketSegmentChange}
                     >
-                        ${zs.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                        ${zs.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Offer type <mas-ost-help-icon text="${be.offerType}"></mas-ost-help-icon></div>
-                    <sp-picker
-                        size="s"
-                        .value=${n.aosParams.offerType||"ALL"}
-                        @change=${this.handleOfferTypeChange}
-                    >
-                        ${Cs.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                    <div class="field-label">
+                        Offer type <mas-ost-help-icon text="${be.offerType}"></mas-ost-help-icon>
+                    </div>
+                    <sp-picker size="s" .value=${n.aosParams.offerType||"ALL"} @change=${this.handleOfferTypeChange}>
+                        ${Cs.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
             </div>
@@ -1147,14 +1130,14 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
     `),customElements.get("mas-ost-filter-bar")||customElements.define("mas-ost-filter-bar",Yr);function qn(s,e,t,{customerSegments:r,marketSegments:o,arrangement_code:a,name:c,draft:i}){const l=!t.customerSegment||r[t.customerSegment]===!0,u=!t.marketSegment||o[t.marketSegment]===!0;return l&&u&&(e==="DRAFT"||e==="BOTH"||!i)&&(a===t.arrangementCode||!s||s.test(c)||s.test(a))}class Zr extends U{constructor(){super(),this.searchQuery="",this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get filteredProducts(){const e=n.allProducts;if(!e||!Array.isArray(e))return[];const t=n.searchQuery||"";let r=null;if(t&&n.searchType==="product")try{r=new RegExp(t,"i")}catch{}return e.map(o=>Array.isArray(o)?o[1]:o).filter(o=>{const a=o.arrangement_code||o.code||"",c=o.name||"",i=o.customerSegments||{},l=o.marketSegments||{},u=o.draft||!1;return qn(r,n.landscape,n.aosParams,{customerSegments:i,marketSegments:l,arrangement_code:a,name:c,draft:u})})}handleProductClick(e){const t=e.arrangement_code||e.code||"";n.setProduct(e),n.setAosParams({arrangementCode:t})}renderSkeletons(){return d`
             <div class="product-scroll">
                 ${Array.from({length:8},()=>d`
-                    <div class="skeleton-card" aria-hidden="true">
-                        <div class="skeleton-bar skeleton-icon"></div>
-                        <div class="skeleton-info">
-                            <div class="skeleton-bar skeleton-name"></div>
-                            <div class="skeleton-bar skeleton-code"></div>
+                        <div class="skeleton-card" aria-hidden="true">
+                            <div class="skeleton-bar skeleton-icon"></div>
+                            <div class="skeleton-info">
+                                <div class="skeleton-bar skeleton-name"></div>
+                                <div class="skeleton-bar skeleton-code"></div>
+                            </div>
                         </div>
-                    </div>
-                `)}
+                    `)}
             </div>
         `}render(){if(n.productsLoading)return this.renderSkeletons();const e=this.filteredProducts;if(e.length===0)return d`<div class="empty-state">No products found</div>`;const t=n.aosParams.arrangementCode;return d`
             <div class="product-scroll">
@@ -1165,11 +1148,7 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
                             ?selected=${o===t}
                             @click=${()=>this.handleProductClick(r)}
                         >
-                            ${r.icon?d`<img
-                                      class="product-icon"
-                                      src=${r.icon}
-                                      alt=""
-                                  />`:A}
+                            ${r.icon?d`<img class="product-icon" src=${r.icon} alt="" />`:A}
                             <div class="product-info">
                                 <div class="product-name">${r.name}</div>
                                 <div class="product-code">${o}</div>
@@ -1200,7 +1179,10 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             border-radius: 6px;
             background: transparent;
             cursor: pointer;
-            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+            transition:
+                border-color 0.15s,
+                background 0.15s,
+                box-shadow 0.15s;
             flex-shrink: 0;
             min-height: 56px;
         }
@@ -2028,28 +2010,30 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             <label id="label" for="input"><slot></slot></label>
         `}updated(e){super.updated(e),e.has("disabled")&&(typeof e.get("disabled")<"u"||this.disabled)&&(this.disabled?(this.inputElement.tabIndex=this.tabIndex,this.tabIndex=-1):(this.tabIndex=this.inputElement.tabIndex,this.inputElement.removeAttribute("tabindex")),this.inputElement.disabled=this.disabled),e.has("indeterminate")&&(this.inputElement.indeterminate=this.indeterminate),e.has("invalid")&&(this.invalid?this.inputElement.setAttribute("aria-invalid","true"):this.inputElement.removeAttribute("aria-invalid"))}}Ne.shadowRootOptions={...re.shadowRootOptions,delegatesFocus:!0},wt([h({type:Boolean,reflect:!0})],Ne.prototype,"disabled"),wt([h({type:Boolean,reflect:!0})],Ne.prototype,"indeterminate"),wt([h({type:Boolean,reflect:!0})],Ne.prototype,"invalid"),wt([h({type:Boolean,reflect:!0})],Ne.prototype,"emphasized"),wt([h({reflect:!0,type:Number,attribute:"tabindex"})],Ne.prototype,"tabIndex"),j("sp-checkbox",Ne);const Fl=[{id:"email",name:"Email"},{id:"bundle",name:"Bundle"},{id:"commitment",name:"Commitment"},{id:"segmentation",name:"Segmentation"},{id:"recommendation",name:"Recommendation"},{id:"payment",name:"Payment"},{id:"change-plan/team-upgrade/plans",name:"Change Plan Team Plans"},{id:"change-plan/team-upgrade/payment",name:"Change Plan Team Payment"}],Ml={BASE:"d2p",TRIAL:"twp"};class ql{constructor(e,t){k(this,"host");k(this,"store");k(this,"workflowStep","email");k(this,"ctaText","");k(this,"enableModal",!1);k(this,"modalType","");k(this,"entitlement",!1);k(this,"upgrade",!1);this.host=e,this.store=t,e.addController(this)}hostConnected(){}hostDisconnected(){}setWorkflowStep(e){var t;this.workflowStep=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}setCtaText(e){var t;this.ctaText=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}toggleModal(e){var t;this.enableModal=e,e?this.workflowStep="segmentation":this.workflowStep="email",this.host.requestUpdate(),(t=this.store)==null||t.notify()}setModalType(e){var t;this.modalType=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}toggleEntitlement(e){var t;this.entitlement=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}toggleUpgrade(e){var t;this.upgrade=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}}class eo extends U{constructor(){super(),this.checkout=new ql(this,n),this.deepLinkApplied=!1,this.ctaDropdownOpen=!1,this.ctaFilter="",this.handleDocClick=this.handleDocClick.bind(this)}get workflowSteps(){return this.checkout.enableModal?[{id:"segmentation",name:"Segmentation"}]:Fl}get modalTypes(){var r;const e=(r=n.selectedOffer)==null?void 0:r.offer_type,t=[{id:"twp",name:"TWP"},{id:"d2p",name:"D2P"},{id:"crm",name:"CRM"}];return e==="BASE"?t.filter(o=>o.id!=="twp"):e==="TRIAL"?t.filter(o=>o.id!=="d2p"):t}connectedCallback(){super.connectedCallback(),this.handleStoreChange=()=>{this.applyDeepLink(),this.requestUpdate()},n.subscribe(this.handleStoreChange),document.addEventListener("click",this.handleDocClick)}handleDocClick(e){this.ctaDropdownOpen&&!e.composedPath().includes(this)&&(this.ctaDropdownOpen=!1)}selectCta(e){this.checkout.setCtaText(e),this.ctaDropdownOpen=!1,this.ctaFilter=""}applyDeepLink(){if(this.deepLinkApplied)return;const e=n.deepLink;if(!e||Object.keys(e).length===0)return;this.deepLinkApplied=!0;const t=this.checkout;e.workflowStep&&t.setWorkflowStep(e.workflowStep),e.text&&t.setCtaText(e.text),e.modal&&(t.toggleModal(!0),t.setModalType(e.modal)),e.entitlement&&t.toggleEntitlement(!0),e.upgrade&&t.toggleUpgrade(!0)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange),document.removeEventListener("click",this.handleDocClick)}get ctaTexts(){const e=n.ctaTextOption;return e?typeof e.getTexts=="function"?e.getTexts():[]:[]}get defaultCtaText(){const e=n.ctaTextOption;return e&&typeof e.getDefaultText=="function"?e.getDefaultText():"Buy now"}render(){var a;const e=this.checkout,t=this.ctaTexts,r=e.ctaText||this.defaultCtaText,o=((a=t.find(c=>c.id===r))==null?void 0:a.name)||r;return d`
             ${t.length>0?d`
-                <div class="cta-wrapper">
-                    <div class="cta-label">Choose your CTA text</div>
-                    <button
-                        class="cta-button"
-                        @click=${()=>{this.ctaDropdownOpen=!this.ctaDropdownOpen}}
-                    >
-                        <span class="cta-button-label">${o}</span>
-                        <sp-icon-chevron100 class="cta-chevron"></sp-icon-chevron100>
-                    </button>
-                    ${this.ctaDropdownOpen?d`
-                        <div class="cta-dropdown">
-                            ${t.map(c=>d`
-                                <div
-                                    class="cta-option"
-                                    ?data-selected=${c.id===r}
-                                    @click=${()=>this.selectCta(c.id)}
-                                >${c.name}</div>
-                            `)}
-                        </div>
-                    `:""}
-                </div>
-            `:""}
+                      <div class="cta-wrapper">
+                          <div class="cta-label">Choose your CTA text</div>
+                          <button
+                              class="cta-button"
+                              @click=${()=>{this.ctaDropdownOpen=!this.ctaDropdownOpen}}
+                          >
+                              <span class="cta-button-label">${o}</span>
+                              <sp-icon-chevron100 class="cta-chevron"></sp-icon-chevron100>
+                          </button>
+                          ${this.ctaDropdownOpen?d`
+                                    <div class="cta-dropdown">
+                                        ${t.map(c=>d`
+                                                <div
+                                                    class="cta-option"
+                                                    ?data-selected=${c.id===r}
+                                                    @click=${()=>this.selectCta(c.id)}
+                                                >
+                                                    ${c.name}
+                                                </div>
+                                            `)}
+                                    </div>
+                                `:""}
+                      </div>
+                  `:""}
 
             <div class="workflow-picker">
                 <sp-picker
@@ -2058,9 +2042,7 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
                     ?disabled=${e.enableModal}
                     @change=${c=>e.setWorkflowStep(c.target.value)}
                 >
-                    ${this.workflowSteps.map(c=>d`<sp-menu-item value=${c.id}
-                                >${c.name}</sp-menu-item
-                            >`)}
+                    ${this.workflowSteps.map(c=>d`<sp-menu-item value=${c.id}>${c.name}</sp-menu-item>`)}
                 </sp-picker>
             </div>
 
@@ -2072,35 +2054,22 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             </sp-checkbox>
 
             ${e.enableModal?d`
-                      <sp-picker
-                          label="Modal Type"
-                          value=${e.modalType}
-                          @change=${c=>e.setModalType(c.target.value)}
-                      >
-                          ${this.modalTypes.map(c=>d`<sp-menu-item value=${c.id}
-                                      >${c.name}</sp-menu-item
-                                  >`)}
+                      <sp-picker label="Modal Type" value=${e.modalType} @change=${c=>e.setModalType(c.target.value)}>
+                          ${this.modalTypes.map(c=>d`<sp-menu-item value=${c.id}>${c.name}</sp-menu-item>`)}
                       </sp-picker>
                   `:""}
 
-            <sp-checkbox
-                ?checked=${e.entitlement}
-                @change=${c=>e.toggleEntitlement(c.target.checked)}
-            >
+            <sp-checkbox ?checked=${e.entitlement} @change=${c=>e.toggleEntitlement(c.target.checked)}>
                 Enable Entitlements
             </sp-checkbox>
 
-            <sp-checkbox
-                ?checked=${e.upgrade}
-                @change=${c=>e.toggleUpgrade(c.target.checked)}
-            >
+            <sp-checkbox ?checked=${e.upgrade} @change=${c=>e.toggleUpgrade(c.target.checked)}>
                 Enable Upgrade
             </sp-checkbox>
 
             <span class="info-text">
-                Entitlement/Upgrade features will show a Download/Upgrade button
-                to logged-in eligible users. Both can be combined with Modal
-                feature or Checkout Link.
+                Entitlement/Upgrade features will show a Download/Upgrade button to logged-in eligible users. Both can be
+                combined with Modal feature or Checkout Link.
             </span>
         `}}k(eo,"properties",{ctaDropdownOpen:{type:Boolean,state:!0},ctaFilter:{type:String,state:!0}}),k(eo,"styles",S`
         :host {
@@ -2184,7 +2153,9 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             background: var(--spectrum-white, #fff);
             border: 1px solid var(--spectrum-gray-200);
             border-radius: var(--spectrum-popover-corner-radius, 4px);
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.1);
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.15),
+                0 8px 20px rgba(0, 0, 0, 0.1);
             z-index: 10;
             margin-top: 4px;
             padding: 6px 0;
@@ -2207,10 +2178,7 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
         }
     `),customElements.get("mas-ost-checkout-options")||customElements.define("mas-ost-checkout-options",eo);class to extends U{constructor(){super(),this.placeholderType="price",this.referenceOsi=""}connectedCallback(){super.connectedCallback(),this.handleStoreChange=()=>this.requestUpdate(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}updated(){this.renderPreview()}getPanel(){var t;const e=this.getRootNode();return((t=e==null?void 0:e.host)==null?void 0:t.tagName)==="MAS-OST-PLACEHOLDER-PANEL"?e.host:null}buildPlaceholderOptions(){var g,b;const e=this.getPanel();if(!e)return null;const t=n.selectedOsi,r=n.masCommerceService;if(!t||!r||typeof r.createInlinePrice!="function")return null;const o=e.placeholderCtrl,a=(b=(g=e.shadowRoot)==null?void 0:g.querySelector("mas-ost-checkout-options"))==null?void 0:b.checkout,c=this.placeholderType||o.selectedType,i=o.getEffectiveOptions(),l=n.storedPromoOverride,u=n.promotionCode,m=c==="discount"&&this.referenceOsi?[t,this.referenceOsi]:[t],p={...i,forceTaxExclusive:!i.forceTaxExclusive,promotionCode:l||u,wcsOsi:m,template:c,clientId:n.checkoutClientId};return a&&(p.workflowStep=a.workflowStep,p.checkoutWorkflowStep=a.workflowStep,a.enableModal&&(p.modal=a.modalType),a.entitlement&&(p.entitlement=!0),a.upgrade&&(p.upgrade=!0),p.ctaText=a.ctaText),p.workflow="UCv3",p.marketSegment=n.aosParams.marketSegment||"COM",{type:c,placeholderOptions:p,service:r}}renderPreview(){var l,u;const e=(l=this.shadowRoot)==null?void 0:l.querySelector(".placeholder-container");if(!e)return;for(;e.firstChild;)e.removeChild(e.firstChild);const t=this.buildPlaceholderOptions();if(!t)return;const{type:r,placeholderOptions:o,service:a}=t;let c;if(r==="checkoutUrl"){const m=o.ctaText||"Buy now";typeof a.createCheckoutButton=="function"?c=a.createCheckoutButton(o,m):c=a.createCheckoutLink(o,m)}else c=a.createInlinePrice(o);c&&(r&&r!=="price"&&(c.dataset.template=r),e.appendChild(c));const i=((u=n.selectedOffer)==null?void 0:u.offer_type)==="PROMOTION";if(r==="discount"&&!this.referenceOsi&&!i){const m=document.createElement("span");m.className="discount-hint",m.textContent="Enter a reference offer OSI to calculate the discount percentage.",e.appendChild(m)}}getTypeName(){const e=this.placeholderType;if(!e)return"";const t=n.placeholderTypes.find(r=>r.type===e);return(t==null?void 0:t.name)||e}render(){const e=this.getTypeName();return d`
             <div class="preview-card">
-                <div class="label">
-                    Live Preview
-                    ${e?d`<span class="type-badge">${e}</span>`:""}
-                </div>
+                <div class="label">Live Preview ${e?d`<span class="type-badge">${e}</span>`:""}</div>
                 <div class="placeholder-container"></div>
             </div>
         `}}k(to,"properties",{placeholderType:{type:String},referenceOsi:{type:String}}),k(to,"styles",S`
@@ -2290,17 +2258,12 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
 
         .placeholder-container .price-unit-type:not(.disabled)::before,
         .placeholder-container .price-tax-inclusivity:not(.disabled)::before {
-            content: "\u00a0";
+            content: '\u00a0';
         }
     `),customElements.get("mas-ost-live-preview")||customElements.define("mas-ost-live-preview",to);const Ul="no promo",Ts="promo-tag",Hl="yellow",Nl="neutral",Ps="cancel-context";function Kl(s,e,t){const r=a=>a||Ul,o=t?` (was "${r(e)}")`:"";return`${r(s)}${o}`}function Is(s,e){const t=s===Ps,r=!t&&(s==null?void 0:s.length)>0,o=(r||t)&&(e&&e!=s||!e&&!t),a=o&&r||!o&&!!e,c=a?s||e:void 0;return{effectivePromoCode:c,overridenPromoCode:s,className:a?Ts:`${Ts} no-promo`,text:Kl(c,e,o),variant:a?Hl:Nl,isOverriden:o}}class ro extends U{constructor(){super(),this.buttonText="Use",this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get panel(){var t;const e=this.getRootNode();return((t=e==null?void 0:e.host)==null?void 0:t.tagName)==="MAS-OST-PLACEHOLDER-PANEL"?e.host:null}getCodeString(){var m,p;const e=this.panel;if(!e)return"";const t=n.selectedOsi;if(!t)return"";const r=e.placeholderCtrl,o=this.placeholderType||r.selectedType,a=r.getEffectiveOptions(),c=(p=(m=e.shadowRoot)==null?void 0:m.querySelector("mas-ost-checkout-options"))==null?void 0:p.checkout,l=[`osi="${o==="discount"&&this.referenceOsi?`${t},${this.referenceOsi}`:t}"`];o!=="price"&&l.push(`type="${o}"`);const u=[];return Object.entries(a).forEach(([g,b])=>{b!==void 0&&b!==!1&&b!==""&&u.push(`${g}="${b}"`)}),u.length>0&&l.push(u.join(" ")),c&&(c.workflowStep&&c.workflowStep!=="email"&&l.push(`workflowStep="${c.workflowStep}"`),c.ctaText&&l.push(`ctaText="${c.ctaText}"`),c.enableModal&&c.modalType&&l.push(`modal="${c.modalType}"`),c.entitlement&&l.push('entitlement="true"'),c.upgrade&&l.push('upgrade="true"')),`{{${o} ${l.join(" ")}}}`}async handleUse(){var g,b,y;const e=this.panel;if(!e)return;const t=n.selectedOsi,r=e.placeholderCtrl,o=this.placeholderType||r.selectedType,a=o==="discount"&&this.referenceOsi?`${t},${this.referenceOsi}`:t,c=r.serializeOptions(),i=(b=(g=e.shadowRoot)==null?void 0:g.querySelector("mas-ost-checkout-options"))==null?void 0:b.checkout;i&&(c.workflowStep=i.workflowStep,c.checkoutWorkflowStep=i.workflowStep,i.enableModal&&(c.modal=i.modalType),i.entitlement&&(c.entitlement=!0),i.upgrade&&(c.upgrade=!0),c.ctaText=i.ctaText),c.workflow="UCv3",c.marketSegment=n.aosParams.marketSegment||"COM",c.clientId=n.checkoutClientId;const l=Is(n.storedPromoOverride,n.promotionCode);let u=this.getRootNode();for(;u!=null&&u.host&&u.host.tagName!=="MAS-OST-APP";)u=u.host.getRootNode();const m=((y=u==null?void 0:u.host)==null?void 0:y.tagName)==="MAS-OST-APP"?u.host:null;m&&m.select({osi:a,type:o,offer:n.selectedOffer,options:c,promoOverride:l.effectivePromoCode,country:n.country});try{await navigator.clipboard.writeText(this.getCodeString())}catch{}this.buttonText="Copied";const p=window.setTimeout(()=>{this.buttonText="Use",window.clearTimeout(p)},400)}render(){const e=this.getCodeString();return d`
             <div class="code-card">
                 <code>${e}</code>
-                <sp-button
-                    variant="accent"
-                    size="s"
-                    ?disabled=${!n.selectedOsi}
-                    @click=${()=>this.handleUse()}
-                >
+                <sp-button variant="accent" size="s" ?disabled=${!n.selectedOsi} @click=${()=>this.handleUse()}>
                     ${this.buttonText}
                 </sp-button>
             </div>
@@ -2327,10 +2290,10 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             overflow-wrap: break-word;
             white-space: pre-wrap;
         }
-    `),customElements.get("mas-ost-code-output")||customElements.define("mas-ost-code-output",ro);class oo extends U{constructor(){super(),this.placeholderCtrl=new dl(this,n),this.handleStoreChange=this.handleStoreChange.bind(this),this.deepLinkApplied=!1,this.referenceOsi=""}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),this.applyDeepLink()}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.applyDeepLink(),this.requestUpdate()}applyDeepLink(){var r,o;if(this.deepLinkApplied)return;const e=n.deepLink;if(!(e!=null&&e.type))return;this.deepLinkApplied=!0,this.placeholderCtrl.setType(e.type);const t=(o=(r=this.getRootNode())==null?void 0:r.host)==null?void 0:o.config;t!=null&&t.initialReferenceOsi&&(this.referenceOsi=t.initialReferenceOsi)}get isDiscount(){return this.selectedType==="discount"}handleReferenceOsiInput(e){this.referenceOsi=e.target.value}get selectedType(){return this.placeholderCtrl.selectedType}get isCheckoutUrl(){return this.selectedType==="checkoutUrl"}selectType(e){this.placeholderCtrl.setType(e)}render(){if(!n.selectedOffer)return d`<span class="empty-state"
-                >Select an offer to see placeholder options.</span
-            >`;const e=n.placeholderTypes,t=this.selectedType;return d`
-            <div class="section-label">Placeholder Type <mas-ost-help-icon text="${be.placeholderType}"></mas-ost-help-icon></div>
+    `),customElements.get("mas-ost-code-output")||customElements.define("mas-ost-code-output",ro);class oo extends U{constructor(){super(),this.placeholderCtrl=new dl(this,n),this.handleStoreChange=this.handleStoreChange.bind(this),this.deepLinkApplied=!1,this.referenceOsi=""}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),this.applyDeepLink()}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.applyDeepLink(),this.requestUpdate()}applyDeepLink(){var r,o;if(this.deepLinkApplied)return;const e=n.deepLink;if(!(e!=null&&e.type))return;this.deepLinkApplied=!0,this.placeholderCtrl.setType(e.type);const t=(o=(r=this.getRootNode())==null?void 0:r.host)==null?void 0:o.config;t!=null&&t.initialReferenceOsi&&(this.referenceOsi=t.initialReferenceOsi)}get isDiscount(){return this.selectedType==="discount"}handleReferenceOsiInput(e){this.referenceOsi=e.target.value}get selectedType(){return this.placeholderCtrl.selectedType}get isCheckoutUrl(){return this.selectedType==="checkoutUrl"}selectType(e){this.placeholderCtrl.setType(e)}render(){if(!n.selectedOffer)return d`<span class="empty-state">Select an offer to see placeholder options.</span>`;const e=n.placeholderTypes,t=this.selectedType;return d`
+            <div class="section-label">
+                Placeholder Type <mas-ost-help-icon text="${be.placeholderType}"></mas-ost-help-icon>
+            </div>
             <div class="type-chips">
                 ${e.map(r=>d`
                         <sp-action-button
@@ -2349,22 +2312,24 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             <div class="section-label">Options <mas-ost-help-icon text="${be.options}"></mas-ost-help-icon></div>
             <div class="options-section">
                 ${this.isCheckoutUrl?d`
-                        <div class="section-label">Checkout Options <mas-ost-help-icon text="${be.checkoutOptions}"></mas-ost-help-icon></div>
-                        <mas-ost-checkout-options></mas-ost-checkout-options>
-                    `:d`<mas-ost-placeholder-options></mas-ost-placeholder-options>`}
+                          <div class="section-label">
+                              Checkout Options <mas-ost-help-icon text="${be.checkoutOptions}"></mas-ost-help-icon>
+                          </div>
+                          <mas-ost-checkout-options></mas-ost-checkout-options>
+                      `:d`<mas-ost-placeholder-options></mas-ost-placeholder-options>`}
             </div>
 
             ${this.isDiscount?d`
-                <div class="reference-osi-field">
-                    <sp-field-label size="s">Reference offer OSI</sp-field-label>
-                    <sp-textfield
-                        size="s"
-                        placeholder="e.g. base price OSI for comparison"
-                        .value=${this.referenceOsi}
-                        @input=${this.handleReferenceOsiInput}
-                    ></sp-textfield>
-                </div>
-            `:A}
+                      <div class="reference-osi-field">
+                          <sp-field-label size="s">Reference offer OSI</sp-field-label>
+                          <sp-textfield
+                              size="s"
+                              placeholder="e.g. base price OSI for comparison"
+                              .value=${this.referenceOsi}
+                              @input=${this.handleReferenceOsiInput}
+                          ></sp-textfield>
+                      </div>
+                  `:A}
 
             <mas-ost-live-preview
                 .placeholderType=${t}
@@ -2431,13 +2396,7 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
                     value=${n.storedPromoOverride===Ps?"":n.storedPromoOverride||""}
                     @input=${t=>n.setPromoCode(t.target.value)}
                 ></sp-textfield>
-                <sp-action-button
-                    quiet
-                    size="s"
-                    @click=${()=>n.setPromoCode(void 0)}
-                >
-                    Clear
-                </sp-action-button>
+                <sp-action-button quiet size="s" @click=${()=>n.setPromoCode(void 0)}> Clear </sp-action-button>
             </div>
         `}}k(Os,"styles",S`
         :host {
@@ -3031,7 +2990,7 @@ var om=Object.defineProperty;var sm=(he,le,ze)=>le in he?om(he,le,{enumerable:!0
             font-weight: 600;
             color: var(--spectrum-positive-visual-color, #12805c);
         }
-    `),customElements.get("mas-ost-offer-detail-focused")||customElements.define("mas-ost-offer-detail-focused",so);const js="https://use.typekit.net/pps7abe.css",Jl="https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read";class ao extends U{constructor(){super(),this.dialog=!1,this.productsError="",this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),n.zIndex&&this.style.setProperty("--ost-z-index",n.zIndex),this.ensureAdobeFonts(),this.ensureCommerceService(),this.fetchProducts()}ensureAdobeFonts(){if(document.querySelector(`link[href="${js}"]`))return;const e=document.createElement("link");e.rel="stylesheet",e.href=js,document.head.appendChild(e)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}updated(e){e.has("config")&&this.config&&(n.init(this.config),this.ensureCommerceService(),this.applyDeepLink())}applyDeepLink(){var o,a;const e=(o=this.config)==null?void 0:o.searchParameters;e&&n.applySearchParams(e);const t=(a=this.config)==null?void 0:a.searchOfferSelectorId,r=n.deepLink.offerId;t||r?this.resolveDeepLinkOffer(t||r):n.aosParams.arrangementCode&&this.resolveDeepLinkProduct(n.aosParams.arrangementCode)}resolveDeepLinkProduct(e){const t=()=>{const o=n.allProducts.find(([,a])=>(a.arrangement_code||a.code||"")===e);return o?(n.setProduct(o[1]),!0):!1};if(t())return;const r=()=>{n.allProducts.length>0&&t()&&n.removeEventListener("state-changed",r)};n.addEventListener("state-changed",r)}async resolveDeepLinkOffer(e){try{const t={accessToken:n.accessToken,apiKey:n.apiKey,baseUrl:n.baseUrl,env:n.env},r=await ys(e,t),o=(r==null?void 0:r.product_arrangement_code)||(r==null?void 0:r.arrangement_code);if(!o)return;const a={arrangementCode:o};r.commitment&&(a.commitment=r.commitment),r.term&&(a.term=r.term),r.customer_segment&&(a.customerSegment=r.customer_segment),r.market_segment&&(a.marketSegment=r.market_segment),r.offer_type&&(a.offerType=r.offer_type),n.setAosParams(a),n.setOsi(e),this.resolveDeepLinkProduct(o);const c=()=>{if(n.offers.length>0){n.removeEventListener("state-changed",c);const i=n.offers.find(l=>l.offer_type===r.offer_type&&l.price_point===r.price_point);i?n.setOffer(i):n.offers.length===1&&n.setOffer(n.offers[0])}};n.addEventListener("state-changed",c)}catch{}}async fetchProducts(){var e,t,r;if(!(n.allProducts.length>0)){if((e=window==null?void 0:window.tacocat)!=null&&e.products){this.productsError="",n.setProducts(Object.entries(window.tacocat.products));return}this.productsError="",n.productsLoading=!0,n.notify();try{const o={"Content-Type":"application/json",...n.accessToken?{Authorization:`Bearer ${n.accessToken}`}:{}},a=window.adobeIMS;n.accessToken&&(o["x-gw-ims-org-id"]=((t=a==null?void 0:a.adobeIdData)==null?void 0:t.imsOrg)||"",o["x-api-key"]=((r=a==null?void 0:a.adobeIdData)==null?void 0:r.client_id)||n.apiKey||"");const c=await fetch(Jl,{headers:o});if(!c.ok)throw new Error(`Product catalog request failed (${c.status})`);const i=await c.json();if(!(i!=null&&i.combinedProducts))throw new Error("Product catalog response did not include combinedProducts");window.tacocat=window.tacocat||{},window.tacocat.products=i.combinedProducts,n.setProducts(Object.entries(i.combinedProducts))}catch(o){this.productsError=(o==null?void 0:o.message)||"Unable to load products.",n.setProducts([])}n.productsLoading=!1,n.notify()}}ensureCommerceService(){var t;if(n.masCommerceService)return;let e=document.querySelector("mas-commerce-service");if(!e){let r=this.getRootNode();for(;r&&!e&&(e=(t=r.querySelector)==null?void 0:t.call(r,"mas-commerce-service"),!e&&r.host);)r=r.host.getRootNode()}e||(e=document.createElement("mas-commerce-service"),document.body.appendChild(e)),n.masCommerceService=e}select(e){if(this.dispatchEvent(new CustomEvent("ost-select",{bubbles:!0,composed:!0,detail:e})),typeof n.onSelect=="function"){const{osi:t,type:r,offer:o,options:a,promoOverride:c,country:i}=e;n.onSelect(t,r,o,a,c,i)}}selectMulti(){if(!n.canConfirmMultiSelect)return;const e={base:n.selectedBaseOsi?{osi:n.selectedBaseOsi,offer:n.selectedBaseOffer}:null,trial:n.selectedTrialOsi?{osi:n.selectedTrialOsi,offer:n.selectedTrialOffer}:null,country:n.country};this.dispatchEvent(new CustomEvent("ost-multi-select",{bubbles:!0,composed:!0,detail:e})),typeof n.onMultiSelect=="function"&&n.onMultiSelect(e)}cancel(){this.dispatchEvent(new CustomEvent("ost-cancel",{bubbles:!0,composed:!0})),typeof n.onCancel=="function"&&n.onCancel()}handleFocusedBack(){n.selectedOffer=void 0,n.notify()}async handleFocusedUse(){const e=n.selectedOffer;if(!(!e||this.usingFocusedOffer)){this.usingFocusedOffer=!0;try{const t=e.offer_id||e.id||"";typeof n.onSelect=="function"&&n.onSelect(t,"price",e,{},void 0,n.country),this.dispatchEvent(new CustomEvent("ost-select",{bubbles:!0,composed:!0,detail:{osi:t,offer:e,country:n.country}}))}finally{this.usingFocusedOffer=!1}}}renderRightPanel(){const e=n.viewState;return e==="welcome"?d`<mas-ost-welcome-screen></mas-ost-welcome-screen>`:e==="configure"?d`
+    `),customElements.get("mas-ost-offer-detail-focused")||customElements.define("mas-ost-offer-detail-focused",so);const js="https://use.typekit.net/pps7abe.css",Jl="https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read";class ao extends U{constructor(){super(),this.dialog=!1,this.productsError="",this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),n.zIndex&&this.style.setProperty("--ost-z-index",n.zIndex),this.ensureAdobeFonts(),this.ensureCommerceService(),this.fetchProducts()}ensureAdobeFonts(){if(document.querySelector(`link[href="${js}"]`))return;const e=document.createElement("link");e.rel="stylesheet",e.href=js,document.head.appendChild(e)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}updated(e){e.has("config")&&this.config&&(n.init(this.config),this.ensureCommerceService(),this.applyDeepLink())}applyDeepLink(){var o,a;const e=(o=this.config)==null?void 0:o.searchParameters;e&&n.applySearchParams(e);const t=(a=this.config)==null?void 0:a.searchOfferSelectorId,r=n.deepLink.offerId;t||r?this.resolveDeepLinkOffer(t||r):n.aosParams.arrangementCode&&this.resolveDeepLinkProduct(n.aosParams.arrangementCode)}resolveDeepLinkProduct(e){const t=()=>{const o=n.allProducts.find(([,a])=>(a.arrangement_code||a.code||"")===e);return o?(n.setProduct(o[1]),!0):!1};if(t())return;const r=()=>{n.allProducts.length>0&&(n.removeEventListener("state-changed",r),t())};n.addEventListener("state-changed",r)}async resolveDeepLinkOffer(e){try{const t={accessToken:n.accessToken,apiKey:n.apiKey,baseUrl:n.baseUrl,env:n.env},r=await ys(e,t),o=(r==null?void 0:r.product_arrangement_code)||(r==null?void 0:r.arrangement_code);if(!o)return;const a={arrangementCode:o};r.commitment&&(a.commitment=r.commitment),r.term&&(a.term=r.term),r.customer_segment&&(a.customerSegment=r.customer_segment),r.market_segment&&(a.marketSegment=r.market_segment),r.offer_type&&(a.offerType=r.offer_type),n.setAosParams(a),n.setOsi(e),this.resolveDeepLinkProduct(o);const c=()=>{if(n.offers.length>0){n.removeEventListener("state-changed",c);const i=n.offers.find(l=>l.offer_type===r.offer_type&&l.price_point===r.price_point);i?n.setOffer(i):n.offers.length===1&&n.setOffer(n.offers[0])}};n.addEventListener("state-changed",c)}catch{}}async fetchProducts(){var e,t,r;if(!(n.allProducts.length>0)){if((e=window==null?void 0:window.tacocat)!=null&&e.products){this.productsError="",n.setProducts(Object.entries(window.tacocat.products));return}this.productsError="",n.productsLoading=!0,n.notify();try{const o={"Content-Type":"application/json",...n.accessToken?{Authorization:`Bearer ${n.accessToken}`}:{}},a=window.adobeIMS;n.accessToken&&(o["x-gw-ims-org-id"]=((t=a==null?void 0:a.adobeIdData)==null?void 0:t.imsOrg)||"",o["x-api-key"]=((r=a==null?void 0:a.adobeIdData)==null?void 0:r.client_id)||n.apiKey||"");const c=await fetch(Jl,{headers:o});if(!c.ok)throw new Error(`Product catalog request failed (${c.status})`);const i=await c.json();if(!(i!=null&&i.combinedProducts))throw new Error("Product catalog response did not include combinedProducts");window.tacocat=window.tacocat||{},window.tacocat.products=i.combinedProducts,n.setProducts(Object.entries(i.combinedProducts))}catch(o){this.productsError=(o==null?void 0:o.message)||"Unable to load products.",n.setProducts([])}n.productsLoading=!1,n.notify()}}ensureCommerceService(){var t;if(n.masCommerceService)return;let e=document.querySelector("mas-commerce-service");if(!e){let r=this.getRootNode();for(;r&&!e&&(e=(t=r.querySelector)==null?void 0:t.call(r,"mas-commerce-service"),!e&&r.host);)r=r.host.getRootNode()}e||(e=document.createElement("mas-commerce-service"),document.body.appendChild(e)),n.masCommerceService=e}select(e){if(this.dispatchEvent(new CustomEvent("ost-select",{bubbles:!0,composed:!0,detail:e})),typeof n.onSelect=="function"){const{osi:t,type:r,offer:o,options:a,promoOverride:c,country:i}=e;n.onSelect(t,r,o,a,c,i)}}selectMulti(){if(!n.canConfirmMultiSelect)return;const e={base:n.selectedBaseOsi?{osi:n.selectedBaseOsi,offer:n.selectedBaseOffer}:null,trial:n.selectedTrialOsi?{osi:n.selectedTrialOsi,offer:n.selectedTrialOffer}:null,country:n.country};this.dispatchEvent(new CustomEvent("ost-multi-select",{bubbles:!0,composed:!0,detail:e})),typeof n.onMultiSelect=="function"&&n.onMultiSelect(e)}cancel(){this.dispatchEvent(new CustomEvent("ost-cancel",{bubbles:!0,composed:!0})),typeof n.onCancel=="function"&&n.onCancel()}handleFocusedBack(){n.selectedOffer=void 0,n.notify()}async handleFocusedUse(){const e=n.selectedOffer;if(!(!e||this.usingFocusedOffer)){this.usingFocusedOffer=!0;try{const t=e.offer_id||e.id||"";typeof n.onSelect=="function"&&n.onSelect(t,"price",e,{},void 0,n.country),this.dispatchEvent(new CustomEvent("ost-select",{bubbles:!0,composed:!0,detail:{osi:t,offer:e,country:n.country}}))}finally{this.usingFocusedOffer=!1}}}renderRightPanel(){const e=n.viewState;return e==="welcome"?d`<mas-ost-welcome-screen></mas-ost-welcome-screen>`:e==="configure"?d`
                 <mas-ost-product-detail summary></mas-ost-product-detail>
                 <mas-ost-placeholder-panel></mas-ost-placeholder-panel>
                 <mas-ost-promo-tag></mas-ost-promo-tag>

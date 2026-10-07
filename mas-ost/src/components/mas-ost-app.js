@@ -303,8 +303,13 @@ export class MasOstApp extends LitElement {
         };
         if (tryResolve()) return;
         const handler = () => {
-            if (store.allProducts.length > 0 && tryResolve()) {
+            if (store.allProducts.length > 0) {
+                // Remove before resolving: tryResolve -> setProduct -> notify re-dispatches
+                // 'state-changed' synchronously, which would re-enter this still-registered
+                // handler and recurse until the stack overflows. resolveDeepLinkOffer's
+                // handler removes first for the same reason.
                 store.removeEventListener('state-changed', handler);
+                tryResolve();
             }
         };
         store.addEventListener('state-changed', handler);

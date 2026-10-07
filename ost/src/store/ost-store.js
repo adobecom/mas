@@ -880,7 +880,13 @@ export class OstStore extends EventTarget {
         // here so type routing resumes on the next pick.
         const manualTarget = this.#slotManuallyTargeted;
         this.#slotManuallyTargeted = false;
-        const targetRole = role || (manualTarget ? this.currentSlot : this.#defaultSlotFor(offer)) || this.currentSlot;
+        // When exactly one tryBuy slot is already filled, an untargeted pick
+        // fills the empty slot — so a second offer click lands in trial without
+        // the user first selecting the free-trial slot. Type routing
+        // (#defaultSlotFor) only decides the first pick (both slots empty).
+        const emptySlot = this.#emptyTryBuySlot();
+        const targetRole =
+            role || (manualTarget ? this.currentSlot : emptySlot || this.#defaultSlotFor(offer)) || this.currentSlot;
         this.#batch(() => this.#addOffer(offer, osi, targetRole, !role && !manualTarget));
         // Auto-fill the counterpart unless the user manually targeted a slot —
         // a manual target means "put it exactly here", so don't also touch the
@@ -901,6 +907,16 @@ export class OstStore extends EventTarget {
         if (offer?.offer_type === 'TRIAL') return 'trial';
         if (offer?.offer_type === 'BASE') return 'base';
         return undefined;
+    }
+
+    // The single empty tryBuy slot when exactly one is filled; undefined when
+    // both are empty (first pick) or both already filled.
+    #emptyTryBuySlot() {
+        if (this.authoringFlow !== 'tryBuy') return undefined;
+        const baseFilled = !!this.selectedBaseOsi;
+        const trialFilled = !!this.selectedTrialOsi;
+        if (baseFilled === trialFilled) return undefined;
+        return baseFilled ? 'trial' : 'base';
     }
 
     #addOffer(offer, osi, role, autoAdvance = false) {

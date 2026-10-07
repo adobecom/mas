@@ -1,3 +1,4 @@
+import { AOSClient } from '../services/aos-client.js';
 import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
@@ -105,6 +106,11 @@ async function main(params) {
         const aemClient = new AEMClient(aemBaseUrl, authManager);
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
         const studioOps = new StudioOperations(aemClient, urlBuilder);
+
+        const aosClient = new AOSClient(authManager, { baseUrl: params.AOS_URL, apiKey: params.AOS_API_KEY });
+        if (!(await aosClient.validateOfferFields({ osi }, arrangement_code))) {
+            return { statusCode: 400, body: { error: 'Offer selector did not resolve to the requested product' } };
+        }
 
         // Fetch full MCS data directly from AOS
         const product = await fetchMCSProduct(arrangement_code, aosUrl, aosApiKey, 'en_US');

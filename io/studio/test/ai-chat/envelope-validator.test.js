@@ -150,14 +150,14 @@ describe('envelope-validator', () => {
             expect(r.ok).to.equal(true);
         });
 
-        it('accepts ids the assistant surfaced in an earlier turn', () => {
+        it('rejects ids only narrated by the assistant', () => {
             const history = [{ role: 'assistant', content: `I found one card: ${UUID2}` }];
             const r = validateEnvelope(
                 { intent: 'publish_card', slots: { id: UUID2 }, confidence: 'high' },
                 { observedIds: collectObservedIds({}, history, 'publish it') },
             );
 
-            expect(r.ok).to.equal(true);
+            expect(r.ok).to.equal(false);
         });
 
         it('accepts ids carried by the last operation', () => {

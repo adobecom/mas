@@ -105,6 +105,16 @@ export class MasChat extends LitElement {
     /** The turn currently allowed to write to the transcript. */
     #turn = null;
 
+    #session = {};
+
+    captureWork() {
+        return { session: this.#session, turn: this.#turn };
+    }
+
+    isCurrentWork(work) {
+        return work.session === this.#session && (!work.turn || this.isCurrentTurn(work.turn));
+    }
+
     /**
      * Starts a turn and cancels whatever was still running. Product cards are
      * rendered before the follow-up turn resolves, so the user can answer a
@@ -160,6 +170,7 @@ export class MasChat extends LitElement {
     }
 
     disconnectedCallback() {
+        this.#session = {};
         super.disconnectedCallback();
         this.abortController?.abort();
         this.abortController = null;
@@ -274,18 +285,19 @@ export class MasChat extends LitElement {
     }
 
     handleSessionChanged(event) {
+        this.#session = {};
+        this.#turn?.controller.abort();
+        this.#turn = null;
+        this.isLoading = false;
+        this.loadingLabel = '';
+        this.error = null;
         this.saveCurrentSession();
-        this.resetReleaseState();
+        this.resetReleaseFlow();
 
         const { sessionId } = event.detail;
-        const session = sessionManager.getSession(sessionId);
+        const session = sessionManager.getSession(sessionId) || sessionManager.getActiveSession();
 
-        if (!session) {
-            this.addWelcomeMessage();
-            return;
-        }
-
-        this.currentSessionId = sessionId;
+        this.currentSessionId = session.id;
         this.messages = session.messages || [];
         this.conversationHistory = session.conversationHistory || [];
 
@@ -317,6 +329,7 @@ export class MasChat extends LitElement {
 
     addWelcomeMessage() {
         this.messages = [];
+        this.conversationHistory = [];
         this.showWelcomeScreen = true;
         this.showPromptSuggestions = true;
         this.resetReleaseState();
@@ -534,22 +547,23 @@ export class MasChat extends LitElement {
             userMessage.osi = context.osi;
             this.selectedReleaseOsi = context.osi;
         }
-        if (context?.trialOsi) {
+        if (Object.hasOwn(context ?? {}, 'trialOsi')) {
             userMessage.trialOsi = context.trialOsi;
-            this.selectedReleaseTrialOsi = context.trialOsi;
+            this.selectedReleaseTrialOsi = context.trialOsi || null;
         }
         if (context?.offer) {
             userMessage.offer = context.offer;
             this.selectedReleaseOffer = context.offer;
         }
-        if (context?.trialOffer) {
+        if (Object.hasOwn(context ?? {}, 'trialOffer')) {
             userMessage.trialOffer = context.trialOffer;
-            this.selectedReleaseTrialOffer = context.trialOffer;
+            this.selectedReleaseTrialOffer = context.trialOffer || null;
         }
 
         this.messages = [...this.messages, { ...userMessage, fresh: true }];
 
         const turn = this.beginTurn();
+        const work = this.captureWork();
         this.isLoading = true;
         this.error = null;
 
@@ -561,6 +575,7 @@ export class MasChat extends LitElement {
         // user's escape hatch out of a drifting flow.
         if (isDeterministicSearchEnabled() && !context?.skipDeterministicRouter) {
             const handled = await this.tryDeterministicSearch(message);
+            if (!this.isCurrentWork(work)) return;
             if (handled) {
                 if (this.activeGuidedFlow) {
                     this.activeGuidedFlow = null;
@@ -596,8 +611,7 @@ export class MasChat extends LitElement {
                 context: enrichedContext,
                 intentHint: resolveIntentHint(enrichedContext.intentHint, this.activeGuidedFlow),
             });
-
-            if (!this.isCurrentTurn(turn)) return;
+            if (!this.isCurrentWork(work)) return;
 
             // The server labels a guided turn with flowId, and on a free-text
             // start it is the only thing that knows. handlePromptSelected only
@@ -621,6 +635,7 @@ export class MasChat extends LitElement {
             // throws or chooses to defer, fall back to the old switch
             // below so a one-release-cycle rollback is always available.
             const envelopeHandled = await this.tryDispatchEnvelope(response, message);
+            if (!this.isCurrentWork(work)) return;
             if (envelopeHandled) {
                 if (response.conversationHistory) {
                     this.conversationHistory = response.conversationHistory;
@@ -692,6 +707,7 @@ export class MasChat extends LitElement {
                             : response.data;
 
                     await this.executeOperation(operationToExecute, { guidedFlow: respondingFlow });
+                    if (!this.isCurrentWork(work)) return;
                 }
             } else if (response.type === 'card') {
                 const messageIndex = this.messages.length;
@@ -709,6 +725,7 @@ export class MasChat extends LitElement {
 
                 try {
                     const draftFragment = await this.saveDraftToAEM(response.cardConfig);
+                    if (!this.isCurrentWork(work)) return;
 
                     this.messages = [
                         ...this.messages.slice(0, messageIndex),
@@ -727,6 +744,7 @@ export class MasChat extends LitElement {
 
                     showToast(`Draft card "${draftFragment.title}" created`, 'positive');
                 } catch (error) {
+                    if (!this.isCurrentWork(work)) return;
                     logError('Failed to create draft', error);
                     showToast(`Failed to create draft: ${error.message}`, 'negative');
 
@@ -749,10 +767,12 @@ export class MasChat extends LitElement {
                             context: {},
                         },
                     });
+                    if (!this.isCurrentWork(work)) return;
                     return;
                 }
 
                 const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
+                if (!this.isCurrentWork(work)) return;
                 const offeringStep = guidedStep.buttonGroup?.label === 'Offering Type';
                 const pa = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
                 const attachOst =
@@ -785,6 +805,7 @@ export class MasChat extends LitElement {
                 if (Array.isArray(cards) && cards.length === 1 && inReleaseFlow) {
                     const only = cards[0];
                     this.selectedReleaseProduct = {
+                        ...only,
                         arrangement_code: only.arrangement_code || only.value,
                         name: only.label,
                         icon: only.icon,
@@ -803,6 +824,7 @@ export class MasChat extends LitElement {
                             context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
                         },
                     });
+                    if (!this.isCurrentWork(work)) return;
                 }
             } else if (response.type === 'open_ost') {
                 // When the user already provided an offer (via OST "Use" at
@@ -858,6 +880,7 @@ export class MasChat extends LitElement {
                 ];
             } else if (response.type === 'release_confirmation') {
                 const confirmationSummary = await this.enrichReleaseConfirmationSummary(response.confirmationSummary);
+                if (!this.isCurrentWork(work)) return;
                 this.messages = [
                     ...this.messages,
                     {
@@ -871,10 +894,12 @@ export class MasChat extends LitElement {
                 ];
             } else if (response.type === 'release_cards') {
                 await this.handleReleaseCardsResponse(response);
+                if (!this.isCurrentWork(work)) return;
             } else {
                 const prevAssistant = [...this.messages].reverse().find((m) => m.role === 'assistant');
                 if (response.type === 'message' && prevAssistant?.buttonGroup?.label === 'Product') {
                     await this.recoverProductLookup(message);
+                    if (!this.isCurrentWork(work)) return;
                 } else {
                     if (response.type !== 'message') {
                         console.warn('[mas-chat] unhandled response type', response.type);
@@ -901,7 +926,7 @@ export class MasChat extends LitElement {
                 this.conversationHistory = response.conversationHistory || [];
             }
         } catch (error) {
-            if (this.isTurnAborted(error) || !this.isCurrentTurn(turn)) return;
+            if (this.isTurnAborted(error) || !this.isCurrentWork(work)) return;
             logError('Chat error', error);
             this.error = error.message;
             this.messages = [
@@ -914,7 +939,7 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            if (this.isCurrentTurn(turn)) {
+            if (this.isCurrentWork(work)) {
                 this.isLoading = false;
                 this.loadingLabel = '';
             }
@@ -935,6 +960,7 @@ export class MasChat extends LitElement {
      * old path runs as a safety net.
      */
     async tryDispatchEnvelope(response, originalMessage) {
+        const work = this.captureWork();
         if (!response || typeof response !== 'object') return false;
         const envelope = response.envelope;
         if (!envelope || typeof envelope !== 'object' || typeof envelope.intent !== 'string') {
@@ -1015,6 +1041,7 @@ export class MasChat extends LitElement {
                     operationName,
                     operationParams,
                 });
+                if (!this.isCurrentWork(work)) return;
             }
 
             if (this.activeGuidedFlow) {
@@ -1024,6 +1051,7 @@ export class MasChat extends LitElement {
 
             return true;
         } catch (err) {
+            if (!this.isCurrentWork(work)) return;
             logError('Envelope dispatch failed; falling back to legacy switch', err);
             return false;
         }
@@ -1085,6 +1113,7 @@ export class MasChat extends LitElement {
      * run as a fallback for genuinely fuzzy queries.
      */
     async tryDeterministicSearch(message) {
+        const work = this.captureWork();
         const currentSurface =
             extractKnownSurfaceFromPath(Store.search?.value?.path) || extractKnownSurfaceFromPath(getHashParam('path'));
         const currentLocale = Store.filters?.value?.locale || 'en_US';
@@ -1123,6 +1152,7 @@ export class MasChat extends LitElement {
                 operationName: classified.dispatch.operationName,
                 operationParams: classified.dispatch.operationParams,
             });
+            if (!this.isCurrentWork(work)) return;
             this.attachSearchDisplayContext(classified);
             this.maybeOfferSearchPivots(classified);
             return true;
@@ -1231,6 +1261,7 @@ export class MasChat extends LitElement {
     }
 
     async callAIChatAction(params) {
+        const work = this.captureWork();
         if (!window.adobeIMS) {
             throw new Error('Adobe IMS not loaded');
         }
@@ -1278,9 +1309,9 @@ export class MasChat extends LitElement {
             // server log line for the turn carries this same value, so quoting
             // it retrieves the whole trace. The header is the fallback for a
             // response the action could not shape.
-            this.lastRequestId = body?.requestId || response.headers.get('x-openwhisk-activation-id') || null;
-            if (this.lastRequestId) {
-                console.info(`[mas-chat] requestId ${this.lastRequestId}`);
+            if (this.isCurrentWork(work)) {
+                this.lastRequestId = body?.requestId || response.headers.get('x-openwhisk-activation-id') || null;
+                if (this.lastRequestId) console.info(`[mas-chat] requestId ${this.lastRequestId}`);
             }
             return body;
         } catch (error) {
@@ -1321,8 +1352,10 @@ export class MasChat extends LitElement {
     }
 
     async openInEditor(cardConfig) {
+        const work = this.captureWork();
         try {
             const enrichedConfig = await enrichConfigWithMcsMnemonic(cardConfig, this.selectedReleaseProduct);
+            if (!this.isCurrentWork(work)) return;
             const fragment = createFragmentFromAIConfig(enrichedConfig, enrichedConfig.variant, {
                 title: this.extractTitle(enrichedConfig),
             });
@@ -1334,14 +1367,17 @@ export class MasChat extends LitElement {
             }
 
             await router.navigateToFragmentEditor(fragment.id);
+            if (!this.isCurrentWork(work)) return;
             showToast('Card opened in editor');
         } catch (error) {
+            if (!this.isCurrentWork(work)) return;
             logError('Failed to open in editor', error);
             showToast(`Failed to open card: ${error.message}`, 'negative');
         }
     }
 
     async saveToAEM(cardConfig) {
+        const work = this.captureWork();
         try {
             this.isLoading = true;
 
@@ -1351,6 +1387,7 @@ export class MasChat extends LitElement {
             }
 
             const enrichedConfig = await enrichConfigWithMcsMnemonic(cardConfig, this.selectedReleaseProduct);
+            if (!this.isCurrentWork(work)) return;
             const title = this.extractTitle(enrichedConfig);
             const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
                 title,
@@ -1358,6 +1395,7 @@ export class MasChat extends LitElement {
             });
 
             const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+            if (!this.isCurrentWork(work)) return;
 
             showToast(`Card "${title}" saved successfully!`, 'positive');
 
@@ -1371,6 +1409,7 @@ export class MasChat extends LitElement {
                 },
             ];
         } catch (error) {
+            if (!this.isCurrentWork(work)) return;
             logError('Failed to save to AEM', error);
             showToast(`Failed to save card: ${error.message}`, 'negative');
             this.messages = [
@@ -1383,7 +1422,7 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            this.isLoading = false;
+            if (this.isCurrentWork(work)) this.isLoading = false;
         }
     }
 
@@ -1397,6 +1436,7 @@ export class MasChat extends LitElement {
     }
 
     async saveDraftToAEM(cardConfig, options = {}) {
+        const work = this.captureWork();
         const repository = this.repository;
         if (!repository) {
             throw new Error('Repository not found');
@@ -1416,6 +1456,7 @@ export class MasChat extends LitElement {
         enrichedConfig.trialOsi = this.selectedReleaseTrialOsi;
 
         enrichedConfig = await enrichConfigWithMcsMnemonic(enrichedConfig, this.selectedReleaseProduct);
+        if (!this.isCurrentWork(work)) return;
 
         const isCatalog = enrichedConfig.variant === 'catalog';
         const isPlans =
@@ -1450,6 +1491,7 @@ export class MasChat extends LitElement {
         });
 
         const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+        if (!this.isCurrentWork(work)) return;
 
         const AemFragmentElement = customElements.get('aem-fragment');
         if (AemFragmentElement && newFragment) {
@@ -1460,6 +1502,7 @@ export class MasChat extends LitElement {
     }
 
     async handleReleaseCardsResponse(response) {
+        const work = this.captureWork();
         const cardConfigs = Array.isArray(response.cardConfigs) ? response.cardConfigs : [];
         if (cardConfigs.length === 0) {
             this.messages = [
@@ -1504,6 +1547,7 @@ export class MasChat extends LitElement {
                     title,
                     parentPath,
                 });
+                if (!this.isCurrentWork(work)) return;
                 results.push({
                     success: true,
                     card: {
@@ -1515,6 +1559,7 @@ export class MasChat extends LitElement {
                     },
                 });
             } catch (error) {
+                if (!this.isCurrentWork(work)) return;
                 logError('Failed to create release card', error);
                 results.push({
                     success: false,
@@ -1555,16 +1600,20 @@ export class MasChat extends LitElement {
     }
 
     async openDraftInEditor(fragmentId) {
+        const work = this.captureWork();
         try {
             await router.navigateToFragmentEditor(fragmentId);
+            if (!this.isCurrentWork(work)) return;
             showToast('Draft card opened in editor');
         } catch (error) {
+            if (!this.isCurrentWork(work)) return;
             logError('Failed to open draft in editor', error);
             showToast(`Failed to open card: ${error.message}`, 'negative');
         }
     }
 
     async publishDraft(fragmentId) {
+        const work = this.captureWork();
         try {
             this.isLoading = true;
             const repository = this.repository;
@@ -1573,7 +1622,9 @@ export class MasChat extends LitElement {
             }
 
             const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
+            if (!this.isCurrentWork(work)) return;
             await repository.aem.sites.cf.fragments.publishFragment(fragment);
+            if (!this.isCurrentWork(work)) return;
 
             showToast(`Card "${fragment.title}" published successfully!`, 'positive');
 
@@ -1587,10 +1638,11 @@ export class MasChat extends LitElement {
                 },
             ];
         } catch (error) {
+            if (!this.isCurrentWork(work)) return;
             logError('Failed to publish draft', error);
             showToast(`Failed to publish: ${error.message}`, 'negative');
         } finally {
-            this.isLoading = false;
+            if (this.isCurrentWork(work)) this.isLoading = false;
         }
     }
 
@@ -1623,6 +1675,7 @@ export class MasChat extends LitElement {
     }
 
     async executeOperation(operation, { guidedFlow = this.activeGuidedFlow } = {}) {
+        const work = this.captureWork();
         this.isLoading = true;
 
         const operationType = operation.operationName;
@@ -1639,11 +1692,13 @@ export class MasChat extends LitElement {
         // Preview and bulk routing lived here until the bulk tools were removed.
         // Every remaining operation is a single regular one.
         await this.executeRegularOperation(operation, operationType, guidedFlow);
+        if (!this.isCurrentWork(work)) return;
 
         this.isLoading = false;
     }
 
     async executeRegularOperation(operation, operationType, guidedFlow = this.activeGuidedFlow) {
+        const work = this.captureWork();
         const loadingMessage = this.getOperationLoadingMessage(operationType);
 
         const loadingMessageObj = {
@@ -1666,7 +1721,9 @@ export class MasChat extends LitElement {
                 throw new Error('Unsupported operation format');
             }
             const { executeStudioOperation } = await import('./services/operations-client.js');
+            if (!this.isCurrentWork(work)) return;
             operationResult = await executeStudioOperation(operation.operationName, operation.operationParams);
+            if (!this.isCurrentWork(work)) return;
 
             if (operationResult?.success && !silent) {
                 showToast(operationResult.message, 'positive');
@@ -1685,6 +1742,7 @@ export class MasChat extends LitElement {
                     : msg,
             );
         } catch (error) {
+            if (!this.isCurrentWork(work)) return;
             const isGetCardNotFound = operationType === 'get_card' && /not found|404/i.test(error?.message || '');
             if (isGetCardNotFound) {
                 operationResult = {
@@ -1726,8 +1784,10 @@ export class MasChat extends LitElement {
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             if (guidedFlow === 'release') {
                 await this.presentProductSelection(operationResult.rawResult, operation.operationParams?.searchText);
+                if (!this.isCurrentWork(work)) return;
             } else {
                 await this.handleProductListResult(operationResult.rawResult, operation.operationParams);
+                if (!this.isCurrentWork(work)) return;
             }
         }
 
@@ -1739,6 +1799,7 @@ export class MasChat extends LitElement {
         // code in the past, producing the wrong product.
         if (operationType === 'get_offer_by_id' && operationResult?.success) {
             await this.continueFromResolvedOffer(operationResult, operationResult.rawResult?.offer?.product_arrangement_code);
+            if (!this.isCurrentWork(work)) return;
         }
         if (operationType === 'resolve_offer_selector' && operationResult?.success) {
             await this.continueFromResolvedOffer(
@@ -1746,10 +1807,12 @@ export class MasChat extends LitElement {
                 operationResult.rawResult?.selector?.product_arrangement_code ||
                     operationResult.rawResult?.offers?.[0]?.product_arrangement_code,
             );
+            if (!this.isCurrentWork(work)) return;
         }
         if (operationType === 'get_product_by_arrangement_code' && operationResult?.success) {
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             await this.handleResolvedReleaseProduct(operationResult);
+            if (!this.isCurrentWork(work)) return;
         }
     }
 
@@ -1886,6 +1949,7 @@ export class MasChat extends LitElement {
         ];
 
         this.selectedReleaseProduct = {
+            ...product,
             arrangement_code: product.arrangement_code || arrangementCode,
             name: copy.name || product.name || arrangementCode,
             icon: assets.icons?.svg || product.icon,
@@ -1922,14 +1986,17 @@ export class MasChat extends LitElement {
      * decision, so it still goes to the model.
      */
     async handleProductListResult(result, operationParams) {
+        const work = this.captureWork();
         // The fetch is fast and reliable (~0.6s); the follow-up turn is
         // neither and can time out at 55s. Render the products as soon as they
         // arrive so a browse is answered immediately, and a named lookup shows
         // its resolved products while the next hop is still running.
         await this.presentProductCatalog(result);
+        if (!this.isCurrentWork(work)) return;
 
         if (operationParams?.searchText) {
             await this.continueWithOperationResult('list_products', result, { productsShown: true });
+            if (!this.isCurrentWork(work)) return;
         }
     }
 
@@ -1997,6 +2064,7 @@ export class MasChat extends LitElement {
         this.conversationHistory = [...historyBeforeToolResult, { role: 'user', content: toolResultMessage }];
 
         const turn = this.beginTurn();
+        const work = this.captureWork();
         this.isLoading = true;
         this.loadingLabel = FOLLOW_UP_LOADING_LABEL;
 
@@ -2011,8 +2079,7 @@ export class MasChat extends LitElement {
                 },
                 intentHint: resolveIntentHint(null, this.activeGuidedFlow),
             });
-
-            if (!this.isCurrentTurn(turn)) return;
+            if (!this.isCurrentWork(work)) return;
 
             this.conversationHistory = response.conversationHistory || [];
 
@@ -2053,6 +2120,7 @@ export class MasChat extends LitElement {
                               }
                             : response.data;
                     await this.executeOperation(op);
+                    if (!this.isCurrentWork(work)) return;
                 }
             } else if (response.type === 'guided_step') {
                 // This turn carries no per-send context object; the offer the
@@ -2066,10 +2134,12 @@ export class MasChat extends LitElement {
                             context: {},
                         },
                     });
+                    if (!this.isCurrentWork(work)) return;
                     return;
                 }
 
                 const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
+                if (!this.isCurrentWork(work)) return;
                 const offeringStep = guidedStep.buttonGroup?.label === 'Offering Type';
                 const pa = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
                 const attachOst =
@@ -2098,6 +2168,7 @@ export class MasChat extends LitElement {
                     if (Array.isArray(cards) && cards.length === 1 && inReleaseFlow) {
                         const only = cards[0];
                         this.selectedReleaseProduct = {
+                            ...only,
                             arrangement_code: only.arrangement_code || only.value,
                             name: only.label,
                             icon: only.icon,
@@ -2116,10 +2187,12 @@ export class MasChat extends LitElement {
                                 context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
                             },
                         });
+                        if (!this.isCurrentWork(work)) return;
                     }
                 }
             } else if (response.type === 'release_confirmation') {
                 const confirmationSummary = await this.enrichReleaseConfirmationSummary(response.confirmationSummary);
+                if (!this.isCurrentWork(work)) return;
                 this.messages = [
                     ...this.messages,
                     {
@@ -2133,6 +2206,7 @@ export class MasChat extends LitElement {
                 ];
             } else if (response.type === 'release_cards') {
                 await this.handleReleaseCardsResponse(response);
+                if (!this.isCurrentWork(work)) return;
             } else {
                 this.messages = [
                     ...this.messages,
@@ -2146,7 +2220,7 @@ export class MasChat extends LitElement {
                 ];
             }
         } catch (error) {
-            if (this.isTurnAborted(error) || !this.isCurrentTurn(turn)) return;
+            if (this.isTurnAborted(error) || !this.isCurrentWork(work)) return;
             logError('Continue with operation result error', error);
             // The fetch worked; only the follow-up turn failed, and that turn
             // can time out at 55s under a slow provider. Show the products the
@@ -2154,6 +2228,7 @@ export class MasChat extends LitElement {
             // error that makes a successful fetch look like a total failure.
             if (!productsShown) {
                 await this.presentProductCatalog(result);
+                if (!this.isCurrentWork(work)) return;
             }
             this.messages = [
                 ...this.messages,
@@ -2165,7 +2240,7 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            if (this.isCurrentTurn(turn)) {
+            if (this.isCurrentWork(work)) {
                 this.isLoading = false;
                 this.loadingLabel = '';
             }
@@ -2267,6 +2342,7 @@ export class MasChat extends LitElement {
         if (products.length === 1) {
             const only = products[0];
             this.selectedReleaseProduct = {
+                ...only,
                 arrangement_code: only.arrangement_code || only.value,
                 name: only.label,
                 icon: only.icon,
@@ -2342,8 +2418,10 @@ export class MasChat extends LitElement {
     }
 
     async recoverProductLookup(searchText) {
+        const work = this.captureWork();
         try {
             const result = await fetchProducts({ searchText }).catch(() => ({ products: [] }));
+            if (!this.isCurrentWork(work)) return;
             const products = (result.products || []).map((p) => this.mapProductToChatCard(p));
             if (products.length) {
                 this.messages = [
@@ -2372,6 +2450,7 @@ export class MasChat extends LitElement {
                 ];
             }
         } catch {
+            if (!this.isCurrentWork(work)) return;
             this.messages = [
                 ...this.messages,
                 {
@@ -2385,6 +2464,7 @@ export class MasChat extends LitElement {
     }
 
     async enrichReleaseConfirmationSummary(summary) {
+        const work = this.captureWork();
         // Cache for a per-call fetched detail so the fallback block below can
         // reuse it instead of refetching the same arrangement_code.
         let fetchedRaw = null;
@@ -2398,11 +2478,13 @@ export class MasChat extends LitElement {
                 } else {
                     try {
                         const detail = await fetchProductDetail(arrangementCode);
+                        if (!this.isCurrentWork(work)) return;
                         fetchedRaw = detail?.product || detail;
                         if (fetchedRaw) {
                             this.selectedReleaseProduct = this.mapProductToChatCard(fetchedRaw);
                         }
                     } catch {
+                        if (!this.isCurrentWork(work)) return;
                         // best-effort — leave selectedReleaseProduct null
                     }
                 }
@@ -2428,6 +2510,7 @@ export class MasChat extends LitElement {
                 if (arrangementCode) {
                     try {
                         const detail = await fetchProductDetail(arrangementCode);
+                        if (!this.isCurrentWork(work)) return;
                         const raw = detail?.product || detail;
                         if (raw) {
                             description = this.getPreferredProductDescription(raw, raw.copy);
@@ -2436,6 +2519,7 @@ export class MasChat extends LitElement {
                             }
                         }
                     } catch {
+                        if (!this.isCurrentWork(work)) return;
                         // best-effort
                     }
                 }
@@ -2471,7 +2555,7 @@ export class MasChat extends LitElement {
     }
 
     mapProductToChatCard(product) {
-        return mapProductToChatCardFn(product);
+        return { ...product, ...mapProductToChatCardFn(product) };
     }
 
     getPreferredProductDescription(...sources) {

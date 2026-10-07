@@ -105,10 +105,12 @@ export class MasChatInput extends LitElement {
 
     sendMultiOffer() {
         if (!this.selectedOsi) return;
-        const context = { osi: this.selectedOsi };
+        const context = {
+            osi: this.selectedOsi,
+            trialOsi: this.selectedTrialOsi || null,
+            trialOffer: this.selectedTrialOffer || null,
+        };
         if (this.selectedOffer) context.offer = this.selectedOffer;
-        if (this.selectedTrialOsi) context.trialOsi = this.selectedTrialOsi;
-        if (this.selectedTrialOffer) context.trialOffer = this.selectedTrialOffer;
         const trialNote = this.selectedTrialOsi ? ` and trial offer: ${this.selectedTrialOsi}` : ' (no trial offer selected)';
         this.dispatchEvent(
             new CustomEvent('send-message', {
@@ -133,7 +135,7 @@ export class MasChatInput extends LitElement {
         // regardless of landscape/country, whereas OSI resolution via
         // /offer_selectors/{id} is brittle for DRAFT-only or historic OSIs.
         const offerId = this.selectedOffer?.offer_id || this.selectedOffer?.id || null;
-        const context = { osi: this.selectedOsi };
+        const context = { osi: this.selectedOsi, trialOsi: null, trialOffer: null };
         if (this.selectedOffer) context.offer = this.selectedOffer;
         if (offerId) context.offerId = offerId;
         // Disambiguate the identifier type for the AI. When we have an
@@ -204,6 +206,8 @@ export class MasChatInput extends LitElement {
         const context = {};
         if (this.selectedOsi) {
             context.osi = this.selectedOsi;
+            context.trialOsi = null;
+            context.trialOffer = null;
         }
         if (this.selectedOffer) {
             context.offer = this.selectedOffer;

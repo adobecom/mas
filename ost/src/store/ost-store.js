@@ -141,6 +141,7 @@ export class OstStore extends EventTarget {
     // it with the current value, mangling the stored callback.
     onSelect = null;
     onCancel = null;
+    onMultiSelect = null;
 
     constructor() {
         super();
@@ -388,7 +389,7 @@ export class OstStore extends EventTarget {
         if (config.authoringFlow && VALID_FLOWS.includes(config.authoringFlow)) {
             this.authoringFlow = config.authoringFlow;
         }
-        const CALLBACK_KEYS = ['onSelect', 'onCancel'];
+        const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect'];
         Object.keys(config).forEach((key) => {
             if (key === 'multiSelect' || key === 'bundleSelect' || key === 'authoringFlow') return;
             if (config[key] === undefined) return;

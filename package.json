@@ -9,7 +9,6 @@
         "web-components",
         "io/studio",
         "io/operations",
-        "mas-ost",
         "ost",
         "scripts/content"
     ],

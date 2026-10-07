@@ -22,7 +22,7 @@ export class AOSClient {
      * honours for product-arrangement-code lookups. The v3 POST path is
      * undocumented for arbitrary searches and silently returns empty when
      * service_providers/environment/landscape aren't set, so we mirror the
-     * working pattern from mas-ost (src/utils/aos-client.js): GET, snake_case
+     * working pattern from the OST's AOS client (ost/src/utils/aos-client.js): GET, snake_case
      * query string, environment=PROD, landscape=PUBLISHED, comma-joined
      * arrangement_code, service_providers=PRICING.
      *

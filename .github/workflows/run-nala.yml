@@ -341,7 +341,9 @@ jobs:
                   fi
                   # This run's own E2E jobs take precedence: their check runs can still
                   # read as in-progress for a moment after the job hands off to us.
-                  if [ "$STUDIO_RESULT" = "success" ] && [ "$DOCS_RESULT" = "success" ]; then
+                  # A re-run gate may retain successes that a newer failing run on this SHA supersedes.
+                  if [ "$STUDIO_RESULT" = "success" ] && [ "$DOCS_RESULT" = "success" ] \
+                      && [ "$NALA_CONCLUSION" != "failure" ]; then
                       echo "Nala E2E passed"
                       exit 0
                   fi

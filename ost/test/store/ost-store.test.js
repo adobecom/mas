@@ -616,6 +616,17 @@ describe('OstStore', () => {
             expect(store.selectedTrialOsi).to.equal('trial-osi');
         });
 
+        it('fills the empty trial slot on a second untargeted pick, no slot click needed', async () => {
+            store.offers = [];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'buy-osi');
+            expect(store.selectedBaseOsi).to.equal('buy-osi');
+            // Second same-type offer, no setCurrentSlot: should land in the empty
+            // trial slot rather than overwriting base.
+            store.addOffer({ offer_id: 'B2', offer_type: 'BASE' }, 'trial-osi');
+            expect(store.selectedBaseOsi).to.equal('buy-osi');
+            expect(store.selectedTrialOsi).to.equal('trial-osi');
+        });
+
         it('does not auto-fill when the user manually targets the trial slot', async () => {
             window.fetch = async (url) => {
                 if (String(url).includes('offer_selectors') || String(url).includes('offer-selectors')) {

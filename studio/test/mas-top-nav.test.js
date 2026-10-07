@@ -120,6 +120,18 @@ describe('MasTopNav', () => {
             expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
         });
 
+        it('should navigate from the overflow menu when breadcrumbs are collapsed', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = null;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = el.querySelector('.nav-breadcrumbs sp-breadcrumbs');
+
+            breadcrumbs.dispatchEvent(new CustomEvent('change', { detail: { value: '0' }, bubbles: true, composed: true }));
+
+            expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
+        });
+
         it('should render promotion breadcrumbs on fragment editor when promotionId is set', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.promotions.promotionId.value = 'promo-1';

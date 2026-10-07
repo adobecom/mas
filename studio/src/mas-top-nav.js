@@ -386,7 +386,7 @@ class MasTopNav extends LitElement {
             breadcrumbKey,
             html`
                 <div class="nav-breadcrumbs">
-                    <sp-breadcrumbs>
+                    <sp-breadcrumbs @change=${(event) => items[Number(event.detail.value)]?.handler?.()}>
                         ${items.map(
                             (item) =>
                                 html`<sp-breadcrumb-item @click=${item.handler || nothing}>${item.label}</sp-breadcrumb-item>`,

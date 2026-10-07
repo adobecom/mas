@@ -88,7 +88,16 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:not([hidden]):has-text("Fragments")').first();
+        this.breadcrumbs = page.locator('.nav-breadcrumbs sp-breadcrumbs');
+        // Direct child of sp-breadcrumbs, so it can never match the overflow menu that
+        // sp-breadcrumbs renders inside its shadow root, which also contains a "Fragments" entry.
+        this.fragmentsTable = page
+            .locator('.nav-breadcrumbs > sp-breadcrumbs > sp-breadcrumb-item:not(.is-menu):has-text("Fragments")')
+            .first();
+        this.breadcrumbsOverflowButton = page.locator('.nav-breadcrumbs sp-breadcrumb-item.is-menu sp-action-menu');
+        this.breadcrumbsOverflowFragments = page.locator(
+            '.nav-breadcrumbs sp-breadcrumb-item.is-menu sp-menu-item:has-text("Fragments")',
+        );
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -590,13 +599,29 @@ export default class StudioPage {
         }
     }
 
+    /**
+     * Navigates to the Fragments view through the breadcrumbs.
+     * sp-breadcrumbs collapses items into an overflow menu whenever they do not fit the
+     * top nav, so use that menu when the "Fragments" item itself has been collapsed away.
+     */
+    async clickFragmentsBreadcrumb() {
+        await expect(this.breadcrumbs).toBeVisible();
+        if (await this.breadcrumbsOverflowButton.isVisible()) {
+            await this.breadcrumbsOverflowButton.click();
+            await expect(this.breadcrumbsOverflowFragments).toBeVisible();
+            await this.breadcrumbsOverflowFragments.click();
+            return;
+        }
+        await expect(this.fragmentsTable).toBeVisible();
+        await this.fragmentsTable.scrollIntoViewIfNeeded();
+        await this.fragmentsTable.click();
+    }
+
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
         const fragmentUrl = this.page.url();
-        await expect(this.fragmentsTable).toBeVisible();
-        await this.fragmentsTable.scrollIntoViewIfNeeded();
-        await this.fragmentsTable.click();
+        await this.clickFragmentsBreadcrumb();
         // await this.page.goBack();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();

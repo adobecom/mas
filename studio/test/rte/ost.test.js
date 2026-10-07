@@ -266,12 +266,13 @@ describe('onPlaceholderSelect with mas-ff-defaults on', () => {
 
 describe('openOfferSelectorTool deep-link type parameter', () => {
     let openOfferSelectorTool;
+    let onPlaceholderSelect;
     let openOstStub;
     let originalWindowOst;
     let originalLocalStorage;
 
     before(async () => {
-        ({ openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+        ({ openOfferSelectorTool, onPlaceholderSelect } = await import('../../src/rte/ost.js'));
     });
 
     beforeEach(() => {
@@ -295,6 +296,29 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         const config = openOstStub.getCall(0).args[0];
         return config.searchParameters;
     }
+
+    it('clears the multi-offer callback for ordinary RTE authoring', async () => {
+        await openOfferSelectorTool(null, null);
+
+        expect(openOstStub.firstCall.args[0].onMultiSelect).to.equal(null);
+        expect(openOstStub.firstCall.args[0].onSelect).to.equal(onPlaceholderSelect);
+    });
+
+    it('hands base and trial offers back only when multi-selection was requested', async () => {
+        const originalNewOst = window.ostNew;
+        window.ostNew = { openOfferSelectorTool: openOstStub };
+        try {
+            await openOfferSelectorTool({ tagName: 'MAS-CHAT' }, null, {
+                mode: 'plans-base-and-trial',
+                ostVariant: 'new',
+            });
+            const config = openOstStub.firstCall.args[0];
+            expect(config.multiSelect).to.equal(true);
+            expect(config.onMultiSelect).to.be.a('function');
+        } finally {
+            window.ostNew = originalNewOst;
+        }
+    });
 
     it('passes type=price when deep-linking from an inline-price element', () => {
         const inlinePriceEl = {

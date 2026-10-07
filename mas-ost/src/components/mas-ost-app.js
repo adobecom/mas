@@ -21,7 +21,7 @@ import './mas-ost-selection-list.js';
 import './mas-ost-help-banner.js';
 import './mas-ost-offer-detail-focused.js';
 import { store } from '../store/ost-store.js';
-import { getOfferSelector, resolveOfferSelector } from '../utils/aos-client.js';
+import { getOfferSelector } from '../utils/aos-client.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
 const PRODUCTS_ENDPOINT = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';

@@ -412,7 +412,7 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
             dialog: true,
             multiSelect: isMultiSelectRequested,
             ...(isChatOsiAttach ? { authoringFlow: 'consult' } : {}),
-            onMultiSelect: onMultiOfferSelect,
+            onMultiSelect: isMultiSelectRequested ? onMultiOfferSelect : null,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });

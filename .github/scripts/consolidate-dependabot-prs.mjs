@@ -6,6 +6,10 @@
 //   node .github/scripts/consolidate-dependabot-prs.mjs --ticket MWPW-123456
 //   node .github/scripts/consolidate-dependabot-prs.mjs --ticket MWPW-123456 --execute
 //     # creates the consolidated PR, then comments on and closes each original Dependabot PR.
+//
+// The ticket is used as the branch name, so re-running with the same ticket while the
+// consolidated PR is still open refreshes its branch with main, merges any newly opened
+// Dependabot PRs on top and updates the PR title and description.
 
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -17,6 +21,7 @@ export const REPO = 'adobecom/mas';
 
 const TITLE_RE = /bump\s+(\S+)\s+from\s+(\S+)\s+to\s+(\S+)/i;
 const CHANGELOG_LINK_RE = /\[(?:Release notes|Changelog|Commits)\]\((https?:\/\/[^)\s]+)\)/i;
+const DIRECTORY_RE = /\s+in\s+(\/\S*)$/;
 const MANIFEST_PATH_RE = /(^|\/)(package\.json|package-lock\.json)$/;
 
 export function runCommand(cmd, args, options = {}) {
@@ -56,19 +61,56 @@ export function extractChangelogLink(body) {
     return match ? match[1] : null;
 }
 
-export function createBranchName(ticket, timestamp = Date.now()) {
+export function createBranchName(ticket) {
     if (!/^MWPW-\d{6}$/.test(ticket ?? '')) {
         throw new Error('Ticket must use the MWPW-XXXXXX format, for example MWPW-123456.');
     }
-    return `${ticket}-consolidate-dependabot-${timestamp}`;
+    return ticket;
 }
 
-export function buildConsolidatedBody(prs, { branch, consolidatedPrUrl, changedPaths = [] } = {}) {
-    const rows = prs.map((pr) => {
-        const parsed = parseDependabotTitle(pr.title) ?? { name: pr.title, from: '—', to: '—' };
-        const changelog = extractChangelogLink(pr.body) ?? pr.url;
-        return `| ${parsed.name} | ${parsed.from} | ${parsed.to} | [#${pr.number}](${pr.url}) | [Notes](${changelog}) |`;
-    });
+export function parseConsolidatedRows(body) {
+    const rows = [];
+    for (const line of (body ?? '').split('\n')) {
+        const cells = line
+            .trim()
+            .replace(/^\|/, '')
+            .replace(/\|$/, '')
+            .split('|')
+            .map((cell) => cell.trim());
+        if (cells.length !== 5 || !/\[#\d+\]/.test(cells[3])) continue;
+        const [name, from, to, prLinks, notes] = cells;
+        rows.push({ name, from, to, prLinks, notes });
+    }
+    return rows;
+}
+
+export function mergeRows(previousRows, prs) {
+    const rows = previousRows.map((row) => ({ ...row }));
+    for (const pr of prs) {
+        const prLink = `[#${pr.number}](${pr.url})`;
+        if (rows.some((row) => row.prLinks.includes(`[#${pr.number}]`))) continue;
+        const bump = parseDependabotTitle(pr.title);
+        const directory = DIRECTORY_RE.exec(pr.title)?.[1];
+        const parsed = bump
+            ? { ...bump, name: directory ? `${bump.name} (${directory})` : bump.name }
+            : { name: pr.title, from: '—', to: '—' };
+        const notes = `[Notes](${extractChangelogLink(pr.body) ?? pr.url})`;
+        const existing = bump ? rows.find((row) => row.name === parsed.name) : null;
+        if (existing) {
+            existing.to = parsed.to;
+            existing.prLinks = `${existing.prLinks}, ${prLink}`;
+            existing.notes = notes;
+            continue;
+        }
+        rows.push({ ...parsed, prLinks: prLink, notes });
+    }
+    return rows;
+}
+
+export function buildConsolidatedBody(prs, { branch, consolidatedPrUrl, changedPaths = [], previousRows = [] } = {}) {
+    const rows = mergeRows(previousRows, prs).map(
+        ({ name, from, to, prLinks, notes }) => `| ${name} | ${from} | ${to} | ${prLinks} | ${notes} |`,
+    );
 
     const header = ['| Dependency | From | To | Original PR | Changelog |', '| --- | --- | --- | --- | --- |'];
     const table = [...header, ...rows].join('\n');
@@ -129,15 +171,41 @@ export function resolveRemote({ repo = REPO, run = runCommand } = {}) {
     throw new Error(`No git remote points to ${repo}. Add one with: git remote add upstream git@github.com:${repo}.git`);
 }
 
+export function findOpenConsolidatedPr({ branch, repo = REPO, run = runCommand }) {
+    const stdout = run('gh', ['pr', 'list', '--repo', repo, '--head', branch, '--state', 'open', '--json', 'number,url,body']);
+    return JSON.parse(stdout || '[]')[0] ?? null;
+}
+
 export function createConsolidationBranch({ name, remote, run = runCommand }) {
     run('git', ['fetch', remote, 'main']);
     run('git', ['checkout', '-B', name, `${remote}/main`]);
 }
 
-export function mergePrHead({ number, remote, run = runCommand }) {
+export function refreshConsolidationBranch({ name, remote, run = runCommand }) {
+    run('git', ['fetch', remote, 'main', name]);
+    run('git', ['checkout', '-B', name, `${remote}/${name}`]);
+    try {
+        run('git', ['merge', '--no-edit', `${remote}/main`]);
+    } catch (error) {
+        throw new Error(
+            `Merge conflict bringing ${remote}/main into ${name}: ${error.message}\nResolve it, push ${name}, then re-run the script.`,
+        );
+    }
+}
+
+export function mergePrHead({ number, remote, run = runCommand, log = console.log }) {
     run('git', ['fetch', remote, `pull/${number}/head`]);
     try {
         run('git', ['merge', '--no-edit', 'FETCH_HEAD']);
+        return;
+    } catch {
+        run('git', ['merge', '--abort']);
+    }
+    // A dependency already consolidated and bumped again conflicts on the same lockfile hunk:
+    // the newer Dependabot PR wins those hunks, other changes are merged as usual.
+    log(`  #${number} conflicts with the consolidated branch, retrying with its side on conflicting hunks`);
+    try {
+        run('git', ['merge', '--no-edit', '-X', 'theirs', 'FETCH_HEAD']);
     } catch (error) {
         throw new Error(`Merge conflict bringing in PR #${number}: ${error.message}`);
     }
@@ -195,41 +263,51 @@ export function consolidate({
     log(`Found ${prs.length} open Dependabot PR(s) on ${repo}:`);
     for (const pr of prs) log(`  #${pr.number} ${pr.title} (${pr.url})`);
 
+    if (execute && !/^MWPW-\d{6}/.test(branch ?? '')) {
+        throw new Error('Consolidation branch must start with the MWPW-XXXXXX ticket format.');
+    }
+
+    const existingPr = branch ? findOpenConsolidatedPr({ branch, repo, run }) : null;
+    const previousRows = parseConsolidatedRows(existingPr?.body);
+    if (existingPr) log(`\nExisting consolidated PR ${existingPr.url} will be updated.`);
+
     if (!execute) {
-        const body = buildConsolidatedBody(prs, { branch });
+        const body = buildConsolidatedBody(prs, { branch, consolidatedPrUrl: existingPr?.url, previousRows });
         log('\nDry run: no branch, PR, comment or close will be created.');
         log('\nPlanned consolidated PR description:\n');
         log(body);
         return { prs, executed: false, body };
     }
 
-    if (!/^MWPW-\d{6}-/.test(branch ?? '')) {
-        throw new Error('Consolidation branch must start with the MWPW-XXXXXX ticket format.');
-    }
-
     const remote = resolveRemote({ repo, run });
-    createConsolidationBranch({ name: branch, remote, run });
-    for (const pr of prs) mergePrHead({ number: pr.number, remote, run });
+    if (existingPr) {
+        refreshConsolidationBranch({ name: branch, remote, run });
+    } else {
+        createConsolidationBranch({ name: branch, remote, run });
+    }
+    for (const pr of prs) mergePrHead({ number: pr.number, remote, run, log });
 
     const changedPaths = getChangedManifestPaths({ remote, run });
     assertOnlyManifestPaths(changedPaths);
     run('git', ['push', '-u', remote, branch]);
 
-    const bodyFile = writeTempBodyFile(buildConsolidatedBody(prs, { branch, changedPaths }));
-    const consolidatedPrUrl = createConsolidatedPr({
-        title: `chore(deps): consolidate ${prs.length} Dependabot update(s)`,
-        bodyFile,
-        branch,
-        repo,
-        run,
-    });
+    const title = `${branch} chore(deps): consolidate ${mergeRows(previousRows, prs).length} Dependabot update(s)`;
+    const consolidatedPrUrl =
+        existingPr?.url ??
+        createConsolidatedPr({
+            title,
+            bodyFile: writeTempBodyFile(buildConsolidatedBody(prs, { branch, changedPaths })),
+            branch,
+            repo,
+            run,
+        });
 
-    const finalBody = buildConsolidatedBody(prs, { branch, consolidatedPrUrl, changedPaths });
-    run('gh', ['pr', 'edit', consolidatedPrUrl, '--repo', repo, '--body', finalBody]);
+    const finalBody = buildConsolidatedBody(prs, { branch, consolidatedPrUrl, changedPaths, previousRows });
+    run('gh', ['pr', 'edit', consolidatedPrUrl, '--repo', repo, '--title', title, '--body-file', writeTempBodyFile(finalBody)]);
 
     for (const pr of prs) closeOriginalPr({ number: pr.number, consolidatedPrUrl, repo, run });
 
-    return { prs, executed: true, consolidatedPrUrl };
+    return { prs, executed: true, consolidatedPrUrl, updated: Boolean(existingPr) };
 }
 
 function checkGhAvailable() {
@@ -259,7 +337,7 @@ function main() {
     }
     const result = consolidate({ execute, branch });
     if (execute && result.executed) {
-        console.log(`\nConsolidated PR created: ${result.consolidatedPrUrl}`);
+        console.log(`\nConsolidated PR ${result.updated ? 'updated' : 'created'}: ${result.consolidatedPrUrl}`);
     }
 }
 

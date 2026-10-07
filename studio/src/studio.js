@@ -16,8 +16,12 @@ import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
+import Events from './events.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
+
+const LAZY_IMPORT_RETRIES = 2;
+const LAZY_IMPORT_RETRY_DELAY = 1000;
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -123,7 +127,7 @@ class MasStudio extends LitElement {
         if (this.#failedImports.has(elementName)) return false;
         if (!this.#pendingImports.has(elementName)) {
             this.#pendingImports.add(elementName);
-            import(importPath).catch(() => {
+            this.#importWithRetry(importPath).catch(() => {
                 this.#pendingImports.delete(elementName);
                 this.#failedImports.add(elementName);
                 console.error(`Failed to load ${elementName} from ${importPath}`);
@@ -132,6 +136,21 @@ class MasStudio extends LitElement {
             customElements.whenDefined(elementName).then(() => this.requestUpdate());
         }
         return false;
+    }
+
+    // Browsers cache a failed module fetch (e.g. a transient 429) per URL, so retries need a distinct URL.
+    async #importWithRetry(importPath, attempt = 0) {
+        try {
+            return await this.importModule(attempt ? `${importPath}?retry=${attempt}` : importPath);
+        } catch (error) {
+            if (attempt >= LAZY_IMPORT_RETRIES) throw error;
+            await new Promise((resolve) => setTimeout(resolve, LAZY_IMPORT_RETRY_DELAY * (attempt + 1)));
+            return this.#importWithRetry(importPath, attempt + 1);
+        }
+    }
+
+    importModule(path) {
+        return import(path);
     }
 
     get aemEnv() {

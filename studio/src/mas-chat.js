@@ -489,7 +489,6 @@ export class MasChat extends LitElement {
                 detail: {
                     message,
                     context: {
-                        selectedVariants,
                         // Confirming a card configuration is a release turn by
                         // definition. Say so: the offer-first path never sets
                         // activeGuidedFlow, so without this the server re-reads

@@ -24,6 +24,8 @@ const HEADLESS_STYLE_CTA_VARIANTS = new Set([
     'banner-blade',
 ]);
 const HEADLESS_CTA_VARIANT_LABELS = { STRONG: 'Primary', EM: 'Secondary' };
+/** Cards whose `consonant` attribute was set by hydrate() from the variant mapping, not by the consumer. */
+const variantConsonantCards = new WeakSet();
 
 /**
  * Normalizes variant names for consistency.
@@ -1092,6 +1094,8 @@ export function cleanup(merchCard) {
         ANALYTICS_SECTION_ATTR,
     ];
     attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));
+    if (variantConsonantCards.delete(merchCard))
+        merchCard.removeAttribute('consonant');
     const classesToRemove = ['wide-strip', 'thin-strip'];
     merchCard.classList.remove(...classesToRemove);
 }
@@ -1150,8 +1154,14 @@ export async function hydrate(fragment, merchCard) {
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 
-    if (mapping.style === 'consonant') {
+    // The variant's Consonant style is only a default: a consumer-set `consonant` or `spectrum` wins.
+    if (
+        mapping.style === 'consonant' &&
+        !merchCard.consonant &&
+        !merchCard.hasAttribute('spectrum')
+    ) {
         merchCard.setAttribute('consonant', true);
+        variantConsonantCards.add(merchCard);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
     processTrialBadge(fields, merchCard, mapping);

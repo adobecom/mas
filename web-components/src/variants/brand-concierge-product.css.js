@@ -77,4 +77,12 @@ merch-card[variant="brand-concierge-product"] [slot="body-xs"] a.spectrum-Link--
 merch-card[variant="brand-concierge-product"] [slot="promo-text"] a.spectrum-Link--secondary {
     color: inherit;
 }
+
+merch-card[variant="brand-concierge-product"] span[data-template="legal"] .price-unit-type:not(.disabled)::before {
+    content: none;
+}
+
+merch-card[variant="brand-concierge-product"] span[data-template="legal"] .price-plan-type:not(.disabled) {
+  margin-inline-start: 0.25em; 
+}
 `;

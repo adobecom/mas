@@ -26,6 +26,7 @@ import {
     extractKnownSurfaceFromPath,
     composeChatRequestSignal,
     isChatRequestTimeout,
+    stripReleaseConfig,
     CHAT_REQUEST_TIMEOUT_MS,
     CHAT_TIMEOUT_MESSAGE,
 } from './utils/mas-chat-helpers.js';
@@ -278,6 +279,7 @@ export class MasChat extends LitElement {
 
     handleSessionChanged(event) {
         this.saveCurrentSession();
+        this.resetReleaseState();
 
         const { sessionId } = event.detail;
         const session = sessionManager.getSession(sessionId);
@@ -308,16 +310,20 @@ export class MasChat extends LitElement {
         }
     }
 
-    addWelcomeMessage() {
-        this.messages = [];
-        this.showWelcomeScreen = true;
-        this.showPromptSuggestions = true;
+    resetReleaseState() {
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
         this.selectedReleaseOsi = null;
         this.selectedReleaseTrialOffer = null;
         this.selectedReleaseTrialOsi = null;
         this.trialCtaAsked = false;
+    }
+
+    addWelcomeMessage() {
+        this.messages = [];
+        this.showWelcomeScreen = true;
+        this.showPromptSuggestions = true;
+        this.resetReleaseState();
         this.pendingSearchIntent = null;
         this.activeGuidedFlow = null;
         this.guidedFlowTurns = 0;
@@ -1491,21 +1497,9 @@ export class MasChat extends LitElement {
         const parentPath =
             response.parentPath || `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
 
-        const RELEASE_FIELDS_TO_STRIP = [
-            'subtitle',
-            'badge',
-            'prices',
-            'description',
-            'title',
-            'mnemonics',
-            'ctas',
-            'osi',
-            'trialOsi',
-        ];
         const results = [];
         for (const cardConfig of cardConfigs) {
-            const strippedConfig = { ...cardConfig };
-            for (const field of RELEASE_FIELDS_TO_STRIP) delete strippedConfig[field];
+            const strippedConfig = stripReleaseConfig(cardConfig);
             const title = `${productName || this.extractTitle(strippedConfig)} - ${
                 strippedConfig.variant?.charAt(0).toUpperCase() + strippedConfig.variant?.slice(1)
             }`;

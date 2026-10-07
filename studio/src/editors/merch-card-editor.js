@@ -122,6 +122,7 @@ class MerchCardEditor extends LitElement {
         isVariation: { type: Boolean, attribute: false },
         promotionGeoOptions: { type: Array, attribute: false },
         disabledPromoGeoOptions: { type: Array, attribute: false },
+        deprecationNotice: { type: Object, attribute: false },
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
         imageUrlInvalid: { type: Boolean, state: true },
@@ -161,6 +162,7 @@ class MerchCardEditor extends LitElement {
         this.currentVariantMapping = null;
         this.localeDefaultFragment = null;
         this.isVariation = false;
+        this.deprecationNotice = nothing;
         this.promotionGeoOptions = [];
         this.disabledPromoGeoOptions = [];
         this.lastMnemonicState = null;
@@ -1569,7 +1571,7 @@ class MerchCardEditor extends LitElement {
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
-                ${this.renderValidationBanner()}
+                ${this.renderValidationBanner()} ${this.deprecationNotice}
                 <div class="section-title-status">
                     <div class="section-title">General info</div>
                     <div class="section-staged-status">

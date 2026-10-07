@@ -437,13 +437,18 @@ export default class MasFragmentEditor extends LitElement {
             display: flex;
             gap: 8px;
             align-items: flex-start;
-            background: var(--spectrum-global-color-blue-100);
-            border-left: 4px solid var(--spectrum-global-color-blue-400);
-            padding: 12px 16px;
-            margin-bottom: 16px;
+            padding: 12px;
+            margin-block-end: 16px;
             border-radius: 4px;
+            border: 1px solid var(--spectrum-global-color-yellow-400);
+            background-color: var(--spectrum-global-color-yellow-100);
+            color: var(--spectrum-global-color-gray-900);
             font-size: 14px;
-            color: var(--spectrum-global-color-gray-800);
+        }
+
+        .locale-variation-deprecation-notice-icon {
+            flex-shrink: 0;
+            color: var(--spectrum-global-color-yellow-700);
         }
 
         #orphan-grouped-variation-panel {
@@ -2053,16 +2058,25 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
         }
-        const header = this.variationTypeHeader('locale-variation-header');
-        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-            return header;
-        }
-        return html`${header}${this.localeVariationDeprecationNotice}`;
+        return this.variationTypeHeader('locale-variation-header');
     }
 
     get localeVariationDeprecationNotice() {
+        if (!this.fragment) {
+            return nothing;
+        }
+        if (this.isPromoVariationFragment()) {
+            return nothing;
+        }
+        if (!this.editorContextStore.isVariation(this.fragment.id)) {
+            return nothing;
+        }
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return nothing;
+        }
         return html`<div class="locale-variation-deprecation-notice" role="status">
-            <span>${LOCALE_VARIATION_DEPRECATION_MESSAGE}</span>
+            <sp-icon-alert class="locale-variation-deprecation-notice-icon"></sp-icon-alert>
+            <span class="locale-variation-deprecation-notice-message">${LOCALE_VARIATION_DEPRECATION_MESSAGE}</span>
         </div>`;
     }
 
@@ -2220,6 +2234,7 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.fragment) return nothing;
 
         let editorContent = nothing;
+        const sectionNotice = this.fragment.model.path === CARD_MODEL_PATH ? nothing : this.localeVariationDeprecationNotice;
 
         switch (this.fragment.model.path) {
             case CARD_MODEL_PATH:
@@ -2231,6 +2246,7 @@ export default class MasFragmentEditor extends LitElement {
                         .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                         .promotionGeoOptions=${this.promotionGeoOptions}
                         .disabledPromoGeoOptions=${this.disabledPromoGeoOptions}
+                        .deprecationNotice=${this.localeVariationDeprecationNotice}
                         @preview-locale-change=${this.#handlePreviewLocaleChange}
                     ></merch-card-editor>
                 `;
@@ -2259,7 +2275,8 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             ${this.derivedFromContainer}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
-                ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
+                ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${sectionNotice}
+                ${editorContent}
             </div>
         `;
     }

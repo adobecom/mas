@@ -1,6 +1,3 @@
-import { AEMClient } from './aem-client.js';
-import { StudioURLBuilder } from './studio-url-builder.js';
-
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-]+)\/(?<locale>[a-z]{2}_[A-Z]{2,4})\/(?<fragmentPath>.+)/;
 
 const LOCALE_DEFAULTS = [

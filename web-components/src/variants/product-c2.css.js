@@ -5,7 +5,6 @@ export const CSS = `
   --s2a-font-letter-spacing-4xl: -.48px;
   --gray: var(--color-gray-100, #f8f8f8);
   --transparent: transparent;
-  --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
 }
 
 merch-card[variant="product-c2"] {
@@ -40,7 +39,7 @@ merch-card[variant="product-c2"] [slot="heading-m"] .price-legal {
 
 merch-card[variant="product-c2"] [slot="heading-m"] [data-template="price"] {
     letter-spacing: var(--s2a-font-letter-spacing-4xl);
-    font-family: var(--heading-font-family);
+    font-family: "Adobe Clean Display Black", adobe-clean-display, "Arial Bold Adjusted", sans-serif;
 }
 
 merch-card[variant="product-c2"] [slot="heading-m"] [data-template="legal"] {

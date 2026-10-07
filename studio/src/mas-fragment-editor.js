@@ -2057,19 +2057,15 @@ export default class MasFragmentEditor extends LitElement {
         return this.variationTypeHeader('locale-variation-header');
     }
 
+    /** A deprecated locale (regional) variation: neither a promo nor a grouped variation. */
+    get isLocaleVariation() {
+        if (!this.fragment || this.isPromoVariationFragment()) return false;
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) return false;
+        return this.editorContextStore.isVariation(this.fragment.id);
+    }
+
     get localeVariationDeprecationNotice() {
-        if (!this.fragment) {
-            return nothing;
-        }
-        if (this.isPromoVariationFragment()) {
-            return nothing;
-        }
-        if (!this.editorContextStore.isVariation(this.fragment.id)) {
-            return nothing;
-        }
-        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-            return nothing;
-        }
+        if (!this.isLocaleVariation) return nothing;
         return html`<div class="locale-variation-deprecation-notice" role="status">
             <sp-icon-alert class="locale-variation-deprecation-notice-icon"></sp-icon-alert>
             <span class="locale-variation-deprecation-notice-message">${LOCALE_VARIATION_DEPRECATION_MESSAGE}</span>

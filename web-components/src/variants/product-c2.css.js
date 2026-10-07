@@ -66,6 +66,7 @@ merch-card[variant="product-c2"] [slot="footer"] a {
 @media screen and ${MOBILE_LANDSCAPE} {
     merch-card[variant="product-c2"] {
         background-color: #fff;
+        padding: 0;
     }
 }
 

@@ -10484,6 +10484,7 @@ merch-card[variant="product-c2"] [slot="footer"] a {
 @media screen and ${k} {
     merch-card[variant="product-c2"] {
         background-color: #fff;
+        padding: 0;
     }
 }
 

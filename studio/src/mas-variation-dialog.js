@@ -123,11 +123,6 @@ export class MasVariationDialog extends LitElement {
         return !this.loading && this.isGrouped && this.pznTags.length > 0;
     }
 
-    handleVariationTypeChange(event) {
-        this.variationType = event.target.value;
-        this.error = null;
-    }
-
     handlePznTagsChange(event) {
         const tagPicker = event.target;
         this.pznTags = tagPicker.value || [];
@@ -241,11 +236,7 @@ export class MasVariationDialog extends LitElement {
                 <div id="fields">
                     <sp-field-group>
                         <sp-field-label>Variation type</sp-field-label>
-                        <sp-picker
-                            value=${this.variationType}
-                            @change=${this.handleVariationTypeChange}
-                            ?disabled=${this.loading}
-                        >
+                        <sp-picker value=${this.variationType} disabled>
                             ${this.canShowGroupedVariation
                                 ? html`<sp-menu-item value="grouped">${VARIATION_TYPES.GROUPED}</sp-menu-item>`
                                 : nothing}

@@ -102,7 +102,10 @@
                             const typePicker = dialog.shadowRoot.querySelector('sp-picker');
                             expect(typePicker).to.exist;
                             expect(typePicker.value).to.equal('grouped');
-                            expect(typePicker.disabled).to.be.false;
+                            expect(typePicker.disabled).to.be.true;
+                            const items = typePicker.querySelectorAll('sp-menu-item');
+                            expect(items.length).to.equal(1);
+                            expect(items[0].value).to.equal('grouped');
                         });
 
                         it('should not offer a regional variation type', async () => {

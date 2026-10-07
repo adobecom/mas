@@ -352,16 +352,15 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
         // "Browse offers" button) count; the release-flow multi-select path
         // is the only chat-origin case that must stay in try/buy.
         const chatTag = triggerElement?.tagName;
-        const isChatOsiAttach = (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') && !isMultiSelectRequested;
+        const isChatSurface = chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT';
+        const isChatOsiAttach = isChatSurface && !isMultiSelectRequested;
         // AI-chat surfaces benefit from seeing both DRAFT + PUBLISHED offers at
         // once. Studio-side Store.landscape is 2-state (Published/Draft); only
         // the new Lit OST (studio/ost/ost-new.js) understands the merged 'BOTH'
         // value — the legacy tacocat bundle passes it straight to AOS, which
         // rejects it with a 400 and the offer list comes back empty. MASA opens
         // (useNewOst) run on the new OST, so they can request BOTH.
-        const supportsMergedLandscape = useNewOst;
-        const chatLandscape =
-            supportsMergedLandscape && (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') ? 'BOTH' : landscape;
+        const chatLandscape = useNewOst && isChatSurface ? 'BOTH' : landscape;
         const authoringLocale = Store.localeOrRegion();
         const localeMeta = getLocaleByCode(authoringLocale);
         const ost = useNewOst ? await ensureNewOstLoaded() : window.ost;

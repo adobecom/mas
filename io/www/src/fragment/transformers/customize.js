@@ -282,7 +282,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
             }
         }
     }
-    if (rawMatch) return {};
+    if (rawMatch && !(customizeContext.isRegionLocale && findRegionalVariation(rootVariations, customizeContext))) return {};
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
     if (!variation) return {};
     logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
@@ -296,7 +296,10 @@ function findPromoMapsForFragment(root, customizeContext) {
     if (!match?.groups) return [];
     const variations = root.fields?.variations;
     const personalizationVariation = variations?.length ? findPersonalizationVariation(variations, customizeContext) : null;
-    const { fragmentPath } = personalizationVariation ? PATH_TOKENS.exec(personalizationVariation.path).groups : match.groups;
+    const regionalVariation =
+        customizeContext.isRegionLocale && variations?.length && findRegionalVariation(variations, customizeContext);
+    const { fragmentPath } =
+        personalizationVariation && !regionalVariation ? PATH_TOKENS.exec(personalizationVariation.path).groups : match.groups;
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 

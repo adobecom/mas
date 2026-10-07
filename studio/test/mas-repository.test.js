@@ -4753,6 +4753,7 @@ describe('MasRepository publishFragment', () => {
                 },
             },
         };
+        repo.clearStagedTag = sandbox.stub().resolves();
         // Silence processError to avoid noisy output in tests
         sandbox.stub(repo, 'processError');
         return repo;

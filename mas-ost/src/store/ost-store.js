@@ -349,13 +349,6 @@ export class OstStore extends EventTarget {
         this.notify();
     }
 
-    clearOffers() {
-        this.selectedOffers = [];
-        this.selectedOffer = undefined;
-        this.selectedOsi = undefined;
-        this.notify();
-    }
-
     isOfferSelected(offer) {
         if (this.selectedOffer === offer) return true;
         return this.selectedOffers.some((o) => o.offer === offer);
@@ -364,21 +357,6 @@ export class OstStore extends EventTarget {
     setPromoCode(code) {
         this.storedPromoOverride = code;
         this.notify();
-    }
-
-    toggleMultiSelect() {
-        if (this.authoringFlow === 'tryBuy') {
-            this.applyFlowSwitch('single', false);
-        } else {
-            const keepSelections = !!this.selectedOffer;
-            if (keepSelections) {
-                this.selectedOffers = [{ offer: this.selectedOffer, osi: this.selectedOsi, role: 'base' }];
-            }
-            this.authoringFlow = 'tryBuy';
-            this.selectedOffer = undefined;
-            this.selectedOsi = undefined;
-            this.notify();
-        }
     }
 
     toggleHelp() {

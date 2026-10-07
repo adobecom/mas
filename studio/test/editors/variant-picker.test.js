@@ -155,7 +155,8 @@ describe('VariantPicker', () => {
             expect(names).to.not.include('plans');
             expect(names).to.not.include('catalog');
             expect(names).to.not.include('ccd-slice');
-            expect(names.length).to.equal(12);
+            expect(names).to.include('product-c2');
+            expect(names.length).to.equal(13);
         });
 
         it('should return only DC templates for acom-dc surface', () => {
@@ -174,7 +175,8 @@ describe('VariantPicker', () => {
             expect(names).to.not.include('special-offers');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('mini-compare-chart-mweb');
-            expect(names.length).to.equal(10);
+            expect(names).to.include('product-c2');
+            expect(names.length).to.equal(11);
         });
 
         it('should return only plans/catalog templates for acom surface', () => {
@@ -194,11 +196,12 @@ describe('VariantPicker', () => {
             expect(names).to.include('banner-blade');
             expect(names).to.include('headless');
             expect(names).to.include('product-pricing');
+            expect(names).to.include('product-c2');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');
             expect(names).to.not.include('special-offers');
-            expect(names.length).to.equal(14);
+            expect(names.length).to.equal(15);
         });
 
         it('should return the Mini template for adobe-home surface', () => {

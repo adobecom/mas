@@ -4,6 +4,7 @@
 import { expect } from '@esm-bundle/chai';
 import '../src/merch-card.js';
 import { FRIES_AEM_FRAGMENT_MAPPING } from '../src/variants/fries.js';
+import { PRODUCT_C2_AEM_FRAGMENT_MAPPING } from '../src/variants/product-c2.js';
 
 describe('merch-card variants registry (leaf bundle)', () => {
     const MerchCard = customElements.get('merch-card');
@@ -16,6 +17,12 @@ describe('merch-card variants registry (leaf bundle)', () => {
     it('registers fries via core variants', () => {
         expect(MerchCard.getFragmentMapping('fries')).to.equal(
             FRIES_AEM_FRAGMENT_MAPPING,
+        );
+    });
+
+    it('registers product-c2 via core variants', () => {
+        expect(MerchCard.getFragmentMapping('product-c2')).to.equal(
+            PRODUCT_C2_AEM_FRAGMENT_MAPPING,
         );
     });
 

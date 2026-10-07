@@ -53,6 +53,7 @@ import {
     ProductPricing,
     PRODUCT_PRICING_AEM_FRAGMENT_MAPPING,
 } from './product-pricing.js';
+import { ProductC2, PRODUCT_C2_AEM_FRAGMENT_MAPPING } from './product-c2.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -211,6 +212,12 @@ registerVariant(
     ProductPricing,
     PRODUCT_PRICING_AEM_FRAGMENT_MAPPING,
     ProductPricing.variantStyle,
+);
+registerVariant(
+    'product-c2',
+    ProductC2,
+    PRODUCT_C2_AEM_FRAGMENT_MAPPING,
+    ProductC2.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

@@ -327,10 +327,6 @@ export default class MasFragmentEditor extends LitElement {
             margin: 16px 16px 0;
         }
 
-        .section.compare-chart-section .locale-variation-deprecation-notice {
-            margin: 16px 16px 0;
-        }
-
         .section.compare-chart-section mas-compare-chart-editor {
             flex: 1 1 auto;
             min-height: 0;
@@ -437,18 +433,18 @@ export default class MasFragmentEditor extends LitElement {
             display: flex;
             gap: 8px;
             align-items: flex-start;
-            padding: 12px;
-            margin-block-end: 16px;
-            border-radius: 4px;
-            border: 1px solid var(--spectrum-global-color-yellow-400);
-            background-color: var(--spectrum-global-color-yellow-100);
-            color: var(--spectrum-global-color-gray-900);
+            background: var(--spectrum-yellow-100, var(--spectrum-global-color-yellow-100));
+            border: 2px solid var(--spectrum-yellow-400, var(--spectrum-global-color-yellow-400));
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
             font-size: 14px;
+            color: var(--spectrum-yellow-900, var(--spectrum-global-color-yellow-700));
         }
 
         .locale-variation-deprecation-notice-icon {
             flex-shrink: 0;
-            color: var(--spectrum-global-color-yellow-700);
+            color: var(--spectrum-yellow-900, var(--spectrum-global-color-yellow-700));
         }
 
         #orphan-grouped-variation-panel {
@@ -2234,7 +2230,6 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.fragment) return nothing;
 
         let editorContent = nothing;
-        const sectionNotice = this.fragment.model.path === CARD_MODEL_PATH ? nothing : this.localeVariationDeprecationNotice;
 
         switch (this.fragment.model.path) {
             case CARD_MODEL_PATH:
@@ -2246,7 +2241,6 @@ export default class MasFragmentEditor extends LitElement {
                         .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                         .promotionGeoOptions=${this.promotionGeoOptions}
                         .disabledPromoGeoOptions=${this.disabledPromoGeoOptions}
-                        .deprecationNotice=${this.localeVariationDeprecationNotice}
                         @preview-locale-change=${this.#handlePreviewLocaleChange}
                     ></merch-card-editor>
                 `;
@@ -2273,10 +2267,9 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer}
+            ${this.derivedFromContainer} ${this.localeVariationDeprecationNotice}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
-                ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${sectionNotice}
-                ${editorContent}
+                ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;
     }

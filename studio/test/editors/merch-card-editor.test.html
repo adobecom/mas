@@ -1827,38 +1827,6 @@
                             expect(messages[1].textContent).to.include('is required');
                         });
 
-                        const noticeTemplate = html`<div class="locale-variation-deprecation-notice" role="status">
-                            <sp-icon-alert></sp-icon-alert><span>Deprecated</span>
-                        </div>`;
-
-                        it('renders the deprecation notice right after the validation banner', async () => {
-                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'validation-banner-notice');
-                            editor.deprecationNotice = noticeTemplate;
-                            fragmentStore.get().validationStatus = [
-                                { property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' },
-                            ];
-                            fragmentStore.notify();
-                            await editor.updateComplete;
-
-                            const container = editor.querySelector('.editor-form-container');
-                            const banner = container.querySelector('.fragment-validation-banner');
-                            const notice = container.querySelector('.locale-variation-deprecation-notice');
-                            expect(banner).to.exist;
-                            expect(notice).to.exist;
-                            expect(banner.nextElementSibling).to.equal(notice);
-                            expect(banner.textContent).to.include('is not valid HTML');
-                        });
-
-                        it('renders the deprecation notice first when there are no validation errors', async () => {
-                            const { editor } = await setupTestEnvironment({}, 'validation-none-notice');
-                            editor.deprecationNotice = noticeTemplate;
-                            await editor.updateComplete;
-
-                            const container = editor.querySelector('.editor-form-container');
-                            expect(container.firstElementChild.classList.contains('locale-variation-deprecation-notice')).to.be
-                                .true;
-                        });
-
                         it('renders no banner when validationStatus is empty', async () => {
                             const { editor } = await setupTestEnvironment({}, 'validation-none');
                             expect(editor.querySelector('.fragment-validation-banner')).to.not.exist;

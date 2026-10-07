@@ -1744,12 +1744,23 @@ describe('MasFragmentEditor', () => {
             );
             expect(notice.querySelector('a, button, sp-button')).to.not.exist;
 
+            sandbox.stub(el, 'localeDefaultFragment').get(() => ({
+                id: 'parent-id',
+                title: 'Parent',
+                path: '/content/dam/mas/sandbox/en_US/my-card',
+            }));
             const editorContainer = document.createElement('div');
             render(el.fragmentEditor, editorContainer);
             const cardEditor = editorContainer.querySelector('merch-card-editor');
             expect(cardEditor).to.exist;
-            expect(cardEditor.deprecationNotice).to.not.equal(nothing);
-            expect(editorContainer.querySelector('.section > .locale-variation-deprecation-notice')).to.not.exist;
+            expect(
+                editorContainer
+                    .querySelector('.derived-from-container')
+                    .nextElementSibling.classList.contains('locale-variation-deprecation-notice'),
+            ).to.be.true;
+            expect(editorContainer.querySelector('merch-card-editor .locale-variation-deprecation-notice')).to.not.exist;
+            expect(editorContainer.querySelector('.section .locale-variation-deprecation-notice')).to.not.exist;
+            expect(cardEditor.deprecationNotice).to.be.undefined;
 
             const previewContainer = document.createElement('div');
             render(el.previewVariationHeader, previewContainer);
@@ -1776,9 +1787,13 @@ describe('MasFragmentEditor', () => {
             expect(el.localeVariationDeprecationNotice).to.equal(nothing);
             render(el.fragmentEditor, container);
             expect(container.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+
+            isVariation.returns(true);
+            sandbox.stub(el, 'isPromoVariationFragment').returns(true);
+            expect(el.localeVariationDeprecationNotice).to.equal(nothing);
         });
 
-        it('renders the deprecation notice inside the section for collection regional variations', () => {
+        it('renders the deprecation notice right after the derived-from block for collection regional variations', () => {
             const fragment = new Fragment({
                 id: 'collection-var-id',
                 path: '/content/dam/mas/sandbox/en_QA/my-collection',
@@ -1788,10 +1803,38 @@ describe('MasFragmentEditor', () => {
             });
             el.inEdit.value = { get: () => fragment };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el, 'localeDefaultFragment').get(() => ({
+                id: 'parent-id',
+                title: 'Parent',
+                path: '/content/dam/mas/sandbox/en_US/my-collection',
+            }));
 
             const container = document.createElement('div');
             render(el.fragmentEditor, container);
-            expect(container.querySelector('.section > .locale-variation-deprecation-notice')).to.exist;
+            expect(
+                container
+                    .querySelector('.derived-from-container')
+                    .nextElementSibling.classList.contains('locale-variation-deprecation-notice'),
+            ).to.be.true;
+            expect(container.querySelector('.section .locale-variation-deprecation-notice')).to.not.exist;
+        });
+
+        it('renders the deprecation notice before the section when there is no distinct parent', () => {
+            const fragment = new Fragment({
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.fragmentEditor, container);
+            const notice = container.querySelector('.locale-variation-deprecation-notice');
+            expect(notice).to.exist;
+            expect(container.querySelector('.section').previousElementSibling).to.equal(notice);
         });
 
         it('renders derived from container', async () => {

@@ -594,6 +594,8 @@ export default class StudioPage {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
         const fragmentUrl = this.page.url();
+        // Navigating away only prompts once the editor registers the change, so wait for Save to enable first.
+        await expect(this.saveCardButton).not.toHaveAttribute('disabled', { timeout: 15000 });
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();
         await this.fragmentsTable.click();

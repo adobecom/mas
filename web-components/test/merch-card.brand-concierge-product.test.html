@@ -181,6 +181,23 @@
                             ),
                         ).to.not.exist;
                     });
+
+                    it('indents the legal plan type only when per-unit text precedes it', async () => {
+                        const [masCommerceService, card] =
+                            getTemplateContent('product-card-wide');
+                        container.append(masCommerceService, card);
+                        await card.checkReady();
+                        const planTypeMargin = (unitClass) => {
+                            const legal = document.createElement('span');
+                            legal.dataset.template = 'legal';
+                            legal.innerHTML = `<span class="price-unit-type ${unitClass}">per license</span><span class="price-plan-type">Annual, billed monthly</span>`;
+                            card.querySelector('[slot="heading-xs"]').append(legal);
+                            return getComputedStyle(legal.querySelector('.price-plan-type'))
+                                .marginInlineStart;
+                        };
+                        expect(planTypeMargin('')).to.not.equal('0px');
+                        expect(planTypeMargin('disabled')).to.equal('0px');
+                    });                    
                 });
             });
         </script>

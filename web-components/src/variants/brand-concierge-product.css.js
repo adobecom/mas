@@ -82,7 +82,7 @@ merch-card[variant="brand-concierge-product"] span[data-template="legal"] .price
     content: none;
 }
 
-merch-card[variant="brand-concierge-product"] span[data-template="legal"] .price-plan-type:not(.disabled) {
+merch-card[variant="brand-concierge-product"] span[data-template="legal"] .price-unit-type:not(.disabled) ~ .price-plan-type:not(.disabled) {
   margin-inline-start: 0.25em; 
 }
 `;

@@ -1,0 +1,113 @@
+/**
+ * Envelope-based dispatcher helpers for MASA (the MAS Studio AI assistant).
+ *
+ * Stage 3.2 cutover — the ai-chat action now returns an `envelope` field on
+ * every response (intent + slots + confidence + meta). This module classifies
+ * the envelope into one of:
+ *
+ *   - `meta`            — ASK_USER / ABORT / START_OVER / SHOW_HELP / REPORT_ERROR
+ *   - `operation`             — read-only or state-changing operation intent, with a tool_target
+ *   - `guided`          — guided-step intent inside a flow (release_create.*, attach_offer, etc.)
+ *   - `unknown`         — intent not in the registry → fall back to old response.type
+ *
+ * Intent → operation mapping is held inline. For state-changing/read-only intents
+ * `tool_target` equals the intent name (per intent-registry.js); the few intents
+ * with no tool_target are listed explicitly in NON_OPERATION_INTENTS.
+ *
+ * The old type-based path stays in place as a safety net — if envelope dispatch
+ * throws, the caller catches and re-runs the old switch.
+ */
+
+export const META_INTENTS = new Set(['ASK_USER', 'ABORT', 'START_OVER', 'SHOW_HELP', 'REPORT_ERROR']);
+
+/**
+ * Intents whose tool_target is null in the registry. These have UI-side or
+ * frontend-only handlers and never dispatch an operation.
+ */
+export const NON_OPERATION_INTENTS = new Set([
+    'attach_offer',
+    'copy_card_link',
+    'open_card_editor',
+    'open_ost',
+    'release_create.start',
+    'release_create.set_product',
+    'release_create.set_commitment',
+    'release_create.list_offers',
+    'release_create.no_offers',
+]);
+
+/**
+ * State-changing intents — these need a confirmation gate before execution.
+ * Mirrors `category: 'state-changing'` entries in intent-registry.js whose
+ * tool_target is an actual operation.
+ */
+export const STATE_CHANGING_INTENTS = new Set([
+    'publish_card',
+    'update_card',
+    'copy_card',
+    'create_locale_variation',
+    'create_grouped_variation',
+    'create_offer_selector',
+    'link_card_to_offer',
+]);
+
+/**
+ * Confirmation templates for state-changing intents. Mirrors the
+ * `confirmation_template` field in intent-registry.js, kept here as a small
+ * subset to avoid importing the full backend registry.
+ *
+ * Keys must be intents that classify as operation-state-changing. A dotted intent
+ * never does — it routes to 'guided' first, and a guided flow renders its own
+ * confirmation — so a template keyed to one can never be looked up.
+ */
+const CONFIRMATION_TEMPLATES = {
+    publish_card: 'Publish card {{id}} to production?',
+    update_card: 'Update card {{id}}?',
+    copy_card: 'Duplicate card {{id}}?',
+    create_locale_variation: 'Create {{locale}} variation of card {{parentId}}?',
+    create_grouped_variation: 'Create grouped variation of card {{parentId}}?',
+    create_offer_selector:
+        'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
+    link_card_to_offer: 'Link card {{cardId}} to offer {{offerSelectorId}}?',
+};
+
+/**
+ * Classify the envelope's intent for dispatch routing.
+ *
+ * @param {object} envelope
+ * @returns {'meta'|'operation-readonly'|'operation-state-changing'|'guided'|'unknown'}
+ */
+export function classifyEnvelopeIntent(envelope) {
+    if (!envelope || typeof envelope.intent !== 'string') return 'unknown';
+    const { intent } = envelope;
+    if (META_INTENTS.has(intent)) return 'meta';
+    // A dotted name is a step of a guided flow, and a guided flow renders its
+    // own confirmation (the release flow's Card Configuration summary), so it
+    // must not also go through the generic gate below. Anything dotted
+    // therefore never reaches STATE_CHANGING_INTENTS.
+    if (intent.includes('.') || NON_OPERATION_INTENTS.has(intent)) return 'guided';
+    if (STATE_CHANGING_INTENTS.has(intent)) return 'operation-state-changing';
+    return 'operation-readonly';
+}
+
+/**
+ * Render a confirmation template against the envelope slots.
+ *
+ * @param {string} intent
+ * @param {object} slots
+ * @returns {string|null} - rendered template, or null if no template exists
+ */
+export function renderConfirmationTemplate(intent, slots = {}) {
+    const tpl = CONFIRMATION_TEMPLATES[intent] ?? null;
+    if (!tpl) return null;
+    return tpl.replace(/{{\s*([\w.]+)\s*}}/g, (_, key) => {
+        const path = key.split('.');
+        let v = slots;
+        for (const p of path) {
+            if (v == null) return '';
+            if (p === 'length' && Array.isArray(v)) return String(v.length);
+            v = v[p];
+        }
+        return v == null ? '' : String(v);
+    });
+}

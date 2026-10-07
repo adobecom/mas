@@ -378,8 +378,11 @@ export class AEMClient {
 
     /**
      * Publish a fragment
+     * @param {string} id
+     * @param {boolean} [publishReferences=true] - when false, publish only this
+     *   fragment and skip its unpublished references
      */
-    async publishFragment(id) {
+    async publishFragment(id, publishReferences = true) {
         const authHeader = await this.authManager.getAuthHeader();
         const csrfToken = await this.getCsrfToken();
 
@@ -401,7 +404,7 @@ export class AEMClient {
             },
             body: JSON.stringify({
                 paths: [fragment.path],
-                filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
+                filterReferencesByStatus: publishReferences ? ['DRAFT', 'UNPUBLISHED'] : [],
                 workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
             }),
         });

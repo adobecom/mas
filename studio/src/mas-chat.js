@@ -2667,7 +2667,14 @@ export class MasChat extends LitElement {
 
                 <div class="welcome-content">
                     <div class="welcome-greeting">
-                        <h1>How can I help?</h1>
+                        <div class="masa-avatar">
+                            <sp-icon-magic-wand></sp-icon-magic-wand>
+                        </div>
+                        <h1>Hi, I'm MASA</h1>
+                        <p class="welcome-subtitle">
+                            Your Merch at Scale assistant. I can create release cards, find offers and products, and answer
+                            questions about Studio — just ask, or pick a starting point below.
+                        </p>
                     </div>
 
                     <div class="welcome-input-wrapper">

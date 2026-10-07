@@ -1547,13 +1547,42 @@
 
 .welcome-greeting {
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spectrum-global-dimension-size-150, 12px);
 }
 
 .welcome-greeting h1 {
     margin: 0;
-    font-size: var(--spectrum-alias-heading-l-text-size, 18px);
-    font-weight: 400;
+    font-size: var(--spectrum-alias-heading-xl-text-size, 22px);
+    font-weight: 600;
     color: var(--spectrum-global-color-gray-900, #000000);
+}
+
+.masa-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c6cff 0%, #4b7bff 100%);
+    color: var(--spectrum-white, #ffffff);
+    box-shadow: 0 6px 18px rgba(91, 108, 255, 0.35);
+}
+
+.masa-avatar sp-icon-magic-wand {
+    width: 28px;
+    height: 28px;
+}
+
+.welcome-subtitle {
+    max-width: 420px;
+    margin: 0;
+    font-size: var(--spectrum-global-dimension-size-175, 14px);
+    line-height: 1.5;
+    color: var(--spectrum-global-color-gray-700, #4b4b4b);
 }
 
 .welcome-input-wrapper {

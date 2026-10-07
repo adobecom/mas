@@ -7,10 +7,9 @@ import './mas-placeholders-creation-modal.js';
 import './mas-placeholders-item.js';
 import Events from '../events.js';
 import { MasRepository } from '../mas-repository.js';
-import { confirmPlaceholderReferences } from './placeholder-reference-guard.js';
-import { showToast, extractLocaleFromPath, extractSurfaceFromPath, isUUID } from '../utils.js';
 import { removeFromIndexFragment, getDictionaryFolderPath } from './mas-placeholders-repository.js';
 import '../mas-selection-panel.js';
+import { isUUID, showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { clearCaches } from '../../libs/fragment-client.js';
@@ -263,18 +262,6 @@ class MasPlaceholders extends LitElement {
             })
             .map((placeholderStore) => placeholderStore.get());
 
-        for (const fragment of fragments) {
-            const shouldProceed = await confirmPlaceholderReferences({
-                aem: this.repository.aem,
-                key: fragment.key,
-                surface: extractSurfaceFromPath(fragment.path),
-                locale: extractLocaleFromPath(fragment.path),
-                excludePath: fragment.path,
-                mode: 'remove',
-            });
-            if (!shouldProceed) return;
-        }
-
         this.pending = true;
         showToast('Deleting placeholders...');
 
@@ -394,7 +381,6 @@ class MasPlaceholders extends LitElement {
             <mas-selection-panel
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
-                .onDelete=${this.onBulkDelete}
                 .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>

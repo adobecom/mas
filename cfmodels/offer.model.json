@@ -1,0 +1,57 @@
+{
+    "name": {
+        "fieldLabel": "Name",
+        "type": "string",
+        "maxLength": 255
+    },
+    "shortName": {
+        "fieldLabel": "Short Name",
+        "type": "string",
+        "maxLength": 255
+    },
+    "internalName": {
+        "fieldLabel": "Internal Name",
+        "type": "string",
+        "maxLength": 255
+    },
+    "description": {
+        "fieldLabel": "Description",
+        "type": "long-text"
+    },
+    "shortDescription": {
+        "fieldLabel": "Short Description",
+        "type": "long-text"
+    },
+    "icons": {
+        "fieldLabel": "Icons",
+        "type": "string[]",
+        "maxLength": 1024
+    },
+    "backgroundImages": {
+        "fieldLabel": "Background Images",
+        "type": "string[]",
+        "maxLength": 1024
+    },
+    "links": {
+        "fieldLabel": "Links",
+        "type": "long-text[]"
+    },
+    "includedApps": {
+        "fieldLabel": "Included Apps",
+        "type": "string[]",
+        "maxLength": 255
+    },
+    "paCode": {
+        "fieldLabel": "PA Code",
+        "type": "string",
+        "maxLength": 255
+    },
+    "source": {
+        "fieldLabel": "Source",
+        "type": "json"
+    },
+    "tags": {
+        "fieldLabel": "Tags",
+        "type": "tag[]"
+    }
+}

@@ -374,7 +374,7 @@
                         const ctas = editor.querySelector('rte-field#ctas');
                         expect(ctas).to.exist;
                         expect(ctas.hasAttribute('is-headless-cta')).to.be.true;
-                        expect(ctas.getAttribute('default-link-style')).to.equal('primary');
+                        expect(ctas.getAttribute('default-link-style')).to.equal('secondary-link');
                         await ctas.updateComplete;
                         expect(ctas.shadowRoot.querySelectorAll('sp-action-button')).to.have.length(2);
                         expect(ctas.shadowRoot.querySelector('#linkEditorButton')).to.exist;
@@ -387,6 +387,7 @@
 
                             const ctas = editor.querySelector('rte-field#ctas');
                             await ctas.updateComplete;
+                            expect(ctas.defaultLinkStyle).to.equal('secondary-link');
                             const toolbar = ctas.shadowRoot.querySelector('sp-action-group');
                             expect([...toolbar.querySelectorAll('sp-action-button')].map((button) => button.id)).to.deep.equal([
                                 'linkEditorButton',

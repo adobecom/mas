@@ -573,12 +573,12 @@ class MasField extends HTMLElement {
         if (!this.#fields || !this.#field) return;
         this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
-        // Milo can hoist the page's emphasis wrappers inside mas-field after the first render.
+        // FEDS wrappers own presentation even without emphasis; Milo can hoist emphasis inside mas-field.
         const pageOwnsCta =
             fieldName === 'ctas' &&
             index !== null &&
             !!(
-                this.closest('strong, em') ||
+                this.closest('strong, em, .feds-cta-wrapper') ||
                 this.querySelector(':scope > strong, :scope > em')
             );
 

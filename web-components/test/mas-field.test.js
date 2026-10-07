@@ -289,8 +289,13 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         const fragment = document.createElement('aem-fragment');
         el.append(fragment);
         if (wrapperTag) {
-            const wrapper = document.createElement(wrapperTag);
+            const wrapper = document.createElement(
+                wrapperTag === 'feds-cta-wrapper' ? 'span' : wrapperTag,
+            );
             wrapper.className = 'indexed-cta-override';
+            if (wrapperTag === 'feds-cta-wrapper') {
+                wrapper.classList.add(wrapperTag);
+            }
             wrapper.append(el);
             document.body.append(wrapper);
         } else {
@@ -470,7 +475,7 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
                 expect(link.getAttribute('href')).to.equal('/buy');
                 expect(el.querySelector('[slot="footer"]')).to.not.exist;
             });
-            for (const wrapper of ['strong', 'em']) {
+            for (const wrapper of ['strong', 'em', 'feds-cta-wrapper']) {
                 it(`skips Studio ${variant} for ctas[${reference}] with a page-authored ${wrapper} override`, () => {
                     const el = makeIndexedField(
                         reference,
@@ -483,7 +488,9 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
                     expect(link.isCheckoutLink).to.be.true;
                     expect(link.dataset.key).to.equal('buy');
                     expect(el.parentElement.tagName).to.equal(
-                        wrapper.toUpperCase(),
+                        wrapper === 'feds-cta-wrapper'
+                            ? 'SPAN'
+                            : wrapper.toUpperCase(),
                     );
                 });
             }
@@ -856,6 +863,48 @@ describe('mas-field – Studio defaults and page-owned individual overrides', ()
             expect(primary.dataset.key).to.equal('trial');
             expect(text.querySelector('p[hidden] a')).to.exist;
         });
+    }
+
+    for (const reference of ['1', 'trial']) {
+        for (const wrapperOnHost of [false, true]) {
+            it(`preserves unformatted FEDS ctas[${reference}] with the wrapper on the ${wrapperOnHost ? 'host' : 'parent'}`, () => {
+                const paragraph = document.createElement('p');
+                const fieldMarkup = `<mas-field field="ctas[${reference}]"${wrapperOnHost ? ' class="feds-cta-wrapper"' : ''}><aem-fragment></aem-fragment></mas-field>`;
+                paragraph.innerHTML = wrapperOnHost
+                    ? fieldMarkup
+                    : `<span class="feds-cta-wrapper">${fieldMarkup}</span>`;
+                fixture.querySelector('.text').append(paragraph);
+                const field = paragraph.querySelector('mas-field');
+                const fragment = field.querySelector('aem-fragment');
+                for (const variant of [
+                    'primary',
+                    'secondary',
+                    'secondary-link',
+                ]) {
+                    fragment.dispatchEvent(
+                        new CustomEvent('aem:load', {
+                            bubbles: true,
+                            detail: {
+                                fields: {
+                                    ctas: `<a class="${variant}" data-wcs-osi="ABC" data-key="trial"><em>Free</em> trial</a>`,
+                                },
+                            },
+                        }),
+                    );
+                    expect(paragraph.querySelectorAll('a')).to.have.lengthOf(1);
+                    const link = field.querySelector('a');
+                    expect(link.hasAttribute('class')).to.be.false;
+                    expect(link.isCheckoutLink).to.be.true;
+                    expect(link.dataset.key).to.equal('trial');
+                    expect(link.querySelector('em').textContent).to.equal(
+                        'Free',
+                    );
+                    expect(paragraph.classList.contains('action-area')).to.be
+                        .false;
+                    expect(field.closest('.feds-cta-wrapper')).to.exist;
+                }
+            });
+        }
     }
 
     it('keeps a classless indexed CTA available to page decoration after readiness', () => {

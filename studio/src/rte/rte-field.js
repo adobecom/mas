@@ -1430,6 +1430,7 @@ class RteField extends LitElement {
         const isCheckoutLink = isNodeCheckoutLink(selection.node);
         const isPhoneLink = isNodePhoneLink(selection.node);
         let linkType = isPhoneLink ? 'phone' : 'web';
+        const defaultVariant = this.defaultLinkStyle ?? (this.isHeadlessCta ? 'secondary-link' : undefined);
 
         let checkoutParameters = undefined;
         if (isCheckoutLink) {
@@ -1469,7 +1470,7 @@ class RteField extends LitElement {
                 title: '',
                 text,
                 target: '_self',
-                variant: this.defaultLinkStyle,
+                variant: defaultVariant,
                 ariaLabel: '',
                 analyticsId: '',
                 checkoutParameters,
@@ -1484,7 +1485,7 @@ class RteField extends LitElement {
             title: '',
             text: '',
             target: '_self',
-            variant: this.defaultLinkStyle,
+            variant: defaultVariant,
             ariaLabel: '',
             analyticsId: '',
             checkoutParameters,
@@ -1534,7 +1535,7 @@ class RteField extends LitElement {
             title,
             'aria-label': ariaLabel || null,
             target: target || '_self',
-            class: variant || this.defaultLinkStyle || 'primary-outline',
+            class: variant || this.defaultLinkStyle || (this.isHeadlessCta ? 'secondary-link' : 'primary-outline'),
             tabIndex: '0',
             'data-extra-options': checkoutParameters || null,
             'data-analytics-id': analyticsId || null,
@@ -1596,7 +1597,10 @@ class RteField extends LitElement {
             attributes.is === CUSTOM_ELEMENT_INLINE_PRICE ? state.schema.nodes.inlinePrice : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
-            class: selection.node?.attrs.class ?? this.ostTargetClass,
+            class:
+                selection.node?.attrs.class ??
+                this.ostTargetClass ??
+                (this.isHeadlessCta && attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK ? 'primary' : null),
             ...attributes,
         };
 

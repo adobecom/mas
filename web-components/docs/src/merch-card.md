@@ -14,6 +14,7 @@ For `headless`, `marquee`, and `banner-blade` fragments, the RTE link dialog
 persists CTA variants as link classes. Hydration uses those variants to render
 primary buttons, secondary buttons, and links in the fragment's authored order.
 Bold and italic remain text formatting, not CTA variant controls.
+New commerce CTAs default to Primary button; new web links default to Link.
 
 `<mas-field field="ctas">` hydrates the entire CTA group without requiring Milo
 button decoration. Groups inherit the surrounding Milo block's button size,
@@ -22,10 +23,10 @@ authored button sizes.
 
 Indexed fields, such as `ctas[1]` or `ctas[reference-key]`, use Studio variants
 by default, with the same sizing and utility-class handling as full groups. Page-authored
-bold/italic wrappers around an individual reference explicitly override that
+bold/italic wrappers or a `feds-cta-wrapper` around an individual reference explicitly override that
 presentation: MAS preserves those wrappers, skips fragment styling, and lets
 Milo decorate the CTA. Existing formatted references keep their page-owned styles.
-An unformatted reference inherits Studio, including when the stored variant is Link;
+An unformatted reference outside a `feds-cta-wrapper` inherits Studio, including when the stored variant is Link;
 absence of formatting does not override a Studio button to Link.
 
 Individual Copy Field links do not add variant-derived emphasis, so newly copied

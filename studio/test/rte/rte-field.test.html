@@ -41,6 +41,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
 
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
@@ -565,11 +566,98 @@
 
                 describe('RTE Field: persisted headless CTA variants', () => {
                     let rte;
+                    let openOst;
+
+                    beforeEach(() => {
+                        openOst = sinon.stub(window.ost, 'openOfferSelectorTool').returns(() => {});
+                    });
+
+                    afterEach(() => {
+                        openOst.restore();
+                    });
 
                     const firstLink = () => rte.shadowRoot.querySelector('.ProseMirror a');
 
                     const boldButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Bold"]');
                     const italicButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Italic"]');
+
+                    it('defaults a newly authored web link to Link and persists it when saved', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.updateContent('');
+                        await delay(50);
+                        await rte.openLinkEditor();
+                        const editor = rte.linkEditorElement;
+                        await editor.updateComplete;
+                        expect(editor.variant).to.equal('secondary-link');
+                        expect(editor.shadowRoot.querySelector('sp-link.selected').textContent.trim()).to.equal('Link');
+                        editor.href = '/details';
+                        editor.text = 'Details';
+                        await editor.updateComplete;
+                        clickSave(rte);
+                        await delay(50);
+                        expect(firstLink().className).to.equal('secondary-link');
+                        expect(firstLink().getAttribute('href')).to.equal('/details');
+                    });
+
+                    it('defaults a new commerce CTA to Primary, independently of the web link default', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.defaultLinkStyle = 'secondary-link';
+                        rte.updateContent('');
+                        await delay(50);
+                        rte.handleOpenOfferSelector(new Event('click'));
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_SELECT, {
+                                detail: { is: 'checkout-link', 'data-wcs-osi': 'osi-new', text: 'Buy now' },
+                                bubbles: true,
+                            }),
+                        );
+                        await delay(50);
+                        expect(firstLink().className).to.equal('primary');
+                        rte.selectLink(1);
+                        await rte.openLinkEditor();
+                        const editor = rte.linkEditorElement;
+                        await editor.updateComplete;
+                        expect(editor.variant).to.equal('primary');
+                        expect(editor.shadowRoot.querySelector('sp-button.selected').textContent.trim()).to.equal(
+                            'Primary button',
+                        );
+                    });
+
+                    for (const variant of ['primary', 'secondary', 'secondary-link']) {
+                        it(`preserves ${variant} when an existing commerce CTA is edited through OST`, async function () {
+                            rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                            rte.updateContent(`<a class="${variant}" data-wcs-osi="osi-old">Buy now</a>`);
+                            await delay(50);
+                            rte.selectLink(1);
+                            rte.handleOpenOfferSelector(null, firstLink());
+                            document.dispatchEvent(
+                                new CustomEvent(EVENT_OST_SELECT, {
+                                    detail: { is: 'checkout-link', 'data-wcs-osi': 'osi-updated', text: 'Buy now' },
+                                    bubbles: true,
+                                }),
+                            );
+                            await delay(50);
+                            expect(firstLink().className).to.equal(variant);
+                            expect(firstLink().dataset.wcsOsi).to.equal('osi-updated');
+                        });
+                    }
+
+                    it('does not assign a CTA variant to a newly inserted inline price', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.updateContent('');
+                        await delay(50);
+                        rte.handleOpenOfferSelector(new Event('click'));
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_SELECT, {
+                                detail: { is: 'inline-price', 'data-wcs-osi': 'osi-price' },
+                                bubbles: true,
+                            }),
+                        );
+                        await delay(50);
+                        const price = rte.shadowRoot.querySelector('.ProseMirror [is="inline-price"]');
+                        expect(price).to.exist;
+                        expect(price.classList.contains('primary')).to.be.false;
+                    });
 
                     it('toggles Bold formatting without changing the selected CTA variant', async function () {
                         rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);

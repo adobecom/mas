@@ -1128,10 +1128,10 @@ describe('hydrate rendering mode (consonant vs spectrum)', () => {
         expect(footerCta().classList.contains('con-button')).to.be.true;
     });
 
-    it('sets spectrum="css" from the metadata of a non-consonant variant', async () => {
+    it('leaves a non-consonant variant without consonant or spectrum attributes', async () => {
         await createCard();
         await hydrate(ccdSliceFragment(), card);
-        expect(card.getAttribute('spectrum')).to.equal('css');
+        expect(card.hasAttribute('spectrum')).to.be.false;
         expect(card.hasAttribute('consonant')).to.be.false;
         expect(footerCta().classList.contains('spectrum-Button')).to.be.true;
     });

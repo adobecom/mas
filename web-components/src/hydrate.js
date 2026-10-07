@@ -1152,14 +1152,11 @@ export async function hydrate(fragment, merchCard) {
 
     // A consumer-declared `consonant` or `spectrum` wins; otherwise the variant metadata decides.
     if (
+        mapping.style === 'consonant' &&
         !merchCard.hasAttribute('consonant') &&
         !merchCard.hasAttribute('spectrum')
     ) {
-        if (mapping.style === 'consonant') {
-            merchCard.setAttribute('consonant', true);
-        } else {
-            merchCard.setAttribute('spectrum', 'css');
-        }
+        merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
     processTrialBadge(fields, merchCard, mapping);

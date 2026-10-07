@@ -2700,7 +2700,7 @@ export class MasChat extends LitElement {
             <div class="chat-page-container">
                 <div class="chat-header">
                     <div class="chat-header-content">
-                        <h2 class="chat-header-title">AI Assistant</h2>
+                        <h2 class="chat-header-title">MASA</h2>
                     </div>
                     <div class="chat-header-actions">
                         <mas-chat-session-selector></mas-chat-session-selector>

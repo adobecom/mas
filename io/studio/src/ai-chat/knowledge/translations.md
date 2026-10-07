@@ -7,7 +7,7 @@ keywords: translation, translate, localize, localization, locale, language, tran
 
 ## How do I create a translation project?
 
-Open the Translations page from the MAS Studio side navigation and click the "Create project" button. This opens the translation project editor, where you give the project a title, choose one or more target locales, and add the content to translate: cards (fragments), placeholders, and collections. A project cannot be saved until it has a title, at least one target locale, and at least one selected item. The title is used as the localization task name, so it must be at most 255 characters, contain at least one letter or number, and use only letters, numbers, hyphens, underscores, and dots (consecutive dots are not allowed). Translation projects are created on this page; the AI assistant cannot create or submit them.
+Open the Translations page from the MAS Studio side navigation and click the "Create project" button. This opens the translation project editor, where you give the project a title, choose one or more target locales, and add the content to translate: cards (fragments), placeholders, and collections. A project cannot be saved until it has a title, at least one target locale, and at least one selected item. The title is used as the localization task name, so it must be at most 255 characters, contain at least one letter or number, and use only letters, numbers, hyphens, underscores, and dots (consecutive dots are not allowed). Translation projects are created on this page; MASA cannot create or submit them.
 
 ## What does a translation project contain?
 
@@ -15,11 +15,11 @@ A translation project is stored as a content fragment with these fields: title, 
 
 ## How do I add content and locales to a translation project?
 
-In the translation project editor, "Add items" opens an overlay with tabs for cards, placeholders, and collections; search and filters (template, market segment, customer segment, product) help find the content, and Cancel reverts to the selection you had when the overlay opened. "Add languages" opens the target-locale picker the same way. The editor's quick-action bar offers Save, the send-for-localization action, Copy, Discard, and Delete. You can also start a pre-filled project from the fragment editor: the missing-variation panel routes to a new translation project with that card and the missing locale already selected. Studio has no dedicated translation coverage page — the fragment editor's variations panel shows which locales a card has. The AI assistant cannot produce coverage reports; ask it to list a card's variation locales instead.
+In the translation project editor, "Add items" opens an overlay with tabs for cards, placeholders, and collections; search and filters (template, market segment, customer segment, product) help find the content, and Cancel reverts to the selection you had when the overlay opened. "Add languages" opens the target-locale picker the same way. The editor's quick-action bar offers Save, the send-for-localization action, Copy, Discard, and Delete. You can also start a pre-filled project from the fragment editor: the missing-variation panel routes to a new translation project with that card and the missing locale already selected. Studio has no dedicated translation coverage page — the fragment editor's variations panel shows which locales a card has. MASA cannot produce coverage reports; ask it to list a card's variation locales instead.
 
 ## How do I send a translation project for localization?
 
-After creating and saving the project, use the send-for-localization action in the translation project editor. Studio calls the translation-project-start backend action with the project ID and the current surface, authenticated with your IMS token. On success the submission date is stamped on the project, its status becomes Pending, and the project becomes read-only in the editor. This is a Studio action only; the AI assistant cannot submit a project for you.
+After creating and saving the project, use the send-for-localization action in the translation project editor. Studio calls the translation-project-start backend action with the project ID and the current surface, authenticated with your IMS token. On success the submission date is stamped on the project, its status becomes Pending, and the project becomes read-only in the editor. This is a Studio action only; MASA cannot submit a project for you.
 
 ## What do the translation project statuses mean?
 
@@ -33,7 +33,7 @@ Submission is asynchronous. The translation-project-start action validates the r
 
 A rollout project is a translation project whose projectType field is set to "rollout". Instead of sending content out for translation, the backend sends the selected content paths and target locales to the Odin locale-sync endpoint, which copies the content into the target locales as-is. This is useful when you need locale copies of fragments without changing the text, for example when the content is language-neutral or will be edited manually per locale. Rollout projects go through the same submission pipeline as translation projects: they are queued, synced, and dispatched asynchronously, and the same status labels apply on the Translations page.
 
-## What can the AI assistant do with translations?
+## What can MASA do with translations?
 
 Nothing directly. Translation projects are created, edited and submitted on the Translations page in Studio, not through the assistant.
 

@@ -38,7 +38,7 @@ export default class MasChatPage {
 
     async open() {
         await this.page.goto('/studio.html');
-        const chatButton = this.page.locator('sp-action-button[label="AI Chat"]');
+        const chatButton = this.page.locator('sp-action-button[title="Open MASA"]');
         await chatButton.click();
         await expect(this.chatContainer).toBeVisible({ timeout: 10000 });
     }

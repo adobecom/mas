@@ -97,7 +97,7 @@ export class MasChatDrawer extends LitElement {
                     @session-changed=${this.relaySessionEvent}
                     @session-cleared=${this.relaySessionEvent}
                 >
-                    <h3>AI Assistant</h3>
+                    <h3>MASA</h3>
                     <div class="chat-drawer-header-actions">
                         <mas-chat-session-selector></mas-chat-session-selector>
                         <sp-action-button quiet size="s" @click=${this.close} title="Close">

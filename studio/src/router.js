@@ -287,7 +287,7 @@ export class Router extends EventTarget {
                     }
                     // Clear the product-detail arrangement code when leaving
                     // the product catalog so the hash-linked `arrangementCode`
-                    // param doesn't bleed into unrelated pages (AI Assistant,
+                    // param doesn't bleed into unrelated pages (MASA,
                     // Fragments, etc.) where it's semantically meaningless.
                     if (Store.page.value === PAGE_NAMES.PRODUCT_CATALOG && targetPage !== PAGE_NAMES.PRODUCT_CATALOG) {
                         Store.productDetail.arrangementCode.set(null);

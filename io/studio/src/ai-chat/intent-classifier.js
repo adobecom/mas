@@ -35,7 +35,7 @@ const VALID_INTENTS = new Set([
 
 const DEFAULT_CLASSIFIER_MODEL_ID = 'aifoundry/Qwen/Qwen-latest';
 
-const CLASSIFIER_SYSTEM_PROMPT = `You are an intent classifier for the Adobe Merch at Scale (M@S) AI assistant.
+const CLASSIFIER_SYSTEM_PROMPT = `You are an intent classifier for MASA, the Adobe Merch at Scale (M@S) AI assistant.
 
 Your only job: read the user's message and the recent conversation context, and emit ONE intent label that tells the downstream system which workflow prompt to load.
 

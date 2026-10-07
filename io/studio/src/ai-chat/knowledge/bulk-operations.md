@@ -5,7 +5,7 @@ keywords: bulk, bulk update, bulk publish, bulk unpublish, publish multiple, bat
 
 # Bulk Operations in MAS Studio
 
-## Can the AI assistant update or publish many cards at once?
+## Can MASA update or publish many cards at once?
 
 No. The assistant does not run bulk updates or bulk publishes, and it has no
 operation for either. Bulk work happens in Studio itself, which has a purpose

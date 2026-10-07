@@ -1,5 +1,5 @@
 /**
- * Deterministic search-intent classifier for the MAS AI assistant.
+ * Deterministic search-intent classifier for MASA (the MAS AI assistant).
  *
  * Replaces LLM tool-calling for the common, high-confidence search patterns:
  *   - Fragment ID lookup (UUID v4 shape)

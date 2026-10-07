@@ -49,7 +49,7 @@ export class MasChatFab extends LitElement {
                 class="chat-fab ${this.open ? 'chat-fab-active' : ''}"
                 size="l"
                 @click=${this.toggleDrawer}
-                title="${this.open ? 'Close AI Assistant' : 'Open AI Assistant'}"
+                title="${this.open ? 'Close MASA' : 'Open MASA'}"
             >
                 ${this.open
                     ? html`<sp-icon-close slot="icon"></sp-icon-close>`

@@ -11,7 +11,7 @@ Placeholders are reusable key/value text entries scoped to a surface and a local
 
 ## How do I create a placeholder?
 
-Use the Create New Placeholder dialog on the Placeholders page. It asks for a Key, a Locale (a region picker that defaults to the current locale), an optional Rich Text toggle, and a Value. Key and Value are required, and the key is normalized as you type. On create, Studio creates the dictionary entry fragment under the surface and locale's dictionary path, tags it as draft, and registers it in the dictionary index fragment so it can be resolved; if updating the index fails, the creation is reported as failed. New placeholders start in draft status and must be published to go live. The AI assistant does not currently create or edit placeholders; use the Placeholders page.
+Use the Create New Placeholder dialog on the Placeholders page. It asks for a Key, a Locale (a region picker that defaults to the current locale), an optional Rich Text toggle, and a Value. Key and Value are required, and the key is normalized as you type. On create, Studio creates the dictionary entry fragment under the surface and locale's dictionary path, tags it as draft, and registers it in the dictionary index fragment so it can be resolved; if updating the index fails, the creation is reported as failed. New placeholders start in draft status and must be published to go live. MASA does not currently create or edit placeholders; use the Placeholders page.
 
 ## How do rich text placeholders work?
 

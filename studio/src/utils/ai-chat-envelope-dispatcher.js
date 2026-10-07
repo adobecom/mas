@@ -1,5 +1,5 @@
 /**
- * Envelope-based dispatcher helpers for the MAS Studio AI Assistant.
+ * Envelope-based dispatcher helpers for MASA (the MAS Studio AI assistant).
  *
  * Stage 3.2 cutover — the ai-chat action now returns an `envelope` field on
  * every response (intent + slots + confidence + meta). This module classifies

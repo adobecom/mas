@@ -9,7 +9,7 @@ keywords: collection, merch card collection, variation, locale variation, groupe
 
 A collection is an AEM content fragment that groups merch cards. It uses the dedicated collection fragment model and is tagged mas:studio/content-type/merch-card-collection. The collection stores references to its member cards in a multi-value field along with a display label. Collections live in the same surface and locale folder structure as cards, and they can be attached to promotions alongside individual cards. Grouped (personalization) variations can also be created for collections, not only for cards. In the collection editor, member cards are added by pasting Studio card links into the cards list — pasted links are de-duplicated against the existing members — and removed line by line; there is no drag-and-drop reordering.
 
-## Can the AI assistant create collections or add cards to them?
+## Can MASA create collections or add cards to them?
 
 No. Collections are created and edited in Studio, not through chat. The assistant
 has no collection operations: it cannot create one, add cards to one, or search
@@ -34,7 +34,7 @@ A locale variation is a per-locale copy of a card whose parent is the locale def
 
 A grouped variation is a personalization variation created under a parent fragment and driven by pzn tags rather than by locale. In the variation dialog it is only offered when the source fragment is the en_US fragment or a collection, and at least one pzn tag must be selected before it can be created. For cards, creating a grouped variation first resolves the fragment's OSI to its offer data; collections use a dedicated product arrangement code instead. Grouped variations are stored under a personalization (pzn) folder in the fragment path and appear in the fragment editor's variations panel next to locale variations and promo variations.
 
-## Which variation operations can the AI assistant perform?
+## Which variation operations can MASA perform?
 
 Read-only: get_variations returns the variation graph for a fragment. State-changing, and always requiring confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags.
 

@@ -11,21 +11,21 @@ A card is a content fragment authored in MAS Studio: the text, images, badges, a
 
 ## What is an OSI (Offer Selector ID)?
 
-An OSI is the identifier stored on a card that selects its offer. It is a string of 7 to 64 characters made of letters, digits, underscores, and hyphens. An OSI is locale-agnostic: the same OSI works across all locales where the offer is valid, and currency, tax labels, and formatting are resolved automatically for the page's locale. An OSI is not the same thing as a raw offer ID, which is a 32-character hexadecimal string identifying one specific offer in AOS. The AI assistant can resolve an OSI to its underlying offer details, and can also fetch a single offer directly by its 32-character hex offer ID.
+An OSI is the identifier stored on a card that selects its offer. It is a string of 7 to 64 characters made of letters, digits, underscores, and hyphens. An OSI is locale-agnostic: the same OSI works across all locales where the offer is valid, and currency, tax labels, and formatting are resolved automatically for the page's locale. An OSI is not the same thing as a raw offer ID, which is a 32-character hexadecimal string identifying one specific offer in AOS. MASA can resolve an OSI to its underlying offer details, and can also fetch a single offer directly by its 32-character hex offer ID.
 
 ## What is the Offer Selector Tool (OST)?
 
-OST is Studio's built-in tool for finding an offer and attaching it to a card. Open it from the Offer Selector ID field in the card editor, search by product name, and narrow results by customer segment (individual, team, student), commitment, and term (monthly, annual). Selecting an offer inserts its OSI into the card; save the card afterwards so the OSI persists. OST also opens from the price and CTA fields in the card editor — selecting an offer there inserts an inline price or a checkout link into the field at the cursor. In release flows OST can open in a multi-select mode that picks a base offer and a trial offer together. The AI assistant can open OST for you on request, optionally pre-filled with search parameters.
+OST is Studio's built-in tool for finding an offer and attaching it to a card. Open it from the Offer Selector ID field in the card editor, search by product name, and narrow results by customer segment (individual, team, student), commitment, and term (monthly, annual). Selecting an offer inserts its OSI into the card; save the card afterwards so the OSI persists. OST also opens from the price and CTA fields in the card editor — selecting an offer there inserts an inline price or a checkout link into the field at the cursor. In release flows OST can open in a multi-select mode that picks a base offer and a trial offer together. MASA can open OST for you on request, optionally pre-filled with search parameters.
 
 ## How do I link an offer to a card?
 
-In the editor, open OST from the OSI field, pick the offer, insert it, and save the card. Alternatively, ask the AI assistant to link a card to an offer by giving it the card ID and the OSI; it confirms with you before making the change. After linking, the assistant can validate card-offer consistency: it checks that the card's tags (plan type, offer type, customer segment) agree with the linked offer and reports any mismatches.
+In the editor, open OST from the OSI field, pick the offer, insert it, and save the card. Alternatively, ask MASA to link a card to an offer by giving it the card ID and the OSI; it confirms with you before making the change. After linking, the assistant can validate card-offer consistency: it checks that the card's tags (plan type, offer type, customer segment) agree with the linked offer and reports any mismatches.
 
 ## How do I find offers or products without opening OST?
 
-Ask the AI assistant. It can search the AOS offer catalog with filters such as product arrangement code, commitment, term, customer segment, market segment, offer type, country, locale, and price point. It can list Adobe products from the catalog and search them by name, fetch a single product by its exact product arrangement (PA) code, and compare all plan types available for one product arrangement side by side. These are read-only lookups, so no confirmation is needed.
+Ask MASA. It can search the AOS offer catalog with filters such as product arrangement code, commitment, term, customer segment, market segment, offer type, country, locale, and price point. It can list Adobe products from the catalog and search them by name, fetch a single product by its exact product arrangement (PA) code, and compare all plan types available for one product arrangement side by side. These are read-only lookups, so no confirmation is needed.
 
-## Can the AI assistant create a new offer selector?
+## Can MASA create a new offer selector?
 
 Yes. To create an offer selector the assistant needs the product arrangement code, customer segment, market segment, and offer type; commitment, term, and price point are optional refinements. It asks for your confirmation, creates the selector in AOS, and returns the new OSI, which you or the assistant can then link to a card.
 

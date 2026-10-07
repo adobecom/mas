@@ -405,7 +405,7 @@ User in ACOM/en_US: "show me all locale versions of plans cards"
 → include \`"locale": "all"\` in operationParams (search across all locales)
 
 ## DELETE FRAGMENT
-Card deletion is not supported by the AI assistant. If the user asks to delete a card or collection, politely decline and suggest they use MAS Studio directly. Do not emit a delete operation under any circumstances.
+Card deletion is not supported by MASA. If the user asks to delete a card or collection, politely decline and suggest they use MAS Studio directly. Do not emit a delete operation under any circumstances.
 
 ## COPY/DUPLICATE FRAGMENT
 Create a copy of an existing card.
@@ -483,7 +483,7 @@ User: "Show me the Creative Cloud All Apps card in acom"
 → Return: { type: "studio_operation", operationName: "search_cards", operationParams: { surface: "acom", query: "Creative Cloud All Apps" }, ... }
 
 User: "Delete test-card-123"
-→ Decline politely. Card deletion is not supported by the AI assistant — direct the user to MAS Studio.
+→ Decline politely. Card deletion is not supported by MASA — direct the user to MAS Studio.
 `;
 
 const BULK_OPS = `
@@ -920,7 +920,7 @@ User attaches card "abc-123" and says: "publish this card"
 \`\`\`
 
 User attaches multiple cards and says: "delete these cards"
-→ Decline politely. Card deletion is not supported by the AI assistant — direct the user to MAS Studio.
+→ Decline politely. Card deletion is not supported by MASA — direct the user to MAS Studio.
 
 User attaches card "abc-123" and says: "what offer does this card have?"
 → First get the card to extract OSI, then resolve offer:

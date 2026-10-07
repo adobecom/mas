@@ -81,7 +81,7 @@ test.describe('MAS Chat - Create cards with AI (NPI end-to-end)', () => {
         await test.step('Open Studio and the AI assistant', async () => {
             await page.goto(studioUrl(baseURL));
             await page.waitForLoadState('networkidle');
-            await page.locator('sp-sidenav-item[label="Cosmocat"]').click({ timeout: 10000 });
+            await page.locator('mas-side-nav-item[label="MASA"]').click({ timeout: 10000 });
             await expect(masChat.chatContainer).toBeVisible({ timeout: 10000 });
         });
 

@@ -9,7 +9,7 @@ export const KNOWLEDGE_CHUNKS = [
         id: 'bulk-operations.md#0',
         topic: 'bulk-operations',
         title: 'Bulk Operations in MAS Studio',
-        section: 'Can the AI assistant update or publish many cards at once?',
+        section: 'Can MASA update or publish many cards at once?',
         keywords: [
             'bulk',
             'bulk update',
@@ -202,7 +202,7 @@ export const KNOWLEDGE_CHUNKS = [
             'modified',
             'surface',
         ],
-        text: "Open MAS Studio at https://mas.adobe.com/studio.html, use the folder picker in the top navigation to choose the surface and folder where the card should live, and click Create, which offers the available content types: merch card, collection, and compare chart. The create dialog asks for a title — and for a merch card, an offer chosen through the Offer Selector Tool, unless the folder's template is offerless. After creation the card opens in the editor panel, where you choose the variant and fill in the fields: title, description, prices, CTAs, and optional extras such as a badge, mnemonics (product icons), or a background image. The editor shows a live preview as you type. Saving stores the card as a content fragment in Draft status; it is not visible to end users until you publish it. You can also describe the card you want to the AI assistant in the chat panel, or duplicate an existing card and edit the copy — the assistant can duplicate a card for you if you give it the card ID.",
+        text: "Open MAS Studio at https://mas.adobe.com/studio.html, use the folder picker in the top navigation to choose the surface and folder where the card should live, and click Create, which offers the available content types: merch card, collection, and compare chart. The create dialog asks for a title — and for a merch card, an offer chosen through the Offer Selector Tool, unless the folder's template is offerless. After creation the card opens in the editor panel, where you choose the variant and fill in the fields: title, description, prices, CTAs, and optional extras such as a badge, mnemonics (product icons), or a background image. The editor shows a live preview as you type. Saving stores the card as a content fragment in Draft status; it is not visible to end users until you publish it. You can also describe the card you want to MASA in the chat panel, or duplicate an existing card and edit the copy — the assistant can duplicate a card for you if you give it the card ID.",
     },
     {
         id: 'cards-and-publishing.md#1',
@@ -240,7 +240,7 @@ export const KNOWLEDGE_CHUNKS = [
             'modified',
             'surface',
         ],
-        text: 'A surface is a destination where merch cards render: acom (adobe.com pages), ccd (Creative Cloud Desktop), commerce (Unified Checkout), adobe-home (Adobe Home), and express (Adobe Express). There is also a sandbox area for testing. Card content is stored under the /content/dam/mas/ path in AEM, organized into folders per surface, so the folder where you create a card determines its surface, and the surface determines which variants are valid. The AI assistant detects the surface from the folder you are currently browsing and suggests matching variants, and card searches can be filtered by surface and locale.',
+        text: 'A surface is a destination where merch cards render: acom (adobe.com pages), ccd (Creative Cloud Desktop), commerce (Unified Checkout), adobe-home (Adobe Home), and express (Adobe Express). There is also a sandbox area for testing. Card content is stored under the /content/dam/mas/ path in AEM, organized into folders per surface, so the folder where you create a card determines its surface, and the surface determines which variants are valid. MASA detects the surface from the folder you are currently browsing and suggests matching variants, and card searches can be filtered by surface and locale.',
     },
     {
         id: 'cards-and-publishing.md#3',
@@ -259,7 +259,7 @@ export const KNOWLEDGE_CHUNKS = [
             'modified',
             'surface',
         ],
-        text: 'Open the card in the editor, make sure there are no validation errors and all required fields for the variant are filled, then use the Publish action and confirm. The card status changes from Draft to Published and the fragment becomes available to consuming pages through the delivery API. Publishing also publishes the card\'s referenced fragments that are still in draft or unpublished status, so dependencies go live together. To publish many items at once, use a bulk publish project under Advanced tools, or ask the AI assistant. The AI assistant can publish a card if you ask (for example "publish this card"); it always asks for your confirmation before publishing, and for multiple cards it can first show a preview of exactly which cards would be affected before running the job.',
+        text: 'Open the card in the editor, make sure there are no validation errors and all required fields for the variant are filled, then use the Publish action and confirm. The card status changes from Draft to Published and the fragment becomes available to consuming pages through the delivery API. Publishing also publishes the card\'s referenced fragments that are still in draft or unpublished status, so dependencies go live together. To publish many items at once, use a bulk publish project under Advanced tools, or ask MASA. MASA can publish a card if you ask (for example "publish this card"); it always asks for your confirmation before publishing, and for multiple cards it can first show a preview of exactly which cards would be affected before running the job.',
     },
     {
         id: 'cards-and-publishing.md#4',
@@ -278,7 +278,7 @@ export const KNOWLEDGE_CHUNKS = [
             'modified',
             'surface',
         ],
-        text: 'The Fragments page has a text search plus a filter panel with facets for template, market segment, customer segment, product, offer type, plan type, personalization (pzn) tags, arbitrary tags, and status. The locale you are browsing comes from the locale picker in the top navigation, and the surface and folder come from the folder picker next to it. A personalization toggle hides or shows grouped-variation content in the list. The AI assistant can run the same searches conversationally, including by linked offer ID.',
+        text: 'The Fragments page has a text search plus a filter panel with facets for template, market segment, customer segment, product, offer type, plan type, personalization (pzn) tags, arbitrary tags, and status. The locale you are browsing comes from the locale picker in the top navigation, and the surface and folder come from the folder picker next to it. A personalization toggle hides or shows grouped-variation content in the list. MASA can run the same searches conversationally, including by linked offer ID.',
     },
     {
         id: 'cards-and-publishing.md#5',
@@ -316,13 +316,13 @@ export const KNOWLEDGE_CHUNKS = [
             'modified',
             'surface',
         ],
-        text: 'Unpublishing removes a card from delivery, so any live page that references the fragment stops rendering it. Typical reasons to unpublish are an ended promotion, outdated content, or deprecating a card. Open the card and use the Unpublish action, or select several cards and unpublish in bulk. The AI assistant can unpublish a single card or a batch of cards by ID; because this changes production it always asks you to confirm first. After unpublishing, remember to update any pages that referenced the card.',
+        text: 'Unpublishing removes a card from delivery, so any live page that references the fragment stops rendering it. Typical reasons to unpublish are an ended promotion, outdated content, or deprecating a card. Open the card and use the Unpublish action, or select several cards and unpublish in bulk. MASA can unpublish a single card or a batch of cards by ID; because this changes production it always asks you to confirm first. After unpublishing, remember to update any pages that referenced the card.',
     },
     {
         id: 'cards-and-publishing.md#7',
         topic: 'cards',
         title: 'Cards and Publishing in MAS Studio',
-        section: 'Can the AI assistant edit cards for me?',
+        section: 'Can MASA edit cards for me?',
         keywords: [
             'card',
             'merch card',
@@ -354,7 +354,7 @@ export const KNOWLEDGE_CHUNKS = [
             'modified',
             'surface',
         ],
-        text: "A card has a locale-default parent fragment, and each locale can have exactly one variation of it — attempting to create a second variation for the same locale fails. Variations carry translated or region-specific content while staying linked to the parent. The AI assistant can show a card's full variation tree, list which locales already have variations, find the parent of a variation, and create a new locale variation of a card (with confirmation). To find gaps, ask it to list cards that are missing a variation for a target locale.",
+        text: "A card has a locale-default parent fragment, and each locale can have exactly one variation of it — attempting to create a second variation for the same locale fails. Variations carry translated or region-specific content while staying linked to the parent. MASA can show a card's full variation tree, list which locales already have variations, find the parent of a variation, and create a new locale variation of a card (with confirmation). To find gaps, ask it to list cards that are missing a variation for a target locale.",
     },
     {
         id: 'collections-and-variations.md#0',
@@ -379,7 +379,7 @@ export const KNOWLEDGE_CHUNKS = [
         id: 'collections-and-variations.md#1',
         topic: 'collections-and-variations',
         title: 'Collections and Variations in MAS Studio',
-        section: 'Can the AI assistant create collections or add cards to them?',
+        section: 'Can MASA create collections or add cards to them?',
         keywords: [
             'collection',
             'merch card collection',
@@ -455,7 +455,7 @@ export const KNOWLEDGE_CHUNKS = [
         id: 'collections-and-variations.md#5',
         topic: 'collections-and-variations',
         title: 'Collections and Variations in MAS Studio',
-        section: 'Which variation operations can the AI assistant perform?',
+        section: 'Which variation operations can MASA perform?',
         keywords: [
             'collection',
             'merch card collection',
@@ -634,7 +634,7 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Offers and the Offer Selector Tool (OST)',
         section: 'What is an OSI (Offer Selector ID)?',
         keywords: ['offer', 'OSI', 'offer selector', 'OST', 'price', 'AOS', 'product', 'link offer', 'arrangement code'],
-        text: "An OSI is the identifier stored on a card that selects its offer. It is a string of 7 to 64 characters made of letters, digits, underscores, and hyphens. An OSI is locale-agnostic: the same OSI works across all locales where the offer is valid, and currency, tax labels, and formatting are resolved automatically for the page's locale. An OSI is not the same thing as a raw offer ID, which is a 32-character hexadecimal string identifying one specific offer in AOS. The AI assistant can resolve an OSI to its underlying offer details, and can also fetch a single offer directly by its 32-character hex offer ID.",
+        text: "An OSI is the identifier stored on a card that selects its offer. It is a string of 7 to 64 characters made of letters, digits, underscores, and hyphens. An OSI is locale-agnostic: the same OSI works across all locales where the offer is valid, and currency, tax labels, and formatting are resolved automatically for the page's locale. An OSI is not the same thing as a raw offer ID, which is a 32-character hexadecimal string identifying one specific offer in AOS. MASA can resolve an OSI to its underlying offer details, and can also fetch a single offer directly by its 32-character hex offer ID.",
     },
     {
         id: 'offers-and-ost.md#2',
@@ -642,7 +642,7 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Offers and the Offer Selector Tool (OST)',
         section: 'What is the Offer Selector Tool (OST)?',
         keywords: ['offer', 'OSI', 'offer selector', 'OST', 'price', 'AOS', 'product', 'link offer', 'arrangement code'],
-        text: "OST is Studio's built-in tool for finding an offer and attaching it to a card. Open it from the Offer Selector ID field in the card editor, search by product name, and narrow results by customer segment (individual, team, student), commitment, and term (monthly, annual). Selecting an offer inserts its OSI into the card; save the card afterwards so the OSI persists. OST also opens from the price and CTA fields in the card editor — selecting an offer there inserts an inline price or a checkout link into the field at the cursor. In release flows OST can open in a multi-select mode that picks a base offer and a trial offer together. The AI assistant can open OST for you on request, optionally pre-filled with search parameters.",
+        text: "OST is Studio's built-in tool for finding an offer and attaching it to a card. Open it from the Offer Selector ID field in the card editor, search by product name, and narrow results by customer segment (individual, team, student), commitment, and term (monthly, annual). Selecting an offer inserts its OSI into the card; save the card afterwards so the OSI persists. OST also opens from the price and CTA fields in the card editor — selecting an offer there inserts an inline price or a checkout link into the field at the cursor. In release flows OST can open in a multi-select mode that picks a base offer and a trial offer together. MASA can open OST for you on request, optionally pre-filled with search parameters.",
     },
     {
         id: 'offers-and-ost.md#3',
@@ -650,7 +650,7 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Offers and the Offer Selector Tool (OST)',
         section: 'How do I link an offer to a card?',
         keywords: ['offer', 'OSI', 'offer selector', 'OST', 'price', 'AOS', 'product', 'link offer', 'arrangement code'],
-        text: "In the editor, open OST from the OSI field, pick the offer, insert it, and save the card. Alternatively, ask the AI assistant to link a card to an offer by giving it the card ID and the OSI; it confirms with you before making the change. After linking, the assistant can validate card-offer consistency: it checks that the card's tags (plan type, offer type, customer segment) agree with the linked offer and reports any mismatches.",
+        text: "In the editor, open OST from the OSI field, pick the offer, insert it, and save the card. Alternatively, ask MASA to link a card to an offer by giving it the card ID and the OSI; it confirms with you before making the change. After linking, the assistant can validate card-offer consistency: it checks that the card's tags (plan type, offer type, customer segment) agree with the linked offer and reports any mismatches.",
     },
     {
         id: 'offers-and-ost.md#4',
@@ -658,13 +658,13 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Offers and the Offer Selector Tool (OST)',
         section: 'How do I find offers or products without opening OST?',
         keywords: ['offer', 'OSI', 'offer selector', 'OST', 'price', 'AOS', 'product', 'link offer', 'arrangement code'],
-        text: 'Ask the AI assistant. It can search the AOS offer catalog with filters such as product arrangement code, commitment, term, customer segment, market segment, offer type, country, locale, and price point. It can list Adobe products from the catalog and search them by name, fetch a single product by its exact product arrangement (PA) code, and compare all plan types available for one product arrangement side by side. These are read-only lookups, so no confirmation is needed.',
+        text: 'Ask MASA. It can search the AOS offer catalog with filters such as product arrangement code, commitment, term, customer segment, market segment, offer type, country, locale, and price point. It can list Adobe products from the catalog and search them by name, fetch a single product by its exact product arrangement (PA) code, and compare all plan types available for one product arrangement side by side. These are read-only lookups, so no confirmation is needed.',
     },
     {
         id: 'offers-and-ost.md#5',
         topic: 'offers',
         title: 'Offers and the Offer Selector Tool (OST)',
-        section: 'Can the AI assistant create a new offer selector?',
+        section: 'Can MASA create a new offer selector?',
         keywords: ['offer', 'OSI', 'offer selector', 'OST', 'price', 'AOS', 'product', 'link offer', 'arrangement code'],
         text: 'Yes. To create an offer selector the assistant needs the product arrangement code, customer segment, market segment, and offer type; commitment, term, and price point are optional refinements. It asks for your confirmation, creates the selector in AOS, and returns the new OSI, which you or the assistant can then link to a card.',
     },
@@ -718,7 +718,7 @@ export const KNOWLEDGE_CHUNKS = [
             'token',
             'substitution',
         ],
-        text: "Use the Create New Placeholder dialog on the Placeholders page. It asks for a Key, a Locale (a region picker that defaults to the current locale), an optional Rich Text toggle, and a Value. Key and Value are required, and the key is normalized as you type. On create, Studio creates the dictionary entry fragment under the surface and locale's dictionary path, tags it as draft, and registers it in the dictionary index fragment so it can be resolved; if updating the index fails, the creation is reported as failed. New placeholders start in draft status and must be published to go live. The AI assistant does not currently create or edit placeholders; use the Placeholders page.",
+        text: "Use the Create New Placeholder dialog on the Placeholders page. It asks for a Key, a Locale (a region picker that defaults to the current locale), an optional Rich Text toggle, and a Value. Key and Value are required, and the key is normalized as you type. On create, Studio creates the dictionary entry fragment under the surface and locale's dictionary path, tags it as draft, and registers it in the dictionary index fragment so it can be resolved; if updating the index fails, the creation is reported as failed. New placeholders start in draft status and must be published to go live. MASA does not currently create or edit placeholders; use the Placeholders page.",
     },
     {
         id: 'placeholders.md#2',
@@ -967,7 +967,7 @@ export const KNOWLEDGE_CHUNKS = [
         id: 'promotions.md#9',
         topic: 'promotions',
         title: 'Promotions in MAS Studio',
-        section: 'Can the AI assistant manage promotions?',
+        section: 'Can MASA manage promotions?',
         keywords: [
             'promotion',
             'promo',
@@ -980,7 +980,7 @@ export const KNOWLEDGE_CHUNKS = [
             'schedule',
             'publish promotion',
         ],
-        text: 'The AI assistant does not currently create, edit, publish or unpublish promotions — there are no promotion intents in its registry. It can help prepare promotion content: it can search cards and collections, resolve and search offers, create an offer selector (returning an OSI that can be attached to a promotion), and open the Offer Selector Tool. Creating and publishing the promotion itself must be done in the Promotions editor in Studio.',
+        text: 'MASA does not currently create, edit, publish or unpublish promotions — there are no promotion intents in its registry. It can help prepare promotion content: it can search cards and collections, resolve and search offers, create an offer selector (returning an OSI that can be attached to a promotion), and open the Offer Selector Tool. Creating and publishing the promotion itself must be done in the Promotions editor in Studio.',
     },
     {
         id: 'studio-basics.md#0',
@@ -1032,7 +1032,7 @@ export const KNOWLEDGE_CHUNKS = [
             'permissions',
             'admin',
         ],
-        text: 'MAS Studio is the web application at https://mas.adobe.com/studio.html where merch cards are created, edited, and published. It offers a visual editor with live preview, a folder tree organized by surface, table and rendered views of your cards, search and filtering, integration with the Offer Selector Tool for pricing, a publish workflow, and an AI assistant chat panel. You sign in with your Adobe corporate account through IMS, and what you can see and do is governed by IAM group permissions.',
+        text: 'MAS Studio is the web application at https://mas.adobe.com/studio.html where merch cards are created, edited, and published. It offers a visual editor with live preview, a folder tree organized by surface, table and rendered views of your cards, search and filtering, integration with the Offer Selector Tool for pricing, a publish workflow, and an MASA chat panel. You sign in with your Adobe corporate account through IMS, and what you can see and do is governed by IAM group permissions.',
     },
     {
         id: 'studio-basics.md#2',
@@ -1136,7 +1136,7 @@ export const KNOWLEDGE_CHUNKS = [
             'permissions',
             'admin',
         ],
-        text: 'MAS Studio covers the full merchandising content workflow. You can author and publish merch cards on the Fragments page, group cards into collections, create locale variations for regional content and grouped personalization variations, localize content with translation projects on the Translations page, manage placeholders — reusable text strings resolved into cards per surface and locale — on the Placeholders page, and manage promotions with promo codes, schedules, geos, and attached offers and cards on the Promotions page (admin-only). You can publish content at scale with bulk publish projects under Advanced tools, browse the product catalog and create cards for a product from its detail page, attach live pricing through the Offer Selector Tool, and use the AI assistant to search, publish, update, and create content conversationally. Global settings and masks are additional permission-gated tools under Advanced tools.',
+        text: 'MAS Studio covers the full merchandising content workflow. You can author and publish merch cards on the Fragments page, group cards into collections, create locale variations for regional content and grouped personalization variations, localize content with translation projects on the Translations page, manage placeholders — reusable text strings resolved into cards per surface and locale — on the Placeholders page, and manage promotions with promo codes, schedules, geos, and attached offers and cards on the Promotions page (admin-only). You can publish content at scale with bulk publish projects under Advanced tools, browse the product catalog and create cards for a product from its detail page, attach live pricing through the Offer Selector Tool, and use MASA to search, publish, update, and create content conversationally. Global settings and masks are additional permission-gated tools under Advanced tools.',
     },
     {
         id: 'studio-basics.md#6',
@@ -1162,7 +1162,7 @@ export const KNOWLEDGE_CHUNKS = [
             'permissions',
             'admin',
         ],
-        text: 'The side navigation contains Home (quick actions and recently updated cards), Product Catalog, Fragments (the card content table), Collections (currently disabled — collections are managed from the Fragments page), Promotions, Placeholders, Translations, AI Assistant, and Advanced tools. The Promotions page only appears for members of the MAS admins group. Advanced tools contains three tools: Bulk publish (available to everyone), Global settings (admins and surface power users; on the sandbox, commerce, and nala surfaces it is admin-only), and Masks (permission-gated, for authoring reusable card overlays applied at delivery time). If a page you expect is missing from your side navigation, you are most likely missing the corresponding group membership.',
+        text: 'The side navigation contains Home (quick actions and recently updated cards), Product Catalog, Fragments (the card content table), Collections (currently disabled — collections are managed from the Fragments page), Promotions, Placeholders, Translations, MASA, and Advanced tools. The Promotions page only appears for members of the MAS admins group. Advanced tools contains three tools: Bulk publish (available to everyone), Global settings (admins and surface power users; on the sandbox, commerce, and nala surfaces it is admin-only), and Masks (permission-gated, for authoring reusable card overlays applied at delivery time). If a page you expect is missing from your side navigation, you are most likely missing the corresponding group membership.',
     },
     {
         id: 'studio-basics.md#7',
@@ -1194,7 +1194,7 @@ export const KNOWLEDGE_CHUNKS = [
         id: 'studio-basics.md#8',
         topic: 'studio',
         title: 'MAS Studio Basics',
-        section: 'What can the AI assistant in Studio do?',
+        section: 'What can MASA in Studio do?',
         keywords: [
             'MAS',
             'Merch at Scale',
@@ -1455,7 +1455,7 @@ export const KNOWLEDGE_CHUNKS = [
             'translation project',
             'rollout',
         ],
-        text: 'Open the Translations page from the MAS Studio side navigation and click the "Create project" button. This opens the translation project editor, where you give the project a title, choose one or more target locales, and add the content to translate: cards (fragments), placeholders, and collections. A project cannot be saved until it has a title, at least one target locale, and at least one selected item. The title is used as the localization task name, so it must be at most 255 characters, contain at least one letter or number, and use only letters, numbers, hyphens, underscores, and dots (consecutive dots are not allowed). Translation projects are created on this page; the AI assistant cannot create or submit them.',
+        text: 'Open the Translations page from the MAS Studio side navigation and click the "Create project" button. This opens the translation project editor, where you give the project a title, choose one or more target locales, and add the content to translate: cards (fragments), placeholders, and collections. A project cannot be saved until it has a title, at least one target locale, and at least one selected item. The title is used as the localization task name, so it must be at most 255 characters, contain at least one letter or number, and use only letters, numbers, hyphens, underscores, and dots (consecutive dots are not allowed). Translation projects are created on this page; MASA cannot create or submit them.',
     },
     {
         id: 'translations.md#1',
@@ -1489,7 +1489,7 @@ export const KNOWLEDGE_CHUNKS = [
             'translation project',
             'rollout',
         ],
-        text: 'In the translation project editor, "Add items" opens an overlay with tabs for cards, placeholders, and collections; search and filters (template, market segment, customer segment, product) help find the content, and Cancel reverts to the selection you had when the overlay opened. "Add languages" opens the target-locale picker the same way. The editor\'s quick-action bar offers Save, the send-for-localization action, Copy, Discard, and Delete. You can also start a pre-filled project from the fragment editor: the missing-variation panel routes to a new translation project with that card and the missing locale already selected. Studio has no dedicated translation coverage page — the fragment editor\'s variations panel shows which locales a card has. The AI assistant cannot produce coverage reports; ask it to list a card\'s variation locales instead.',
+        text: 'In the translation project editor, "Add items" opens an overlay with tabs for cards, placeholders, and collections; search and filters (template, market segment, customer segment, product) help find the content, and Cancel reverts to the selection you had when the overlay opened. "Add languages" opens the target-locale picker the same way. The editor\'s quick-action bar offers Save, the send-for-localization action, Copy, Discard, and Delete. You can also start a pre-filled project from the fragment editor: the missing-variation panel routes to a new translation project with that card and the missing locale already selected. Studio has no dedicated translation coverage page — the fragment editor\'s variations panel shows which locales a card has. MASA cannot produce coverage reports; ask it to list a card\'s variation locales instead.',
     },
     {
         id: 'translations.md#3',
@@ -1506,7 +1506,7 @@ export const KNOWLEDGE_CHUNKS = [
             'translation project',
             'rollout',
         ],
-        text: 'After creating and saving the project, use the send-for-localization action in the translation project editor. Studio calls the translation-project-start backend action with the project ID and the current surface, authenticated with your IMS token. On success the submission date is stamped on the project, its status becomes Pending, and the project becomes read-only in the editor. This is a Studio action only; the AI assistant cannot submit a project for you.',
+        text: 'After creating and saving the project, use the send-for-localization action in the translation project editor. Studio calls the translation-project-start backend action with the project ID and the current surface, authenticated with your IMS token. On success the submission date is stamped on the project, its status becomes Pending, and the project becomes read-only in the editor. This is a Studio action only; MASA cannot submit a project for you.',
     },
     {
         id: 'translations.md#4',
@@ -1563,7 +1563,7 @@ export const KNOWLEDGE_CHUNKS = [
         id: 'translations.md#7',
         topic: 'translations',
         title: 'Translations in MAS Studio',
-        section: 'What can the AI assistant do with translations?',
+        section: 'What can MASA do with translations?',
         keywords: [
             'translation',
             'translate',
@@ -1599,7 +1599,7 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Troubleshooting MAS Studio',
         section: 'Why is my card not showing on the page (fragment not found)?',
         keywords: ['error', 'fragment not found', 'publish failed', 'price not showing', '404', '401', '403', 'help', 'slack'],
-        text: 'A "fragment not found" or 404 error means the delivery API cannot find the fragment at the requested path. Check three things. First, the card must be Published, not Draft or Modified — unpublished fragments are not delivered. Second, the fragment path must be exact and is case-sensitive; it starts with /content/dam/mas/. Third, test delivery directly by opening https://www.adobe.com/mas/io/fragment with the path parameter set to your fragment path — a working fragment returns JSON. If the card was just published, edge caching can briefly serve stale results; hard refresh and retry after a minute or two. You can also ask the AI assistant to search for the card to confirm it exists and check its status.',
+        text: 'A "fragment not found" or 404 error means the delivery API cannot find the fragment at the requested path. Check three things. First, the card must be Published, not Draft or Modified — unpublished fragments are not delivered. Second, the fragment path must be exact and is case-sensitive; it starts with /content/dam/mas/. Third, test delivery directly by opening https://www.adobe.com/mas/io/fragment with the path parameter set to your fragment path — a working fragment returns JSON. If the card was just published, edge caching can briefly serve stale results; hard refresh and retry after a minute or two. You can also ask MASA to search for the card to confirm it exists and check its status.',
     },
     {
         id: 'troubleshooting.md#1',
@@ -1607,7 +1607,7 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Troubleshooting MAS Studio',
         section: 'Why is the price not showing on my card?',
         keywords: ['error', 'fragment not found', 'publish failed', 'price not showing', '404', '401', '403', 'help', 'slack'],
-        text: "Prices are fetched at render time from the Web Commerce Service (WCS) using the card's Offer Selector ID (OSI). Verify the OSI field has a value and that the card was saved after inserting it — the OSI only persists after a save. Then verify the offer is valid for the page's locale and country and that today falls within its availability dates; a WCS response of 200 with an empty body usually means the offer is not available for that locale. In the browser network tab, look for requests containing web_commerce_artifact and inspect the response. The AI assistant can resolve the OSI to its offer details so you can confirm the offer exists, and it can validate that the card and its linked offer are consistent.",
+        text: "Prices are fetched at render time from the Web Commerce Service (WCS) using the card's Offer Selector ID (OSI). Verify the OSI field has a value and that the card was saved after inserting it — the OSI only persists after a save. Then verify the offer is valid for the page's locale and country and that today falls within its availability dates; a WCS response of 200 with an empty body usually means the offer is not available for that locale. In the browser network tab, look for requests containing web_commerce_artifact and inspect the response. MASA can resolve the OSI to its offer details so you can confirm the offer exists, and it can validate that the card and its linked offer are consistent.",
     },
     {
         id: 'troubleshooting.md#2',
@@ -1615,7 +1615,7 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Troubleshooting MAS Studio',
         section: "Why can't I publish my card?",
         keywords: ['error', 'fragment not found', 'publish failed', 'price not showing', '404', '401', '403', 'help', 'slack'],
-        text: "The most common causes are missing permissions, validation errors, or a temporary backend issue. Publishing requires a publisher role through your IAM group membership — being able to edit does not imply being able to publish. Validation errors also block publishing: check for red error indicators and fill all required fields for the card's variant. If permissions and validation are fine, it may be a temporary issue in the AEM backend; retry later, and if it persists ask in the #merch-at-scale Slack channel. For publishing many cards, the AI assistant can show a preview of exactly which cards a bulk publish would affect before running it.",
+        text: "The most common causes are missing permissions, validation errors, or a temporary backend issue. Publishing requires a publisher role through your IAM group membership — being able to edit does not imply being able to publish. Validation errors also block publishing: check for red error indicators and fill all required fields for the card's variant. If permissions and validation are fine, it may be a temporary issue in the AEM backend; retry later, and if it persists ask in the #merch-at-scale Slack channel. For publishing many cards, MASA can show a preview of exactly which cards a bulk publish would affect before running it.",
     },
     {
         id: 'troubleshooting.md#3',
@@ -1639,13 +1639,13 @@ export const KNOWLEDGE_CHUNKS = [
         title: 'Troubleshooting MAS Studio',
         section: 'Why does OST show no results for my search?',
         keywords: ['error', 'fragment not found', 'publish failed', 'price not showing', '404', '401', '403', 'help', 'slack'],
-        text: 'Several causes are common. The offer may not be valid for the locale you are authoring in — offers are onboarded per country. Its availability dates may exclude today. It may still be a draft offer, which only appears when searching the DRAFT landscape (add the commerce.landscape=DRAFT parameter). Or it may not exist yet. The AI assistant can search the offer catalog with filters and list matching products, which quickly confirms whether the offer exists at all before you dig further.',
+        text: 'Several causes are common. The offer may not be valid for the locale you are authoring in — offers are onboarded per country. Its availability dates may exclude today. It may still be a draft offer, which only appears when searching the DRAFT landscape (add the commerce.landscape=DRAFT parameter). Or it may not exist yet. MASA can search the offer catalog with filters and list matching products, which quickly confirms whether the offer exists at all before you dig further.',
     },
     {
         id: 'troubleshooting.md#6',
         topic: 'troubleshooting',
         title: 'Troubleshooting MAS Studio',
-        section: 'The AI assistant gave an error or a wrong result — what should I do?',
+        section: 'MASA gave an error or a wrong result — what should I do?',
         keywords: ['error', 'fragment not found', 'publish failed', 'price not showing', '404', '401', '403', 'help', 'slack'],
         text: 'Retry the request once — transient backend errors happen. If the conversation seems stuck in the middle of a flow, ask to start over; this clears the chat and any in-progress flow state. Note that the assistant always asks for confirmation before publishing, updating, or creating anything, so an error never means something was changed without your approval. If a problem persists, report it in the #merch-at-scale Slack channel with what you asked and roughly when.',
     },

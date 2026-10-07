@@ -78,7 +78,7 @@
         "prosemirror-schema-basic": "^1.2.3",
         "prosemirror-schema-list": "^1.4.1",
         "prosemirror-state": "^1.4.3",
-        "prosemirror-view": "^1.34.3"
+        "prosemirror-view": "^1.42.6"
     },
     "devDependencies": {
         "@axe-core/playwright": "^4.11.0",

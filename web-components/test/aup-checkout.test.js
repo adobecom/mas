@@ -1200,6 +1200,56 @@ describe('aup-select checkout routing', () => {
         expect(legacy.called).to.be.false;
     });
 
+    it('forwards the addon product arrangement of a checked Stock offer on segmentation', async () => {
+        const element = await create(CheckoutLink, {
+            wcsOsi: 'abm,stock-abm',
+            checkoutWorkflowStep: 'segmentation',
+        });
+        const [primary, addon] = element.value;
+        expect(addon.productArrangementCode).to.not.equal(
+            primary.productArrangementCode,
+        );
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.firstCall.args[0].params).to.include({
+            items: `${primary.offerId}|1,${addon.offerId}|1`,
+            step: 'segmentation',
+            ao: addon.productArrangementCode,
+        });
+    });
+
+    it('omits the addon product arrangement without an addon offer', async () => {
+        const element = await create(CheckoutLink, {
+            checkoutWorkflowStep: 'segmentation',
+        });
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.firstCall.args[0].params).to.not.have.property('ao');
+    });
+
+    it('does not derive the addon product arrangement outside segmentation', async () => {
+        const element = await create(CheckoutLink, {
+            wcsOsi: 'abm,stock-abm',
+            checkoutWorkflowStep: 'email',
+        });
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.firstCall.args[0].params).to.not.have.property('ao');
+    });
+
+    it('prefers an explicit addon product arrangement over the derived one', async () => {
+        const element = await create(CheckoutLink, {
+            wcsOsi: 'abm,stock-abm',
+            checkoutWorkflowStep: 'segmentation',
+            extraOptions: JSON.stringify({
+                addonProductArrangementCode: 'explicit-addon',
+            }),
+        });
+        click(element);
+        await element.aupCheckoutPromise;
+        expect(launch.firstCall.args[0].params.ao).to.equal('explicit-addon');
+    });
+
     it('forwards quantity overrides and checkout workflow parameters', async () => {
         const element = await create(CheckoutLink, {
             quantity: 2,

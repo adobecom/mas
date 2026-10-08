@@ -239,6 +239,19 @@ describe('ai-chat/operations-handler', () => {
             expect(result.valid).to.equal(true);
         });
 
+        it('reclassifies a misfilled fenced-JSON search (template in query, variation in tags)', () => {
+            const op = {
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { query: 'plans', tags: ['grouped'], surface: 'acom' },
+            };
+            const result = validateOperation(op);
+            expect(result.valid).to.equal(true);
+            expect(op.operationParams.variant).to.equal('plans');
+            expect(op.operationParams.variationType).to.equal('grouped');
+            expect(op.operationParams.query).to.equal(undefined);
+        });
+
         it('accepts a cross-surface search with a surfaces array', () => {
             const result = validateOperation({
                 type: 'studio_operation',

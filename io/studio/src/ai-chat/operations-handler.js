@@ -10,6 +10,7 @@
  */
 
 import { validateEnvelope } from './envelope-validator.js';
+import { normalizeSearchSlots } from './envelope-native.js';
 
 import { getIntent, isStateChanging, INTENTS, SLOT_VALIDATORS } from './intent-registry.js';
 
@@ -279,6 +280,14 @@ function validateStudioOperation(operation) {
         operation.operationParams.surfaces = operation.operationParams.surfaces
             .filter((entry) => typeof entry === 'string')
             .map((entry) => entry.trim().toLowerCase());
+    }
+
+    // Qwen often emits a search as fenced JSON in prose (ignoring the forced
+    // tool), which lands here instead of the envelope path — so the same
+    // misfill reclassification (template in query, variation word in tags) must
+    // run on this path too, not only in extractToolEnvelope.
+    if (operation.operationName === 'search_cards') {
+        operation.operationParams = normalizeSearchSlots(operation.operationParams);
     }
 
     switch (operation.operationName) {

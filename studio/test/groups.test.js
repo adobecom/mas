@@ -1,6 +1,13 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../src/store.js';
-import { canAccessSettings, canAccessMasks, canAccessOfferMapping, canEditPromotions, isMasAdmin } from '../src/groups.js';
+import {
+    canAccessSettings,
+    canAccessMasks,
+    canAccessOfferMapping,
+    canAccessBulkPublish,
+    canEditPromotions,
+    isMasAdmin,
+} from '../src/groups.js';
 
 describe('groups', () => {
     let originalProfile;
@@ -37,6 +44,18 @@ describe('groups', () => {
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         expect(canAccessSettings('acom')).to.be.true;
         expect(canAccessSettings('ccd')).to.be.false;
+    });
+
+    it('canAccessBulkPublish requires ACOM curators or MAS admins', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+        expect(canAccessBulkPublish()).to.be.true;
+
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+        expect(canAccessBulkPublish()).to.be.false;
+
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canAccessBulkPublish()).to.be.true;
     });
 
     it('canAccessSettings denies sandbox for non-admin', () => {

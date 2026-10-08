@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { openPreview, closePreview } from './mas-card-preview.js';
-import { buildStudioFragmentHref, buildStudioFolderHref, showToast, normalizeFragmentForCache } from './utils.js';
+import { buildStudioFragmentHref, showToast, normalizeFragmentForCache } from './utils.js';
 
 const HTML_ESCAPE_MAP = {
     '&': '&amp;',
@@ -13,6 +13,46 @@ const HTML_ESCAPE_MAP = {
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => HTML_ESCAPE_MAP[c]);
+}
+
+const CSV_COLUMNS = ['Title', 'Path', 'Template', 'Status', 'Locale', 'ID'];
+
+function csvCell(value) {
+    const text = value == null ? '' : String(value);
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function localeFromPath(path) {
+    const match = typeof path === 'string' ? path.match(/\/content\/dam\/mas\/[^/]+\/([a-z]{2}_[A-Z]{2,4})(?:\/|$)/) : null;
+    return match ? match[1] : '';
+}
+
+function searchResultRow(card) {
+    return [card.title || card.name || card.id, card.path, card.variant, card.status, localeFromPath(card.path), card.id];
+}
+
+/**
+ * Build a CSV (header + one row per card) of the search results for the
+ * clipboard. Cells are quoted/escaped per RFC 4180 so a title containing a comma
+ * or quote stays in a single column.
+ */
+export function buildSearchResultsCsv(results) {
+    const rows = (Array.isArray(results) ? results : []).filter((card) => card?.id);
+    return [CSV_COLUMNS.join(','), ...rows.map((card) => searchResultRow(card).map(csvCell).join(','))].join('\n');
+}
+
+/** The same rows as an HTML table, so a rich paste target (Sheets, Docs) gets a real table. */
+function buildSearchResultsHtmlTable(results) {
+    const head = `<tr>${CSV_COLUMNS.map((column) => `<th>${column}</th>`).join('')}</tr>`;
+    const body = results
+        .map(
+            (card) =>
+                `<tr>${searchResultRow(card)
+                    .map((cell) => `<td>${escapeHtml(cell)}</td>`)
+                    .join('')}</tr>`,
+        )
+        .join('');
+    return `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
 /**
@@ -64,9 +104,6 @@ export class MasOperationResult extends LitElement {
         const displayResults = results.slice(0, this.displayCount);
         const hasMore = results.length > displayResults.length;
         const remainingCount = results.length - displayResults.length;
-        const surface = this.displayContext?.surface || this.extractSurfaceFromResults(results);
-        const locale = this.displayContext?.locale || 'en_US';
-        const allHref = surface ? buildStudioFolderHref({ surface, locale, query: this.displayContext?.query }) : null;
 
         return html`
             <div class="operation-result search-result">
@@ -125,11 +162,9 @@ export class MasOperationResult extends LitElement {
                     <sp-button size="m" variant="secondary" @click=${() => this.copyAllCardLinks(results)}>
                         Copy all links
                     </sp-button>
-                    ${allHref
-                        ? html`<sp-button size="m" variant="primary" href=${allHref} target="_blank" rel="noopener">
-                              View all ${results.length} in Studio →
-                          </sp-button>`
-                        : nothing}
+                    <sp-button size="m" variant="primary" @click=${() => this.copyResultsAsCsv(results)}>
+                        Copy as CSV
+                    </sp-button>
                 </div>
             </div>
         `;
@@ -138,13 +173,6 @@ export class MasOperationResult extends LitElement {
     handleShowMore(totalCount) {
         const increment = 5;
         this.displayCount = Math.min((this.displayCount || 5) + increment, totalCount);
-    }
-
-    extractSurfaceFromResults(results) {
-        const path = results.find((card) => card.path)?.path;
-        if (!path) return null;
-        const match = path.match(/^\/content\/dam\/mas\/([\w-]+)/);
-        return match ? match[1] : null;
     }
 
     renderPublishResult() {
@@ -304,6 +332,30 @@ export class MasOperationResult extends LitElement {
             showToast(`${entries.length} card links copied`, 'positive');
         } catch {
             showToast('Failed to copy links', 'negative');
+        }
+    }
+
+    async copyResultsAsCsv(cards) {
+        const validCards = (cards || []).filter((card) => card?.id);
+        if (validCards.length === 0) {
+            showToast('No cards to copy', 'negative');
+            return;
+        }
+        const csv = buildSearchResultsCsv(validCards);
+        try {
+            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': new Blob([buildSearchResultsHtmlTable(validCards)], { type: 'text/html' }),
+                        'text/plain': new Blob([csv], { type: 'text/plain' }),
+                    }),
+                ]);
+            } else {
+                await navigator.clipboard.writeText(csv);
+            }
+            showToast(`${validCards.length} card${validCards.length !== 1 ? 's' : ''} copied as CSV`, 'positive');
+        } catch {
+            showToast('Failed to copy', 'negative');
         }
     }
 

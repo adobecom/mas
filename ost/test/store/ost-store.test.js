@@ -91,6 +91,14 @@ describe('OstStore', () => {
         expect(store.env).to.equal('STAGE');
     });
 
+    it('clears a prior onMultiSelect when a later open omits it', () => {
+        const handler = () => {};
+        store.init({ multiSelect: true, onMultiSelect: handler });
+        expect(store.onMultiSelect).to.equal(handler);
+        store.init({ multiSelect: true });
+        expect(store.onMultiSelect).to.equal(null);
+    });
+
     it('sets language from country mapping on setCountry', () => {
         store.setCountry('JP');
         expect(store.language).to.equal('ja');
@@ -616,15 +624,31 @@ describe('OstStore', () => {
             expect(store.selectedTrialOsi).to.equal('trial-osi');
         });
 
-        it('fills the empty trial slot on a second untargeted pick, no slot click needed', async () => {
+        it('fills the empty trial slot on a second untyped untargeted pick, no slot click needed', async () => {
             store.offers = [];
             store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'buy-osi');
             expect(store.selectedBaseOsi).to.equal('buy-osi');
-            // Second same-type offer, no setCurrentSlot: should land in the empty
-            // trial slot rather than overwriting base.
-            store.addOffer({ offer_id: 'B2', offer_type: 'BASE' }, 'trial-osi');
+            store.addOffer({ offer_id: 'P2', offer_type: 'PROMOTION' }, 'promo-osi');
             expect(store.selectedBaseOsi).to.equal('buy-osi');
-            expect(store.selectedTrialOsi).to.equal('trial-osi');
+            expect(store.selectedTrialOsi).to.equal('promo-osi');
+        });
+
+        it('routes a second untargeted BASE pick to the base slot, never into trial', async () => {
+            store.offers = [];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'buy-osi');
+            expect(store.selectedBaseOsi).to.equal('buy-osi');
+            store.addOffer({ offer_id: 'B2', offer_type: 'BASE' }, 'buy2-osi');
+            expect(store.selectedBaseOsi).to.equal('buy2-osi');
+            expect(store.selectedTrialOsi).to.equal(null);
+        });
+
+        it('routes a second untargeted TRIAL pick to the trial slot, never into base', async () => {
+            store.offers = [];
+            store.addOffer({ offer_id: 'T1', offer_type: 'TRIAL' }, 'trial1-osi');
+            expect(store.selectedTrialOsi).to.equal('trial1-osi');
+            store.addOffer({ offer_id: 'T2', offer_type: 'TRIAL' }, 'trial2-osi');
+            expect(store.selectedTrialOsi).to.equal('trial2-osi');
+            expect(store.selectedBaseOsi).to.equal(null);
         });
 
         it('does not auto-fill when the user manually targets the trial slot', async () => {

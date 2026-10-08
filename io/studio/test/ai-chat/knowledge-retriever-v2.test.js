@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const { loadRealCorpus } = require('./real-corpus.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -44,7 +45,7 @@ const COMPOUND_QUERY = 'alpha bravo charlie delta echo foxtrot';
 describe('ai-chat/knowledge retriever v2 (complementary selection)', () => {
     before(async () => {
         ({ LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js'));
-        ({ KNOWLEDGE_CHUNKS } = await import('../../src/ai-chat/knowledge-corpus.js'));
+        ({ chunks: KNOWLEDGE_CHUNKS } = await loadRealCorpus());
     });
 
     describe('flag off is v1', () => {

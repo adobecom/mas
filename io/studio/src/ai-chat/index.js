@@ -26,7 +26,7 @@ import { handleOperation, withResolvedArrangementCode } from './operations-handl
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig } from './variant-configs.js';
 import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
-import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
+import { ALL_KNOWLEDGE_CHUNKS } from './knowledge-chunks.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
@@ -344,7 +344,7 @@ function createKnowledgeClient(params) {
         return null;
     }
     // RETRIEVER_V2=true turns on complementary-chunk selection; unset keeps the v1 gate.
-    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS, { complementary: params.RETRIEVER_V2 === 'true' });
+    return new LocalKnowledgeRetriever(ALL_KNOWLEDGE_CHUNKS, { complementary: params.RETRIEVER_V2 === 'true' });
 }
 
 /**

@@ -314,6 +314,7 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 4. Offer type, plan type, segment tags: map directly from the user's word to the canonical form (e.g. "trial cards" → \`mas:offer_type/trial\`). For card template/variant (e.g. "plans template", "fries variant"), do NOT use a tag — pass the canonical name in the \`variant\` param of \`search_cards\` instead.
 5. When you call \`list_products\` to resolve a tag, set \`message: "Looking up <product> in the catalog to find its tag..."\` so the user sees the two-step flow.
 6. CRITICAL — the second-step tool name is ALWAYS \`search_cards\`, never \`search_fragments\` or anything else. The user may say "fragments" but the operation name is \`search_cards\` (cards and fragments are the same thing in M@S vocabulary).
+7. Variation type: when the user asks for cards that HAVE a kind of variation, set \`variationType\` — "grouped"/"pzn"/"personalization variations" → \`"grouped"\`, "promo variations" → \`"promo"\`, "regional"/"locale variations" → \`"locale-variations"\`. For only the default-locale cards use \`"default-locale-only"\`; for only non-default-locale cards use \`"variations-only"\`. Omit it for an ordinary search (defaults to all).
 
 **Examples — tag search**:
 - "show me cards with the photoshop tag" → first \`list_products\` searchText "photoshop", then \`search_cards tags=["mas:product_code/phsp"]\`

@@ -210,6 +210,25 @@ describe('ai-chat/operations-handler', () => {
             expect(result.valid).to.equal(true);
             expect(op.operationParams.surface).to.equal('ccd');
         });
+
+        it('accepts a valid search_cards variationType (grouped)', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: 'acom', variationType: 'grouped' },
+            });
+            expect(result.valid).to.equal(true);
+        });
+
+        it('rejects an unknown search_cards variationType', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: 'acom', variationType: 'bogus' },
+            });
+            expect(result.valid).to.equal(false);
+            expect(result.error).to.include('variationType');
+        });
     });
 
     describe('handleOperation', () => {

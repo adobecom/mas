@@ -34,7 +34,7 @@ export const INTENTS = [
         category: 'read-only',
         description: 'Search the AEM Content Fragment catalog for cards.',
         required_slots: [],
-        optional_slots: ['query', 'titleSearch', 'surface', 'locale', 'tags', 'osi', 'limit', 'offset'],
+        optional_slots: ['query', 'titleSearch', 'surface', 'locale', 'tags', 'osi', 'variationType', 'limit', 'offset'],
         slot_validators: {
             query: 'string',
             titleSearch: 'boolean',
@@ -42,6 +42,7 @@ export const INTENTS = [
             locale: 'locale',
             tags: 'string[]',
             osi: 'osi',
+            variationType: 'variationType',
         },
         tool_target: 'search_cards',
         confirmation_template: null,
@@ -407,6 +408,8 @@ export const SLOT_VALIDATORS = {
     osi: (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{7,64}$/.test(v),
     offerId: (v) => typeof v === 'string' && /^[A-Fa-f0-9]{32}$/.test(v),
     surface: (v) => ['acom', 'commerce', 'ccd', 'sandbox', 'adobe-home', 'express', 'nala'].includes(v),
+    variationType: (v) =>
+        ['all', 'default-locale-only', 'variations-only', 'grouped', 'promo', 'locale-variations'].includes(v),
     locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),
     paCode: (v) => typeof v === 'string' && /^PA-?\d+$/.test(v),
     boolean: (v) => typeof v === 'boolean',

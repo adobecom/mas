@@ -188,6 +188,28 @@ describe('ai-chat/operations-handler', () => {
             expect(result.valid).to.equal(true);
             expect(op.operationName).to.equal('publish_card');
         });
+
+        it('canonicalizes the surface to lowercase so model-echoed casing (ACOM) passes', () => {
+            const op = {
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: 'ACOM', locale: 'en_US' },
+            };
+            const result = validateOperation(op);
+            expect(result.valid).to.equal(true);
+            expect(op.operationParams.surface).to.equal('acom');
+        });
+
+        it('trims and lowercases a surface with stray whitespace', () => {
+            const op = {
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: '  Ccd ' },
+            };
+            const result = validateOperation(op);
+            expect(result.valid).to.equal(true);
+            expect(op.operationParams.surface).to.equal('ccd');
+        });
     });
 
     describe('handleOperation', () => {

@@ -409,7 +409,7 @@ describe('Promotion price display with annual template', () => {
         expect(formattedLiteral).to.be.equal(
             'TVA comprise underline bold <span is="inline-price" osi="OSI"></span> and link <a href="https://www.adobe.com/test2.html">link2</a> and text',
         );
-    });    
+    });
 
     it('formats the ICU subset used by price literals', () => {
         const literals = {

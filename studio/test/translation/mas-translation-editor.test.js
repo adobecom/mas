@@ -1843,6 +1843,58 @@ describe('MasTranslationEditor', () => {
             expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.false;
         });
 
+        for (const status of ['QUEUED', 'RUNNING']) {
+            it(`blocks duplication after sending a Draft to localization when its current status is ${status}`, async () => {
+                const el = await loadExistingProject();
+                const submissionDate = '2026-10-08T07:00:00Z';
+                sandbox.stub(window, 'fetch').resolves({
+                    ok: true,
+                    json: async () => ({ jobId: 'test-fragment-id', submissionDate }),
+                });
+                window.adobeIMS = { getAccessToken: () => ({ token: 'test-token' }) };
+                const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+                quickActions.dispatchEvent(new CustomEvent('loc'));
+                await waitUntil(() => el.isProjectReadonly, 'project should be sent to localization');
+                delete window.adobeIMS;
+                mockRepository.aem.sites.cf.fragments.getById.resolves(
+                    withStatus(
+                        {
+                            ...createMockFragment(),
+                            fields: createMockFragment().fields.map((field) =>
+                                field.name === 'submissionDate' ? { ...field, values: [submissionDate] } : field,
+                            ),
+                        },
+                        status,
+                    ),
+                );
+
+                quickActions.dispatchEvent(new CustomEvent('duplicate'));
+                await waitUntil(() => !el.duplicating, 'duplicate status check should finish');
+                await el.updateComplete;
+
+                expect(el.duplicateDialogOpen).to.be.false;
+                expect(quickActions.disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+                expect(el.translationProject.getFieldValue('status')).to.equal(status);
+            });
+        }
+
+        it('does not open the duplicate dialog when refreshing the source project fails', async () => {
+            const el = await loadExistingProject();
+            sandbox.stub(console, 'error');
+            mockRepository.aem.sites.cf.fragments.getById.rejects(new Error('Failed to load project'));
+
+            el.shadowRoot.querySelector('mas-quick-actions').dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => !el.duplicating, 'duplicate status check should finish');
+
+            expect(el.duplicateDialogOpen).to.be.false;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Failed to prepare duplicate dialog.',
+                }),
+            ).to.be.true;
+        });
+
         it('disables the Duplicate quick action for a new, unsaved project', async () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
@@ -1919,9 +1971,9 @@ describe('MasTranslationEditor', () => {
             mockRepository.createFragment = sandbox
                 .stub()
                 .resolves(new Fragment(createMockFragment({ id: 'new-id', title: 'Test-Translation-Project-copy' })));
-            mockRepository.aem.sites.cf.fragments.getById.resolves(
-                createMockFragment({ id: 'new-id', title: 'Test-Translation-Project-copy' }),
-            );
+            mockRepository.aem.sites.cf.fragments.getById
+                .withArgs('new-id')
+                .resolves(createMockFragment({ id: 'new-id', title: 'Test-Translation-Project-copy' }));
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
             quickActions.dispatchEvent(new CustomEvent('duplicate'));
             await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');

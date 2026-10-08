@@ -188,6 +188,12 @@ class MasTranslationEditor extends LitElement {
         if (!this.#canDuplicateTranslationProject) return;
         this.duplicating = true;
         try {
+            const fragment = await this.repository.aem.sites.cf.fragments.getById(this.translationProject.id);
+            this.translationProjectStore.refreshFrom(fragment);
+            if (!canDuplicateTranslationProject(this.translationProject.getFieldValue('status'))) {
+                showToast('This project cannot be duplicated in its current status.', 'negative');
+                return;
+            }
             this.#duplicateProposedTitle = `${this.translationProject.title}-copy`;
             await this.repository.loadTranslationProjects();
             this.#duplicateExistingTitles = getTranslationProjectTitles(

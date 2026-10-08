@@ -92,11 +92,115 @@ describe('publish reference inspector', () => {
         const { aem, fragments } = removalFixture([FIRST_PATH, FIRST_PATH], [0, 1]);
         const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
 
-        const result = await removeMissingReferences(aem, report.issues);
+        const result = await removeMissingReferences(
+            aem,
+            report.issues.map((issue) => ({ ...issue, removable: true })),
+        );
 
         expect(result.removedCount).to.equal(0);
         expect(fragments.save.called).to.be.false;
         expect(result.failures[0].detail).to.include('empty');
+    });
+
+    it('does not offer bulk removal when every value in a field is confirmed missing', async () => {
+        const { aem } = removalFixture([FIRST_PATH, FIRST_PATH], [0, 1]);
+
+        const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+
+        expect(report.issues).to.have.length(2);
+        expect(report.issues.every((issue) => !issue.removable)).to.be.true;
+        expect(report.issues.every((issue) => issue.detail.includes('Edit the fragment instead'))).to.be.true;
+    });
+
+    it('keeps eligible removals in another field of the same owner', async () => {
+        const { aem, owner, fragments } = removalFixture([FIRST_PATH, FIRST_PATH], [0, 1]);
+        owner.fields.push({ name: 'collections', type: 'content-fragment', multiple: true, values: [FIRST_PATH, SECOND_PATH] });
+        owner.validationStatus.push({
+            property: 'fields.collections.values[0].<list element>',
+            message: 'references a path that does not exist in JCR',
+        });
+        const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+
+        const result = await removeMissingReferences(aem, report.issues);
+
+        expect(result.removedCount).to.equal(1);
+        expect(fragments.save.firstCall.args[0].fields.map((field) => field.values)).to.deep.equal([
+            [FIRST_PATH, FIRST_PATH],
+            [SECOND_PATH],
+        ]);
+    });
+
+    it('bounds a hanging save and reports an unknown outcome without starting another save', async () => {
+        const { aem, fragments } = removalFixture();
+        const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+        fragments.save.returns(new Promise(() => {}));
+
+        const result = await Promise.race([
+            removeMissingReferences(aem, report.issues, { saveTimeoutMs: 5 }),
+            new Promise((resolve) => setTimeout(() => resolve(null), 100)),
+        ]);
+
+        expect(result, 'Cleanup should finish within its save deadline').not.to.be.null;
+        expect(result.removedCount).to.equal(0);
+        expect(result.failures[0].pending).to.be.true;
+        expect(result.failures[0].ownerId).to.equal('root');
+        expect(result.failures[0].detail).to.include('outcome is unknown');
+        const retry = await removeMissingReferences(aem, report.issues, { saveTimeoutMs: 5 });
+        expect(retry.failures[0].pending).to.be.true;
+        expect(fragments.save.callCount).to.equal(1);
+        expect(fragments.getWithEtag.callCount).to.equal(1);
+    });
+
+    it('releases a pending save after settlement and rechecks owner fields before any retry', async () => {
+        const { aem, owner, fragments } = removalFixture();
+        const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+        let resolveSave;
+        fragments.save.returns(
+            new Promise((resolve) => {
+                resolveSave = resolve;
+            }),
+        );
+        const result = await Promise.race([
+            removeMissingReferences(aem, report.issues, { saveTimeoutMs: 5 }),
+            new Promise((resolve) => setTimeout(() => resolve(null), 100)),
+        ]);
+        expect(result, 'Cleanup should finish within its save deadline').not.to.be.null;
+        const saved = { ...owner, fields: [{ ...owner.fields[0], values: [SECOND_PATH] }], etag: 'saved-etag' };
+        fragments.getWithEtag.resolves(saved);
+        resolveSave(saved);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const retry = await removeMissingReferences(aem, report.issues, { saveTimeoutMs: 5 });
+
+        expect(retry.failures[0].pending).not.to.be.true;
+        expect(retry.failures[0].detail).to.include('changed');
+        expect(fragments.save.callCount).to.equal(1);
+    });
+
+    it('starts only one save when two cleanup calls race for the same owner', async () => {
+        const { aem, fragments } = removalFixture();
+        const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+        fragments.save.returns(new Promise(() => {}));
+
+        const results = await Promise.all([
+            removeMissingReferences(aem, report.issues, { saveTimeoutMs: 5 }),
+            removeMissingReferences(aem, report.issues, { saveTimeoutMs: 5 }),
+        ]);
+
+        expect(fragments.save.callCount).to.equal(1);
+        expect(results.every((result) => result.failures[0].pending)).to.be.true;
+    });
+
+    it('preserves the inspection snapshot when the original owner values change later', async () => {
+        const { aem, owner, fragments } = removalFixture();
+        const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+        owner.fields[0].values.push('/content/dam/mas/sandbox/en_US/added-later');
+
+        const result = await removeMissingReferences(aem, report.issues);
+
+        expect(report.issues[0].ownerValues).to.deep.equal([FIRST_PATH, SECOND_PATH]);
+        expect(result.failures[0].detail).to.include('changed');
+        expect(fragments.save.called).to.be.false;
     });
 
     it('blocks removal when the editor has unsaved changes', async () => {
@@ -400,6 +504,73 @@ describe('publish reference inspector', () => {
 
         expect(report.complete).to.be.false;
         expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.include(FIRST_PATH);
+    });
+
+    for (const failure of ['403 Forbidden', '500 Internal Server Error', 'timeout']) {
+        it(`reports incomplete coverage when owner validation accompanies ${failure}`, async () => {
+            const root = makeFragment(
+                'root',
+                ROOT_PATH,
+                [FIRST_PATH],
+                [
+                    {
+                        property: 'fields.cards.values[0].<list element>',
+                        message: 'references a path that does not exist in JCR',
+                    },
+                ],
+            );
+            const fragments = {
+                getById: sinon.stub().resolves(root),
+                getByPath: failure === 'timeout' ? () => new Promise(() => {}) : sinon.stub().rejects(new Error(failure)),
+            };
+
+            const report = await inspectReferences({ sites: { cf: { fragments } } }, [root], { requestTimeoutMs: 10 });
+
+            expect(report.complete).to.be.false;
+            expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.include(FIRST_PATH);
+            expect(report.issues[0].detail).to.include(failure === 'timeout' ? 'timed out' : failure);
+            expect(report.issues[0].evidence).to.equal('fields.cards.values[0].<list element>');
+            expect(report.issues[0].removable).to.be.false;
+        });
+    }
+
+    it('does not fetch any of forty child references when the root exhausts the request budget', async () => {
+        const paths = Array.from({ length: 40 }, (_, index) => `${ROOT_PATH}/target-${index}`);
+        const root = makeFragment('root', ROOT_PATH, paths);
+        const fragments = {
+            getById: sinon.stub().resolves(root),
+            getByPath: sinon.stub().resolves(makeFragment('child', FIRST_PATH)),
+        };
+
+        const report = await inspectReferences({ sites: { cf: { fragments } } }, [root], { maxFragments: 1 });
+
+        expect(fragments.getById.callCount).to.equal(1);
+        expect(fragments.getByPath.callCount).to.equal(0);
+        expect(report.complete).to.be.false;
+        expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.deep.equal(paths);
+    });
+
+    it('counts failed lookups against the budget before starting further requests', async () => {
+        const root = makeFragment('root', ROOT_PATH, [FIRST_PATH, SECOND_PATH]);
+        const fragments = { getById: sinon.stub().resolves(root), getByPath: sinon.stub().rejects(new Error('403 Forbidden')) };
+
+        const report = await inspectReferences({ sites: { cf: { fragments } } }, [root], { maxFragments: 2 });
+
+        expect(fragments.getByPath.callCount).to.equal(1);
+        expect(report.complete).to.be.false;
+        expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.deep.equal([FIRST_PATH, SECOND_PATH]);
+    });
+
+    it('reuses cached root lookups without consuming another request slot', async () => {
+        const root = makeFragment('root', ROOT_PATH, [ROOT_PATH]);
+        const fragments = { getById: sinon.stub().resolves(root), getByPath: sinon.stub() };
+
+        const report = await inspectReferences({ sites: { cf: { fragments } } }, [root, root], { maxFragments: 1 });
+
+        expect(fragments.getById.callCount).to.equal(1);
+        expect(fragments.getByPath.callCount).to.equal(0);
+        expect(report.complete).to.be.true;
+        expect(report.inspectedCount).to.equal(1);
     });
 
     it('continues into readable branches after a lookup failure', async () => {

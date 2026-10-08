@@ -1,3 +1,12 @@
+const EMPTY_FIELD_MESSAGE = 'Removing these references would leave the field empty. Edit the fragment instead.';
+const PENDING_SAVE_MESSAGE =
+    'A fragment save is still pending; its outcome is unknown. Reopen the diagnosis after it completes.';
+const pendingSaves = new WeakMap();
+
+function combineDetails(...details) {
+    return [...new Set(details.filter(Boolean))].join(' ');
+}
+
 function fragmentLabel(fragment) {
     return fragment?.fields?.find((field) => ['cardTitle', 'label'].includes(field.name))?.values?.[0] ?? '';
 }
@@ -49,14 +58,24 @@ async function removalUpdate(fragments, owner, issues) {
             const positions = removals.get(field.name);
             if (!positions) return field;
             const values = field.values.filter((value, index) => !positions.has(index));
-            if (!values.length)
-                throw new Error('Removing these references would leave the field empty. Edit the fragment instead.');
+            if (!values.some(Boolean)) throw new Error(EMPTY_FIELD_MESSAGE);
             return { ...field, values };
         }),
     };
 }
 
-export async function removeMissingReferences(aem, issues, { hasUnsavedChanges = () => false } = {}) {
+function assertSaveAvailable(saves, id) {
+    if (saves.has(id)) throw new Error(PENDING_SAVE_MESSAGE);
+}
+
+async function saveRemoval(fragments, updated, saves, timeoutMs) {
+    assertSaveAvailable(saves, updated.id);
+    const operation = Promise.resolve(fragments.save(updated, { refetchEtag: false })).finally(() => saves.delete(updated.id));
+    saves.set(updated.id, operation);
+    return readFragment(() => operation, timeoutMs, 'Fragment save timed out.');
+}
+
+export async function removeMissingReferences(aem, issues, { hasUnsavedChanges = () => false, saveTimeoutMs = 10000 } = {}) {
     const result = { removedCount: 0, failures: [], savedFragments: [] };
     const owners = new Map();
     for (const issue of issues.filter((entry) => entry.removable)) {
@@ -64,45 +83,72 @@ export async function removeMissingReferences(aem, issues, { hasUnsavedChanges =
         owners.get(issue.ownerId).push(issue);
     }
     const fragments = aem.sites.cf.fragments;
+    const saves = pendingSaves.get(fragments) ?? new Map();
+    pendingSaves.set(fragments, saves);
     for (const [id, ownerIssues] of owners) {
         try {
+            assertSaveAvailable(saves, id);
             if (hasUnsavedChanges()) throw new Error('Save or discard unsaved editor changes before removing references.');
             const owner = await readFragment(() => fragments.getWithEtag(id), 10000);
             const updated = await removalUpdate(fragments, owner, ownerIssues);
             if (hasUnsavedChanges()) throw new Error('Save or discard unsaved editor changes before removing references.');
-            const saved = await fragments.save(updated, { refetchEtag: false });
+            const saved = await saveRemoval(fragments, updated, saves, saveTimeoutMs);
             result.savedFragments.push(saved);
             result.removedCount += ownerIssues.length;
         } catch (error) {
-            result.failures.push({ ownerPath: ownerIssues[0].ownerPath, detail: error.message });
+            result.failures.push({
+                ownerId: id,
+                ownerPath: ownerIssues[0].ownerPath,
+                pending: saves.has(id),
+                detail: combineDetails(saves.has(id) ? PENDING_SAVE_MESSAGE : '', error.message),
+            });
         }
     }
     return result;
 }
 
-function makeIssue(owner, field, valueIndex, targetPath, validation, error, target) {
+function isConfirmedMissing(validation, error) {
+    return Boolean(validation && error?.message === 'Fragment not found');
+}
+
+function makeIssue({ owner, field, valueIndex, targetPath, validation, ownerValues = [] }, error, target) {
     return {
         category: validation ? 'confirmed-problem' : 'needs-review',
         ownerId: owner.id,
         ownerPath: owner.path,
         ownerTitle: owner.title,
         ownerLabel: fragmentLabel(owner),
-        ownerValues: [...(field.values ?? [])],
+        ownerValues,
         fieldName: field.name,
         valueIndex,
         targetPath,
         targetId: target?.id,
         targetTitle: target?.title,
         targetLabel: fragmentLabel(target),
-        removable: Boolean(
-            validation && !target && error?.message === 'Fragment not found' && field.multiple && field.values.length > 1,
-        ),
-        detail: validation?.message ?? error.message,
+        removable: Boolean(isConfirmedMissing(validation, error) && !target && field.multiple && field.values.length > 1),
+        detail: combineDetails(validation?.message, error?.message),
         evidence: validation?.property ?? '',
     };
 }
 
-async function readFragment(load, timeoutMs) {
+function applyBulkEligibility(issues) {
+    const groups = new Map();
+    const keyFor = (issue) => JSON.stringify([issue.ownerId, issue.fieldName]);
+    for (const issue of issues.filter((entry) => entry.removable)) {
+        const key = keyFor(issue);
+        if (!groups.has(key)) groups.set(key, { positions: new Set(), valueCount: issue.ownerValues.filter(Boolean).length });
+        groups.get(key).positions.add(issue.valueIndex);
+    }
+    for (const issue of issues) {
+        if (!issue.removable) continue;
+        const group = groups.get(keyFor(issue));
+        if (group.positions.size < group.valueCount) continue;
+        issue.removable = false;
+        issue.detail = combineDetails(issue.detail, EMPTY_FIELD_MESSAGE);
+    }
+}
+
+async function readFragment(load, timeoutMs, timeoutMessage = 'Reference lookup timed out.') {
     if (timeoutMs <= 0) throw new Error('The reference inspection time limit was reached.');
     const controller = new AbortController();
     let timer;
@@ -111,7 +157,7 @@ async function readFragment(load, timeoutMs) {
             load(controller),
             new Promise((resolve, reject) => {
                 timer = setTimeout(() => {
-                    reject(new Error('Reference lookup timed out.'));
+                    reject(new Error(timeoutMessage));
                     controller.abort();
                 }, timeoutMs);
             }),
@@ -124,10 +170,11 @@ async function readFragment(load, timeoutMs) {
 function enqueueReferences(owner, queue) {
     for (const field of owner.fields) {
         if (!['content-fragment', 'content-reference'].includes(field.type)) continue;
+        const ownerValues = [...field.values];
         for (const [valueIndex, targetPath] of field.values.entries()) {
             if (!targetPath) continue;
             const validation = missingValidation(owner, field.name, valueIndex);
-            queue.push({ owner, field, valueIndex, targetPath, validation });
+            queue.push({ owner, field, ownerValues, valueIndex, targetPath, validation });
         }
     }
 }
@@ -142,15 +189,18 @@ export async function inspectReferences(
     const fragments = aem.sites.cf.fragments;
     const fetched = new Map();
     const visited = new Set();
+    let requestedCount = 0;
     const queue = roots.map((owner) => ({ owner, field: { name: '' }, valueIndex: null, targetPath: owner.path, root: true }));
     const deadline = Date.now() + timeoutMs;
     const read = (load) => readFragment(load, Math.min(requestTimeoutMs, deadline - Date.now()));
     const loadJob = (job) => {
         if (!job.root && !job.targetPath.startsWith('/content/dam/')) {
-            return { error: new Error('Reference lookup is not supported for this identifier.'), unsupported: true };
+            return { error: new Error('Reference lookup is not supported for this identifier.') };
         }
         const key = job.root ? `id:${job.owner.id}` : `path:${job.targetPath}`;
         if (!fetched.has(key)) {
+            if (requestedCount >= maxFragments) return { limited: true };
+            requestedCount++;
             const result = read((controller) =>
                 job.root
                     ? fragments.getById(job.owner.id, controller, { references: 'none' })
@@ -169,14 +219,17 @@ export async function inspectReferences(
         const batch = queue.splice(0, concurrency);
         const results = await Promise.all(batch.map(loadJob));
         for (const [index, job] of batch.entries()) {
-            const { fragment, error, unsupported } = results[index];
+            const { fragment, error, limited } = results[index];
             if (error || job.validation) {
-                report.issues.push(
-                    makeIssue(job.owner, job.field, job.valueIndex, job.targetPath, job.validation, error, fragment),
-                );
+                report.issues.push(makeIssue(job, error, fragment));
+            }
+            if (limited) {
+                report.complete = false;
+                report.coverageGaps.push({ ownerPath: job.targetPath, detail: 'The reference lookup limit was reached.' });
+                continue;
             }
             if (error) {
-                if (!job.validation || unsupported) {
+                if (!isConfirmedMissing(job.validation, error)) {
                     report.complete = false;
                     report.coverageGaps.push({
                         ownerPath: job.targetPath,
@@ -189,15 +242,11 @@ export async function inspectReferences(
             }
             fetched.set(`path:${fragment.path}`, Promise.resolve({ fragment }));
             if (visited.has(fragment.id)) continue;
-            if (visited.size >= maxFragments) {
-                report.complete = false;
-                report.coverageGaps.push({ ownerPath: fragment.path, detail: 'The fragment inspection limit was reached.' });
-                continue;
-            }
             visited.add(fragment.id);
             report.inspectedCount += 1;
             enqueueReferences(fragment, queue);
         }
     }
+    applyBulkEligibility(report.issues);
     return report;
 }

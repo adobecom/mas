@@ -177,7 +177,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
         }
     }
 
-    async removeMissing() {
+    async removeMissing({ saveTimeoutMs = 10000 } = {}) {
         if (this.removing) return;
         this.removing = true;
         this.confirmingRemoval = false;
@@ -186,11 +186,23 @@ class MasReferenceDiagnosisDialog extends LitElement {
         try {
             const result = await removeMissingReferences(this.aem, this.removableIssues, {
                 hasUnsavedChanges: () => Store.editor.hasChanges,
+                saveTimeoutMs,
             });
             this.syncSavedFragments(result.savedFragments);
             this.cleanupErrors = result.failures;
             this.expanded = new Set();
             this.report = await inspectReferences(this.aem, this.roots);
+            const pendingOwners = new Set(
+                result.failures.filter((failure) => failure.pending).map((failure) => failure.ownerId),
+            );
+            if (pendingOwners.size) {
+                this.report = {
+                    ...this.report,
+                    issues: this.report.issues.map((issue) =>
+                        pendingOwners.has(issue.ownerId) ? { ...issue, removable: false } : issue,
+                    ),
+                };
+            }
             if (result.removedCount) {
                 this.cleanupMessage =
                     this.report.complete && !this.report.issues.length && !result.failures.length

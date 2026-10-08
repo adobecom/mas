@@ -84,6 +84,32 @@ describe('reference diagnosis dialog', () => {
         fixtureCleanup();
     });
 
+    it('recovers the dialog controls after a save timeout without offering a retry or publishing', async () => {
+        const context = removalContext();
+        context.fragments.save.returns(new Promise(() => {}));
+        sinon.stub(Store.editor, 'hasChanges').get(() => false);
+        const dialog = await fixture(html`
+            <mas-reference-diagnosis-dialog .report=${context.report} .aem=${context.aem} .roots=${context.roots}>
+            </mas-reference-diagnosis-dialog>
+        `);
+        const decided = sinon.stub();
+        dialog.addEventListener('diagnosis-decided', decided);
+
+        await dialog.removeMissing({ saveTimeoutMs: 10 });
+        await dialog.updateComplete;
+
+        expect(dialog.removing).to.be.false;
+        expect(dialog.shadowRoot.querySelector('sp-progress-circle')).to.be.null;
+        expect(dialog.shadowRoot.textContent).to.include('outcome is unknown');
+        expect(dialog.shadowRoot.querySelector('.remove-missing')).to.be.null;
+        expect(dialog.shadowRoot.querySelector('sp-button[variant="accent"]').disabled).to.be.false;
+        expect(dialog.shadowRoot.querySelector('sp-button[treatment="outline"]').disabled).to.be.false;
+        dialog.shadowRoot.querySelector('dialog').dispatchEvent(new Event('cancel', { cancelable: true }));
+        expect(decided.firstCall.args[0].detail.confirmed).to.be.false;
+        expect(context.fragments.save.callCount).to.equal(1);
+        expect(context.fragments.publish.called).to.be.false;
+    });
+
     it('does not offer bulk removal for review-only or unconfirmed issues', async () => {
         const context = removalContext();
         const dialog = await fixture(

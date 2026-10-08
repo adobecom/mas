@@ -167,6 +167,36 @@ describe('reference diagnosis dialog', () => {
         expect(await decision).to.be.false;
     });
 
+    it('recovers from a post-save synchronization error without offering unsafe removal or publishing', async () => {
+        const context = removalContext();
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog
+                .report=${context.report}
+                .aem=${context.aem}
+                .roots=${context.roots}
+            ></mas-reference-diagnosis-dialog>`,
+        );
+        sinon.stub(dialog, 'syncSavedFragments').throws(new Error('Saved fragment synchronization failed'));
+        const decided = sinon.stub();
+        dialog.addEventListener('diagnosis-decided', decided);
+
+        await dialog.removeMissing();
+        await dialog.updateComplete;
+
+        expect(context.fragments.save.calledOnce).to.be.true;
+        expect(dialog.report.complete).to.be.false;
+        expect(dialog.report.issues).to.have.length(1);
+        expect(dialog.report.issues.every((issue) => !issue.removable)).to.be.true;
+        expect(dialog.shadowRoot.textContent).to.include('Saved fragment synchronization failed');
+        expect(dialog.shadowRoot.querySelector('.remove-missing')).to.be.null;
+        expect(dialog.shadowRoot.querySelector('sp-progress-circle')).to.be.null;
+        expect(dialog.shadowRoot.querySelector('sp-button[variant="accent"]').disabled).to.be.false;
+        expect(dialog.shadowRoot.querySelector('sp-button[treatment="outline"]').disabled).to.be.false;
+        expect(context.fragments.publish.called).to.be.false;
+        dialog.shadowRoot.querySelector('dialog').dispatchEvent(new Event('cancel', { cancelable: true }));
+        expect(decided.firstCall.args[0].detail.confirmed).to.be.false;
+    });
+
     it('shows a save conflict and keeps the unresolved issue in the popup', async () => {
         const context = removalContext();
         context.fragments.save.rejects(new Error('412 Precondition Failed'));

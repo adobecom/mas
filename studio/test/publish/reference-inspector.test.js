@@ -88,6 +88,24 @@ describe('publish reference inspector', () => {
         expect(fragments.save.called).to.be.false;
     });
 
+    for (const [state, change] of [
+        ['single-value', { multiple: false, values: [FIRST_PATH] }],
+        ['non-reference', { type: 'text' }],
+    ]) {
+        it(`rejects removal when the refreshed owner field becomes ${state}`, async () => {
+            const { aem, owner, fragments } = removalFixture();
+            const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);
+            fragments.getWithEtag.resolves({ ...owner, fields: [{ ...owner.fields[0], ...change }] });
+
+            const result = await removeMissingReferences(aem, report.issues);
+
+            expect(result.removedCount).to.equal(0);
+            expect(result.savedFragments).to.have.length(0);
+            expect(result.failures[0].detail).to.include('Only multi-value reference fields');
+            expect(fragments.save.called).to.be.false;
+        });
+    }
+
     it('does not empty a reference field', async () => {
         const { aem, fragments } = removalFixture([FIRST_PATH, FIRST_PATH], [0, 1]);
         const report = await inspectReferences(aem, [{ id: 'root', path: ROOT_PATH }]);

@@ -81,10 +81,17 @@ export function buildSearchTool() {
     return {
         name: SEARCH_TOOL_NAME,
         description:
-            'Search the card/fragment catalog. Use for ANY request to find, list, show, or count cards or fragments. ' +
-            'Fill ONLY the fields the user implies, and combine them freely — a template AND a variation type AND a ' +
-            'keyword can all go in one call. Never put a template name, variation type, product name, or tag into ' +
-            '`query`; `query` is free text matched against a card title/content only.',
+            'Search the card/fragment catalog. Use for ANY request to find, list, show, or count cards or fragments — ' +
+            'always call this tool for such a request; never answer that a filter is unavailable, and never ask the ' +
+            'user to clarify just because a filter looks advanced. Fill ONLY the fields the user implies and combine ' +
+            'them freely. Never put a template name, variation type, product name, or tag into `query` (query is free ' +
+            'text matched against a card title/content only). Examples: ' +
+            '"find all plans cards" → {variant:"plans"}; ' +
+            '"cards that have grouped variations" → {variationType:"grouped"}; ' +
+            '"plans cards with grouped variations" → {variant:"plans", variationType:"grouped"}; ' +
+            '"promo variations in ccd" → {variationType:"promo", surface:"ccd"}; ' +
+            '"cards titled Acrobat" → {query:"Acrobat", titleSearch:true}; ' +
+            '"catalog cards for photoshop" → first list_products "photoshop", then {variant:"catalog", tags:["mas:product_code/<code>"]}.',
         input_schema: {
             type: 'object',
             properties: {

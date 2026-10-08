@@ -61,7 +61,9 @@ CARD SEARCH — to find, list, show, or count cards or fragments, call the emit_
 - a product name (e.g. "Photoshop") → resolve it with list_products first, then pass the resulting tag in tags
 - free text, or a specific card title → query (add titleSearch: true for a title match)
 - a surface the user names → surface; "all" or surfaces: [..] to search across surfaces
-A template AND a variation type AND a keyword can all be set at once. A template or variation type is a FIELD — never put it in query. NEVER reply that a filter is unavailable: variant and variationType are first-class fields on emit_search.
+A template AND a variation type AND a keyword can all be set at once. A template or variation type is a FIELD — never put it in query.
+
+A request to find, list, show, or count cards ALWAYS routes to emit_search. Do NOT use ASK_USER, clarify, or emit_envelope to answer it, and NEVER reply that a filter is unavailable — variant and variationType are first-class fields on emit_search, so a filtered search is always expressible. Only ask a clarifying question when you genuinely cannot tell which product or template the user means, never because a filter seems advanced.
 `;
 
 function intentBlock(intent) {

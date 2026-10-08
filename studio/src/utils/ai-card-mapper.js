@@ -290,7 +290,8 @@ export function extractTitleFromConfig(config) {
  * variantConfig.requiredFields which may lag behind prompt contract changes.
  * `mnemonics` is intentionally absent — it is injected from MCS data by
  * enrichConfigWithMcsMnemonic, so validating it here would cause spurious failures.
- * `secureLabel` is already auto-injected for plans variants by mapAIConfigToFragmentFields.
+ * `secureLabel` is intentionally absent too — it is not authored on the card; the
+ * per-surface fragment transformer applies it from the card's tags at render time.
  */
 const VARIANT_REQUIRED_FIELDS = {
     plans: ['title', 'prices', 'description', 'ctas', 'osi'],

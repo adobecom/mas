@@ -45,7 +45,7 @@ merch-card[variant="product-pricing"] {
     max-width: 474px;
     min-width: 261px;
     --product-frame-bg: #fff;
-    --product-frame-border: #dadada;
+    --product-frame-border: #ebebeb;
 }
 
 merch-card[variant="product-pricing"]:has([slot="badge"]) {

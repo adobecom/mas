@@ -34,11 +34,23 @@ export const INTENTS = [
         category: 'read-only',
         description: 'Search the AEM Content Fragment catalog for cards.',
         required_slots: [],
-        optional_slots: ['query', 'titleSearch', 'surface', 'locale', 'tags', 'osi', 'variationType', 'limit', 'offset'],
+        optional_slots: [
+            'query',
+            'titleSearch',
+            'surface',
+            'surfaces',
+            'locale',
+            'tags',
+            'osi',
+            'variationType',
+            'limit',
+            'offset',
+        ],
         slot_validators: {
             query: 'string',
             titleSearch: 'boolean',
             surface: 'surface',
+            surfaces: 'surfaces',
             locale: 'locale',
             tags: 'string[]',
             osi: 'osi',
@@ -400,6 +412,8 @@ export const FLOWS = [
  * Slot validators. Each validator is a pure function (value) => boolean.
  * Keep this list short and reuse keys across intents.
  */
+const KNOWN_SURFACES = ['acom', 'commerce', 'ccd', 'sandbox', 'adobe-home', 'express', 'nala'];
+
 export const SLOT_VALIDATORS = {
     uuid: (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
     'uuid[]': (v) => Array.isArray(v) && v.length > 0 && v.every((x) => SLOT_VALIDATORS.uuid(x)),
@@ -407,7 +421,8 @@ export const SLOT_VALIDATORS = {
     'string[]': (v) => Array.isArray(v) && v.every((x) => typeof x === 'string'),
     osi: (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{7,64}$/.test(v),
     offerId: (v) => typeof v === 'string' && /^[A-Fa-f0-9]{32}$/.test(v),
-    surface: (v) => ['acom', 'commerce', 'ccd', 'sandbox', 'adobe-home', 'express', 'nala'].includes(v),
+    surface: (v) => v === 'all' || KNOWN_SURFACES.includes(v),
+    surfaces: (v) => Array.isArray(v) && v.length > 0 && v.every((s) => KNOWN_SURFACES.includes(s)),
     variationType: (v) =>
         ['all', 'default-locale-only', 'variations-only', 'grouped', 'promo', 'locale-variations'].includes(v),
     locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),

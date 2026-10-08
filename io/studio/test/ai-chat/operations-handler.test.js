@@ -229,6 +229,45 @@ describe('ai-chat/operations-handler', () => {
             expect(result.valid).to.equal(false);
             expect(result.error).to.include('variationType');
         });
+
+        it('accepts a cross-surface search with surface:"all"', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: 'all', query: 'photoshop' },
+            });
+            expect(result.valid).to.equal(true);
+        });
+
+        it('accepts a cross-surface search with a surfaces array', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surfaces: ['acom', 'ccd'], query: 'photoshop' },
+            });
+            expect(result.valid).to.equal(true);
+        });
+
+        it('canonicalizes a surfaces array to lowercase so model-echoed casing passes', () => {
+            const op = {
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surfaces: ['ACOM', 'Ccd'], query: 'photoshop' },
+            };
+            const result = validateOperation(op);
+            expect(result.valid).to.equal(true);
+            expect(op.operationParams.surfaces).to.deep.equal(['acom', 'ccd']);
+        });
+
+        it('rejects a surfaces array containing an unknown surface', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surfaces: ['acom', 'bogus'], query: 'photoshop' },
+            });
+            expect(result.valid).to.equal(false);
+            expect(result.error).to.include('surfaces');
+        });
     });
 
     describe('handleOperation', () => {

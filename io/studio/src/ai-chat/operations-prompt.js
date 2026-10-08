@@ -196,14 +196,14 @@ Retrieve and display existing card data.
 - message: User-friendly explanation
 
 ## SEARCH FRAGMENTS
-Search for existing CARDS ONLY in the CURRENTLY SELECTED SURFACE AND LOCALE.
+Search for existing CARDS ONLY. By default a search is scoped to the CURRENTLY SELECTED SURFACE AND LOCALE.
 
 **IMPORTANT SCOPING RULES**:
 - Searches are AUTOMATICALLY scoped to the user's currently selected:
   - **Surface**: From folder picker (acom, ccd, commerce, adobe-home)
   - **Locale**: From locale picker (en_US, fr_FR, de_DE, etc.)
-- You CANNOT search across surfaces or locales
-- If user wants different content, tell them to switch folder/locale first
+- To search ACROSS surfaces, set \`surface:"all"\` (every surface the user is permitted to see) or \`surfaces:["acom","ccd"]\` for a named set. Do this ONLY when the user explicitly asks to search across/all surfaces — otherwise leave surface unset so it scopes to the current one. Surfaces the user lacks access to are dropped automatically; if they can access none of the requested ones the search returns a permission error, which you relay plainly.
+- You CANNOT search across locales. If the user wants a different locale, tell them to switch the locale picker.
 
 **CARDS ONLY**: This operation searches for CARDS ONLY. Collections are automatically excluded.
 
@@ -288,7 +288,8 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 - type: "studio_operation"
 - operationName: "search_cards"
 - operationParams:
-  - surface: NOT NEEDED (auto-injected from context)
+  - surface: NOT NEEDED for the current surface (auto-injected). Set \`surface:"all"\` ONLY when the user asks to search across every surface.
+  - surfaces: Optional array, e.g. \`["acom","ccd"]\` — set ONLY when the user names several surfaces to search across. Omit otherwise.
   - locale: NOT NEEDED (auto-injected from context)
   - query: Text search (optional)
   - tags: Tag array (optional) — see "Tag Taxonomy" below

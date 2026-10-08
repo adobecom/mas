@@ -411,6 +411,48 @@ export class StudioOperations {
         return filtered;
     }
 
+    /**
+     * Search several surfaces in one request and merge the results.
+     *
+     * Each surface is scanned on its own path (scoped queries are faster than
+     * one tree-wide scan) with bounded concurrency, then results are deduped by
+     * fragment id and capped to `limit`. A surface that errors is skipped, not
+     * fatal, so one slow or failing surface cannot sink the whole search. The
+     * caller passes only surfaces the user is entitled to (see entitledSurfaces).
+     */
+    async searchAcrossSurfaces(params) {
+        const { surfaces = [], limit = 10, ...rest } = params;
+        const perSurface = await mapWithConcurrency(surfaces, 4, async (surface) => {
+            try {
+                const result = await this.searchCards({ ...rest, surface, limit });
+                return Array.isArray(result?.results) ? result.results : [];
+            } catch (error) {
+                console.error(`[StudioOperations] cross-surface search failed for "${surface}": ${error.message}`);
+                return [];
+            }
+        });
+
+        const seen = new Set();
+        const merged = [];
+        for (const cards of perSurface) {
+            for (const card of cards) {
+                if (card?.id && !seen.has(card.id)) {
+                    seen.add(card.id);
+                    merged.push(card);
+                }
+            }
+        }
+        const capped = merged.slice(0, limit);
+        return {
+            success: true,
+            operation: 'search',
+            results: capped,
+            count: capped.length,
+            surfacesSearched: surfaces,
+            message: `Found ${capped.length} card${capped.length !== 1 ? 's' : ''} across ${surfaces.length} surface${surfaces.length !== 1 ? 's' : ''}: ${surfaces.join(', ')}`,
+        };
+    }
+
     async searchCards(params) {
         const {
             surface,

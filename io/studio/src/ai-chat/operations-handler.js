@@ -275,6 +275,11 @@ function validateStudioOperation(operation) {
     if (typeof operation.operationParams.surface === 'string') {
         operation.operationParams.surface = operation.operationParams.surface.trim().toLowerCase();
     }
+    if (Array.isArray(operation.operationParams.surfaces)) {
+        operation.operationParams.surfaces = operation.operationParams.surfaces
+            .filter((entry) => typeof entry === 'string')
+            .map((entry) => entry.trim().toLowerCase());
+    }
 
     switch (operation.operationName) {
         case 'publish_card':
@@ -289,6 +294,7 @@ function validateStudioOperation(operation) {
         case 'search_cards':
             if (
                 !operation.operationParams.surface &&
+                !operation.operationParams.surfaces?.length &&
                 !operation.operationParams.osi &&
                 !operation.operationParams.titleSearch
             ) {

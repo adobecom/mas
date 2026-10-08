@@ -2,7 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { StudioOperations } from '../lib/studio-operations.js';
-import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
+import { requireIMSAuth, resolveAemBaseUrl, fetchUserGroups, entitledSurfaces } from '../lib/ims-validator.js';
 
 const DEFAULT_TIMEOUT_MS = 5000;
 const KEYWORD_SEARCH_TIMEOUT_MS = 45000;
@@ -138,6 +138,7 @@ function applyStatusAndSort(result, { status, sortBy, sortDirection, limit }) {
 async function main(params) {
     const {
         surface,
+        surfaces,
         query,
         tags,
         limit,
@@ -174,35 +175,65 @@ async function main(params) {
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 
         const isFastPath = (id || osi) && !query && !(tags && tags.length);
-        // Keyword, title, tag, AND variant-only searches all paginate via
-        // cursor and may scan thousands of fragments; give them the long
-        // timeout. Variant-only is the worst case — no AEM-side filter
-        // narrows the result, the post-filter happens in memory after a
-        // full surface scan. Single-card / OSI fast paths use the default.
+        // Cross-surface: an explicit `surfaces` list, or surface:'all'. Unlike a
+        // single-surface read (open to any authenticated caller), this is gated
+        // by the caller's entitlements — admin sees every surface, everyone else
+        // only the surfaces they edit.
+        const wantsAllSurfaces = surface === 'all';
+        const namedSurfaces = Array.isArray(surfaces) ? surfaces.map((s) => String(s).toLowerCase()) : [];
+        const isCrossSurface = wantsAllSurfaces || namedSurfaces.length > 0;
+        // Keyword, title, tag, variant-only AND cross-surface searches all
+        // paginate via cursor and may scan thousands of fragments; give them the
+        // long timeout. Single-card / OSI fast paths use the default.
         const isKeywordSearch = !!query;
         const isTagSearch = Array.isArray(tags) && tags.length > 0;
         const isVariantFilter = typeof variant === 'string' && variant.length > 0;
-        const isLongSearch = isKeywordSearch || titleSearch === true || isTagSearch || isVariantFilter;
+        const isLongSearch = isKeywordSearch || titleSearch === true || isTagSearch || isVariantFilter || isCrossSurface;
         const baseTimeout = isLongSearch ? KEYWORD_SEARCH_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
         const timeoutMs = parseInt(params.SEARCH_TIMEOUT_MS, 10) || baseTimeout;
 
-        const operation = isFastPath
-            ? studioOps.searchById({ id, osi, surface, locale })
-            : studioOps.searchCards({
-                  surface,
+        let allowedSurfaces = null;
+        if (isCrossSurface) {
+            const groups = await fetchUserGroups(accessToken);
+            const entitled = entitledSurfaces(groups);
+            allowedSurfaces = wantsAllSurfaces ? entitled : namedSurfaces.filter((s) => entitled.includes(s));
+            if (allowedSurfaces.length === 0) {
+                return {
+                    statusCode: 403,
+                    body: { error: 'Forbidden: you do not have access to any of the requested surfaces' },
+                };
+            }
+        }
+
+        // A status filter is applied to what comes back, so asking for exactly
+        // `limit` rows would starve it: ten cards might contain one draft. Read
+        // wider, then trim to what was asked.
+        const searchLimit = status ? capLimit(widenForFilter(limit)) : capLimit(limit);
+        const operation = isCrossSurface
+            ? studioOps.searchAcrossSurfaces({
+                  surfaces: allowedSurfaces,
                   query,
                   tags,
-                  // A status filter is applied to what comes back, so asking
-                  // for exactly `limit` rows would starve it: ten cards might
-                  // contain one draft. Read wider, then trim to what was asked.
-                  limit: status ? capLimit(widenForFilter(limit)) : capLimit(limit),
+                  limit: searchLimit,
                   locale,
-                  osi,
-                  titleSearch,
                   variant,
                   variationType,
                   offset,
-              });
+              })
+            : isFastPath
+              ? studioOps.searchById({ id, osi, surface, locale })
+              : studioOps.searchCards({
+                    surface,
+                    query,
+                    tags,
+                    limit: searchLimit,
+                    locale,
+                    osi,
+                    titleSearch,
+                    variant,
+                    variationType,
+                    offset,
+                });
 
         const settled = await withTimeout(operation, timeoutMs);
         const result =

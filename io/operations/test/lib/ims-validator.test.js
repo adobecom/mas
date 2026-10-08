@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import {
     deriveSurfaceFromPath,
     canEditSurface,
+    entitledSurfaces,
     fetchUserGroups,
     requireSurfaceAccess,
     resolveAemBaseUrl,
@@ -241,5 +242,37 @@ describe('ims-validator surface authz', () => {
             );
             expect(result).to.be.null;
         });
+    });
+});
+
+describe('entitledSurfaces (cross-surface read authz)', () => {
+    it('gives an admin every searchable surface', () => {
+        const surfaces = entitledSurfaces(['GRP-ODIN-MAS-ADMINS']);
+        expect(surfaces).to.include.members(['acom', 'ccd', 'adobe-home', 'express', 'commerce', 'sandbox']);
+    });
+
+    it('gives an acom editor only acom', () => {
+        expect(entitledSurfaces(['GRP-ODIN-MAS-ACOM-EDITORS'])).to.deep.equal(['acom']);
+    });
+
+    it('folds an acom-cc editor into acom', () => {
+        expect(entitledSurfaces(['GRP-ODIN-MAS-ACOM-CC-EDITORS'])).to.deep.equal(['acom']);
+    });
+
+    it('returns each surface the caller edits', () => {
+        const surfaces = entitledSurfaces(['GRP-ODIN-MAS-CCD-EDITORS', 'GRP-ODIN-MAS-EXPRESS-EDITORS']);
+        expect(surfaces).to.have.members(['ccd', 'express']);
+        expect(surfaces).to.not.include('acom');
+    });
+
+    it('never grants an ungoverned surface without admin', () => {
+        const surfaces = entitledSurfaces(['GRP-ODIN-MAS-ACOM-EDITORS']);
+        expect(surfaces).to.not.include.members(['commerce', 'sandbox', 'docs', 'nala']);
+    });
+
+    it('returns nothing for a caller in no MAS group', () => {
+        expect(entitledSurfaces(['GRP-SOMETHING-ELSE'])).to.deep.equal([]);
+        expect(entitledSurfaces([])).to.deep.equal([]);
+        expect(entitledSurfaces(null)).to.deep.equal([]);
     });
 });

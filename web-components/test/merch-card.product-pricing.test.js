@@ -276,7 +276,7 @@ describe('ProductPricing.adjustLegal', () => {
         return { layout, price, clone, legalHost };
     };
 
-    it('strips fine print off the bold price and clones a legal line', async () => {
+    it('keeps per-unit on the bold price, moves tax and plan type to a cloned legal line', async () => {
         const { layout, price, clone, legalHost } = makeFixture({
             options: {
                 displayPerUnit: true,
@@ -287,7 +287,10 @@ describe('ProductPricing.adjustLegal', () => {
         await layout.adjustLegal();
         expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
             .true;
-        expect(price.dataset.displayPerUnit).to.equal('false');
+        expect(price.dataset.displayPerUnit, 'stays on price').to.be.undefined;
+        expect(clone.dataset.displayPerUnit, 'off the legal line').to.equal(
+            'false',
+        );
         expect(price.dataset.displayTax).to.equal('false');
         expect(price.dataset.displayPlanType).to.equal('false');
         expect(legalHost.appendChild.calledWith(clone)).to.be.true;

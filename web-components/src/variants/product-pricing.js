@@ -74,9 +74,9 @@ export class ProductPricing extends VariantLayout {
             const legal = price.cloneNode(true);
             await price.onceSettled();
             if (!price.options) return;
-            // Strip fine print off the bold price; the legal line renders it.
-            if (price.options.displayPerUnit)
-                price.dataset.displayPerUnit = 'false';
+            // Per-unit stays beside the bold price; tax and plan type move to
+            // the legal line.
+            legal.dataset.displayPerUnit = 'false';
             if (price.options.displayTax) price.dataset.displayTax = 'false';
             if (price.options.displayPlanType)
                 price.dataset.displayPlanType = 'false';

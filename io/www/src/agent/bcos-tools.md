@@ -248,15 +248,14 @@ retain their content locale while using the US commerce country.
 
 ## BCOS registration
 
-See [`bcos-tools.json`](./bcos-tools.json) for the tool metadata sample — the
-LLM `input_schema` (`productName` and `pzn` enums), the
-context-injected `query_template` (`locale`/`country` from the page's
-`mas-commerce-service`, `api_key` from BCOS configuration), and the
-`multimodal` card mapping. Field
-names and registration format must follow the authoritative BCOS manifest
-schema rather than that illustrative local format.
+The BCOS tool registration declares the LLM `input_schema` (`productName` and
+`pzn` enums), the context-injected `query_template` (`locale`/`country` from the
+page's `mas-commerce-service`, `api_key` from BCOS configuration), and the
+`multimodal` card mapping. Field names and registration format follow the
+authoritative BCOS manifest schema. Keep the `productName` enum in sync with
+the products in `product-fragment-map.js`.
 
-That sample uses product lookup. For direct fragment selection, Brand Concierge
+The product lookup route uses `productName`. For direct fragment selection, Brand Concierge
 constructs the endpoint path using its own product/audience mapping and passes
 the same `locale`, `country`, and `api_key` context. No product map entry or
 `productName` parameter is required on that route.

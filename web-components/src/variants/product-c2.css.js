@@ -76,6 +76,11 @@ merch-card[variant='product-c2'] [slot='badge'] merch-badge {
         background-color: #fff;
         padding: 0;
     }
+
+    merch-card[variant="product-c2"][background-color="black"] merch-badge {
+        background-color: var(--color-black);
+        --merch-badge-color: var(--color-white);
+    }
 }
 
 @media screen and ${TABLET_UP} {

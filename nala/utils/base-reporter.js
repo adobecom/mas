@@ -1,6 +1,7 @@
 // Playwright will include ANSI color characters and regex from below
 // https://github.com/microsoft/playwright/issues/13522
 // https://github.com/chalk/ansi-regex/blob/main/index.js#L3
+import { drainReporterOutput } from './request-counting-reporter.js';
 
 const pattern = [
     '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
@@ -110,6 +111,7 @@ export default class BaseReporter {
             } catch (error) {
                 console.log('----Failed to publish result to slack channel----');
             }
+            await drainReporterOutput();
         }
     }
 

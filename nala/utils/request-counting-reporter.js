@@ -1,6 +1,13 @@
 import { readFileSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
+export async function drainReporterOutput() {
+    await Promise.all([
+        new Promise((resolve) => process.stdout.write('', resolve)),
+        new Promise((resolve) => process.stderr.write('', resolve)),
+    ]);
+}
+
 /**
  * Reporter that adds multi-service request summary at the end
  * Supports ODIN AEM, WCS, MAS/IO and other configured services

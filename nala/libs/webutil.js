@@ -51,17 +51,15 @@ export default class WebUtil {
                 return {
                     populated: groups.length > 0,
                     visible: groups.every((positions) => positions.every(({ visible }) => visible)),
-                    aligned: groups.every((positions) => {
-                        const tops = positions.map(({ top }) => top);
-                        return Math.max(...tops) - Math.min(...tops) === 0;
-                    }),
-                    offsets: groups.map((positions) => {
-                        const tops = positions.map(({ top }) => top);
-                        return Math.max(...tops) - Math.min(...tops);
-                    }),
+                    misalignedRows: groups
+                        .map((positions) => {
+                            const tops = positions.map(({ top }) => top);
+                            return { tops, offset: Math.max(...tops) - Math.min(...tops) };
+                        })
+                        .filter(({ offset }) => offset !== 0),
                 };
             })
-            .toMatchObject({ populated: true, visible: true, aligned: true });
+            .toEqual({ populated: true, visible: true, misalignedRows: [] });
     }
 
     /**

@@ -349,13 +349,14 @@ export default class StudioPage {
         await this.fragmentsTable.click();
         await expect
             .poll(
-                async () => ({
-                    ...(await this.page.evaluate(navigationState)),
-                    confirmationVisible: await this.confirmationDialog.isVisible(),
-                }),
+                async () =>
+                    JSON.stringify({
+                        ...(await this.page.evaluate(navigationState)),
+                        confirmationVisible: await this.confirmationDialog.isVisible(),
+                    }),
                 { message: `Discard confirmation must open after navigation; before: ${JSON.stringify(before)}` },
             )
-            .toMatchObject({ confirmationVisible: true });
+            .toContain('"confirmationVisible":true');
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
         await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');
@@ -527,7 +528,8 @@ export default class StudioPage {
 
             const createVariationOption = this.tableViewCreateVariationOption(actionsMenu);
             await expect(createVariationOption).toBeVisible();
-            await createVariationOption.click();
+            await expect(createVariationOption).toBeEnabled();
+            await createVariationOption.press('Enter');
         }
 
         await expect(this.variationDialog).toBeVisible();

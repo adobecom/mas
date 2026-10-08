@@ -53,11 +53,13 @@ and the command exits unsuccessfully while leaving the test job result unchanged
 Test pressure (`test-results/odin-pressure.json`) and standalone cleanup pressure
 (`test-results/odin-pressure-cleanup.json`) are measured with separate fresh coordinators and labelled by phase.
 
-Cleanup logs its start, run ID, repository initialization, recovery searches, deletion batches, each fragment outcome,
-and the colored summary with per-path found/deleted/failed counts. Cleaned totals include already-absent fragments,
+Cleanup logs its start, run ID, repository initialization, recovery searches and deletion batches, followed by
+the colored summary with per-path found/deleted/failed counts. Successful deletion IDs and expected already-absent
+404s are not printed. Failures retain their IDs in diagnostics and the recovery ledger. Cleaned totals include already-absent fragments,
 not just successful DELETE calls. Recovery logs each path being searched.
-Browser script errors, failed requests and HTTP errors are reported during initialization rather
-than leaving an unexplained wait.
+Browser script errors, failed requests and unexpected HTTP errors are collected and printed after the browser closes,
+before the final cleanup summary. The summary is emitted as one block; both output streams are drained before final
+reporting and before the command returns. The test reporter also drains its output before the test command finishes.
 
 The separate `cleanup-cloned-cards.js` maintenance utility still supports account/date-based manual cleanup and
 dry runs. It is **not** the automatic run-owned cleanup path and can affect other executions using that account:

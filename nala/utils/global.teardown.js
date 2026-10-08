@@ -3,7 +3,7 @@ import { getCurrentRunId, clearRunId } from './fragment-tracker.js';
 import { readFragmentLedger, completeFragmentLedger } from './fragment-ledger.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import { installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
-import RequestCountingReporter from './request-counting-reporter.js';
+import RequestCountingReporter, { drainReporterOutput } from './request-counting-reporter.js';
 import { USER_AGENT_DESKTOP } from '../../playwright.config.js';
 import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
 import { resolve } from 'node:path';
@@ -86,26 +86,29 @@ export async function findRunFragments({ runId, locales, knownIds }) {
 export function printCleanupSummary() {
     const results = global.nalaCleanupResults;
     if (!results) return;
-    console.log('\n    \x1b[1m\x1b[34m---------Fragment Cleanup Summary---------\x1b[0m');
-    console.log(`    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${results.totalFound}\x1b[0m`);
+    const lines = [
+        '\n    \x1b[1m\x1b[34m---------Fragment Cleanup Summary---------\x1b[0m',
+        `    \x1b[1m\x1b[33m# Total Fragments to delete :\x1b[0m \x1b[32m${results.totalFound}\x1b[0m`,
+    ];
     if (results.totalDeleted > 0) {
-        console.log(
+        lines.push(
             `    \x1b[32m✓\x1b[0m \x1b[1m\x1b[33m Deleted/already absent   :\x1b[0m \x1b[32m${results.totalDeleted}\x1b[0m`,
         );
     } else if (results.totalFound === 0) {
-        console.log('    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m');
+        lines.push('    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m');
     }
     if (results.totalFailed > 0) {
-        console.log(
+        lines.push(
             `    \x1b[31m✘\x1b[0m \x1b[1m\x1b[33m Failed to delete         :\x1b[0m \x1b[31m${results.totalFailed}/${results.totalFound}\x1b[0m`,
         );
     }
     for (const result of results.paths ?? []) {
-        console.log(
+        lines.push(
             `    \x1b[36m${result.path}\x1b[0m — found: ${result.found}, deleted/already absent: \x1b[32m${result.deleted}\x1b[0m, failed: \x1b[${result.failed ? '31' : '32'}m${result.failed}\x1b[0m`,
         );
-        if (result.searchError) console.log(`      \x1b[31m✘ Recovery search failed: ${result.searchError}\x1b[0m`);
+        if (result.searchError) lines.push(`      \x1b[31m✘ Recovery search failed: ${result.searchError}\x1b[0m`);
     }
+    console.log(lines.join('\n'));
 }
 
 /**
@@ -138,6 +141,8 @@ async function cleanupRun() {
     }
     console.info('[NALA teardown] Starting authenticated cleanup browser.');
     const browser = await chromium.launch({ args: ['--disable-web-security', '--disable-gpu'] });
+    const diagnostics = [];
+    const expectedMissingUrls = new Set();
     let stopCounting;
     try {
         const context = await browser.newContext({
@@ -149,17 +154,19 @@ async function cleanupRun() {
             serviceWorkers: 'block',
         });
         const page = await context.newPage();
-        page.on('pageerror', (error) => console.error(`[NALA teardown] Page error: ${error.message}`));
+        page.on('pageerror', (error) => diagnostics.push(`[NALA teardown] Page error: ${error.message}`));
         page.on('requestfailed', (request) => {
             const url = new URL(request.url());
-            console.error(
+            diagnostics.push(
                 `[NALA teardown] Request failed: ${request.method()} ${url.origin}${url.pathname} (${request.failure().errorText})`,
             );
         });
         page.on('response', (response) => {
             if (response.status() < 400) return;
+            if (response.status() === 404 && response.request().method() === 'GET' && expectedMissingUrls.has(response.url()))
+                return;
             const url = new URL(response.url());
-            console.error(`[NALA teardown] HTTP ${response.status()}: ${url.origin}${url.pathname}`);
+            diagnostics.push(`[NALA teardown] HTTP ${response.status()}: ${url.origin}${url.pathname}`);
         });
         await installEdsThrottleOnPage(page);
         stopCounting = await GlobalRequestCounter.init(page);
@@ -189,7 +196,7 @@ async function cleanupRun() {
                     console.info(`  \x1b[32m✓\x1b[0m Found ${recovered.length} additional run-owned fragments.`);
                 } catch (error) {
                     paths.get(path).searchError = error.message;
-                    console.error(`  \x1b[31m✘\x1b[0m Recovery search failed: ${path}: ${error.message}`);
+                    diagnostics.push(`  \x1b[31m✘\x1b[0m Recovery search failed: ${path}: ${error.message}`);
                     recoveryErrors.push(new Error(`${path}: ${error.message}`, { cause: error }));
                 }
             }
@@ -204,6 +211,8 @@ async function cleanupRun() {
         }
         global.nalaCleanupResults.paths = [...paths.values()];
         global.nalaCleanupResults.totalFound = fragments.length;
+        const fragmentsUrl = await page.locator('mas-repository').evaluate((repo) => repo.aem.cfFragmentsUrl);
+        for (const { id } of fragments) expectedMissingUrls.add(`${fragmentsUrl}/${id}`);
         const failures = [];
         for (let start = 0; start < fragments.length; start += 10) {
             console.info(
@@ -222,9 +231,8 @@ async function cleanupRun() {
                 const fragment = fragments.find((entry) => entry.id === id);
                 paths.get(fragment.path.slice(0, fragment.path.lastIndexOf('/'))).failed++;
             }
-            for (const id of result.deletedIds) console.info(`[NALA teardown] Deleted fragment: ${id}`);
-            for (const id of result.alreadyDeletedIds) console.info(`[NALA teardown] Fragment already absent: ${id}`);
-            for (const { id, message } of result.failures) console.error(`[NALA teardown] Failed fragment ${id}: ${message}`);
+            for (const { id, message } of result.failures)
+                diagnostics.push(`[NALA teardown] Failed fragment ${id}: ${message}`);
             failures.push(...result.failures);
         }
         if (failures.length || recoveryErrors.length) {
@@ -241,14 +249,20 @@ async function cleanupRun() {
         for (const path of global.nalaCleanupResults.paths ?? []) path.failed = path.found - path.deleted;
         throw error;
     } finally {
-        for (const context of browser.contexts()) {
-            for (const page of context.pages()) await removePageRoutes(page);
-        }
-        stopCounting?.();
-        GlobalRequestCounter.saveCountToFileSync(ci ? 'cleanup' : 'tests');
-        await browser.close();
-        if (!ci) {
-            printCleanupSummary();
+        try {
+            try {
+                for (const context of browser.contexts()) {
+                    for (const page of context.pages()) await removePageRoutes(page);
+                }
+            } finally {
+                stopCounting?.();
+                GlobalRequestCounter.saveCountToFileSync(ci ? 'cleanup' : 'tests');
+                await browser.close();
+            }
+        } finally {
+            if (diagnostics.length) console.log(diagnostics.join('\n'));
+            await drainReporterOutput();
+            if (!ci) printCleanupSummary();
         }
     }
 }
@@ -276,9 +290,10 @@ async function globalTeardown() {
             if (stopCoordinator) await stopCoordinator();
         } finally {
             if (ci) {
+                await drainReporterOutput();
                 printCleanupSummary();
                 new RequestCountingReporter({ phase: 'cleanup' }).printRequestSummary();
-                await new Promise((resolve) => process.stdout.write('', resolve));
+                await drainReporterOutput();
             }
         }
     }

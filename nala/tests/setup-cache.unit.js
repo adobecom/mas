@@ -509,6 +509,7 @@ test('cleanup summary preserves colored totals and exposes per-path outcomes', (
         ],
     };
     printCleanupSummary();
+    assert.equal(lines.length, 1, 'The cleanup summary must be emitted as one output block');
     const output = lines.join('\n');
     assert.match(output, /\x1b\[1m\x1b\[34m---------Fragment Cleanup Summary---------/);
     assert.match(output, /Deleted\/already absent/);

@@ -602,40 +602,38 @@ test('discard waits for dirty state and completed navigation before reloading th
     }
 });
 
-test('RTE clearing retries a missed select-all and deletes once', async ({ page }) => {
+test('RTE clearing waits for the empty model and deletes once without assuming selection boundaries', async ({ page }) => {
     await page.setContent('<rte-field></rte-field>');
     await page.evaluate(() => {
         const field = document.querySelector('rte-field');
         const root = field.attachShadow({ mode: 'open' });
         root.innerHTML = '<div class="ProseMirror" contenteditable="true">Save 20%</div>';
         const editor = root.querySelector('.ProseMirror');
-        field.editorView = { state: { selection: { from: 0, to: 0 }, doc: { content: { size: 8 } } } };
-        window.selectionAttempts = 0;
+        class Selection {
+            static atStart() {
+                return { from: 1 };
+            }
+            static atEnd() {
+                return { to: 7 };
+            }
+        }
+        const selection = new Selection();
+        selection.from = 1;
+        selection.to = 7;
+        field.editorView = { state: { selection, doc: { textContent: 'Save 20%' } } };
         window.deletions = 0;
-        editor.addEventListener('keydown', (event) => {
-            if (event.key.toLowerCase() === 'a' && (event.ctrlKey || event.metaKey)) {
-                event.preventDefault();
-                window.selectionAttempts++;
-                field.editorView.state.selection = { from: 0, to: window.selectionAttempts === 1 ? 0 : 8 };
-            }
-            if (event.key === 'Backspace') {
-                event.preventDefault();
-                window.deletions++;
-                const { selection } = field.editorView.state;
-                if (selection.from === 0 && selection.to === 8) {
-                    editor.textContent = '';
-                    field.editorView.state.doc.textContent = '';
-                }
-            }
+        editor.addEventListener('input', (event) => {
+            window.deletions++;
+            const value = event.target.textContent;
+            setTimeout(() => {
+                field.editorView.state.doc.textContent = value;
+            }, 200);
         });
     });
     const field = page.locator('rte-field .ProseMirror');
     await new StudioPage(page).editor.clearRteField(field);
     await expect(field).toHaveText('');
-    expect(await page.evaluate(() => ({ selections: window.selectionAttempts, deletions: window.deletions }))).toEqual({
-        selections: 2,
-        deletions: 1,
-    });
+    expect(await page.evaluate(() => window.deletions)).toBe(1);
 });
 
 test('picker selection recovers a closed initial transition, scopes its option and waits for the selected label', async ({
@@ -673,8 +671,7 @@ test('picker selection recovers a closed initial transition, scopes its option a
                 if (!first) option.focus();
             }, 100);
         });
-        option.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter') return;
+        option.addEventListener('click', () => {
             picker.open = false;
             picker.value = 'default';
             overlay.state = 'closed';

@@ -145,8 +145,10 @@ Cookie-setting responses are neither retried nor cached. Authentication endpoint
 are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
 Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
-Studio rich-text edits wait for the editor model to commit, not only the editable DOM. Shared picker selection
-uses scoped keyboard navigation and verifies the selected value without selecting intermediate options.
+Studio rich-text edits use native field input and wait for the editor model to commit, not only the editable DOM.
+Clears verify that native select-all covers the document's editable bounds before sending one delete, without requiring
+a particular ProseMirror selection type. Shared picker selection clicks the visible, enabled option once and verifies
+its value and closed state, without relying on global keyboard focus or selecting intermediate options.
 These checks preserve live saves and mandatory discard confirmations; they do not retry writes or force clicks.
 Accessibility scans wait for finite animations in the tested section to finish, so accordion fades are not
 mistaken for permanent contrast failures. Infinite animations do not block scans; accessibility thresholds are unchanged.

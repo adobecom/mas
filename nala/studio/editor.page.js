@@ -166,17 +166,25 @@ export default class EditorPage {
     async clearRteField(field) {
         await expect(async () => {
             await field.click();
-            await field.press('ControlOrMeta+A');
+            await field.press('ControlOrMeta+a');
             await expect
                 .poll(
                     () =>
                         field.evaluate((element) => {
                             const { selection, doc } = element.getRootNode().host.editorView.state;
-                            return selection.from === 0 && selection.to === doc.content.size;
+                            const start = selection.constructor.atStart(doc).from;
+                            const end = selection.constructor.atEnd(doc).to;
+                            return JSON.stringify({
+                                from: selection.from,
+                                to: selection.to,
+                                start,
+                                end,
+                                complete: selection.from <= start && selection.to >= end,
+                            });
                         }),
                     { timeout: 1000 },
                 )
-                .toBe(true);
+                .toContain('"complete":true');
         }).toPass({ timeout: 10000 });
         await field.press('Backspace');
         await expect
@@ -193,32 +201,21 @@ export default class EditorPage {
     async selectPickerOption(picker, label) {
         const button = picker.locator('button#button');
         const option = picker.getByRole('option', { name: label, exact: true });
-        const options = picker.getByRole('option', { disabled: false, includeHidden: true });
         let value;
-        let index;
         await button.scrollIntoViewIfNeeded();
         await expect(async () => {
             await button.press('ArrowDown');
             await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
             await expect(option).toBeVisible({ timeout: 1000 });
+            await expect(option).toBeEnabled({ timeout: 1000 });
             value = await option.evaluate((element) => element.value);
-            const values = await options.evaluateAll((elements) => elements.map((element) => element.value));
-            index = values.indexOf(value);
-            expect(index, `Picker must contain an enabled option named "${label}"`).toBeGreaterThanOrEqual(0);
-            await expect
-                .poll(() => picker.evaluate((element) => element.optionsMenu.matches(':focus-within')), { timeout: 1000 })
-                .toBe(true);
+            await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+            await expect(option).toBeVisible({ timeout: 1000 });
         }).toPass({ timeout: 10000 });
-        await this.page.keyboard.press('Home');
-        await expect(options.first()).toBeFocused();
-        for (let position = 1; position <= index; position++) {
-            await this.page.keyboard.press('ArrowDown');
-            await expect(options.nth(position)).toBeFocused();
-        }
-        await this.page.keyboard.press('Enter');
-        await expect(picker).toHaveJSProperty('open', false);
+        await option.click();
         await expect(picker).toHaveJSProperty('value', value);
         await expect(button).toContainText(label);
+        await expect(picker).toHaveJSProperty('open', false);
     }
 
     async getLinkVariant(variant) {

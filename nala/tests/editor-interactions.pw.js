@@ -83,6 +83,68 @@ test('RTE fill waits for the model rather than only the editable DOM', async ({ 
     expect(await page.evaluate(() => window.inputs)).toBe(1);
 });
 
+for (const inline of [true, false]) {
+    test(`RTE clearing empties a real ${inline ? 'inline' : 'multi-paragraph'} ProseMirror document`, async ({ page }) => {
+        await page.setContent('<rte-field></rte-field>');
+        const result = await build({
+            stdin: {
+                contents: `
+                    import { Schema } from 'prosemirror-model';
+                    import { EditorState, TextSelection } from 'prosemirror-state';
+                    import { EditorView } from 'prosemirror-view';
+                    import { keymap } from 'prosemirror-keymap';
+                    import { baseKeymap, deleteSelection } from 'prosemirror-commands';
+                    const inline = ${inline};
+                    const schema = new Schema({
+                        nodes: {
+                            doc: { content: inline ? 'inline*' : 'paragraph+' },
+                            paragraph: { content: 'inline*', parseDOM: [{ tag: 'p' }], toDOM: () => ['p', 0] },
+                            text: { group: 'inline' },
+                            icon: {
+                                group: 'inline', inline: true, atom: true,
+                                parseDOM: [{ tag: 'span[data-icon]' }],
+                                toDOM: () => ['span', { 'data-icon': '', contenteditable: 'false' }, 'i'],
+                            },
+                        },
+                    });
+                    const content = inline
+                        ? [schema.text('Save 20%'), schema.node('icon')]
+                        : [schema.node('paragraph', null, [schema.text('Save 20%'), schema.node('icon')]),
+                           schema.node('paragraph', null, [schema.text('Another offer')])];
+                    const doc = schema.node('doc', null, content);
+                    const field = document.querySelector('rte-field');
+                    const root = field.attachShadow({ mode: 'open' });
+                    window.edits = 0;
+                    field.editorView = new EditorView(root, {
+                        state: EditorState.create({
+                            schema, doc,
+                            selection: TextSelection.create(doc, inline ? 0 : 1, doc.content.size - (inline ? 0 : 1)),
+                            plugins: [keymap({ Delete: deleteSelection, Backspace: deleteSelection }), keymap(baseKeymap)],
+                        }),
+                        dispatchTransaction(transaction) {
+                            if (transaction.docChanged) window.edits++;
+                            field.editorView.updateState(field.editorView.state.apply(transaction));
+                        },
+                    });
+                `,
+                resolveDir: process.cwd(),
+            },
+            bundle: true,
+            format: 'iife',
+            write: false,
+        });
+        await page.addScriptTag({ content: result.outputFiles[0].text });
+        const field = page.locator('rte-field .ProseMirror');
+        await new EditorPage(page).clearRteField(field);
+        await expect(field).toHaveText('');
+        expect(await page.locator('rte-field').evaluate((field) => field.editorView.state.doc.textContent)).toBe('');
+        expect(await page.locator('rte-field').evaluate((field) => field.editorView.state.doc.content.size)).toBe(
+            inline ? 0 : 2,
+        );
+        expect(await page.evaluate(() => window.edits)).toBe(1);
+    });
+}
+
 test('real Spectrum picker recovers from closure before activation', async ({ page }) => {
     await page.setContent(`
                 <sp-picker value="default">
@@ -115,6 +177,29 @@ test('real Spectrum picker recovers from closure before activation', async ({ pa
     expect([...new Set(await page.evaluate(() => window.selections))]).toEqual(['gray']);
     await expect(picker).toHaveJSProperty('open', false);
     await expect(picker).toHaveJSProperty('value', 'gray');
+});
+
+test('real Spectrum picker selects once and closes its menu', async ({ page }) => {
+    await page.setContent(`
+        <sp-picker value="default">
+            <sp-menu-item value="default">Default</sp-menu-item>
+            <sp-menu-item value="gray">Gray 300</sp-menu-item>
+        </sp-picker>
+    `);
+    await page.addScriptTag({ content: spectrum });
+    await page.evaluate(async () => {
+        await customElements.whenDefined('sp-picker');
+        const picker = document.querySelector('sp-picker');
+        window.selections = [];
+        picker.addEventListener('change', () => {
+            window.selections.push(picker.value);
+        });
+    });
+    const picker = page.locator('sp-picker');
+    await new EditorPage(page).selectPickerOption(picker, 'Gray 300');
+    await expect(picker).toHaveJSProperty('value', 'gray');
+    await expect(picker).toHaveJSProperty('open', false);
+    expect(await page.evaluate(() => window.selections)).toEqual(['gray']);
 });
 
 test('translation search excludes tag-filter searches and other selectors', async ({ page }) => {
@@ -357,5 +442,5 @@ test('gallery alignment rejects a one-pixel offset even when another gallery is 
     await galleryFixture(page, true);
     await expect(
         WebUtil.expectGalleryFooterAlignment(page.locator('merch-card'), page.locator('[slot="footer"] button')),
-    ).rejects.toThrow(/aligned/);
+    ).rejects.toThrow(/misalignedRows[\s\S]*offset/);
 });

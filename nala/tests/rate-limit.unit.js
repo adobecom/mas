@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import initializeRateLimitCoordinator, { coordinateRateLimit, OriginRateLimits } from '../libs/rate-limit-coordinator.js';
 import { logRateLimitedResponses, waitForRateLimit, fetchWithRateLimitRetry } from '../libs/rate-limit.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
-import RequestCountingReporter from '../utils/request-counting-reporter.js';
+import RequestCountingReporter, { drainReporterOutput } from '../utils/request-counting-reporter.js';
 import BaseReporter from '../utils/base-reporter.js';
 import globalTeardown from '../utils/global.teardown.js';
 import { createRunId } from '../utils/fragment-tracker.js';
@@ -18,7 +18,27 @@ import { chromium } from '@playwright/test';
 
 const coordinatorModule = new URL('../libs/rate-limit-coordinator.js', import.meta.url).href;
 
-for (const cleanup of ['skipped', 'empty', 'failed']) {
+test('reporter output drains both stdout and stderr before returning', async (t) => {
+    const finished = [];
+    for (const [name, stream] of [
+        ['stdout', process.stdout],
+        ['stderr', process.stderr],
+    ]) {
+        const write = stream.write.bind(stream);
+        t.mock.method(stream, 'write', (chunk, callback) => {
+            if (chunk !== '') return write(chunk, callback);
+            setImmediate(() => {
+                finished.push(name);
+                callback();
+            });
+            return true;
+        });
+    }
+    await drainReporterOutput();
+    assert.deepEqual(finished.sort(), ['stderr', 'stdout']);
+});
+
+for (const cleanup of ['skipped', 'empty', 'failed', 'completed']) {
     test(`CI reports tests before ${cleanup} cleanup with independent counters and pressure`, async (t) => {
         const directory = mkdtempSync(join(tmpdir(), 'nala-final-summary-'));
         const cwd = process.cwd();
@@ -36,8 +56,35 @@ for (const cleanup of ['skipped', 'empty', 'failed']) {
         t.mock.method(console, 'log', (message) => logs.push(message));
         t.mock.method(console, 'info', (message) => logs.push(message));
         t.mock.method(chromium, 'launch', async () => {
+            if (cleanup === 'completed') {
+                const fragmentsUrl = 'https://author-test.adobeaemcloud.com/adobe/sites/cf/fragments';
+                const page = new EventEmitter();
+                page.route = async () => {};
+                page.unrouteAll = async () => {};
+                page.goto = async () => {};
+                page.waitForFunction = async () => {};
+                page.locator = () => ({ evaluate: async () => fragmentsUrl });
+                page.evaluate = async () => {
+                    page.emit('response', {
+                        status: () => 404,
+                        url: () => `${fragmentsUrl}/already-absent-id`,
+                        request: () => ({ method: () => 'GET' }),
+                    });
+                    return { deletedIds: ['deleted-id'], alreadyDeletedIds: ['already-absent-id'], failures: [] };
+                };
+                const context = { newPage: async () => page, pages: () => [page] };
+                return {
+                    newContext: async () => context,
+                    contexts: () => [context],
+                    close: async () => page.emit('pageerror', new Error('Final browser diagnostic')),
+                };
+            }
             throw new Error('cleanup browser unavailable');
         });
+        if (cleanup === 'completed') {
+            t.mock.method(GlobalRequestCounter, 'init', async () => () => {});
+            t.mock.method(GlobalRequestCounter, 'saveCountToFileSync', () => {});
+        }
         process.chdir(directory);
         for (const [key, value] of Object.entries(env)) {
             if (value === undefined) delete process.env[key];
@@ -54,6 +101,15 @@ for (const cleanup of ['skipped', 'empty', 'failed']) {
                         path: '/content/dam/mas/nala/en_US/owned',
                         title: process.env.NALA_RUN_ID,
                     });
+                }
+                if (cleanup === 'completed') {
+                    for (const id of ['deleted-id', 'already-absent-id']) {
+                        recordCreatedFragment({
+                            id,
+                            path: `/content/dam/mas/nala/en_US/${id}`,
+                            title: process.env.NALA_RUN_ID,
+                        });
+                    }
                 }
             }
             const reporter = new BaseReporter({});
@@ -116,6 +172,18 @@ for (const cleanup of ['skipped', 'empty', 'failed']) {
             assert.doesNotMatch(output, /NaN/);
             assert.equal(existsSync('test-results/nala-summary.json'), false);
             if (cleanup === 'failed') assert.match(output, /Failed to delete.*1\/1/);
+            if (cleanup === 'completed') {
+                assert.doesNotMatch(cleanupOutput, /deleted-id|already-absent-id|HTTP 404/);
+                assert.match(cleanupOutput, /Final browser diagnostic/);
+                assert.match(cleanupOutput, /Deleted\/already absent.*2/);
+                assert.ok(
+                    cleanupOutput.indexOf('Final browser diagnostic') < cleanupOutput.indexOf('Fragment Cleanup Summary'),
+                );
+                assert.ok(
+                    cleanupOutput.indexOf('Run-owned fragment cleanup completed') <
+                        cleanupOutput.indexOf('Fragment Cleanup Summary'),
+                );
+            }
         } finally {
             for (const file of readdirSync('test-results')) unlinkSync(join('test-results', file));
             rmdirSync('test-results');

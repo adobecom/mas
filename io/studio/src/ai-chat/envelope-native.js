@@ -11,7 +11,7 @@
  */
 
 import { getIntent, isStateChanging, META_INTENTS } from './intent-registry.js';
-import { ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { ENVELOPE_TOOL_NAME, SEARCH_TOOL_NAME } from './tool-definitions.js';
 import { normalizeEscapedText } from './response-parser.js';
 
 const GENERIC_CLARIFICATION = 'Could you clarify what you would like me to do?';
@@ -28,8 +28,20 @@ export function normalizeEnvelopeText(envelope) {
 }
 
 export function extractToolEnvelope(response) {
-    if (!response?.success) return null;
-    if (!response.toolUse || response.toolUse.name !== ENVELOPE_TOOL_NAME) return null;
+    if (!response?.success || !response.toolUse) return null;
+    // The typed search tool is sugar for a search_cards envelope: the model
+    // fills first-class fields, which we route through the same path. Surfaces
+    // are canonicalized to lowercase so getSurfacePath resolves them (the
+    // envelope path does not pass through the operations-handler normalizer).
+    if (response.toolUse.name === SEARCH_TOOL_NAME) {
+        const slots = { ...(response.toolUse.input ?? {}) };
+        if (typeof slots.surface === 'string') slots.surface = slots.surface.trim().toLowerCase();
+        if (Array.isArray(slots.surfaces)) {
+            slots.surfaces = slots.surfaces.filter((s) => typeof s === 'string').map((s) => s.trim().toLowerCase());
+        }
+        return { intent: 'search_cards', slots, confidence: 'high' };
+    }
+    if (response.toolUse.name !== ENVELOPE_TOOL_NAME) return null;
     return response.toolUse.input ?? null;
 }
 

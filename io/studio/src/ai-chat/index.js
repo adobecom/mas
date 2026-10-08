@@ -29,7 +29,7 @@ import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
 import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
-import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { buildEnvelopeTool, buildSearchTool, ROUTING_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 import { buildGuidedTools, GUIDED_TOOL_CHOICE, extractGuidedTool } from './guided-tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
 import { getFlowForIntent } from './intent-registry.js';
@@ -611,7 +611,7 @@ async function main(params) {
             !params.context?.flow?.active &&
             !inferGuidedFlowFromHistory(conversationHistory);
         let toolOptions = nativeEnvelopeEligible
-            ? { thinking, tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE }
+            ? { thinking, tools: [buildEnvelopeTool(), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE }
             : { thinking };
 
         // Deterministic identifier shortcut: when the user message is a bare

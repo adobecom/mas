@@ -23,11 +23,12 @@ describe('ai-chat/tool-definitions', () => {
         expect(ENVELOPE_TOOL_CHOICE).to.deep.equal({ type: 'tool', name: tool.name });
     });
 
-    it('enumerates every registered intent and meta intent', () => {
+    it('enumerates every registered intent and meta intent except search_cards', () => {
         const tool = buildEnvelopeTool();
         const enumValues = tool.input_schema.properties.intent.enum;
-        expect(enumValues).to.have.length(INTENTS.length + META_INTENTS.length);
-        expect(enumValues).to.include('search_cards');
+        // search_cards is intentionally excluded — the typed emit_search tool owns card search.
+        expect(enumValues).to.have.length(INTENTS.length + META_INTENTS.length - 1);
+        expect(enumValues).to.not.include('search_cards');
         expect(enumValues).to.include('release_create.set_commitment');
         expect(enumValues).to.include('ASK_USER');
         expect(enumValues).to.include('ABORT');

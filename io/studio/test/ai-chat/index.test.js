@@ -643,4 +643,33 @@ describe('ai-chat/index main handler', () => {
             expect(step.buttonGroup?.inputHint || step.buttonGroup?.options?.length).to.be.ok;
         });
     });
+
+    describe('native search tool (emit_search)', () => {
+        const searchTool = (input) => ({
+            success: true,
+            message: null,
+            toolUse: { name: 'emit_search', input },
+            usage: { inputTokens: 1, outputTokens: 1 },
+        });
+
+        it('maps an emit_search call into a search_cards operation with the typed filters', async () => {
+            sendStub.resolves(searchTool({ variant: 'plans', variationType: 'grouped', surface: 'acom' }));
+            const result = await main(
+                makeParams({ message: 'show me cards with template "plans" that have grouped variations' }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('studio_operation');
+            expect(result.body.operationName).to.equal('search_cards');
+            expect(result.body.operationParams.variant).to.equal('plans');
+            expect(result.body.operationParams.variationType).to.equal('grouped');
+            expect(result.body.operationParams.surface).to.equal('acom');
+        });
+
+        it('lowercases the surface the model echoed in the user casing', async () => {
+            sendStub.resolves(searchTool({ query: 'photoshop', surface: 'ACOM' }));
+            const result = await main(makeParams({ message: 'find photoshop cards' }));
+            expect(result.body.operationName).to.equal('search_cards');
+            expect(result.body.operationParams.surface).to.equal('acom');
+        });
+    });
 });

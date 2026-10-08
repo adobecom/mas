@@ -32,7 +32,10 @@ jobs:
             - name: Install XVFB
               run: sudo apt-get install xvfb
 
+            # io/studio's tests fetch the mas-agent knowledge corpus first (pretest); its coverage tests need it.
             - name: Run the tests
+              env:
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: xvfb-run -a npm test
 
             - name: Upload coverage to Codecov

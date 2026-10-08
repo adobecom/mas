@@ -12,7 +12,8 @@ async function loadRealCorpus() {
 async function requireRealCorpus(context) {
     const corpus = await loadRealCorpus();
     if (corpus.masaChunks > 0) return corpus.chunks;
-    const why = 'the mas-agent knowledge corpus is not fetched: run `npm run fetch:masa-knowledge` with MAS_AGENT_KNOWLEDGE_TOKEN set';
+    const why =
+        'the mas-agent knowledge corpus is not fetched: run `npm run fetch:masa-knowledge` with MAS_AGENT_KNOWLEDGE_TOKEN set';
     if (process.env.CI) throw new Error(why);
     console.warn(`skipped: ${why}`);
     return context.skip();

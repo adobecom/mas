@@ -34,7 +34,8 @@ describe('ai-chat/knowledge corpus', () => {
         for (const required of ['translations', 'promotions']) {
             expect([...topics].join(','), `missing topic ${required}`).to.include(required);
         }
-        const allText = chunks.map((c) => `${c.section} ${c.text}`)
+        const allText = chunks
+            .map((c) => `${c.section} ${c.text}`)
             .join(' ')
             .toLowerCase();
         expect(allText).to.include('bulk publish');
@@ -47,7 +48,6 @@ describe('ai-chat/knowledge corpus', () => {
             expect(chunk.text.length, `${chunk.id} too long`).to.be.at.most(2000);
         }
     });
-
 
     it('keeps every chunk within the standalone-injection size band', () => {
         for (const chunk of KNOWLEDGE_CHUNKS) {

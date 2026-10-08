@@ -470,6 +470,8 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
                 const [discountedOffer, referenceOffer] = offers;
                 const crossOffer = {
                     ...discountedOffer,
+                    // Price computed here → drop stale WCS priceInfo.
+                    priceInfo: undefined,
                     priceDetails: {
                         ...discountedOffer.priceDetails,
                         priceWithoutDiscount:

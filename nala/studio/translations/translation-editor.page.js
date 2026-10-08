@@ -81,7 +81,7 @@ export default class TranslationEditorPage {
 
         // Expand/collapse button
         this.expandRowButton = (index) =>
-            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.expand-button').first();
+            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.ghost-button').first();
 
         // View-only mode
         this.viewOnlyCardsTab = page.getByRole('tabpanel', { name: /Fragments\s*\(\d+\)/ }).first();

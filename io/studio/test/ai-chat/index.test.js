@@ -671,5 +671,17 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.operationName).to.equal('search_cards');
             expect(result.body.operationParams.surface).to.equal('acom');
         });
+
+        it('reclassifies a misfilled search (template in query, variation in tags) into typed fields', async () => {
+            sendStub.resolves(searchTool({ query: 'plans', tags: ['grouped'] }));
+            const result = await main(
+                makeParams({ message: 'show me cards with template "plans" that have grouped variations' }),
+            );
+            expect(result.body.operationName).to.equal('search_cards');
+            expect(result.body.operationParams.variant).to.equal('plans');
+            expect(result.body.operationParams.variationType).to.equal('grouped');
+            expect(result.body.operationParams.query).to.equal(undefined);
+            expect(result.body.operationParams.tags).to.equal(undefined);
+        });
     });
 });

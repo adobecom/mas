@@ -4,6 +4,7 @@ let buildEnvelopeTool;
 let buildSearchTool;
 let SEARCH_TOOL_NAME;
 let extractToolEnvelope;
+let normalizeSearchSlots;
 let buildPrompt;
 let getIntent;
 let SLOT_VALIDATORS;
@@ -11,9 +12,48 @@ let SLOT_VALIDATORS;
 describe('ai-chat/native search tool', () => {
     before(async () => {
         ({ buildEnvelopeTool, buildSearchTool, SEARCH_TOOL_NAME } = await import('../../src/ai-chat/tool-definitions.js'));
-        ({ extractToolEnvelope } = await import('../../src/ai-chat/envelope-native.js'));
+        ({ extractToolEnvelope, normalizeSearchSlots } = await import('../../src/ai-chat/envelope-native.js'));
         ({ buildPrompt } = await import('../../src/ai-chat/prompt-builder.js'));
         ({ getIntent, SLOT_VALIDATORS } = await import('../../src/ai-chat/intent-registry.js'));
+    });
+
+    describe('normalizeSearchSlots reclassifies misfilled fields', () => {
+        it('moves a template name from query to variant', () => {
+            expect(normalizeSearchSlots({ query: 'plans' })).to.deep.equal({ variant: 'plans' });
+        });
+
+        it('moves a template name from "<template> cards" to variant', () => {
+            expect(normalizeSearchSlots({ query: 'plans cards' })).to.deep.equal({ variant: 'plans' });
+        });
+
+        it('moves a variation word out of tags into variationType', () => {
+            expect(normalizeSearchSlots({ query: 'plans', tags: ['grouped'] })).to.deep.equal({
+                variant: 'plans',
+                variationType: 'grouped',
+            });
+        });
+
+        it('turns a "grouped variations" query into variationType', () => {
+            expect(normalizeSearchSlots({ query: 'grouped variations' })).to.deep.equal({ variationType: 'grouped' });
+        });
+
+        it('keeps a real mas: tag and only pulls out the variation word', () => {
+            expect(normalizeSearchSlots({ tags: ['mas:product_code/phsp', 'grouped'] })).to.deep.equal({
+                tags: ['mas:product_code/phsp'],
+                variationType: 'grouped',
+            });
+        });
+
+        it('leaves genuine free text alone', () => {
+            expect(normalizeSearchSlots({ query: 'photoshop' })).to.deep.equal({ query: 'photoshop' });
+        });
+
+        it('does not override a variant the model already set', () => {
+            expect(normalizeSearchSlots({ query: 'plans', variant: 'fries' })).to.deep.equal({
+                query: 'plans',
+                variant: 'fries',
+            });
+        });
     });
 
     describe('search_cards registry exposes variant and variationType', () => {

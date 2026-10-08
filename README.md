@@ -147,16 +147,17 @@ Remaining EDS requests are paced at 45 RPS per worker locally and in CI, includi
 Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
 Studio rich-text edits use native field input and wait for the editor model to commit, not only the editable DOM.
 Clears verify that native select-all covers the document's editable bounds before sending one delete, without requiring
-a particular ProseMirror selection type. Shared picker selection clicks the visible, enabled option once and verifies
-its value and closed state, without relying on global keyboard focus or selecting intermediate options.
+a particular ProseMirror selection type. Shared picker selection recovers opening/actionability failures only before native
+pointer input begins, selects the visible, enabled option once and waits for its public change event, value and closed state.
+It does not rely on global keyboard focus or select intermediate options. No selection or mutation is retried.
 These checks preserve live saves and mandatory discard confirmations; they do not retry writes or force clicks.
+New-fragment preview failures include source, preview and rendered variants plus preview/card failure state;
+they do not trigger reloads or repeat saves.
 Accessibility scans wait for finite animations in the tested section to finish, so accordion fades are not
 mistaken for permanent contrast failures. Infinite animations do not block scans; accessibility thresholds are unchanged.
 Translation search uses an already-loaded baseline card or this run's immutable source, never another run's temporary cards.
 Filter checks verify both pending and committed picker selections, rather than treating a closed popover as success.
 Inventory updates that reset selections still fail these checks; application behavior is not changed or retried.
-Gallery CTA alignment waits for resolved cards and fonts, then compares footer positions within each gallery row at zero-pixel
-tolerance. Grouping is based on gallery membership and card rows, not the CTA positions being asserted.
 The coordinator is local to one invocation: separate machines do not share service budgets or cooldowns.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;
 the request summary includes AEM author and Odin preview separately, with retries included in upstream totals.

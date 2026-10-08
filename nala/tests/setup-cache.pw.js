@@ -688,6 +688,7 @@ test('picker selection recovers a closed initial transition, scopes its option a
             option.hidden = true;
             setTimeout(() => {
                 button.textContent = 'Default';
+                picker.dispatchEvent(new Event('change', { bubbles: true }));
             }, 100);
         });
     });

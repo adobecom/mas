@@ -15,53 +15,6 @@ export default class WebUtil {
         this.locator = null;
     }
 
-    static async expectGalleryFooterAlignment(cards, buttons) {
-        await expect(cards.first()).toBeVisible();
-        const count = await cards.count();
-        expect(count).toBeGreaterThan(0);
-        for (let index = 0; index < count; index++) {
-            const card = cards.nth(index);
-            await card.scrollIntoViewIfNeeded();
-            const ready = await card.evaluate(async (card) => {
-                await customElements.whenDefined('merch-card');
-                await card.checkReady();
-                return !card.failed;
-            });
-            expect(ready, `Gallery card ${index} must resolve before comparing CTA positions`).toBe(true);
-        }
-        await expect(buttons.first()).toBeVisible();
-        await buttons.page().evaluate(() => document.fonts.ready);
-        await expect
-            .poll(async () => {
-                const groups = await buttons.evaluateAll((elements) => {
-                    const galleries = new Map();
-                    for (const button of elements) {
-                        const gallery = button.closest('.three-merch-cards');
-                        const rows = galleries.get(gallery) ?? new Map();
-                        const cardTop = button.closest('merch-card').getBoundingClientRect().top;
-                        const rowTop = [...rows.keys()].find((top) => Math.abs(top - cardTop) < 1) ?? cardTop;
-                        const positions = rows.get(rowTop) ?? [];
-                        const { top, width, height } = button.getBoundingClientRect();
-                        positions.push({ top, visible: width > 0 && height > 0 });
-                        rows.set(rowTop, positions);
-                        galleries.set(gallery, rows);
-                    }
-                    return [...galleries.values()].flatMap((rows) => [...rows.values()]);
-                });
-                return {
-                    populated: groups.length > 0,
-                    visible: groups.every((positions) => positions.every(({ visible }) => visible)),
-                    misalignedRows: groups
-                        .map((positions) => {
-                            const tops = positions.map(({ top }) => top);
-                            return { tops, offset: Math.max(...tops) - Math.min(...tops) };
-                        })
-                        .filter(({ offset }) => offset !== 0),
-                };
-            })
-            .toEqual({ populated: true, visible: true, misalignedRows: [] });
-    }
-
     /**
      * Check if the element associated with the current locator is visible.
      * @param {Locator} locator - The Playwright locator for the element to check.

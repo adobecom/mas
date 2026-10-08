@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { errors, expect } from '@playwright/test';
 
 export default class EditorPage {
     constructor(page) {
@@ -203,19 +203,53 @@ export default class EditorPage {
         const option = picker.getByRole('option', { name: label, exact: true });
         let value;
         await button.scrollIntoViewIfNeeded();
-        await expect(async () => {
-            await button.press('ArrowDown');
-            await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
-            await expect(option).toBeVisible({ timeout: 1000 });
-            await expect(option).toBeEnabled({ timeout: 1000 });
-            value = await option.evaluate((element) => element.value);
-            await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
-            await expect(option).toBeVisible({ timeout: 1000 });
-        }).toPass({ timeout: 10000 });
-        await option.click();
-        await expect(picker).toHaveJSProperty('value', value);
-        await expect(button).toContainText(label);
-        await expect(picker).toHaveJSProperty('open', false);
+        const activation = await picker.evaluateHandle((picker) => {
+            const state = { started: false, committed: false };
+            const start = () => {
+                state.started = true;
+            };
+            const commit = (event) => {
+                if (event.composedPath()[0] === picker) state.committed = true;
+            };
+            document.addEventListener('pointerdown', start, true);
+            picker.addEventListener('change', commit, true);
+            return {
+                state,
+                stop: () => {
+                    document.removeEventListener('pointerdown', start, true);
+                    picker.removeEventListener('change', commit, true);
+                },
+            };
+        });
+        let activationError;
+        try {
+            await expect(async () => {
+                if (activationError) throw activationError;
+                await button.press('ArrowDown');
+                await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+                await expect(option).toBeVisible({ timeout: 1000 });
+                await expect(option).toBeEnabled({ timeout: 1000 });
+                value = await option.evaluate((element) => element.value);
+                await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+                await expect(option).toBeVisible({ timeout: 1000 });
+                try {
+                    await option.click({ timeout: 1000 });
+                } catch (error) {
+                    activationError = error;
+                    if (error instanceof errors.TimeoutError && !(await activation.evaluate(({ state }) => state.started))) {
+                        activationError = undefined;
+                    }
+                    throw error;
+                }
+            }).toPass({ timeout: 10000 });
+            await expect.poll(() => activation.evaluate(({ state }) => state.committed)).toBe(true);
+            await expect(picker).toHaveJSProperty('value', value);
+            await expect(button).toContainText(label);
+            await expect(picker).toHaveJSProperty('open', false);
+        } finally {
+            await activation.evaluate(({ stop }) => stop());
+            await activation.dispose();
+        }
     }
 
     async getLinkVariant(variant) {

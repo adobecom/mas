@@ -466,10 +466,29 @@ export default class StudioPage {
 
         await this.saveCard();
 
-        await expect(this.page.locator(`merch-card:has(aem-fragment[fragment="${fragmentId}"])`)).toHaveAttribute(
-            'variant',
-            variant,
-        );
+        await expect
+            .poll(
+                () =>
+                    this.page.evaluate(
+                        ({ fragmentId, variant }) => {
+                            const editor = document.querySelector('mas-fragment-editor');
+                            const card = document.querySelector(`merch-card:has(aem-fragment[fragment="${fragmentId}"])`);
+                            const renderedVariant = card?.getAttribute('variant');
+                            return JSON.stringify({
+                                sourceVariant: editor.fragmentStore.get().getField('variant')?.values[0],
+                                previewVariant: editor.fragmentStore.previewStore.get().getField('variant')?.values[0],
+                                renderedVariant,
+                                previewResolved: editor.previewResolved,
+                                previewError: editor.previewError,
+                                failed: card?.failed,
+                                variantMatches: renderedVariant === variant,
+                            });
+                        },
+                        { fragmentId, variant },
+                    ),
+                { message: 'Created fragment preview must render the selected variant' },
+            )
+            .toContain('"variantMatches":true');
         await waitForEditorReady(this.page, fragmentId);
         return fragmentId;
     }

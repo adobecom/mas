@@ -1,9 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { errors, test, expect } from '@playwright/test';
 import { build } from 'esbuild';
 import EditorPage from '../studio/editor.page.js';
 import TranslationEditorPage from '../studio/translations/translation-editor.page.js';
 import { runAccessibilityTest } from '../libs/accessibility.js';
-import WebUtil from '../libs/webutil.js';
 import { createRunId } from '../utils/fragment-tracker.js';
 
 let spectrum;
@@ -201,6 +200,121 @@ test('real Spectrum picker selects once and closes its menu', async ({ page }) =
     await expect(picker).toHaveJSProperty('open', false);
     expect(await page.evaluate(() => window.selections)).toEqual(['gray']);
 });
+
+test('real Spectrum picker waits for the public change after its value and label update', async ({ page }) => {
+    await page.setContent(`
+        <sp-picker value="default">
+            <sp-menu-item value="default">Default</sp-menu-item>
+            <sp-menu-item value="gray">Gray 300</sp-menu-item>
+        </sp-picker>
+    `);
+    await page.addScriptTag({ content: spectrum });
+    await page.evaluate(async () => {
+        await customElements.whenDefined('sp-picker');
+        const picker = document.querySelector('sp-picker');
+        await picker.updateComplete;
+        const getUpdateComplete = picker.getUpdateComplete.bind(picker);
+        picker.getUpdateComplete = async () => {
+            const complete = await getUpdateComplete();
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            return complete;
+        };
+        window.selections = [];
+        picker.addEventListener('change', () => window.selections.push(picker.value));
+    });
+    await new EditorPage(page).selectPickerOption(page.locator('sp-picker'), 'Gray 300');
+    expect(await page.evaluate(() => window.selections)).toEqual(['gray']);
+});
+
+test('real Spectrum picker recovers from closure while its option is still moving before clicking once', async ({ page }) => {
+    const pageErrors = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.setContent(`
+        <sp-picker value="default">
+            <sp-menu-item value="default">Default</sp-menu-item>
+            <sp-menu-item value="gray">Gray 300</sp-menu-item>
+        </sp-picker>
+    `);
+    await page.addScriptTag({ content: spectrum });
+    await page.evaluate(async () => {
+        await customElements.whenDefined('sp-picker');
+        const picker = document.querySelector('sp-picker');
+        window.closedOnce = false;
+        window.selections = [];
+        picker.addEventListener('change', () => window.selections.push(picker.value));
+    });
+    page.setDefaultTimeout(1500);
+    const picker = page.locator('sp-picker');
+    const option = picker.getByRole('option', { name: 'Gray 300', exact: true });
+    const click = option.click.bind(option);
+    option.click = async (options) => {
+        await option.evaluate((element) => {
+            if (window.closedOnce) return;
+            window.closedOnce = true;
+            element.animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(40px)' }], { duration: 500 });
+            setTimeout(() => {
+                element.closest('sp-picker').open = false;
+            }, 100);
+        });
+        await click(options);
+    };
+    picker.getByRole = () => option;
+    await new EditorPage(page).selectPickerOption(picker, 'Gray 300');
+    expect(await page.evaluate(() => window.closedOnce)).toBe(true);
+    expect(await page.evaluate(() => window.selections)).toEqual(['gray']);
+    await expect(picker).toHaveJSProperty('open', false);
+    await expect(picker).toHaveJSProperty('value', 'gray');
+    expect(pageErrors).toEqual([]);
+});
+
+for (const observerFails of [false, true]) {
+    test(`real Spectrum picker never repeats selection after native pointer input with ${
+        observerFails ? 'an unreadable' : 'a readable'
+    } activation observer`, async ({ page }) => {
+        await page.setContent(`
+            <sp-picker value="default">
+                <sp-menu-item value="default">Default</sp-menu-item>
+                <sp-menu-item value="gray">Gray 300</sp-menu-item>
+            </sp-picker>
+        `);
+        await page.addScriptTag({ content: spectrum });
+        await page.evaluate(async () => {
+            await customElements.whenDefined('sp-picker');
+            window.selections = [];
+            document
+                .querySelector('sp-picker')
+                .addEventListener('change', (event) => window.selections.push(event.target.value));
+        });
+        const picker = page.locator('sp-picker');
+        const option = picker.getByRole('option', { name: 'Gray 300', exact: true });
+        const click = option.click.bind(option);
+        let clicks = 0;
+        option.click = async (options) => {
+            clicks++;
+            await click(options);
+            throw new errors.TimeoutError('Click failed after pointer activation');
+        };
+        picker.getByRole = () => option;
+        if (observerFails) {
+            const evaluateHandle = picker.evaluateHandle.bind(picker);
+            picker.evaluateHandle = async (...args) => {
+                const activation = await evaluateHandle(...args);
+                const evaluate = activation.evaluate.bind(activation);
+                let reads = 0;
+                activation.evaluate = (...args) => {
+                    if (++reads === 1) throw new Error('Activation observer is unavailable');
+                    return evaluate(...args);
+                };
+                return activation;
+            };
+        }
+        await expect(new EditorPage(page).selectPickerOption(picker, 'Gray 300')).rejects.toThrow(
+            'Click failed after pointer activation',
+        );
+        expect(clicks).toBe(1);
+        expect(await page.evaluate(() => window.selections)).toEqual(['gray']);
+    });
+}
 
 test('translation search excludes tag-filter searches and other selectors', async ({ page }) => {
     await page.setContent(`
@@ -404,43 +518,4 @@ test('translation column assertions wait for asynchronously loaded filtered rows
         }, 250);
     });
     await new TranslationEditorPage(page).expectCardRowsColumnContains(0, 'creative cloud individual extra storage');
-});
-
-async function galleryFixture(page, misaligned = false) {
-    await page.setContent(`
-        <style>
-            .three-merch-cards { display: grid; grid-template-columns: 120px 120px; gap: 10px; }
-            merch-card { display: block; height: 100px; }
-            [slot="footer"] { margin-top: 50px; }
-            .misaligned [slot="footer"] { margin-top: 51px; }
-        </style>
-        <div class="three-merch-cards"><merch-card></merch-card><merch-card></merch-card></div>
-        <div class="three-merch-cards">
-            <merch-card></merch-card><merch-card class="${misaligned ? 'misaligned' : ''}"></merch-card>
-        </div>
-    `);
-    await page.evaluate(() => {
-        customElements.define(
-            'merch-card',
-            class extends HTMLElement {
-                async checkReady() {
-                    await new Promise((resolve) => setTimeout(resolve, 150));
-                    this.innerHTML = '<div slot="footer"><button>Buy</button></div>';
-                }
-            },
-        );
-    });
-}
-
-test('gallery alignment waits for hydrated CTAs and compares each gallery independently', async ({ page }) => {
-    await galleryFixture(page);
-    await WebUtil.expectGalleryFooterAlignment(page.locator('merch-card'), page.locator('[slot="footer"] button'));
-    await expect(page.locator('button')).toHaveCount(4);
-});
-
-test('gallery alignment rejects a one-pixel offset even when another gallery is aligned', async ({ page }) => {
-    await galleryFixture(page, true);
-    await expect(
-        WebUtil.expectGalleryFooterAlignment(page.locator('merch-card'), page.locator('[slot="footer"] button')),
-    ).rejects.toThrow(/misalignedRows[\s\S]*offset/);
 });

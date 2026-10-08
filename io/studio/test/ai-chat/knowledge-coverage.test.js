@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const { loadRealCorpus, requireRealCorpus } = require('./real-corpus.js');
 
 /**
  * Can the corpus actually answer the questions users ask?
@@ -89,18 +90,16 @@ async function answersAbout(question, marker) {
 }
 
 describe('ai-chat/knowledge coverage', () => {
-    before(async () => {
-        const [{ LocalKnowledgeRetriever }, { KNOWLEDGE_CHUNKS }] = await Promise.all([
-            import('../../src/ai-chat/knowledge-retriever.js'),
-            import('../../src/ai-chat/knowledge-corpus.js'),
-        ]);
+    before(async function () {
+        const KNOWLEDGE_CHUNKS = await requireRealCorpus(this);
+        const { LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js');
         const retriever = new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
         retrieve = (question) => retriever.queryWithSources(question, PROD_RETRIEVAL);
     });
 
     it('runs against the real corpus, not a fixture', async () => {
-        const { KNOWLEDGE_CHUNKS } = await import('../../src/ai-chat/knowledge-corpus.js');
-        expect(KNOWLEDGE_CHUNKS.length, 'corpus looks too small to be the real one').to.be.above(50);
+        const { chunks } = await loadRealCorpus();
+        expect(chunks.length, 'corpus looks too small to be the real one').to.be.above(50);
     });
 
     for (const [question, marker] of PROBES) {

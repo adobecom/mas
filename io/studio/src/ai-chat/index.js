@@ -26,7 +26,7 @@ import { handleOperation, withResolvedArrangementCode } from './operations-handl
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig } from './variant-configs.js';
 import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
-import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
+import { ALL_KNOWLEDGE_CHUNKS } from './knowledge-chunks.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, buildSearchTool, ROUTING_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
@@ -343,7 +343,7 @@ function createKnowledgeClient(params) {
     if (params.RAG_ENABLED === 'false') {
         return null;
     }
-    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
+    return new LocalKnowledgeRetriever(ALL_KNOWLEDGE_CHUNKS);
 }
 
 /**

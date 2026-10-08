@@ -97,6 +97,7 @@ test('EDS pacing covers preview and custom MAS hosts and defaults to 45 RPS outs
         CI: process.env.CI,
         NALA_EDS_MAX_RPS: process.env.NALA_EDS_MAX_RPS,
         NALA_EDS_THROTTLE_DISABLED: process.env.NALA_EDS_THROTTLE_DISABLED,
+        NALA_TOTAL_WORKERS: process.env.NALA_TOTAL_WORKERS,
     };
     t.after(() => {
         for (const [name, value] of Object.entries(previous)) {
@@ -106,6 +107,7 @@ test('EDS pacing covers preview and custom MAS hosts and defaults to 45 RPS outs
     });
     delete process.env.NALA_EDS_MAX_RPS;
     delete process.env.NALA_EDS_THROTTLE_DISABLED;
+    delete process.env.NALA_TOTAL_WORKERS;
     for (const ci of ['', '1', 'true']) {
         process.env.CI = ci;
         assert.equal(resolveEdsMaxRps(), 45);
@@ -211,7 +213,7 @@ test('authentication logs native 429s without blocking subsequent sign-in reques
     assert.equal(continued, 1);
     assert.equal(warnings.mock.calls.length, 1);
     const message = warnings.mock.calls[0].arguments[0];
-    assert.match(message, /HTTP 429 POST .*signin\/v1\/audit; Retry-After: 60/);
+    assert.match(message, /HTTP 429 POST .*signin\/v1\/audit; .*Retry-After: 60/);
     assert.match(message, /logging only \(no Nala cooldown\)/);
     assert.doesNotMatch(message, /do-not-log/);
 });
@@ -274,7 +276,11 @@ test('native 429 cooldowns apply to every origin, including IMS and other third-
             });
         }
         assert.equal(continued, 2);
-        assert.deepEqual(delays.slice(before), [60000, 100], `${origin}: honor Retry-After and stagger recovery`);
+        assert.deepEqual(
+            delays.slice(before),
+            [60000, origin.endsWith('.adobeaemcloud.com') ? 200 : 100],
+            `${origin}: honor Retry-After and stagger recovery`,
+        );
         const message = warnings.mock.calls.at(-1).arguments[0];
         assert.match(message, /HTTP 429 POST/);
         assert.match(message, /Retry-After: 60/);

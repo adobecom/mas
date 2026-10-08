@@ -22,6 +22,7 @@ export default class BaseReporter {
     constructor(options) {
         this.options = options;
         this.results = [];
+        this.resultIndices = new Map();
         this.passedTests = 0;
         this.failedTests = 0;
         this.skippedTests = 0;
@@ -33,16 +34,12 @@ export default class BaseReporter {
     }
 
     async onTestEnd(test, result) {
-        const { title, retries, _projectId, annotations } = test;
+        const { title, _projectId, annotations } = test;
         const { name, tags, url, browser, env, branch, repo } = this.parseTestTitle(title, _projectId);
         const { status, duration, error, retry } = result;
         const errorMessage = error?.message;
         const errorValue = error?.value;
         const errorStack = error?.stack;
-
-        if (retry < retries && status === 'failed') {
-            return;
-        }
 
         // Extract test page URL from test annotations
         const testPageAnnotation = annotations?.find((a) => a.type === 'test-page-url');
@@ -51,7 +48,7 @@ export default class BaseReporter {
         // Extract line number and content from Playwright's error.snippet
         let failedLineNumber = null;
         let failedLineContent = null;
-        if (error && status === 'failed' && error.snippet) {
+        if (error && failedStatus.includes(status) && error.snippet) {
             // Extract line number from error.location
             failedLineNumber = error.location?.line?.toString();
 
@@ -70,7 +67,7 @@ export default class BaseReporter {
             }
         }
 
-        this.results.push({
+        const record = {
             title,
             name,
             tags,
@@ -90,7 +87,19 @@ export default class BaseReporter {
             testPageUrl,
             failedLineNumber,
             failedLineContent,
-        });
+        };
+        const key = test.id ?? test;
+        const index = this.resultIndices.get(key);
+        if (index === undefined) {
+            this.resultIndices.set(key, this.results.length);
+            this.results.push(record);
+        } else {
+            const previous = this.results[index].status;
+            if (previous === 'passed') this.passedTests--;
+            else if (previous === 'failed') this.failedTests--;
+            else if (previous === 'skipped') this.skippedTests--;
+            this.results[index] = record;
+        }
         if (status === 'passed') {
             this.passedTests++;
         } else if (failedStatus.includes(status)) {

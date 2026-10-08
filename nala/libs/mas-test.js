@@ -1,6 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
-import { installEdsThrottleOnPage, removePageRoutes } from './eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes, getPageRouteMetrics } from './eds-throttle.js';
 import { setCurrentTestName, setCurrentTestAttempt } from '../utils/fragment-tracker.js';
 import { trackFragmentResponses } from '../utils/fragment-ledger.js';
 import StudioPage from '../studio/studio.page.js';
@@ -122,32 +122,35 @@ const masTest = base.extend({
         try {
             await use(page);
         } finally {
-            await removePageRoutes(page);
-            // Store test page in testInfo for base reporter if test failed
-            if (testInfo.status === 'failed' && currentTestPage) {
-                testInfo.annotations.push({
-                    type: 'test-page-url',
-                    description: currentTestPage,
+            try {
+                await removePageRoutes(page, stopTrackingFragments);
+            } finally {
+                // Store test page in testInfo for base reporter if test failed
+                if (['failed', 'timedOut', 'interrupted'].includes(testInfo.status) && currentTestPage) {
+                    testInfo.annotations.push({
+                        type: 'test-page-url',
+                        description: currentTestPage,
+                    });
+                }
+
+                // Always save request count
+                stopCounting();
+                GlobalRequestCounter.saveCountToFileSync();
+                const resources = getResourceMetrics();
+                await testInfo.attach('Setup request savings', {
+                    body: JSON.stringify({
+                        staticCacheHits: resources.cacheHits - resourcesBefore.cacheHits,
+                        staticUpstreamRequests: resources.upstreamRequests - resourcesBefore.upstreamRequests,
+                        coldEditorLoads: editorBootstrapCache.metrics.coldLoads - bootstrapBefore.coldLoads,
+                        reusedEditorLoads: editorBootstrapCache.metrics.reusedLoads - bootstrapBefore.reusedLoads,
+                        replayedOdinReads: editorBootstrapCache.metrics.replayedReads - bootstrapBefore.replayedReads,
+                        cloneSourcesCreated: cloneSourceCache.metrics.created - cloneSourcesBefore.created,
+                        cloneSourcesReused: cloneSourceCache.metrics.reused - cloneSourcesBefore.reused,
+                        ...getPageRouteMetrics(page),
+                    }),
+                    contentType: 'application/json',
                 });
             }
-
-            // Always save request count
-            stopCounting();
-            GlobalRequestCounter.saveCountToFileSync();
-            const resources = getResourceMetrics();
-            await testInfo.attach('Setup request savings', {
-                body: JSON.stringify({
-                    staticCacheHits: resources.cacheHits - resourcesBefore.cacheHits,
-                    staticUpstreamRequests: resources.upstreamRequests - resourcesBefore.upstreamRequests,
-                    coldEditorLoads: editorBootstrapCache.metrics.coldLoads - bootstrapBefore.coldLoads,
-                    reusedEditorLoads: editorBootstrapCache.metrics.reusedLoads - bootstrapBefore.reusedLoads,
-                    replayedOdinReads: editorBootstrapCache.metrics.replayedReads - bootstrapBefore.replayedReads,
-                    cloneSourcesCreated: cloneSourceCache.metrics.created - cloneSourcesBefore.created,
-                    cloneSourcesReused: cloneSourceCache.metrics.reused - cloneSourcesBefore.reused,
-                }),
-                contentType: 'application/json',
-            });
-            await stopTrackingFragments();
         }
     },
 });

@@ -110,7 +110,10 @@ Workers replay only those current-run assets. HAR files are never committed, reu
 from a CI cache, and global setup's teardown removes them after the run (interrupted runs can leave unused files).
 Unrecorded assets fall back to the network and the bounded worker-local static cache; fonts and images also use that cache.
 Documents, authenticated/cookie-bearing requests, API responses, errors and private/no-store responses are not cached.
-Nala drains its active static/API route handlers before removing interception or closing pages.
+At test completion Nala cancels that page's queued reads and closes only its owned page, without draining irrelevant
+background reads. Native author mutations and creation-ledger response payloads settle before closure within a 30-second
+teardown budget; failed mutations remain failures. In-flight static loads belong to their page, while completed public
+responses can be shared within the worker, so closing one page cannot poison another page's load.
 Worker-scoped Docs pages also drain handlers between tests so background requests remain attributed to the owning test.
 Missing (HTTP 404) seed assets are reported and excluded from HAR; their test requests stay live, so caching does not
 block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
@@ -121,13 +124,15 @@ it stops at teardown and is never reused between runs or PRs. Subsequent request
 including IMS, Odin and third-party services on test and HAR seed pages; no hosts are excluded.
 After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
 This recovery spacing is not an assumption about the service's published limit; unrelated origins remain independent.
-Odin preview is paced from the first upstream request across the entire run, initially at 10 request starts/second.
-Intercepted preview reads additionally share three in-flight permits across workers; cached assets use neither budget.
+Intercepted test Odin author and preview traffic share a budget from the first request, initially 10 request starts/second locally.
+Intercepted reads additionally share three in-flight permits across the invocation's workers; cached assets use neither budget.
 `NALA_ODIN_PREVIEW_MAX_RPS` and `NALA_ODIN_PREVIEW_MAX_IN_FLIGHT` tune these positive, run-wide budgets, not per-worker limits.
-These are benchmark starting points, not published Odin limits. One 429 burst halves the preview rate once;
+These are benchmark starting points, not published Odin limits. One 429 burst halves the shared rate once;
 repeated responses extend the shared cooldown without repeatedly halving it. Adaptive spacing is bounded at 1 second
-(or the configured spacing if already slower). After at least 20 successful reads and 10 seconds of recovery,
-the rate increases gradually, never above its configured maximum. Other origins retain their existing recovery spacing.
+(or the configured spacing if already slower). After at least 20 non-throttled responses (including expected 404s) and
+10 seconds of recovery, the rate increases by 1 RPS, never above its configured maximum.
+Queued page owners receive round-robin grants; cancelling one owner's reads does not cancel another owner's requests.
+Other origins retain their existing recovery spacing.
 Permits cover the upstream fetch only: they are released on success or transport failure and before retry waiting.
 Intercepted preview fetches are bounded at 60 seconds; other hosts keep their existing fetch timeout.
 Abandoned permits expire with a logged warning after 90 seconds.
@@ -139,12 +144,22 @@ The authentication page logs native 429s without adding cooldowns, leaving IMS's
 Its public static asset requests still honor cooldowns and the existing EDS pacing.
 Authentication submits each form once and waits within the existing 180-second setup budget, including cooldowns.
 Public static GETs and eligible fetch/XHR GETs retry a 429 once after cooldown, including live Odin reads.
+Eligible GETs also retry a recognized transient connection reset once, within the same two-attempt limit.
+Cancelled requests and timeouts are not retried. Native HTTP 503/529 responses with `Retry-After` coordinate subsequent
+cooldowns but still reach the application unchanged; overload responses are not converted into successes.
 API responses are never cached; persistent 429s reach the browser unchanged.
 Transport failures on intercepted API reads are logged and returned as failed browser requests, not successful responses.
 Cookie-setting responses are neither retried nor cached. Authentication endpoints, streaming/range reads, documents and writes
 are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
-Remaining EDS requests are paced at 45 RPS per worker locally and in CI, including `.aem.page` previews.
-Worker counts are unchanged; concurrent jobs/runs still multiply the pacing budget.
+Remaining EDS requests are paced at 45 RPS per worker locally, including `.aem.page` previews.
+CI sets `NALA_TOTAL_WORKERS=12` for the fixed runner pool: Studio shards use 4, 4 and 3 workers on three distinct
+pinned runners, while Docs uses one worker. EDS divides 180 RPS over that pool (15 RPS per worker).
+Odin partitions `NALA_ODIN_MAX_RPS` (default 20 RPS) by `NALA_WORKER_COUNT / NALA_TOTAL_WORKERS`; each shard's
+independent cleanup retains its allocation. Explicit per-worker EDS or per-invocation Odin overrides replace these defaults.
+Studio selection is complete and disjoint: save suites and OST/sandbox go to the first shard, non-save
+acom/ahome/ccd/commerce to the second, and all remaining suites to the third. Existing tags and `nopr` exclusions still apply.
+Each shard authenticates independently and records its own fresh HAR; neither HAR nor authentication state is shared
+between shards or PRs. Concurrent PR suites are not globally serialized.
 Studio rich-text edits use native field input and wait for the editor model to commit, not only the editable DOM.
 Clears verify that native select-all covers the document's editable bounds before sending one delete, without requiring
 a particular ProseMirror selection type. Shared picker selection recovers opening/actionability failures only before native
@@ -158,15 +173,20 @@ mistaken for permanent contrast failures. Infinite animations do not block scans
 Translation search uses an already-loaded baseline card or this run's immutable source, never another run's temporary cards.
 Filter checks verify both pending and committed picker selections, rather than treating a closed popover as success.
 Inventory updates that reset selections still fail these checks; application behavior is not changed or retried.
-The coordinator is local to one invocation: separate machines do not share service budgets or cooldowns.
+The coordinator is local to one invocation: separate machines do not share dynamic cooldowns.
+Static CI allocations bound participating jobs because each pinned runner executes one job at a time, including when
+different PR shards overlap. This is not a deployed distributed coordinator: legacy workflows, external/local runs and
+additional runner instances are outside that bound and require adoption or a revised allocation.
 Per-test attachments report static hits (including HAR), cold/reused editor loads and replayed Odin reads;
 the request summary includes AEM author and Odin preview separately, with retries included in upstream totals.
 A separate per-origin rate-limit summary reports every observed 429, GET retries and summed request pacing/cooldown waits
 (not wall-clock time). Native authentication 429s remain visible in the console.
 An Odin pressure summary and `test-results/odin-pressure.json` also record the entire run, including setup:
 the coordinator's wall-clock observation window, scheduled upstream reads, peak scheduled starts/second,
-peak read concurrency, mean/max fetch latency, summed queue waiting,
+peak read concurrency, mean/max fetch latency, summed and mean/max queue waiting, queued/cancelled acquisitions,
 sanitized endpoint counts and observed user agents. No query strings, credentials or response bodies are retained.
+Per-test attachments include cancelled reads, outstanding route handlers and owned teardown time.
+Retried timeout attempts do not inflate the final failed-test count.
 Studio CI prints the styled Nala summary and test-only request/pressure totals immediately after the test suite.
 The independent cleanup step prints its own outcomes and maintenance-only request/pressure totals.
 CI cleanup uses its own fresh coordinator and records `test-results/odin-pressure-cleanup.json`; pressure measurements

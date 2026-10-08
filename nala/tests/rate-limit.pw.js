@@ -36,6 +36,11 @@ test.beforeAll(async () => {
             request.socket.destroy();
             return;
         }
+        if (pathname.startsWith('/overload-')) {
+            response.writeHead(Number(pathname.split('-').at(-1)), { 'retry-after': '0.1' });
+            response.end('overloaded');
+            return;
+        }
         if (pathname === '/login') {
             response.writeHead(200, { 'content-type': 'text/html' });
             response.end(`
@@ -286,7 +291,27 @@ test('contexts share a cooldown and release queued API reads without a recovery 
     }
 });
 
-test('API transport failures remain browser failures without leaking headers or retrying', async ({ page }) => {
+for (const status of [503, 529]) {
+    test(`HTTP ${status} with Retry-After stays visible and paces the next read without retrying`, async ({ page }) => {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        const response = await page.evaluate(async (status) => {
+            const response = await fetch(`/overload-${status}`);
+            return { status: response.status, body: await response.text() };
+        }, status);
+        expect(response).toEqual({ status, body: 'overloaded' });
+        expect(requests.get(`/overload-${status}`)).toHaveLength(1);
+        await page.evaluate((status) => fetch(`/after-overload-${status}`), status);
+        expect(
+            requests.get(`/after-overload-${status}`)[0].time - requests.get(`/overload-${status}`)[0].time,
+        ).toBeGreaterThanOrEqual(100);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain(`HTTP ${status} GET`);
+        expect(getRateLimitMetrics()[baseURL][`responses${status}`]).toBe(1);
+    });
+}
+
+test('persistent API connection resets fail after one bounded retry without leaking headers', async ({ page }) => {
     await installEdsThrottleOnPage(page);
     await page.goto(baseURL);
     const failure = page.waitForEvent('requestfailed', (request) => request.url().includes('/reset-read'));
@@ -300,10 +325,11 @@ test('API transport failures remain browser failures without leaking headers or 
     });
     expect(result).toBe('browser network failure');
     await failure;
-    expect(requests.get('/reset-read')).toHaveLength(1);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('GET network failure');
-    expect(warnings[0]).not.toContain('do-not-log');
+    expect(requests.get('/reset-read')).toHaveLength(2);
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain('transient connection failure; retrying once');
+    expect(warnings[1]).toContain('GET network failure');
+    for (const warning of warnings) expect(warning).not.toContain('do-not-log');
 });
 
 for (const nativeCooldowns of [true, false]) {
@@ -339,6 +365,9 @@ for (const nativeCooldowns of [true, false]) {
         }
         expect(warnings).toHaveLength(2);
         const policy = nativeCooldowns ? 'cooldown 60s' : 'logging only (no Nala cooldown)';
-        expect(warnings[0]).toContain(`HTTP 429 POST ${baseURL}/signin/v1/audit; Retry-After: 60; ${policy}.`);
+        expect(warnings[0]).toContain(`HTTP 429 POST ${baseURL}/signin/v1/audit;`);
+        expect(warnings[0]).toContain(`Retry-After: 60; ${policy}.`);
+        expect(warnings[0]).toContain('time:');
+        expect(warnings[0]).toContain('worker:');
     });
 }

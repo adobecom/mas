@@ -6,7 +6,12 @@ import { EventEmitter } from 'node:events';
 import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, unlinkSync, rmdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import initializeRateLimitCoordinator, { coordinateRateLimit, OriginRateLimits } from '../libs/rate-limit-coordinator.js';
+import initializeRateLimitCoordinator, {
+    coordinateRateLimit,
+    OriginRateLimits,
+    resolveOdinMaxRps,
+} from '../libs/rate-limit-coordinator.js';
+import { resolveEdsMaxRps } from '../libs/eds-throttle.js';
 import { logRateLimitedResponses, waitForRateLimit, fetchWithRateLimitRetry } from '../libs/rate-limit.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import RequestCountingReporter, { drainReporterOutput } from '../utils/request-counting-reporter.js';
@@ -61,6 +66,7 @@ for (const cleanup of ['skipped', 'empty', 'failed', 'completed']) {
                 const page = new EventEmitter();
                 page.route = async () => {};
                 page.unrouteAll = async () => {};
+                page.close = async () => {};
                 page.goto = async () => {};
                 page.waitForFunction = async () => {};
                 page.locator = () => ({ evaluate: async () => fragmentsUrl });
@@ -205,16 +211,14 @@ for (const cleanup of ['skipped', 'empty', 'failed', 'completed']) {
 }
 
 test('preview starts are spaced globally before the first 429', async (t) => {
-    let now = 1000;
-    t.mock.method(Date, 'now', () => now);
-    t.mock.method(globalThis, 'setTimeout', (resolve, delay) => {
-        now += delay;
-        resolve();
-    });
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1000 });
     const limits = new OriginRateLimits();
     const origin = 'https://odinpreview.corp.adobe.com';
     const read = { path: '/read', userAgent: 'Nala' };
-    const permits = await Promise.all(Array.from({ length: 3 }, () => limits.wait(origin, read)));
+    const pending = Promise.all(Array.from({ length: 3 }, () => limits.wait(origin, read)));
+    t.mock.timers.tick(100);
+    t.mock.timers.tick(100);
+    const permits = await pending;
     assert.deepEqual(
         permits.map(({ waitMs }) => waitMs),
         [0, 100, 200],
@@ -279,16 +283,165 @@ test('independent worker processes share preview concurrency and persist sanitiz
 });
 
 test('recovery grants are spaced at least 100ms apart even for already queued requests', async (t) => {
-    let now = 1000;
-    t.mock.method(Date, 'now', () => now);
-    t.mock.method(globalThis, 'setTimeout', (resolve, delay) => {
-        now += delay;
-        resolve();
-    });
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1000 });
     const limits = new OriginRateLimits();
     const origin = 'https://service.example';
     limits.cooldown(origin, 2000);
-    assert.deepEqual(await Promise.all([limits.wait(origin), limits.wait(origin), limits.wait(origin)]), [1000, 1100, 1200]);
+    const pending = Promise.all([limits.wait(origin), limits.wait(origin), limits.wait(origin)]);
+    t.mock.timers.tick(1000);
+    t.mock.timers.tick(100);
+    t.mock.timers.tick(100);
+    assert.deepEqual(await pending, [1000, 1100, 1200]);
+});
+
+test('CI allocations bound the complete fixed pool without changing local defaults', (t) => {
+    for (const key of [
+        'NALA_TOTAL_WORKERS',
+        'NALA_WORKER_COUNT',
+        'NALA_ODIN_MAX_RPS',
+        'NALA_ODIN_PREVIEW_MAX_RPS',
+        'NALA_EDS_MAX_RPS',
+        'NALA_EDS_THROTTLE_DISABLED',
+    ]) {
+        const previous = process.env[key];
+        delete process.env[key];
+        t.after(() => {
+            if (previous === undefined) delete process.env[key];
+            else process.env[key] = previous;
+        });
+    }
+    assert.equal(resolveOdinMaxRps(), 10);
+    assert.equal(resolveEdsMaxRps(), 45);
+    process.env.NALA_TOTAL_WORKERS = '12';
+    let total = 0;
+    for (const workers of [4, 4, 3, 1]) {
+        process.env.NALA_WORKER_COUNT = String(workers);
+        total += resolveOdinMaxRps();
+    }
+    assert.ok(Math.abs(total - 20) < 1e-12);
+    assert.equal(resolveEdsMaxRps() * 12, 180);
+    process.env.NALA_WORKER_COUNT = '13';
+    assert.throws(resolveOdinMaxRps, /worker allocation/);
+    process.env.NALA_TOTAL_WORKERS = 'bad';
+    assert.throws(resolveEdsMaxRps, /worker allocation/);
+});
+
+test('queued page owners receive round-robin grants without starving a third page', async () => {
+    const origin = 'https://odinpreview.corp.adobe.com';
+    const limits = new OriginRateLimits({ maxRps: 1000, maxInFlight: 1 });
+    const held = await limits.wait(origin, { owner: 'seed', path: '/seed' });
+    const order = [];
+    const pending = ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c'].map((owner) =>
+        limits.wait(origin, { owner, path: `/${owner}` }).then((permit) => {
+            order.push(owner);
+            limits.release(origin, permit.id, 200, 1);
+        }),
+    );
+    limits.release(origin, held.id, 200, 1);
+    await Promise.all(pending);
+    assert.deepEqual(order, ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
+});
+
+test('cancelled queued reads consume no permit and author/preview share the remaining capacity', async () => {
+    const preview = 'https://odinpreview.corp.adobe.com';
+    const author = 'https://author-test.adobeaemcloud.com';
+    const limits = new OriginRateLimits({ maxRps: 1000, maxInFlight: 1 });
+    const held = await limits.wait(preview, { path: '/held' });
+    const controller = new AbortController();
+    const abandoned = limits.wait(author, { path: '/abandoned', owner: 'closing' }, { signal: controller.signal });
+    const rejected = assert.rejects(abandoned, { name: 'AbortError' });
+    const live = limits.wait(author, { path: '/live', owner: 'other' });
+    controller.abort();
+    await rejected;
+    assert.equal(limits.snapshot().starts, 1);
+    assert.equal(limits.snapshot().queued, 1);
+    limits.release(preview, held.id, 404, 1);
+    const granted = await live;
+    limits.release(author, granted.id, 200, 1);
+    assert.equal(limits.snapshot().cancelled, 1);
+    assert.equal(limits.snapshot().starts, 2);
+    assert.equal(limits.snapshot().active, 0);
+});
+
+test('cancelled acquisition handoffs release granted capacity and ignore an already removed queue entry', async () => {
+    const origin = 'https://odinpreview.corp.adobe.com';
+    const limits = new OriginRateLimits({ maxRps: 1000, maxInFlight: 1 });
+    await limits.wait(origin, { path: '/handoff', requestId: 'handoff' });
+    limits.cancel(origin, 'handoff');
+    limits.cancel(origin, 'handoff');
+    assert.equal(limits.snapshot().active, 0);
+    const permit = await limits.wait(origin, { path: '/next' });
+    limits.release(origin, permit.id, 200, 1);
+    assert.equal(limits.snapshot().starts, 2);
+});
+
+test('HTTP acquisition disconnects remove queued work before another owner needs it', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'nala-cancel-pressure-'));
+    const origin = 'https://odinpreview.corp.adobe.com';
+    const stop = await initializeRateLimitCoordinator(
+        { projects: [{ outputDir: directory }] },
+        { maxRps: 1000, maxInFlight: 1 },
+    );
+    try {
+        const held = await coordinateRateLimit('acquire', origin, undefined, { path: '/held' });
+        const controller = new AbortController();
+        const abandoned = coordinateRateLimit(
+            'acquire',
+            origin,
+            undefined,
+            { path: '/abandoned' },
+            { signal: controller.signal },
+        );
+        const rejected = assert.rejects(abandoned, { name: 'AbortError' });
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        controller.abort();
+        await rejected;
+        await coordinateRateLimit('release', origin, undefined, { id: held.id, status: 200, latencyMs: 25 });
+        const next = await coordinateRateLimit('acquire', origin, undefined, { path: '/next' });
+        await coordinateRateLimit('release', origin, undefined, { id: next.id, status: 200, latencyMs: 1 });
+    } finally {
+        await stop();
+    }
+    const file = join(directory, 'odin-pressure.json');
+    const pressure = JSON.parse(readFileSync(file, 'utf8'));
+    assert.equal(pressure.starts, 2);
+    assert.equal(pressure.active, 0);
+    assert.equal(pressure.queued, 0);
+    assert.equal(pressure.cancelled, 1);
+    unlinkSync(file);
+    rmdirSync(directory);
+});
+
+for (const status of ['passed', 'failed', 'timedOut', 'interrupted']) {
+    test(`reporter counts final ${status} once after an initial timeout`, async () => {
+        const reporter = new BaseReporter({});
+        reporter.onBegin({ projects: [{ name: 'studio', use: { baseURL: 'https://test--mas--adobecom.aem.live' } }] });
+        const info = { id: 'stable-test', title: '@example,@mas-studio', retries: 1, _projectId: 'studio', annotations: [] };
+        await reporter.onTestEnd(info, { status: 'timedOut', retry: 0, duration: 10 });
+        assert.equal(reporter.results.length, 1);
+        assert.equal(reporter.failedTests, 1);
+        await reporter.onTestEnd({ ...info }, { status, retry: 1, duration: 10 });
+        assert.equal(reporter.results.length, 1);
+        assert.equal(reporter.failedTests, status === 'passed' ? 0 : 1);
+        assert.equal(reporter.passedTests, status === 'passed' ? 1 : 0);
+    });
+}
+
+test('reporter retains an initial timeout if cancellation prevents the configured retry', async () => {
+    const reporter = new BaseReporter({});
+    reporter.onBegin({ projects: [{ name: 'studio', use: { baseURL: 'https://test--mas--adobecom.aem.live' } }] });
+    await reporter.onTestEnd(
+        { id: 'no-retry', title: '@example,@mas-studio', retries: 1, _projectId: 'studio', annotations: [] },
+        {
+            status: 'timedOut',
+            retry: 0,
+            duration: 10,
+            error: { message: 'Timeout', snippet: '> 42 | await save();', location: { line: 42 } },
+        },
+    );
+    assert.equal(reporter.failedTests, 1);
+    assert.equal(reporter.results.length, 1);
+    assert.equal(reporter.results[0].failedLineContent, 'await save();');
 });
 
 async function worker(action, origin, deadline) {
@@ -448,7 +601,7 @@ test('preview requests are paced before any 429 and in-flight capacity is shared
     assert.equal(limits.snapshot().active, 0);
 });
 
-test('preview rate decreases once per burst and recovers only after sustained successful reads', async (t) => {
+test('backend rate decreases once per burst and recovers despite expected 404 reads', async (t) => {
     let now = 1000;
     t.mock.method(Date, 'now', () => now);
     t.mock.method(globalThis, 'setTimeout', (resolve, delay) => {
@@ -465,7 +618,7 @@ test('preview rate decreases once per burst and recovers only after sustained su
     now = 15000;
     for (let index = 0; index < 20; index++) {
         const permit = await limits.wait(origin, { path: '/read', userAgent: 'Nala' });
-        limits.release(origin, permit.id, 200, 10);
+        limits.release(origin, permit.id, index % 2 ? 404 : 200, 10);
     }
     assert.ok(limits.snapshot().currentRps > 2.5);
     assert.ok(limits.snapshot().currentRps <= 10);
@@ -528,3 +681,25 @@ test('read transport failure releases its permit, and a retry reacquires capacit
     assert.equal(attempts, 2);
     assert.equal(result.status(), 200);
 });
+
+for (const [method, message, expectedAttempts] of [
+    ['GET', 'route.fetch: ECONNRESET', 2],
+    ['PUT', 'route.fetch: ECONNRESET', 1],
+    ['GET', 'route.fetch: Timeout 1000ms exceeded', 1],
+]) {
+    test(`${method} ${message} uses exactly ${expectedAttempts} transport attempt(s)`, async (t) => {
+        t.mock.method(console, 'warn', () => {});
+        let attempts = 0;
+        const route = {
+            request: () => ({ url: () => 'https://transport.example/read?token=do-not-log', method: () => method }),
+            fetch: async () => {
+                if (++attempts === 1) throw new Error(message);
+                return { status: () => 200 };
+            },
+        };
+        const operation = fetchWithRateLimitRetry(route, async () => {});
+        if (expectedAttempts === 2) assert.equal((await operation).status(), 200);
+        else await assert.rejects(operation, { message });
+        assert.equal(attempts, expectedAttempts);
+    });
+}

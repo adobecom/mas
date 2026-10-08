@@ -1,4 +1,5 @@
 import { devices } from '@playwright/test';
+import { studioShardTestMatch } from './nala/utils/studio-shards.js';
 
 /** Desktop browser identity shared by Nala tests and standalone cleanup. */
 export const USER_AGENT_DESKTOP =
@@ -49,7 +50,8 @@ const config = {
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
         actionTimeout: 60000,
 
-        trace: 'on-first-retry',
+        // CI traces contain IMS credentials; only screenshots and error context are retained.
+        trace: process.env.CI ? 'off' : 'on-first-retry',
         screenshot: 'only-on-failure',
         baseURL: process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live',
     },
@@ -108,7 +110,9 @@ const config = {
                 args: ['--disable-web-security', '--disable-gpu', '--disable-http2'],
             },
             dependencies: ['setup'],
-            testMatch: /nala\/studio\/.*\.test\.js/,
+            testMatch: process.env.NALA_STUDIO_SHARD
+                ? studioShardTestMatch(process.env.NALA_STUDIO_SHARD)
+                : /nala\/studio\/.*\.test\.js/,
         },
 
         // Project for @mas-docs tests (no authentication required)

@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
 import { test, expect } from '@playwright/test';
 import { EditorBootstrapCache, waitForEditorReady } from '../libs/editor-bootstrap.js';
-import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes, getPageRouteMetrics } from '../libs/eds-throttle.js';
+import initializeRateLimitCoordinator, { coordinateRateLimit } from '../libs/rate-limit-coordinator.js';
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
 import { createWorkerPageSetup } from '../utils/commerce.js';
 import {
@@ -9,6 +10,7 @@ import {
     completeFragmentCreation,
     initializeFragmentLedger,
     readFragmentLedger,
+    trackFragmentResponses,
 } from '../utils/fragment-ledger.js';
 import { createRunId, clearRunId } from '../utils/fragment-tracker.js';
 import { unlinkSync, readdirSync, rmdirSync } from 'node:fs';
@@ -78,6 +80,7 @@ start();
 
 test.beforeAll(async () => {
     documentLoads = [];
+    slowRequestsFinished.clear();
     server = createServer((request, response) => {
         documentLoads.push(request.url);
         if (request.url.startsWith('/slow-asset') || request.url.startsWith('/slow-read')) {
@@ -422,7 +425,7 @@ for (const [name, fixtureTest] of [
     ['Studio', studioTest],
     ['Docs', docsTest],
 ]) {
-    fixtureTest(`${name} fixture finishes pending static routes before closing the page`, async ({ page }, testInfo) => {
+    fixtureTest(`${name} fixture closes its page with pending static reads`, async ({ page }, testInfo) => {
         globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
         const started = new Promise((resolve) => {
             slowAssetStarted = resolve;
@@ -436,37 +439,220 @@ for (const [name, fixtureTest] of [
         await started;
     });
     for (const kind of ['asset', 'read']) {
-        fixtureTest(
-            `${name} fixture drains two pending ${kind} handlers before removing routes`,
-            async ({ page }, testInfo) => {
-                globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
-                let requestsStarted = 0;
-                const started = new Promise((resolve) => {
-                    slowAssetStarted = () => {
-                        if (++requestsStarted === 2) resolve();
-                    };
-                });
-                await page.goto(baseURL);
-                await page.evaluate(
-                    ({ baseURL, name, kind }) => {
-                        for (const suffix of ['first', 'second']) {
-                            const url = `${baseURL}/slow-${kind}-${name}-${suffix}${kind === 'asset' ? '.svg' : ''}`;
-                            if (kind === 'asset') {
-                                const image = new Image();
-                                image.src = url;
-                                document.body.append(image);
-                            } else {
-                                fetch(url).then((response) => response.json());
-                            }
+        fixtureTest(`${name} fixture cancels pending ${kind} handlers during owned teardown`, async ({ page }, testInfo) => {
+            globalThis.requestCounter.counterFile = testInfo.outputPath('request-count.json');
+            let requestsStarted = 0;
+            const started = new Promise((resolve) => {
+                slowAssetStarted = () => {
+                    if (++requestsStarted === 2) resolve();
+                };
+            });
+            await page.goto(baseURL);
+            await page.evaluate(
+                ({ baseURL, name, kind }) => {
+                    for (const suffix of ['first', 'second']) {
+                        const url = `${baseURL}/slow-${kind}-${name}-${suffix}${kind === 'asset' ? '.svg' : ''}`;
+                        if (kind === 'asset') {
+                            const image = new Image();
+                            image.src = url;
+                            document.body.append(image);
+                        } else {
+                            fetch(url).then((response) => response.json());
                         }
-                    },
-                    { baseURL, name, kind },
-                );
-                await started;
-            },
-        );
+                    }
+                },
+                { baseURL, name, kind },
+            );
+            await started;
+        });
     }
 }
+
+for (const method of ['GET', 'POST']) {
+    test(`closing a page cancels its queued author ${method} read without closing another page in the same context`, async ({
+        browser,
+    }) => {
+        const origin = 'https://odinpreview.corp.adobe.com';
+        const previousCoordinator = process.env.NALA_RATE_LIMIT_COORDINATOR;
+        const stop = await initializeRateLimitCoordinator(undefined, { maxRps: 10, maxInFlight: 3 });
+        const held = [];
+        const context = await browser.newContext();
+        try {
+            for (let index = 0; index < 3; index++) {
+                held.push(await coordinateRateLimit('acquire', origin, undefined, { path: `/held-${index}` }));
+            }
+            await coordinateRateLimit('cooldown', origin, Date.now() + 5000);
+            const closing = await context.newPage();
+            const live = await context.newPage();
+            await installEdsThrottleOnPage(closing);
+            await installEdsThrottleOnPage(live);
+            await closing.goto(baseURL);
+            await live.goto(baseURL);
+            await closing.evaluate(
+                ({ author, method }) => {
+                    const path = method === 'POST' ? '/adobe/sites/cf/fragments/search' : '/adobe/sites/cf/models/queued';
+                    fetch(`${author}${path}`, { method }).catch(() => {});
+                },
+                { author: AUTHOR, method },
+            );
+            await expect.poll(() => getPageRouteMetrics(closing).pendingRoutes).toBe(1);
+            await removePageRoutes(closing);
+            await expect.poll(() => getPageRouteMetrics(closing).cancelledReads).toBe(1);
+            expect(closing.isClosed()).toBe(true);
+            expect(getPageRouteMetrics(closing).teardownMs).toBeLessThan(1000);
+            expect(live.isClosed()).toBe(false);
+            await live.goto(`${baseURL}/still-live`);
+            await expect(live.locator('h1')).toHaveText('/still-live');
+        } finally {
+            for (const permit of held) {
+                await coordinateRateLimit('release', origin, undefined, {
+                    id: permit.id,
+                    status: 200,
+                    latencyMs: 1,
+                });
+            }
+            await context.close();
+            await stop();
+            if (previousCoordinator === undefined) delete process.env.NALA_RATE_LIMIT_COORDINATOR;
+            else process.env.NALA_RATE_LIMIT_COORDINATOR = previousCoordinator;
+        }
+    });
+}
+
+test('cancelling an in-flight static load cannot poison another page load or its completed cache entry', async ({
+    browser,
+}) => {
+    const context = await browser.newContext();
+    const pages = [await context.newPage(), await context.newPage()];
+    let upstream = 0;
+    const started = new Promise((resolve) => {
+        slowAssetStarted = () => {
+            if (++upstream === 2) resolve();
+        };
+    });
+    const path = '/slow-asset-isolated-second.svg';
+    try {
+        for (const page of pages) {
+            await installEdsThrottleOnPage(page);
+            await page.goto(baseURL);
+            await page.evaluate((url) => {
+                window.imageLoaded = false;
+                const image = new Image();
+                image.onload = () => {
+                    window.imageLoaded = true;
+                };
+                image.src = url;
+                document.body.append(image);
+            }, `${baseURL}${path}`);
+        }
+        await started;
+        await removePageRoutes(pages[0]);
+        expect(slowRequestsFinished.has(path)).toBe(false);
+        await pages[1].waitForFunction(() => window.imageLoaded);
+        await expect.poll(() => getPageRouteMetrics(pages[0]).cancelledReads).toBe(1);
+        const cached = await context.newPage();
+        await installEdsThrottleOnPage(cached);
+        await cached.goto(baseURL);
+        await cached.evaluate((url) => {
+            const image = new Image();
+            window.imageLoaded = false;
+            image.onload = () => {
+                window.imageLoaded = true;
+            };
+            image.src = url;
+            document.body.append(image);
+        }, `${baseURL}${path}`);
+        await cached.waitForFunction(() => window.imageLoaded);
+        expect(upstream).toBe(2);
+    } finally {
+        await context.close();
+    }
+});
+
+test('owned teardown waits for a native creation mutation and persists its response before closing', async ({ page }) => {
+    const previousRunId = process.env.NALA_RUN_ID;
+    const runId = createRunId();
+    const directory = resolve('nala/.runs', runId);
+    initializeFragmentLedger();
+    const stopTracking = trackFragmentResponses(page);
+    try {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        let mutationStarted;
+        const started = new Promise((resolve) => {
+            mutationStarted = resolve;
+        });
+
+        await page.route(`${AUTHOR}/adobe/sites/cf/fragments`, async (route) => {
+            mutationStarted();
+            await new Promise((done) => setTimeout(done, 200));
+            await route.fulfill({
+                status: 201,
+                headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+                body: JSON.stringify({
+                    id: 'abcd',
+                    path: '/content/dam/mas/nala/en_US/abcd',
+                    title: runId,
+                }),
+            });
+        });
+        beginFragmentCreation('create');
+        await page.evaluate((author) => {
+            fetch(`${author}/adobe/sites/cf/fragments`, { method: 'POST', body: '{}' });
+        }, AUTHOR);
+        await started;
+        let persistedBeforeClose = false;
+        await removePageRoutes(page, async () => {
+            await stopTracking();
+            persistedBeforeClose = !page.isClosed() && readFragmentLedger().fragments.some(({ id }) => id === 'abcd');
+        });
+        expect(persistedBeforeClose).toBe(true);
+        expect(page.isClosed()).toBe(true);
+    } finally {
+        for (const name of readdirSync(directory)) unlinkSync(join(directory, name));
+        rmdirSync(directory);
+        clearRunId();
+        if (previousRunId !== undefined) process.env.NALA_RUN_ID = previousRunId;
+    }
+});
+
+test('owned teardown surfaces a native mutation transport failure and still completes response tracking', async ({ page }) => {
+    await installEdsThrottleOnPage(page);
+    await page.goto(baseURL);
+    let mutationStarted;
+    const started = new Promise((resolve) => {
+        mutationStarted = resolve;
+    });
+    let writes = 0;
+    await page.route(`${AUTHOR}/adobe/sites/cf/fragments/abcd`, async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+            await route.fulfill({
+                headers: {
+                    'access-control-allow-origin': '*',
+                    'access-control-allow-methods': 'PUT',
+                },
+            });
+            return;
+        }
+        writes++;
+        mutationStarted();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        await route.abort('failed');
+    });
+    await page.evaluate((author) => {
+        fetch(`${author}/adobe/sites/cf/fragments/abcd`, { method: 'PUT' }).catch(() => {});
+    }, AUTHOR);
+    await started;
+    let trackingCompleted = false;
+    await expect(
+        removePageRoutes(page, async () => {
+            trackingCompleted = true;
+        }),
+    ).rejects.toThrow('Author mutation transport failed');
+    expect(trackingCompleted).toBe(true);
+    expect(writes).toBe(1);
+    expect(page.isClosed()).toBe(true);
+});
 
 for (const status of [200, 500]) {
     test(`save waits for the live response and refreshed state without a toast (HTTP ${status})`, async ({ page }) => {

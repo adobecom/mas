@@ -57,7 +57,7 @@ export default class RequestCountingReporter {
                         // Store tracked URLs (should be consistent across tests)
                         Object.assign(trackedUrls, data.trackedUrls || {});
                         for (const [origin, counts] of Object.entries(data.rateLimits || {})) {
-                            rateLimits[origin] ??= { responses429: 0, retries: 0, waitMs: 0 };
+                            rateLimits[origin] ??= { responses429: 0, responses503: 0, responses529: 0, retries: 0, waitMs: 0 };
                             for (const [name, count] of Object.entries(counts)) rateLimits[origin][name] += count;
                         }
 
@@ -133,6 +133,11 @@ export default class RequestCountingReporter {
                     `        # HTTP 429s: ${counts.responses429}; GET retries: ${counts.retries}; ` +
                         `pacing/cooldown wait: ${(counts.waitMs / 1000).toFixed(2)}s (summed request waits)`,
                 );
+                if (counts.responses503 || counts.responses529) {
+                    console.log(
+                        `        # Retry-After overload responses: HTTP 503: ${counts.responses503}; HTTP 529: ${counts.responses529}`,
+                    );
+                }
             }
         }
         const pressureFiles = (
@@ -140,11 +145,11 @@ export default class RequestCountingReporter {
                 ? [['odin-pressure-cleanup.json', 'separate CI cleanup']]
                 : [['odin-pressure.json', 'tests, including setup and inline teardown']]
         ).filter(([file]) => existsSync(join(testResultsDir, file)));
-        if (pressureFiles.length) console.log('\n    \x1b[1m\x1b[34m---------Odin Preview Pressure------------\x1b[0m');
+        if (pressureFiles.length) console.log('\n    \x1b[1m\x1b[34m---------Odin Backend Pressure------------\x1b[0m');
         for (const [file, phase] of pressureFiles) {
             const pressureFile = join(testResultsDir, file);
             const pressure = JSON.parse(readFileSync(pressureFile, 'utf8'));
-            console.log(`    ${pressure.origin} (${phase})`);
+            console.log(`    Author + ${pressure.origin} (${phase}; shared budget)`);
             console.log(`        # Observation window: ${(pressure.elapsedMs / 1000).toFixed(2)}s (wall-clock)`);
             console.log(`        # Upstream reads: ${pressure.starts}; peak in-flight: ${pressure.peakInFlight}`);
             console.log(
@@ -157,6 +162,10 @@ export default class RequestCountingReporter {
                     `${(pressure.completed ? pressure.latencyMs / pressure.completed : 0).toFixed(0)}/${pressure.maxLatencyMs}ms`,
             );
             console.log(`        # Queue wait: ${(pressure.waitMs / 1000).toFixed(2)}s (summed request waits)`);
+            console.log(
+                `        # Mean/max queue wait: ${(pressure.starts ? pressure.waitMs / pressure.starts : 0).toFixed(0)}/` +
+                    `${pressure.maxWaitMs ?? 0}ms; cancelled: ${pressure.cancelled ?? 0}; queued: ${pressure.queued ?? 0}`,
+            );
             console.log(`        # User agents: ${pressure.userAgents.join(' | ') || 'no reads'}`);
             for (const [path, count] of Object.entries(pressure.paths)
                 .sort((a, b) => b[1] - a[1])

@@ -52,17 +52,21 @@ export function recordStaticCacheHit() {
 }
 
 /**
- * Share successful static responses and in-flight loads within one worker only.
+ * Share completed responses within a worker; in-flight loads remain page-owned.
  */
-export async function serveStaticResource(route, beforeFetch) {
+export async function serveStaticResource(route, beforeFetch, options = {}) {
     const request = route.request();
     const requestHeaders = await request.allHeaders();
     const key = JSON.stringify([request.url(), ...VARY_HEADERS.map((name) => requestHeaders[name])]);
     const fetchResource = async () => {
-        const response = await fetchWithRateLimitRetry(route, async () => {
-            await beforeFetch();
-            metrics.upstreamRequests++;
-        });
+        const response = await fetchWithRateLimitRetry(
+            route,
+            async () => {
+                await beforeFetch();
+                metrics.upstreamRequests++;
+            },
+            options,
+        );
         try {
             const headers = response.headers();
             const body = await response.body();
@@ -75,24 +79,29 @@ export async function serveStaticResource(route, beforeFetch) {
             await response.dispose();
         }
     };
-    let pending = resources.get(key);
-    const shared = !!pending;
-    if (!pending) {
-        pending = fetchResource();
+    let entry = resources.get(key);
+    const shared = !!entry && (entry.complete || entry.owner === options.owner);
+    if (!shared) {
+        entry = { owner: options.owner, complete: false };
+        entry.pending = fetchResource().then((response) => {
+            entry.complete = true;
+            return response;
+        });
         if (resources.size >= MAX_ENTRIES) resources.delete(resources.keys().next().value);
-        resources.set(key, pending);
+        resources.set(key, entry);
     }
     try {
-        let response = await pending;
+        let response = await entry.pending;
         if (!response.cacheable) {
-            if (resources.get(key) === pending) resources.delete(key);
+            if (resources.get(key) === entry) resources.delete(key);
             if (shared) response = await fetchResource();
         } else if (shared) {
             metrics.cacheHits++;
         }
+        options.signal?.throwIfAborted();
         await route.fulfill(response.result);
     } catch (error) {
-        if (resources.get(key) === pending) resources.delete(key);
+        if (resources.get(key) === entry) resources.delete(key);
         throw error;
     }
 }

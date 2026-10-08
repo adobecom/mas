@@ -92,6 +92,16 @@ if [[ -z "$PROJECT" ]]; then
     fi
 fi
 
+# The config selects exact files without filtering out the setup/teardown dependency projects.
+if [[ -n "$NALA_STUDIO_SHARD" ]]; then
+    if [[ "$PROJECT" != "mas-studio-chromium" ]]; then
+        echo "Studio sharding requires the mas-studio-chromium project." >&2
+        exit 1
+    fi
+    echo "Studio shard: $NALA_STUDIO_SHARD"
+    node ./nala/utils/studio-shards.js "$NALA_STUDIO_SHARD" || exit $?
+fi
+
 # Run Playwright tests on the specific projects using root-level playwright.config.js
 echo "*** Running tests on specific projects ***"
 echo "Using project: $PROJECT"

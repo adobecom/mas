@@ -84,6 +84,7 @@ const OST_TYPE_MAPPING = {
     priceAnnual: 'annual',
     priceOptical: 'optical',
     discount: 'discount',
+    discountAmount: 'discount-amount',
     checkoutUrl: null,
 };
 
@@ -96,6 +97,7 @@ const OST_IS_MAPPING = {
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
     'promo-strikethrough': 'inline-price',
+    'discount-amount': 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {
@@ -240,7 +242,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 searchParameters.append('text', offerElement.innerText);
             }
             const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
-            const isDiscount = offerElement.getAttribute('data-template') === 'discount';
+            const template = offerElement.getAttribute('data-template');
+            const isDiscount = template === 'discount' || template === 'discount-amount';
             // A soft-bundle placeholder carries every bundled OSI comma-joined
             // (and is not a discount, whose second OSI is a reference price).
             // Reopen it in bundle mode with all offers so the author edits the

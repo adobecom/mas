@@ -136,5 +136,17 @@ describe('ai-chat/native search tool', () => {
             });
             expect(env.intent).to.equal('get_card');
         });
+
+        it('normalizes a search routed through emit_envelope with intent search_cards', () => {
+            const env = extractToolEnvelope({
+                success: true,
+                toolUse: {
+                    name: 'emit_envelope',
+                    input: { intent: 'search_cards', slots: { query: 'plans', tags: ['grouped'] }, confidence: 'high' },
+                },
+            });
+            expect(env.intent).to.equal('search_cards');
+            expect(env.slots).to.deep.equal({ variant: 'plans', variationType: 'grouped' });
+        });
     });
 });

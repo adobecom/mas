@@ -107,20 +107,32 @@ export function normalizeEnvelopeText(envelope) {
 
 export function extractToolEnvelope(response) {
     if (!response?.success || !response.toolUse) return null;
-    // The typed search tool is sugar for a search_cards envelope: the model
-    // fills first-class fields, which we route through the same path. Surfaces
-    // are canonicalized to lowercase so getSurfacePath resolves them (the
-    // envelope path does not pass through the operations-handler normalizer).
+
+    let envelope;
     if (response.toolUse.name === SEARCH_TOOL_NAME) {
-        const slots = normalizeSearchSlots({ ...(response.toolUse.input ?? {}) });
+        envelope = { intent: 'search_cards', slots: response.toolUse.input ?? {}, confidence: 'high' };
+    } else if (response.toolUse.name === ENVELOPE_TOOL_NAME) {
+        envelope = response.toolUse.input ?? null;
+    } else {
+        return null;
+    }
+
+    // Normalize a card-search payload whichever tool produced it. The model
+    // reaches emit_search sometimes and emit_envelope with intent search_cards
+    // other times (the enum is a hint the provider does not always enforce), and
+    // misfills the typed fields the same way either path. Surfaces are lowercased
+    // so getSurfacePath resolves them — the envelope path skips the
+    // operations-handler normalizer.
+    if (envelope && envelope.intent === 'search_cards') {
+        const slots = normalizeSearchSlots({ ...(envelope.slots ?? {}) });
         if (typeof slots.surface === 'string') slots.surface = slots.surface.trim().toLowerCase();
         if (Array.isArray(slots.surfaces)) {
             slots.surfaces = slots.surfaces.filter((s) => typeof s === 'string').map((s) => s.trim().toLowerCase());
         }
-        return { intent: 'search_cards', slots, confidence: 'high' };
+        envelope = { ...envelope, slots };
     }
-    if (response.toolUse.name !== ENVELOPE_TOOL_NAME) return null;
-    return response.toolUse.input ?? null;
+
+    return envelope;
 }
 
 export function buildEnvelopeResponseBody(envelope) {

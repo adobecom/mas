@@ -30,6 +30,7 @@ import {
     processBadge,
     processFeatures,
     normalizeVariant,
+    splitParagraphListItems,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -2089,6 +2090,70 @@ describe('merch-badge rendering', () => {
 
         host.remove();
         clone.remove();
+    });
+});
+
+describe('splitParagraphListItems', () => {
+    const run = (html) => {
+        const root = document.createElement('div');
+        root.innerHTML = html;
+        splitParagraphListItems(root);
+        return root.innerHTML;
+    };
+
+    it('splits paragraphs into sibling list items', () => {
+        expect(
+            run('<ul><li>Keep</li><li><p>A</p><p>B</p></li><li>End</li></ul>'),
+        ).to.equal('<ul><li>Keep</li><li>A</li><li>B</li><li>End</li></ul>');
+    });
+
+    it('turns empty paragraphs into empty list items', () => {
+        expect(run('<ul><li><p>A</p><p></p><p>B</p></li></ul>')).to.equal(
+            '<ul><li>A</li><li></li><li>B</li></ul>',
+        );
+    });
+
+    it('preserves inline markup and list attributes', () => {
+        expect(
+            run(
+                '<ul><li class="x"><p>Go <a href="#x">link</a> <strong>b</strong></p><p><em>i</em></p></li></ul>',
+            ),
+        ).to.equal(
+            '<ul><li class="x">Go <a href="#x">link</a> <strong>b</strong></li><li class="x"><em>i</em></li></ul>',
+        );
+    });
+
+    it('leaves plain, mixed and nested items unchanged', () => {
+        const html =
+            '<ul><li>A</li><li>Text <p>A</p></li><li><p>A</p><span>x</span></li><li><p>A</p><ul><li>n</li></ul></li></ul>';
+        expect(run(html)).to.equal(html);
+    });
+
+    it('is idempotent and tolerates a missing root', () => {
+        const root = document.createElement('div');
+        root.innerHTML = '<ul><li><p>A</p><p>B</p></li></ul>';
+        splitParagraphListItems(root);
+        const once = root.innerHTML;
+        splitParagraphListItems(root);
+        expect(root.innerHTML).to.equal(once);
+        expect(() => splitParagraphListItems(null)).to.not.throw();
+    });
+
+    it('splits whatsIncluded but not description in processDescription', () => {
+        const markup = '<ul><li><p>A</p><p>B</p></li></ul>';
+        const card = document.createElement('div');
+        processDescription(
+            { whatsIncluded: markup, description: markup },
+            card,
+            PLANS_AEM_FRAGMENT_MAPPING,
+            {},
+        );
+        expect(
+            card.querySelector('[slot="whats-included"]').innerHTML,
+        ).to.equal('<ul><li>A</li><li>B</li></ul>');
+        expect(card.querySelector('[slot="body-xs"]').innerHTML).to.equal(
+            markup,
+        );
     });
 });
 

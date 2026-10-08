@@ -1328,31 +1328,36 @@
     background: var(--spectrum-global-color-gray-100, #f8f8f8);
 }
 
-/* Title column - flexible with minimum */
+/* Title column - takes the remaining space, shrinks to zero and wraps the long
+ * unbroken offer codes so the row fits a narrow chat panel instead of overflowing. */
 .chat-search-table .title-cell,
 .chat-search-table sp-table-head-cell:first-child {
-    flex: 1;
-    min-width: 200px;
+    flex: 1 1 0;
+    min-width: 0;
     font-weight: 600;
+    overflow-wrap: anywhere;
 }
 
-/* Variant column - fixed width for badges */
+/* Template/locale column - sized for badges but allowed to shrink. */
 .chat-search-table sp-table-cell:nth-child(2),
 .chat-search-table sp-table-head-cell:nth-child(2) {
-    flex: 0 0 160px;
+    flex: 0 1 120px;
+    min-width: 0;
 }
 
-/* Status column - fixed width */
+/* Status column - allowed to shrink. */
 .chat-search-table .status-cell,
 .chat-search-table sp-table-head-cell:nth-child(3) {
-    flex: 0 0 100px;
+    flex: 0 1 90px;
+    min-width: 0;
     text-transform: capitalize;
 }
 
-/* Action column - fixed width for icons */
+/* Action column - sized to its icons and never shrinks, so the open/search
+ * actions stay reachable no matter how narrow the panel gets. */
 .chat-search-table .action-cell,
 .chat-search-table sp-table-head-cell:nth-child(4) {
-    flex: 0 0 80px;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: var(--spectrum-global-dimension-size-150, 12px);

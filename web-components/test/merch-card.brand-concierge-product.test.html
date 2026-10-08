@@ -139,6 +139,73 @@
                         expect(inserted).to.be.false;
                     });
 
+                    for (const template of [
+                        'product-card-wide',
+                        'product-card-narrow',
+                    ]) {
+                        it(`keeps the unit beside the price and the plan on a separate line in ${template}`, async () => {
+                            const [masCommerceService, card] =
+                                getTemplateContent(template);
+                            container.append(masCommerceService, card);
+                            await card.checkReady();
+                            await card.updateComplete;
+                            await card.variantLayout.adjustLegal();
+                            const heading = card.querySelector(
+                                '[slot="heading-xs"]',
+                            );
+                            const main = heading.querySelector(
+                                '[data-template="price"] .price',
+                            );
+                            const legal = heading.querySelector(
+                                '[data-template="legal"]',
+                            );
+                            await legal.onceSettled();
+                            legal.querySelector('.price-legal').innerHTML =
+                                '<span class="price-unit-type">per license</span>' +
+                                '<span class="price-tax-inclusivity disabled"></span>' +
+                                '<span class="price-plan-type">Annual, billed monthly</span>';
+                            const unit =
+                                legal.querySelector('.price-unit-type');
+                            const plan =
+                                legal.querySelector('.price-plan-type');
+                            const mainStyle = getComputedStyle(main);
+                            const unitStyle = getComputedStyle(unit);
+                            const planStyle = getComputedStyle(plan);
+                            for (const property of [
+                                'fontSize',
+                                'lineHeight',
+                                'fontWeight',
+                                'fontFamily',
+                                'color',
+                            ]) {
+                                expect(unitStyle[property], property).to.equal(
+                                    mainStyle[property],
+                                );
+                            }
+                            expect(getComputedStyle(legal).display).to.equal(
+                                'inline',
+                            );
+                            expect(unit.getBoundingClientRect().top).to.equal(
+                                main.getBoundingClientRect().top,
+                            );
+                            expect(planStyle.display).to.equal('block');
+                            expect(planStyle.fontWeight).to.equal('400');
+                            expect(planStyle.fontSize).to.not.equal(
+                                mainStyle.fontSize,
+                            );
+                            expect(planStyle.marginInlineStart).to.equal('0px');
+                            expect(
+                                plan.getBoundingClientRect().top,
+                            ).to.be.greaterThan(
+                                unit.getBoundingClientRect().top,
+                            );
+                            unit.classList.add('disabled');
+                            expect(getComputedStyle(unit).fontWeight).to.equal(
+                                '400',
+                            );
+                        });
+                    }
+
                     it('swallows a clone/resolve failure and leaves the price', async () => {
                         const layout = Object.create(
                             BrandConciergeProduct.prototype,
@@ -182,7 +249,7 @@
                         ).to.not.exist;
                     });
 
-                    it('indents the legal plan type only when per-unit text precedes it', async () => {
+                    it('keeps the legal plan type unindented with or without per-unit text', async () => {
                         const [masCommerceService, card] =
                             getTemplateContent('product-card-wide');
                         container.append(masCommerceService, card);
@@ -191,13 +258,16 @@
                             const legal = document.createElement('span');
                             legal.dataset.template = 'legal';
                             legal.innerHTML = `<span class="price-unit-type ${unitClass}">per license</span><span class="price-plan-type">Annual, billed monthly</span>`;
-                            card.querySelector('[slot="heading-xs"]').append(legal);
-                            return getComputedStyle(legal.querySelector('.price-plan-type'))
-                                .marginInlineStart;
+                            card.querySelector('[slot="heading-xs"]').append(
+                                legal,
+                            );
+                            return getComputedStyle(
+                                legal.querySelector('.price-plan-type'),
+                            ).marginInlineStart;
                         };
-                        expect(planTypeMargin('')).to.not.equal('0px');
+                        expect(planTypeMargin('')).to.equal('0px');
                         expect(planTypeMargin('disabled')).to.equal('0px');
-                    });                    
+                    });
                 });
             });
         </script>

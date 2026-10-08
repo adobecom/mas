@@ -4,11 +4,38 @@ let buildEnvelopeTool;
 let buildSearchTool;
 let SEARCH_TOOL_NAME;
 let extractToolEnvelope;
+let buildPrompt;
+let getIntent;
+let SLOT_VALIDATORS;
 
 describe('ai-chat/native search tool', () => {
     before(async () => {
         ({ buildEnvelopeTool, buildSearchTool, SEARCH_TOOL_NAME } = await import('../../src/ai-chat/tool-definitions.js'));
         ({ extractToolEnvelope } = await import('../../src/ai-chat/envelope-native.js'));
+        ({ buildPrompt } = await import('../../src/ai-chat/prompt-builder.js'));
+        ({ getIntent, SLOT_VALIDATORS } = await import('../../src/ai-chat/intent-registry.js'));
+    });
+
+    describe('search_cards registry exposes variant and variationType', () => {
+        it('lists variant and variationType as search_cards slots', () => {
+            const intent = getIntent('search_cards');
+            expect(intent.optional_slots).to.include('variant');
+            expect(intent.optional_slots).to.include('variationType');
+        });
+
+        it('validates a template name as a variant', () => {
+            expect(SLOT_VALIDATORS.variant('plans')).to.equal(true);
+            expect(SLOT_VALIDATORS.variant('')).to.equal(false);
+        });
+    });
+
+    describe('registry prompt teaches the card-search filters', () => {
+        it('tells the model to call emit_search and maps grouped variations to variationType', () => {
+            const prompt = buildPrompt();
+            expect(prompt).to.contain('emit_search');
+            expect(prompt).to.match(/variationType/);
+            expect(prompt).to.match(/grouped/i);
+        });
     });
 
     describe('buildSearchTool schema', () => {

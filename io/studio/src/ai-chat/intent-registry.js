@@ -32,11 +32,13 @@ export const INTENTS = [
     {
         name: 'search_cards',
         category: 'read-only',
-        description: 'Search the AEM Content Fragment catalog for cards.',
+        description:
+            'Search the card catalog. Filters combine: variant (template, e.g. "plans"), variationType (cards that HAVE grouped/promo/locale variations), query/titleSearch (free text), tags, surface/surfaces, locale.',
         required_slots: [],
         optional_slots: [
             'query',
             'titleSearch',
+            'variant',
             'surface',
             'surfaces',
             'locale',
@@ -49,6 +51,7 @@ export const INTENTS = [
         slot_validators: {
             query: 'string',
             titleSearch: 'boolean',
+            variant: 'variant',
             surface: 'surface',
             surfaces: 'surfaces',
             locale: 'locale',
@@ -423,6 +426,7 @@ export const SLOT_VALIDATORS = {
     offerId: (v) => typeof v === 'string' && /^[A-Fa-f0-9]{32}$/.test(v),
     surface: (v) => v === 'all' || KNOWN_SURFACES.includes(v),
     surfaces: (v) => Array.isArray(v) && v.length > 0 && v.every((s) => KNOWN_SURFACES.includes(s)),
+    variant: (v) => typeof v === 'string' && v.length > 0,
     variationType: (v) =>
         ['all', 'default-locale-only', 'variations-only', 'grouped', 'promo', 'locale-variations'].includes(v),
     locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),

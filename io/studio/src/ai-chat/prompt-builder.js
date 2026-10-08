@@ -54,6 +54,16 @@ TRANSLATION TABLE — map the user's natural-language input to the canonical enu
 Always use the canonical enum — NEVER output "ANNUAL" for commitment (that is a term value, not a commitment value).
 `;
 
+const CARD_SEARCH_GUIDE = `
+CARD SEARCH — to find, list, show, or count cards or fragments, call the emit_search tool (NOT emit_envelope). Map the user's words to its fields and COMBINE them in a single call:
+- a template name ("plans", "plans-students", "catalog", "fries", "ccd-suggested") → variant
+- "grouped" / "pzn" / "personalization" variations → variationType "grouped"; "promo" variations → "promo"; "regional" / "locale" variations → "locale-variations"
+- a product name (e.g. "Photoshop") → resolve it with list_products first, then pass the resulting tag in tags
+- free text, or a specific card title → query (add titleSearch: true for a title match)
+- a surface the user names → surface; "all" or surfaces: [..] to search across surfaces
+A template AND a variation type AND a keyword can all be set at once. A template or variation type is a FIELD — never put it in query. NEVER reply that a filter is unavailable: variant and variationType are first-class fields on emit_search.
+`;
+
 function intentBlock(intent) {
     const slots = [];
     // "none" is load-bearing: dropping it made the model treat an optional
@@ -91,6 +101,7 @@ Answer as practical how-to guidance for using MAS Studio (which page, which step
 REGISTERED INTENTS:
 ${intentsList}
 ${ASK_USER_BLOCK}
+${CARD_SEARCH_GUIDE}
 ${SLOT_VOCABULARIES}
 ${ENVELOPE_CONTRACT}
 `;

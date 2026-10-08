@@ -58,13 +58,5 @@ jobs:
 
             - name: Deployment summary
               run: |
-                  echo "✅ MCP Runtime actions deployed successfully"
-                  echo ""
-                  echo "Deployed actions:"
-                  echo "  - publish-card"
-                  echo "  - unpublish-card"
-                  echo "  - get-card"
-                  echo "  - search-cards"
-                  echo "  - delete-card"
-                  echo "  - copy-card"
-                  echo "  - update-card"
+                  echo "✅ Operations Runtime actions deployed successfully"
+                  echo "See the 'List deployed actions' step above for the live action list."

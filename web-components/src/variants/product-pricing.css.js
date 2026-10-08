@@ -12,6 +12,7 @@ merch-card-collection.product-pricing {
     max-width: 1920px;
     margin-inline: auto;
     gap: 8px;
+    --merch-card-collection-card-min-height: 286px;
 }
 
 /* Studio uses <merch-card-collection>; milo/preview wraps cards in
@@ -165,12 +166,13 @@ merch-card[variant="product-pricing"] [slot="footer"] a {
     box-sizing: border-box;
     border-radius: 999px;
     min-height: 40px;
-    padding: 0 24px;
+    padding: 8px 24px;
     font-size: 14px;
     font-weight: 700;
     text-align: center;
     text-decoration: none;
-    white-space: nowrap;
+    /* Wraps only when the label can't fit (narrow cards, long translations). */
+    overflow-wrap: anywhere;
     background: #3B63FB;
     color: #fff;
     border: none;
